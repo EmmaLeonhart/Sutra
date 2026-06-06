@@ -6,6 +6,17 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: mini WASM machine breadth — SUB/MUL/bitwise-AND opcodes (capstone extension)
+
+Extended the substrate mini-machine from 3 to 6 opcodes (HALT/CONST/ADD/SUB/MUL/AND)
+via nested-blend dispatch. The AND opcode calls the substrate bitwise primitive
+Bits.band on the raw ramRead VECTORS (not the .real() scalars) then projects -> the
+bitwise stdlib composes INSIDE the running machine. Measured (program-as-data):
+10-3=7, 6*7=42, 12&10=8 (bitwise), chained 5*6-2=28. Demonstrates the dispatch
+mechanism scales by opcode breadth and that bitwise integrates. Artifact
+run_mini_machine.py + finding updated. Remaining for the full VM: the rest of the ~32
+opcodes (loads/stores/branches/calls), a scalable RAM device, ground-truth toolchain.
+
 ## 2026-06-06: failwith->sentinel + ground-truth build blocked (deferred-list closeout)
 
 `failwith "…"` lowers to `0` (Sutra's no-runtime-error mechanism — a sentinel on the
