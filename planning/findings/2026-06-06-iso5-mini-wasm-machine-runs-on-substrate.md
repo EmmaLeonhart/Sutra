@@ -8,7 +8,8 @@ arbitrary programs on the Sutra substrate and produces correct results.
 
 `experiments/iso5_substrate_dispatch/mini_wasm_machine.su` — a `step()` function;
 driver `run_mini_machine.py` loads a program into the RAM device and calls `step()`
-once per instruction (the autoregressive model). Opcodes: 1=CONST(imm), 2=ADD, 0=HALT.
+once per instruction (the autoregressive model). Opcodes: 0=HALT, 1=CONST(imm),
+2=ADD, 3=SUB, 4=MUL, 5=AND (bitwise — uses the `Bits.band` substrate primitive).
 
 Measured (program-as-data — same machine, different RAM contents):
 
@@ -19,6 +20,10 @@ Measured (program-as-data — same machine, different RAM contents):
 | const 9; const 9; add | **18** | 18 |
 | const 100; const 23; add | **123** | 123 |
 | const 1; const 2; add; const 3; add | **6** | 6 |
+| const 10; const 3; sub | **7** | 7 |
+| const 6; const 7; mul | **42** | 42 |
+| const 12; const 10; **and** (bitwise) | **8** | 8 |
+| const 5; const 6; mul; const 2; sub | **28** | 28 |
 
 It is a genuine interpreter: the program lives in RAM as data, not in the code.
 
@@ -42,15 +47,16 @@ It is a genuine interpreter: the program lives in RAM as data, not in the code.
 
 ## Primitives this composes (all shipped 2026-06-06)
 
-- substrate bitwise `band/bor/bxor` (`stdlib/bitwise.su`) — for byte opcodes (not
-  exercised by this 3-opcode demo, but available; `+`/`*` cover const/add).
+- substrate bitwise `band/bor/bxor` (`stdlib/bitwise.su`) — the AND opcode calls
+  `Bits.band` on the raw ramRead VECTORS (not the `.real()` scalars) inside the
+  machine: `12 & 10 = 8` measured. Bitwise composes inside the running machine.
 - OCaml arrays → RAM lowering + RAM-device hardening (scalar-address decode,
   value-coercion to number-vector).
 - RAM-based fetch-execute dispatch (this finding).
 
 ## Scope / what's not claimed
 
-This is a 3-opcode (CONST/ADD/HALT) hand-written machine demonstrating the
+This is a 6-opcode (HALT/CONST/ADD/SUB/MUL/AND) hand-written machine demonstrating the
 mechanism end-to-end, NOT the full 35-opcode transformer-vm. The full machine adds
 the remaining opcodes (loads/stores/branches/calls — more of the same blended
 dispatch + RAM), byte/bitwise arithmetic (bitwise stdlib ready), and a larger
