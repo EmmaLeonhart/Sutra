@@ -141,6 +141,7 @@ _RUNNABLE_FIXTURES = {
     "bool_ops": 100.0,     # main () = test true false  (&& || not in a condition)
     "toplevel_const": 50.0,  # main () = (300 - mask) + bump  (top-level value bindings; hex 0xFF -> 255)
     "seq_mut": 15.0,  # main () = let r = ref 0 in r := !r+5; r := !r+10; !r  (sequence + ref mutation)
+    "while_sum": 10.0,  # main () = while !i<5 do sum:=!sum+!i; i:=!i+1 done; !sum  (while -> substrate loop)
 }
 
 
