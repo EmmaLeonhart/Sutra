@@ -6,6 +6,28 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — sequence expressions + ref mutation (ISO-5 item 1; work-loop tick)
+
+Second ISO-5 transpiler item (keystone). OCaml `e1; e2; …; eN` sequences in body
+position now lower to Sutra statements for `e1..e(N-1)` plus the lowering of `eN`;
+ref cells lower to plain mutable Sutra locals — `let r = ref e` → `<ty> r = e;`,
+`r := e` (statement) → `r = e;`, `!r` (deref) → `r`. Added: `prefix_expression`
+handling (`!` deref → operand, `-`/`~-` → negation); `ref e` application →
+its initial value; an `:=`-as-value guard (assignment is statement-only — surfaces
+UNSUPPORTED if used as an expression); `_lower_stmt_expr` for sequence elements;
+`sequence_expression` arm in `_lower_body_to_statements`. Verified a Sutra mutable
+local reassigns on the substrate (`r=0; r=r+10; r=r+5` → 15) and the end-to-end
+fixture `seq_mut` (`let r = ref 0 in r := !r+5; r := !r+10; !r`) → **15.0** on the
+substrate. OCaml suite **42 passed** (was 39; +3 for the fixture).
+
+Re-running the ISO-5 reference through the frontend: the `sequence_expression`
+markers are gone. The total UNSUPPORTED count rose (8 nested-fn, 5 string, 4 list,
+4 array-get, 3 try, 2 while, 2 tuple, 2 let, 2 ctor, …) — NOT a regression: a whole
+sequence previously collapsed to one `UNSUPPORTED-EXPR: sequence_expression` marker
+that hid everything inside it; the frontend now descends into sequences and surfaces
+each inner construct individually. Next ISO-5 item: `while`/`for` → substrate
+`loop` (the fetch-execute loop; the substrate-fidelity crux).
+
 ## 2026-06-06: ISO-5 gap analysis + OCaml top-level value bindings (work-loop tick)
 
 Worked the merged-WASM-queue top item (ISO-5: port `WASM/iso/ocaml/` to Sutra) as
