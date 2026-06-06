@@ -6,6 +6,19 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — mod operator + bitwise-op correctness fix (ISO-5 item 5e; work-loop tick)
+
+OCaml `mod` now maps to Sutra `%` (truncated remainder, `_VSA.fmod`); `&&`/`||` made
+explicit in `_OP_MAP` (they were relying on passthrough). FIXED a latent bug: the
+infix handler passed any unmapped operator through verbatim, so OCaml bitwise/shift
+ops (`land lor lxor lsl lsr asr`) and string/list ops (`^` `@`) emitted INVALID Sutra
+(`return 255 land 12;` -> compile error). They now emit `UNSUPPORTED-OP`. Sutra has
+no bitwise operator (`&`/`|` are fuzzy-logical — `12 & 10` = 7149, not 8; `<<`/`>>`
+don't parse), so the real need is a substrate bitwise stdlib (queued). Substrate-
+verified `modulo` (`17 mod 5`) -> **2.0**; `&&` sanity (`test true true`) -> 1;
+0 raw bitwise passthrough remains in the transpiled reference. OCaml suite **68
+passed** (was 65; +3).
+
 ## 2026-06-06: sutra-from-ocaml — let..in in expression position (ISO-5 item 5d; work-loop tick)
 
 OCaml `let x = e in body` in EXPRESSION position (a nested sub-expr, not a function
