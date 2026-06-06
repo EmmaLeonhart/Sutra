@@ -6,6 +6,27 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — match catch-all name binding (ISO-5 item 5b; work-loop tick)
+
+OCaml `match s with … | x -> body` (a catch-all that binds the scrutinee to a name)
+now lowers. `match` compiles to a defuzz-blend *expression*, which can't introduce a
+Sutra statement local, so the bound name is substituted into the arm body at
+`value_path` sites via a module-level `_MATCH_SUBST` map (save/restore for nested
+matches). The substitution is bare for a simple-atom scrutinee (identifier/number —
+the common `match var with …` case); parenthesizing would create a leading
+`(x) <op>` that Sutra mis-parses as a cast (the unresolved CastExpr ambiguity), which
+I hit and worked around (a complex scrutinee is wrapped best-effort and may still
+hit it). Substrate-verified `match_bind` (`let classify n = match n with 0 -> 100 |
+x -> x + 1`): `classify 5` → **6.0**, `classify 0` → **100.0**. OCaml suite **59
+passed** (was 56; +3).
+
+Honest scope: this doesn't clear any ISO-5 reference markers (its matches are
+guarded / constructor-with-args / string-keyed, not catch-all-binding) — it's a
+general OCaml match feature AND the substitution foundation that option /
+constructor-arg patterns will reuse. The clean single-tick OCaml wins are thinning;
+the remaining ISO-5 items (option, full string-match-with-`br` dispatch, exceptions,
+stdlib, closures, arrays) are each substantial/coupled.
+
 ## 2026-06-06: sutra-from-ocaml — tuples (ISO-5 item 5; work-loop tick)
 
 OCaml tuples lower onto the existing record→axon machinery as a positional record:
