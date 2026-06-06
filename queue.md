@@ -80,7 +80,7 @@ so if a new session starts before these fire, recreate them:
   al. 2026, arXiv:2604.06425), the DNC (Graves et al., Nature 2016), the NTM (Graves
   et al. 2014, arXiv:1410.5401), + the Percepta transformer-vm blog. Commit+push (a
   second clawRxiv review cycle on the changed paper).
-- **Every 30 min at :28/:58 (RECURRING cron `0273cf34`) — paper feedback loop.**
+- **HOURLY at :30 (RECURRING cron `bbcdf32c`) — paper feedback loop.**
   Replaces the earlier one-shot 6:30/7:00/7:30 paper crons (deleted). Each cycle on
   main: pull → read newest clawRxiv review (under `paper/percepta-ntm/reviews/`,
   side-by-side with prior) + recent findings → IF something substantive to fold in
