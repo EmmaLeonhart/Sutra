@@ -73,6 +73,62 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
 
+## 🚀 ACTIVE #1 — Subtree the Neural-Computers WASM repo into `WASM/` (Emma 2026-06-06; first thing in the queue)
+
+The very first queue item. Bring `replicating-neural-computers-2` (the DNC/NTM
+WebAssembly + Neural-Computers replication work, arXiv 2604.06425 — a learned
+runtime state unifying compute/memory/IO; video models rolling CLI/GUI screen
+frames from instructions, pixels, user actions) into THIS repo under `WASM/`,
+**preserving its full git history**. Emma's explicit reason: the history is
+reasonably sized — not overwhelming — and worth preserving. So use `git
+subtree` (NO `--squash`, NOT a flat copy that drops history).
+
+This refines / supersedes the cron-`:33`, append-to-bottom framing in todo.md
+Phase 3: per Emma 2026-06-06 it is now **active, top-of-queue work**, not a
+background trigger. The `:33` sibling-watch cron, if running, still serves as
+the fallback that fires the same integration once the sibling agent goes quiet.
+
+Steps:
+1. **Make the source canonical first.** In the sibling working copy
+   (`../replicating-neural-computers-2`), commit + push any uncommitted changes
+   so the subtree captures the real HEAD (todo.md Phase-3 safety step). If no
+   local working copy exists, subtree directly from the remote default branch.
+2. `git subtree add --prefix=WASM <repo> <default-branch>` — **full history, no
+   `--squash`.** Remote: `github.com/EmmaLeonhart/replicating-neural-computers-2`.
+3. Commit + push so the integrated subtree is canonical on origin (this
+   session's branch: `claude/neural-wasm-integration-8PVxn`).
+
+**Cannot run in the 2026-06-06 cloud session** that queued this: the sibling
+repo is not in this container and the remote needs credentials this container
+lacks (`git ls-remote` → "could not read Username"). The subtree therefore
+executes in a local session where the sibling exists, or once network/creds
+allow. This item stays active until the subtree actually lands in `WASM/`.
+
+## 🚀 ACTIVE #2 — Document the WASM repo + merge its todo/queue (do AFTER #1 lands)
+
+Once `WASM/` is in the tree (#1 done):
+1. **Comprehensive documentation pass.** Write out a big, comprehensive doc of
+   *everything* that exists in the WASM/Neural-Computers repo — what each piece
+   is, the DNC/NTM + video-model-rolling-frames architecture, and how it ties
+   into Sutra's existing NTM/DNC track (`planning/sutra-spec/ram-pointers.md`,
+   `planning/exploratory/differentiable-neural-computer.md`). Website discipline
+   applies (CLAUDE.md §Audiences: `docs/` is human-facing — no repo-internal
+   scratchpad references).
+2. **Merge the WASM repo's `todo.md` to the TOP of our `todo.md`**, under a
+   clear banner stating it originated from the WASM (`replicating-neural-
+   computers-2`) repo, so its agenda becomes part of our long-horizon agenda.
+   (The PCA-on-the-WASM-transformer block already at the top of todo.md is
+   gated on `WASM/` existing — it unblocks the moment #1 lands and is the first
+   WASM-gated item to actually work.)
+3. **Merge the WASM repo's `queue.md` into our `queue.md` directly BELOW this
+   active subtree work** — Emma's explicit correction: *not* the very top of
+   our queue, but below ACTIVE #1/#2 — tagged as originating from the WASM repo.
+
+**Then barrel through (the loop).** As the queue drains, work the merged WASM
+queue items in order; and in the autonomous loop, pick up the merged WASM
+`todo.md` items so we eventually hit all of them. #1 → #2 → merged-WASM-queue →
+merged-WASM-todo is the intended sequence.
+
 ## Active — RAM inline `await ramRead` surface syntax (Emma chose 2026-06-01)
 
 ### 🔍 Daily substrate-honesty audit — 2026-06-06
