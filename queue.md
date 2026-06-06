@@ -24,34 +24,49 @@ first, then verify its output against the blog's headline claims.
 
 ---
 
-## Active — learn new CPU operations on the scaffold
+## Active — autonomous work loop (worked top to bottom)
 
-Replication complete (REPLICATED, 6/6). Research thread: train *new CPU operations*
-on the differentiable scaffold, then crystallize to exact weights — the
-constructed+trained hybrid toward a Completely Neural Computer. Design + findings in
-`notes/experiment_learned_ops.md`. **E0–E2 DONE** (see `devlog.md`):
-- E0 — grad-enabled forward reproduces exact execution.
-- E1 — learned **unsigned saturating add** to 100% exact (value-output). AND is a
-  documented negative result (spectral bias; no runtime bit decomposition).
-- E2 — crystallized sat_add to one exact ReGLU neuron; learned == crystallized on all
-  65 536 pairs.
+Replication is COMPLETE (6/6). Learned-ops E0–E2 DONE (sat_add learned + crystallized
+to 100% exact; AND a documented spectral-bias negative result). The three work-loop
+crons are running this session (`57ccb9ba`/:03, `2c9174b4`/:15, `8b51cb26`/:42).
 
-Remaining:
-- **E3 — integrate as a native opcode.** Wire crystallized `sat_add_u` into the WASM
-  interpreter as a real opcode (gated by `is_op`), build weights, and pass a program
-  that uses it end-to-end through the transformer vs a reference trace (G2). This is
-  the bigger build (touches `wasm/interpreter.py`, opcode tables, `compile_wasm.py`).
-- **E4 — more learned ops / write-up.** Signed saturating add/sub, min/max, etc.;
-  consolidate the negative (AND) + positive (sat_add) results into a short findings
-  note. (sat_add — the original E4 north-star op — is already learned op-local.)
-- **Yantra OS integration** — the forward goal; design in
-  `notes/yantra_integration.md` (trap-and-resume; P0–P6 roadmap).
+**Priority thread — the isomorphism program** (Neural WebAssembly → Rust → OCaml →
+Sutra; see `notes/significance_and_isomorphism.md` and the ★ section of `todo.md`):
 
-## Optional / nice-to-have (replication already succeeds without these)
+1. **ISO-1 — search for a reference implementation.** Search online for existing code
+   (almost certainly C or C++, possibly Rust) that is an append-only / attention-
+   addressed WASM machine of this shape — or a plain, small WASM interpreter simple
+   enough to seed the Rust isomorph. Record candidates + an assessment (which is
+   closest, license, language) in `notes/isomorphism_reference_search.md`. Commit.
+2. **ISO-2 — decide the Rust seed.** From ISO-1: if a suitable Rust reference exists,
+   evaluate it; otherwise write the spec for the Rust isomorph derived from
+   `transformer-vm`'s `wasm/interpreter.py` semantics (cumulative-sum registers =
+   PC/SP/call-depth; argmax-attention lookups = stack/locals/memory/fetch; ReGLU =
+   per-step ALU; append-only autoregressive loop). Iterator-first addressing. Commit.
 
-- **Hull Python path:** `sudo apt install -y python3-dev`, then `uv run wasm-eval`
-  (hull) and `uv run pytest -m "not slow"` should pass fast. CI already installs
-  `python3-dev`. (Quantify hull vs `--nohull` timings for the O(log n) claim.)
+**Learned-ops thread:**
+
+3. **E3 — integrate sat_add as a native opcode.** Wire crystallized `sat_add_u` into
+   `wasm/interpreter.py` (is_op-gated), build weights, pass a program using it
+   end-to-end vs reference (G2). Bigger build (interpreter, opcode tables,
+   `compile_wasm.py`). Runs in WSL.
+4. **E4 — more learned ops / findings note.** Signed sat add/sub, min/max; consolidate
+   AND-negative + sat_add-positive into a short findings note.
+
+**Optional:** hull Python path (`sudo apt install -y python3-dev`, then
+`uv run wasm-eval --hull` / `pytest -m "not slow"`; quantify hull vs `--nohull`).
+
+**Yantra OS integration** — forward goal; design in `notes/yantra_integration.md`.
+
+---
+
+## Pinned tail (always the last two items — autonomous-loop skill)
+
+- **T1 — ensure the three work-loop crons are running** (`57ccb9ba` :03 work-loop,
+  `2c9174b4` :15 auto-flush, `8b51cb26` :42 status-report). Restart any that a
+  planning burst / queue re-fill killed; start them if this session never did.
+- **T2 — run the status-report action once more, independently** — an end-of-session
+  summary of everything that happened this session.
 
 ---
 
