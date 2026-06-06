@@ -130,9 +130,16 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
      simple-atom scrutinee to dodge the `(x) <op>`→cast ambiguity). Substrate-
      verified `match_bind` `classify 5` = 6, `classify 0` = 100. This is the
      substitution foundation the option/constructor-arg patterns reuse.
-  5c. **NEXT (unblocked): option** (`Some`/`None`) — now has the subst foundation;
-     still needs a tagged representation + constructor-arg pattern binding (`Some x`
-     → payload via subst). 7. try/exceptions; 8. `match`-with-`br`; 9. stdlib;
+  5c. **option** (`Some`/`None`) — DONE for **body position**: tagged axon
+     `{_tag,_val}`; `None`→tag 0, `Some e`→tag 1+val; `int option` param → Axon;
+     `match o with Some x -> e1 | None -> e2` binds the payload. CRITICAL measured
+     constraint: the match must bind `_tag`/`_val` to `int` locals first — an inline
+     axon `o.item("_tag").real() == 1` defuzzes to truth 0 (not -1) for the false
+     branch (measured), so option-match is FUNCTION-BODY-ONLY (nested expression →
+     UNSUPPORTED). Substrate-verified `option_some` `get_or (mk 42) 0` = 42, None
+     path = 7. The ISO-5 reference uses options in EXPRESSION position (inside
+     `let input_base = … in`), so its option markers don't clear — a simpler test
+     program would. 7. try/exceptions; 8. `match`-with-`br`; 9. stdlib;
   10. closure conversion; 11. core-compiler `dict<int,int>`.
 
   **Direction (Emma 2026-06-06): grind OCaml ISO-5 UNTIL NOON, then PIVOT to PCA.**
@@ -360,7 +367,9 @@ first and never touches the RAM/W2C sections above.
   (closures correctly UNSUPPORTED). Arrays BLOCKED on core-compiler `dict<int,int>`
   defect (finding 2026-06-06-dict-int-keys-broken). Tuples→positional axon + fst/snd:
   DONE — substrate-verified `tuple_fst_snd` = 16. Match catch-all name binding
-  (`| x -> body`): DONE — substrate-verified `match_bind` = 6. OCaml suite 59 passed.]
+  (`| x -> body`): DONE — substrate-verified `match_bind` = 6. Option Some/None
+  (tagged axon, body-position match): DONE — substrate-verified `option_some` = 42
+  (None path = 7). OCaml suite 62 passed.]
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.

@@ -274,6 +274,11 @@ def _map_type(type_node, source: bytes, record_types=frozenset()) -> str:
     # Axon that a tuple value lowers to.
     if type_node.type == "tuple_type":
         return "Axon"
+    # An option type (`int option`) is carried by a tagged axon
+    # `{_tag, _val}` — same Axon carrier.
+    if type_node.type == "constructed_type" \
+            and _node_text(type_node, source).strip().endswith("option"):
+        return "Axon"
     text = _node_text(type_node, source).strip()
     if text in record_types:
         # A record type is carried by a Sutra Axon (the structural-typing
@@ -443,6 +448,82 @@ def _lower_expression(node, source: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
+def _is_option_match(node, source: bytes) -> bool:
+    """True if any case of a `match_expression` is an option pattern
+    (`Some _` / `None`)."""
+    for c in node.named_children:
+        if c.type != "match_case":
+            continue
+        pat = c.named_children[0] if c.named_children else None
+        if pat is None:
+            continue
+        if pat.type == "constructor_pattern":
+            cp = next((k for k in pat.named_children
+                       if k.type == "constructor_path"), None)
+            if cp is not None and _node_text(cp, source) == "Some":
+                return True
+        if pat.type == "constructor_path" and _node_text(pat, source) == "None":
+            return True
+    return False
+
+
+def _lower_option_match_body(node, source: bytes, indent: str) -> str:
+    """Lower `match o with Some x -> e1 | None -> e2` in FUNCTION-BODY
+    position. The scrutinee is a tagged axon `{_tag,_val}`; its fields are
+    bound to `int` locals FIRST, then the blend tests `_otag`. This is
+    required, not cosmetic: an inline axon field read `o.item("_tag").real()
+    == 1` does NOT coerce to a clean boolean (measured: defuzzes to truth 0
+    for the false branch), but the same comparison off an `int` local
+    defuzzes to -1 correctly. So option matches are only supported as a
+    function body (where the locals can be emitted), not nested in an
+    expression."""
+    kids = node.named_children
+    scrut_src = _lower_expression(kids[0], source)
+    cases = [c for c in kids[1:] if c.type == "match_case"]
+    if not cases:
+        return f"{indent}// UNSUPPORTED-MATCH: no cases\n"
+    out = f'{indent}int _otag = {scrut_src}.item("_tag").real();\n'
+    out += f'{indent}int _oval = {scrut_src}.item("_val").real();\n'
+    parsed: list[tuple[Optional[str], str]] = []  # (test_or_None, res_src)
+    for c in cases:
+        cc = c.named_children
+        if len(cc) != 2:
+            return f"{indent}// UNSUPPORTED-MATCH-CASE: guard/or-pattern\n"
+        pat, res = cc[0], cc[1]
+        if pat.type == "constructor_pattern":
+            cp = next((k for k in pat.named_children
+                       if k.type == "constructor_path"), None)
+            if cp is None or _node_text(cp, source) != "Some":
+                return f"{indent}// UNSUPPORTED-MATCH-PATTERN: only option Some/None\n"
+            argpat = next((k for k in pat.named_children
+                           if k.type == "value_pattern"), None)
+            if argpat is not None and _node_text(argpat, source) != "_":
+                bound = _node_text(argpat, source)
+                saved = _MATCH_SUBST.get(bound, _MISSING)
+                _MATCH_SUBST[bound] = "_oval"
+                try:
+                    res_src = _lower_expression(res, source)
+                finally:
+                    if saved is _MISSING:
+                        _MATCH_SUBST.pop(bound, None)
+                    else:
+                        _MATCH_SUBST[bound] = saved
+            else:
+                res_src = _lower_expression(res, source)
+            parsed.append(("_otag == 1", res_src))
+        elif pat.type == "constructor_path" and _node_text(pat, source) == "None":
+            parsed.append(("_otag == 0", _lower_expression(res, source)))
+        elif pat.type == "value_pattern" and _node_text(pat, source) == "_":
+            parsed.append((None, _lower_expression(res, source)))
+        else:
+            return f"{indent}// UNSUPPORTED-MATCH-PATTERN: {pat.type} in option match\n"
+    expr = parsed[-1][1]
+    for test, res in reversed(parsed[:-1]):
+        expr = _blend(test, res, expr)
+    out += f"{indent}return {expr};\n"
+    return out
+
+
 def _lower_match(node, source: bytes) -> str:
     """Lower `match scrut with k1 -> r1 | k2 -> r2 | _ -> rd` to a nested
     strong-defuzz blend — the same machinery as if/then/else, chained.
@@ -453,6 +534,14 @@ def _lower_match(node, source: bytes) -> str:
     kids = node.named_children
     if not kids:
         return "/* UNSUPPORTED-MATCH: empty */"
+    if _is_option_match(node, source):
+        # Option matches read tagged-axon fields that must be bound to
+        # `int` locals first (an inline axon `.real()` read does not
+        # defuzz to a clean boolean) — only doable in function-body
+        # position, handled by `_lower_option_match_body`. In an expression
+        # position there is nowhere to emit the locals.
+        return ("/* UNSUPPORTED-MATCH: option match must be a function body "
+                "(needs tag/val locals) */")
     scrut_src = _lower_expression(kids[0], source)
     cases = [c for c in kids[1:] if c.type == "match_case"]
     if not cases:
@@ -584,6 +673,38 @@ def _unwrap_parens(node):
             and node.named_children:
         node = node.named_children[0]
     return node
+
+
+def _option_kind(node, source: bytes):
+    """Classify an expression as an OCaml option constructor:
+    ('none',) for `None`, ('some', arg_node) for `Some e`, else None."""
+    if node is None:
+        return None
+    if node.type == "constructor_path" and _node_text(node, source) == "None":
+        return ("none",)
+    if node.type == "application_expression":
+        kids = node.named_children
+        if (len(kids) == 2 and kids[0].type == "constructor_path"
+                and _node_text(kids[0], source) == "Some"):
+            return ("some", kids[1])
+    return None
+
+
+def _lower_option_body(kind, source: bytes, indent: str) -> str:
+    """Lower an option value (`None` / `Some e`) in function-body position
+    to a tagged axon `{_tag, _val}`: `None` -> tag 0, `Some e` -> tag 1 +
+    value e. `match … with Some x -> … | None -> …` reads them back. Same
+    body-position constraint as records/tuples. MVP: numeric `Some`
+    payloads (read via `.real()`)."""
+    lines = f"{indent}Axon _opt;\n"
+    if kind[0] == "some":
+        lines += f'{indent}_opt.add("_tag", 1);\n'
+        lines += f'{indent}_opt.add("_val", {_lower_expression(kind[1], source)});\n'
+    else:
+        lines += f'{indent}_opt.add("_tag", 0);\n'
+        lines += f'{indent}_opt.add("_val", 0);\n'
+    lines += f"{indent}return _opt;\n"
+    return lines
 
 
 def _lower_local_binding(vd, source: bytes, indent: str,
@@ -727,6 +848,11 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
     _unwrapped = _unwrap_parens(body)
     if _unwrapped is not None and _unwrapped.type == "tuple_expression":
         return _lower_tuple_body(_unwrapped, source, indent)
+    _opt = _option_kind(_unwrapped, source)
+    if _opt is not None:
+        return _lower_option_body(_opt, source, indent)
+    if body.type == "match_expression" and _is_option_match(body, source):
+        return _lower_option_match_body(body, source, indent)
     if body.type == "let_expression":
         kids = body.named_children
         if len(kids) >= 2:
@@ -922,11 +1048,12 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
     # later item; float fixtures rely on the current default).
     if ret_type is None and body.type == "string":
         ret = "String"
-    # A function whose body is a tuple returns an Axon (the positional-
-    # record carrier), like a record-bodied function.
+    # A function whose body is a tuple or an option constructor returns an
+    # Axon (the positional-/tagged-record carrier), like a record-bodied fn.
     if ret_type is None:
         _ub = _unwrap_parens(body)
-        if _ub is not None and _ub.type == "tuple_expression":
+        if _ub is not None and (_ub.type == "tuple_expression"
+                                or _option_kind(_ub, source) is not None):
             ret = "Axon"
 
     if is_rec:
