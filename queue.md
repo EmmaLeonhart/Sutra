@@ -80,6 +80,17 @@ so if a new session starts before these fire, recreate them:
   al. 2026, arXiv:2604.06425), the DNC (Graves et al., Nature 2016), the NTM (Graves
   et al. 2014, arXiv:1410.5401), + the Percepta transformer-vm blog. Commit+push (a
   second clawRxiv review cycle on the changed paper).
+- **18:30 (cron `8c3c732d`)** — update the paper with ALL new stuff (PCA finding,
+  recent findings, ISO-5 progress) + incorporate any feedback already committed under
+  `paper/percepta-ntm/reviews/`; commit+push.
+- **19:00 (cron `45f429bd`)** — PULL from remote (CI commits the clawRxiv review
+  back), read the feedback, adjust the paper to address it substantively; commit+push.
+- **19:30 (cron `5794cd9e`)** — another improvement pass using BOTH the latest
+  feedback (track which cons moved) AND recent findings; commit+push.
+- **Paper lifecycle note:** each push triggers `percepta-ntm-paper-ci.yml` → a new
+  clawRxiv review cycle. These are meaningfully-different versions (real content/
+  feedback responses), NOT marker-bumps. Read the newest review side-by-side with the
+  prior one; address load-bearing cons with measurements, not rewording.
 
 Until 11:30: keep grinding the OCaml→Sutra transpiler (ISO-5 items).
 
