@@ -453,14 +453,17 @@ def _try_lower_tail_recursive(
 
     loop_name = f"_rec_{name}"
     state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in params)
-    # Sequential state update p_i = a_i. NOTE: sequential, so a swap like
-    # `f y x` (a2 reading the already-updated p1) is NOT handled — only
-    # accumulator-style updates where later args don't depend on the new
-    # value of earlier params. Falls outside this if a real fixture needs it.
-    body_lines = "".join(
-        f"    {nm} = {_lower_expression(arg, source)};\n"
-        for (nm, _ty), arg in zip(params, rec_args)
+    # Simultaneous state update via temporaries: compute every new value
+    # from the OLD params first (`T _ti = e_i;`), then assign all params
+    # (`p_i = _ti;`). A naive sequential `p1 = e1; p2 = e2;` is wrong when
+    # a later arg reads a param an earlier line already overwrote — e.g. a
+    # swap `f y x` (measured: `swaploop 7 9 2` gave 9 instead of 7).
+    temp_decls = "".join(
+        f"    {ty} _t{i} = {_lower_expression(arg, source)};\n"
+        for i, ((_nm, ty), arg) in enumerate(zip(params, rec_args))
     )
+    assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(params))
+    body_lines = temp_decls + assigns
     loop_decl = f"while_loop {loop_name}({cont}, {state_decls}) {{\n{body_lines}}}\n"
 
     slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in params)
