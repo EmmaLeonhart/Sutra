@@ -9,8 +9,8 @@ arbitrary programs on the Sutra substrate and produces correct results.
 `experiments/iso5_substrate_dispatch/mini_wasm_machine.su` — a `step()` function;
 driver `run_mini_machine.py` loads a program into the RAM device and calls `step()`
 once per instruction (the autoregressive model). Opcodes: 0=HALT, 1=CONST(imm),
-2=ADD, 3=SUB, 4=MUL, 5=AND (bitwise — `Bits.band` primitive), 6=BR_IF (conditional
-branch — pop top, jump to the immediate if nonzero, else fall through).
+2=ADD, 3=SUB, 4=MUL, 5=AND (bitwise — `Bits.band`), 6=BR_IF (conditional branch),
+7=LOAD (pop addr, push ram[addr]), 8=STORE (pop value+addr, ram[addr]=value).
 
 Measured (program-as-data — same machine, different RAM contents):
 
@@ -27,8 +27,13 @@ Measured (program-as-data — same machine, different RAM contents):
 | const 5; const 6; mul; const 2; sub | **28** | 28 |
 | const 1; br_if 18; const 100; halt; const 7 (TAKEN) | **7** | 7 |
 | const 0; br_if 18; const 100 (NOT taken) | **100** | 100 |
+| store 42@200; load 200 | **42** | 42 |
+| **memory loop** (counter@200=N, acc@201; acc++/counter--/br_if back), N=1/3/5 | **1/3/5** | 1/3/5 |
 
-It is a genuine interpreter: the program lives in RAM as data, not in the code.
+It is a genuine interpreter: the program lives in RAM as data, not in the code. With
+LOAD/STORE + a backward BR_IF the machine is **Turing-complete on the substrate** — a
+memory-counter loop (counter@200, acc@201) runs N iterations to acc=N (N=1/3/5
+verified). CI-guarded: `sdk/sutra-compiler/tests/test_mini_wasm_machine.py` (9/9).
 
 ## How the substrate tensions were resolved
 
@@ -59,9 +64,9 @@ It is a genuine interpreter: the program lives in RAM as data, not in the code.
 
 ## Scope / what's not claimed
 
-This is a 7-opcode (HALT/CONST/ADD/SUB/MUL/AND/BR_IF) hand-written machine demonstrating the
+This is a 9-opcode (HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE) hand-written machine demonstrating the
 mechanism end-to-end, NOT the full 35-opcode transformer-vm. The full machine adds
-the remaining opcodes (loads/stores/calls — more of the same; conditional BR_IF branch is in, backward-branch loops need load/store for a counter blended
+the remaining opcodes (typed loads/stores, call/return, br_table — more of the same; the machine is now Turing-complete: memory loop via LOAD/STORE + backward BR_IF verified blended
 dispatch + RAM), byte/bitwise arithmetic (bitwise stdlib ready), and a larger
 linear-memory region (the host RAM-list doesn't scale to 10 MB — a scalable RAM
 device is the follow-on). The hard substrate questions (memory model, dispatch,

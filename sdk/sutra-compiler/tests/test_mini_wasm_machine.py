@@ -40,11 +40,12 @@ def _machine_ns():
     return ns
 
 
-def _run(ns, prog, steps=12):
+def _run(ns, prog, steps=12, addr=100):
     """Load `prog` (list of (opcode, immediate)) into RAM at the program base
-    (10), run `steps` host-driven ticks, return the decoded stack[100]."""
+    (10), run `steps` host-driven ticks, return the decoded RAM[addr]
+    (the stack base 100 by default; a data cell for LOAD/STORE/loop cases)."""
     v = ns["_VSA"]
-    ram = [v.zero_vector() for _ in range(256)]
+    ram = [v.zero_vector() for _ in range(512)]
     ram[0] = v.make_real(10.0)   # pc
     ram[1] = v.make_real(0.0)    # sp
     ram[2] = v.make_real(0.0)    # halted
@@ -54,23 +55,35 @@ def _run(ns, prog, steps=12):
     v.ram = ram
     for _ in range(steps):
         ns["step"](0.0)
-    return round(float(v.real(ram[100])))
+    return round(float(v.real(ram[addr])))
 
 
-# (program, expected stack-top). Opcodes per the module docstring.
+# Counter@200, acc@201 loop: each iter acc++, counter--, br_if back to LOOP(22).
+# Runs N iterations -> acc == N. Demonstrates a backward-branch memory loop
+# (Turing-complete: memory + conditional + loop on the substrate).
+_LOOP = [
+    (1, 200), (1, 3), (8, 0), (1, 201), (1, 0), (8, 0),        # ram[200]=3, ram[201]=0
+    (1, 201), (1, 201), (7, 0), (1, 1), (2, 0), (8, 0),        # ram[201] = acc + 1
+    (1, 200), (1, 200), (7, 0), (1, 1), (3, 0), (8, 0),        # ram[200] = counter - 1
+    (1, 200), (7, 0), (6, 22), (0, 0),                         # if counter != 0 -> LOOP(22)
+]
+
+# (program, expected, steps, result_addr). Opcodes per the module docstring.
 _CASES = [
-    ([(1, 3), (1, 4), (2, 0), (0, 0)], 7),                      # const 3; const 4; add
-    ([(1, 10), (1, 3), (3, 0), (0, 0)], 7),                     # 10 - 3
-    ([(1, 6), (1, 7), (4, 0), (0, 0)], 42),                     # 6 * 7
-    ([(1, 12), (1, 10), (5, 0), (0, 0)], 8),                    # 12 AND 10 (bitwise)
-    ([(1, 5), (1, 6), (4, 0), (1, 2), (3, 0), (0, 0)], 28),     # 5*6 - 2
-    ([(1, 1), (6, 18), (1, 100), (0, 0), (1, 7), (0, 0)], 7),   # br_if TAKEN -> 7
-    ([(1, 0), (6, 18), (1, 100), (0, 0), (1, 7), (0, 0)], 100), # br_if NOT taken -> 100
+    ([(1, 3), (1, 4), (2, 0), (0, 0)], 7, 12, 100),            # const 3; const 4; add
+    ([(1, 10), (1, 3), (3, 0), (0, 0)], 7, 12, 100),           # 10 - 3
+    ([(1, 6), (1, 7), (4, 0), (0, 0)], 42, 12, 100),           # 6 * 7
+    ([(1, 12), (1, 10), (5, 0), (0, 0)], 8, 12, 100),          # 12 AND 10 (bitwise)
+    ([(1, 5), (1, 6), (4, 0), (1, 2), (3, 0), (0, 0)], 28, 12, 100),  # 5*6 - 2
+    ([(1, 1), (6, 18), (1, 100), (0, 0), (1, 7), (0, 0)], 7, 12, 100),    # br_if TAKEN
+    ([(1, 0), (6, 18), (1, 100), (0, 0), (1, 7), (0, 0)], 100, 12, 100),  # br_if NOT taken
+    ([(1, 200), (1, 42), (8, 0), (1, 200), (7, 0), (0, 0)], 42, 8, 100),  # STORE 42@200; LOAD
+    (_LOOP, 3, 60, 201),                                       # memory loop, 3 iterations -> acc 3
 ]
 
 
-@pytest.mark.parametrize("prog,expected", _CASES)
-def test_mini_wasm_machine_runs_on_substrate(prog, expected):
+@pytest.mark.parametrize("prog,expected,steps,addr", _CASES)
+def test_mini_wasm_machine_runs_on_substrate(prog, expected, steps, addr):
     ns = _machine_ns()
-    got = _run(ns, prog)
+    got = _run(ns, prog, steps=steps, addr=addr)
     assert got == expected, f"program {prog} -> {got}, expected {expected}"
