@@ -1,0 +1,39 @@
+# Builds a downloadable ZIP "replication package": the replication code plus
+# the necessary code from the paper's repo (the submodule), excluding the
+# gitignored paper binary and git internals. Uploaded as a build artifact and,
+# on a published release, attached as a release asset.
+
+name: package
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build replication package zip
+        run: |
+          NAME="replication-package"
+          git ls-files --recurse-submodules > /tmp/files.txt
+          # Drop the (gitignored anyway) paper binaries if present
+          grep -v -E 'replication_target/.*\.(pdf|html)$' /tmp/files.txt > /tmp/keep.txt
+          zip -q "$NAME.zip" -@ < /tmp/keep.txt
+          echo "built $NAME.zip ($(du -h "$NAME.zip" | cut -f1))"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: replication-package
+          path: replication-package.zip
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: replication-package.zip

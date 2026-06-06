@@ -1,0 +1,83 @@
+# Publishes FINDINGS.md as a GitHub Pages site + a transportable PDF report.
+#
+# Pages is auto-enabled by the `actions/configure-pages` step below
+# (enablement: true), so there is NO manual "Settings -> Pages" toggle to do —
+# the only requirement is that the repo is PUBLIC. The first push that runs this
+# workflow turns Pages on and deploys.
+
+name: pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Configure Pages (auto-enables Pages if not already on)
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+      - name: Build themed findings site + PDF report
+        run: |
+          mkdir -p site
+          # Findings source (falls back to README if FINDINGS.md not written yet)
+          SRC=FINDINGS.md
+          [ -f "$SRC" ] || SRC=README.md
+
+          # Replication verdict, from paper.json `status` (default in-progress).
+          STATUS=in-progress
+          if [ -f paper.json ]; then
+            STATUS=$(jq -r '.status // "in-progress"' paper.json 2>/dev/null || echo in-progress)
+          fi
+          case "$STATUS" in
+            replicated)            LABEL="Replicated"; CLASS="replicated";;
+            failed)                LABEL="Failed to replicate"; CLASS="failed";;
+            insufficient-hardware) LABEL="Insufficient hardware to replicate"; CLASS="insufficient";;
+            *)                     LABEL="In progress"; CLASS="in-progress";;
+          esac
+
+          # Render the findings body (fragment), then wrap it in the shared
+          # cleanvibe report theme + the color-coded status badge.
+          pandoc "$SRC" -o body.html
+          {
+            echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+            echo '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            echo '<title>Replication report</title><style>'
+            [ -f report-theme.css ] && cat report-theme.css
+            echo '</style></head><body>'
+            echo "<div class=\"status-badge $CLASS\">$LABEL</div>"
+            cat body.html
+            echo '</body></html>'
+          } > site/index.html
+
+          pandoc "$SRC" -o site/report.pdf || echo "PDF render skipped"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
