@@ -1,0 +1,84 @@
+# replicating-pertepta — Work Queue
+
+**This file is a queue of concrete, executable steps, not a state snapshot.**
+Finished work lives in `devlog.md` (dated entries) and `git log`;
+longer-horizon items live in `todo.md`. **When an item is done, delete it
+from this file AND append a dated entry to `devlog.md` in the same commit,
+then push.** No checkmarks, no status indicators in place.
+
+---
+
+## Target (READ FIRST)
+
+We are **not** replicating the arXiv paper "Neural Computers" (2604.06425) — the
+scaffolder downloaded it only because the flow expects an arXiv ID, and it is kept
+as *related work only*. The **real target** is Percepta's **`transformer-vm`**: a
+standard softmax-ReGLU transformer with **analytically-computed (untrained)
+weights** that **correctly simulates a WebAssembly VM on arbitrary programs**. It
+has no arXiv — only a GitHub repo (which ships the reproduction recipe), a blog
+post, a LinkedIn post, and a Medium write-up. Full details + claims live in
+`notes/sources.md`. Remote name requested: **`replicating-pertepta`**.
+
+This is a **recipe-first** replication: the repo ships `uv run wasm-run`. Run it
+first, then verify its output against the blog's headline claims.
+
+---
+
+## Active — autonomous work loop (worked top to bottom)
+
+Replication is COMPLETE (6/6). Learned-ops E0–E2 DONE (sat_add learned + crystallized
+to 100% exact; AND a documented spectral-bias negative result). The three work-loop
+crons are running this session (`57ccb9ba`/:03, `2c9174b4`/:15, `8b51cb26`/:42).
+
+**Priority thread — the isomorphism program** (Neural WebAssembly → Rust → OCaml →
+Sutra; see `notes/significance_and_isomorphism.md` and the ★ section of `todo.md`):
+
+ISO-1/2/3 DONE: the Rust isomorph (`iso/rust/`, port of `reference.py`) is
+behaviourally equivalent to the reference executor — 6/6 example programs produce
+byte-identical output (cargo test + `scripts/iso_equiv.sh` → ISO_EQUIV_OK).
+
+ISO-4 DONE: `iso/ocaml/` (OCaml port of `reference.py`) is byte-identical to the
+Python reference and the Rust isomorph on all 6 programs (`scripts/iso_equiv.sh` →
+ISO_EQUIV_OK). So: transformer ≡ reference.py ≡ Rust ≡ OCaml.
+
+1. **ISO-5 — Sutra.** ⛔ NEEDS USER INPUT: port the OCaml realisation into **Sutra** and
+   test how far Sutra can express this machine. The end of the road. I don't know
+   Sutra's syntax/semantics/toolchain — the user must point me at it (a spec, example
+   programs, how to run it) before I can port. Until then, blocked.
+
+**Learned-ops thread** (E4 DONE: sat_add/sat_sub/min/max all learned to 100% exact,
+value-output; AND a documented negative result; findings in
+`notes/learned_ops_findings.md`):
+
+3. **E3 — integrate a native `i32.sat_add_u` opcode (SPEC DONE, gating RESOLVED → impl).**
+   Spec: `notes/e3_native_opcode_spec.md`. E3a done: the `op_dot` vocabulary is
+   verified **extensible** (64 points, 28 spare; max pairwise dot 32037 ≤ 32043 —
+   `scripts/wsl_check_opdot.sh`), so adding opcode #37 is clean on dispatch. Remaining
+   = the build itself (a focused multi-file effort, do it as its own session): add to
+   `OPCODES`/`STACK_DELTA`, the `result_byte`/`result_carry` terms, `reference.py` +
+   both isomorphs, `compile_wasm.py`, a test program; rebuild weights (verify MILP
+   solves); pass end-to-end vs reference (G2); no regression on the 6 programs;
+   re-run `scripts/iso_equiv.sh`. On a local submodule branch (don't push to Percepta).
+
+**Optional:** hull Python path (`sudo apt install -y python3-dev`, then
+`uv run wasm-eval --hull` / `pytest -m "not slow"`; quantify hull vs `--nohull`).
+
+**Yantra OS integration** — forward goal; design in `notes/yantra_integration.md`.
+
+---
+
+## Pinned tail (always the last two items — autonomous-loop skill)
+
+- **T1 — ensure the three work-loop crons are running** (`57ccb9ba` :03 work-loop,
+  `2c9174b4` :15 auto-flush, `8b51cb26` :42 status-report). Restart any that a
+  planning burst / queue re-fill killed; start them if this session never did.
+- **T2 — run the status-report action once more, independently** — an end-of-session
+  summary of everything that happened this session.
+
+---
+
+## Pointers
+- What we're replicating + all source links + claims: `notes/sources.md`.
+- Methodology / definition of done: `SKILL.md`.
+- Long-horizon items: `todo.md`.
+- Completed work + milestones (chronological): `devlog.md`.

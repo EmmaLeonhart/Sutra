@@ -1,0 +1,48 @@
+# The paper itself — downloaded, never committed
+replication_target/*.pdf
+replication_target/*.html
+# The raw arXiv source archive is gitignored; the EXTRACTED
+# replication_target/source/ tree IS committed (that is the readable paper text).
+replication_target/*.tar.gz
+replication_target/*.tar
+replication_target/*.tgz
+replication_target/arxiv-source.*
+# A downloaded replication zip is ignored; its extracted replication/ contents
+# are committed.
+replication/*.zip
+!replication_target/.gitkeep
+
+# Replication outputs
+results/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+wandb/
+
+# Build / deliverables (produced by GitHub Actions, not committed)
+site/
+*.zip
+report.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / OS / env
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+.env
+.env.local
