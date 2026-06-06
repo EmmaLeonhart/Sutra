@@ -74,6 +74,11 @@ so if a new session starts before these fire, recreate them:
   on implementing a DNC/NTM via the Percepta transformer + PCA and the measured
   results; wire its own CI (`percepta-ntm-paper-ci.yml`, model on `fv-paper-ci.yml`)
   for auto-submission; cite only measured numbers; commit+push (push triggers the CI).
+- **18:00 (cron `3dced803`)** — edit `paper/percepta-ntm/paper.md` to add a Related
+  Work / lit-review section if absent, citing at least: Neural Computers (Zhuge et
+  al. 2026, arXiv:2604.06425), the DNC (Graves et al., Nature 2016), the NTM (Graves
+  et al. 2014, arXiv:1410.5401), + the Percepta transformer-vm blog. Commit+push (a
+  second clawRxiv review cycle on the changed paper).
 
 Until 11:30: keep grinding the OCaml→Sutra transpiler (ISO-5 items).
 
