@@ -11,6 +11,7 @@
 // Opcodes: 0=HALT  1=CONST(imm at pc+1)  2=ADD  3=SUB  4=MUL  5=AND(bitwise)
 //          6=BR_IF(imm = absolute target; pop top, jump if nonzero else fall through)
 //          7=LOAD(pop addr, push ram[addr])  8=STORE(pop value, pop addr, ram[addr]=value)
+//          9=EQ(push top2==top1 ?1:0)  10=LT(push top2<top1 ?1:0)
 // Data memory: any RAM region the program uses for LOAD/STORE (e.g. 200+), clear of
 // [0..2] (pc/sp/halted), program (10+), and stack (100+). LOAD/STORE + BR_IF enable
 // memory-counter loops (backward branch) -> Turing-complete.
@@ -31,6 +32,8 @@ function int step(scalar d) {
     int is_brif = truth_axis(defuzzy(op == 6));
     int is_load = truth_axis(defuzzy(op == 7));
     int is_store = truth_axis(defuzzy(op == 8));
+    int is_eq = truth_axis(defuzzy(op == 9));
+    int is_lt = truth_axis(defuzzy(op == 10));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -48,7 +51,12 @@ function int step(scalar d) {
     // Bitwise needs number-VECTORS (its bit-plane decomposition), so feed the
     // raw ramRead vectors (not the .real() scalars) and project the result.
     int v_and = Bits.band(ramRead(98 + sp), ramRead(99 + sp)).real();
-    int b_and = (((1 + is_and) * (v_and)) + ((1 - is_and) * (top2))) / 2;
+    // EQ / LT push 1 or 0 (truth ±1 mapped to 1/0): top2 OP top1.
+    int v_eq = (truth_axis(defuzzy(top2 == top1)) + 1) / 2;
+    int v_lt = (truth_axis(defuzzy(top2 < top1)) + 1) / 2;
+    int b_lt = (((1 + is_lt) * (v_lt)) + ((1 - is_lt) * (top2))) / 2;
+    int b_eq = (((1 + is_eq) * (v_eq)) + ((1 - is_eq) * (b_lt))) / 2;
+    int b_and = (((1 + is_and) * (v_and)) + ((1 - is_and) * (b_eq))) / 2;
     int b_mul = (((1 + is_mul) * (v_mul)) + ((1 - is_mul) * (b_and))) / 2;
     int b_sub = (((1 + is_sub) * (v_sub)) + ((1 - is_sub) * (b_mul))) / 2;
     int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_sub))) / 2;
@@ -68,7 +76,9 @@ function int step(scalar d) {
     int sp_binop = sp - 1;
     int s_const = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (sp))) / 2;
     int s_store = (((1 + is_store) * (sp - 2)) + ((1 - is_store) * (s_const))) / 2;
-    int s_brif = (((1 + is_brif) * (sp_binop)) + ((1 - is_brif) * (s_store))) / 2;
+    int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_store))) / 2;
+    int s_eq = (((1 + is_eq) * (sp_binop)) + ((1 - is_eq) * (s_lt))) / 2;
+    int s_brif = (((1 + is_brif) * (sp_binop)) + ((1 - is_brif) * (s_eq))) / 2;
     int s_and = (((1 + is_and) * (sp_binop)) + ((1 - is_and) * (s_brif))) / 2;
     int s_mul = (((1 + is_mul) * (sp_binop)) + ((1 - is_mul) * (s_and))) / 2;
     int s_sub = (((1 + is_sub) * (sp_binop)) + ((1 - is_sub) * (s_mul))) / 2;

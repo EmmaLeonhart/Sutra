@@ -6,6 +6,14 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: WASM machine EQ/LT comparison opcodes (conditional logic)
+
+Added EQ (op9) and LT (op10) to the substrate machine: binary ops popping two,
+pushing 1/0 (truth +-1 mapped to 1/0), threaded into the result + sp blend chains.
+With BR_IF these give real conditional logic (`if a < b`). Measured: 3<5=1, 5<3=0,
+7==7=1, 7==8=0; regression intact (3+4=7, 12&10=8). 11 opcodes now
+(HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE/EQ/LT). pytest guard extended to 13/13.
+
 ## 2026-06-06: WASM machine LOAD/STORE + memory loop -> Turing-complete on the substrate
 
 Added LOAD (op 7: pop addr, push ram[addr]) and STORE (op 8: pop value+addr,
