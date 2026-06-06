@@ -190,11 +190,31 @@ def _lower_expression(node, source: bytes) -> str:
     if t == "parenthesized_expression":
         inner = node.named_children[0] if node.named_children else None
         return f"({_lower_expression(inner, source)})" if inner is not None else "()"
+    if t == "prefix_expression":
+        # `!r` dereferences a ref cell; on the substrate the cell IS the
+        # Sutra local, so a read is just the variable. `-x` / `~-x` is
+        # unary negation.
+        opn = next((c for c in node.named_children
+                    if c.type == "prefix_operator"), None)
+        operand = next((c for c in node.named_children
+                        if c.type != "prefix_operator"), None)
+        op_text = _node_text(opn, source) if opn is not None else ""
+        operand_src = _lower_expression(operand, source) if operand is not None else "0"
+        if op_text == "!":
+            return operand_src
+        if op_text in ("-", "~-"):
+            return f"-({operand_src})"
+        return f"/* UNSUPPORTED-PREFIX: {op_text} */"
     if t == "infix_expression":
         left = node.child_by_field_name("left")
         op = node.child_by_field_name("operator")
         right = node.child_by_field_name("right")
         op_text = _node_text(op, source) if op is not None else "+"
+        if op_text == ":=":
+            # Assignment is a *statement* (`r := e` returns unit); it has
+            # no value in expression position. Lowered by _lower_stmt_expr
+            # inside a sequence; reaching here means it was used as a value.
+            return "/* UNSUPPORTED-EXPR: assignment used as a value */"
         op_sutra = _OP_MAP.get(op_text, op_text)
         left_src = _lower_expression(left, source) if left is not None else "0"
         right_src = _lower_expression(right, source) if right is not None else "0"
@@ -210,6 +230,13 @@ def _lower_expression(node, source: bytes) -> str:
                 and _node_text(kids[0], source) == "not"
                 and len(kids) == 2):
             return f"!({_lower_expression(kids[1], source)})"
+        # `ref e` allocates a cell holding e; on the substrate the cell is
+        # a plain Sutra local, so the allocation lowers to the initial
+        # value e (the `let r = ref e` binding becomes `<ty> r = e;`).
+        if (kids[0].type == "value_path"
+                and _node_text(kids[0], source) == "ref"
+                and len(kids) == 2):
+            return _lower_expression(kids[1], source)
         fn_src = _lower_expression(kids[0], source)
         arg_srcs = [_lower_expression(a, source) for a in kids[1:]]
         return f"{fn_src}({', '.join(arg_srcs)})"
@@ -409,12 +436,31 @@ def _lower_local_binding(vd, source: bytes, indent: str,
     return f"{indent}{ty} {name} = {_lower_expression(value, source)};\n"
 
 
+def _lower_stmt_expr(node, source: bytes, indent: str) -> str:
+    """Lower one side-effecting expression in STATEMENT position (a
+    non-final element of a sequence `e1; e2; …`). The common imperative
+    case is a ref assignment `r := e` -> Sutra `r = e;`; anything else
+    (e.g. a call evaluated for its effect) lowers to a bare expression
+    statement `expr;`."""
+    if node.type == "infix_expression":
+        op = node.child_by_field_name("operator")
+        if op is not None and _node_text(op, source) == ":=":
+            left = node.child_by_field_name("left")
+            right = node.child_by_field_name("right")
+            lhs = _lower_expression(left, source) if left is not None else "_"
+            rhs = _lower_expression(right, source) if right is not None else "0"
+            return f"{indent}{lhs} = {rhs};\n"
+    return f"{indent}{_lower_expression(node, source)};\n"
+
+
 def _lower_body_to_statements(body, source: bytes, indent: str,
                               record_types=frozenset()) -> str:
     """Lower a function-body expression into Sutra statements. A
     `let x = e in rest` becomes a local declaration followed by the
-    lowering of `rest`; a `record_expression` body becomes axon
-    construction; the final (non-let) expression becomes `return …;`."""
+    lowering of `rest`; a `sequence_expression` (`e1; …; eN`) becomes
+    statements for `e1 … e(N-1)` and the lowering of `eN`; a
+    `record_expression` body becomes axon construction; the final
+    (non-let) expression becomes `return …;`."""
     if body.type == "record_expression":
         return _lower_record_body(body, source, indent)
     if body.type == "let_expression":
@@ -428,6 +474,15 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
                 else:
                     out += f"{indent}// UNSUPPORTED-LET-IN-PART: {b.type}\n"
             out += _lower_body_to_statements(in_body, source, indent, record_types)
+            return out
+    if body.type == "sequence_expression":
+        kids = body.named_children
+        if kids:
+            *stmts, last = kids
+            out = ""
+            for s in stmts:
+                out += _lower_stmt_expr(s, source, indent)
+            out += _lower_body_to_statements(last, source, indent, record_types)
             return out
     return f"{indent}return {_lower_expression(body, source)};\n"
 

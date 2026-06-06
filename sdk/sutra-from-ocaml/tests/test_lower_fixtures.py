@@ -140,6 +140,7 @@ _RUNNABLE_FIXTURES = {
     "variant": 200.0,      # main () = label Green  (nullary variant enum + ctor-pattern match)
     "bool_ops": 100.0,     # main () = test true false  (&& || not in a condition)
     "toplevel_const": 50.0,  # main () = (300 - mask) + bump  (top-level value bindings; hex 0xFF -> 255)
+    "seq_mut": 15.0,  # main () = let r = ref 0 in r := !r+5; r := !r+10; !r  (sequence + ref mutation)
 }
 
 
