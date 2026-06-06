@@ -104,9 +104,24 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
   3. **Char + string literals** — DONE: char → codepoint int (substrate-verified
      `char_code` `'A'`=65), string → Sutra `String` literal (compile-verified
      `string_lit`; function body-string return-type inferred as `String`).
-  4. **NEXT: Arrays** (`Array.make`/`arr.(i)`/`arr.(i) <- v`); 5. Tuples + option
-  (`fst`/`snd`, `Some`/`None`); 6. Nested-fn hoist; 7. try/exceptions
-  (`raise Exit`/`failwith`); 8. `match`-with-`br` / control flow; 9. stdlib shims.
+  4. **Arrays** — **BLOCKED on a core-compiler defect** (NOT a transpiler issue):
+     `dict<int,int>` (the substrate-faithful array target; `list<T>` is a Python
+     host list, wrong for ISO-5) crashes — scalar keys aren't lifted to substrate
+     vectors before `_role_hash` (`'int' object has no attribute 'detach'`), and
+     even if lifted, exact read-what-you-wrote at array scale is unmeasured
+     (rotation is identity on the synthetic axes where numbers live → bundling
+     crosstalk risk). Finding: `planning/findings/2026-06-06-dict-int-keys-broken-
+     blocks-arrays.md`. Fix is core-compiler work (dict scalar-key/value lift +
+     measured exactness); do NOT hack the transpiler around it.
+  6. **Nested-fn hoist** — DONE for the **closed** case (free vars ⊆ params ∪
+     top-level names → hoisted to a sibling `function`; substrate-verified
+     `nested_fn` `let dbl x = x*2 in dbl 5 + dbl 3` = 16). Closures (capturing an
+     enclosing local — 7 of the ISO-5 ref's nested fns: `push`/`pop`/… over
+     `stack` etc.) are correctly surfaced as UNSUPPORTED; closure conversion is a
+     later item.
+  5. **NEXT (unblocked): Tuples + option** (`fst`/`snd`, `Some`/`None`);
+  7. try/exceptions (`raise Exit`/`failwith`); 8. `match`-with-`br`; 9. stdlib;
+  10. closure conversion (capturing nested fns); 11. core-compiler `dict<int,int>`.
   Destination (bigger than transpiler coverage): the fetch-execute loop as a
   substrate recurrence (state vectors across iterations, opcode dispatch as a
   defuzz match) — closing items 1–2 first runs a real WASM-machine fragment on
@@ -311,7 +326,9 @@ first and never touches the RAM/W2C sections above.
   DONE — substrate-verified `seq_mut` = 15. `while`→substrate `loop` (scalar-ref
   shape): DONE — substrate-verified `while_sum` = 10. Char→codepoint-int +
   string→String literal: DONE — substrate-verified `char_code` = 65, compile-verified
-  `string_lit`. OCaml suite 50 passed.]
+  `string_lit`. Closed nested-fn hoisting: DONE — substrate-verified `nested_fn` = 16
+  (closures correctly UNSUPPORTED). Arrays BLOCKED on core-compiler `dict<int,int>`
+  defect (finding 2026-06-06-dict-int-keys-broken). OCaml suite 53 passed.]
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.

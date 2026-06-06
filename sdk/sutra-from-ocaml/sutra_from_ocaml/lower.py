@@ -88,6 +88,32 @@ _CONSTRUCTORS: dict[str, int] = {}
 # caveat as `_CONSTRUCTORS`. The next loop's index is `len(_HOISTED_LOOPS)`.
 _HOISTED_LOOPS: list[str] = []
 
+# Hoisted top-level function declarations from CLOSED nested functions
+# (`let f x = … in …`). Sutra has no nested functions, so a closed one
+# (free vars ⊆ its params ∪ top-level names) is lifted to a sibling
+# `function`. Prepended in `lower()` alongside `_HOISTED_LOOPS`.
+_HOISTED_DECLS: list[str] = []
+
+# Names bound at top level (functions + value bindings), collected in the
+# `lower()` prepass. Used to decide whether a nested function is closed
+# (a free var that is a top-level name is fine; one that is an enclosing
+# local is a capture we don't support yet).
+_TOPLEVEL_NAMES: set = set()
+
+
+def _value_paths(node, source: bytes) -> set:
+    """All `value_path` identifiers appearing anywhere under `node`."""
+    out: set = set()
+
+    def walk(n):
+        if n.type == "value_path":
+            out.add(_node_text(n, source))
+        for c in n.named_children:
+            walk(c)
+
+    walk(node)
+    return out
+
 
 def _collect_ref_vars(node, source: bytes, refs: dict) -> list:
     """Return the in-scope mutable refs (by declaration order in `refs`)
@@ -507,11 +533,27 @@ def _lower_local_binding(vd, source: bytes, indent: str,
         return f"{indent}// UNSUPPORTED-LOCAL-BINDING: malformed\n"
     kids = lb.named_children
     name = _node_text(kids[0], source)
-    if any(k.type == "parameter" for k in kids[1:-1]):
-        return (
-            f"{indent}// UNSUPPORTED-LOCAL-FN: nested function '{name}' "
-            "(Sutra has no nested function declarations)\n"
-        )
+    params_nodes = [k for k in kids[1:-1] if k.type == "parameter"]
+    if params_nodes:
+        # A nested function. Sutra has no nested declarations, but a CLOSED
+        # one (its body's free value-paths are all its own params or
+        # top-level names) can be hoisted to a sibling top-level function
+        # via the same lowering. A nested function that captures an
+        # enclosing local is a closure — not supported yet.
+        body_node = kids[-1]
+        param_names = {
+            p[0] for p in (_lower_param(pn, source, record_types)
+                           for pn in params_nodes) if p is not None
+        }
+        free = _value_paths(body_node, source) - param_names - _TOPLEVEL_NAMES - {name}
+        if free:
+            return (
+                f"{indent}// UNSUPPORTED-LOCAL-FN: nested function '{name}' "
+                f"captures enclosing local(s) {sorted(free)} "
+                "(closure conversion not supported)\n"
+            )
+        _HOISTED_DECLS.append(_lower_let_binding(lb, source, record_types))
+        return ""
     value = kids[-1]
     ret_type = None
     for k in kids[1:-1]:
@@ -854,6 +896,17 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     record_types: set[str] = set()
     _CONSTRUCTORS.clear()
     _HOISTED_LOOPS.clear()
+    _HOISTED_DECLS.clear()
+    # Collect top-level binding names (functions + values) so the nested-
+    # function closed-ness check can tell a top-level reference from an
+    # enclosing-local capture.
+    _TOPLEVEL_NAMES.clear()
+    for child in tree.root_node.named_children:
+        if child.type != "value_definition":
+            continue
+        for lb in child.named_children:
+            if lb.type == "let_binding" and lb.named_children:
+                _TOPLEVEL_NAMES.add(_node_text(lb.named_children[0], src_bytes))
     for child in tree.root_node.named_children:
         if child.type != "type_definition":
             continue
@@ -910,9 +963,9 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
             continue
         else:
             out.append(f"// UNSUPPORTED-TOPLEVEL: {child.type}\n")
-    # A Sutra loop is a top-level declaration; hoist every `while_loop`
-    # discovered inside a function body to just after the header, before
-    # the functions that call them.
-    if _HOISTED_LOOPS:
-        out[1:1] = list(_HOISTED_LOOPS)
+    # Sutra loops and hoisted nested functions are top-level declarations;
+    # insert them just after the header, before the functions that use
+    # them. Hoisted nested functions first (a loop body may call one).
+    if _HOISTED_DECLS or _HOISTED_LOOPS:
+        out[1:1] = list(_HOISTED_DECLS) + list(_HOISTED_LOOPS)
     return "".join(out)
