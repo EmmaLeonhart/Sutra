@@ -1,4 +1,16 @@
-# Replicating: Percepta `transformer-vm` — "Can LLMs Be Computers?"
+# Neural WebAssembly
+
+> **What this is:** `transformer-vm` is an **autoregressive, deterministic Neural
+> Turing Machine** — it uses the attention mechanism to address RAM and then performs
+> deterministic, fully code-describable operations. As far as we know it is the first
+> time an attention mechanism has been turned into deterministic, human-interpretable
+> code. This repo (1) **replicates** it, (2) shows new CPU operations can be **learned
+> by gradient** on the scaffold and **crystallized** to exact weights, and (3) is
+> building the **isomorphism program** — explicit, behaviourally-identical code in
+> Rust → OCaml → **Sutra**. See [`notes/significance_and_isomorphism.md`](./notes/significance_and_isomorphism.md)
+> and the end of [`todo.md`](./todo.md).
+
+## Part 1 — Replicating Percepta `transformer-vm` ("Can LLMs Be Computers?")
 
 **Target:** [Percepta-Core/transformer-vm](https://github.com/Percepta-Core/transformer-vm)
 · Blog: ["Can LLMs Be Computers?"](https://www.percepta.ai/blog/can-llms-be-computers)
@@ -30,7 +42,7 @@ reference WASM trace token-for-token, including **sudoku (1,055,417 tokens,
 solved)** at ~18K tok/s (authors report ~30K; same order of magnitude). Full
 write-up in [`FINDINGS.md`](./FINDINGS.md).
 
-- **Live report:** https://emmaleonhart.github.io/replicating-transformer-vm/
+- **Live report:** https://emmaleonhart.github.io/neural-webassembly/
 - **Method:** recipe-first — the repo ships `uv run wasm-run`; we provisioned the
   toolchain (WSL Ubuntu), ran it, and checked its output against the blog's
   headline claims. The concrete step queue is in [`queue.md`](./queue.md);

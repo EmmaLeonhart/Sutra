@@ -8,7 +8,7 @@ reproduce their reference WASM execution traces token-for-token. Throughput is
 
 - **Target:** [Percepta-Core/transformer-vm](https://github.com/Percepta-Core/transformer-vm)
   (no arXiv; published as code + blog). Submodule pinned at `6cfee30`.
-- **This replication:** https://github.com/EmmaLeonhart/replicating-transformer-vm
+- **This replication:** https://github.com/EmmaLeonhart/neural-webassembly
 - **Method:** recipe-first. The repo ships its own reproduction recipe
   (`uv run wasm-run`); we provisioned the toolchain, ran it, and checked its
   output against the blog/README headline claims. We did **not** reimplement —
