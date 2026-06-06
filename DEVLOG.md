@@ -6,6 +6,32 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — while → substrate loop (ISO-5 item 2; work-loop tick)
+
+The substrate-fidelity crux. OCaml `while COND do BODY done` over scalar `ref`s
+now lowers to a Sutra `while_loop` running on the substrate (NOT a host loop).
+Mechanism, grounded in `planning/sutra-spec/control-flow.md` + the existing
+tail-recursion lowering (hand-verified the target Sutra runs first: a two-state
+`while_loop` summing 0..4 → 10.0): the loop's recurrent state is the set of
+in-scope mutable refs the condition/body reference (collected via `_collect_ref_vars`,
+threaded through body lowering as a `refs` dict populated when a `let r = ref e`
+binding is lowered); the `while_loop` declaration is hoisted to top level
+(`_HOISTED_LOOPS`, prepended after the header — a Sutra loop is a top-level decl,
+but an OCaml while is found deep in a body); the call site emits the
+`slot`/`loop`/write-back sequence. Body updates are SEQUENTIAL (not the
+simultaneous-temp form the tail-rec lowering uses), since OCaml while bodies
+execute statement-by-statement.
+
+Substrate-verified fixture `while_sum` (`let i = ref 0 in let sum = ref 0 in
+while !i < 5 do sum := !sum + !i; i := !i + 1 done; !sum`) → **10.0** on the
+substrate. OCaml suite **45 passed** (was 42; +3).
+
+Scope is the scalar-ref while shape. The ISO-5 reference's 2 real fetch-execute
+loops mutate arrays and use try/match-with-br, so the `_lower_while` guard refuses
+(emits `UNSUPPORTED-WHILE: body/condition not fully lowerable`, no half-built loop —
+verified 0 stray `loop _while` emissions). `for` loops not yet handled. Next ISO-5
+items: char + string literals, then arrays.
+
 ## 2026-06-06: sutra-from-ocaml — sequence expressions + ref mutation (ISO-5 item 1; work-loop tick)
 
 Second ISO-5 transpiler item (keystone). OCaml `e1; e2; …; eN` sequences in body

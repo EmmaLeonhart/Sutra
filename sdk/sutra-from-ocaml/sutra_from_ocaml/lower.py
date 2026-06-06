@@ -80,6 +80,34 @@ _OP_MAP = {
 # If OCaml gains module imports, move this onto a threaded context.
 _CONSTRUCTORS: dict[str, int] = {}
 
+# Hoisted `while_loop` declarations collected while lowering function
+# bodies. A Sutra loop is a top-level declaration, but an OCaml `while`
+# is discovered deep inside a body — so we emit a uniquely-named
+# `while_loop` decl into this list and prepend them all (after the header,
+# before the functions) in `lower()`. Same module-level / single-pass
+# caveat as `_CONSTRUCTORS`. The next loop's index is `len(_HOISTED_LOOPS)`.
+_HOISTED_LOOPS: list[str] = []
+
+
+def _collect_ref_vars(node, source: bytes, refs: dict) -> list:
+    """Return the in-scope mutable refs (by declaration order in `refs`)
+    that appear as a `value_path` anywhere under `node`. These are the
+    recurrent state a `while` body reads/writes, which must be threaded
+    through the Sutra loop as state params."""
+    seen: set = set()
+
+    def walk(n):
+        if n.type == "value_path":
+            nm = _node_text(n, source)
+            if nm in refs:
+                seen.add(nm)
+        for c in n.named_children:
+            walk(c)
+
+    walk(node)
+    # Preserve `refs` insertion order (declaration order) for stable output.
+    return [nm for nm in refs if nm in seen]
+
 
 def _node_text(node, source: bytes) -> str:
     return source[node.start_byte:node.end_byte].decode("utf-8")
@@ -408,11 +436,13 @@ def _lower_record_body(body, source: bytes, indent: str) -> str:
 
 
 def _lower_local_binding(vd, source: bytes, indent: str,
-                         record_types=frozenset()) -> str:
+                         record_types=frozenset(), refs: Optional[dict] = None) -> str:
     """Lower one `value_definition` from a `let … in` into a Sutra local
     declaration (`<type> name = <expr>;`). OCaml `let` is immutable, so
     no `slot`. A *local function* binding (params present) can't nest in
-    Sutra — emit an UNSUPPORTED marker rather than broken output."""
+    Sutra — emit an UNSUPPORTED marker rather than broken output. A
+    `let r = ref e` binds a mutable cell; record it in `refs` (name->type)
+    so an enclosing `while` can thread it as loop state."""
     lb = None
     for c in vd.named_children:
         if c.type == "let_binding":
@@ -432,16 +462,76 @@ def _lower_local_binding(vd, source: bytes, indent: str,
     for k in kids[1:-1]:
         if _is_type_node(k):
             ret_type = _map_type(k, source, record_types)
-    ty = ret_type if ret_type is not None else _DEFAULT_TYPE
+    # `let r = ref e` — a mutable cell. Type from the initial value e.
+    is_ref = (value.type == "application_expression"
+              and value.named_children
+              and value.named_children[0].type == "value_path"
+              and _node_text(value.named_children[0], source) == "ref"
+              and len(value.named_children) == 2)
+    if ret_type is not None:
+        ty = ret_type
+    elif is_ref:
+        ty = _value_binding_type(value.named_children[1], source)
+    else:
+        ty = _DEFAULT_TYPE
+    if is_ref and refs is not None and _is_identifier(name):
+        refs[name] = ty
     return f"{indent}{ty} {name} = {_lower_expression(value, source)};\n"
 
 
-def _lower_stmt_expr(node, source: bytes, indent: str) -> str:
+def _lower_while(node, source: bytes, indent: str, refs: dict) -> str:
+    """Lower an OCaml `while COND do BODY done` to a Sutra `while_loop`.
+    The loop's recurrent state is the set of in-scope mutable refs
+    (`refs`) the condition/body touch; the `while_loop` declaration is
+    hoisted to top level (`_HOISTED_LOOPS`) and the call site emits the
+    `slot`/`loop`/write-back sequence — the same shape the tail-recursion
+    lowering uses, but with sequential (not simultaneous) body updates,
+    since OCaml `while` bodies execute statement-by-statement."""
+    cond = node.child_by_field_name("condition")
+    do_clause = next((c for c in node.named_children if c.type == "do_clause"), None)
+    body = do_clause.named_children[0] if (do_clause and do_clause.named_children) else None
+    if cond is None or body is None:
+        return f"{indent}// UNSUPPORTED-WHILE: malformed\n"
+    state = _collect_ref_vars(cond, source, refs) + [
+        v for v in _collect_ref_vars(body, source, refs)
+        if v not in _collect_ref_vars(cond, source, refs)
+    ]
+    if not state:
+        return f"{indent}// UNSUPPORTED-WHILE: no mutable ref state to thread\n"
+    cond_src = _lower_expression(cond, source)
+    # Loop body: sequential mutations. A sequence -> each element as a
+    # statement; a single expression -> one statement.
+    if body.type == "sequence_expression":
+        elems = body.named_children
+    else:
+        elems = [body]
+    body_lines = "".join(_lower_stmt_expr(e, source, "    ", refs) for e in elems)
+    if "UNSUPPORTED" in body_lines or "UNSUPPORTED" in cond_src:
+        return f"{indent}// UNSUPPORTED-WHILE: body/condition not fully lowerable\n"
+    loop_name = f"_while{len(_HOISTED_LOOPS)}"
+    state_decls = ", ".join(f"{refs[v]} {v} = 0" for v in state)
+    _HOISTED_LOOPS.append(
+        f"while_loop {loop_name}({cond_src}, {state_decls}) {{\n{body_lines}}}\n"
+    )
+    slot_lines = "".join(f"{indent}slot {refs[v]} _{v}_r = {v};\n" for v in state)
+    slot_args = ", ".join(f"_{v}_r" for v in state)
+    writeback = "".join(f"{indent}{v} = _{v}_r;\n" for v in state)
+    return (
+        f"{slot_lines}"
+        f"{indent}loop {loop_name}({cond_src}, {slot_args});\n"
+        f"{writeback}"
+    )
+
+
+def _lower_stmt_expr(node, source: bytes, indent: str,
+                     refs: Optional[dict] = None) -> str:
     """Lower one side-effecting expression in STATEMENT position (a
     non-final element of a sequence `e1; e2; …`). The common imperative
-    case is a ref assignment `r := e` -> Sutra `r = e;`; anything else
-    (e.g. a call evaluated for its effect) lowers to a bare expression
-    statement `expr;`."""
+    cases are a ref assignment `r := e` -> Sutra `r = e;` and a `while`
+    loop; anything else (e.g. a call evaluated for its effect) lowers to
+    a bare expression statement `expr;`."""
+    if node.type == "while_expression" and refs is not None:
+        return _lower_while(node, source, indent, refs)
     if node.type == "infix_expression":
         op = node.child_by_field_name("operator")
         if op is not None and _node_text(op, source) == ":=":
@@ -454,13 +544,17 @@ def _lower_stmt_expr(node, source: bytes, indent: str) -> str:
 
 
 def _lower_body_to_statements(body, source: bytes, indent: str,
-                              record_types=frozenset()) -> str:
+                              record_types=frozenset(),
+                              refs: Optional[dict] = None) -> str:
     """Lower a function-body expression into Sutra statements. A
     `let x = e in rest` becomes a local declaration followed by the
     lowering of `rest`; a `sequence_expression` (`e1; …; eN`) becomes
-    statements for `e1 … e(N-1)` and the lowering of `eN`; a
+    statements for `e1 … e(N-1)` and the lowering of `eN`; a `while` in
+    statement position becomes a hoisted Sutra `while_loop`; a
     `record_expression` body becomes axon construction; the final
     (non-let) expression becomes `return …;`."""
+    if refs is None:
+        refs = {}
     if body.type == "record_expression":
         return _lower_record_body(body, source, indent)
     if body.type == "let_expression":
@@ -470,10 +564,10 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
             out = ""
             for b in bindings:
                 if b.type == "value_definition":
-                    out += _lower_local_binding(b, source, indent, record_types)
+                    out += _lower_local_binding(b, source, indent, record_types, refs)
                 else:
                     out += f"{indent}// UNSUPPORTED-LET-IN-PART: {b.type}\n"
-            out += _lower_body_to_statements(in_body, source, indent, record_types)
+            out += _lower_body_to_statements(in_body, source, indent, record_types, refs)
             return out
     if body.type == "sequence_expression":
         kids = body.named_children
@@ -481,8 +575,8 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
             *stmts, last = kids
             out = ""
             for s in stmts:
-                out += _lower_stmt_expr(s, source, indent)
-            out += _lower_body_to_statements(last, source, indent, record_types)
+                out += _lower_stmt_expr(s, source, indent, refs)
+            out += _lower_body_to_statements(last, source, indent, record_types, refs)
             return out
     return f"{indent}return {_lower_expression(body, source)};\n"
 
@@ -672,7 +766,7 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
         )
 
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
-    body_src = _lower_body_to_statements(body, source, "    ", record_types)
+    body_src = _lower_body_to_statements(body, source, "    ", record_types, {})
     return f"function {ret} {name}({params_src}) {{\n{body_src}}}\n"
 
 
@@ -697,6 +791,7 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     # record_declaration.
     record_types: set[str] = set()
     _CONSTRUCTORS.clear()
+    _HOISTED_LOOPS.clear()
     for child in tree.root_node.named_children:
         if child.type != "type_definition":
             continue
@@ -753,4 +848,9 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
             continue
         else:
             out.append(f"// UNSUPPORTED-TOPLEVEL: {child.type}\n")
+    # A Sutra loop is a top-level declaration; hoist every `while_loop`
+    # discovered inside a function body to just after the header, before
+    # the functions that call them.
+    if _HOISTED_LOOPS:
+        out[1:1] = list(_HOISTED_LOOPS)
     return "".join(out)
