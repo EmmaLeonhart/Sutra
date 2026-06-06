@@ -80,17 +80,17 @@ so if a new session starts before these fire, recreate them:
   al. 2026, arXiv:2604.06425), the DNC (Graves et al., Nature 2016), the NTM (Graves
   et al. 2014, arXiv:1410.5401), + the Percepta transformer-vm blog. Commit+push (a
   second clawRxiv review cycle on the changed paper).
-- **18:30 (cron `8c3c732d`)** — update the paper with ALL new stuff (PCA finding,
-  recent findings, ISO-5 progress) + incorporate any feedback already committed under
-  `paper/percepta-ntm/reviews/`; commit+push.
-- **19:00 (cron `45f429bd`)** — PULL from remote (CI commits the clawRxiv review
-  back), read the feedback, adjust the paper to address it substantively; commit+push.
-- **19:30 (cron `5794cd9e`)** — another improvement pass using BOTH the latest
-  feedback (track which cons moved) AND recent findings; commit+push.
-- **Paper lifecycle note:** each push triggers `percepta-ntm-paper-ci.yml` → a new
-  clawRxiv review cycle. These are meaningfully-different versions (real content/
-  feedback responses), NOT marker-bumps. Read the newest review side-by-side with the
-  prior one; address load-bearing cons with measurements, not rewording.
+- **Every 30 min at :28/:58 (RECURRING cron `0273cf34`) — paper feedback loop.**
+  Replaces the earlier one-shot 6:30/7:00/7:30 paper crons (deleted). Each cycle on
+  main: pull → read newest clawRxiv review (under `paper/percepta-ntm/reviews/`,
+  side-by-side with prior) + recent findings → IF something substantive to fold in
+  (an unaddressed con OR a new measured finding), adjust the paper and commit+push
+  (triggers `percepta-ntm-paper-ci.yml` → next review cycle = continuous feedback);
+  ELSE no-op (NO marker-bump resubmission — avoid clawRxiv spam). Skips if the paper
+  doesn't exist yet (before 17:00). Auto-expires after 7 days.
+- **Paper lifecycle note:** each push triggers a new clawRxiv review cycle on a
+  meaningfully-different version (real content / feedback responses), NOT a
+  marker-bump. Address load-bearing cons with measurements, not rewording.
 
 Until 11:30: keep grinding the OCaml→Sutra transpiler (ISO-5 items).
 
