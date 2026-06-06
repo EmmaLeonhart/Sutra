@@ -6,6 +6,23 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: ISO-5 unblocked — WASM memory is RAM; RAM-based opcode dispatch works (Emma design)
+
+Emma's call: the WASM machine's array IS RAM, not a Sutra array -> use ramRead/ramWrite
+(host-attached _VSA.ram device), not the broken dict<int,int>. This moots the array
+blocker. MEASURED that it also fixes the 11:30 dispatch blocker: the dispatched opcode
+is read FRESH from RAM each step, and a fresh ramRead value compares cleanly to a
+literal (the 11:30 failure was loop-CARRIED state vs literal). Results (device attached,
+RAM=[10,20,99], dim=2): straight-line ramRead(addr).real() = 10/20/99; truth(==99) =
+-1/-1/+1; recurring-cursor step truth(==99) per step = [-1,-1,+1]. Required loop form is
+`recurring vector` cursor + `recur` (one step per call, the autoregressive model) -- NOT
+while_loop+slot (which hands ram_read a malformed ptr). Finding:
+planning/findings/2026-06-06-iso5-ram-based-machine-dispatch-works.md; artifact
+experiments/iso5_substrate_dispatch/ram_dispatch.py. Remaining for the full machine:
+bitwise stdlib (land/lsl/...), exception lowering (raise Exit -> recurring halted flag),
+transpiler array->RAM + while/try->recur lowering, and the transformer-vm submodule
+re-wire (.gitmodules URL missing after the subtree merge).
+
 ## 2026-06-06: ISO-5 11:30 milestone — full-machine hand-edit attempt + substrate loop-dispatch blocker
 
 Ran the full end-to-end attempt: transpile the complete WASM OCaml machine to Sutra,
