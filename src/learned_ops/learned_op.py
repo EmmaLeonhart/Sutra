@@ -49,11 +49,26 @@ def target_sat_sub_u(a, b):
     return torch.clamp(a - b, min=0)
 
 
+def target_min_u(a, b):
+    """Unsigned min."""
+    return torch.minimum(a, b)
+
+
+def target_max_u(a, b):
+    """Unsigned max."""
+    return torch.maximum(a, b)
+
+
 # Registry of learnable byte ops (target functions over int tensors in [0,255]).
+# `and` is the documented negative result (bitwise = high-frequency, not learnable
+# from raw integers). The rest are arithmetic / value-natured (low-frequency) and
+# learn to bit-exactness via value-output regression.
 TARGETS = {
     "and": target_and,
     "sat_add_u": target_sat_add_u,
     "sat_sub_u": target_sat_sub_u,
+    "min_u": target_min_u,
+    "max_u": target_max_u,
 }
 
 

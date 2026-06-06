@@ -30,7 +30,13 @@ RESULTS = Path(__file__).resolve().parents[2] / "results"  # repo_root/results
 
 # Output representation per op: bitwise ops need per-bit output; arithmetic ops are
 # value-natured (the scaffold's native byte representation) and learn the value.
-MODES = {"and": "bits", "sat_add_u": "value", "sat_sub_u": "value"}
+MODES = {
+    "and": "bits",
+    "sat_add_u": "value",
+    "sat_sub_u": "value",
+    "min_u": "value",
+    "max_u": "value",
+}
 
 
 def exact_and_errors(op, x, target_byte):
