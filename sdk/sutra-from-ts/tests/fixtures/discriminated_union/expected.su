@@ -4,7 +4,7 @@
 // stdlib piece. Programs that hit it won't run end-to-end yet.
 
 function int area(Axon s) {
-    return (((1 + truth_axis(defuzzy(s.item("kind") == String.make_string("circle")))) * (s.item("r") * s.item("r"))) + ((1 - truth_axis(defuzzy(s.item("kind") == String.make_string("circle")))) * (s.item("side") * s.item("side")))) / 2;
+    return (((1 + truth_axis(defuzzy(s.item("kind") == String.make_string("circle")))) * (s.item("r").real() * s.item("r").real())) + ((1 - truth_axis(defuzzy(s.item("kind") == String.make_string("circle")))) * (s.item("side").real() * s.item("side").real()))) / 2;
 }
 function int main() {
     Axon c;

@@ -142,3 +142,50 @@ def test_fixture_compiles(name, input_path, expected_path):
     src = input_path.read_text(encoding="utf-8")
     sutra_src = lower(src, source_path=input_path)
     _compile_with_sutra(sutra_src)
+
+
+# Fixtures with a callable `main()` and a known ground-truth result, run
+# end-to-end on the real Sutra substrate (compile AND run AND match), not
+# just the parse/codegen syntax check above. The axon-field-read fixtures
+# are here specifically so the `.real()` projection fix (2026-06-06) can't
+# silently regress back to returning zeros.
+_RUNNABLE_FIXTURES = {
+    "interface_pass": 25.0,       # distance_squared({x:3, y:4})
+    "discriminated_union": 25.0,  # area({kind:"circle", r:5})
+}
+
+
+def _extract_result(out: str) -> float:
+    last = out.splitlines()[-1].strip() if out else ""
+    m = re.search(r"tensor\(\s*(-?\d+\.?\d*)", last) or re.search(
+        r"(-?\d+\.\d+|-?\d+)", last
+    )
+    if m is None:
+        raise AssertionError(f"no numeric result in output:\n{out}")
+    return float(m.group(1))
+
+
+@pytest.mark.parametrize("fixture_name,expected", sorted(_RUNNABLE_FIXTURES.items()))
+def test_fixture_runs_on_substrate(tmp_path, fixture_name, expected):
+    """Transpile -> run on the real substrate via `sutrac --run` -> assert
+    the decoded result. Skipped without torch so CI without the runtime
+    stays green."""
+    pytest.importorskip("torch")
+    import subprocess
+
+    fixture = sorted((FIXTURE_DIR / fixture_name).glob("input.*"))[0]
+    sutra_src = lower(fixture.read_text(encoding="utf-8"), source_path=fixture)
+    su_path = tmp_path / f"{fixture_name}.su"
+    su_path.write_text(sutra_src, encoding="utf-8")
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
+        capture_output=True,
+        text=True,
+    )
+    out = (proc.stdout + proc.stderr).strip()
+    assert proc.returncode == 0, f"sutrac --run failed:\n{out}"
+    got = _extract_result(out)
+    assert abs(got - expected) < 0.5, (
+        f"{fixture_name}: expected ~{expected}, got {got}\n{out}"
+    )
