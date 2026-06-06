@@ -33,16 +33,18 @@ crons are running this session (`57ccb9ba`/:03, `2c9174b4`/:15, `8b51cb26`/:42).
 **Priority thread — the isomorphism program** (Neural WebAssembly → Rust → OCaml →
 Sutra; see `notes/significance_and_isomorphism.md` and the ★ section of `todo.md`):
 
-1. **ISO-2 — write the Rust isomorph spec.** ISO-1 concluded the seed is the repo's
-   own `wasm/reference.py` (a plain imperative 35-opcode stack-machine interpreter =
-   the exact behavioural spec), not an external interpreter (see
-   `notes/isomorphism_reference_search.md`). Write the spec for a Rust port of
-   `reference.py` — opcode-for-opcode, iterator-first addressing — plus the
-   behavioural-equivalence test plan (run identical programs through both, diff
-   outputs/traces). Commit.
-2. **ISO-3 — build the Rust isomorph** under `iso/rust/` (new): port `reference.py`,
-   cross-check opcode edge cases against a minimal Rust interpreter (DLR-FT or wain),
-   and pass the equivalence tests on the example programs. Commit.
+ISO-1/2/3 DONE: the Rust isomorph (`iso/rust/`, port of `reference.py`) is
+behaviourally equivalent to the reference executor — 6/6 example programs produce
+byte-identical output (cargo test + `scripts/iso_equiv.sh` → ISO_EQUIV_OK).
+
+1. **ISO-4 — OCaml isomorph.** Build an OCaml port of the same 35-opcode machine under
+   `iso/ocaml/` and establish the same behavioural equivalence (run identical programs
+   through OCaml vs the Python reference / Rust, diff outputs). OCaml is structurally
+   close to Sutra — this is the stepping stone. (Will need to install OCaml/dune in
+   WSL — unprivileged via opam.) Commit.
+2. **ISO-5 — Sutra.** Port the OCaml realisation into **Sutra** and test how far Sutra
+   can express this same machine. The end of the road (and of `todo.md`). Hardest —
+   plan carefully; this likely needs user input on Sutra specifics.
 
 **Learned-ops thread:**
 

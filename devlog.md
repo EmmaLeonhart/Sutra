@@ -237,3 +237,21 @@ refs for cross-checking: DLR-FT/wasm-interpreter, tinywasm, wain. Literature
 validating the thesis: "Weights to Code" (arXiv:2601.05770, attention-as-NTM-pointer
 → closed-form code) and "Attention is Turing Complete" (JMLR 22). Recorded in
 `notes/isomorphism_reference_search.md`. Next: ISO-2 (Rust isomorph spec).
+
+## 2026-06-05 — ISO-2/3 done: Rust isomorph, byte-identical on 6/6 programs
+
+Built the first stage of the isomorphism program: `iso/rust/` — a faithful Rust port
+of `transformer-vm/wasm/reference.py` (the deterministic 35-opcode stack machine the
+autoregressive transformer is isomorphic to). Iterator-first addressing (plain memory
+indices); the attention-as-addressing formulation is a later step.
+
+- Installed Rust (rustup, unprivileged) in WSL.
+- `iso/rust/src/lib.rs` (parse + run, opcode-for-opcode), `src/main.rs` (CLI),
+  `tests/equiv.rs` (known reference outputs), `scripts/iso_equiv.sh` (Python-vs-Rust
+  harness).
+- **cargo test --release: 6 passed.** Equivalence harness: **6/6 programs produce
+  byte-identical output** to the Python reference — hello, addition, fibonacci,
+  collatz, min_cost_matching (Hungarian, 882 bytes), sudoku (solved). ISO_EQUIV_OK.
+
+So: autoregressive transformer ≡ reference.py ≡ Rust isomorph, verified behaviourally.
+Next: ISO-4 (OCaml isomorph — the stepping stone to Sutra).
