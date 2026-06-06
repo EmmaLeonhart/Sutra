@@ -37,23 +37,27 @@ ISO-1/2/3 DONE: the Rust isomorph (`iso/rust/`, port of `reference.py`) is
 behaviourally equivalent to the reference executor — 6/6 example programs produce
 byte-identical output (cargo test + `scripts/iso_equiv.sh` → ISO_EQUIV_OK).
 
-1. **ISO-4 — OCaml isomorph.** Build an OCaml port of the same 35-opcode machine under
-   `iso/ocaml/` and establish the same behavioural equivalence (run identical programs
-   through OCaml vs the Python reference / Rust, diff outputs). OCaml is structurally
-   close to Sutra — this is the stepping stone. (Will need to install OCaml/dune in
-   WSL — unprivileged via opam.) Commit.
+1. **ISO-4 — OCaml isomorph.** ⛔ BLOCKED ON USER: OCaml + dune are missing and need
+   sudo — please run `sudo apt install -y ocaml ocaml-dune m4` in WSL (on Ubuntu 24.04
+   the package is `ocaml-dune`, not `dune`; system OCaml means no opam needed). Then:
+   build an OCaml port of the same
+   35-opcode machine under `iso/ocaml/` and establish behavioural equivalence (OCaml
+   vs Python reference / Rust, diff outputs). OCaml ≈ Sutra structurally — the
+   stepping stone. Commit.
 2. **ISO-5 — Sutra.** Port the OCaml realisation into **Sutra** and test how far Sutra
    can express this same machine. The end of the road (and of `todo.md`). Hardest —
    plan carefully; this likely needs user input on Sutra specifics.
 
-**Learned-ops thread:**
+**Learned-ops thread** (E4 DONE: sat_add/sat_sub/min/max all learned to 100% exact,
+value-output; AND a documented negative result; findings in
+`notes/learned_ops_findings.md`):
 
-3. **E3 — integrate sat_add as a native opcode.** Wire crystallized `sat_add_u` into
-   `wasm/interpreter.py` (is_op-gated), build weights, pass a program using it
-   end-to-end vs reference (G2). Bigger build (interpreter, opcode tables,
-   `compile_wasm.py`). Runs in WSL.
-4. **E4 — more learned ops / findings note.** Signed sat add/sub, min/max; consolidate
-   AND-negative + sat_add-positive into a short findings note.
+3. **E3 — integrate a learned op as a native opcode (SPEC FIRST).** Wire a learned
+   arithmetic op (e.g. `sat_add_u`) into `wasm/interpreter.py` (is_op-gated) +
+   `reference.py` + `compile_wasm.py`, build weights, pass a program using it
+   end-to-end vs reference (G2). Deep build into the analytic construction — per the
+   hard rails, **write the spec first** (what changes in each file, the byte-level
+   semantics) before implementing; do not blind-hack the construction. Runs in WSL.
 
 **Optional:** hull Python path (`sudo apt install -y python3-dev`, then
 `uv run wasm-eval --hull` / `pytest -m "not slow"`; quantify hull vs `--nohull`).

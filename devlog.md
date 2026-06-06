@@ -255,3 +255,14 @@ indices); the attention-as-addressing formulation is a later step.
 
 So: autoregressive transformer ≡ reference.py ≡ Rust isomorph, verified behaviourally.
 Next: ISO-4 (OCaml isomorph — the stepping stone to Sutra).
+
+## 2026-06-05 — E4 done: 4 value-ops learned to 100%; findings consolidated
+
+Extended the learned-ops result: added sat_sub_u, min_u, max_u to the op registry and
+trained each (value-output regression) to **100.0000% exact, 0/65 536 wrong** —
+joining sat_add_u. Verified via `tests/test_value_ops_exact.py` (parametrized, all 4
+PASS; full learned_ops suite green, AND gate skipped). Consolidated the two laws —
+(1) spectral bias decides learnability (bitwise = high-frequency = unlearnable; the
+architecture has no runtime bit decomposition); (2) output representation must match
+op nature (value-output for arithmetic) — into `notes/learned_ops_findings.md`.
+Remaining learned-ops item: E3 (native opcode integration) — spec-first per hard rails.
