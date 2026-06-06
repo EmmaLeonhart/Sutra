@@ -4,6 +4,15 @@
 > Idea not yet tried. This works out *how* a DNC could map onto Sutra's
 > substrate and, crucially, how it relates to the (already-built) hard RAM
 > pointers. Nothing here is implemented; open questions are marked.
+>
+> **Cross-track (2026-06-06):** the `WASM/` subtree (Neural WebAssembly —
+> Percepta `transformer-vm` replication) is a *constructed, deterministic*
+> NTM: attention used as exact memory addressing, rendered as
+> human-interpretable code. Its isomorphism program (transformer ≡ reference
+> ≡ Rust ≡ OCaml, byte-identical; the Sutra port = ISO-5, the last stage) is
+> the same "DNC memory access ⇄ written code" isomorphism this doc reaches
+> for, approached from the constructed-not-trained side. See
+> `WASM/notes/significance_and_isomorphism.md` and `docs/neural-webassembly.md`.
 
 ## What a DNC is
 

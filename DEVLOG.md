@@ -6,6 +6,42 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: Integrate the Neural WebAssembly repo as the `WASM/` subtree
+
+Discharged queue ACTIVE #1 + #2. Brought `EmmaLeonhart/neural-webassembly` (local
+dir `replicating-neural-computers-2`) into this repo under `WASM/` via
+`git subtree add --prefix=WASM ../replicating-neural-computers-2 main` — **full
+history, no `--squash`** (merge `39073ab1` has 2 parents; the second reaches all 33
+original commits with messages intact). Source HEAD was clean and == its origin/main
+(0/0), so the subtree captured canonical history. The queue's named remote
+`replicating-neural-computers-2` was just the local dir name; the real remote is
+`neural-webassembly.git`.
+
+What the artifact is: a replication of Percepta's `transformer-vm` — a standard
+transformer with **analytically computed (untrained)** weights that executes
+arbitrary WebAssembly token-for-token (6/6 programs, incl. sudoku at 1,055,417
+tokens). Classified as an **autoregressive, deterministic Neural Turing Machine**
+(attention = exact memory addressing; FFN = compute; append-only sequence = state).
+Its isomorphism program (transformer ≡ reference ≡ Rust ≡ OCaml, byte-identical) was
+always pointed at Sutra as its final stage (ISO-5) — now unblocked because Sutra is
+this repo.
+
+Documentation pass (ACTIVE #2 step 1): new human-facing website page
+`docs/neural-webassembly.md` (registered in `scripts/build_site.py` ORDER+BLURB;
+site builds, page renders), website-clean per CLAUDE.md §Audiences. Bidirectional
+agent-facing cross-refs added to `planning/exploratory/differentiable-neural-
+computer.md` and `planning/sutra-spec/ram-pointers.md` — both Sutra NTM/DNC tracks
+converge with the WASM work on Yantra. **Correction:** the queue's ACTIVE-#2 brief
+mentioned a "video-model-rolling-frames architecture" (from the arXiv paper
+2604.06425); the WASM README explicitly disclaims that paper as wrong scaffolding,
+purged from the repo + history. Documented the real target only.
+
+Merged the WASM repo's `todo.md` to the top of our `todo.md` (origin-bannered WASM
+agenda: Yantra P0–P6, isomorphism program, replication follow-ups) and lifted the
+gating on the PCA-on-WASM-transformer top-priority block. Merged the WASM `queue.md`
+(not-done items only: ISO-5, PCA, E3 native opcode, hull path, Yantra integration)
+into our `queue.md` directly below where the now-complete ACTIVE #1/#2 sat.
+
 ## 2026-06-06: Daily substrate-honesty audit — clean (transpiler commits)
 
 Audited every commit since the previous audit (`179a21af`, 2026-06-05) against
