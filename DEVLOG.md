@@ -6,6 +6,31 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — option types Some/None (ISO-5 item 5c; work-loop tick)
+
+OCaml `option` lowers to a tagged axon `{_tag,_val}`: `None`→tag 0, `Some e`→tag 1 +
+value e (body position, like records/tuples); `int option` param/return → `Axon`;
+`match o with Some x -> e1 | None -> e2` reads the tag and binds `x` to the payload
+(reusing `_MATCH_SUBST`). Substrate-verified `option_some`: `get_or (mk 42) 0` →
+**42.0** (Some), `get_or (none ()) 7` → **7.0** (None). OCaml suite **62 passed**
+(was 59; +3).
+
+Measured constraint that shaped the design: an **inline** axon field read in a
+comparison does NOT defuzz to a clean boolean. `o.item("_tag").real() == 1` for a
+None axon defuzzed to truth **0** (a 50/50 blend → wrong 3.5), while the SAME
+comparison off an `int` local (`int t = o.item("_tag").real(); t == 1`) defuzzed to
+**-1** correctly (→ 7.0). The axon reads themselves are exact (None `_tag`=0.0, Some
+`_tag`=1.0). So option-match binds `_tag`/`_val` to `int` locals first and is
+therefore **function-body-only**; an option match in nested expression position is
+rejected (`UNSUPPORTED-MATCH: option match must be a function body`) rather than
+emitting the buggy inline blend.
+
+Honest scope vs ISO-5: the WASM reference uses options in EXPRESSION position
+(`let input_base = if … then Some base else None in …`), so the reference's option
+markers do NOT clear — the feature is verified on a standalone fixture, not on the
+reference's harder shape. This matches Emma's note (2026-06-06) that the WASM machine
+is a complex test program with edge cases a simpler program wouldn't have.
+
 ## 2026-06-06: sutra-from-ocaml — match catch-all name binding (ISO-5 item 5b; work-loop tick)
 
 OCaml `match s with … | x -> body` (a catch-all that binds the scrutinee to a name)

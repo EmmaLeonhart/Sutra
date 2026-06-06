@@ -146,6 +146,7 @@ _RUNNABLE_FIXTURES = {
     "nested_fn": 16.0,  # main () = let dbl x = x*2 in dbl 5 + dbl 3  (closed nested fn hoisted)
     "tuple_fst_snd": 16.0,  # main () = sum2 (pair 7 9)  (tuple -> positional axon; fst/snd off Axon param)
     "match_bind": 6.0,  # classify 5 = match n with 0 -> 100 | x -> x+1  (catch-all name binding)
+    "option_some": 42.0,  # get_or (mk 42) 0  (option Some/None -> tagged axon; match binds payload via int locals)
 }
 
 
