@@ -125,9 +125,21 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
      16. Limitation (same as records): `fst`/`snd` need an **Axon-typed operand**
      (bound var / annotated param) — inline `fst (pair 7 9)` fails because Sutra
      method dispatch doesn't type a call result as Axon (torch `.item()` clash).
-  5b. **NEXT (unblocked): option** (`Some`/`None` — needs a discriminated rep);
-  7. try/exceptions (`raise Exit`/`failwith`); 8. `match`-with-`br`; 9. stdlib;
-  10. closure conversion (capturing nested fns); 11. core-compiler `dict<int,int>`.
+  5b. **Match catch-all name binding** (`| x -> body` binds the scrutinee) — DONE:
+     `_MATCH_SUBST` substitutes the bound name into the arm body (bare for a
+     simple-atom scrutinee to dodge the `(x) <op>`→cast ambiguity). Substrate-
+     verified `match_bind` `classify 5` = 6, `classify 0` = 100. This is the
+     substitution foundation the option/constructor-arg patterns reuse.
+  5c. **NEXT (unblocked): option** (`Some`/`None`) — now has the subst foundation;
+     still needs a tagged representation + constructor-arg pattern binding (`Some x`
+     → payload via subst). 7. try/exceptions; 8. `match`-with-`br`; 9. stdlib;
+  10. closure conversion; 11. core-compiler `dict<int,int>`.
+
+  **Note (easy wins thinning):** the remaining ISO-5 items (option, full
+  string-match-with-`br` dispatch, exceptions, stdlib, closures, arrays) are each
+  substantial/coupled — the clean single-tick OCaml wins are mostly spent. Per
+  CLAUDE.md priority, when the tractable OCaml items run out the order is fix-TS
+  (largely done) → other languages (Scala first), each a multi-session scaffold.
   Destination (bigger than transpiler coverage): the fetch-execute loop as a
   substrate recurrence (state vectors across iterations, opcode dispatch as a
   defuzz match) — closing items 1–2 first runs a real WASM-machine fragment on
@@ -335,7 +347,8 @@ first and never touches the RAM/W2C sections above.
   `string_lit`. Closed nested-fn hoisting: DONE — substrate-verified `nested_fn` = 16
   (closures correctly UNSUPPORTED). Arrays BLOCKED on core-compiler `dict<int,int>`
   defect (finding 2026-06-06-dict-int-keys-broken). Tuples→positional axon + fst/snd:
-  DONE — substrate-verified `tuple_fst_snd` = 16. OCaml suite 56 passed.]
+  DONE — substrate-verified `tuple_fst_snd` = 16. Match catch-all name binding
+  (`| x -> body`): DONE — substrate-verified `match_bind` = 6. OCaml suite 59 passed.]
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.
