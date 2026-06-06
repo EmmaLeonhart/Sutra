@@ -252,9 +252,9 @@ first and never touches the RAM/W2C sections above.
   if COND then BASE else f a…` → Sutra `while_loop`; substrate-verified
   `sum_to 0 5 = 15`). Remaining: (a) **non-tail recursion** (factorial-shape,
   recursive call inside a larger expression) — still correctly UNSUPPORTED; needs
-  a bounded-depth encoding, open question. (b) Simultaneous state update for
-  swap-style updates (`f y x`) — current emission is sequential; add temporaries.
-  (c) Non-comparison halt conditions (`&&`/bool) — needs a Sutra `not`/negation.
+  a bounded-depth encoding, open question. (b) Non-comparison halt conditions
+  (`&&`/bool) — needs a Sutra `not`/negation. [Simultaneous swap-update: DONE —
+  temp-based update, substrate-verified `swaploop 7 9 2 = 7`.]
 - [ ] `match … with`: **literal + trailing `_` DONE** (`classify 1 = 200`) and
   **nullary-constructor patterns DONE** (variant match, `label Green = 200`,
   substrate-verified; last case is the base, exact for exhaustive variant matches).

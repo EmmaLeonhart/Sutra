@@ -6,6 +6,19 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: OCaml tail-rec simultaneous update — fix swap bug (transpiler tick 11)
+
+Tick 6's tail-recursion lowering updated loop state sequentially (`p1=e1; p2=e2;`),
+which is wrong when a later arg reads a param an earlier line already overwrote.
+Demonstrated the bug first: `let rec swaploop a b n = if n=0 then a else swaploop b
+a (n-1)`, `swaploop 7 9 2` → **9 on the substrate, should be 7** (the `a=b; b=a;`
+collapses the swap). Fixed: compute every new value into a temporary from the OLD
+params (`int _ti = e_i;`), then assign all params (`p_i = _ti;`) — simultaneous
+update. Hand-verified the temp form on the substrate first (7), then implemented.
+New fixture `tail_rec_swap` runs **swaploop(7,9,2)=7.0**; `tail_rec_sum` regenerated
+(body now uses temps) and still **15.0**. 36 passed (13 fixtures × lowering+compile
++ 10 substrate runs 7/6.5/5/10/15/7/200/7/200/100).
+
 ## 2026-06-05: OCaml booleans — && / || / not / true / false (transpiler tick 10)
 
 `sutra-from-ocaml` now handles booleans: `true`/`false` literals (OCaml `boolean`
