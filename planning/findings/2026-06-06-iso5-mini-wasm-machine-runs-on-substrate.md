@@ -9,7 +9,8 @@ arbitrary programs on the Sutra substrate and produces correct results.
 `experiments/iso5_substrate_dispatch/mini_wasm_machine.su` — a `step()` function;
 driver `run_mini_machine.py` loads a program into the RAM device and calls `step()`
 once per instruction (the autoregressive model). Opcodes: 0=HALT, 1=CONST(imm),
-2=ADD, 3=SUB, 4=MUL, 5=AND (bitwise — uses the `Bits.band` substrate primitive).
+2=ADD, 3=SUB, 4=MUL, 5=AND (bitwise — `Bits.band` primitive), 6=BR_IF (conditional
+branch — pop top, jump to the immediate if nonzero, else fall through).
 
 Measured (program-as-data — same machine, different RAM contents):
 
@@ -24,6 +25,8 @@ Measured (program-as-data — same machine, different RAM contents):
 | const 6; const 7; mul | **42** | 42 |
 | const 12; const 10; **and** (bitwise) | **8** | 8 |
 | const 5; const 6; mul; const 2; sub | **28** | 28 |
+| const 1; br_if 18; const 100; halt; const 7 (TAKEN) | **7** | 7 |
+| const 0; br_if 18; const 100 (NOT taken) | **100** | 100 |
 
 It is a genuine interpreter: the program lives in RAM as data, not in the code.
 
@@ -56,9 +59,9 @@ It is a genuine interpreter: the program lives in RAM as data, not in the code.
 
 ## Scope / what's not claimed
 
-This is a 6-opcode (HALT/CONST/ADD/SUB/MUL/AND) hand-written machine demonstrating the
+This is a 7-opcode (HALT/CONST/ADD/SUB/MUL/AND/BR_IF) hand-written machine demonstrating the
 mechanism end-to-end, NOT the full 35-opcode transformer-vm. The full machine adds
-the remaining opcodes (loads/stores/branches/calls — more of the same blended
+the remaining opcodes (loads/stores/calls — more of the same; conditional BR_IF branch is in, backward-branch loops need load/store for a counter blended
 dispatch + RAM), byte/bitwise arithmetic (bitwise stdlib ready), and a larger
 linear-memory region (the host RAM-list doesn't scale to 10 MB — a scalable RAM
 device is the follow-on). The hard substrate questions (memory model, dispatch,

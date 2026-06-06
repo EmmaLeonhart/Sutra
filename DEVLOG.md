@@ -6,6 +6,17 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: mini WASM machine — BR_IF conditional branch (control flow on the substrate)
+
+Added BR_IF (opcode 6) to the substrate mini-machine: pop the top as a condition,
+jump to the immediate (absolute target) if nonzero, else fall through. `taken` is the
+clean ±1 AND of is_brif and (cond != 0); new_pc blends HALT-keep / taken-jump / +2.
+Measured (program-as-data): cond=1 branch TAKEN -> 7; cond=0 NOT taken -> 100 (same
+program, distinct paths). Arithmetic+bitwise regression intact (3+4=7, 12&10=8). The
+machine now has CONTROL FLOW on the substrate (conditionals; backward-branch loops
+need load/store opcodes for a counter — next breadth items). 7 opcodes total
+(HALT/CONST/ADD/SUB/MUL/AND/BR_IF). Artifact run_machine_branch.py.
+
 ## 2026-06-06: mini WASM machine breadth — SUB/MUL/bitwise-AND opcodes (capstone extension)
 
 Extended the substrate mini-machine from 3 to 6 opcodes (HALT/CONST/ADD/SUB/MUL/AND)
