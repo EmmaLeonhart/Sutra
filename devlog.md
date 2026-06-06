@@ -310,3 +310,13 @@ whole set — so `op_dot`'s stepglu indicator separates any subset. The vocabula
 **fully extensible**; adding `i32.sat_add_u` as opcode #37 is clean on dispatch. E3
 gating concern resolved; updated `notes/e3_native_opcode_spec.md`. The remaining E3
 build is a focused multi-file effort for its own session.
+
+## 2026-06-05 — Work-loop tick: isomorph equivalence now in CI
+
+SYNC clean. WORK: ISO-5 blocked (user), E3 impl is a focused-session task, so promoted
+a bounded high-value item serving the "verify CI green" rail — bring the 3-language
+isomorph equivalence into CI. Made `scripts/iso_equiv.sh` portable (repo root from
+script location; verified still 6/6 ISO_EQUIV_OK locally) and added two `ci.yml` steps:
+install Rust (rustup) + OCaml (apt), then run the Python≡Rust≡OCaml equivalence on the
+programs the replication step compiles. The isomorphs are now CI-protected, not just
+locally checked. (Marked done only after CI goes green.)
