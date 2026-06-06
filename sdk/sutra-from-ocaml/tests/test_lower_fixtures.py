@@ -134,6 +134,7 @@ _RUNNABLE_FIXTURES = {
     "max": 5.0,          # main () = maxi 5 3  (if/then/else defuzz blend)
     "let_in": 10.0,      # main () = f 4  (let x = a+1 in x*2)
     "tail_rec_sum": 15.0,  # main () = sum_to 0 5  (tail rec -> while_loop)
+    "tail_rec_swap": 7.0,  # main () = swaploop 7 9 2  (simultaneous update via temps)
     "match_lit": 200.0,    # main () = classify 1  (match -> nested defuzz blend)
     "record": 7.0,         # main () = getx (mk 7 9)  (record -> axon, field via .real())
     "variant": 200.0,      # main () = label Green  (nullary variant enum + ctor-pattern match)
