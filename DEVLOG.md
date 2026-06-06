@@ -6,6 +6,23 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: OCaml arrays -> RAM (ramRead/ramWrite) + RAM-device hardening (deferred-list barrel)
+
+Emma's design: the WASM machine's arrays ARE RAM, not Sutra arrays. Lowered OCaml
+arrays to the RAM device: `let a = Array.make n v` / `Bytes.make` assigns a
+compile-time base offset (_RAM_ARRAYS, spaced by _RAM_STRIDE=4096); `a.(i)` ->
+ramRead(base+i).real(), `a.(i) <- v` -> ramWrite(base+i, v). Multiple arrays get
+distinct regions. Also HARDENED the RAM device (codegen_pytorch): ram_read/ram_write
+now decode a scalar address (literal / computed base+i) as well as a number-vector
+ptr, and ram_write lifts a scalar value to make_real so ramRead(...).real() round-
+trips. Verified via harness (attached device): single-array write 77 @idx2 -> read
+77; multi-array a.(1)=11 (base 0) + b.(1)=22 (base 4096) -> 33 (distinct regions).
+ntm_ram tests 11/11 (no regression); array_ram lowering fixture added; OCaml suite
+76 passed (was 74). Artifact experiments/iso5_substrate_dispatch/array_ram_roundtrip.py.
+Documented limit: a 10MB Bytes region exceeds the host RAM-list (the machine's linear
+memory needs a scalable device, a follow-on). Remaining deferred: exceptions
+(raise Exit), ground-truth .txt build, the integration capstone.
+
 ## 2026-06-06: substrate bitwise primitive (band/bor/bxor) + OCaml land/lor/lxor/lsl/lsr (deferred-list barrel)
 
 Implemented the bitwise primitive the WASM machine needs. Sutra has no bitwise
