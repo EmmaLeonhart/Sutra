@@ -179,6 +179,11 @@ Until 11:30: keep grinding the OCaml→Sutra transpiler (ISO-5 items).
      error); they now emit `UNSUPPORTED-OP` (no Sutra bitwise operator exists —
      `&`/`|` are logical, `<<`/`>>` don't parse; a substrate bitwise stdlib is the
      real need). Verified 0 raw bitwise passthrough remains in the reference.
+  5f. **Axon-returning-call -> local typed Axon** — DONE: a local bound to a call of
+     a record/tuple/option-returning function is now typed `Axon`, so `let p = pair 7 9
+     in fst p + snd p` works (was: p typed int -> `.item()` clash). Substrate-verified
+     `tuple_local` = 16. (Inline `fst (pair 7 9)` on a bare call result still needs a
+     bound local; that's the documented dispatch limit.)
   7. try/exceptions; 8. `match`-with-`br`; 9. stdlib (incl. substrate bitwise for
   `land`/`lsl`); 10. closure conversion; 11. core-compiler `dict<int,int>`.
 
@@ -411,7 +416,8 @@ first and never touches the RAM/W2C sections above.
   (tagged axon, body-position match): DONE — substrate-verified `option_some` = 42
   (None path = 7). `let..in` in expression position (simple-atom): DONE —
   substrate-verified `let_in_expr` = 20. `mod`→`%` + bitwise-op-passthrough fix
-  (now UNSUPPORTED-OP): DONE — substrate-verified `modulo` = 2. OCaml suite 68 passed.]
+  (now UNSUPPORTED-OP): DONE — substrate-verified `modulo` = 2. Axon-returning-call ->
+  local typed Axon: DONE — substrate-verified `tuple_local` = 16. OCaml suite 71 passed.]
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.

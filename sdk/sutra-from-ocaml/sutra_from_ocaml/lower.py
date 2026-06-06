@@ -107,6 +107,13 @@ _HOISTED_DECLS: list[str] = []
 # local is a capture we don't support yet).
 _TOPLEVEL_NAMES: set = set()
 
+# Top-level functions whose return type is `Axon` (record/tuple/option body
+# or an Axon-mapping return annotation), collected in the `lower()` prepass.
+# A local bound to a call of one of these is itself typed `Axon`, so a
+# subsequent field/projection access (`p.x`, `fst p`) dispatches to the axon
+# accessor instead of clashing with torch's tensor `.item()`.
+_AXON_RETURNING: set = set()
+
 # Active name -> Sutra-source substitutions for the body of a `match` arm
 # that binds a name (a catch-all `| x -> …` binds the scrutinee to `x`).
 # `match` lowers to a defuzz-blend *expression*, which can't introduce a
@@ -131,6 +138,26 @@ def _value_paths(node, source: bytes) -> set:
 
     walk(node)
     return out
+
+
+def _fn_returns_axon(lb, source: bytes, record_types) -> bool:
+    """True if a `let_binding` defines a FUNCTION whose return type is Axon
+    — an Axon-mapping return annotation, or a record / tuple / option body.
+    Used to type local bindings of such calls as `Axon`."""
+    kids = lb.named_children
+    if not kids or not any(k.type == "parameter" for k in kids[1:-1]):
+        return False
+    for k in kids[1:-1]:
+        if _is_type_node(k) and _map_type(k, source, record_types) == "Axon":
+            return True
+    body = kids[-1]
+    if body.type == "record_expression":
+        return True
+    ub = _unwrap_parens(body)
+    if ub is not None and (ub.type == "tuple_expression"
+                           or _option_kind(ub, source) is not None):
+        return True
+    return False
 
 
 def _collect_ref_vars(node, source: bytes, refs: dict) -> list:
@@ -814,8 +841,20 @@ def _lower_local_binding(vd, source: bytes, indent: str,
               and value.named_children[0].type == "value_path"
               and _node_text(value.named_children[0], source) == "ref"
               and len(value.named_children) == 2)
+    # A local bound to a call of an Axon-returning function (record/tuple/
+    # option) is itself an Axon, so a later `p.x` / `fst p` dispatches to the
+    # axon accessor rather than torch's tensor `.item()`.
+    _vu = _unwrap_parens(value)
+    binds_axon_call = (
+        _vu is not None and _vu.type == "application_expression"
+        and _vu.named_children
+        and _vu.named_children[0].type == "value_path"
+        and _node_text(_vu.named_children[0], source) in _AXON_RETURNING
+    )
     if ret_type is not None:
         ty = ret_type
+    elif binds_axon_call:
+        ty = "Axon"
     elif is_ref:
         ty = _value_binding_type(value.named_children[1], source)
     else:
@@ -1161,16 +1200,6 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     _CONSTRUCTORS.clear()
     _HOISTED_LOOPS.clear()
     _HOISTED_DECLS.clear()
-    # Collect top-level binding names (functions + values) so the nested-
-    # function closed-ness check can tell a top-level reference from an
-    # enclosing-local capture.
-    _TOPLEVEL_NAMES.clear()
-    for child in tree.root_node.named_children:
-        if child.type != "value_definition":
-            continue
-        for lb in child.named_children:
-            if lb.type == "let_binding" and lb.named_children:
-                _TOPLEVEL_NAMES.add(_node_text(lb.named_children[0], src_bytes))
     for child in tree.root_node.named_children:
         if child.type != "type_definition":
             continue
@@ -1205,6 +1234,21 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
                     if cn is not None and len(names) == 1:
                         _CONSTRUCTORS[_node_text(cn, src_bytes)] = idx
                     idx += 1
+
+    # After record types are known: collect top-level binding names (so the
+    # nested-function closed-ness check can tell a top-level reference from
+    # an enclosing-local capture) and which functions return an Axon.
+    _TOPLEVEL_NAMES.clear()
+    _AXON_RETURNING.clear()
+    for child in tree.root_node.named_children:
+        if child.type != "value_definition":
+            continue
+        for lb in child.named_children:
+            if lb.type == "let_binding" and lb.named_children:
+                nm = _node_text(lb.named_children[0], src_bytes)
+                _TOPLEVEL_NAMES.add(nm)
+                if _fn_returns_axon(lb, src_bytes, record_types):
+                    _AXON_RETURNING.add(nm)
 
     out: list[str] = [_HEADER]
     for child in tree.root_node.named_children:
