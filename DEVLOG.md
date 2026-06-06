@@ -6,6 +6,28 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: FIX sutra-from-ts axon field reads (.real()) — P2 (transpiler tick 12)
+
+Discharged the TS axon-zeros bug found during the OCaml records work (2026-06-05
+finding). The TS `interface`/alias -> axon path emitted `p.item("x")` without
+`.real()`, so numeric field reads came back as the raw filler vector and arithmetic
+collapsed to ~0 — `interface_pass` COMPILED but returned a zero vector instead of 25,
+hidden because the harness only compile-tested. Fix: a global interface/alias
+field-name -> Sutra-type map (built in the prepass by walking interface bodies +
+type-alias object/union types); at member access a numeric field (`int`/`float`)
+read projects via `.real()`, while string / literal-tag fields (e.g. a discriminated
+union's `kind`) are left untouched so string comparisons still work. Name collisions
+across interfaces are marked non-numeric to stay safe.
+
+Verified on the real substrate (not compile-only): interface_pass = **25.0** and
+discriminated_union (`area({kind:"circle", r:5})`) = **25.0** — both were zeros
+before; the `kind` string field correctly gets no `.real()`. multi_function_loop's
+numeric `Range.lo` reads now project too (more correct). Added
+`test_fixture_runs_on_substrate` (importorskip torch) so this can't silently
+regress. TS suite **43 passed / 1 xfailed** (the pre-existing async compile xfail).
+Follow-on (low priority, queued): per-variable interface typing for same-name
+different-type field collisions.
+
 ## 2026-06-06: OCaml tail-rec simultaneous update — fix swap bug (transpiler tick 11)
 
 Tick 6's tail-recursion lowering updated loop state sequentially (`p1=e1; p2=e2;`),
