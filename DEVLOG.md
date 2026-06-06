@@ -6,6 +6,19 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — Axon-returning-call -> local typed Axon (ISO-5 item 5f; work-loop tick)
+
+A `lower()` prepass now collects `_AXON_RETURNING` (top-level functions whose return
+type is Axon: a record/tuple/option body or an Axon-mapping return annotation). A
+local bound to a call of such a function is typed `Axon` instead of the int default,
+so a subsequent `p.x` / `fst p` / `snd p` dispatches to the axon accessor rather than
+clashing with torch's tensor `.item()`. This removes (for the bound-local form) the
+limitation that previously forced tuples/records/options through a typed param.
+Substrate-verified `tuple_local` (`let p = pair 7 9 in fst p + snd p`) -> **16.0**.
+OCaml suite **71 passed** (was 68; +3). Inline projection on a BARE call result
+(`fst (pair 7 9)`) still needs a bound local first (Sutra doesn't type a raw call
+result) — the documented dispatch limit.
+
 ## 2026-06-06: sutra-from-ocaml — mod operator + bitwise-op correctness fix (ISO-5 item 5e; work-loop tick)
 
 OCaml `mod` now maps to Sutra `%` (truncated remainder, `_VSA.fmod`); `&&`/`||` made
