@@ -145,6 +145,39 @@ def _normalize_number(text: str) -> str:
     return raw
 
 
+_CHAR_ESCAPES = {
+    "n": 10, "t": 9, "r": 13, "b": 8, "\\": 92, "'": 39, '"': 34, " ": 32,
+}
+
+
+def _char_codepoint(content: str) -> Optional[int]:
+    """OCaml `character_content` (the text inside `'…'`) -> its codepoint
+    integer. OCaml chars are bytes; the ISO-5 stack machine uses them as
+    such (`Char.code`, `land 0xff`, byte stores), so a char literal lowers
+    to its codepoint. Handles the named escapes, `\\ddd` (decimal) and
+    `\\xHH` (hex). Returns None if it can't decode (caller emits UNSUPPORTED)."""
+    if content == "":
+        return None
+    if content[0] != "\\":
+        return ord(content[0])
+    rest = content[1:]
+    if not rest:
+        return None
+    if rest[0] in _CHAR_ESCAPES and len(rest) == 1:
+        return _CHAR_ESCAPES[rest[0]]
+    if rest[0] == "x":
+        try:
+            return int(rest[1:], 16)
+        except ValueError:
+            return None
+    if rest.isdigit():
+        try:
+            return int(rest)
+        except ValueError:
+            return None
+    return None
+
+
 def _value_binding_type(body, source: bytes) -> str:
     """Best-effort type for an unannotated `let x = expr` value binding.
     OCaml is HM-inferred globally; we don't replicate that. We only
@@ -159,6 +192,10 @@ def _value_binding_type(body, source: bytes) -> str:
         return "int"
     if t == "boolean":
         return "bool"
+    if t == "string":
+        return "String"
+    if t == "character":
+        return "int"  # a char lowers to its codepoint int
     if t == "infix_expression":
         op = body.child_by_field_name("operator")
         if op is not None and _node_text(op, source) in {"+.", "-.", "*.", "/."}:
@@ -211,6 +248,24 @@ def _lower_expression(node, source: bytes) -> str:
     if t == "boolean":
         # OCaml `true` / `false` -> Sutra `true` / `false`.
         return _node_text(node, source)
+    if t == "string":
+        # OCaml string literal -> Sutra String literal. The `"…"` text
+        # carries through; the common C-style escapes (\n \t \\ \" \r)
+        # are shared. OCaml's `\ddd` decimal escape is NOT translated
+        # (rare; would need re-encoding) — flagged here, not silently
+        # mangled.
+        txt = _node_text(node, source)
+        return txt
+    if t == "character":
+        # OCaml char literal -> its codepoint int (chars are bytes; see
+        # _char_codepoint).
+        cc = next((c for c in node.named_children
+                   if c.type == "character_content"), None)
+        content = _node_text(cc, source) if cc is not None else ""
+        cp = _char_codepoint(content)
+        if cp is None:
+            return f"/* UNSUPPORTED-EXPR: character {content!r} */"
+        return str(cp)
     if t == "value_path":
         # A variable / function reference. MVP carries the path text
         # through verbatim (`a`, and later `Module.name`).
@@ -745,6 +800,13 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
         elif _is_type_node(k):
             ret_type = _map_type(k, source, record_types)
     ret = ret_type if ret_type is not None else _DEFAULT_TYPE
+    # Narrow body inference: a function whose body is a string literal
+    # returns a Sutra `String`, not the `int` default — emitting
+    # `function int … { return "…"; }` would be a misleading type. Other
+    # body shapes keep the int default (broad return-type inference is a
+    # later item; float fixtures rely on the current default).
+    if ret_type is None and body.type == "string":
+        ret = "String"
 
     if is_rec:
         # `let rec` is general recursion. Sutra's if/else is a defuzz
