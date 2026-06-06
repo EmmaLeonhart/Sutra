@@ -205,3 +205,19 @@ hybrid, demonstrated end-to-end (E0 forward → E1 learn → E2 crystallize).
 Remaining: E3 — wire crystallized sat_add as a native opcode into the interpreter and
 pass a program end-to-end through the transformer (integration); broader Yantra OS
 integration tracked in notes/yantra_integration.md.
+
+## 2026-06-05 — Significance thesis + isomorphism program documented
+
+Captured Emma's framing comprehensively in `notes/significance_and_isomorphism.md`:
+`transformer-vm` is an **autoregressive, deterministic Neural Turing Machine** — it
+uses attention to address RAM and then performs deterministic, fully code-describable
+operations; the first time an attention mechanism has been turned into deterministic,
+human-interpretable code. Same family as DNC/NTM (attention-as-memory-addressing) but
+constructed/deterministic, no RNN (autoregression replaces recurrence), append-only
+memory (WASM in, data appended out).
+
+Added the **isomorphism program** to the end of `todo.md`: find a reference impl
+(likely C/C++) → **Rust** isomorphic (iterator first, attention-as-addressing later) →
+arbitrary tests → **OCaml** (structurally close to Sutra) → tests → **Sutra** (final
+item). Equivalence by behavioural testing, not formal verification yet. Proposed repo
+rename to **"Neural WebAssembly"**. Persisted to project memory.
