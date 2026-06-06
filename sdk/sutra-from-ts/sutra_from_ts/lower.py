@@ -774,12 +774,18 @@ def _lower_statement(
             if cond and cond.named_children else "false"
         )
         cons_src = _lower_branch_result(cons, source, ctx)
+        # Each product term is fully parenthesised — `((w) * (X))` — and
+        # the two terms grouped before `/ 2`. A bare `* ({atom})` emits
+        # `* (a) + …`, and the Sutra parser reads a parenthesised atom
+        # before an infix operator (`(a) + …`) as a CAST `(Type) expr`,
+        # which the codegen rejects (CastExpr). Full grouping avoids
+        # placing a `(atom)` immediately before an infix op.
+        w = f"truth_axis(defuzzy({cond_src}))"
         if alt is not None:
             alt_src = _lower_branch_result(alt, source, ctx)
             return (
-                f"{indent}return ((1 + truth_axis(defuzzy({cond_src}))) "
-                f"* ({cons_src}) + (1 - truth_axis(defuzzy({cond_src}))) "
-                f"* ({alt_src})) / 2;\n"
+                f"{indent}return (((1 + {w}) * ({cons_src})) "
+                f"+ ((1 - {w}) * ({alt_src}))) / 2;\n"
             )
         # Emma 2026-05-10: if without else is the select-with-implicit-
         # zero-else form. The body is multiplied by the truthified
@@ -791,10 +797,7 @@ def _lower_statement(
         # false (defuzz → -1, truth → -1), the multiplier is (1-1)/2
         # = 0 — body is zeroed out. Differentiable, fuzzy at the
         # midpoint, no host-side control flow.
-        return (
-            f"{indent}return ((1 + truth_axis(defuzzy({cond_src}))) "
-            f"* ({cons_src})) / 2;\n"
-        )
+        return f"{indent}return (((1 + {w}) * ({cons_src}))) / 2;\n"
     if node.type == "statement_block":
         out = ""
         for child in node.named_children:
@@ -807,6 +810,17 @@ def _lower_statement(
 
 def _lower_branch_result(node, source: bytes, ctx: Context) -> str:
     """For `if/else` branches: extract the value the branch produces."""
+    if node.type == "else_clause":
+        # tree-sitter-typescript wraps the else branch in an `else_clause`
+        # node (`else { … }` / `else if …`). Unwrap to its meaningful
+        # child and recurse — otherwise the whole clause falls through to
+        # the generic `_lower_expression` and emits
+        # `/* UNSUPPORTED-EXPR: else_clause */`, silently dropping the
+        # else branch.
+        for c in node.named_children:
+            if c.type != "comment":
+                return _lower_branch_result(c, source, ctx)
+        return "0"
     if node.type == "statement_block":
         if len(node.named_children) == 1:
             inner = node.named_children[0]
@@ -864,10 +878,13 @@ def _lower_function_body(body_node, source: bytes, ctx: Context) -> str:
                 # from the truth axis. Used instead of `select(scores,
                 # options)` because select is built for vector options;
                 # for scalar branches it broadcasts incorrectly.
+                # Fully-grouped product terms — see the _lower_statement
+                # if_statement note: a bare `* ({atom})` emits `* (a) + …`,
+                # which the Sutra parser reads as a cast (CastExpr).
+                w = f"truth_axis(defuzzy({cond_src}))"
                 out_lines.append(
-                    f"    return ((1 + truth_axis(defuzzy({cond_src}))) "
-                    f"* ({cons_ret}) + (1 - truth_axis(defuzzy({cond_src}))) "
-                    f"* ({else_src})) / 2;\n"
+                    f"    return (((1 + {w}) * ({cons_ret})) "
+                    f"+ ((1 - {w}) * ({else_src}))) / 2;\n"
                 )
                 i += 2
                 continue
