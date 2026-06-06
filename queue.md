@@ -56,6 +56,27 @@ gitignored, so re-running the model means: `git submodule update --init
 corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 `…/eval_substrate.py`.
 
+## ⏰ Scheduled milestones — 2026-06-06 (session-local crons; RECREATE if the session restarts)
+
+Emma set three timed tasks today. The crons are `durable:false` (die on restart),
+so if a new session starts before these fire, recreate them:
+
+- **11:30 (cron `7f2732b4`)** — full end-to-end attempt: transpile the COMPLETE
+  `WASM/iso/ocaml/bin/main.ml` → Sutra, then HAND-EDIT the output until it compiles,
+  runs on the substrate, and reproduces the OCaml machine's reference output (fill
+  the transpiler's `UNSUPPORTED` gaps by hand). Compare to ground truth, no faking;
+  if the full machine is too big, get the simplest program (`hello`) working
+  end-to-end and report what was hand-filled vs transpiled. Save the working `.su` +
+  a finding, commit+push.
+- **12:00 (cron `9d22a2f8`)** — PIVOT to PCA on the WASM transformer (todo.md TOP
+  PRIORITY); overrides the OCaml grind from then on.
+- **17:00 (cron `9b7d8c5d`)** — start a THIRD clawRxiv paper (`paper/percepta-ntm/`)
+  on implementing a DNC/NTM via the Percepta transformer + PCA and the measured
+  results; wire its own CI (`percepta-ntm-paper-ci.yml`, model on `fv-paper-ci.yml`)
+  for auto-submission; cite only measured numbers; commit+push (push triggers the CI).
+
+Until 11:30: keep grinding the OCaml→Sutra transpiler (ISO-5 items).
+
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
 - *(none open — the HF flat-CSV orphans were over-escalated; resolved to the
