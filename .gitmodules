@@ -1,3 +1,6 @@
 [submodule "corpus"]
 	path = corpus
 	url = https://github.com/EmmaLeonhart/sutra-w2c-corpus.git
+[submodule "WASM/replication_target/transformer-vm"]
+	path = WASM/replication_target/transformer-vm
+	url = https://github.com/Percepta-Core/transformer-vm

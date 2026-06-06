@@ -6,6 +6,20 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: wire the transformer-vm submodule into the parent (ground-truth access)
+
+The `transformer-vm` submodule (the authors' code, ground truth) couldn't init: after
+the WASM subtree merge, only `WASM/.gitmodules` had the entry (path
+`replication_target/transformer-vm`); the PARENT `.gitmodules` lacked the `WASM/`-prefixed
+entry, so `git submodule update --init` -> "No url found". Added the parent entry
+(path `WASM/replication_target/transformer-vm`, url Percepta-Core/transformer-vm);
+`git submodule sync` + `update --init` now clones + checks out the pinned commit
+6cfee30. The authors' source + examples (transformer_vm/examples/hello.c, addition.c,
+...) are present. NOTE: the `.txt` WASM programs iso_equiv.sh runs are BUILD ARTIFACTS
+generated from the .c via clang->WASM->DSL (compile_wasm.py) — byte-exact ground truth
+still needs the clang/lld toolchain build; the submodule wiring is the prerequisite,
+now done.
+
 ## 2026-06-06: ISO-5 unblocked — WASM memory is RAM; RAM-based opcode dispatch works (Emma design)
 
 Emma's call: the WASM machine's array IS RAM, not a Sutra array -> use ramRead/ramWrite
