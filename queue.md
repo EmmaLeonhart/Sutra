@@ -73,61 +73,41 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
 
-## 🚀 ACTIVE #1 — Subtree the Neural-Computers WASM repo into `WASM/` (Emma 2026-06-06; first thing in the queue)
+## 🌐 Merged queue — from the Neural WebAssembly (`WASM/`) repo
 
-The very first queue item. Bring `replicating-neural-computers-2` (the DNC/NTM
-WebAssembly + Neural-Computers replication work, arXiv 2604.06425 — a learned
-runtime state unifying compute/memory/IO; video models rolling CLI/GUI screen
-frames from instructions, pixels, user actions) into THIS repo under `WASM/`,
-**preserving its full git history**. Emma's explicit reason: the history is
-reasonably sized — not overwhelming — and worth preserving. So use `git
-subtree` (NO `--squash`, NOT a flat copy that drops history).
+> **Origin banner.** These items were merged in from the `queue.md` of the
+> **Neural WebAssembly** repo (`EmmaLeonhart/neural-webassembly`, local dir
+> `replicating-neural-computers-2`) when it was subtreed into `WASM/` on
+> 2026-06-06 (full history, no squash). Completed WASM items (replication 6/6,
+> ISO-1..4, learned-ops E0–E2/E4, E3a) are NOT carried over — they live in
+> `WASM/devlog.md` + that repo's git log. Long-horizon WASM items are in the
+> merged agenda at the top of `todo.md`. Overview: `docs/neural-webassembly.md`.
 
-This refines / supersedes the cron-`:33`, append-to-bottom framing in todo.md
-Phase 3: per Emma 2026-06-06 it is now **active, top-of-queue work**, not a
-background trigger. The `:33` sibling-watch cron, if running, still serves as
-the fallback that fires the same integration once the sibling agent goes quiet.
-
-Steps:
-1. **Make the source canonical first.** In the sibling working copy
-   (`../replicating-neural-computers-2`), commit + push any uncommitted changes
-   so the subtree captures the real HEAD (todo.md Phase-3 safety step). If no
-   local working copy exists, subtree directly from the remote default branch.
-2. `git subtree add --prefix=WASM <repo> <default-branch>` — **full history, no
-   `--squash`.** Remote: `github.com/EmmaLeonhart/replicating-neural-computers-2`.
-3. Commit + push so the integrated subtree is canonical on origin (this
-   session's branch: `claude/neural-wasm-integration-8PVxn`).
-
-**Cannot run in the 2026-06-06 cloud session** that queued this: the sibling
-repo is not in this container and the remote needs credentials this container
-lacks (`git ls-remote` → "could not read Username"). The subtree therefore
-executes in a local session where the sibling exists, or once network/creds
-allow. This item stays active until the subtree actually lands in `WASM/`.
-
-## 🚀 ACTIVE #2 — Document the WASM repo + merge its todo/queue (do AFTER #1 lands)
-
-Once `WASM/` is in the tree (#1 done):
-1. **Comprehensive documentation pass.** Write out a big, comprehensive doc of
-   *everything* that exists in the WASM/Neural-Computers repo — what each piece
-   is, the DNC/NTM + video-model-rolling-frames architecture, and how it ties
-   into Sutra's existing NTM/DNC track (`planning/sutra-spec/ram-pointers.md`,
-   `planning/exploratory/differentiable-neural-computer.md`). Website discipline
-   applies (CLAUDE.md §Audiences: `docs/` is human-facing — no repo-internal
-   scratchpad references).
-2. **Merge the WASM repo's `todo.md` to the TOP of our `todo.md`**, under a
-   clear banner stating it originated from the WASM (`replicating-neural-
-   computers-2`) repo, so its agenda becomes part of our long-horizon agenda.
-   (The PCA-on-the-WASM-transformer block already at the top of todo.md is
-   gated on `WASM/` existing — it unblocks the moment #1 lands and is the first
-   WASM-gated item to actually work.)
-3. **Merge the WASM repo's `queue.md` into our `queue.md` directly BELOW this
-   active subtree work** — Emma's explicit correction: *not* the very top of
-   our queue, but below ACTIVE #1/#2 — tagged as originating from the WASM repo.
-
-**Then barrel through (the loop).** As the queue drains, work the merged WASM
-queue items in order; and in the autonomous loop, pick up the merged WASM
-`todo.md` items so we eventually hit all of them. #1 → #2 → merged-WASM-queue →
-merged-WASM-todo is the intended sequence.
+- **ISO-5 — port the OCaml realisation into Sutra (UNBLOCKED 2026-06-06).** The
+  WASM isomorphism chain is transformer ≡ reference ≡ Rust ≡ OCaml, byte-identical
+  on all 6 programs (`WASM/iso/ocaml/`, `WASM/scripts/iso_equiv.sh`). The final
+  stage — express this autoregressive-deterministic-NTM machine in **Sutra** — was
+  blocked in the WASM repo ONLY on lack of access to Sutra's syntax/toolchain.
+  That blocker is gone: Sutra is this repo. On-ramp: the `sdk/sutra-from-ocaml/`
+  frontend can transpile the OCaml port; start there and measure how far it gets
+  on the substrate, then hand-finish. This is the end of the road for the
+  isomorphism program.
+- **PCA on the WASM transformer (todo.md TOP PRIORITY, now unblocked).** Promote
+  from todo.md: PCA the analytic transformer's weights (`WASM/`, `d_model=38`,
+  7 layers, 19 heads) to find the genuine low-dimensional attention structure to
+  run for the DNC work. Gating lifted now that `WASM/` is in-tree.
+- **E3 — integrate a native `i32.sat_add_u` opcode (spec done; impl remaining).**
+  Spec `WASM/notes/e3_native_opcode_spec.md`; E3a verified the `op_dot` vocabulary
+  extensible (28 spare points). Remaining = the build (own session): add to
+  `OPCODES`/`STACK_DELTA`, `result_byte`/`result_carry`, `reference.py` + both
+  isomorphs, `compile_wasm.py`, a test program; rebuild weights (MILP solves);
+  end-to-end vs reference; no regression on 6 programs; re-run `iso_equiv.sh`.
+  On a local submodule branch (don't push to Percepta).
+- **Optional — hull Python path.** `apt install python3-dev`, then
+  `uv run wasm-eval --hull` / `pytest -m "not slow"`; quantify hull (O(log n)) vs
+  `--nohull` to substantiate the attention-scaling claim.
+- **Yantra OS integration** — forward goal; design in
+  `WASM/notes/yantra_integration.md`; phased P0–P6 in the merged `todo.md` agenda.
 
 ## Active — RAM inline `await ramRead` surface syntax (Emma chose 2026-06-01)
 
