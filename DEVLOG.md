@@ -6,6 +6,28 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: ISO-5 11:30 milestone — full-machine hand-edit attempt + substrate loop-dispatch blocker
+
+Ran the full end-to-end attempt: transpile the complete WASM OCaml machine to Sutra,
+hand-edit toward correct output. Full machine transpiles with 28 UNSUPPORTED markers;
+it is a stack machine needing substrate arrays (dict<int,int> broken), bitwise ops
+(none in Sutra), and exceptions (none) — cannot run via transpile or hand-edit until
+those primitives exist. Ground truth not runnable here (transformer-vm submodule data
+.txt not initialized).
+
+KEY measured result: a hand-written minimal substrate fetch-execute loop for
+[const 3; const 4; add] returned 4, not 7. Debugging showed the loop carries
+arithmetic state EXACTLY (sum of pc over ticks = 3; final pc = 3) and state==state
+holds (+3), but a loop-carried state var compared to a LITERAL misfires: truth(pc==2)
+= -1 on every tick (even at pc=2), truth(pc>=2) fuzzy (-2). The same pc==2 works in
+straight-line code. So per-tick opcode dispatch (compare loop-carried pc/opcode
+against literal opcode values) does not work on the substrate loop — the precise
+reason the WASM machine is hard to realize. Largest cleanly-running fragment:
+to_signed(100) = 100. Finding:
+planning/findings/2026-06-06-iso5-full-machine-handedit-and-dispatch-blocker.md;
+artifacts experiments/iso5_substrate_dispatch/. Negative result; next idea = one-hot
+opcode masks carried as loop state (avoid literal-vs-loop-state comparison).
+
 ## 2026-06-06: sutra-from-ocaml — Axon-returning-call -> local typed Axon (ISO-5 item 5f; work-loop tick)
 
 A `lower()` prepass now collects `_AXON_RETURNING` (top-level functions whose return

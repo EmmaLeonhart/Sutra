@@ -94,6 +94,20 @@ so if a new session starts before these fire, recreate them:
 
 Until 11:30: keep grinding the OCaml→Sutra transpiler (ISO-5 items).
 
+**11:30 milestone RESULT (done):** full-machine transpile + hand-edit attempt.
+Full machine = 28 UNSUPPORTED markers; it's a stack machine needing substrate
+arrays (dict<int,int> broken), bitwise ops (none), and exceptions (none) — can't
+run via transpile OR hand-edit until those land. Ground truth unavailable (the
+transformer-vm submodule data .txt is not initialized here). NEW measured blocker:
+a hand-written substrate fetch-execute loop misfires because **comparing a
+loop-carried state var against a LITERAL** (`pc == 2`) defuzzes false even when
+equal (state==state and arithmetic are exact) — this breaks per-tick opcode
+dispatch, the machine's core. Finding:
+`planning/findings/2026-06-06-iso5-full-machine-handedit-and-dispatch-blocker.md`;
+artifacts `experiments/iso5_substrate_dispatch/`. Largest runnable fragment:
+`to_signed(100)` = 100. Next-direction idea: one-hot opcode masks carried as loop
+state (avoid literal-vs-loop-state comparison).
+
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
 - *(none open — the HF flat-CSV orphans were over-escalated; resolved to the

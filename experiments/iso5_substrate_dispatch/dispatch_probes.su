@@ -1,0 +1,26 @@
+// ISO-5 dispatch probes (2026-06-06) — the measurements behind the finding
+// planning/findings/2026-06-06-iso5-full-machine-handedit-and-dispatch-blocker.md.
+//
+// Each `main` was run separately via `python -m sutra_compiler --run`. Results
+// inline. The point: a loop-carried state var's ARITHMETIC is exact and
+// `state == state` holds, but `state == LITERAL` and `state >= LITERAL` misfire
+// inside the loop body — which breaks per-tick opcode dispatch.
+//
+//   acc + pc          over pc=0,1,2  ->  3   (expected 3)   OK  arithmetic exact
+//   final pc                          ->  3   (expected 3)   OK  3 ticks ran
+//   acc + truth(pc==pc)               ->  3   (expected +3)  OK  state==state holds
+//   acc + truth(pc==2)                -> -3   (expected -1)  FAIL state==literal misfires
+//   acc + truth(pc>=2)                -> -2   (expected -1)  FUZZY at boundary
+//   straight-line pc==2 (plain local) -> +1 at pc=2          OK  works outside a loop
+//
+// Representative probe (the failing one):
+while_loop run(pc < 3, int pc = 0, int acc = 0) {
+    acc = acc + truth_axis(defuzzy(pc == 2));   // -1 every tick, even at pc=2
+    pc = pc + 1;
+}
+function int main() {
+    slot int _pc = 0;
+    slot int _acc = 0;
+    loop run(_pc < 3, _pc, _acc);
+    return _acc;   // measured -3 (should be -1)
+}

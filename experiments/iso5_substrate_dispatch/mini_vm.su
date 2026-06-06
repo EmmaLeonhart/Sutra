@@ -1,0 +1,36 @@
+// ISO-5 minimal substrate fetch-execute loop (2026-06-06 11:30 milestone).
+//
+// Hand-written attempt to run the WASM machine's CORE mechanism on the Sutra
+// substrate for the tiny program [i32.const 3 ; i32.const 4 ; i32.add]:
+//   - stack = 2 scalar slots (s0 second-from-top, s1 top)
+//   - opcode dispatch = defuzz blend on the program counter `pc`
+//   - state (pc, s0, s1) carried across `while_loop` ticks
+//
+// MEASURED RESULT: returns 4, NOT 7. The loop carries arithmetic state exactly
+// (pc reaches 3, sum of pc over ticks = 3) and `pc == pc` holds, but
+// `pc == 2` (loop-carried state vs a LITERAL) defuzzes to FALSE on every tick
+// — so the `add` opcode at pc=2 never fires and the loop just leaves the last
+// pushed value (4) on top. See
+// planning/findings/2026-06-06-iso5-full-machine-handedit-and-dispatch-blocker.md.
+//
+// This file is kept as a DOCUMENTED NEGATIVE RESULT: per-tick opcode dispatch
+// via literal comparison on loop-carried state does not work on the substrate.
+// A dispatch encoding that avoids literal-vs-loop-state comparison (e.g. one-hot
+// opcode masks carried as state) is the direction to try next.
+while_loop run(pc < 3, int pc = 0, int s0 = 0, int s1 = 0) {
+    int is_add = truth_axis(defuzzy(pc == 2));
+    int is_first = truth_axis(defuzzy(pc == 0));
+    int pushval = (((1 + is_first) * (3)) + ((1 - is_first) * (4))) / 2;
+    int ns0 = (((1 + is_add) * (s0)) + ((1 - is_add) * (s1))) / 2;
+    int ns1 = (((1 + is_add) * (s0 + s1)) + ((1 - is_add) * (pushval))) / 2;
+    s0 = ns0;
+    s1 = ns1;
+    pc = pc + 1;
+}
+function int main() {
+    slot int _pc = 0;
+    slot int _s0 = 0;
+    slot int _s1 = 0;
+    loop run(_pc < 3, _pc, _s0, _s1);
+    return _s1;   // measured 4 (should be 7) — dispatch misfire, see finding
+}
