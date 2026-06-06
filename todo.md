@@ -306,6 +306,15 @@ sibling are committed + pushed. After the subtree:
 This is intentional and Emma-directed — not best practice, done on purpose to
 preserve the development history. See DEVLOG 2026-06-05.
 
+**Refined 2026-06-06 (Emma — now ACTIVE in `queue.md`, not just cron-gated).**
+The subtree is the **first thing in `queue.md`** (`## 🚀 ACTIVE #1`); the
+document-and-merge pass is `## 🚀 ACTIVE #2`. Two sequencing changes vs. the
+above: (a) the WASM repo's `queue.md` merges in directly **below the active
+subtree items** (not appended to the very bottom of our queue); (b) the doc
+pass is comprehensive ("everything that exists in that repo") and explicitly
+precedes working the merged queue. The `:33` sibling-watch cron remains the
+fallback trigger if the active item isn't executed locally first.
+
 ---
 
 ## [This year] Architectural diversification — Neural Turing Machine + reservoir computing (2026-06-01)
