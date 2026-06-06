@@ -6,6 +6,28 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml records → axons + axon-field-read runtime finding (transpiler tick 8)
+
+`sutra-from-ocaml` now lowers records to Sutra axons: `type X = {…}` erased (name
+collected in a prepass), record-typed params → `Axon`, construction `{x=a; y=b}`
+→ `Axon r; r.add("x",a); r.add("y",b); return r;`, field access `p.x` →
+`p.item("x").real()`. No type-tracking layer was needed — OCaml `p.x` parses as
+`field_get_expression`, which unambiguously means record field access (module
+access is `value_path`). Fixture `record` (`type pt={x:int;y:int}`, `mk`/`getx`,
+`main()=getx (mk 7 9)`) runs on the substrate: **getx(mk(7,9))=7.0**. 27 passed
+(10 fixtures × lowering+compile + 7 substrate runs 7/6.5/5/10/15/200/7).
+
+**Finding (`planning/findings/2026-06-05-axon-field-reads-need-real-projection.md`):**
+numeric axon field reads REQUIRE a `.real()` projection — `p.item("x")` alone
+returns a zero vector on the substrate (arithmetic on the raw filler vector
+collapses to ~0); `p.item("x").real()` returns the value (measured: distance²
+of {3,4} = 25.0 with `.real()`, zeros without). This exposed that the TS
+`interface`→axon path (`interface_pass`) has been emitting `p.item("x")` with no
+`.real()` and **returning zeros at runtime** — undetected because the TS harness
+only compile-tests, never runs. The OCaml frontend uses the correct form and is
+the first axon path verified to actually RUN. Queued: fix the TS path's field
+reads + add a run test.
+
 ## 2026-06-05: OCaml frontend — match on literal patterns (transpiler tick 7)
 
 `sutra-from-ocaml` now lowers `match scrut with k1 -> r1 | … | _ -> rd` (integer-
