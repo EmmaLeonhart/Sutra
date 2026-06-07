@@ -5221,3 +5221,15 @@ the embedding is energy-concentrated but NOT spectrally compressible; the only
 output-preserving reductions are the exactly-zero parts (steps 1-2). Also fixed
 stale 17->21 opcodes in the S6 non-claim. Script vocab_compress_verify.py;
 finding 2026-06-06-pruned-transformer-step3-embedding-not-compressible.md.
+
+## 2026-06-07 — pruned transformer: re-packed reduced core is output-identical (68.4% less attention)
+
+The concrete deliverable of "Full pruned core + verify": built the
+literally-smaller model (per-layer attention sliced to its used heads,
+[7,5,11,11,8,0,0]=42/133; layers 5/6 no attention). Attention params
+40,432 -> 12,768 (68.4% removed). Output-IDENTICAL to the full model
+token-for-token on 8/8 random inputs (exact, since removed rows/cols are
+exactly zero). The pruned core is now BUILT + locally verified across steps
+1-3 + re-pack; the only outstanding verification is the canonical 6-program
+byte-for-byte oracle (committed-fixtures route, needs clang CI). Script
+repack_reduced.py; finding 2026-06-07-pruned-transformer-repack-reduced-core.md.
