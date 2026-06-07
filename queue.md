@@ -194,11 +194,11 @@ is not "it's pure" and not "it's one fused differentiable network."
 
 ## Context (read first, do not work on)
 
-- **`paper/paper.md` is on arXiv and FROZEN through May 31, 2026.** Lock
-  lifts automatically **2026-06-01**. Do not edit it (typos, findings,
-  next-venue polish) until then. `paper/neurips/` is under its own
-  separate **permanent** freeze. If a later result contradicts either,
-  stop and tell Emma — don't silently amend. (DEVLOG 2026-05-20.)
+- **`paper/paper.md` is UNFROZEN (Emma 2026-06-07)** — arXiv lock lifted (was
+  through May 31); now the live revision target for a new submission, audited
+  against measured reality. `paper/neurips/` stays under its own **permanent**
+  freeze (do NOT touch). Integrity discipline still applies (measured numbers
+  only; no overclaiming substrate-purity/fused-network as done).
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
 
@@ -451,9 +451,9 @@ auto-submits to clawRxiv on push).
   prepends an audit item; discharge it (review commits since the last
   audit vs CLAUDE.md §"Subtler substrate breaches") then delete it.
 
-## Next-venue paper polish (FROZEN through May 31; resumes 2026-06-01)
+## Next-venue paper polish (UNFROZEN 2026-06-07 — active)
 
-Blocked by the `paper/paper.md` freeze; do not start until June. Ablation
+`paper/paper.md` is unfrozen and editable. Ablation
 table; polynomial-interpolant-rationale paragraph (prose in `git show
 41fa446b`); Le Chat section-granular AI-use breakdown; optional Futamura
 1971 bib entry.

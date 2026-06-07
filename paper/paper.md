@@ -1,12 +1,12 @@
 # Sutra: Tensor-Op RNNs as a Compilation Target for Vector Symbolic Architectures
 
-
+Emma Leonhart — contact@emmaleonhart.com
 
 ---
 
 ## Abstract
 
-**Sutra** is a typed, purely functional programming language whose compiled forward pass is a PyTorch neural network. The compiler beta-reduces the whole program — primitives, control flow, string I/O — to one fused tensor-op graph over a frozen embedding substrate. Rotation binding, unbind, bundle, polynomial Kleene three-valued logic, and tail-recursive loops all lower to tensor operations; the Kleene connectives are Lagrange-interpolated polynomials exact on the {−1, 0, +1} truth grid.
+**Sutra** is a typed, purely functional programming language whose compiled forward pass is a PyTorch neural network. The compiler beta-reduces the whole program — primitives, control flow, string I/O — to a single tensor-op dataflow graph over a frozen embedding substrate (substrate-pure for the validated programs; the few host-side readout escape hatches that remain, and their removal, are stated under Limitations). Rotation binding, unbind, bundle, polynomial Kleene three-valued logic, and tail-recursive loops all lower to tensor operations; the Kleene connectives are Lagrange-interpolated polynomials exact on the {−1, 0, +1} truth grid.
 
 Validation is one fact tested two ways. (1) The same program runs on four frozen embeddings spanning two modalities — three text encoders (nomic-embed-text, all-minilm, mxbai-embed-large) and one protein language model (ESM-2) — and decodes bundles at 100% accuracy through width k=8 on every substrate, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm). (2) PyTorch autograd flows through the actually compiled graph: a fuzzy-rule classifier written in `.su` trains from random init (18.7 ± 9.5%; chance = 20%, five classes) to 100.0 ± 0.0% (three seeds) by backpropagating through the emitted graph, the symbolic source unmodified. A weighted variant additionally trains a scalar cosine gain and writes it back into the `.su` source as a numeric literal; recompiling reproduces the trained behaviour to ≈ 2×10⁻⁷ per logit, so the trained model is itself legible, recompilable code.
 
@@ -880,17 +880,32 @@ explicitly:
 - **Training is in-sample.** The §3.6 experiment verifies gradient
   flow to every learnable parameter, not generalization; no
   held-out split is reported.
+- **Substrate-purity is not yet universal.** The validated programs and the
+  loop cell body lower to substrate tensor operations, and the §3.6 classifier
+  trains by backpropagation through the actually-compiled graph. A subsequent
+  audit, however, found host-side escape hatches the language still permits:
+  value-readout accessors (`real()` and siblings) that project a vector down to a
+  host scalar — which both runs any subsequent arithmetic off the substrate and
+  detaches the autograd graph — and the data-dependent loop's host `while`-driver
+  (disclosed above). These are being removed so that readout-freedom, and thus
+  end-to-end differentiability, holds for every program. Until that work
+  completes, "every operation on the substrate" is exact for the validated
+  programs and the cell body, not yet a universal guarantee for arbitrary `.su`.
 
 ---
 
 ## Conclusion
 
 Sutra compiles a typed pure-functional source language to a
-substrate-pure PyTorch tensor-op graph: one vector layout per
-value, one tensor op per primitive, one dataflow graph per
-program, no type dispatch at the leaves. With the language in
-hand, asking which embedding operations compose at what capacity
-on which substrates becomes a program to write.
+PyTorch tensor-op graph over the embedding substrate: one vector
+layout per value, one tensor op per primitive, one dataflow graph
+per program, no type dispatch at the leaves. The validated
+programs are substrate-pure and differentiable end-to-end through
+the compiled graph; removing the remaining host-side readout
+escape hatches (Limitations) to make that purity universal is
+ongoing. With the language in hand, asking which embedding
+operations compose at what capacity on which substrates becomes a
+program to write.
 
 ---
 
@@ -916,7 +931,9 @@ This work was developed in substantial collaboration with large
 language models, including for ideation, exploration of the
 vector-symbolic literature, and drafting. The author independently
 designed and implemented the compiler and runtime, verified that
-every operation executes on the substrate, ran and checked all
+the validated programs execute as substrate tensor operations (with
+the remaining host-side readout escape hatches and their removal
+documented under Limitations), ran and checked all
 experiments, and is responsible for the correctness of every claim,
 number, and citation in this paper. No results or references were accepted from
 a model without verification. No experimental result, table,
