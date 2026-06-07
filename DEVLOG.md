@@ -32,6 +32,25 @@ Also fixed three FV tests orphaned by the `87cfa407` accessor purge
 Next (#7): hoist `_step` to a module-level `_step_<name>` so the export path can
 pull it out as a standalone loop weight file.
 
+Overhaul Phase-2 #2 (the WASM machine as ONE fused recurrent step — Emma's substrate
+insight made concrete). Emma 2026-06-07: the host leaks weren't isolated bugs — the
+RAM substrate was improperly done (every memory access decoded the address with
+`int(round(float(ptr.item())))`, a host readout per access, + list mutation; severs
+autograd, blocks fusion, slow). Fix: tensor-RAM mode — `self.ram` is one (N,dim)
+tensor; `ram_read`/`ram_write` gather/scatter it (round->long TENSOR index, no
+`.item()`) and thread it functionally (additive to the device; list mode unchanged,
+backward-compat verified 3+4=7, 6*7=42). With that, the SAME compiled
+`mini_wasm_machine.su` step traces to ONE fused graph, HOST-READOUT-FREE (verified no
+aten::item / _local_scalar_dense), saved as a real weight file `machine_step.pt`
+(273KB); a tiny torch-only orchestrator drives it in a fresh subprocess to run a
+backward-branch counter loop (=3) and factorial(3)=6 end-to-end. #3 (multi-state
+recurrence) is SUBSUMED: pc/sp/stack/data are all rows of the one tensor, so the v1
+one-slot-recur limit is moot. Demo `experiments/fused_nn/fused_ram_machine.py`,
+CI-guarded (test_fused_nn 9 demos, 14 passed). HONEST LIMIT: addressing is HARD
+(round().long()) — gradients reach RAM contents but not addresses; Emma's
+differentiable "attention on RAM" (a @ ram matmul) is the upgrade (option B,
+fused-machine-step.md). Also: cuda trace device quirk -> export pins CPU.
+
 Overhaul Phase-2 #7 (module-level step + recurrent weight-file export): hoisted the
 loop's per-tick `_step` from a nested function to a MODULE-LEVEL
 `_step_loop_<name>(_t, [this,] [arr,] state..., _init...)` so the export path can
