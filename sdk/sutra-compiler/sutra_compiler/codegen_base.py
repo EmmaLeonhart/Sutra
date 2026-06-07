@@ -224,6 +224,19 @@ def _builtin_geometric_loop(args: List[str]) -> str:
     return f"_VSA.loop({args[0]}, {args[1]}, {args[2]})"
 
 
+def _builtin_realvec(args: List[str]) -> str:
+    # Project a vector to a CLEAN number-vector: keep only the real axis,
+    # zero the rest. A substrate matmul (the real-axis projector) that STAYS A
+    # VECTOR — no host readout. This is the in-language replacement for the
+    # removed `real()` accessor: where code needs the number an axon field /
+    # vector carries (e.g. an axon filler that carries crosstalk in other dims),
+    # `realvec` decodes it to the clean number-vector ON the substrate, so
+    # comparisons and arithmetic see only the number. `real()` yanked a host
+    # scalar (broke purity + autograd); `realvec` is a matmul that keeps the
+    # value fuzzy/differentiable.
+    return f"_VSA.realvec({args[0]})"
+
+
 def _builtin_real_number(args: List[str]) -> str:
     # Canonical-axis constructor: a scalar real number as an extended-
     # state vector with x at synthetic[0], zeros elsewhere. Part of the
@@ -358,6 +371,7 @@ BUILTINS = {
     "hasOrder": (_builtin_has_order, None),
     "hasOrderOrEqual": (_builtin_has_order_or_equal, None),
     "snap": (_builtin_snap, 1),
+    "realvec": (_builtin_realvec, 1),  # project to a clean real-axis number-vector
     "argmax_cosine": (_builtin_argmax_cosine, 2),
     "select": (_builtin_select, 2),
     "compose": (_builtin_compose, 2),

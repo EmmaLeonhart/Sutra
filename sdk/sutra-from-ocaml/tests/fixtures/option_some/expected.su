@@ -7,8 +7,8 @@ function Axon mk(int x) {
     return _opt;
 }
 function int get_or(Axon o, int d) {
-    int _otag = o.item("_tag").real();
-    int _oval = o.item("_val").real();
+    int _otag = realvec(o.item("_tag"));
+    int _oval = realvec(o.item("_val"));
     return (((1 + truth_axis(defuzzy(_otag == 1))) * (_oval)) + ((1 - truth_axis(defuzzy(_otag == 1))) * (d))) / 2;
 }
 function int main() {
