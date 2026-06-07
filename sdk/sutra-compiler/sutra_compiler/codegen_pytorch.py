@@ -1795,12 +1795,9 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.transpose(m, -2, -1)")
         self._indent -= 1
         self._emit()
-        self._emit("def norm(self, v):")
-        self._indent += 1
-        self._emit('"""L2 norm. Scalar result."""')
-        self._emit("return float(_torch.linalg.norm(v))")
-        self._indent -= 1
-        self._emit()
+        # `norm` (a float-returning host readout) removed 2026-06-07 — no
+        # introspection in the language. Use `normalize` (returns a vector) or
+        # similarity on the substrate. `Norm` alias removed with it.
         self._emit("def normalize(self, v):")
         self._indent += 1
         self._emit('"""L2-normalize with an eps-guard so zero-norm input returns zero."""')
@@ -1820,61 +1817,17 @@ class PyTorchCodegen(Codegen):
         self._emit("Outer = outer")
         self._emit("Dot = dot")
         self._emit("Transpose = transpose")
-        self._emit("Norm = norm")
         self._emit("Normalize = normalize")
         self._emit("RotationFor = rotation_for")
         self._emit()
-        self._emit("# ---- Vector component accessors (debugging / teaching) ----")
-        self._emit()
-        self._emit("def component(self, v, i):")
-        self._indent += 1
-        self._emit('"""Return element i of v over the full extended state vector."""')
-        self._emit("return float(v[int(i)].item())")
-        self._indent -= 1
-        self._emit()
-        self._emit("def semantic(self, v, i):")
-        self._indent += 1
-        self._emit('"""Return element i within the semantic block."""')
-        self._emit("idx = int(i)")
-        self._emit("if idx < 0 or idx >= self.semantic_dim:")
-        self._indent += 1
-        self._emit("raise IndexError(")
-        self._indent += 1
-        self._emit('f"semantic index {idx} out of range [0, {self.semantic_dim})")')
-        self._indent -= 1
-        self._indent -= 1
-        self._emit("return float(v[idx].item())")
-        self._indent -= 1
-        self._emit()
-        self._emit("def synthetic(self, v, i):")
-        self._indent += 1
-        self._emit('"""Return element i within the synthetic block."""')
-        self._emit("idx = int(i)")
-        self._emit("if idx < 0 or idx >= self.synthetic_dim:")
-        self._indent += 1
-        self._emit("raise IndexError(")
-        self._indent += 1
-        self._emit('f"synthetic index {idx} out of range [0, {self.synthetic_dim})")')
-        self._indent -= 1
-        self._indent -= 1
-        self._emit("return float(v[self.semantic_dim + idx].item())")
-        self._indent -= 1
-        self._emit()
-        self._emit("# ---- Canonical-axis accessors (real/imag/truth) ----")
-        self._emit()
+        # Vector component accessors (component/semantic/synthetic) removed
+        # 2026-06-07 — host-readout, no introspection in the language. They had
+        # zero consumers. `imag`/`truth` accessors removed for the same reason.
+        # `real` is retained TEMPORARILY (13 .su + 7 internal consumers) and is
+        # the next target of the substrate-purity overhaul (queue.md).
         self._emit("def real(self, v):")
         self._indent += 1
         self._emit("return float(v[self.semantic_dim + self.AXIS_REAL].item())")
-        self._indent -= 1
-        self._emit()
-        self._emit("def imag(self, v):")
-        self._indent += 1
-        self._emit("return float(v[self.semantic_dim + self.AXIS_IMAG].item())")
-        self._indent -= 1
-        self._emit()
-        self._emit("def truth(self, v):")
-        self._indent += 1
-        self._emit("return float(v[self.semantic_dim + self.AXIS_TRUTH].item())")
         self._indent -= 1
         self._emit()
         # RAM pointers (planning/sutra-spec/ram-pointers.md). `self.ram` is

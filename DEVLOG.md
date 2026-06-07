@@ -5282,3 +5282,12 @@ readouts the codegen emits into the runtime and asserts the count never rises
 This locks the no-introspection discipline immediately so leaks can't creep back
 (the 2026-04-30 audit blessed them precisely because nothing enforced it). 2/2
 pass. Next: start removing the §A accessors and lower the baseline.
+
+## 2026-06-07 — overhaul Phase 1: remove 6 dead host-readout accessors (26→21)
+
+Removed imag/truth/component/semantic/synthetic (each `float(v[...].item())`) and
+norm (`float(linalg.norm)`) from codegen_pytorch.py — all had ZERO consumers
+(0 .su, 0 internal). Host-readout .item() count 26→21; gate baseline lowered to
+21 (2/2). Runtime still compiles + runs (3+4→7 verified). `real` retained for now
+(13 .su + 7 internal consumers) — the next overhaul target. Net: 5 of the
+language's readout holes closed, provably without breaking anything.
