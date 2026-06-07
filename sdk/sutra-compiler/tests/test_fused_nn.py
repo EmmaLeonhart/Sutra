@@ -22,7 +22,8 @@ import pathlib
 import pytest
 
 _DEMOS = ["differentiable_substrate", "trace_to_graph", "recurrence_fusion",
-          "orchestrator_model", "emit_weight_file", "ram_tensor_step"]
+          "orchestrator_model", "emit_weight_file", "ram_tensor_step",
+          "emit_loop_weight_file"]
 
 
 def _load_main(name: str):

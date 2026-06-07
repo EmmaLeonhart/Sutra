@@ -32,6 +32,21 @@ Also fixed three FV tests orphaned by the `87cfa407` accessor purge
 Next (#7): hoist `_step` to a module-level `_step_<name>` so the export path can
 pull it out as a standalone loop weight file.
 
+Overhaul Phase-2 #7 (module-level step + recurrent weight-file export): hoisted the
+loop's per-tick `_step` from a nested function to a MODULE-LEVEL
+`_step_loop_<name>(_t, [this,] [arr,] state..., _init...)` so the export path can
+grab it by name (added the `_init_*` capture params it needs now that it can't
+close over the driver). An UNBOUNDED `while_loop` now exports end-to-end:
+`experiments/fused_nn/emit_loop_weight_file.py` traces the step → `step.pt`
+(host-readout-free, verified no aten::item) + a tiny torch-only orchestrator that
+drives the recurrence in a fresh subprocess and reproduces the loop result (n=5),
+cross-checked vs the eager driver. CI-guarded (test_fused_nn 8/8). All loop kinds +
+captures green (64 loop/await/readout/capture + 91 codegen). Follow-up: a cuda
+`torch.jit.trace` device quirk (comparison literal traced as a CPU constant on GPU;
+eager runs fine on cuda) — the demo pins CPU; GPU export is a separate device fix.
+Remaining toward the full machine as one fused recurrent net: RAM-as-one-tensor
+threaded through the step + lifting the v1 one-slot-`recur` limit (multi-state).
+
 Paper-feedback loop (percepta-ntm): v12 review (post 2717, Reject) read side-by-side
 with v11 — the RASP/Tracr-baseline con MOVED to a pro (prior positioning worked);
 persisting cons (trivial-reduction, speculative trainable-seed, numerical regime,

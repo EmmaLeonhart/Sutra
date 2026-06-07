@@ -52,12 +52,27 @@ driver:
 Verified: loop+await 59 green; reframed `test_no_host_readout` asserts `_step` is
 readout-free + the read stays in the driver. The host-readout-relocation goal is met.
 
-**#7 remaining — make `_step` exportable.** `_step` is currently NESTED inside the
-loop function, so `torch.jit.trace`/`torch.export` can't grab it standalone. Hoist
-it to a module-level `_step_<name>(_t, [arr,] [this,] state...)` (do_while/while_loop
-close over only `_VSA`; foreach also takes the array param; class loops also `this`),
-then trace it → `foo.network.pt` + a tiny driver = the loop weight-file target. The
-straight-line case already ships this end-to-end (`emit_weight_file`, `7181c2a4`).
+**#7 DONE — `_step` is module-level and exports end-to-end.** `_step` is now
+emitted at module level as `_step_loop_<name>(_t, [this,] [arr,] state..., _init...)`
+(the `_init_*` capture params are passed explicitly since a module-level fn can't
+close over the driver's locals — the loop-capture desugar re-pins captured vars via
+`name = _init_name` in the body). An UNBOUNDED `while_loop` exports end-to-end:
+`experiments/fused_nn/emit_loop_weight_file.py` traces the step → `step.pt`
+(host-readout-free) + a tiny torch-only orchestrator that drives the recurrence and
+reproduces the result (n=5), cross-checked vs the eager driver; CI-guarded
+(test_fused_nn). The straight-line case shipped earlier (`emit_weight_file`,
+`7181c2a4`).
+
+**Known follow-up (cuda trace device quirk).** `torch.jit.trace` records a
+comparison literal as a CPU constant on a CUDA box (eager runs fine on cuda), so the
+loop-export demo pins CPU. Exporting a comparison-using step on GPU needs a
+device-placement fix in the trace path — separate, bounded.
+
+**Remaining toward the full WASM machine as ONE fused recurrent net:** (1) the
+machine keeps all state in a host RAM *list* with host-driven steps — move it to a
+single `(N, dim)` tensor threaded through the step (the `ram_gather`/`ram_scatter`
+primitives exist); (2) lift the v1 one-slot-`recur` limit so pc+sp+stack+RAM recur
+together on the substrate (multi-state recurrence).
 
 ### State as a single tensor (for the WASM machine)
 NOTE: the RAM cells are ALREADY in VRAM — each `self.ram[addr]` is a `cuda`
