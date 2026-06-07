@@ -196,17 +196,21 @@ The machine is a genuine interpreter — the program is data in RAM. Its **compu
 class is Turing-complete**: it has unbounded addressable memory (`LOAD`/`STORE` against
 the RAM device), a data-dependent conditional branch (`BR_IF`), and unbounded
 iteration (backward branch), which is the standard sufficient criterion — the claim is
-about the model, not the size of the opcode menu. The current opcode set is 12
-(`HALT`/`CONST`/`ADD`/`SUB`/`MUL`/`AND`/`BR_IF`/`LOAD`/`STORE`/`EQ`/`LT`/`OUTPUT`),
-enough to exercise every class. Measured on the substrate: arithmetic (e.g. `3+4 = 7`,
-`100+23 = 123`, chained `5×6−2 = 28`), bitwise (`12 AND 10 = 8`, via a substrate
-bit-plane decomposition), comparison (`3<5 = 1`, `7==7 = 1`), a conditional branch
-taking or not taking by data, a `STORE`/`LOAD` round-trip, byte `OUTPUT` to a buffer
-(emitting 72,73,74), and — the load-bearing case for the Turing-completeness claim — a
+about the model, not the size of the opcode menu. The current opcode set is 17
+(`HALT`/`CONST`/`ADD`/`SUB`/`MUL`/`AND`/`BR_IF`/`LOAD`/`STORE`/`EQ`/`LT`/`OUTPUT`/`OR`/
+`XOR`/`DUP`/`SWAP`/`DROP`), enough to exercise every class. Measured on the substrate:
+arithmetic (e.g. `3+4 = 7`, `100+23 = 123`, chained `5×6−2 = 28`), bitwise
+(`12 AND 10 = 8`, `12 OR 10 = 14`, `12 XOR 10 = 6`, via a substrate bit-plane
+decomposition), comparison (`3<5 = 1`, `7==7 = 1`), stack manipulation (`DUP`, `SWAP`
+— verified by `7,2 SWAP SUB = −5` — and `DROP`), a conditional branch taking or not
+taking by data, a `STORE`/`LOAD` round-trip, byte `OUTPUT` to a buffer (emitting
+72,73,74), and — the load-bearing cases for the Turing-completeness claim — a
 **backward-branch memory loop** (a counter at one address, an accumulator at another;
 each iteration increments the accumulator and decrements the counter, branching back
-while non-zero) that yields `acc = N` for `N = 1, 3, 5`. All cases are guarded by a
-regression test that compiles the machine and runs it on the substrate (14/14). The
+while non-zero) that yields `acc = N` for `N = 1, 3, 5`, and a full
+**multiply-accumulate algorithm computing `factorial(3) = 6`** (the same loop with a
+multiplying accumulator) running end-to-end on the substrate. All cases are guarded by
+a regression test that compiles the machine and runs it on the substrate (20/20). The
 evaluation establishes the mechanism, not coverage of a full instruction set.
 
 The OCaml realization of the reference machine is being transpiled to Sutra by an
@@ -219,9 +223,10 @@ a substrate bitwise stdlib) are in place and individually verified.
   attention and built a Turing-complete NTM-style machine on the substrate; we have
   not trained or assembled a differentiable neural computer.
 - We do **not** claim the full 35-opcode `transformer-vm` runs on the Sutra
-  substrate. The substrate machine implements 12 opcodes and demonstrates the
-  mechanism (memory, dispatch, loops, output); the remaining opcodes are breadth, and
-  the reference's multi-megabyte linear memory exceeds the current host RAM device.
+  substrate. The substrate machine implements 17 opcodes and demonstrates the
+  mechanism (memory, dispatch, loops, output, stack, bitwise); the remaining opcodes
+  are breadth, and the reference's multi-megabyte linear memory exceeds the current
+  host RAM device.
 - We do **not** claim PCA reduces the transformer. The measured result is the
   opposite: magnitude-PCA is misleading here; the reducible structure is the two zero
   attention layers, the ~3-dimensional vocabulary embedding, and the 42/133 genuinely

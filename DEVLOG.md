@@ -5106,3 +5106,15 @@ substrate discipline as the existing ops -- fresh-ramRead opcode dispatch,
 single blended writes to fixed cells, no scalar extraction inside ops. Added
 5 regression cases (incl. negative-result SWAP: 7,2 SWAP SUB -> -5). Measured
 on the substrate: test_mini_wasm_machine.py 20/20 passed (394.9s).
+
+## 2026-06-06 — percepta-ntm v6: fold real machine growth into S5 (v5 review post 2705)
+
+v5 review (post 2705) stayed Reject; RASP/Tracr con RESOLVED (now a pro).
+The one con pointing at a fixable gap was "evaluation extremely minimal
+(14-case regression test)". Since v5 was written the substrate machine
+genuinely grew: 12 -> 17 opcodes (+OR/XOR/DUP/SWAP/DROP), factorial(3)=6
+runs end-to-end, guard 20/20. Folded these MEASURED results into S5 and the
+S6 non-claim (17 opcodes). Not chasing the persisting contribution-nature
+cons (trivial-PCA / Sutra-underdefined / two-halves-weak / not-neural) with
+rewords -- per the wordsmithing-diminishing-returns rule those need new
+results or an audience switch, not text. This commit folds new results.
