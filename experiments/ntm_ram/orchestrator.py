@@ -85,7 +85,11 @@ class Orchestrator:
             if float(_torch.linalg.vector_norm(out).item()) <= 1e-7:
                 break                                 # zero cell == sentinel
             code = int(round(self._vsa.real(out)))    # payload, at the wire
-            nxt = int(round(self._vsa.imag(out)))     # link, at the wire
+            # `imag` accessor removed in the substrate-purity purge (87cfa407);
+            # read the imag axis directly here (orchestrator/terminal boundary,
+            # monitoring — same wire as `real` above).
+            nxt = int(round(float(
+                out[self._vsa.semantic_dim + self._vsa.AXIS_IMAG].item())))  # link
             if code <= 0:
                 break
             trace.append((addr, code, nxt))
