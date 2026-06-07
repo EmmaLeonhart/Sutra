@@ -5256,3 +5256,20 @@ ran on substrate). Fixable by keeping stack values as vectors (element-wise
 vector add/mul, like Bits.* already does). STOPPED opcode-breadth work; logged
 to queue A.0 for Emma's call (rework vs re-scope paper). Finding
 2026-06-07-mini-wasm-machine-arithmetic-runs-on-host.md.
+
+## 2026-06-07 — substrate-purity → fused-NN overhaul: invariant recorded, codegen host-readout audited, plan written
+
+Emma directive: Sutra has NO readout/log/monitor/debug by design; remove the
+.real() family and all host-readout; the compilation target must be an ACTUAL
+FUSED NEURAL NETWORK (real weight files), not a host-orchestrated approximation.
+Recorded the invariant in CLAUDE.md (replaced the 2026-04-30 ruling that wrongly
+blessed accessors as "monitoring, fine"). Audited the PyTorch codegen: 33
+.item()/float(tensor) host-readout sites, categorized (A: pure accessors
+real/imag/truth/component/semantic/synthetic/norm -> remove; B: control readouts;
+C: RAM address decode = I/O wire, decision; D: JS-interop carve-out, decision; E:
+transpilers EMIT .real()). Each readout severs purity AND the autograd graph
+(gradient wall) -> "it's one differentiable NN" is aspirational today. Finding
+planning/findings/2026-06-07-codegen-host-readout-audit.md; plan in queue.md
+"SUBSTRATE-PURITY -> FUSED-NEURAL-NETWORK OVERHAUL". Honest diagnosis: core ops
+are real torch/CUDA, but compiled programs are sequential host-orchestrated torch
+calls with readout leaks, not one fused network.
