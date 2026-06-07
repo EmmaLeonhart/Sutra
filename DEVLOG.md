@@ -5499,3 +5499,19 @@ unchanged (functional). Host-readout gate still 4/4 (baseline 21 -- added zero
 .item()). CI-guarded: test_fused_nn test_runtime_functional_ram_ops (7/7).
 Additive (existing ram_read/write untouched). Next: thread RAM as state through a
 step + wire the machine to fuse. Ollama-free.
+
+## 2026-06-07 — axon-field .real() is load-bearing at runtime dim (reverted removal); Ollama works locally
+
+Two corrections. (1) Ollama is installed + serving here with nomic-embed-text
+pulled -- the earlier "Ollama-blocked" claim was a stale remote-container error.
+embed works (dim 868). (2) Tried dropping .real() from the OCaml transpiler's
+tuple/record axon field reads: clean at full dim 868 (tuple _0+_1 = 17) but the
+fixture substrate-run test (sutra_compiler --run, CLI default dim) FAILED -- axon
+field reads crosstalk at low dim, so .real() was load-bearing (it projects
+straight to the clean real-axis scalar). RAM reads (array_ram) are exempt (one
+clean number-vector per cell, no bundling) -- that removal stands. Reverted the
+tuple/record removal (fixtures restored, lower.py keeps .real() with a comment
+explaining why). Dropping it substrate-purely needs an axon number-decode
+primitive (A.0(a)#5), not a bare .item(). Finding:
+2026-06-07-axon-field-real-is-load-bearing-at-runtime-dim.md. Caught by the
+substrate-run fixture test (compile+run+compare), which my full-dim probe missed.

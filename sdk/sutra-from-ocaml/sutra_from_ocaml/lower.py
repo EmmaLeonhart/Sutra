@@ -465,6 +465,12 @@ def _lower_expression(node, source: bytes) -> str:
         if (kids[0].type == "value_path" and len(kids) == 2
                 and _node_text(kids[0], source) in ("fst", "snd")):
             field = "_0" if _node_text(kids[0], source) == "fst" else "_1"
+            # Tuple field read. `.real()` decodes the axon filler to the clean
+            # number: at the CLI runtime_dim the raw `.item()` vector crosstalks
+            # with the other bundled field (measured 2026-06-07 — the substrate-run
+            # fixture got the wrong value without `.real()`; it is clean only at
+            # full dim ~868). Removing `.real()` substrate-purely needs an
+            # axon number-decode primitive (queue A.0(a)#5), not a bare `.item()`.
             return f'{_lower_expression(kids[1], source)}.item("{field}").real()'
         fn_src = _lower_expression(kids[0], source)
         arg_srcs = [_lower_expression(a, source) for a in kids[1:]]
@@ -527,6 +533,9 @@ def _lower_expression(node, source: bytes) -> str:
         )
         obj_src = _lower_expression(obj, source) if obj is not None else "/* ? */"
         field_name = _node_text(field, source) if field is not None else ""
+        # `.real()` decodes the axon filler to a clean number (raw `.item()`
+        # crosstalks at the runtime dim — see the tuple note). Substrate-pure
+        # removal needs an axon number-decode primitive (queue A.0(a)#5).
         return f'{obj_src}.item("{field_name}").real()'
     if t == "array_get_expression":
         # `a.(i)` -> RAM read at the array's base + index. Returns the element
