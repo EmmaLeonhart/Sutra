@@ -179,9 +179,9 @@ The tier-1/tier-2/tier-3 stratification is **dead and explicitly rejected** — 
 
 Numpy has exactly two legitimate roles:
 1. **Compilation** — building codebooks, precomputing fused matrices, fitting thresholds. Happens before the run.
-2. **Monitoring** — decoding substrate output for reporting/verification. Happens around the run.
+2. **External analysis of non-Sutra artifacts** — e.g. inspecting a third-party model's weights (the `transformer-vm` PCA). This is host analysis of an external object, NOT introspection of a running Sutra program.
 
-Numpy is **not** allowed on the runtime hot path. A numpy result with a torch wrapper is a lie about what executed.
+Numpy is **not** allowed on the runtime hot path. A numpy result with a torch wrapper is a lie about what executed. **Note (Emma 2026-06-07):** "decoding substrate output for monitoring/verification" is NOT a sanctioned role — see §"NO introspection" below. The language has no readout; how to verify a substrate program *without* reading values out is an open question, not "call numpy/`.real()` on the output."
 
 ### Tensor operations only — global not local efficiency
 
@@ -196,7 +196,16 @@ Every Sutra operation must be a tensor operation (matmul, element-wise ops, nonl
 
 `loop (condition)` iterates `state ← R · state` on the substrate; both rotation and match run on the substrate.
 
-Accessor methods (`real()`, `imag()`, `truth()`, `component()`) are monitoring/debugging only — fine because they don't sit inside another operation's definition.
+### NO introspection — no readout, no logging, no monitoring, no debugging (Emma 2026-06-07)
+
+**Sutra has no way to read a value off the substrate, log, monitor, or debug — by design. There is no escape hatch.** This is load-bearing language identity, not a convenience to be reintroduced.
+
+- The accessors `real()`, `imag()`, `truth()`, `component()` (and `norm`) are **violations** and are being **removed from the language** (parser/codegen/runtime). They compile to `float(v[...].item())` — a host readout that (a) runs subsequent arithmetic on the CPU and (b) **detaches the autograd graph**, so any program touching them is neither substrate-pure nor end-to-end differentiable.
+- The prior ruling here ("accessors are monitoring/debugging only — fine") came from the 2026-04-30 purity audit and was **wrong**: it blessed a hole in the core invariant. `.real()` then spread into operations (the mini_wasm_machine) and into transpiler output.
+- Enforcement, not aspiration: the codegen must emit **zero** host-readout (`.item()` / `float(tensor…)` that returns to host computation) inside any operation. This is grep-auditable; a CI gate should fail the build on new occurrences.
+- Consequence being worked out: a substrate-only language with no readout forces **substrate-to-substrate verification** — you cannot `.real()` a result in a test. (Open design question; see `queue.md`.)
+
+See the audit + removal plan in `queue.md` and `planning/findings/2026-06-07-codegen-host-readout-audit.md`.
 
 ### When you catch a shortcut
 

@@ -110,18 +110,52 @@ state (avoid literal-vs-loop-state comparison).
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- **SUBSTRATE-PURITY BREACH in mini_wasm_machine (2026-06-07).** Measured: the
-  machine's ADD/SUB/MUL (and comparison operands) run on the HOST via
-  `.real()` scalar extraction (`ramRead().real()` → Python float; `top2+top1` →
-  host float), not the substrate. Only memory (ramRead/ramWrite), dispatch
-  (defuzzy), bitwise (Bits.*), and the blended writes are substrate tensors. This
-  contradicts percepta-ntm paper §5 ("arithmetic … measured on the substrate")
-  and the CLAUDE.md no-scalar-arithmetic rule. Finding:
-  `planning/findings/2026-06-07-mini-wasm-machine-arithmetic-runs-on-host.md`.
-  Fixable by keeping stack values as VECTORS and doing element-wise vector add/mul
-  (like Bits.* already does). **DECISION NEEDED:** rework to vector arithmetic
-  (fix), re-scope the paper §5 claim, or both. Opcode-breadth work STOPPED until
-  resolved (don't build on the breach).
+- **A.0(a) — DECISIONS for the substrate-purity overhaul (Emma to call; non-blocking — keep working the rest).**
+  1. **RAM address decode (I/O wire?)** — `ram_read`/`ram_write` decode the pointer
+     via `int(round(ptr[AXIS_REAL].item()))`. Earlier `ram-pointers` finding called
+     address-decode the legitimate I/O boundary. Keep, or make addressing substrate
+     (content-addressable, no host index)?
+  2. **JS-interop carve-out** — `is_string`/`is_char`/`js_*`/`string_to_python`
+     cross to host to mimic JS (CLAUDE.md carve-out). Does "no introspection"
+     override it, or is JS-interop a ring-fenced impurity?
+  3. **Verification without readout** — with no `.real()`, how is a substrate
+     program verified? (substrate-to-substrate compare; terminal boundary?)
+
+## ⭐ SUBSTRATE-PURITY → FUSED-NEURAL-NETWORK OVERHAUL (Emma 2026-06-07, TOP PRIORITY, barrel through, don't stop)
+
+Emma's directive in full: Sutra must compile to an **actual fused neural network —
+real weight files** — not a mathematical approximation or host-orchestrated torch
+calls. NO readout/log/monitor/debug exists by design. Work this continuously until
+through. Diagnosis + inventory:
+`planning/findings/2026-06-07-codegen-host-readout-audit.md` and
+`…-mini-wasm-machine-arithmetic-runs-on-host.md`. CLAUDE.md §"NO introspection".
+
+The core ops ARE real torch ops on CUDA; the problem is (a) 33 `.item()`/`float`
+host-readout leaks sever purity + the autograd graph, and (b) a compiled program
+is host-Python-orchestrated sequential torch calls, not ONE fused graph/network.
+
+Phase 1 — purity (precondition; a severed graph can't be fused or trained):
+1. Remove §A accessors (`real`/`imag`/`truth`/`component`/`semantic`/`synthetic`/
+   `norm`) from runtime + surface. Add a CI grep-gate failing on new
+   `.item()`/`float(<tensor>)` inside an op.
+2. Rework consumers: `stdlib/math.su`, GUI demos, AND the C/OCaml/TS transpilers
+   (they EMIT `.real()`) so lowered programs are accessor-free.
+3. Rework mini_wasm_machine to zero `.real()`: int-vector stack values; `+`/`-`/`*`
+   arithmetic; `==`/`<`/`>` numeric comparison (verified to work on int vectors via
+   `eq_synthetic`/`gt`); substrate boolean handling; substrate-to-substrate test.
+4. Rework §B control readouts (`isFulfilled`/`isRejected`, `array_length`).
+5. Resolve §C/§D/verification per A.0(a).
+
+Phase 2 — fusion into a real neural network / weight file (the actual target):
+6. Trace/compile the emitted op-sequence into a SINGLE connected tensor graph
+   (no Python orchestration mid-graph; no detach). `torch.compile`/`torch.fx`/
+   tracing territory. Verify end-to-end differentiability (gradient flows root→leaf).
+7. Export the fused program as a real **weight file** (the compilation artifact),
+   loadable + runnable + trainable. This is what "Sutra compiles to a neural
+   network" must literally mean.
+
+HARD RAIL: every step RUN and verified substrate-to-substrate; no faking; "it ran"
+is not "it's pure" and not "it's one fused differentiable network."
 
 ## Context (read first, do not work on)
 
