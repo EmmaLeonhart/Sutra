@@ -5158,3 +5158,12 @@ regression). It is a niche personal artifact today BY DESIGN. Retitled; rewrote
 abstract/S1/S2/S3/S4/S5/S6; added S7 "Why this matters: a trainable seed".
 Also swept honest/genuinely buzzwords -> neutral phrasing. Framing saved to
 memory project_ram_editing_nn_framing.
+
+## 2026-06-06 — pruned transformer step 1: drop 2 zero attention sublayers (lossless, verified)
+
+First staged reduction toward the Emma-greenlit pruned transformer. MEASURED:
+attn[5]/attn[6] in_proj+out_proj of transformer-vm are exactly zero (max|w|=0),
+so the attention sublayers are identity pass-throughs and removable losslessly
+(layers 5/6 keep non-zero FFNs -> attention sublayer only, not whole layers).
+Verified output-preserving token-for-token on 5/5 random inputs; -11,552/146,680
+params (7.9
