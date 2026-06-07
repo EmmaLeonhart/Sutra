@@ -5486,3 +5486,16 @@ host-readout-free (no aten::item); differentiable (d(out[3].real)/d(ram[3].real)
 codegen change targets (compile ramRead/ramWrite to gather/scatter over a threaded
 RAM tensor, instead of host-list + int index). Added to CI guard test_fused_nn
 (6/6). Building block, not yet Sutra-compiled output. Ollama-free.
+
+## 2026-06-07 — overhaul Phase 2: functional tensor-RAM ops in the runtime (ram_gather/ram_scatter)
+
+Moved the validated RAM-as-tensor pattern from experiment into the runtime: added
+ram_gather(ram_t, ptr) and ram_scatter(ram_t, ptr, value) to codegen_pytorch --
+functional (no mutation), gather/scatter over a (N,dim) RAM tensor with a TENSOR
+index (round(ptr.real).long()), substrate-pure (no .item(), readout-free). These
+are the fusion-path RAM primitives (the device ram_read/ram_write stay for the
+host-driven path). Verified: gather ram[3]=41, scatter->ram2[3]=42, input ram[3]
+unchanged (functional). Host-readout gate still 4/4 (baseline 21 -- added zero
+.item()). CI-guarded: test_fused_nn test_runtime_functional_ram_ops (7/7).
+Additive (existing ram_read/write untouched). Next: thread RAM as state through a
+step + wire the machine to fuse. Ollama-free.
