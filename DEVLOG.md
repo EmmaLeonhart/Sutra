@@ -5096,3 +5096,13 @@ both arXiv ids web-verified before citing. Folded the reviewer's "high-gain digi
 circuit" characterization into S4 as a correct framing (the 1e30 constants make
 hardmax an exact gate array; why spectral pruning fails on compiled models). No
 reword-only churn; real citations + real numbers only.
+
+## 2026-06-06 — ISO-5 WASM machine: +5 opcodes (OR/XOR/DUP/SWAP/DROP), guard 20/20
+
+Extended the substrate RAM-state WASM stack machine from 12 to 17 opcodes
+(0-16). New: 12=OR, 13=XOR (bitwise via Bits.bor/bxor 32-bit bit-plane
+decomposition), 14=DUP, 15=SWAP, 16=DROP (stack manipulation). Same
+substrate discipline as the existing ops -- fresh-ramRead opcode dispatch,
+single blended writes to fixed cells, no scalar extraction inside ops. Added
+5 regression cases (incl. negative-result SWAP: 7,2 SWAP SUB -> -5). Measured
+on the substrate: test_mini_wasm_machine.py 20/20 passed (394.9s).

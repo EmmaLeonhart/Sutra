@@ -13,6 +13,8 @@
 //          7=LOAD(pop addr, push ram[addr])  8=STORE(pop value, pop addr, ram[addr]=value)
 //          9=EQ(push top2==top1 ?1:0)  10=LT(push top2<top1 ?1:0)
 //          11=OUTPUT(pop value, append byte to the output buffer)
+//          12=OR(bitwise)  13=XOR(bitwise)  14=DUP(push copy of top)
+//          15=SWAP(swap top two)  16=DROP(pop, discard)
 // State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
 // output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
 // program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
@@ -37,15 +39,22 @@ function int step(scalar d) {
     int is_eq = truth_axis(defuzzy(op == 9));
     int is_lt = truth_axis(defuzzy(op == 10));
     int is_output = truth_axis(defuzzy(op == 11));
+    int is_or = truth_axis(defuzzy(op == 12));
+    int is_xor = truth_axis(defuzzy(op == 13));
+    int is_dup = truth_axis(defuzzy(op == 14));
+    int is_swap = truth_axis(defuzzy(op == 15));
+    int is_drop = truth_axis(defuzzy(op == 16));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
     // ±1 truth (the AND-probability of two ±1 flags mapped back to ±1).
     int cond_nz = truth_axis(defuzzy(top1 != 0));
     int taken = (((1 + is_brif) * (1 + cond_nz)) / 2) - 1;
-    // CONST writes the new top cell (100+sp) = imm, else keeps it.
+    // CONST writes the new top cell (100+sp) = imm; DUP writes it = top1 (push a
+    // copy of the current top); else keeps it.
     int cell_hi = ramRead(100 + sp).real();
-    int new_hi = (((1 + is_const) * (imm)) + ((1 - is_const) * (cell_hi))) / 2;
+    int hi_dup = (((1 + is_dup) * (top1)) + ((1 - is_dup) * (cell_hi))) / 2;
+    int new_hi = (((1 + is_const) * (imm)) + ((1 - is_const) * (hi_dup))) / 2;
     ramWrite(100 + sp, new_hi);
     // Binary op writes the result cell (98+sp = second-from-top), else keeps.
     int v_add = top2 + top1;
@@ -54,12 +63,20 @@ function int step(scalar d) {
     // Bitwise needs number-VECTORS (its bit-plane decomposition), so feed the
     // raw ramRead vectors (not the .real() scalars) and project the result.
     int v_and = Bits.band(ramRead(98 + sp), ramRead(99 + sp)).real();
+    int v_or = Bits.bor(ramRead(98 + sp), ramRead(99 + sp)).real();
+    int v_xor = Bits.bxor(ramRead(98 + sp), ramRead(99 + sp)).real();
     // EQ / LT push 1 or 0 (truth ±1 mapped to 1/0): top2 OP top1.
     int v_eq = (truth_axis(defuzzy(top2 == top1)) + 1) / 2;
     int v_lt = (truth_axis(defuzzy(top2 < top1)) + 1) / 2;
-    int b_lt = (((1 + is_lt) * (v_lt)) + ((1 - is_lt) * (top2))) / 2;
+    // 98+sp (second-from-top) chain. Base keeps top2; SWAP writes top1 here (old
+    // top moves down); binary ops (incl. OR/XOR) write their result; net sp -1
+    // collapses 99+sp/98+sp so the result/new-top lands at 99+(sp-1)=98+sp.
+    int b_swap = (((1 + is_swap) * (top1)) + ((1 - is_swap) * (top2))) / 2;
+    int b_lt = (((1 + is_lt) * (v_lt)) + ((1 - is_lt) * (b_swap))) / 2;
     int b_eq = (((1 + is_eq) * (v_eq)) + ((1 - is_eq) * (b_lt))) / 2;
-    int b_and = (((1 + is_and) * (v_and)) + ((1 - is_and) * (b_eq))) / 2;
+    int b_xor = (((1 + is_xor) * (v_xor)) + ((1 - is_xor) * (b_eq))) / 2;
+    int b_or = (((1 + is_or) * (v_or)) + ((1 - is_or) * (b_xor))) / 2;
+    int b_and = (((1 + is_and) * (v_and)) + ((1 - is_and) * (b_or))) / 2;
     int b_mul = (((1 + is_mul) * (v_mul)) + ((1 - is_mul) * (b_and))) / 2;
     int b_sub = (((1 + is_sub) * (v_sub)) + ((1 - is_sub) * (b_mul))) / 2;
     int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_sub))) / 2;
@@ -68,7 +85,10 @@ function int step(scalar d) {
     // the loaded value (else keep). Net sp 0. Data region is the program's choice
     // (use addresses outside [0..2]/program/stack, e.g. 200+).
     int loaded = ramRead(top1).real();
-    int new_99 = (((1 + is_load) * (loaded)) + ((1 - is_load) * (top1))) / 2;
+    // 99+sp (top) chain: LOAD writes the loaded value; SWAP writes top2 (old
+    // second moves up); else keep top1.
+    int n99_swap = (((1 + is_swap) * (top2)) + ((1 - is_swap) * (top1))) / 2;
+    int new_99 = (((1 + is_load) * (loaded)) + ((1 - is_load) * (n99_swap))) / 2;
     ramWrite(99 + sp, new_99);
     // STORE: pop value (top1) and addr (top2), write ram[addr]=value (else no-op
     // rewrite of ram[top2] with its existing value). Net sp -2.
@@ -83,12 +103,17 @@ function int step(scalar d) {
     ramWrite(300 + out_ptr, out_val);
     int new_out_ptr = (((1 + is_output) * (out_ptr + 1)) + ((1 - is_output) * (out_ptr))) / 2;
     ramWrite(3, new_out_ptr);
-    // sp: CONST +1; binary op / BR_IF -1; STORE -2; LOAD 0 (net); HALT/other keep.
+    // sp: CONST/DUP +1; binary op (incl OR/XOR) / BR_IF / OUTPUT / DROP -1;
+    // STORE -2; LOAD 0 (net); SWAP/HALT/other keep.
     int sp_binop = sp - 1;
-    int s_const = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (sp))) / 2;
+    int s_dup = (((1 + is_dup) * (sp + 1)) + ((1 - is_dup) * (sp))) / 2;
+    int s_const = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_dup))) / 2;
     int s_store = (((1 + is_store) * (sp - 2)) + ((1 - is_store) * (s_const))) / 2;
-    int s_out = (((1 + is_output) * (sp_binop)) + ((1 - is_output) * (s_store))) / 2;
-    int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_out))) / 2;
+    int s_drop = (((1 + is_drop) * (sp_binop)) + ((1 - is_drop) * (s_store))) / 2;
+    int s_out = (((1 + is_output) * (sp_binop)) + ((1 - is_output) * (s_drop))) / 2;
+    int s_xor = (((1 + is_xor) * (sp_binop)) + ((1 - is_xor) * (s_out))) / 2;
+    int s_or = (((1 + is_or) * (sp_binop)) + ((1 - is_or) * (s_xor))) / 2;
+    int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_or))) / 2;
     int s_eq = (((1 + is_eq) * (sp_binop)) + ((1 - is_eq) * (s_lt))) / 2;
     int s_brif = (((1 + is_brif) * (sp_binop)) + ((1 - is_brif) * (s_eq))) / 2;
     int s_and = (((1 + is_and) * (sp_binop)) + ((1 - is_and) * (s_brif))) / 2;

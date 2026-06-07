@@ -142,15 +142,17 @@ state (avoid literal-vs-loop-state comparison).
   land/lor/lxor + lsl/lsr, arrays→RAM, failwith→sentinel). OCaml suite 79 passing.
   Substrate primitives shipped + verified: bitwise stdlib (band/bor/bxor), arrays→RAM
   (ramRead/ramWrite + RAM-device hardening). **CAPSTONE: a RAM-state WASM stack machine
-  RUNS on the substrate** and is now TURING-COMPLETE (9 opcodes incl LOAD/STORE +
-  backward BR_IF memory loop: counter loop N=1/3/5 -> acc N; CI-guarded 9/9 in
-  test_mini_wasm_machine.py)
+  RUNS on the substrate** and is now TURING-COMPLETE (17 opcodes 0-16:
+  HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE/EQ/LT/OUTPUT/OR/XOR/DUP/SWAP/DROP +
+  backward BR_IF memory loop: counter loop N=1/3/5 -> acc N, factorial(3)=6;
+  CI-guarded 20/20 in test_mini_wasm_machine.py)
   — RAM memory + fresh-`ramRead` dispatch + conditional-no-op-write side effects +
   HALT (= `raise Exit`); host-driven steps dodge the v1 one-slot-`recur` limit.
   Findings: `planning/findings/2026-06-06-iso5-*`; artifacts
   `experiments/iso5_substrate_dispatch/`. The four hard substrate questions
   (memory/dispatch/multi-state/side-effects) are answered with measurements.
-  **Remaining:** breadth (the other ~32 opcodes — same blended dispatch); a SCALABLE
+  **Remaining:** breadth (the other ~27 opcodes — same blended dispatch; arithmetic
+  DIV/REM, comparisons GT/GE/LE/NE, shifts SHL/SHR, more stack ops); a SCALABLE
   RAM device for the 10MB linear memory (host RAM-list doesn't scale); ground-truth
   .txt build (BLOCKED: `uv`/`clang` missing locally; `iso_equiv.sh` uses WSL).
 - **PCA on the WASM transformer (todo.md TOP PRIORITY — ACTIVE; first pass DONE).**
