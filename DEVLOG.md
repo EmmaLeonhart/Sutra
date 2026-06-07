@@ -5273,3 +5273,12 @@ planning/findings/2026-06-07-codegen-host-readout-audit.md; plan in queue.md
 "SUBSTRATE-PURITY -> FUSED-NEURAL-NETWORK OVERHAUL". Honest diagnosis: core ops
 are real torch/CUDA, but compiled programs are sequential host-orchestrated torch
 calls with readout leaks, not one fused network.
+
+## 2026-06-07 — overhaul Phase 1: host-readout enforcement gate (baseline 26, goal 0)
+
+Added sdk/sutra-compiler/tests/test_no_host_readout.py — counts .item() host
+readouts the codegen emits into the runtime and asserts the count never rises
+(baseline 26, tight-check forces lowering it as readouts are removed; goal 0).
+This locks the no-introspection discipline immediately so leaks can't creep back
+(the 2026-04-30 audit blessed them precisely because nothing enforced it). 2/2
+pass. Next: start removing the §A accessors and lower the baseline.
