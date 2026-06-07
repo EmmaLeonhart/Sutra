@@ -70,13 +70,15 @@ then `index_select` / `index_copy`. Substrate-pure and traceable (the
 *address*. Ships now; the machine becomes one fused tensor step today. It is a
 fused recurrent net, just not differentiable-through-addressing.
 
-**(B) Soft addressing — "attention on RAM" (Emma's stated goal).**
-`a = softmax_or_onehot(addr_logits(ptr))` over the N rows; `read = a @ ram`
-(a matmul); `ram' = ram + outer(a, (new_val - read))`. **Fully differentiable**
-end-to-end (address included) — this is literally the NTM/DNC read/write head and
-the "attention on RAM / linear regression over memory" the percepta-ntm paper
-frames as the goal. More work (build the addressing matmul; pick onehot vs
-softmax-temperature; cost is O(N·dim) per access vs O(dim) for hard).
+**(B) Soft addressing — "attention on RAM" (Emma's stated goal). CHOSEN
+2026-06-07: LINEAR REGRESSION OVER MEMORY.** Address weights from a *linear* map of
+the query (no softmax): `w = addr_weights(query)` over the N rows; `read = w @ ram`
+(a matmul); `write: ram' = ram + outer(w, (new_val - read))`. **Fully differentiable**
+end-to-end (address included) — the read/write head as a linear regression over
+memory, matching the percepta-ntm paper's "attention on RAM (first step: a simple
+linear regression over memory)". Cost O(N·dim) per access vs O(dim) for hard.
+(Emma picked this over softmax-temperature, straight-through one-hot, and content-
+cosine addressing — AskUserQuestion 2026-06-07.)
 
 **Why it's Emma's call, not mine:** (A) and (B) produce *different* machines —
 (A) ships the fused step fastest; (B) is the actual differentiable "attention on

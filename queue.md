@@ -209,10 +209,13 @@ the legitimate terminal boundary, NOT in-graph introspection.
    CI-guarded (test_fused_nn 9 demos). List-mode RAM unchanged (backward compat).
    REMAINING:
    (a) ADDRESSING IS HARD, NOT DIFFERENTIABLE. ram_gather/scatter use round().long()
-       — gradients flow to RAM *contents* but not through the *address*. Emma's
-       "attention on RAM" goal (soft/onehot addressing = a @ ram matmul, fully
-       differentiable) is the upgrade for the trainable-seed vision. Design +
-       decision in planning/exploratory/fused-machine-step.md (option B).
+       — gradients flow to RAM *contents* but not through the *address*. NEXT BUILD:
+       differentiable "attention on RAM" — Emma chose (2026-06-07, AskUserQuestion)
+       **LINEAR REGRESSION OVER MEMORY**: address weights from a linear map of the
+       query; read = weights @ ram; write = ram + outer(weights, delta). No softmax.
+       The state-as-one-tensor plumbing is shared, so this swaps the round()->index
+       gather for a differentiable linear read/write head. Design in
+       planning/exploratory/fused-machine-step.md (option B = this).
    (b) cuda torch.jit.trace device quirk (comparison literal -> CPU constant on GPU;
        eager fine on cuda) — export pins CPU; GPU export is a separate device fix.
    (c) push tensor-RAM into the .su surface so the machine self-drives as a Sutra
