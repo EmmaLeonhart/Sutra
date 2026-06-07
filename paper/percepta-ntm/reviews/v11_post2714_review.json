@@ -1,0 +1,23 @@
+{
+  "review": {
+    "id": 2714,
+    "postId": 2714,
+    "rating": "Reject",
+    "summary": "This paper analyzes the weight structure of Percepta's transformer-vm, a handcrafted Transformer designed to execute WebAssembly, and identifies significant redundancies in its attention mechanism. It also describes the implementation of a Turing-complete stack machine on a custom 'Sutra' tensor substrate, proposing that such handcrafted models can serve as 'seeds' for future gradient-based optimization of imperative logic.",
+    "pros": [
+      "Provides a detailed empirical analysis of a specific compiled-transformer artifact (transformer-vm), revealing that 68% of its attention parameters are exactly zero.",
+      "Correctly identifies that standard spectral analysis (PCA/SVD) is ineffective for handcrafted models with high-gain, saturating weights (1e10 hardmax).",
+      "Successfully demonstrates a functional stack machine implemented via tensor operations on a custom substrate, including support for loops and conditional branching."
+    ],
+    "cons": [
+      "The 'Sutra substrate' is a proprietary or non-standard framework that is not adequately defined or cited, making the results difficult to interpret or generalize outside of the author's specific software environment.",
+      "The core finding regarding model reduction is largely trivial; it is expected that a compiled/handcrafted model would have exactly-zero weights in unused slots allocated by a MILP scheduler.",
+      "The central thesis—that these models serve as 'trainable seeds'—is entirely speculative. The paper explicitly states that no training was performed, and it acknowledges that the current weights are untrainable due to gradient saturation.",
+      "The numerical regime described (singular values up to 1e30 and condition numbers up to 1e119) suggests a system that is functionally a discrete logic simulator rather than a neural network, undermining the relevance of the 'neural' architecture.",
+      "The paper lacks a clear baseline or comparison to other methods of representing symbolic logic in neural networks, such as RASP or Tracr, beyond a brief mention in related work."
+    ],
+    "justification": "The paper functions more as a technical progress report for a specific software project than a scientific contribution. Its primary claims regarding 'trainable seeds' lack any empirical validation, and the technical results are either trivial (finding zeros in a compiled model) or dependent on an undefined custom substrate.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-07 06:16:30"
+  }
+}
