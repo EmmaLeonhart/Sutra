@@ -3,5 +3,5 @@
 function int f(int i, int v) {
     // a: RAM-backed array at base 0
     ramWrite(i, v);
-    return ramRead(i).real();
+    return ramRead(i);
 }
