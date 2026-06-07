@@ -32,6 +32,25 @@ Also fixed three FV tests orphaned by the `87cfa407` accessor purge
 Next (#7): hoist `_step` to a module-level `_step_<name>` so the export path can
 pull it out as a standalone loop weight file.
 
+### 2026-06-07 (later): REVERTED the fused-RAM machine — wrong architecture (Emma caught it)
+
+The "WASM machine as one fused RAM tensor" below was a WRONG TURN. It treated VRAM
+AS RAM — fusing memory into the step graph (tensor-RAM mode in `ram_read`/`ram_write`,
+`ram_gather`/`ram_scatter`, `fused_ram_machine`, `ram_tensor_step`). That contradicts
+the documented NTM design (`planning/sutra-spec/ram-pointers.md`): **RAM is EXTERNAL
+host memory; the program holds only a pointer + a VRAM mailbox; an orchestrator (CPU)
+periodically syncs and does the actual RAM I/O.** `ramRead`/`ramWrite` are the I/O
+boundary, NOT substrate ops; "collapsing RAM into VRAM" is explicitly named a breach;
+and the `int(round(ptr.real.item()))` address decode is the **sanctioned orchestrator
+wire, not a leak** (I had mis-framed it as "improper substrate" — corrected). The
+three Turing-completeness architectures are DISTINCT: RNN (substrate loop recurrence —
+legitimately fused, #6/#7 stay), NTM (external RAM + orchestrator — do NOT fuse),
+reservoir (deferred). All fused-RAM code reverted; the external-RAM device restored;
+demos + `test_runtime_functional_ram_ops` removed (test_fused_nn back to 6 demos, 11
+passed). The real NTM is `experiments/ntm_ram/`; a *trainable* NTM trains the
+controller, not the RAM. Docs corrected (queue.md #7, fused-machine-step.md banner,
+fused-compile-target.md). Loop/RNN fusion (#6/#7, emit_loop_weight_file) is unaffected.
+
 Overhaul Phase-2 #2 (the WASM machine as ONE fused recurrent step — Emma's substrate
 insight made concrete). Emma 2026-06-07: the host leaks weren't isolated bugs — the
 RAM substrate was improperly done (every memory access decoded the address with
