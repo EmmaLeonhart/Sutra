@@ -5320,4 +5320,3 @@ boundary (the I/O wire). Verified substrate-to-substrate: test_mini_wasm_machine
 30/30 (716s) — same correct outputs (arithmetic, bitwise, comparisons incl.
 equality boundaries, memory loop, factorial(3)=6) now computed on the GPU, not the
 host. The flagship ISO-5 machine is genuinely substrate-pure.
->>>>>>> dccc16f2 (overhaul Phase 1: mini_wasm_machine SUBSTRATE-PURE -- zero .real(), 30/30 on the substrate)
