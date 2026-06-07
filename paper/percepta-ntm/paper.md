@@ -1,28 +1,36 @@
-# Toward a Differentiable Neural Computer on a Frozen-Embedding Substrate: PCA of a Constructed Neural Turing Machine, and a RAM-State Machine that Runs on the Substrate
+# Toward a Minimal Handcrafted RAM-Editing Neural Network for WebAssembly: Reducing a Constructed WASM Transformer, and a RAM-State Machine on a Tensor Substrate
 
 ---
 
 ## Abstract
 
 A transformer with **analytically computed (untrained) weights** can execute
-arbitrary WebAssembly programs — Percepta's `transformer-vm`. We read this artifact
-as an **autoregressive, deterministic Neural Turing Machine (NTM)**: attention is
-used as exact, content/location-addressed memory access, the feed-forward layers are
-the per-step compute, and the append-only token sequence is the machine's state. We
-ask a concrete engineering question for building a *Differentiable* Neural Computer
-(DNC) on Sutra — a typed functional language whose compiled program is a fused
-tensor-op graph over a frozen embedding substrate: **can the constructed
-transformer's attention be reduced to a smaller, runnable core, and can an NTM-style
-machine run on the Sutra substrate at all?**
+arbitrary WebAssembly programs — Percepta's `transformer-vm`. We study this artifact
+as a **handcrafted, constructed-weight neural network that edits RAM to process
+WebAssembly**: attention is used as exact, content/location-addressed memory access,
+the feed-forward layers are the per-step compute, and the append-only token sequence
+together with a memory region is the machine's state. This is **not** a Differentiable
+Neural Computer or a Neural Turing Machine — those are trained, differentiable,
+recurrent systems and serve here only as *inspiration*; what we have (and aim to
+shrink) is a constructed, deterministic RAM-editing network. The long-term goal is a
+*minimal* such network — small enough to be comparable to objects on the Sutra
+substrate (a typed functional language whose compiled program is a fused tensor-op
+graph over a frozen embedding) — that does **attention on RAM** (in this first step a
+simple linear regression over memory), so that imperative RAM-editing programs become
+representable in this form — and, being ordinary differentiable weights, trainable from
+that **seed** by gradient descent into operations the hand-construction never specified.
+The concrete engineering questions here are the first steps toward it: **can the
+constructed transformer be reduced to a smaller, behaviorally equivalent core, and can a
+RAM-editing machine run on the Sutra substrate at all?**
 
 We report two measured results. First, **principal-component / singular-value
 analysis of the constructed weights shows that magnitude-PCA is the wrong reduction
 lens for this machine**: the weights span ~30 orders of magnitude (the hardmax
 temperature and address arithmetic produce singular values to ~1e30), so
 energy-fraction rank is dominated by a few giant "switch" directions while the small
-directions carry the actual byte logic. The honest reduction lever is the
+directions carry the actual byte logic. The effective reduction lever is the
 *computation schedule*, not the weight spectrum: of the nominal 19 heads × 7 layers =
-133 attention head-slots, only **42 (31.6%) genuinely attend**, concentrated in 5
+133 attention head-slots, only **42 (31.6%) actually attend**, concentrated in 5
 layers (two attention layers are entirely zero), and the 915-symbol vocabulary
 embeds into a ~3-dimensional subspace. Second, we **build a RAM-state stack machine
 that runs on the Sutra substrate** and is Turing-complete (memory, arithmetic,
@@ -31,7 +39,7 @@ state held in a RAM device and opcode dispatch performed by reading the opcode f
 from memory each step. The hard substrate questions (memory model, dispatch, state,
 side effects) are answered with measurements; the remaining work is breadth.
 
-## 1. The artifact: a constructed, deterministic Neural Turing Machine
+## 1. The artifact: a handcrafted RAM-editing network for WebAssembly
 
 Percepta's `transformer-vm` is a standard softmax-ReGLU transformer whose weights are
 **constructed analytically from a computation-graph DSL**, not trained. A C program
@@ -47,15 +55,18 @@ tokens** (the authors report ~30K tok/s; the same order of magnitude). The analy
 model is small: `d_model = 38, n_layers = 7, n_heads = 19, d_ffn = 44, vocab = 915`;
 the MILP solves to optimality in 5.5 s.
 
-Read in the lineage of neural-memory architectures, this is an **autoregressive,
-deterministic NTM**. A Neural Turing Machine (Graves, Wayne & Danihelka 2014) is a
-neural controller with external memory whose read/write heads address memory via
-attention; a Differentiable Neural Computer (Graves et al. 2016) adds dynamic
-allocation and temporal links. Both are *trained, differentiable, recurrent*.
-`transformer-vm` uses the same core mechanism — attention as content/location-
-addressed memory access — but is *constructed and exact* (the addressing is hardmax,
-never approximate), has *no recurrent controller* (the autoregressive loop plays that
-role), and its *memory is the append-only token sequence*.
+This sits in the lineage of neural-memory architectures, but is **not** one of them.
+A Neural Turing Machine (Graves, Wayne & Danihelka 2014) is a neural controller with
+external memory whose read/write heads address memory via attention; a Differentiable
+Neural Computer (Graves et al. 2016) adds dynamic allocation and temporal links. Both
+are *trained, differentiable, recurrent* — and we claim to be neither. `transformer-vm`
+borrows only the core mechanism — attention as content/location-addressed memory
+access — but is *constructed and exact* (the addressing is hardmax, never approximate),
+has *no recurrent controller* (the autoregressive loop plays that role), and edits a
+RAM-like memory region. We therefore describe it plainly as a **handcrafted,
+constructed-weight RAM-editing network that processes WebAssembly**, inspired by the
+NTM/DNC idea of attention-as-memory-access but not an instance of either; the NTM/DNC
+references are background, not labels for this artifact.
 
 ## 2. Related work
 
@@ -69,13 +80,14 @@ Percepta's `transformer-vm`, sits at the same design point — attention as memo
 addressing — but reached from the opposite direction: its weights are **constructed,
 not trained**; its addressing is **exact hardmax**, never soft or approximate; and the
 recurrent controller is replaced by the **autoregressive token loop**. We therefore
-read it as a *constructed, deterministic NTM*, and our reduction question (how small
-can its attention be made) is in service of building a differentiable computer on the
-Sutra substrate — i.e. moving from the constructed/exact end of this lineage toward the
-trained/differentiable end. Relative to learned memory networks, our §5 substrate
-machine is closer to a hand-written virtual machine realized in tensor algebra; the
-contribution is the empirical bridge between the constructed-NTM weight structure and
-a runnable tensor-substrate machine.
+read it as a *constructed, deterministic RAM-editing network* — inspired by the NTM/DNC
+idea of attention-as-memory-access, but not an instance of it. Our reduction question
+(how small can its attention be made) is in service of building a *minimal* handcrafted
+RAM-editing network on the Sutra substrate whose eventual mechanism is attention on RAM
+(a linear regression over memory as a first step). Relative to learned memory networks,
+our §5 substrate machine is closer to a hand-written virtual machine realized in tensor
+algebra; the contribution is the empirical bridge between the constructed network's
+weight structure and a runnable tensor-substrate machine.
 
 **Compiled and program-synthesized transformers.** The closest prior line is the
 work that *compiles* symbolic programs into transformer weights. RASP (Weiss,
@@ -91,7 +103,7 @@ represent and provide ground-truth circuits for interpretability; we instead mea
 the **weight spectrum and head-utilization of a compiled artifact** to ask whether it
 is *reducible*. The two findings here — that magnitude-PCA is defeated by the
 hard-coded saturating constants such a compilation introduces (§4), and that the
-genuine reduction lever is the computation schedule, not the spectrum (§4) — are, to
+effective reduction lever is the computation schedule, not the spectrum (§4) — are, to
 our knowledge, not reported for Tracr-style compiled models, whose magnitude regime
 is the same by construction. Our §5 substrate machine is then the converse move:
 rather than compiling a program *into* attention, we run the symbolic VM directly as
@@ -99,11 +111,11 @@ a tensor-op graph on the Sutra substrate.
 
 ## 3. Question and method
 
-To build a DNC on Sutra we need a *small, runnable* attention core. The natural first
-attempt is to take the constructed transformer's weights and reduce their
+To build a *minimal* RAM-editing network on Sutra we need a small, runnable attention
+core. The natural first attempt is to take the constructed transformer's weights and reduce their
 dimensionality by PCA/SVD. We (i) built the analytic transformer (the MILP schedule,
 cached), (ii) ran a full singular-value decomposition of every weight matrix, and
-(iii) measured how many attention heads genuinely attend per layer. All of this is
+(iii) measured how many attention heads actually attend per layer. All of this is
 analysis on the constructed weights, off any runtime path.
 
 ## 4. PCA result: magnitude is the wrong lens; the schedule is the lever
@@ -150,20 +162,20 @@ same magnitude/importance decoupling, so spectral-energy pruning is unsafe for t
 whole class — the specific numbers below are this artifact's, but the failure mode is
 not.
 
-What *is* reducible, measured honestly:
+What *is* reducible, by measurement:
 
 - **Two of seven attention layers are entirely zero** (`attn.5`, `attn.6`: their
   input and output projections sum to exactly 0). The schedule places all attention
   in the first five layers; the last two are FFN-only. These attention blocks are
   directly removable.
-- **The 915-symbol vocabulary embedding is genuinely low-rank**: the token and head
+- **The 915-symbol vocabulary embedding is low-rank**: the token and head
   embedding matrices (915×38) carry **99% of their energy in 3 of 38 dimensions** (90%
-  in 1–2). No giant switches live there, so this is a magnitude-honest reduction.
+  in 1–2). No giant switches live there, so this is a reduction the magnitude spectrum supports.
 - **The attention core's reduction lever is the schedule, not the spectrum.** Counting
-  heads that genuinely attend (Q *and* K projection rows non-zero), only **42 of the
+  heads that actually attend (Q *and* K projection rows non-zero), only **42 of the
   nominal 133 head-slots (31.6%)** are used — per layer 7, 5, 11, 11, 8, 0, 0. The
-  reduced-attention target for a DNC realization is therefore ~⅓ of the nominal
-  provisioning, concentrated in five layers, and must be obtained by scheduling fewer
+  reduced-attention target for a minimal RAM-editing realization is therefore ~⅓ of the
+  nominal provisioning, concentrated in five layers, and must be obtained by scheduling fewer
   heads/dims in the computation graph rather than by SVD-truncating the constructed
   weights. This is not the tautology "a scheduled model is set by its schedule": the
   measured content is that *the schedule under-provisions* — it allocates 19 heads per
@@ -171,9 +183,9 @@ What *is* reducible, measured honestly:
   reduction number (42) is an empirical property of the produced weights, recoverable
   only by inspecting them, not a restatement of the construction method.
 
-## 5. A RAM-state NTM-style machine that runs on the Sutra substrate
+## 5. A RAM-state machine that runs on the Sutra substrate
 
-Independent of the reduction question, we tested whether an NTM-style machine can run
+Independent of the reduction question, we tested whether a RAM-editing machine can run
 on the Sutra substrate at all. **Sutra** is a typed, purely functional language whose
 compiler lowers an entire program — primitives, control flow, I/O — to a single fused
 tensor-operation graph over a fixed high-dimensional embedding space (the "frozen
@@ -199,7 +211,7 @@ realized as single blended writes to fixed cells (each cell receives its new val
 its opcode matched, otherwise a no-op rewrite of its existing value), which avoids
 address blending on the fuzzy substrate.
 
-The machine is a genuine interpreter — the program is data in RAM. Its **computational
+The machine is an interpreter in the strict sense — the program is data in RAM. Its **computational
 class is Turing-complete**: it has unbounded addressable memory (`LOAD`/`STORE` against
 the RAM device), a data-dependent conditional branch (`BR_IF`), and unbounded
 iteration (backward branch), which is the standard sufficient criterion — the claim is
@@ -226,9 +238,13 @@ a substrate bitwise stdlib) are in place and individually verified.
 
 ## 6. What we are not claiming
 
-- We do **not** claim a working DNC. We measured the reduction target for its
-  attention and built a Turing-complete NTM-style machine on the substrate; we have
-  not trained or assembled a differentiable neural computer.
+- We do **not** claim a Differentiable Neural Computer or a Neural Turing Machine, and
+  we do not use those labels for this artifact. It is a *handcrafted, constructed-weight
+  RAM-editing network* inspired by them. We measured the reduction target for its
+  attention and built a Turing-complete RAM-state machine on the substrate; we have not
+  trained anything. The trainable version is the *point* but it is future work (§7).
+- We do **not** present this as a finished, general system. It is deliberately a niche,
+  hand-built artifact right now: its value is as a *seed* (§7), not as a deployed model.
 - We do **not** claim the full 35-opcode `transformer-vm` runs on the Sutra
   substrate. The substrate machine implements 17 opcodes and demonstrates the
   mechanism (memory, dispatch, loops, output, stack, bitwise); the remaining opcodes
@@ -236,7 +252,7 @@ a substrate bitwise stdlib) are in place and individually verified.
   host RAM device.
 - We do **not** claim PCA reduces the transformer. The measured result is the
   opposite: magnitude-PCA is misleading here; the reducible structure is the two zero
-  attention layers, the ~3-dimensional vocabulary embedding, and the 42/133 genuinely
+  attention layers, the ~3-dimensional vocabulary embedding, and the 42/133 actually
   used heads — the last obtainable only from the schedule.
 - Throughput and replication figures are quoted from the replication measurements,
   not from the original authors; where they differ (≈18K vs ~30K tok/s) we report the
@@ -245,6 +261,26 @@ a substrate bitwise stdlib) are in place and individually verified.
   originally scaffolded against a separate neural-computers e-print before
   `transformer-vm` was identified as the actual target; that source was fetched and
   then removed, and we do **not** reproduce it here.
+
+## 7. Why this matters: a trainable seed for imperative programs
+
+The reason to reduce this network and run a RAM-editing machine on a tensor substrate
+is not the artifact itself — it is what the artifact is a *seed* for. An imperative
+program (here, C/Python/OCaml that edits RAM, compiled through WebAssembly) is realized
+as a concrete neural network with **constructed, editable weights** that are
+*isomorphic* to the program's RAM-editing behavior. Because those weights are an
+ordinary differentiable tensor object, the network is a starting point on which
+**stochastic gradient descent can later learn new imperative operations** — the same
+constrain-then-train move we use to grow Sutra programs, applied to imperative
+RAM-editing code. The arc is: (i) take an imperative program; (ii) represent it exactly
+as a minimal RAM-editing network (this paper's reduction + substrate-machine work);
+(iii) train that seed with SGD into something larger that the hand-construction never
+specified. The eventual mechanism is **attention on RAM** — in this first step a simple
+linear regression over the memory region, generalized later. That is why the artifact
+is, by design, a niche personal object today: its value is as trainable infrastructure
+for representing-and-growing imperative programs as neural networks, not as a deployed
+model. The measurements in §4–§5 are the first two steps of that arc; the training step
+is future work.
 
 ## Reproducibility
 
