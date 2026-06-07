@@ -151,16 +151,24 @@ host-readout leaks sever purity + the autograd graph, and (b) a compiled program
 is host-Python-orchestrated sequential torch calls, not ONE fused graph/network.
 
 Phase 1 — purity (precondition; a severed graph can't be fused or trained):
-1. Remove §A accessors (`real`/`imag`/`truth`/`component`/`semantic`/`synthetic`/
-   `norm`) from runtime + surface. Add a CI grep-gate failing on new
-   `.item()`/`float(<tensor>)` inside an op.
-2. Rework consumers: `stdlib/math.su`, GUI demos, AND the C/OCaml/TS transpilers
-   (they EMIT `.real()`) so lowered programs are accessor-free.
-3. Rework mini_wasm_machine to zero `.real()`: int-vector stack values; `+`/`-`/`*`
-   arithmetic; `==`/`<`/`>` numeric comparison (verified to work on int vectors via
-   `eq_synthetic`/`gt`); substrate boolean handling; substrate-to-substrate test.
+1. §A accessors: runtime methods `imag`/`truth`/`component`/`semantic`/`synthetic`/
+   `norm` REMOVED (dead, 0 consumers; commit 87cfa407) → .item() 26→21. CI grep-gate
+   live (test_no_host_readout, baseline 21, goal 0). REMAINING: remove the SURFACE
+   lowering for `.component()`/`.semantic()`/`.synthetic()`/`.imag()` from
+   parser/codegen (runtime methods gone but `.su` still lowers to them → would
+   AttributeError; codegen tests only assert the emit-string). And `real` itself
+   (13 .su + 7 internal JS-carve-out consumers) is the last accessor to go.
+2. Rework consumers off accessors: OCaml transpiler array-read DONE (baa0990c,
+   emits `ramRead(addr)` not `.real()`). REMAINING: OCaml tuple/record/option field
+   reads need the axon-decode primitive (A.0(a)#5, not a blind removal); TS/C
+   transpilers; `stdlib/math.su` (already clean — only a comment); GUI demos.
+3. mini_wasm_machine: DONE — rewritten to ZERO `.real()` (vectors throughout, vector
+   +/-/* , ==/</> numeric comparison, truth-axis booleans, truth_axis dispatch).
+   Verified substrate-to-substrate: test_mini_wasm_machine.py 30/30 (716s).
 4. Rework §B control readouts (`isFulfilled`/`isRejected`, `array_length`).
-5. Resolve §C/§D/verification per A.0(a).
+5. A.0(a) RESOLVED above.
+Pre-existing (not this work): complex `csin`/`ccos` imaginary-part inaccuracy vs
+cmath (16 test_transcendentals subtests) — separate bug, noted.
 
 Phase 2 — fusion into a real neural network / weight file (the actual target):
 6. Trace/compile the emitted op-sequence into a SINGLE connected tensor graph
