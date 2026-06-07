@@ -1847,6 +1847,14 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("return self.zero_vector()")
         self._indent -= 1
+        self._emit("# Tensor-RAM mode (the FUSED substrate): self.ram is one (N, dim)")
+        self._emit("# tensor. Address via gather (round->long tensor index, NO host")
+        self._emit("# .item()), so the read is on-graph / traceable -- the proper")
+        self._emit("# substrate, not the host-list+`.item()` decode below.")
+        self._emit("if hasattr(self.ram, 'ndim') and self.ram.ndim == 2:")
+        self._indent += 1
+        self._emit("return self.ram_gather(self.ram, ptr)")
+        self._indent -= 1
         self._emit("_pt = self._st(ptr)")
         self._emit("# Address decode (I/O boundary). ptr may be a full number-")
         self._emit("# vector (read AXIS_REAL) or a bare scalar address (a literal")
@@ -1865,6 +1873,30 @@ class PyTorchCodegen(Codegen):
         self._emit("if self.ram is None:")
         self._indent += 1
         self._emit("return value")
+        self._indent -= 1
+        self._emit("# Tensor-RAM mode (the FUSED substrate): self.ram is one (N, dim)")
+        self._emit("# tensor; scatter functionally (no host .item(), no list mutation)")
+        self._emit("# and rebind. The chain of per-step writes threads the tensor, so")
+        self._emit("# the whole step traces to one graph over the RAM tensor.")
+        self._emit("if hasattr(self.ram, 'ndim') and self.ram.ndim == 2:")
+        self._indent += 1
+        self._emit("_vv = self._st(value)")
+        self._emit("if _vv.ndim != 0:")
+        self._indent += 1
+        self._emit("_val_vec = _vv")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
+        self._emit("# Lift a 0-d scalar to a number-vector ON-GRAPH (no float()/")
+        self._emit("# .item()): scatter the real axis via a one-hot, keeping it")
+        self._emit("# traceable. The substrate-pure machine always passes vectors,")
+        self._emit("# so this branch is a safety net, not the hot path.")
+        self._emit("_oh = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("_oh[self.semantic_dim + self.AXIS_REAL] = 1.0")
+        self._emit("_val_vec = _oh * _vv")
+        self._indent -= 1
+        self._emit("self.ram = self.ram_scatter(self.ram, ptr, _val_vec)")
+        self._emit("return _val_vec")
         self._indent -= 1
         self._emit("_pt = self._st(ptr)")
         self._emit("# Address decode (I/O boundary). ptr may be a full number-")

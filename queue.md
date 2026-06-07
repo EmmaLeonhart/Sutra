@@ -198,11 +198,27 @@ the legitimate terminal boundary, NOT in-graph introspection.
    literal as a CPU constant on a CUDA box (eager runs fine on cuda), so the export
    demo pins CPU; tracing a comparison-using step on GPU needs a device fix
    (separate, bounded).
-   REMAINING toward the full machine as one fused recurrent net:
-   (a) the WASM machine keeps ALL state in a host RAM list + host-driven steps —
-       move state to one (N,dim) tensor threaded through the step (ram_gather/
-       ram_scatter primitives exist); (b) lift the v1 one-slot-`recur` limit so
-       pc+sp+stack+RAM recur together on the substrate (multi-state recurrence).
+   #2 DONE + #3 SUBSUMED: the WASM machine now runs in TENSOR-RAM mode — RAM is one
+   (N,dim) tensor; ram_read/ram_write gather/scatter it (round->long tensor index,
+   NO host .item()) and thread it functionally. The SAME compiled mini_wasm_machine
+   step traces to ONE fused graph, HOST-READOUT-FREE (no aten::item), saved as a
+   real weight file machine_step.pt; a tiny torch-only orchestrator drives it
+   (counter loop=3, factorial(3)=6, fresh subprocess=3). #3 is subsumed: pc/sp/
+   stack/data are all rows of the one tensor, so the recurrence carries one thing —
+   the v1 one-slot-recur limit is moot. Demo experiments/fused_nn/fused_ram_machine.py,
+   CI-guarded (test_fused_nn 9 demos). List-mode RAM unchanged (backward compat).
+   REMAINING:
+   (a) ADDRESSING IS HARD, NOT DIFFERENTIABLE. ram_gather/scatter use round().long()
+       — gradients flow to RAM *contents* but not through the *address*. Emma's
+       "attention on RAM" goal (soft/onehot addressing = a @ ram matmul, fully
+       differentiable) is the upgrade for the trainable-seed vision. Design +
+       decision in planning/exploratory/fused-machine-step.md (option B).
+   (b) cuda torch.jit.trace device quirk (comparison literal -> CPU constant on GPU;
+       eager fine on cuda) — export pins CPU; GPU export is a separate device fix.
+   (c) push tensor-RAM into the .su surface so the machine self-drives as a Sutra
+       loop (today the step is fused + exportable; the recurrence is host/orchestrator
+       driven — which is exactly the sanctioned orchestrator model, but a Sutra-level
+       self-driving loop over the RAM tensor would close it fully).
 
 HARD RAIL: every step RUN and verified substrate-to-substrate; no faking; "it ran"
 is not "it's pure" and not "it's one fused differentiable network."
