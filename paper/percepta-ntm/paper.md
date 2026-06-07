@@ -72,9 +72,7 @@ recurrent controller is replaced by the **autoregressive token loop**. We theref
 read it as a *constructed, deterministic NTM*, and our reduction question (how small
 can its attention be made) is in service of building a differentiable computer on the
 Sutra substrate — i.e. moving from the constructed/exact end of this lineage toward the
-trained/differentiable end. The arXiv "Neural Computers" e-print (Zhuge et al.,
-2604.06425) is adjacent related work the artifact's repository was scaffolded against
-but did **not** replicate (§6). Relative to learned memory networks, our §5 substrate
+trained/differentiable end. Relative to learned memory networks, our §5 substrate
 machine is closer to a hand-written virtual machine realized in tensor algebra; the
 contribution is the empirical bridge between the constructed-NTM weight structure and
 a runnable tensor-substrate machine.
@@ -92,17 +90,24 @@ analysis on the constructed weights, off any runtime path.
 
 The analytic model has **144,286 parameters** — `d_model` is already 38, so this is
 not an over-provisioned embedding to shrink. SVD of the weight matrices shows an
-**extreme dynamic range**: singular values reach ~1e30 (some matrices to 1e89–1e119),
-produced by the hardmax temperature (`HARD_K = 1e10`) and the 2^k address/position
-scales, down to ~1 for the byte logic. Consequently the energy-fraction "effective
-rank" is dominated by a few giant directions and reports a misleadingly low rank: the
+**extreme dynamic range**: the largest singular values reach **~1.7e30**, produced by
+the hardmax temperature (`HARD_K = 1e10`) and the 2^k address/position scales, down to
+~1 for the byte logic. Several matrices are additionally *ill-conditioned* — their
+σ_max/σ_min ratio runs to 1e89–1e119 (e.g. `ff_in.2.weight` at 6.5e119). That ratio is
+a **condition number, not a singular-value magnitude**: the small end falls to the
+float64 noise floor, so those tiny singular values are numerically indistinguishable
+from zero relative to the 1e30 scale, and the relative-threshold rank used below
+discards them by construction. (Earlier drafts of this paper reported the condition
+numbers as if they were singular values; no singular value approaches 1e119, and the
+analysis does not overflow.) Consequently the energy-fraction "effective rank" is
+dominated by a few giant directions and reports a misleadingly low rank: the
 small-magnitude singular directions, which carry the actual computation, contribute
 almost nothing to the Frobenius norm. **Magnitude-PCA cannot truncate this machine** —
 dropping the small directions deletes the logic, not redundancy. These magnitudes are
 by construction, not numerical error: the analytic weights literally encode the
-hardmax temperature and 2^k address constants, so a singular value near 1e119 is the
-expected scale of those encoded constants, not instability. Such values are well
-within float64 (max ≈ 1.8e308), and even their squares (≈ 1e238) are; it is *float32*
+hardmax temperature and 2^k address constants, so a largest singular value near 1e30 is
+the expected scale of those encoded constants, not instability. Such values are well
+within float64 (max ≈ 1.8e308), and even their squares (≈ 1e60) are; it is *float32*
 whose square overflows (max ≈ 3.4e38), which is the only reason the analysis is run in
 float64. This caution
 generalizes beyond this artifact: any model whose weights are *constructed* or
@@ -197,12 +202,10 @@ a substrate bitwise stdlib) are in place and individually verified.
 - Throughput and replication figures are quoted from the replication measurements,
   not from the original authors; where they differ (≈18K vs ~30K tok/s) we report the
   measured value.
-- We did **not** reproduce the arXiv "Neural Computers" e-print (2604.06425, April
-  2026); it is cited as related work only. It is the paper the artifact's repository
-  was originally scaffolded against before `transformer-vm` was identified as the
-  actual target, so its source was fetched and then removed from that repository; we
-  retain the citation for provenance, not as a reproduced result. The artifact under
-  study is Percepta's `transformer-vm`.
+- The artifact under study is Percepta's `transformer-vm`. Its repository was
+  originally scaffolded against a separate neural-computers e-print before
+  `transformer-vm` was identified as the actual target; that source was fetched and
+  then removed, and we do **not** reproduce it here.
 
 ## Reproducibility
 
@@ -219,8 +222,5 @@ Repository: https://github.com/EmmaLeonhart/Sutra
 - A. Graves, G. Wayne, M. Reynolds, et al. *Hybrid computing using a neural network
   with dynamic external memory.* Nature 538, 2016 (the Differentiable Neural
   Computer).
-- M. Zhuge, C. Zhao, H. Liu, et al. *Neural Computers.* arXiv:2604.06425 (April 2026)
-  — the e-print the artifact's repository was scaffolded against; related work only,
-  not the artifact studied here and not reproduced (see §6).
 - Percepta-Core. *transformer-vm* / "Can LLMs Be Computers?" (code + blog; no arXiv).
   https://github.com/Percepta-Core/transformer-vm
