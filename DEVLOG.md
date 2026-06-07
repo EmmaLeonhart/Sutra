@@ -5291,3 +5291,15 @@ norm (`float(linalg.norm)`) from codegen_pytorch.py — all had ZERO consumers
 21 (2/2). Runtime still compiles + runs (3+4→7 verified). `real` retained for now
 (13 .su + 7 internal consumers) — the next overhaul target. Net: 5 of the
 language's readout holes closed, provably without breaking anything.
+
+## 2026-06-07 — overhaul Phase 1: OCaml transpiler array-read no longer emits .real()
+
+First transpiler readout removed. sutra-from-ocaml lowered `a.(i)` as
+`ramRead(addr).real()` (host scalar); now emits `ramRead(addr)` (number-vector,
+substrate-pure). Element flows into substrate arithmetic/comparison/addressing as
+a vector. Updated array_ram/expected.su; OCaml fixture test 2/2 (text-match +
+compile). Verified the lowered program runs substrate-pure via the PyTorch
+codegen: f(3,42) returns a CUDA Tensor, ram[3]=42 (decoded only at the host
+boundary for the check, not via a language accessor). Remaining OCaml .real()
+emits (tuple/record field reads, option-match _tag/_val) are next; option-match
+involves a comparison (boolean-representation design, queued).

@@ -529,9 +529,12 @@ def _lower_expression(node, source: bytes) -> str:
         field_name = _node_text(field, source) if field is not None else ""
         return f'{obj_src}.item("{field_name}").real()'
     if t == "array_get_expression":
-        # `a.(i)` -> RAM read at the array's base + index. Numeric element
-        # (decoded via `.real()`, like axon fields). The array must be a
-        # known RAM-backed binding (`let a = Array.make …`).
+        # `a.(i)` -> RAM read at the array's base + index. Returns the element
+        # as a number-VECTOR (substrate-pure) — NOT `.real()`, which would
+        # collapse to a host scalar (no introspection in the language; the
+        # element flows into substrate arithmetic/comparison/addressing as a
+        # vector). The array must be a known RAM-backed binding
+        # (`let a = Array.make …`).
         kids = node.named_children
         arr = kids[0] if kids else None
         idx = kids[1] if len(kids) > 1 else None
@@ -541,7 +544,7 @@ def _lower_expression(node, source: bytes) -> str:
         idx_src = _lower_expression(idx, source) if idx is not None else "0"
         base = _RAM_ARRAYS[arr_name]
         addr = idx_src if base == 0 else f"{base} + {idx_src}"
-        return f"ramRead({addr}).real()"
+        return f"ramRead({addr})"
     if t == "record_expression":
         # Building a record is multi-statement axon construction (Axon r;
         # r.add(...); …), only valid in body/statement position — handled
