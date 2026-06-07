@@ -5424,3 +5424,16 @@ step graph; the orchestrator is a tiny driver that runs it, reads the halt signa
 to stop, reads output to print. Added to the CI guard test_fused_nn (4/4).
 Ollama-free. Remaining: codegen restructuring so unbounded loops EMIT this shape
 (step graph + orchestrator) directly, and RAM-as-tensor for the WASM machine.
+
+## 2026-06-07 — overhaul Phase 2: design doc for the fused compile target (network + tiny orchestrator)
+
+Wrote planning/exploratory/fused-compile-target.md specifying the next big codegen
+build: `sutra compile` should emit TWO artifacts -- (1) the network as a fused
+differentiable weight file (zero host readout inside), (2) a tiny Python
+orchestrator that loads+runs it, drives any recurrence, reads halt+output at the
+terminal boundary. Specifies the recurrent-program restructuring (split _loop_X
+into a pure _step_X(state)->(new_state,halt) + an orchestrator host loop that does
+the float(_halted)/while/break), RAM-as-tensor for the WASM machine, and open
+decisions (jit.save vs torch.export; halt-axis vs recomputed halt). Grounded in the
+4 CI-guarded fused_nn demos. Per the rails, spec'd the substantial change before
+implementing.
