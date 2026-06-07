@@ -5233,3 +5233,13 @@ exactly zero). The pruned core is now BUILT + locally verified across steps
 1-3 + re-pack; the only outstanding verification is the canonical 6-program
 byte-for-byte oracle (committed-fixtures route, needs clang CI). Script
 repack_reduced.py; finding 2026-06-07-pruned-transformer-repack-reduced-core.md.
+
+## 2026-06-07 — percepta-ntm: re-add Neural Computers (Zhuge et al.) citation, no arXiv id (Emma)
+
+The 1am durable cron (aa9a6747) that was to re-add this citation did not fire.
+Emma's blocker-sweep decision: re-add now, WITHOUT the future-dated
+arXiv:2604.06425 id. Restored Zhuge et al. *Neural Computers* credit in the S6
+provenance non-claim and References (by title+authors, preprint), as related
+work the artifact's repo was scaffolded against, not reproduced. No arXiv number
+-> does not re-trigger the reviewer's 'impossible date' disqualifier. Cancelled
+the missed durable cron to avoid a later double-add.
