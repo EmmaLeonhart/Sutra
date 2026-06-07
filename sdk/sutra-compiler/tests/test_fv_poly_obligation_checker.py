@@ -84,7 +84,7 @@ def test_symbolic_polys_match_compiled_substrate() -> None:
     kand, kor, knot = ns["kand"], ns["kor"], ns["knot"]
 
     def truth(v) -> float:
-        return float(vsa.truth(v))
+        return float(vsa.truth_axis(v))
 
     def mt(x: float):
         return vsa.make_truth(x)

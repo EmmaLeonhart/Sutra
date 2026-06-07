@@ -63,7 +63,7 @@ def test_kleene_grid_exactness() -> None:
     kand, kor, knot = ns["kand"], ns["kor"], ns["knot"]
 
     def truth(v) -> float:
-        return float(vsa.truth(v))
+        return float(vsa.truth_axis(v))
 
     def mt(x: float):
         return vsa.make_truth(x)
@@ -110,7 +110,7 @@ def test_kleene_range_within_truth_domain() -> None:
     kand, kor, knot = ns["kand"], ns["kor"], ns["knot"]
 
     def truth(v) -> float:
-        return float(vsa.truth(v))
+        return float(vsa.truth_axis(v))
 
     def mt(x: float):
         return vsa.make_truth(x)
