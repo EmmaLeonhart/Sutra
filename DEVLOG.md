@@ -5402,3 +5402,13 @@ loop-recurrence readout is tracked + non-increasing, like the prelude .item()
 count. 4/4 pass. The actual fix (bounded-N loop emission, no host break) is
 design-gated: capping iterations of an unbounded loop changes termination
 semantics (the cap is an Emma decision), so it is queued, not hacked.
+
+## 2026-06-07 — overhaul: CI-guard the Phase-2 fused-NN milestones
+
+Added sdk/sutra-compiler/tests/test_fused_nn.py — runs the three experiments/
+fused_nn demos (differentiable_substrate, trace_to_graph, recurrence_fusion) as
+parametrized tests, asserting each main()==0. Now a regression that severs
+autograd (reintroduced host readout) or breaks fusion fails CI, not just a manual
+script run. 3/3 pass. Protects: substrate-pure functions are differentiable,
+compile to a saved fused graph, and bounded recurrence fuses with gradients
+through every step.
