@@ -5379,3 +5379,15 @@ post-halt iterations, so it's equivalent but fully substrate + traceable
 (in-spec: loops are "bounded soft-halt recurrence"). Multi-state recurrence (the
 WASM machine) also needs the v1 one-slot-recur limit lifted. Finding:
 planning/findings/2026-06-07-loop-emission-host-readout-blocks-fusion.md.
+
+## 2026-06-07 — overhaul Phase 2: bounded substrate recurrence (loop(N)) fuses into one differentiable graph
+
+experiments/fused_nn/recurrence_fusion.py: loop(3){ x = x*2+1 } (compile-time
+unroll, control-flow.md loop[N]) compiles to a single fused graph (17 nodes);
+f(5)=47, gradient through all 3 steps d/dx=8=2^3, traced+reloaded f(9)=79. So
+fused-graph + differentiability now hold for RECURRENCE, not just straight-line
+functions -- the bounded case of "the machine is a fused recurrent network".
+Boundary: unbounded data-dependent loops still emit the host float(_halted)+break
+early-exit (gradient wall; finding 2026-06-07-loop-emission-host-readout); the
+WASM machine's multi-state recurrence also needs the v1 one-slot-recur limit
+lifted. Ollama-free, self-asserting.
