@@ -5363,3 +5363,19 @@ thin Python loader as the only orchestration. Remaining Phase-2 piece: the RAM/
 loop recurrence (the machine) -- RAM is host-mutable state and must be
 re-represented as a tensor to trace/export the stepwise recurrence. Ollama-free,
 self-asserting.
+
+## 2026-06-07 — overhaul: loop emission has a host-readout early-exit (blocks recurrence fusion)
+
+Investigating Phase-2 recurrence fusion, read the codegen's emitted loop body:
+the soft-halt MATH is substrate (gt/heaviside/saturate_unit/blend, all tensor
+ops; the blend freezes x once _halted saturates), but the emission appends a HOST
+early-exit `if float(_halted) >= 0.99: break` -- a tensor->host readout (detaches
+autograd) + host control flow. Two consequences: (1) the test_no_host_readout
+gate missed it (it scans the runtime prelude, not user-function loop emission);
+(2) it's the concrete obstacle to fusing the recurrence (host break isn't
+traceable; float() severs the gradient). Fix path (not yet built): replace the
+host break with a fixed max-iteration bound -- the soft-halt blend already no-ops
+post-halt iterations, so it's equivalent but fully substrate + traceable
+(in-spec: loops are "bounded soft-halt recurrence"). Multi-state recurrence (the
+WASM machine) also needs the v1 one-slot-recur limit lifted. Finding:
+planning/findings/2026-06-07-loop-emission-host-readout-blocks-fusion.md.
