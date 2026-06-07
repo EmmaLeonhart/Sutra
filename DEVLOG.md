@@ -32,6 +32,17 @@ Also fixed three FV tests orphaned by the `87cfa407` accessor purge
 Next (#7): hoist `_step` to a module-level `_step_<name>` so the export path can
 pull it out as a standalone loop weight file.
 
+Paper-feedback loop (percepta-ntm): v12 review (post 2717, Reject) read side-by-side
+with v11 — the RASP/Tracr-baseline con MOVED to a pro (prior positioning worked);
+persisting cons (trivial-reduction, speculative trainable-seed, numerical regime,
+single-artifact scope, "compare Sutra to XLA/TVM/TorchScript") are substantive, not
+textual. The substantive change folded this tick is a measured-reality correction to
+§5: it claimed Sutra "lowers an entire program — incl control flow — to a single
+fused tensor-op graph" and "the compiled graph IS the program's semantics", which the
+2026-06-07 #6 result contradicts (an unbounded loop now compiles to a pure per-tick
+step + a thin host orchestrator; whole-looping-program-to-one-weight-file is
+in-progress). Tightened to match; do not overclaim fused/weight-file as done.
+
 ## 2026-06-06: percepta-ntm paper — Related Work section (6pm task) + fold in v2 review (post 2701)
 
 6pm lit-review task: added a formal "## 2. Related work" section positioning the work
