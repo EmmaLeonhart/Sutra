@@ -6,6 +6,32 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-07: daily audit (CLEAN, +dispatch gap) + overhaul #6 (loop step/driver split)
+
+Daily substrate-honesty audit over the overhaul window (after `ac10ef16`): CLEAN.
+(a) `mini_wasm_machine.su` has 0 `basis_vector` calls and its test runs at
+`runtime_dim=2` — minimal, no silent cost. (b) Re-ran the purity + fused-NN guards
+(11 passed): substrate-pure/differentiable/fused-graph claims hold against
+measurement. (c) The 21-opcode dispatch is a substrate classifier that shipped
+(`1be294be`) WITHOUT its required gap table; measured all 21×21 (opcode,target)
+pairs through the exact compile path: **gap = +2.0** (selected +1, leaked −1) at
+runtime_dim 2 and 50 — maximal, dim-independent. Added measurement script, gap
+table, fast CI guard `test_dispatch_gap`, audit finding (`c3ae4b48`).
+
+Overhaul Phase-2 #6 (`28623769`): split loop emission into a PURE nested `_step(...)`
+(condition + body + soft-halt blend, zero host readout — the fusable/exportable step
+graph) + a thin in-module driver that does the single `float(_halted) >= 0.99:
+break` (Emma's orchestrator model: the halt-read is the legitimate orchestrator
+boundary, not an in-graph violation). Behaviour-identical (driver breaks on the
+first saturating tick, so per-call `_halted` matches the old cross-tick
+accumulation); all four loop kinds. Reframed `test_no_host_readout`:
+`test_step_graph_is_readout_free` (the `_step` graph has no `float(`/`.item()`) +
+`test_driver_halt_read_*` (the read stays in the driver). Loop+await 59 green.
+Also fixed three FV tests orphaned by the `87cfa407` accessor purge
+(`vsa.truth(v)` → `vsa.truth_axis(v)`, a monitoring readout at the test boundary).
+Next (#7): hoist `_step` to a module-level `_step_<name>` so the export path can
+pull it out as a standalone loop weight file.
+
 ## 2026-06-06: percepta-ntm paper — Related Work section (6pm task) + fold in v2 review (post 2701)
 
 6pm lit-review task: added a formal "## 2. Related work" section positioning the work
