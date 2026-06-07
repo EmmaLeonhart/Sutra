@@ -77,7 +77,12 @@ rank" is dominated by a few giant directions and reports a misleadingly low rank
 small-magnitude singular directions, which carry the actual computation, contribute
 almost nothing to the Frobenius norm. **Magnitude-PCA cannot truncate this machine** —
 dropping the small directions deletes the logic, not redundancy. (The squared
-singular values overflow float32; the analysis runs in float64.)
+singular values overflow float32; the analysis runs in float64.) This caution
+generalizes beyond this artifact: any model whose weights are *constructed* or
+*distilled* with saturating (hardmax / high-temperature-softmax) routing develops the
+same magnitude/importance decoupling, so spectral-energy pruning is unsafe for that
+whole class — the specific numbers below are this artifact's, but the failure mode is
+not.
 
 What *is* reducible, measured honestly:
 
@@ -94,7 +99,11 @@ What *is* reducible, measured honestly:
   reduced-attention target for a DNC realization is therefore ~⅓ of the nominal
   provisioning, concentrated in five layers, and must be obtained by scheduling fewer
   heads/dims in the computation graph rather than by SVD-truncating the constructed
-  weights.
+  weights. This is not the tautology "a scheduled model is set by its schedule": the
+  measured content is that *the schedule under-provisions* — it allocates 19 heads per
+  layer and 7 layers but leaves 68% of those head-slots unused — so the operative
+  reduction number (42) is an empirical property of the produced weights, recoverable
+  only by inspecting them, not a restatement of the construction method.
 
 ## 4. A RAM-state NTM-style machine that runs on the Sutra substrate
 
@@ -108,23 +117,32 @@ halt flag, the program, and the value stack — lives in RAM**, and whose host d
 issues one execution step per instruction (the same autoregressive shape as the
 transformer). Each step reads the opcode **fresh from RAM** and dispatches by
 comparing it against the opcode tags; this matters because a value read fresh from
-memory defuzzes cleanly against a literal, whereas a value carried across substrate
-loop iterations does not — so dispatch is driven from memory, not from loop-carried
-state. Per-opcode side effects are realized as single blended writes to fixed cells
-(each cell receives its new value if its opcode matched, otherwise a no-op rewrite of
-its existing value), which avoids address blending on the fuzzy substrate.
+memory recovers a sharp truth value against a literal (its equality test defuzzes to
+±1 — the {−1,0,+1} Kleene truth axis Sutra computes), whereas a value carried across
+substrate loop iterations does not — so dispatch is driven from memory, not from
+loop-carried state. (By "frozen-embedding substrate" we mean Sutra's fixed
+high-dimensional vector space in which numbers and storage are encoded; a Sutra
+program compiles to a fused tensor-op graph over it.) Per-opcode side effects are
+realized as single blended writes to fixed cells (each cell receives its new value if
+its opcode matched, otherwise a no-op rewrite of its existing value), which avoids
+address blending on the fuzzy substrate.
 
-The machine is a genuine interpreter — the program is data in RAM — and is
-**Turing-complete**: it has memory (`LOAD`/`STORE`), integer arithmetic
-(`ADD`/`SUB`/`MUL`), bitwise `AND` (via a substrate bit-plane decomposition),
-comparison (`EQ`/`LT`), a conditional branch (`BR_IF`), and `HALT` (11 opcodes).
-Measured on the substrate: arithmetic programs (e.g. `3+4 = 7`, `100+23 = 123`,
-chained `5×6−2 = 28`), bitwise (`12 AND 10 = 8`), comparisons (`3<5 = 1`, `7==7 = 1`),
-a conditional branch taking or not taking by data, a `STORE`/`LOAD` round-trip, and a
+The machine is a genuine interpreter — the program is data in RAM. Its **computational
+class is Turing-complete**: it has unbounded addressable memory (`LOAD`/`STORE` against
+the RAM device), a data-dependent conditional branch (`BR_IF`), and unbounded
+iteration (backward branch), which is the standard sufficient criterion — the claim is
+about the model, not the size of the opcode menu. The current opcode set is 12
+(`HALT`/`CONST`/`ADD`/`SUB`/`MUL`/`AND`/`BR_IF`/`LOAD`/`STORE`/`EQ`/`LT`/`OUTPUT`),
+enough to exercise every class. Measured on the substrate: arithmetic (e.g. `3+4 = 7`,
+`100+23 = 123`, chained `5×6−2 = 28`), bitwise (`12 AND 10 = 8`, via a substrate
+bit-plane decomposition), comparison (`3<5 = 1`, `7==7 = 1`), a conditional branch
+taking or not taking by data, a `STORE`/`LOAD` round-trip, byte `OUTPUT` to a buffer
+(emitting 72,73,74), and — the load-bearing case for the Turing-completeness claim — a
 **backward-branch memory loop** (a counter at one address, an accumulator at another;
 each iteration increments the accumulator and decrements the counter, branching back
 while non-zero) that yields `acc = N` for `N = 1, 3, 5`. All cases are guarded by a
-regression test that compiles the machine and runs it on the substrate (13/13).
+regression test that compiles the machine and runs it on the substrate (14/14). The
+evaluation establishes the mechanism, not coverage of a full instruction set.
 
 The OCaml realization of the reference machine is being transpiled to Sutra by an
 OCaml→Sutra frontend; the substrate primitives the machine needs (RAM-backed arrays,
@@ -136,9 +154,9 @@ a substrate bitwise stdlib) are in place and individually verified.
   attention and built a Turing-complete NTM-style machine on the substrate; we have
   not trained or assembled a differentiable neural computer.
 - We do **not** claim the full 35-opcode `transformer-vm` runs on the Sutra
-  substrate. The substrate machine implements 11 opcodes and demonstrates the
-  mechanism (memory, dispatch, loops); the remaining opcodes are breadth, and the
-  reference's multi-megabyte linear memory exceeds the current host RAM device.
+  substrate. The substrate machine implements 12 opcodes and demonstrates the
+  mechanism (memory, dispatch, loops, output); the remaining opcodes are breadth, and
+  the reference's multi-megabyte linear memory exceeds the current host RAM device.
 - We do **not** claim PCA reduces the transformer. The measured result is the
   opposite: magnitude-PCA is misleading here; the reducible structure is the two zero
   attention layers, the ~3-dimensional vocabulary embedding, and the 42/133 genuinely
@@ -146,9 +164,12 @@ a substrate bitwise stdlib) are in place and individually verified.
 - Throughput and replication figures are quoted from the replication measurements,
   not from the original authors; where they differ (≈18K vs ~30K tok/s) we report the
   measured value.
-- We did **not** reproduce the unrelated arXiv "Neural Computers" paper
-  (2604.06425); it is cited as related work only, and the artifact under study is
-  Percepta's `transformer-vm`.
+- We did **not** reproduce the arXiv "Neural Computers" e-print (2604.06425, April
+  2026); it is cited as related work only. It is the paper the artifact's repository
+  was originally scaffolded against before `transformer-vm` was identified as the
+  actual target, so its source was fetched and then removed from that repository; we
+  retain the citation for provenance, not as a reproduced result. The artifact under
+  study is Percepta's `transformer-vm`.
 
 ## Reproducibility
 
@@ -165,7 +186,8 @@ Repository: https://github.com/EmmaLeonhart/Sutra
 - A. Graves, G. Wayne, M. Reynolds, et al. *Hybrid computing using a neural network
   with dynamic external memory.* Nature 538, 2016 (the Differentiable Neural
   Computer).
-- M. Zhuge, C. Zhao, H. Liu, et al. *Neural Computers.* arXiv:2604.06425, 2026
-  (related work; not the artifact studied here).
+- M. Zhuge, C. Zhao, H. Liu, et al. *Neural Computers.* arXiv:2604.06425 (April 2026)
+  — the e-print the artifact's repository was scaffolded against; related work only,
+  not the artifact studied here and not reproduced (see §5).
 - Percepta-Core. *transformer-vm* / "Can LLMs Be Computers?" (code + blog; no arXiv).
   https://github.com/Percepta-Core/transformer-vm
