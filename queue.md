@@ -110,16 +110,25 @@ state (avoid literal-vs-loop-state comparison).
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- **A.0(a) — DECISIONS for the substrate-purity overhaul (Emma to call; non-blocking — keep working the rest).**
-  1. **RAM address decode (I/O wire?)** — `ram_read`/`ram_write` decode the pointer
-     via `int(round(ptr[AXIS_REAL].item()))`. Earlier `ram-pointers` finding called
-     address-decode the legitimate I/O boundary. Keep, or make addressing substrate
-     (content-addressable, no host index)?
-  2. **JS-interop carve-out** — `is_string`/`is_char`/`js_*`/`string_to_python`
-     cross to host to mimic JS (CLAUDE.md carve-out). Does "no introspection"
-     override it, or is JS-interop a ring-fenced impurity?
-  3. **Verification without readout** — with no `.real()`, how is a substrate
-     program verified? (substrate-to-substrate compare; terminal boundary?)
+- **A.0(a) — DECISIONS (RESOLVED autonomously 2026-06-07, Emma "do those items autonomously").**
+  1. **Boolean representation** — RESOLVED (Emma + spec `equality-and-defuzzification.md:92`):
+     a boolean is a scalar on the **truth axis**, +1 true / −1 false, a subclass of
+     fuzzy; only compile-time literals may be declared ±1. Comparison ops already
+     return exactly this (`eq_synthetic`/`gt`). No truth→real 0/1 conversion — the
+     machine holds booleans on the truth axis; BR_IF defuzzes the truth axis.
+  2. **RAM address decode** — KEEP as the I/O wire (per `ram-pointers` finding); the
+     device-address decode is the legitimate boundary, not in-language introspection.
+  3. **JS-interop carve-out** — KEEP ring-fenced (CLAUDE.md intentional-compat
+     carve-out); JS shims cross to host BY DESIGN to mimic JS. Not the target of the
+     no-introspection purge.
+  4. **Verification without readout** — substrate-to-substrate: compare output
+     vector to expected vector via a substrate op; the host harness reading the final
+     result is the one external terminal boundary (external tooling, not the language).
+  5. **Axon field decode (NEW sub-task)** — `.item("field")` returns an axon FILLER,
+     not a clean number-vector; arithmetic on it collapses to ~0 (measured 2026-06-05),
+     which is why tuple/record/option field reads emit `.real()`. Removing it needs a
+     substrate filler→number-vector decode primitive (NOT `.real()`). Real work, not a
+     blind removal. RAM reads (array) are exempt — RAM stores clean number-vectors.
 
 ## ⭐ SUBSTRATE-PURITY → FUSED-NEURAL-NETWORK OVERHAUL (Emma 2026-06-07, TOP PRIORITY, barrel through, don't stop)
 
