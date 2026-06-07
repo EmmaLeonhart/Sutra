@@ -5303,3 +5303,7 @@ codegen: f(3,42) returns a CUDA Tensor, ram[3]=42 (decoded only at the host
 boundary for the check, not via a language accessor). Remaining OCaml .real()
 emits (tuple/record field reads, option-match _tag/_val) are next; option-match
 involves a comparison (boolean-representation design, queued).
+
+## 2026-06-07 — daily audit: partial-clean (no code regression; semantic tests un-runnable here)
+
+70 .su compiled, 0 user-program + 0 runtime-prelude leaks (`experiments/substrate_leak_sweep.py`); 13 open-question docs cross-checked against 2026-05-28 pruning table, 0 resolved-elsewhere drift; promise/await codegen lint PASS (no `for _ in range(100)`/`if self.isPending` leak signatures in `await_value` emission) and `test_no_host_loop_or_branch_{torch,numpy}` PASS; host-readout enforcement gate `test_no_host_readout.py` 2/2 (baseline 21, tight). The 2 semantic-preserved tests (`test_await_semantics_preserved_{torch,numpy}`) could NOT run in this remote container — no Ollama server to serve `nomic-embed-text` for `basis_vector("cat"/"dog")` in the async_promise_runtime fixture (`ConnectionError: Failed to connect to Ollama`). Per CLAUDE.md "If the audit itself cannot run, write it in the DEVLOG line": semantic-level promise/await verification is un-run, not "clean." No code regression detected in any scope that ran.
