@@ -262,8 +262,26 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int,
     if hasattr(mod, "main") and callable(mod.main):
         result = mod.main()
         if result is not None:
-            print(result)
+            print(_decode_terminal_result(mod, result))
     return 0
+
+
+def _decode_terminal_result(mod, result):
+    """Terminal/output boundary: decode a number-vector `main()` result to its
+    real-axis value for display. The language itself has no scalar-readout
+    accessor (`real()` was removed — substrate purity); the host reading the
+    FINAL result for display is the one external terminal boundary, the same as
+    printing a returned value in any runtime. A number-vector is a 1-D tensor of
+    length `_VSA.dim`; anything else (string, int, already-decoded) prints as-is."""
+    try:
+        import torch as _t
+        vsa = getattr(mod, "_VSA", None)
+        if (vsa is not None and isinstance(result, _t.Tensor)
+                and result.ndim == 1 and result.shape[0] == vsa.dim):
+            return float(result[vsa.semantic_dim + vsa.AXIS_REAL])
+    except Exception:
+        pass
+    return result
 
 
 def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,

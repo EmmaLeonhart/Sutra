@@ -465,13 +465,14 @@ def _lower_expression(node, source: bytes) -> str:
         if (kids[0].type == "value_path" and len(kids) == 2
                 and _node_text(kids[0], source) in ("fst", "snd")):
             field = "_0" if _node_text(kids[0], source) == "fst" else "_1"
-            # Tuple field read. `.real()` decodes the axon filler to the clean
-            # number: at the CLI runtime_dim the raw `.item()` vector crosstalks
-            # with the other bundled field (measured 2026-06-07 — the substrate-run
-            # fixture got the wrong value without `.real()`; it is clean only at
-            # full dim ~868). Removing `.real()` substrate-purely needs an
-            # axon number-decode primitive (queue A.0(a)#5), not a bare `.item()`.
-            return f'{_lower_expression(kids[1], source)}.item("{field}").real()'
+            # Tuple field read — substrate-pure: the axon field comes back as a
+            # number-VECTOR (no `.real()`; `real()` was removed from the language).
+            # Measured 2026-06-07: the field read is clean (real-axis exact) at the
+            # CLI runtime_dim, and downstream arithmetic is vector arithmetic. The
+            # earlier "needs `.real()`" note was wrong — the prior failure was the
+            # CLI printing the raw tensor, fixed at the terminal boundary, not the
+            # field read.
+            return f'realvec({_lower_expression(kids[1], source)}.item("{field}"))'
         fn_src = _lower_expression(kids[0], source)
         arg_srcs = [_lower_expression(a, source) for a in kids[1:]]
         return f"{fn_src}({', '.join(arg_srcs)})"
@@ -521,22 +522,18 @@ def _lower_expression(node, source: bytes) -> str:
     if t == "field_get_expression":
         # `p.x` record field access. In OCaml this node ONLY appears for
         # record fields (module access parses as value_path), so no type
-        # check is needed. Numeric fields must be decoded off the axon
-        # number-axis with `.real()` — WITHOUT it, axon field reads come
-        # back as the raw filler vector and arithmetic on them collapses
-        # to ~0 on the substrate (measured 2026-06-05; the TS interface
-        # path has the same latent runtime bug). MVP scope: numeric
-        # record fields.
+        # check is needed. Substrate-pure: the axon field comes back as a
+        # number-VECTOR (no `.real()` — that accessor was removed from the
+        # language). The field read is clean at the CLI runtime_dim (measured
+        # 2026-06-07) and downstream arithmetic is vector arithmetic. MVP
+        # scope: numeric record fields.
         obj = node.named_children[0] if node.named_children else None
         field = next(
             (c for c in node.named_children if c.type == "field_path"), None
         )
         obj_src = _lower_expression(obj, source) if obj is not None else "/* ? */"
         field_name = _node_text(field, source) if field is not None else ""
-        # `.real()` decodes the axon filler to a clean number (raw `.item()`
-        # crosstalks at the runtime dim — see the tuple note). Substrate-pure
-        # removal needs an axon number-decode primitive (queue A.0(a)#5).
-        return f'{obj_src}.item("{field_name}").real()'
+        return f'realvec({obj_src}.item("{field_name}"))'
     if t == "array_get_expression":
         # `a.(i)` -> RAM read at the array's base + index. Returns the element
         # as a number-VECTOR (substrate-pure) — NOT `.real()`, which would
@@ -644,8 +641,11 @@ def _lower_option_match_body(node, source: bytes, indent: str) -> str:
     cases = [c for c in kids[1:] if c.type == "match_case"]
     if not cases:
         return f"{indent}// UNSUPPORTED-MATCH: no cases\n"
-    out = f'{indent}int _otag = {scrut_src}.item("_tag").real();\n'
-    out += f'{indent}int _oval = {scrut_src}.item("_val").real();\n'
+    # Substrate-pure: the tag and payload come back as number-VECTORS (no
+    # `.real()` — removed from the language). The tag drives the match dispatch
+    # numerically; the payload is used in vector arithmetic.
+    out = f'{indent}int _otag = realvec({scrut_src}.item("_tag"));\n'
+    out += f'{indent}int _oval = realvec({scrut_src}.item("_val"));\n'
     parsed: list[tuple[Optional[str], str]] = []  # (test_or_None, res_src)
     for c in cases:
         cc = c.named_children

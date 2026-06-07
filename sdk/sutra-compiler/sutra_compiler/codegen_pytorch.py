@@ -1899,6 +1899,17 @@ class PyTorchCodegen(Codegen):
         self._emit("return v")
         self._indent -= 1
         self._emit()
+        self._emit("def realvec(self, v):")
+        self._indent += 1
+        self._emit('"""Project a vector to a CLEAN real-axis number-vector (keep the')
+        self._emit('real axis, zero the rest) via the real-axis projector matmul.')
+        self._emit('Substrate-pure: stays a tensor, NO host readout (the in-language')
+        self._emit("replacement for the removed real() accessor). Decodes an axon")
+        self._emit('field filler — which carries crosstalk in non-real dims — to the')
+        self._emit('clean number it stores, so == / arithmetic see only the number."""')
+        self._emit("return self._real_projector() @ self._st(v)")
+        self._indent -= 1
+        self._emit()
         self._emit("def make_complex(self, re, im):")
         self._indent += 1
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")

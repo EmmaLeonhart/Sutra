@@ -1,6 +1,31 @@
 # Development Log
 
-This log walks the full history of the project from the initial cleanvibe
+## 2026-06-07 (later): Plan A starts — `realvec` decode primitive; OCaml transpiler drops `.real()`
+
+Emma's TOP priority: remove `real()`/scalar-extraction ENTIRELY so the language is
+substrate-pure (real() = `float(v[..].item())` is a host readout that breaks fusion
++ autograd; programs must become real fused NNs). First increment:
+- NEW substrate op **`realvec(v)`** = `_real_projector() @ v` — a matmul that
+  projects a vector to a CLEAN real-axis number-VECTOR (no host readout, stays
+  fuzzy/differentiable). Emma's "matrix-multiplication that stays fuzzy" — the
+  in-language replacement for `real()` and the axon-field decode primitive. Builtin
+  (codegen_base registry) + pytorch runtime method.
+- OCaml transpiler: replaced all 3 `.real()` emit sites (tuple `fst`/`snd`, record
+  field, option `_tag`/`_val`) with `realvec(...)`. Regenerated fixtures — ZERO
+  `.real()` left. The earlier "axon field read needs `.real()` / crosstalks at the
+  runtime dim" finding was WRONG: the field read is clean at dim 50 (measured: record
+  field=7, tuple sum=16); the only real issue was the option-match tag comparison
+  (`_otag == 1` over the full filler vector saw axon crosstalk) — `realvec` projects
+  the tag to the clean real axis so the compare is correct (get_or(Some 42,0)=42 @
+  dim 50). And the CLI printing the raw tensor (fixed below).
+- CLI `--run` terminal boundary: decode a number-vector `main()` result to its
+  real-axis value for display (the host reading the FINAL output — the one external
+  terminal boundary; NOT in-language scalar extraction).
+Verified: OCaml fixture suite 79 passed (incl. substrate-run record/tuple/option),
+codegen 91 passed. Remaining Plan-A: TS/C transpilers, remove the `.real()` SURFACE
+lowering + runtime method, fix 4 tests, lower the host-readout gate baseline.
+
+
 scaffold through the current Sutra ecosystem. It is the canonical narrative
 of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,

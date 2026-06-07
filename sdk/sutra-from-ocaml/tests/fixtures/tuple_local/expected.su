@@ -8,5 +8,5 @@ function Axon pair(int a, int b) {
 }
 function int main() {
     Axon p = pair(7, 9);
-    return p.item("_0").real() + p.item("_1").real();
+    return realvec(p.item("_0")) + realvec(p.item("_1"));
 }
