@@ -220,21 +220,32 @@ architectures — the concrete payoff of the diversification.
 
 ## Open questions (genuine gaps — do not paper over)
 
-1. **Differentiable / soft addressing — RESOLVED (Emma 2026-06-01): RAM
-   is NOT differentiable.** I/O is outside the differentiable realm.
-   Because RAM is accessed through a read/write head and RAM is
-   inherently discrete, the address is **hard**: a pointer that lands
-   between two memory locations **rounds to the nearest** one. There is
-   no soft attention / weighted-sum-over-cells read. A *trainable* NTM
-   trains its **controller** (the substrate program that computes
-   pointers and consumes values); the RAM access itself stays discrete
-   round-to-nearest I/O — it is not part of the differentiable graph,
-   the same way reading a file or awaiting a socket is not. The current
-   orchestrator already implements this exactly: `addr =
-   int(round(real(pointer)))`. Further RAM design work (what the
-   trainable controller needs, write-head training signals) is tracked
-   in `todo.md` § "Architectural diversification", but the
-   differentiability question is closed: no soft addressing.
+1. **Differentiable / soft addressing — REVISED (Emma 2026-06-07): the
+   ADDRESS stays hard; the READ gains a differentiable soft-linear path.**
+
+   *Original (Emma 2026-06-01):* RAM is I/O outside the differentiable
+   realm; the address is **hard** (round-to-nearest); there is no soft
+   attention / weighted-sum-over-cells read; a *trainable* NTM trains its
+   **controller**, not the RAM. The orchestrator implements `addr =
+   int(round(real(pointer)))`.
+
+   *Revision (Emma 2026-06-07, AskUserQuestion):* the WRITE and the
+   ADDRESS stay hard/discrete (unchanged — round-to-nearest I/O). But the
+   **READ** gains a **differentiable soft linear read over cell CONTENTS**:
+   a trainable linear-weighted sum (a linear regression) over the memory
+   cells the orchestrator has fetched into VRAM, layered on top of the
+   hard pointer. This gives the trainable controller a **gradient path
+   through reads** while memory stays external and writes/addresses stay
+   discrete. So the earlier "no soft weighted-sum-over-cells read" is
+   relaxed **for reads only** — the read's coefficients are differentiable;
+   the address is not. First measured realization: a soft linear read
+   trained by SGD to do linear regression over memory (loss→~0,
+   coefficients recovered) — `experiments/ntm_ram/trainable_read.py`,
+   guarded by `test_ntm_ram.py::TestTrainableRead`. Note this is a READOUT
+   layer over fetched contents, NOT soft *addressing* (the address — which
+   cells — remains the hard pointer; do not blur the two, and do not fuse
+   RAM into the step graph). Further trainable-controller design is tracked
+   in `todo.md` § "Architectural diversification".
 2. **Write-ack / ordering.** Is `ramWrite` fire-and-forget, or does it
    return a `Promise<void>` the program can `await` to order a
    subsequent read after the write lands? First cut: fire-and-forget;

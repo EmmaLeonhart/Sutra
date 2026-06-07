@@ -6,6 +6,25 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+### 2026-06-07 (later): trainable NTM read head — soft linear read over memory, trained
+
+Built the first trainable-NTM piece per Emma's AskUserQuestion choice (soft linear
+READ over cell contents). `experiments/ntm_ram/trainable_read.py`: a DIFFERENTIABLE
+read = a trainable linear-weighted sum over the (orchestrator-fetched) memory cell
+contents, computed via the substrate real projector (`_real_projector()`, a matmul —
+no host readout in the forward). Trained by SGD to do **linear regression over
+memory**: loss 10.40 → 0.000000, recovered the true coefficients exactly
+([2,-1,0.5,3]), ||grad||=6.47 at step 0 (gradient-flow measured BEFORE convergence,
+not the misleading near-zero converged grad). Read differentiable; **write + address
+stay HARD** (round-to-nearest discrete I/O); RAM stays EXTERNAL (cells are fetched
+contents, NOT fused into a graph). CI-guarded (`test_ntm_ram.py::TestTrainableRead`,
+12 passed). Spec revised: `ram-pointers.md` OQ1 now records reads gain a soft-linear
+path (reads only — a readout layer over contents, NOT soft addressing; the address
+stays the hard pointer). This is the trainable-seed's first concrete training result
+(directly relevant to the percepta-ntm "no training experiments" con). Next: wire it
+into the controller loop; confirm with Emma whether read coefficients are
+query-dependent (controller-state function) vs fixed trainable params.
+
 ### 2026-06-07 (later): "cuda trace device quirk" was a false alarm — removed the documented blocker
 
 Investigated the documented #7(c) "cuda torch.jit.trace device quirk." It does NOT

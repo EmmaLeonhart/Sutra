@@ -238,5 +238,20 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual(ns["_VSA"].semantic_dim, 2)
 
 
+class TestTrainableRead(unittest.TestCase):
+    """The trainable NTM read head (Emma 2026-06-07): a DIFFERENTIABLE soft linear
+    read over external memory cell contents, trained by SGD to do linear regression
+    over memory. Guards that the read is differentiable + the training converges +
+    recovers the true coefficients (the trainable-seed read, measured)."""
+
+    def test_soft_linear_read_trains_to_regress_over_memory(self):
+        try:
+            import torch  # noqa: F401
+        except Exception:
+            self.skipTest("trainable read needs torch")
+        from trainable_read import main as read_main
+        self.assertEqual(read_main(), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
