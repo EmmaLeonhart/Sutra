@@ -168,6 +168,20 @@ state (avoid literal-vs-loop-state comparison).
   Graph-level attention usage DONE: only 42/133 nominal heads attend (31.6%; peak 11/
   layer over layers 0-4; L5/L6 zero) — the genuine reduced-attention target for the
   DNC. Remaining: feed all numbers to the 17:00 paper.
+- **PRUNED TRANSFORMER — build the reduced core + verify (Emma greenlit 2026-06-06,
+  "Full pruned core + verify").** The positive result the PCA only diagnosed: actually
+  construct the smaller transformer and confirm it still executes WASM. Scope:
+  (1) drop the 2 all-zero attention layers (`attn.5`, `attn.6`); (2) keep only the 42
+  genuinely-attending head-slots (of 133), zeroing/removing the 91 idle ones;
+  (3) compress the token/head embedding to its ~3-d effective subspace. Then VERIFY:
+  the pruned model reproduces the reference `transformer-vm` output **byte-for-byte on
+  all 6 WASM programs** (the existing replication harness is the oracle). Staged so
+  each reduction is checked independently before stacking (cheap win = drop 2 zero
+  layers first, then heads, then vocab). Multi-session; on a local submodule branch
+  (don't push to Percepta). Artifacts under `experiments/wasm_transformer_pca/`.
+  Substrate-purity note: this is compile/monitor analysis on constructed weights
+  (numpy/torch off any runtime hot path) — allowed. HARD RAIL: "still works" means
+  decoded output == reference, measured, not "ran without error".
 - **E3 — integrate a native `i32.sat_add_u` opcode (spec done; impl remaining).**
   Spec `WASM/notes/e3_native_opcode_spec.md`; E3a verified the `op_dot` vocabulary
   extensible (28 spare points). Remaining = the build (own session): add to

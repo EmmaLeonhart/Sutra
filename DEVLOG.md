@@ -5118,3 +5118,15 @@ S6 non-claim (17 opcodes). Not chasing the persisting contribution-nature
 cons (trivial-PCA / Sutra-underdefined / two-halves-weak / not-neural) with
 rewords -- per the wordsmithing-diminishing-returns rule those need new
 results or an audience switch, not text. This commit folds new results.
+
+## 2026-06-06 — ISO-5 WASM machine: +4 comparison opcodes GT/GE/LE/NE, guard 30/30
+
+Extended the substrate machine 17 -> 21 opcodes (added 17=GT 18=GE 19=LE
+20=NE). First run failed 2/30 at the equality boundary (7>=7 -> 0, 5<=5 -> 0):
+MEASURED that the substrate strict </> return ~0.5 at exact equality while ==
+is clean {0,1} there. Fixed by gating the strict comparisons with v_eq
+(v_lt = (1-v_eq)*v_lt_raw etc.), which also hardens LT/GT at equality. Finding:
+planning/findings/2026-06-06-substrate-comparison-equality-boundary.md. Re-run:
+30/30 passed on the substrate (790s). Also queued the Emma-greenlit pruned-
+transformer build (drop 2 zero attn layers -> 42/133 heads -> ~3-d vocab,
+verify byte-for-byte on the 6 WASM programs).
