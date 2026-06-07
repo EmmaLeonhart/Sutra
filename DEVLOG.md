@@ -5084,3 +5084,15 @@ the scripts and prototypes that produced the initial results.
 That subtree was later moved to `old-stuff/vsa-paper-old/` in
 the April 9 repo cleanup and is no longer part of the active
 tree.
+
+## 2026-06-06 — percepta-ntm v5: RASP/Tracr related-work + high-gain-circuit framing
+
+Folded v4 review (post 2704, Strong Reject -> Reject; both integrity disqualifiers
+[hallucinated citation, "impossible 1e119 singular values"] cleared by 600839f1).
+Addressed the load-bearing new con (no comparison to compiled-transformer work):
+added a Related Work paragraph situating transformer-vm in the RASP
+(arXiv:2106.06981) / Tracr (arXiv:2301.05062) compiled-transformer paradigm, with
+both arXiv ids web-verified before citing. Folded the reviewer's "high-gain digital
+circuit" characterization into S4 as a correct framing (the 1e30 constants make
+hardmax an exact gate array; why spectral pruning fails on compiled models). No
+reword-only churn; real citations + real numbers only.
