@@ -170,18 +170,22 @@ state (avoid literal-vs-loop-state comparison).
   DNC. Remaining: feed all numbers to the 17:00 paper.
 - **PRUNED TRANSFORMER — build the reduced core + verify (Emma greenlit 2026-06-06,
   "Full pruned core + verify").** The positive result the PCA only diagnosed: actually
-  construct the smaller transformer and confirm it still executes WASM. Scope:
-  (1) drop the 2 all-zero attention layers (`attn.5`, `attn.6`); (2) keep only the 42
-  genuinely-attending head-slots (of 133), zeroing/removing the 91 idle ones;
-  (3) compress the token/head embedding to its ~3-d effective subspace. Then VERIFY:
-  the pruned model reproduces the reference `transformer-vm` output **byte-for-byte on
-  all 6 WASM programs** (the existing replication harness is the oracle). Staged so
-  each reduction is checked independently before stacking (cheap win = drop 2 zero
-  layers first, then heads, then vocab). Multi-session; on a local submodule branch
-  (don't push to Percepta). Artifacts under `experiments/wasm_transformer_pca/`.
-  Substrate-purity note: this is compile/monitor analysis on constructed weights
-  (numpy/torch off any runtime hot path) — allowed. HARD RAIL: "still works" means
-  decoded output == reference, measured, not "ran without error".
+  construct the smaller transformer and confirm it still executes WASM. Staged:
+  - **STEP 1 DONE (2026-06-06):** dropped the 2 all-zero ATTENTION SUBLAYERS
+    (`attn.5`,`attn.6` — measured exactly zero; layers 5/6 keep non-zero FFNs so it's
+    the attention sublayer only, not whole layers). Verified output-preserving
+    token-for-token on 5/5 random inputs; −11,552/146,680 params (7.9%). Script
+    `experiments/wasm_transformer_pca/prune_zero_attention.py`; finding
+    `planning/findings/2026-06-06-pruned-transformer-step1-zero-attention.md`.
+  - **STEP 2 (next):** keep only the 42/133 attending head-slots (per-layer
+    7,5,11,11,8,0,0); not lossless a priori — verify equivalence.
+  - **STEP 3:** compress the token/head embedding to its ~3-d effective subspace.
+  - **BLOCKED — full byte-for-byte sign-off on the 6 WASM programs:** the oracle needs
+    clang/uv (compile C→wasm→tokens + reference traces) — absent locally, needs WSL.
+    Step-1 equivalence was proved clang-free via random-input equivalence; steps 2/3
+    can use the same random-input equivalence, but the canonical 6-program oracle is
+    the WSL blocker. Multi-session; local submodule branch (don't push to Percepta).
+  HARD RAIL: "still works" means decoded output == reference, measured, not "ran".
 - **E3 — integrate a native `i32.sat_add_u` opcode (spec done; impl remaining).**
   Spec `WASM/notes/e3_native_opcode_spec.md`; E3a verified the `op_dot` vocabulary
   extensible (28 spare points). Remaining = the build (own session): add to
