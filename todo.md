@@ -1,5 +1,9 @@
 # Sutra — consolidated TODO
 
+## TOP PRIORITY
+
+We have a thing here that's like a Claude conversation, kind of conceptualising what it means for a neural network to be Turing complete. I would like you to metabolise the Claude conversation that was added in and then put this a bit into our roadmap and such so that we can do stuff. 
+
 > ## 🔬 TOP PRIORITY — PCA on the WASM transformer (remove this block when done)
 >
 > Do **principal component analysis on the WASM transformer** — the
