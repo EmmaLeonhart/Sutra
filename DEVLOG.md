@@ -5170,3 +5170,15 @@ params (7.9 percent). Clang-free (random-input equivalence). Full 6-program
 byte-for-byte oracle remains blocked on clang/uv (WSL). Script
 prune_zero_attention.py; finding
 planning/findings/2026-06-06-pruned-transformer-step1-zero-attention.md.
+## 2026-06-06 — percepta-ntm v9: address saturated-gradient objection to the seed (v8 review post 2708)
+
+v8 review went Reject (v7 was Weak Reject); the regression was the new
+load-bearing con: weights spanning 1e30 with 1e10 hardmax would vanish/explode
+gradients, so the "trainable seed" claim is unsupported. Conceded the valid
+point and clarified the intended path in S7 + abstract: the seed is NOT the raw
+saturated array but the REDUCED, re-parameterized smooth form the arc produces
+(S4 strips the high-gain switches; attention-on-RAM target is a smooth linear
+regression, not a 1e10 hardmax). Trainability of the smoothed seed is stated as
+an open empirical question, not a claim. Persisting cons (Sutra-niche,
+PCA-MILP-artifact, no neural-symbolic comparison) are contribution-nature
+judgments; not chased with rewords.
