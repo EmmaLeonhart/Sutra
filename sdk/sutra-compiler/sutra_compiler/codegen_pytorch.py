@@ -1847,14 +1847,6 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("return self.zero_vector()")
         self._indent -= 1
-        self._emit("# Tensor-RAM mode (the FUSED substrate): self.ram is one (N, dim)")
-        self._emit("# tensor. Address via gather (round->long tensor index, NO host")
-        self._emit("# .item()), so the read is on-graph / traceable -- the proper")
-        self._emit("# substrate, not the host-list+`.item()` decode below.")
-        self._emit("if hasattr(self.ram, 'ndim') and self.ram.ndim == 2:")
-        self._indent += 1
-        self._emit("return self.ram_gather(self.ram, ptr)")
-        self._indent -= 1
         self._emit("_pt = self._st(ptr)")
         self._emit("# Address decode (I/O boundary). ptr may be a full number-")
         self._emit("# vector (read AXIS_REAL) or a bare scalar address (a literal")
@@ -1873,30 +1865,6 @@ class PyTorchCodegen(Codegen):
         self._emit("if self.ram is None:")
         self._indent += 1
         self._emit("return value")
-        self._indent -= 1
-        self._emit("# Tensor-RAM mode (the FUSED substrate): self.ram is one (N, dim)")
-        self._emit("# tensor; scatter functionally (no host .item(), no list mutation)")
-        self._emit("# and rebind. The chain of per-step writes threads the tensor, so")
-        self._emit("# the whole step traces to one graph over the RAM tensor.")
-        self._emit("if hasattr(self.ram, 'ndim') and self.ram.ndim == 2:")
-        self._indent += 1
-        self._emit("_vv = self._st(value)")
-        self._emit("if _vv.ndim != 0:")
-        self._indent += 1
-        self._emit("_val_vec = _vv")
-        self._indent -= 1
-        self._emit("else:")
-        self._indent += 1
-        self._emit("# Lift a 0-d scalar to a number-vector ON-GRAPH (no float()/")
-        self._emit("# .item()): scatter the real axis via a one-hot, keeping it")
-        self._emit("# traceable. The substrate-pure machine always passes vectors,")
-        self._emit("# so this branch is a safety net, not the hot path.")
-        self._emit("_oh = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
-        self._emit("_oh[self.semantic_dim + self.AXIS_REAL] = 1.0")
-        self._emit("_val_vec = _oh * _vv")
-        self._indent -= 1
-        self._emit("self.ram = self.ram_scatter(self.ram, ptr, _val_vec)")
-        self._emit("return _val_vec")
         self._indent -= 1
         self._emit("_pt = self._st(ptr)")
         self._emit("# Address decode (I/O boundary). ptr may be a full number-")
@@ -1917,35 +1885,13 @@ class PyTorchCodegen(Codegen):
         self._emit("return val_vec")
         self._indent -= 1
         self._emit()
-        # ---- Functional tensor-RAM (the fusion path; substrate-pure) ----
-        # The device ram_read/ram_write above use a host Python list + a host int
-        # index (the cells are in VRAM, but the container/indexing are host-side,
-        # so the step can't be a fused exportable graph). These functional
-        # variants take RAM as a single (N, dim) tensor and gather/scatter with a
-        # TENSOR index (round(ptr.real).long()), no `.item()`, no mutation —
-        # traceable + differentiable. The fused-compile path threads RAM as state:
-        # `ram_t' = ram_scatter(ram_t, ptr, ram_op(ram_gather(ram_t, p)))`.
-        # See planning/exploratory/fused-compile-target.md and
-        # experiments/fused_nn/ram_tensor_step.py (validated 2026-06-07).
-        self._emit("def ram_gather(self, ram_t, ptr):")
-        self._indent += 1
-        self._emit('"""Read cell[round(ptr.real)] from a (N, dim) RAM tensor. Gather, no host int."""')
-        self._emit("_pt = self._st(ptr)")
-        self._emit("_a = _pt if _pt.ndim == 0 else _pt[self.semantic_dim + self.AXIS_REAL]")
-        self._emit("idx = _torch.round(_a).long().clamp(0, ram_t.shape[0] - 1).reshape(1)")
-        self._emit("return ram_t.index_select(0, idx).reshape(self.dim)")
-        self._indent -= 1
-        self._emit()
-        self._emit("def ram_scatter(self, ram_t, ptr, value):")
-        self._indent += 1
-        self._emit('"""Return a NEW RAM tensor with cell[round(ptr.real)] = value (a')
-        self._emit('number-VECTOR). Scatter, functional, substrate-pure — no readout."""')
-        self._emit("_pt = self._st(ptr)")
-        self._emit("_a = _pt if _pt.ndim == 0 else _pt[self.semantic_dim + self.AXIS_REAL]")
-        self._emit("idx = _torch.round(_a).long().clamp(0, ram_t.shape[0] - 1).reshape(1)")
-        self._emit("return ram_t.index_copy(0, idx, self._st(value).reshape(1, self.dim))")
-        self._indent -= 1
-        self._emit()
+        # NOTE (2026-06-07): the `ram_gather`/`ram_scatter` "RAM-as-a-VRAM-tensor"
+        # ops were REMOVED. They embodied a wrong architecture — treating VRAM as
+        # RAM and fusing memory into the step graph — which contradicts the NTM
+        # design (planning/sutra-spec/ram-pointers.md: RAM is EXTERNAL host memory
+        # accessed through an orchestrator + VRAM mailbox; ramRead/ramWrite are the
+        # I/O boundary, NOT substrate ops). Fusing the RNN recurrence (loops) is
+        # correct; fusing RAM is not. Keep RAM external.
         self._emit("def make_real(self, x):")
         self._indent += 1
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
