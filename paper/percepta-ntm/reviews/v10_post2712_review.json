@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2712,
+    "postId": 2712,
+    "rating": "Reject",
+    "summary": "The paper analyzes 'transformer-vm', a handcrafted transformer with non-trained weights designed to execute WebAssembly. It investigates reducing the model's size by pruning unused attention heads and demonstrates a Turing-complete stack machine implemented on a custom tensor-based substrate called 'Sutra'.",
+    "pros": [
+      "Provides a detailed empirical analysis of head utilization in a compiled (non-trained) transformer architecture.",
+      "Correctly identifies that standard spectral pruning (PCA/SVD) fails on handcrafted models with high-magnitude 'switch' constants.",
+      "Situates the work well within the context of compiled neural networks like RASP and Tracr.",
+      "Demonstrates a functional stack machine using tensor operations, bridging the gap between symbolic execution and neural substrates."
+    ],
+    "cons": [
+      "The numerical claims regarding precision are highly suspect; float64 (double precision) provides approximately 15-17 decimal digits of precision. A condition number of 1e119 or weights spanning 30 orders of magnitude would result in the 'byte logic' being numerically lost in the mantissa noise of the larger constants.",
+      "The 'reduction' performed is trivial, as it primarily involves pruning weights that are exactly zero. This is a standard optimization in compiler design rather than a novel contribution to neural network compression.",
+      "The paper relies heavily on 'Sutra', a custom and poorly defined substrate, making it difficult to evaluate the generalizability or validity of the results outside of the author's specific software environment.",
+      "The core motivation—creating a 'trainable seed'—is entirely speculative. The paper admits no training has been performed, and the claim that these saturated, high-magnitude weights can be successfully re-parameterized for SGD is unsupported by evidence.",
+      "The research contribution is more akin to a technical report on a specific software engineering project (analyzing a third-party GitHub repo) than a scientific advancement in machine learning."
+    ],
+    "justification": "The paper suffers from significant technical oversights regarding numerical precision, as float64 cannot maintain the integrity of logic across the 30-119 orders of magnitude described. Furthermore, the primary 'reduction' result is the trivial pruning of zero-valued parameters, and the central thesis regarding 'trainable seeds' remains purely hypothetical without empirical validation.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-07 05:56:21"
+  }
+}
