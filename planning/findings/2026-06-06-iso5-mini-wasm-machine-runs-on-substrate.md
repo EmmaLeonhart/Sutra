@@ -65,6 +65,30 @@ verified). CI-guarded: `sdk/sutra-compiler/tests/test_mini_wasm_machine.py` (14/
   value-coercion to number-vector).
 - RAM-based fetch-execute dispatch (this finding).
 
+## Signal-separation gap (2026-06-07 daily audit)
+
+Per CLAUDE.md §"Subtler substrate breaches" #3, a substrate classifier must ship
+a measured `gap = min(positive_class) − max(negative_class)`. The opcode dispatch
+**is** a 21-way substrate classifier: for each opcode it computes
+`is_X = truth_axis(defuzzy(op == X))`, and for the running opcode `k` the SELECTED
+indicator `is_k` is the positive class while every other `is_j` (`j ≠ k`) is the
+negative class. Sweeping all 21×21 `(opcode, target)` pairs through the exact
+compile path (`experiments/iso5_substrate_dispatch/measure_dispatch_gap.py`):
+
+| runtime_dim | min selected truth | max leaked truth | **gap** |
+|---|---|---|---|
+| 2  | +1.000000 | −1.000000 | **+2.000000** |
+| 50 | +1.000000 | −1.000000 | **+2.000000** |
+
+Every selected indicator is exactly +1, every non-selected exactly −1 — the
+maximal gap for a truth-axis ±1 boolean, dim-independent. This is expected and
+not luck: opcodes are exact integers stored via `make_real`, so `op == target`
+(`eq_synthetic`, Euclidean) is exact, and `defuzzy`/`truth_axis` read the clean
+truth axis. The dispatch decision is genuinely on the substrate, not a host
+artifact. (Note the dispatch is now `op == tag` on the raw `ramRead` VECTOR —
+zero `.real()` — superseding the `ramRead(pc).real()` description above; commit
+`1be294be` made the machine substrate-pure.)
+
 ## Scope / what's not claimed
 
 This is a 12-opcode (HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE/EQ/LT/OUTPUT) hand-written machine demonstrating the

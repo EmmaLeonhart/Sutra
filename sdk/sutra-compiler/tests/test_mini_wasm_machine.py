@@ -119,3 +119,26 @@ def test_mini_wasm_machine_runs_on_substrate(prog, expected, steps, addr):
     ns = _machine_ns()
     got = _run(ns, prog, steps=steps, addr=addr)
     assert got == expected, f"program {prog} -> {got}, expected {expected}"
+
+
+def test_dispatch_gap():
+    """Signal-separation guard (CLAUDE.md  "Subtler substrate breaches" #3).
+
+    The opcode dispatch is a 21-way substrate classifier
+    (is_X = truth_axis(defuzzy(op == X))). For the running opcode the selected
+    indicator must sit well above every leaked one. Measured gap is +2.0 (selected
+    +1, leaked -1) at every dim because opcodes are exact integers; guard with a
+    generous floor so it fires only on a real regression. Fast (compiles a
+    1-function probe), unlike the full machine runs above."""
+    pytest.importorskip("torch")
+    import importlib.util
+
+    repo = pathlib.Path(__file__).resolve().parents[3]
+    probe = repo / "experiments" / "iso5_substrate_dispatch" / "measure_dispatch_gap.py"
+    spec = importlib.util.spec_from_file_location("measure_dispatch_gap", probe)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    r = mod.measure(runtime_dim=2)
+    assert r["gap"] > 1.5, f"dispatch separation collapsed: gap={r['gap']:+.4f}"
+    assert r["min_selected"] > 0.5, f"selected opcode under-fires: {r['min_selected']:+.4f}"
+    assert r["max_leaked"] < 0.5, f"non-selected opcode leaks: {r['max_leaked']:+.4f}"
