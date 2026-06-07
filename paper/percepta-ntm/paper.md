@@ -17,11 +17,13 @@ shrink) is a constructed, deterministic RAM-editing network. The long-term goal 
 substrate (a typed functional language whose compiled program is a fused tensor-op
 graph over a frozen embedding) — that does **attention on RAM** (in this first step a
 simple linear regression over memory), so that imperative RAM-editing programs become
-representable in this form — and, being ordinary differentiable weights, trainable from
-that **seed** by gradient descent into operations the hand-construction never specified.
-The concrete engineering questions here are the first steps toward it: **can the
-constructed transformer be reduced to a smaller, behaviorally equivalent core, and can a
-RAM-editing machine run on the Sutra substrate at all?**
+representable in this form — and, once reduced to that smooth low-magnitude form, a
+**seed** that gradient descent could grow into operations the hand-construction never
+specified (the raw constructed weights, saturated by a 1e10 hardmax, are *not* directly
+trainable — the seed is the reduced form; §7). The concrete engineering questions here
+are the first steps toward it: **can the constructed transformer be reduced to a smaller,
+behaviorally equivalent core, and can a RAM-editing machine run on the Sutra substrate at
+all?**
 
 We report two measured results. First, **principal-component / singular-value
 analysis of the constructed weights shows that magnitude-PCA is the wrong reduction
@@ -281,6 +283,21 @@ is, by design, a niche personal object today: its value is as trainable infrastr
 for representing-and-growing imperative programs as neural networks, not as a deployed
 model. The measurements in §4–§5 are the first two steps of that arc; the training step
 is future work.
+
+**On the saturated-gradient objection.** A fair objection is that the *constructed*
+weights are untrainable as they stand: with `HARD_K = 1e10` driving hardmax and entries
+to ~1e30 (§4), the attention is saturated and gradients there vanish or explode — naive
+SGD on the raw weights would not move. We agree, and we do **not** propose that. The
+seed is not the raw saturated array; it is the **reduced, re-parameterized** network the
+arc produces: §4's reduction strips exactly the high-gain switch directions (the 2 zero
+attention sublayers, the ~91 unused head-slots, the ~3-d vocabulary), and the
+attention-on-RAM target is a *smooth* operator (a linear regression over memory), not a
+1e10-temperature hardmax. Training would operate on that smooth, low-magnitude form,
+with the hardmax constants factored out — the saturating gates are an artifact of the
+exact construction, not a property the trainable seed must inherit. We have not yet
+trained anything, so whether this smoothed seed is in practice trainable is an open
+empirical question, not a claim; the objection correctly rules out the naive version,
+which is not the one we intend.
 
 ## Reproducibility
 
