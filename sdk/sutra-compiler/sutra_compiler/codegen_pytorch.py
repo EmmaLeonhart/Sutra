@@ -1885,6 +1885,35 @@ class PyTorchCodegen(Codegen):
         self._emit("return val_vec")
         self._indent -= 1
         self._emit()
+        # ---- Functional tensor-RAM (the fusion path; substrate-pure) ----
+        # The device ram_read/ram_write above use a host Python list + a host int
+        # index (the cells are in VRAM, but the container/indexing are host-side,
+        # so the step can't be a fused exportable graph). These functional
+        # variants take RAM as a single (N, dim) tensor and gather/scatter with a
+        # TENSOR index (round(ptr.real).long()), no `.item()`, no mutation —
+        # traceable + differentiable. The fused-compile path threads RAM as state:
+        # `ram_t' = ram_scatter(ram_t, ptr, ram_op(ram_gather(ram_t, p)))`.
+        # See planning/exploratory/fused-compile-target.md and
+        # experiments/fused_nn/ram_tensor_step.py (validated 2026-06-07).
+        self._emit("def ram_gather(self, ram_t, ptr):")
+        self._indent += 1
+        self._emit('"""Read cell[round(ptr.real)] from a (N, dim) RAM tensor. Gather, no host int."""')
+        self._emit("_pt = self._st(ptr)")
+        self._emit("_a = _pt if _pt.ndim == 0 else _pt[self.semantic_dim + self.AXIS_REAL]")
+        self._emit("idx = _torch.round(_a).long().clamp(0, ram_t.shape[0] - 1).reshape(1)")
+        self._emit("return ram_t.index_select(0, idx).reshape(self.dim)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def ram_scatter(self, ram_t, ptr, value):")
+        self._indent += 1
+        self._emit('"""Return a NEW RAM tensor with cell[round(ptr.real)] = value (a')
+        self._emit('number-VECTOR). Scatter, functional, substrate-pure — no readout."""')
+        self._emit("_pt = self._st(ptr)")
+        self._emit("_a = _pt if _pt.ndim == 0 else _pt[self.semantic_dim + self.AXIS_REAL]")
+        self._emit("idx = _torch.round(_a).long().clamp(0, ram_t.shape[0] - 1).reshape(1)")
+        self._emit("return ram_t.index_copy(0, idx, self._st(value).reshape(1, self.dim))")
+        self._indent -= 1
+        self._emit()
         self._emit("def make_real(self, x):")
         self._indent += 1
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
