@@ -37,25 +37,27 @@ The network = the whole function (already traceable, `trace_to_graph`). The
 orchestrator runs it once and reads the output.
 
 ### Recurrent programs (`loop`/`recur`/`do_while`/`while_loop`)
-Today the codegen emits the iteration + halt **inside** one function
-(`_loop_X`: `while True: …; if float(_halted) >= 0.99: break`). Restructure to:
 
-- **Network step** — `_step_X(state) -> (new_state, halt)`: ONE iteration of the
-  loop body, pure tensor ops, no `while`, no `break`, no `float()`. `halt` is a
-  substrate truth (the soft-halt signal) on the state's truth axis.
-- **Orchestrator** — drives it:
-  ```python
-  state, halted = init, 0.0
-  while halted < 0.99:            # host loop in the tiny driver
-      state, h = step(state)      # run the network step
-      halted = min(halted + h, 1) # (or read the step's halt axis)
-  output = read(state)            # terminal boundary
-  ```
-  The `float(...)`/`while`/`break` live HERE (the orchestrator), which is allowed.
+**#6 DONE (`28623769`):** the codegen no longer fuses iteration + halt inside one
+function. `_translate_loop_function_decl` now emits a PURE per-tick step + a thin
+driver:
 
-This moves the one host-readout (`float(_halted)`) out of the network and into the
-orchestrator — meeting the `test_no_host_readout` loop-emission goal (0 inside the
-step) by RELOCATION, and making the step graph exportable.
+- **Network step** — a nested `def _step(_t, [this,] state...) -> (state..., _halted)`:
+  ONE iteration (condition + body + soft-halt blend), pure tensor ops, no `while`,
+  no `break`, no `float()`. `_halted` is the substrate soft-halt signal.
+- **Driver (in-module orchestrator)** — `while True: state, _halted = _step(...);
+  if float(_halted) >= 0.99: break`. The single `float(_halted)` host-readout lives
+  HERE (the legitimate boundary), never in `_step`.
+
+Verified: loop+await 59 green; reframed `test_no_host_readout` asserts `_step` is
+readout-free + the read stays in the driver. The host-readout-relocation goal is met.
+
+**#7 remaining — make `_step` exportable.** `_step` is currently NESTED inside the
+loop function, so `torch.jit.trace`/`torch.export` can't grab it standalone. Hoist
+it to a module-level `_step_<name>(_t, [arr,] [this,] state...)` (do_while/while_loop
+close over only `_VSA`; foreach also takes the array param; class loops also `this`),
+then trace it → `foo.network.pt` + a tiny driver = the loop weight-file target. The
+straight-line case already ships this end-to-end (`emit_weight_file`, `7181c2a4`).
 
 ### State as a single tensor (for the WASM machine)
 NOTE: the RAM cells are ALREADY in VRAM — each `self.ram[addr]` is a `cuda`

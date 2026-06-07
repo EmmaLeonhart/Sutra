@@ -197,7 +197,10 @@ def test_extracted_polynomial_matches_substrate() -> None:
     grid = (-1.0, 0.0, 1.0)
     worst = 0.0
     for av, bv in itertools.product(grid, grid):
-        substrate = float(vsa.truth(f(vsa.make_truth(av), vsa.make_truth(bv))))
+        # `truth(v)` accessor was removed in the substrate-purity overhaul
+        # (87cfa407); read the truth axis via `truth_axis` (a 0-dim tensor) and
+        # float() it here — a monitoring readout at the test boundary, legitimate.
+        substrate = float(vsa.truth_axis(f(vsa.make_truth(av), vsa.make_truth(bv))))
         extracted = float(poly.subs({syms["a"]: av, syms["b"]: bv}))
         worst = max(worst, abs(substrate - extracted))
     print(f"\n[fv-general] extracted-vs-substrate worst |err| = {worst:.3e}")

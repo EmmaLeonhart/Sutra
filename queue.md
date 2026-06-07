@@ -180,12 +180,20 @@ weight-graph is the loop BODY / STEP (pure, exportable); a TINY Python orchestra
 drives it — loads weights, runs on input, drives the recurrence, reads the HALT
 signal to stop, reads OUTPUT to print. The orchestrator's halt-read/output-read is
 the legitimate terminal boundary, NOT in-graph introspection.
-6. Restructure loop emission: emit the loop BODY as a pure step graph (no
-   `float(_halted)` inside it) and RELOCATE the halt-read + iteration + output-read
-   into the thin orchestrator. This meets the loop-readout gate goal (0 inside the
-   step) by relocation, and makes the recurrence fusable/exportable.
+6. DONE (28623769): loop emission split into a PURE nested `_step(...)` (condition
+   + body + soft-halt, zero host readout) + a thin in-module driver that does the
+   single `float(_halted) >= 0.99: break`. Behaviour-identical (driver breaks on
+   first saturating tick). All 4 loop kinds. Gate reframed: `_step` readout-free
+   (test_step_graph_is_readout_free) + halt-read stays in driver (the legitimate
+   orchestrator boundary). Loop+await 59 green; finding resolution section.
 7. Export the fused step + a tiny orchestrator that runs it = the **weight file**
    compile target. Verify substrate-to-substrate (decoded output == reference).
+   NEXT BOUNDED PIECE: `_step` is nested inside the loop function, so the export
+   path can't pull it out standalone yet — hoist it to a module-level
+   `_step_<name>` (do_while/while_loop close over only `_VSA`; foreach also the
+   array param; class loops also `this`). Then trace `_step_<name>` → network.pt +
+   a tiny driver that loops it reading halt = the loop weight-file target (the
+   non-loop case already shipped in emit_weight_file, 7181c2a4).
    The WASM machine additionally needs the v1 one-slot-`recur` limit lifted for its
    multi-state recurrence (separate spec decision).
 
