@@ -2,7 +2,43 @@
 
 ## TOP PRIORITY
 
-We have a thing here that's like a Claude conversation, kind of conceptualising what it means for a neural network to be Turing complete. I would like you to metabolise the Claude conversation that was added in and then put this a bit into our roadmap and such so that we can do stuff. 
+## Neural-network Turing-completeness — the architectural roadmap (metabolised 2026-06-07)
+
+Metabolised from Emma's Claude conversation "Neural network approaches to Turing
+completeness" (saved page is gitignored, reference only — not committed). This is
+the organizing frame for Sutra's architectural diversification.
+
+**Emma's three primary routes — each makes a DIFFERENT resource unbounded:**
+
+| Route | Unbounded resource | Sutra status |
+|---|---|---|
+| **RNN / recurrent neurons** | **time** (steps) | DONE — substrate loops / `recur` are a substrate-RNN; the loop step now fuses into one graph + exports as a weight file (#6/#7, `emit_loop_weight_file`). See `non-halting-loop.md`. |
+| **External memory (NTM / DNC; LLM-context)** | **space** (tape / stack / context) | ACTIVE — external RAM + orchestrator + VRAM mailbox (`ram-pointers.md`, `experiments/ntm_ram/`). RAM stays EXTERNAL + hard/discrete I/O; a *trainable* NTM trains the **controller**, not the RAM. **Do NOT fuse RAM into VRAM** (the 2026-06-07 wrong turn, reverted). |
+| **Reservoir computing** | **state** (fixed dynamics; infinite reservoir = infinite state) | DEFERRED to the OS era (Yantra). |
+
+**The sharper organizing principle (from the conversation): classify by *which
+resource is made unbounded*** — time (recurrence), state (reservoir), space
+(external memory), **precision** (analog / real-valued nets — Siegelmann & Sontag:
+finite-precision discrete RNNs hit *exactly* Turing-completeness, real-valued ones
+*exceed* it; this is Sutra's existing theoretical framing), **depth** (a fixed net
+applied an unbounded number of times with a halting condition — chain-of-thought +
+scratchpad; the orchestrator-driven step loop is exactly this shape). Keep these
+five axes straight in the paper's theory section.
+
+**External-memory sub-splits + other proposed routes (future framings, not active
+work):** DNC/NTM (addressable tape), stack-augmented nets (one stack suffices),
+pointer-nets / attention-over-mutable-state; hypernetworks (a net writes another
+net's weights at runtime — the "program" written step by step); neural program
+synthesis / execution (compile a target formalism in — Graves' differentiable
+Forth; close to Sutra's compile-a-program-to-a-graph stance); iterative application
+/ CoT-scratchpad (finite net, unbounded *process*); Neural ODEs (continuous-time
+dynamics — the precision axis).
+
+**Why this matters for Sutra:** Sutra deliberately pursues the three primary routes
+as DISTINCT architectures (do not blur them — the 2026-06-07 fused-RAM mistake
+blurred NTM into RNN). The resource-axis frame is the clean way to position Sutra's
+Turing-completeness claims in the paper(s) and to scope what each architecture must
+demonstrate.
 
 > ## 🔬 TOP PRIORITY — PCA on the WASM transformer (remove this block when done)
 >
