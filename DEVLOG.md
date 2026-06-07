@@ -5351,3 +5351,15 @@ already substrate-pure (.real() only in comments — false positives). Remaining
 Phase-1 real() removals (transpiler axon field reads) are Ollama-blocked here
 (axon keys need the embedding model); JS/RAM readouts are accepted boundaries;
 numpy backend dead defs deferred to its retirement.
+
+## 2026-06-07 — overhaul Phase 2: Sutra function -> single fused graph -> saved weight file (round-trips)
+
+experiments/fused_nn/trace_to_graph.py: a substrate-pure Sutra function compiles
+(via torch.jit.trace) into ONE TorchScript graph (5 nodes), saved to a 2.4KB file,
+reloaded, and run with IDENTICAL output (f(6,7)=48 reloaded == eager) and intact
+gradients (d/da=5, d/db=3). So the weight-file compile target is reachable for
+pure functions: Sutra fn -> fused graph artifact -> load+run+differentiate, with a
+thin Python loader as the only orchestration. Remaining Phase-2 piece: the RAM/
+loop recurrence (the machine) -- RAM is host-mutable state and must be
+re-represented as a tensor to trace/export the stepwise recurrence. Ollama-free,
+self-asserting.
