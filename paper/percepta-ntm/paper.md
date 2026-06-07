@@ -221,12 +221,15 @@ exactly zero.
 
 Independent of the reduction question, we tested whether a RAM-editing machine can run
 on the Sutra substrate at all. **Sutra** is a typed, purely functional language whose
-compiler lowers an entire program — primitives, control flow, I/O — to a single fused
-tensor-operation graph over a fixed high-dimensional embedding space (the "frozen
-substrate"); a value is a vector in that space, an integer is encoded on dedicated
-synthetic axes, `if/else` compiles to a three-valued-Kleene polynomial and a loop to a
-bounded soft-halt recurrence, so the compiled graph *is* the program's semantics (as a
-neural network's weights are its computation). Storage is an external **RAM device** —
+compiler lowers a program to fused tensor-operation graphs over a fixed high-dimensional
+embedding space (the "frozen substrate"); a value is a vector in that space, an integer
+is encoded on dedicated synthetic axes, `if/else` compiles to a three-valued-Kleene
+polynomial, and an unbounded loop to a bounded soft-halt recurrence emitted as a **pure
+per-tick step graph** (condition + body + soft-halt, no host readout) driven by a thin
+host orchestrator that reads the halt signal to stop. The per-step graph carries the
+program's semantics (as a neural network's weights are its computation); compiling a
+whole looping program to a *single exported weight file* is in-progress work, not a
+completed claim of this paper. Storage is an external **RAM device** —
 a host-attached array of value-vectors addressed by an integer pointer — read and
 written by two operations, `ramRead(addr)` and `ramWrite(addr, value)`.
 
