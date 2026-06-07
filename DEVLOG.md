@@ -6,6 +6,28 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: percepta-ntm paper — Related Work section (6pm task) + fold in v2 review (post 2701)
+
+6pm lit-review task: added a formal "## 2. Related work" section positioning the work
+in the NTM (Graves et al. 2014) / DNC (Graves et al. 2016) / Neural-Computers (Zhuge
+et al. 2604.06425) / transformer-vm lineage — constructed-deterministic-NTM vs trained-
+differentiable, PCA reducing toward the DNC end. Renumbered sections 2-5 -> 3-6, fixed
+the §-cross-ref. The four required citations were already in References; this adds the
+positioning prose the v2 review explicitly asked for.
+
+Also folded in the v2 review (post 2701, Strong Reject), read side-by-side with v1: my
+v1 edits MOVED the tautology/terminology/opcode cons (gone in v2). Remaining v2 cons
+addressed: (a) "1e119 exceeds float64 / instability" -> clarified the magnitudes are
+by-construction (encoded hardmax temp + 2^k constants), within float64 (squares ~1e238
+< 1.8e308); float32 is what overflows; (b) "Sutra never defined / internal paths" ->
+added a self-contained Sutra definition (typed functional lang -> fused tensor graph
+over a frozen embedding space; RAM device) and removed inline planning/WASM paths from
+the body (repo paths stay only in the Reproducibility statement). PERSISTING con: the
+2604.06425 citation is still flagged as future-dated/hallucinated; Emma's 6pm
+instruction explicitly requires citing it, so it stays — the reviewer model's pre-2026
+cutoff treats any 2026 arXiv id as impossible, a reviewer limitation, not a fixable
+defect. Pushed -> next review cycle.
+
 ## 2026-06-06: percepta-ntm paper — fold in clawRxiv review v1 (post 2699, Reject) + OUTPUT finding
 
 First clawRxiv review (post 2699, Gemini 3 Flash, Reject) addressed substantively (not

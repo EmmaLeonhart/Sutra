@@ -39,7 +39,8 @@ is compiled to WebAssembly; the supported WASM opcodes are encoded as byte-level
 arithmetic over a residual stream that acts as machine memory (stack, locals, linear
 memory, instruction cursor, call depth); a MILP solver schedules the graph nodes onto
 transformer layers; the resulting tensors are written out. Replication results
-(measured; `WASM/FINDINGS.md`): the analytic model reproduces the reference WASM
+(measured; see the replication report in the repository): the analytic model
+reproduces the reference WASM
 execution trace **token-for-token on all 6/6 test programs**, including a Sudoku
 solver run of **1,055,417 tokens**, at a mean of **18,049 tokens/s over 1,292,732
 tokens** (the authors report ~30K tok/s; the same order of magnitude). The analytic
@@ -54,10 +55,31 @@ allocation and temporal links. Both are *trained, differentiable, recurrent*.
 `transformer-vm` uses the same core mechanism — attention as content/location-
 addressed memory access — but is *constructed and exact* (the addressing is hardmax,
 never approximate), has *no recurrent controller* (the autoregressive loop plays that
-role), and its *memory is the append-only token sequence*. The full framing is in
-`WASM/notes/significance_and_isomorphism.md`.
+role), and its *memory is the append-only token sequence*.
 
-## 2. Question and method
+## 2. Related work
+
+**Neural memory architectures.** The Neural Turing Machine (Graves, Wayne &
+Danihelka 2014) couples a neural controller to an external memory whose read/write
+heads are addressed by attention (content- and location-based). The Differentiable
+Neural Computer (Graves et al. 2016) extends it with dynamic memory allocation and a
+temporal link matrix. Both are **trained end-to-end, differentiable, and recurrent** —
+they *learn* to use attention as a memory-addressing mechanism. The artifact we study,
+Percepta's `transformer-vm`, sits at the same design point — attention as memory
+addressing — but reached from the opposite direction: its weights are **constructed,
+not trained**; its addressing is **exact hardmax**, never soft or approximate; and the
+recurrent controller is replaced by the **autoregressive token loop**. We therefore
+read it as a *constructed, deterministic NTM*, and our reduction question (how small
+can its attention be made) is in service of building a differentiable computer on the
+Sutra substrate — i.e. moving from the constructed/exact end of this lineage toward the
+trained/differentiable end. The arXiv "Neural Computers" e-print (Zhuge et al.,
+2604.06425) is adjacent related work the artifact's repository was scaffolded against
+but did **not** replicate (§6). Relative to learned memory networks, our §5 substrate
+machine is closer to a hand-written virtual machine realized in tensor algebra; the
+contribution is the empirical bridge between the constructed-NTM weight structure and
+a runnable tensor-substrate machine.
+
+## 3. Question and method
 
 To build a DNC on Sutra we need a *small, runnable* attention core. The natural first
 attempt is to take the constructed transformer's weights and reduce their
@@ -66,7 +88,7 @@ cached), (ii) ran a full singular-value decomposition of every weight matrix, an
 (iii) measured how many attention heads genuinely attend per layer. All of this is
 analysis on the constructed weights, off any runtime path.
 
-## 3. PCA result: magnitude is the wrong lens; the schedule is the lever
+## 4. PCA result: magnitude is the wrong lens; the schedule is the lever
 
 The analytic model has **144,286 parameters** — `d_model` is already 38, so this is
 not an over-provisioned embedding to shrink. SVD of the weight matrices shows an
@@ -76,8 +98,13 @@ scales, down to ~1 for the byte logic. Consequently the energy-fraction "effecti
 rank" is dominated by a few giant directions and reports a misleadingly low rank: the
 small-magnitude singular directions, which carry the actual computation, contribute
 almost nothing to the Frobenius norm. **Magnitude-PCA cannot truncate this machine** —
-dropping the small directions deletes the logic, not redundancy. (The squared
-singular values overflow float32; the analysis runs in float64.) This caution
+dropping the small directions deletes the logic, not redundancy. These magnitudes are
+by construction, not numerical error: the analytic weights literally encode the
+hardmax temperature and 2^k address constants, so a singular value near 1e119 is the
+expected scale of those encoded constants, not instability. Such values are well
+within float64 (max ≈ 1.8e308), and even their squares (≈ 1e238) are; it is *float32*
+whose square overflows (max ≈ 3.4e38), which is the only reason the analysis is run in
+float64. This caution
 generalizes beyond this artifact: any model whose weights are *constructed* or
 *distilled* with saturating (hardmax / high-temperature-softmax) routing develops the
 same magnitude/importance decoupling, so spectral-energy pruning is unsafe for that
@@ -105,12 +132,18 @@ What *is* reducible, measured honestly:
   reduction number (42) is an empirical property of the produced weights, recoverable
   only by inspecting them, not a restatement of the construction method.
 
-## 4. A RAM-state NTM-style machine that runs on the Sutra substrate
+## 5. A RAM-state NTM-style machine that runs on the Sutra substrate
 
 Independent of the reduction question, we tested whether an NTM-style machine can run
-on the Sutra substrate at all. Sutra compiles to tensor operations over a frozen
-embedding space; numbers live on synthetic axes; storage is the substrate RAM device,
-read and written by `ramRead`/`ramWrite` (`planning/sutra-spec/ram-pointers.md`).
+on the Sutra substrate at all. **Sutra** is a typed, purely functional language whose
+compiler lowers an entire program — primitives, control flow, I/O — to a single fused
+tensor-operation graph over a fixed high-dimensional embedding space (the "frozen
+substrate"); a value is a vector in that space, an integer is encoded on dedicated
+synthetic axes, `if/else` compiles to a three-valued-Kleene polynomial and a loop to a
+bounded soft-halt recurrence, so the compiled graph *is* the program's semantics (as a
+neural network's weights are its computation). Storage is an external **RAM device** —
+a host-attached array of value-vectors addressed by an integer pointer — read and
+written by two operations, `ramRead(addr)` and `ramWrite(addr, value)`.
 
 We hand-wrote a stack machine whose **entire state — program counter, stack pointer,
 halt flag, the program, and the value stack — lives in RAM**, and whose host driver
@@ -148,7 +181,7 @@ The OCaml realization of the reference machine is being transpiled to Sutra by a
 OCaml→Sutra frontend; the substrate primitives the machine needs (RAM-backed arrays,
 a substrate bitwise stdlib) are in place and individually verified.
 
-## 5. What we are not claiming
+## 6. What we are not claiming
 
 - We do **not** claim a working DNC. We measured the reduction target for its
   attention and built a Turing-complete NTM-style machine on the substrate; we have
@@ -188,6 +221,6 @@ Repository: https://github.com/EmmaLeonhart/Sutra
   Computer).
 - M. Zhuge, C. Zhao, H. Liu, et al. *Neural Computers.* arXiv:2604.06425 (April 2026)
   — the e-print the artifact's repository was scaffolded against; related work only,
-  not the artifact studied here and not reproduced (see §5).
+  not the artifact studied here and not reproduced (see §6).
 - Percepta-Core. *transformer-vm* / "Can LLMs Be Computers?" (code + blog; no arXiv).
   https://github.com/Percepta-Core/transformer-vm
