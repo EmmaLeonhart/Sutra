@@ -5182,3 +5182,15 @@ regression, not a 1e10 hardmax). Trainability of the smoothed seed is stated as
 an open empirical question, not a claim. Persisting cons (Sutra-niche,
 PCA-MILP-artifact, no neural-symbolic comparison) are contribution-nature
 judgments; not chased with rewords.
+
+## 2026-06-06 — pruned transformer step 2: 91 idle heads are fully zero (lossless)
+
+Step 2 of the pruned-transformer build. Resolved the open question from step 1:
+whether the 91 non-attending head-slots contribute mean(V). MEASURED per head
+(|Q|,|K|,|V| rows, |out_proj cols|): all 91 idle heads are FULLY zero (V and
+out_proj also exactly zero), so dropping them is lossless. The model uses 42/133
+heads; 68 percent of attention params are zero. Output-preserving on 5/5 random
+inputs. Clang-free; canonical 6-program oracle is the committed-fixtures route.
+Script head_prune_verify.py; finding
+2026-06-06-pruned-transformer-step2-head-pruning.md. (plan_path passed -> no
+stray root artifacts this time.)

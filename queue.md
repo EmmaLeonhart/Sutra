@@ -177,8 +177,13 @@ state (avoid literal-vs-loop-state comparison).
     token-for-token on 5/5 random inputs; −11,552/146,680 params (7.9%). Script
     `experiments/wasm_transformer_pca/prune_zero_attention.py`; finding
     `planning/findings/2026-06-06-pruned-transformer-step1-zero-attention.md`.
-  - **STEP 2 (next):** keep only the 42/133 attending head-slots (per-layer
-    7,5,11,11,8,0,0); not lossless a priori — verify equivalence.
+  - **STEP 2 DONE (2026-06-06):** measured that all 91 idle head-slots are *fully*
+    zero (V rows AND out_proj cols exactly zero, not just Q/K), so dropping them is
+    lossless — output-preserving on 5/5 random inputs. 68% of attention params are
+    zero; the model uses 42/133 heads. Script `head_prune_verify.py`; finding
+    `planning/findings/2026-06-06-pruned-transformer-step2-head-pruning.md`. Remaining
+    mechanical bit: re-pack a literally-smaller `n_heads` model (output-identical by
+    the above).
   - **STEP 3:** compress the token/head embedding to its ~3-d effective subspace.
   - **VERIFICATION DECISION (Emma 2026-06-06): commit wasm/token fixtures.** Generate
     the 6 programs' `.wasm` + token prefix `.txt` + reference `_ref.txt` ONCE on a
