@@ -5144,3 +5144,17 @@ constants), not activations. Added a code-grounded clarification to S4. The
 other v6 cons (Sutra-underdefined, PCA-trivial, title-DNC-not-built,
 needs-comparative-analysis) are persisting framing/contribution judgments;
 not chasing with rewords.
+
+## 2026-06-06 — percepta-ntm v8: reframe per Emma (NOT a DNC/NTM; trainable RAM-editing seed)
+
+Emma framing correction: the artifact is NOT a Differentiable Neural Computer
+or a Neural Turing Machine -- those are only inspiration. It is a handcrafted,
+constructed-weight, RAM-editing neural network that processes WebAssembly,
+isomorphic to the imperative program it represents. The POINT is that it is a
+trainable SEED: ordinary differentiable weights on which SGD can later learn
+new imperative operations (same constrain-then-train move as Sutra programs).
+Goal = a minimal such net doing attention-on-RAM (first step: linear
+regression). It is a niche personal artifact today BY DESIGN. Retitled; rewrote
+abstract/S1/S2/S3/S4/S5/S6; added S7 "Why this matters: a trainable seed".
+Also swept honest/genuinely buzzwords -> neutral phrasing. Framing saved to
+memory project_ram_editing_nn_framing.
