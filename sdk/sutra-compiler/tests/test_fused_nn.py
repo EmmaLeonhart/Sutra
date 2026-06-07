@@ -22,7 +22,7 @@ import pathlib
 import pytest
 
 _DEMOS = ["differentiable_substrate", "trace_to_graph", "recurrence_fusion",
-          "orchestrator_model"]
+          "orchestrator_model", "emit_weight_file"]
 
 
 def _load_main(name: str):
