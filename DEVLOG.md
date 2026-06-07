@@ -5320,3 +5320,14 @@ boundary (the I/O wire). Verified substrate-to-substrate: test_mini_wasm_machine
 30/30 (716s) — same correct outputs (arithmetic, bitwise, comparisons incl.
 equality boundaries, memory loop, factorial(3)=6) now computed on the GPU, not the
 host. The flagship ISO-5 machine is genuinely substrate-pure.
+
+## 2026-06-07 — overhaul Phase 1: remove the dead-accessor SURFACE lowering (component/semantic/synthetic/imag/truth)
+
+Removed component/semantic/synthetic/imag/truth from _VECTOR_ACCESSORS (the
+shared surface allowlist) so `.component()` etc. no longer lower to _VSA calls —
+completing their removal (the PyTorch runtime defs were already gone; .su would
+have AttributeError'd otherwise). `real` kept transiently (last accessor, has
+consumers). Updated the codegen tests (test_codegen, test_codegen_pytorch) to
+assert the accessors are GONE rather than that they lower; 105/105 pass.
+Deferred: the deprecated numpy backend (codegen.py) still carries dead method
+defs for these — clean during numpy retirement.

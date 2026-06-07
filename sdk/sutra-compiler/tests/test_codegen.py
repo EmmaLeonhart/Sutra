@@ -208,38 +208,11 @@ class TestEmbeddingDiskCache(unittest.TestCase):
 
 
 class TestVectorAccessors(unittest.TestCase):
-    """Surface-level `v.component(i)`, `v.semantic(i)`, `v.synthetic(i)`
-    lower to `_VSA.component(v, i)` etc. The runtime methods return a
-    Python float so the value can print or feed back into the program.
-    Purpose is introspection / debugging / teaching — not algebra.
-    """
-
-    def test_component_method_lowers_to_vsa_call(self):
-        src = (
-            "vector x = basis_vector(\"x\");\n"
-            "function fuzzy main() { return x.component(3); }\n"
-        )
-        py = _compile(src)
-        self.assertIn("_VSA.component(x, 3)", py)
-        # The naive pass-through `x.component(3)` must NOT appear in
-        # emitted user code — numpy arrays have no such method.
-        self.assertNotIn("x.component(3)", _strip_runtime(py))
-
-    def test_semantic_method_lowers(self):
-        src = (
-            "vector x = basis_vector(\"x\");\n"
-            "function fuzzy main() { return x.semantic(0); }\n"
-        )
-        py = _compile(src)
-        self.assertIn("_VSA.semantic(x, 0)", py)
-
-    def test_synthetic_method_lowers(self):
-        src = (
-            "vector x = basis_vector(\"x\");\n"
-            "function fuzzy main() { return x.synthetic(0); }\n"
-        )
-        py = _compile(src)
-        self.assertIn("_VSA.synthetic(x, 0)", py)
+    """The surface-level host-readout accessors `.component()` / `.semantic()`
+    / `.synthetic()` were REMOVED from the language 2026-06-07 (no
+    introspection — they were `float(v[...])` host readouts). They no longer
+    lower. The deprecated numpy backend still carries dead method defs pending
+    its retirement; see CLAUDE.md §"NO introspection"."""
 
     def test_runtime_defines_accessors(self):
         src = "function vector main() { return basis_vector(\"x\"); }\n"
@@ -267,21 +240,8 @@ class TestCanonicalAxes(unittest.TestCase):
         py = _compile(src)
         self.assertIn("_VSA.real(x)", py)
 
-    def test_imag_method_lowers_to_vsa_call(self):
-        src = (
-            "vector x = basis_vector(\"x\");\n"
-            "function fuzzy main() { return x.imag(); }\n"
-        )
-        py = _compile(src)
-        self.assertIn("_VSA.imag(x)", py)
-
-    def test_truth_method_lowers_to_vsa_call(self):
-        src = (
-            "vector x = basis_vector(\"x\");\n"
-            "function fuzzy main() { return x.truth(); }\n"
-        )
-        py = _compile(src)
-        self.assertIn("_VSA.truth(x)", py)
+    # `.imag()` / `.truth()` surface lowering removed 2026-06-07 (no
+    # introspection in the language). `.real()` retained transiently above.
 
     def test_real_number_constructor_lowers(self):
         src = (
