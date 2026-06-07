@@ -115,14 +115,17 @@ def _loop_program_source() -> str:
 
 
 def _step_blocks(code: str) -> list[str]:
-    """Extract the body of every nested `def _step(...):` from generated code
-    (the per-tick loop step). Returns one joined-source string per block."""
+    """Extract the body of every module-level loop step `def _step_loop...(...):`
+    from generated code (the per-tick loop step — the fusable/exportable weight
+    graph). Returns one joined-source string per block. NOTE: matches the
+    `_step_loop` naming specifically so it does NOT pick up the unrelated runtime
+    prelude method `def _step(self, ...)` (the recurrence/equality cell)."""
     lines = code.splitlines()
     blocks: list[str] = []
     i = 0
     while i < len(lines):
         ln = lines[i]
-        if ln.strip().startswith("def _step("):
+        if ln.strip().startswith("def _step_loop"):
             def_indent = len(ln) - len(ln.lstrip())
             body: list[str] = []
             j = i + 1
