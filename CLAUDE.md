@@ -141,9 +141,9 @@ This means:
 
 The live `paper/paper.md` is **not** under this freeze. It is free to evolve. The downloadable artifacts on the website (camera-ready PDF, anonymized PDF, supplementary zip) are built from `paper/neurips/`, not from `paper/paper.md`. See `docs/neurips-2026.md` for the user-facing download page and `paper/neurips/README.md` for the in-repo explanation.
 
-### 🔒 `paper/paper.md` is also FROZEN through May 2026 (the arXiv lock)
+### `paper/paper.md` is UNFROZEN (Emma 2026-06-07) — live revision target
 
-**Added 2026-05-20.** `paper/paper.md` was uploaded to arXiv 2026-05-19 (v2 correction series from 2026-05-21 `0b151b79`); the arXiv-v2 target is current `main` HEAD. Until **June 1, 2026** treat `paper/paper.md` as immutable so the repo matches what was uploaded — no edits for typos, reviewer feedback, findings, or next-venue polish, and none to any arXiv-visible supplementary file the bundle links to. `paper/neurips/` stays under its own permanent freeze (both locks active concurrently). If a later finding contradicts the arXiv text, stop and tell the user — don't silently amend (same discipline as the NeurIPS freeze). *Time-bounded — lifts automatically June 1.* If Emma says "unfreeze the paper" before then, it lifts; mention the freeze first if a request looks like a pre-June `paper/paper.md` edit.
+**The arXiv lock lifted (it was time-bounded through May 31; Emma explicitly unfroze it 2026-06-07 for a new submission).** `paper/paper.md` is now freely editable — audit it against current measured reality and revise toward the next submission. The prior arXiv-v2 snapshot is preserved in git history (uploaded 2026-05-19; correction series `0b151b79`). `paper/neurips/` stays under its own **permanent** freeze (do NOT touch it). When revising `paper/paper.md`, keep the integrity discipline: cite only measured numbers, no honest/genuinely buzzwords, replication URL only in the Reproducibility statement, and do not overclaim substrate-purity / fused-network status as *done* where the 2026-06-07 purity overhaul is still in progress.
 
 ### Paper-code durability — keep the original NeurIPS paper's examples working
 
