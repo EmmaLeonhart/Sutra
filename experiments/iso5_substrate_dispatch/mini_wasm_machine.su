@@ -15,6 +15,7 @@
 //          11=OUTPUT(pop value, append byte to the output buffer)
 //          12=OR(bitwise)  13=XOR(bitwise)  14=DUP(push copy of top)
 //          15=SWAP(swap top two)  16=DROP(pop, discard)
+//          17=GT(top2>top1 ?1:0)  18=GE(top2>=top1)  19=LE(top2<=top1)  20=NE(top2!=top1)
 // State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
 // output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
 // program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
@@ -44,6 +45,10 @@ function int step(scalar d) {
     int is_dup = truth_axis(defuzzy(op == 14));
     int is_swap = truth_axis(defuzzy(op == 15));
     int is_drop = truth_axis(defuzzy(op == 16));
+    int is_gt = truth_axis(defuzzy(op == 17));
+    int is_ge = truth_axis(defuzzy(op == 18));
+    int is_le = truth_axis(defuzzy(op == 19));
+    int is_ne = truth_axis(defuzzy(op == 20));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -65,15 +70,31 @@ function int step(scalar d) {
     int v_and = Bits.band(ramRead(98 + sp), ramRead(99 + sp)).real();
     int v_or = Bits.bor(ramRead(98 + sp), ramRead(99 + sp)).real();
     int v_xor = Bits.bxor(ramRead(98 + sp), ramRead(99 + sp)).real();
-    // EQ / LT push 1 or 0 (truth ±1 mapped to 1/0): top2 OP top1.
+    // EQ / LT / GT / GE / LE / NE push 1 or 0 (truth ±1 mapped to 1/0): top2 OP top1.
+    // MEASURED substrate fact (finding 2026-06-06): strict `<` / `>` return ~0.5
+    // (the boundary) at EXACT equality, while `==` is clean {0,1} there. So the
+    // strict inequalities are gated by (1 - v_eq): at equality v_eq=1 zeroes the
+    // ambiguous raw comparison, and `==` decides the boundary. Without this,
+    // v_ge = 1 - v_lt collapsed to ~0.5 -> round 0 (7>=7 and 5<=5 both failed).
     int v_eq = (truth_axis(defuzzy(top2 == top1)) + 1) / 2;
-    int v_lt = (truth_axis(defuzzy(top2 < top1)) + 1) / 2;
+    int v_lt_raw = (truth_axis(defuzzy(top2 < top1)) + 1) / 2;
+    int v_gt_raw = (truth_axis(defuzzy(top1 < top2)) + 1) / 2;
+    int v_lt = (1 - v_eq) * v_lt_raw;
+    int v_gt = (1 - v_eq) * v_gt_raw;
+    // GE/LE/NE are the boundary-correct negations of LT/GT/EQ.
+    int v_ge = 1 - v_lt;
+    int v_le = 1 - v_gt;
+    int v_ne = 1 - v_eq;
     // 98+sp (second-from-top) chain. Base keeps top2; SWAP writes top1 here (old
     // top moves down); binary ops (incl. OR/XOR) write their result; net sp -1
     // collapses 99+sp/98+sp so the result/new-top lands at 99+(sp-1)=98+sp.
     int b_swap = (((1 + is_swap) * (top1)) + ((1 - is_swap) * (top2))) / 2;
     int b_lt = (((1 + is_lt) * (v_lt)) + ((1 - is_lt) * (b_swap))) / 2;
-    int b_eq = (((1 + is_eq) * (v_eq)) + ((1 - is_eq) * (b_lt))) / 2;
+    int b_gt = (((1 + is_gt) * (v_gt)) + ((1 - is_gt) * (b_lt))) / 2;
+    int b_ge = (((1 + is_ge) * (v_ge)) + ((1 - is_ge) * (b_gt))) / 2;
+    int b_le = (((1 + is_le) * (v_le)) + ((1 - is_le) * (b_ge))) / 2;
+    int b_ne = (((1 + is_ne) * (v_ne)) + ((1 - is_ne) * (b_le))) / 2;
+    int b_eq = (((1 + is_eq) * (v_eq)) + ((1 - is_eq) * (b_ne))) / 2;
     int b_xor = (((1 + is_xor) * (v_xor)) + ((1 - is_xor) * (b_eq))) / 2;
     int b_or = (((1 + is_or) * (v_or)) + ((1 - is_or) * (b_xor))) / 2;
     int b_and = (((1 + is_and) * (v_and)) + ((1 - is_and) * (b_or))) / 2;
@@ -114,7 +135,11 @@ function int step(scalar d) {
     int s_xor = (((1 + is_xor) * (sp_binop)) + ((1 - is_xor) * (s_out))) / 2;
     int s_or = (((1 + is_or) * (sp_binop)) + ((1 - is_or) * (s_xor))) / 2;
     int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_or))) / 2;
-    int s_eq = (((1 + is_eq) * (sp_binop)) + ((1 - is_eq) * (s_lt))) / 2;
+    int s_gt = (((1 + is_gt) * (sp_binop)) + ((1 - is_gt) * (s_lt))) / 2;
+    int s_ge = (((1 + is_ge) * (sp_binop)) + ((1 - is_ge) * (s_gt))) / 2;
+    int s_le = (((1 + is_le) * (sp_binop)) + ((1 - is_le) * (s_ge))) / 2;
+    int s_ne = (((1 + is_ne) * (sp_binop)) + ((1 - is_ne) * (s_le))) / 2;
+    int s_eq = (((1 + is_eq) * (sp_binop)) + ((1 - is_eq) * (s_ne))) / 2;
     int s_brif = (((1 + is_brif) * (sp_binop)) + ((1 - is_brif) * (s_eq))) / 2;
     int s_and = (((1 + is_and) * (sp_binop)) + ((1 - is_and) * (s_brif))) / 2;
     int s_mul = (((1 + is_mul) * (sp_binop)) + ((1 - is_mul) * (s_and))) / 2;
