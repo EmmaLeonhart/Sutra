@@ -5515,3 +5515,17 @@ explaining why). Dropping it substrate-purely needs an axon number-decode
 primitive (A.0(a)#5), not a bare .item(). Finding:
 2026-06-07-axon-field-real-is-load-bearing-at-runtime-dim.md. Caught by the
 substrate-run fixture test (compile+run+compare), which my full-dim probe missed.
+
+## 2026-06-07 — non-halting-loop spec: record Emma's recur refinement (recurrence is on the substrate)
+
+Emma clarified recur(): (1) as an orchestrator instruction it marks the program
+as continuous-output (non-halting) -- the compiler emits no halting machinery; (2)
+the info in recur(X) is fed back through SUBSTRATE recurrent connections
+(recurrent neurons) -- "the recurrence happens entirely on the substrate," NOT a
+host loop. Corrects my earlier "orchestrator holds state and loops" framing: the
+feedback/state lives in the network's recurrent connections; the orchestrator only
+signals output-mode + reads continuous outputs. The v1 shipped impl (module
+self._tick_state tensor + host re-calls tick()) is a host-driven approximation;
+substrate-recurrent is the target (the fused-NN/weight-file shape). Added a
+"Refinement (Emma 2026-06-07)" section to non-halting-loop.md; corrected the
+project_orchestrator_model memory.

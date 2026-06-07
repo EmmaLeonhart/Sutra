@@ -8,6 +8,8 @@ A second loop type in Sutra. The existing `loop` keyword is **halting** — boun
 
 > **Scope note from Emma's design (2026-05-28):** the halting/non-halting distinction is currently more an *ergonomic Python-host thing* than a deep runtime distinction. The downstream OS built on Sutra (Yantra) will not necessarily have halting as a runtime distinction. The `recur` keyword is what distinguishes them at the language level; the runtime difference is "host calls this function repeatedly to drive ticks" vs "function returns and terminates."
 
+> **Refinement (Emma 2026-06-07): the recurrence is on the substrate; `recur` is an orchestrator signal + a substrate feedback.** `recur` does two things. (1) As an instruction to the tiny Python orchestrator, it marks the program as having a **continuous output** (non-halting) rather than halting — the compiler does NOT emit halting machinery for it. (2) The information passed to `recur(X)` is **fed back through substrate recurrent connections (recurrent neurons)** — the recurrence "happens entirely on the substrate." It is NOT a host loop computing the recurrence: the orchestrator's role narrows to signaling output-mode and reading the continuous per-tick outputs; the feedback/state itself lives in the network's recurrent connections. This is the fused-NN/weight-file shape ([[project_orchestrator_model]], `planning/exploratory/fused-compile-target.md`): the recurrence is in the weights; the orchestrator is a connector. The v1 shipped impl (state in a module-scoped `self._tick_state` tensor, host re-calls `tick()`) is a host-driven approximation of this; the substrate-recurrent realization is the target.
+
 ## Surface syntax
 
 ```sutra
