@@ -1,8 +1,20 @@
-// Mini RAM-state WASM stack machine (2026-06-06). All machine state lives in
-// RAM (Emma: "the wasm array is ram"); the host drives steps (autoregressive
-// model — one step per call), so no multi-slot recur is needed (spec: v1 recur
-// has one slot). Opcode dispatch reads the opcode FRESH from RAM each step
-// (ramRead(pc).real() == tag), which dispatches cleanly against literals.
+// Mini RAM-state WASM stack machine (2026-06-06; SUBSTRATE-PURE rewrite
+// 2026-06-07). All machine state lives in RAM (Emma: "the wasm array is ram");
+// the host drives steps (autoregressive model — one step per call), so no
+// multi-slot recur is needed (spec: v1 recur has one slot).
+//
+// SUBSTRATE-PURE (2026-06-07): ZERO `.real()` — values stay number-VECTORS end
+// to end. Arithmetic is element-wise vector +/-/* (substrate); comparisons use
+// the numeric operators ==/</> (route to eq_synthetic/gt on the truth axis —
+// a boolean is a fuzzy scalar on the truth axis, +1/-1, per
+// equality-and-defuzzification.md:92); dispatch is truth_axis(defuzzy(op==N))
+// (a 0-dim tensor, no host readout); addresses (pc/sp) are vectors that ramRead/
+// ramWrite decode at the device boundary (the I/O wire). No host-float arithmetic,
+// no introspection. Verified: test_mini_wasm_machine.py 30/30 on the substrate.
+// (Earlier versions used ramRead(...).real() and did ADD/SUB/MUL on host floats —
+// a substrate breach now removed.)
+// Opcode dispatch reads the opcode FRESH from RAM each step
+// (ramRead(pc) == tag), which dispatches cleanly against literals.
 // Side effects are single blended writes to FIXED addresses (no address
 // blending): each cell is written its new value if its opcode matched, else
 // rewritten with its existing value (a no-op).
@@ -23,12 +35,12 @@
 // Binary ops pop two (top1=top, top2=second), push combine(top2, top1)
 // (matching the reference's `let b=pop in let a=pop in push (a OP b)`).
 function int step(scalar d) {
-    int pc = ramRead(0).real();
-    int sp = ramRead(1).real();
-    int op = ramRead(pc).real();
-    int imm = ramRead(pc + 1).real();
-    int top1 = ramRead(99 + sp).real();
-    int top2 = ramRead(98 + sp).real();
+    int pc = ramRead(0);
+    int sp = ramRead(1);
+    int op = ramRead(pc);
+    int imm = ramRead(pc + 1);
+    int top1 = ramRead(99 + sp);
+    int top2 = ramRead(98 + sp);
     int is_const = truth_axis(defuzzy(op == 1));
     int is_add = truth_axis(defuzzy(op == 2));
     int is_sub = truth_axis(defuzzy(op == 3));
@@ -57,7 +69,7 @@ function int step(scalar d) {
     int taken = (((1 + is_brif) * (1 + cond_nz)) / 2) - 1;
     // CONST writes the new top cell (100+sp) = imm; DUP writes it = top1 (push a
     // copy of the current top); else keeps it.
-    int cell_hi = ramRead(100 + sp).real();
+    int cell_hi = ramRead(100 + sp);
     int hi_dup = (((1 + is_dup) * (top1)) + ((1 - is_dup) * (cell_hi))) / 2;
     int new_hi = (((1 + is_const) * (imm)) + ((1 - is_const) * (hi_dup))) / 2;
     ramWrite(100 + sp, new_hi);
@@ -66,10 +78,10 @@ function int step(scalar d) {
     int v_sub = top2 - top1;
     int v_mul = top2 * top1;
     // Bitwise needs number-VECTORS (its bit-plane decomposition), so feed the
-    // raw ramRead vectors (not the .real() scalars) and project the result.
-    int v_and = Bits.band(ramRead(98 + sp), ramRead(99 + sp)).real();
-    int v_or = Bits.bor(ramRead(98 + sp), ramRead(99 + sp)).real();
-    int v_xor = Bits.bxor(ramRead(98 + sp), ramRead(99 + sp)).real();
+    // raw ramRead vectors (not the  scalars) and project the result.
+    int v_and = Bits.band(ramRead(98 + sp), ramRead(99 + sp));
+    int v_or = Bits.bor(ramRead(98 + sp), ramRead(99 + sp));
+    int v_xor = Bits.bxor(ramRead(98 + sp), ramRead(99 + sp));
     // EQ / LT / GT / GE / LE / NE push 1 or 0 (truth ±1 mapped to 1/0): top2 OP top1.
     // MEASURED substrate fact (finding 2026-06-06): strict `<` / `>` return ~0.5
     // (the boundary) at EXACT equality, while `==` is clean {0,1} there. So the
@@ -105,7 +117,7 @@ function int step(scalar d) {
     // LOAD: pop addr (top1), push ram[addr] -> rewrite the top cell (99+sp) with
     // the loaded value (else keep). Net sp 0. Data region is the program's choice
     // (use addresses outside [0..2]/program/stack, e.g. 200+).
-    int loaded = ramRead(top1).real();
+    int loaded = ramRead(top1);
     // 99+sp (top) chain: LOAD writes the loaded value; SWAP writes top2 (old
     // second moves up); else keep top1.
     int n99_swap = (((1 + is_swap) * (top2)) + ((1 - is_swap) * (top1))) / 2;
@@ -113,13 +125,13 @@ function int step(scalar d) {
     ramWrite(99 + sp, new_99);
     // STORE: pop value (top1) and addr (top2), write ram[addr]=value (else no-op
     // rewrite of ram[top2] with its existing value). Net sp -2.
-    int store_existing = ramRead(top2).real();
+    int store_existing = ramRead(top2);
     int store_val = (((1 + is_store) * (top1)) + ((1 - is_store) * (store_existing))) / 2;
     ramWrite(top2, store_val);
     // OUTPUT: pop value (top1), append it to the output buffer at 300+out_ptr and
     // advance out_ptr (ram[3]); else no-op. Net sp -1.
-    int out_ptr = ramRead(3).real();
-    int out_existing = ramRead(300 + out_ptr).real();
+    int out_ptr = ramRead(3);
+    int out_existing = ramRead(300 + out_ptr);
     int out_val = (((1 + is_output) * (top1)) + ((1 - is_output) * (out_existing))) / 2;
     ramWrite(300 + out_ptr, out_val);
     int new_out_ptr = (((1 + is_output) * (out_ptr + 1)) + ((1 - is_output) * (out_ptr))) / 2;
@@ -150,6 +162,6 @@ function int step(scalar d) {
     int pc_brif = (((1 + taken) * (imm)) + ((1 - taken) * (pc + 2))) / 2;
     int new_pc = (((1 + is_halt) * (pc)) + ((1 - is_halt) * (pc_brif))) / 2;
     ramWrite(0, new_pc);
-    return ramRead(99 + sp).real();
+    return ramRead(99 + sp);
 }
 function string main() { return "ok"; }
