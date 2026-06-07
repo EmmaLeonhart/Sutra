@@ -61,6 +61,13 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 Emma set three timed tasks today. The crons are `durable:false` (die on restart),
 so if a new session starts before these fire, recreate them:
 
+- **2026-06-07 10:00 (cron `81aab3d7`)** — COMPLETELY UNFREEZE `paper/paper.md`
+  (the regular paper) + full audit + update for a NEW submission. Must reconcile
+  every claim with the 2026-06-07 substrate-purity findings (no overclaiming
+  "pure substrate" / "fused neural network / weight file" as done — that's the
+  in-progress target). Update author contact email → `contact@emmaleonhart.com`.
+  Do NOT touch `paper/neurips/` (permanent freeze). Commit+push for resubmission.
+
 - **11:30 (cron `7f2732b4`)** — full end-to-end attempt: transpile the COMPLETE
   `WASM/iso/ocaml/bin/main.ml` → Sutra, then HAND-EDIT the output until it compiles,
   runs on the substrate, and reproduces the OCaml machine's reference output (fill
