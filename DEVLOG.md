@@ -5412,3 +5412,15 @@ autograd (reintroduced host readout) or breaks fusion fails CI, not just a manua
 script run. 3/3 pass. Protects: substrate-pure functions are differentiable,
 compile to a saved fused graph, and bounded recurrence fuses with gradients
 through every step.
+
+## 2026-06-07 — overhaul Phase 2: orchestrator-model demo (weights=step graph, tiny Python driver reads halt)
+
+experiments/fused_nn/orchestrator_model.py: a compiled Sutra step(x)=x*2 traces
+into a host-readout-free graph (no aten::item/Float); a ~10-line Python
+orchestrator drives x<-step(x) from 1 until >100 (x=128 after 7 steps), reading
+x's real axis only in the orchestrator (the halt + output terminal boundary).
+This realizes Emma's architecture (project_orchestrator_model): the network is the
+step graph; the orchestrator is a tiny driver that runs it, reads the halt signal
+to stop, reads output to print. Added to the CI guard test_fused_nn (4/4).
+Ollama-free. Remaining: codegen restructuring so unbounded loops EMIT this shape
+(step graph + orchestrator) directly, and RAM-as-tensor for the WASM machine.
