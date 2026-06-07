@@ -72,11 +72,12 @@ def main() -> int:
     ast = Parser(lx.tokenize(), file="<emit-loop>", diagnostics=lx.diagnostics).parse_module()
     assert not lx.diagnostics.has_errors(), list(lx.diagnostics)
     ns: dict = {}
-    # Build + trace on CPU. The mechanism is device-agnostic; we pin CPU because
-    # `torch.jit.trace` records a comparison literal as a CPU constant on a CUDA
-    # box (eager runs fine on cuda — verified), so tracing a comparison-using
-    # step on GPU hits a cuda/cpu mismatch. Exporting on GPU is a separate
-    # trace-device follow-up; CPU is the right scope for proving export+drive.
+    # Build + trace on CPU to produce a PORTABLE weight file: the saved graph and
+    # the subprocess orchestrator (which builds plain CPU tensors) run anywhere,
+    # no GPU required. (Tracing on cuda also works end-to-end — verified
+    # 2026-06-07: trace+save+reload+drive on cuda gives n=5, host-readout-free; the
+    # earlier "cuda trace device quirk" was specific to the reverted fused-RAM code,
+    # not loops. CPU here is a portability choice, not a bug workaround.)
     _orig_cuda = torch.cuda.is_available
     torch.cuda.is_available = lambda: False
     try:

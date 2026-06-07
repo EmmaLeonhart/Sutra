@@ -63,10 +63,12 @@ reproduces the result (n=5), cross-checked vs the eager driver; CI-guarded
 (test_fused_nn). The straight-line case shipped earlier (`emit_weight_file`,
 `7181c2a4`).
 
-**Known follow-up (cuda trace device quirk).** `torch.jit.trace` records a
-comparison literal as a CPU constant on a CUDA box (eager runs fine on cuda), so the
-loop-export demo pins CPU. Exporting a comparison-using step on GPU needs a
-device-placement fix in the trace path — separate, bounded.
+**~~cuda trace device quirk~~ — RESOLVED 2026-06-07 (was a false alarm).** The
+loop weight-file exports + drives on CUDA end-to-end (verified: trace+save+reload+
+drive gives n=5, host-readout-free). The earlier device mismatch was specific to the
+reverted fused-RAM code (`ram_gather` shape ops + the 21-opcode dispatch constants),
+not to loops. The `emit_loop_weight_file` demo pins CPU as a **portability choice**
+(a portable weight file + a plain-CPU orchestrator), not a bug workaround.
 
 **Remaining toward the full WASM machine as ONE fused recurrent net:** (1) the
 machine keeps all state in a host RAM *list* with host-driven steps — move it to a
