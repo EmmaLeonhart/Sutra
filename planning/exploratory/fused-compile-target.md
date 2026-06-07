@@ -74,18 +74,21 @@ single `(N, dim)` tensor threaded through the step (the `ram_gather`/`ram_scatte
 primitives exist); (2) lift the v1 one-slot-`recur` limit so pc+sp+stack+RAM recur
 together on the substrate (multi-state recurrence).
 
-### State as a single tensor (for the WASM machine)
-NOTE: the RAM cells are ALREADY in VRAM — each `self.ram[addr]` is a `cuda`
-number-vector. The data is not off-GPU. What is host-side is (a) the **container**
-(`self.ram` is a Python *list* of tensors, not one tensor) and (b) the
-**addressing** (`addr = int(round(ptr[AXIS_REAL]))` → Python list index
-`self.ram[addr]`), neither of which is a traceable tensor op. For the step to be a
-pure exportable graph, change the container to a single `(N, dim)` VRAM tensor and
-the access to tensor **gather/scatter** (a tensor index, not a host int), threaded
-as `step(ram_tensor) -> ram_tensor'`. The data stays in VRAM; only list→tensor +
-int-index→gather/scatter change. Additionally the machine's multi-state recurrence
-needs the v1 one-slot-`recur` limit lifted (separate spec decision,
-`non-halting-loop.md`).
+### The WASM machine RAM — do NOT fuse it (corrected 2026-06-07)
+A previous version of this section proposed making the machine's RAM a single
+`(N, dim)` VRAM tensor threaded through the step (`step(ram_tensor) -> ram_tensor'`)
+so the whole machine fuses into one graph. **That is wrong — it treats VRAM as RAM**
+and contradicts the NTM design (`planning/sutra-spec/ram-pointers.md`): RAM is
+**EXTERNAL host memory**, the program holds only a pointer + VRAM mailbox, and an
+**orchestrator** does the actual RAM I/O. `ramRead`/`ramWrite` are the I/O boundary,
+not substrate ops; the `int(round(ptr.real.item()))` address decode is the
+**sanctioned orchestrator wire**, not a leak. The NTM is one of three DISTINCT
+architectures (RNN / NTM / reservoir) and must stay external-memory. The fused
+compile target here applies to the **RNN path** (straight-line + loop recurrence,
+#6/#7) — NOT to RAM. The real NTM lives in `experiments/ntm_ram/` (orchestrator +
+ram_device + mailbox); a trainable NTM trains the **controller**, not the RAM access.
+The `ram_gather`/`ram_scatter` / `fused_ram_machine` / `ram_tensor_step` code that
+implemented the fuse-RAM idea was reverted.
 
 ## Open decisions
 - Artifact format: `torch.jit.save` (TorchScript) vs `torch.export` (the newer

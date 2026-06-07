@@ -1,9 +1,23 @@
 # The WASM machine as ONE fused recurrent step (#2 + #3)
 
-**Status:** design (pre-build). Grounds the next deliberate session. Builds on the
-#6/#7 loop step/driver split ([[project_orchestrator_model]],
-`fused-compile-target.md`) and Emma's directive: the machine must be an ACTUAL
-fused recurrent network exported as a weight file, not host-driven steps.
+> **⚠️ SUPERSEDED / WRONG PREMISE — REVERTED 2026-06-07 (Emma caught it).** This doc
+> proposed making the WASM machine's RAM a single fused VRAM tensor (option A/B
+> "tensor-RAM"). **That treats VRAM as RAM and contradicts the NTM design.** Per
+> `planning/sutra-spec/ram-pointers.md`: RAM is **EXTERNAL host memory**; the program
+> holds only a pointer + a VRAM mailbox; an **orchestrator** (CPU) periodically syncs
+> and performs the actual RAM I/O; `ramRead`/`ramWrite` are the I/O boundary, NOT
+> substrate ops, and "collapsing RAM into VRAM" is explicitly a breach. The three
+> architectures (Emma) are DISTINCT: **RNN** (substrate loop recurrence — legitimately
+> fused, #6/#7), **NTM** (external RAM + orchestrator — do NOT fuse RAM), **reservoir**
+> (deferred). The real NTM is `experiments/ntm_ram/` (orchestrator + ram_device +
+> mailbox). A *trainable* NTM trains the **controller** (the substrate program that
+> computes pointers / consumes values); the RAM access stays hard discrete I/O
+> (ram-pointers.md OQ1). The fused-RAM code (tensor-RAM mode, ram_gather/ram_scatter,
+> fused_ram_machine, ram_tensor_step) was reverted. **Everything below is retained
+> only as a record of the wrong turn — do not implement it.**
+
+**Status:** SUPERSEDED (see banner). Builds on the #6/#7 loop step/driver split
+([[project_orchestrator_model]], `fused-compile-target.md`).
 
 ## UPDATE 2026-06-07: #2 DONE via option (A) hard addressing; #3 subsumed
 
