@@ -137,115 +137,64 @@ state (avoid literal-vs-loop-state comparison).
      substrate filler→number-vector decode primitive (NOT `.real()`). Real work, not a
      blind removal. RAM reads (array) are exempt — RAM stores clean number-vectors.
 
-## ⭐ SUBSTRATE-PURITY → FUSED-NEURAL-NETWORK OVERHAUL (Emma 2026-06-07, TOP PRIORITY, barrel through, don't stop)
+## ⭐ TOP PRIORITY — make Sutra compile to REAL fused neural networks (Emma 2026-06-07; barrel through, IN THIS ORDER)
 
-Emma's directive in full: Sutra must compile to an **actual fused neural network —
-real weight files** — not a mathematical approximation or host-orchestrated torch
-calls. NO readout/log/monitor/debug exists by design. Work this continuously until
-through. Diagnosis + inventory:
-`planning/findings/2026-06-07-codegen-host-readout-audit.md` and
-`…-mini-wasm-machine-arithmetic-runs-on-host.md`. CLAUDE.md §"NO introspection".
+Emma's order — DO NOT reorder ([[feedback_priority_fused_nn_then_paper_ntm_parked]]):
+  A. Remove `real()` / scalar-extraction ENTIRELY so it is conceptually
+     uncallable in the language -> genuinely substrate-pure -> programs become real
+     neural networks. (The language was only PSEUDO-pure: a `.su` program could
+     scalar-extract via `real()` = `float(v[..].item())`, running host arithmetic in
+     the orchestrator. That escape hatch must not exist.)
+  B. Re-run ALL the main Sutra paper experiments on the now-pure substrate; switch
+     any wrong numbers; update `paper/paper.md` (DATA ONLY, no narrative). Goes to
+     clawRxiv + arXiv.
+  C. (PARKED until A+B done) the Neural Turing Machine. Do NOT touch it first. Stop
+     chasing clawRxiv bot feedback (not the vision).
 
-The core ops ARE real torch ops on CUDA; the problem is (a) 33 `.item()`/`float`
-host-readout leaks sever purity + the autograd graph, and (b) a compiled program
-is host-Python-orchestrated sequential torch calls, not ONE fused graph/network.
+Key facts (Emma): the CLI defaults to **50 dim BY DESIGN**; the **compile-time
+embedding model SETS the compilation dim** (nomic -> 768). Axons take embeddings as
+inputs. MEASURED: at the embedding-model dim (768), axon record/tuple/option field
+reads recover the number CLEANLY as a raw vector — no `real()` needed (the dim-50
+crosstalk was running axon programs below their model dim).
 
-Phase 1 — purity (precondition; a severed graph can't be fused or trained):
-1. §A accessors: runtime methods `imag`/`truth`/`component`/`semantic`/`synthetic`/
-   `norm` REMOVED (dead, 0 consumers; commit 87cfa407) → .item() 26→21. CI grep-gate
-   live (test_no_host_readout, baseline 21, goal 0). REMAINING: remove the SURFACE
-   lowering for `.component()`/`.semantic()`/`.synthetic()`/`.imag()` from
-   parser/codegen (runtime methods gone but `.su` still lowers to them → would
-   AttributeError; codegen tests only assert the emit-string). And `real` itself
-   (13 .su + 7 internal JS-carve-out consumers) is the last accessor to go.
-2. Rework consumers off accessors: OCaml transpiler array-read DONE (baa0990c,
-   emits `ramRead(addr)` not `.real()`). REMAINING: OCaml tuple/record/option field
-   reads need the axon-decode primitive (A.0(a)#5, not a blind removal); TS/C
-   transpilers; `stdlib/math.su` (already clean — only a comment); GUI demos.
-3. mini_wasm_machine: DONE — rewritten to ZERO `.real()` (vectors throughout, vector
-   +/-/* , ==/</> numeric comparison, truth-axis booleans, truth_axis dispatch).
-   Verified substrate-to-substrate: test_mini_wasm_machine.py 30/30 (716s).
-4. Rework §B control readouts (`isFulfilled`/`isRejected`, `array_length`).
-5. A.0(a) RESOLVED above.
-Pre-existing (not this work): complex `csin`/`ccos` imaginary-part inaccuracy vs
-cmath (16 test_transcendentals subtests) — separate bug, noted.
+### A. Remove real()/scalar extraction entirely
+- A1. Transpilers (sutra-from-ocaml/ts/c): stop emitting `.real()` for record/tuple/
+  option field reads — emit the raw `axon_item` vector + VECTOR arithmetic; update
+  the generated `expected.su` fixtures. The fixture substrate-run tests invoke
+  `sutra_compiler --run` at the CLI default (dim 50, model-free) — axon programs
+  must run at their embedding-model dim so field reads are clean; fix the harness
+  (compile with the model / adequate dim) so fixtures pass WITHOUT `real()`.
+- A2. Tests using `.real()` (4 files): switch to host-side tensor indexing at the
+  terminal boundary (a verification read, not a language feature).
+- A3. Remove the SURFACE lowering of `.real()` (parser/codegen) -> uncallable in `.su`.
+- A4. Remove the runtime `def real()` method.
+- A5. Lower the host-readout gate baseline (test_no_host_readout 21 -> minus removed);
+  keep ratcheting toward 0. Remaining = by-design I/O boundaries (terminal output,
+  JS-interop) — name them.
+- Already done (keep): dead accessors imag/truth/component/semantic/synthetic/norm
+  removed (87cfa407); loop step pure + exportable as a weight file (emit_loop_weight_file);
+  mini_wasm_machine substrate-pure.
 
-Phase 2 — fusion into a real neural network / weight file (the actual target):
-PROVEN so far (Ollama-free, CI-guarded test_fused_nn 3/3): substrate-pure functions
-are end-to-end differentiable; a function compiles to a single fused TorchScript
-graph saved as a weight file (reload+run+backprop identical); a BOUNDED recurrence
-loop(N) fuses with gradients through every step.
-ARCHITECTURE (Emma 2026-06-07, [[project_orchestrator_model]]): the fused
-weight-graph is the loop BODY / STEP (pure, exportable); a TINY Python orchestrator
-drives it — loads weights, runs on input, drives the recurrence, reads the HALT
-signal to stop, reads OUTPUT to print. The orchestrator's halt-read/output-read is
-the legitimate terminal boundary, NOT in-graph introspection.
-6. DONE (28623769): loop emission split into a PURE nested `_step(...)` (condition
-   + body + soft-halt, zero host readout) + a thin in-module driver that does the
-   single `float(_halted) >= 0.99: break`. Behaviour-identical (driver breaks on
-   first saturating tick). All 4 loop kinds. Gate reframed: `_step` readout-free
-   (test_step_graph_is_readout_free) + halt-read stays in driver (the legitimate
-   orchestrator boundary). Loop+await 59 green; finding resolution section.
-7. DONE: `_step` hoisted to a MODULE-LEVEL `_step_loop_<name>(_t,[this,][arr,]
-   state..., _init...)` — exportable by name. An UNBOUNDED `while_loop` now exports
-   end-to-end: trace the step → `step.pt` (host-readout-free, verified no
-   aten::item) + a tiny torch-only orchestrator that drives the recurrence (call
-   step, read halt) and reproduces the loop result (n=5), cross-checked vs the
-   eager driver. Demo `experiments/fused_nn/emit_loop_weight_file.py`, CI-guarded
-   (test_fused_nn 8/8). All loop kinds + captures green (64 loop/await/readout/
-   capture; codegen 91). Recurrent weight-file compile target realized.
-   FOLLOW-UP (cuda-trace device quirk): `torch.jit.trace` records a comparison
-   literal as a CPU constant on a CUDA box (eager runs fine on cuda), so the export
-   demo pins CPU; tracing a comparison-using step on GPU needs a device fix
-   (separate, bounded).
-   #2/#3 — REVERTED 2026-06-07 (WRONG ARCHITECTURE; Emma caught it). The "WASM
-   machine as one fused RAM tensor" (tensor-RAM mode in ram_read/ram_write +
-   ram_gather/ram_scatter + fused_ram_machine + ram_tensor_step) treated VRAM AS RAM
-   and fused memory into the step graph. That contradicts the documented NTM design
-   (planning/sutra-spec/ram-pointers.md): **RAM is EXTERNAL host memory; the program
-   holds only a pointer + VRAM mailbox; an orchestrator (CPU) periodically syncs and
-   does the actual RAM I/O. ramRead/ramWrite are the I/O boundary, explicitly NOT
-   substrate ops; "collapsing into VRAM" is named a breach.** All of it reverted; the
-   external-RAM device + `.item()` wire (the SANCTIONED orchestrator decode, not a
-   leak) is restored. Loop/RNN fusion (#6/#7, emit_loop_weight_file) STAYS — that's
-   the legitimate RNN path.
-   THREE ARCHITECTURES (Emma's framing, do not blur): RNN (substrate loop recurrence
-   — fused, #6/#7 done), NTM (external RAM + orchestrator — the real next work,
-   already partly built in experiments/ntm_ram/), reservoir (deferred to OS era).
-   NEXT (the real NTM work):
-   (a) The percepta-ntm machine should run on the EXTERNAL-RAM orchestrator
-       (experiments/ntm_ram: orchestrator.py + ram_device.py + VRAM mailbox), NOT a
-       fused VRAM tensor. RAM access stays hard/discrete I/O (ram-pointers.md OQ1:
-       NOT differentiable — RAM is I/O like a file).
-   (b) TRAINABLE NTM read head — DONE (first measured realization). Emma's
-       "linear regression over memory" = a **SOFT LINEAR READ over cell CONTENTS**:
-       a differentiable trainable linear-weighted sum over the (orchestrator-fetched)
-       memory cells, via the substrate real projector; write + address stay HARD.
-       Built `experiments/ntm_ram/trainable_read.py`: trained by SGD to do linear
-       regression over memory — loss 10.4 -> 0.0, recovered the true coefficients
-       exactly, ||grad||=6.47 at step 0 (gradients flow). RAM external (cells are
-       fetched contents), NOT fused. CI-guarded (test_ntm_ram TestTrainableRead,
-       12 passed). Spec revised: ram-pointers.md OQ1 (write/address hard; read soft-
-       linear-over-contents — reads only; this is a readout layer, NOT soft
-       addressing). This is the trainable-seed's first real training result —
-       addresses the percepta-ntm reviewer's "no training experiments" con.
-       NEXT (build): wire the trainable read into the NTM CONTROLLER loop. Emma chose
-       (AskUserQuestion 2026-06-07) **QUERY-DEPENDENT read weights from controller
-       state**: each step the controller emits a query vector; read_weights =
-       (trainable) linear map of the query; read = sum_i read_weights_i * value(cell_i)
-       — the standard NTM read-head shape (the controller decides what to read each
-       step). Build: controller step emits query -> per-step soft read over cell
-       contents -> controller consumes read + computes the HARD pointer/action; a
-       controller-train demo end-to-end (SGD through the read, measured). Write +
-       address stay hard; RAM external (orchestrator), NOT fused.
-   (c) ~~cuda torch.jit.trace device quirk~~ RESOLVED 2026-06-07: doesn't reproduce
-       for loops — it was specific to the reverted fused-RAM code. Verified the loop
-       weight-file exports + drives on CUDA end-to-end (n=5, host-readout-free). The
-       emit_loop_weight_file demo pins CPU as a PORTABILITY choice (portable weight
-       file + plain-CPU orchestrator), not a bug workaround. No device fix needed.
+### B. Re-run main Sutra paper experiments + switch wrong numbers (DATA ONLY)
+Run on the pure substrate, compare to reported, switch any that differ in
+`paper/paper.md` (no confessional/limitations narrative):
+- B1. §3.6 `differentiable_training_compiled.py --k 5 --per-class 10 --epochs 30
+  --seeds 0,1,2 --batched` -> paper: 18.7±9.5% -> 100.0±0.0%.
+- B2. §3.2 `rotation_binding_capacity_llm.py` -> 100% through k=8 (3 LLM substrates).
+- B3. §3.2.1 `crosstalk_chain.py` -> 100% through L=2.
+- B4. §3.7 `differentiable_training_weighted.py` -> recompile round-trip ≈2e-7/logit.
+- (§3.2 ESM-2 needs facebook/esm2 — may be unavailable locally; note if skipped.)
 
-HARD RAIL: every step RUN and verified substrate-to-substrate; no faking; "it ran"
-is not "it's pure" and not "it's one fused differentiable network."
+### C. PARKED — Neural Turing Machine (do NOT work until A+B done)
+External-RAM NTM (experiments/ntm_ram) + the trainable read head
+(trainable_read.py, done) are PARKED. The fused-RAM "VRAM as RAM" approach was WRONG
+and reverted. Emma isn't sure the NTM is conceptually/actually running; revisit only
+after A+B. Stop iterating percepta-ntm against clawRxiv bot cons (one-shot kill cron
+375baa6c winds down the :30 percepta cron at 17:12).
+
+HARD RAIL: every step RUN + verified substrate-to-substrate; no faking; measure,
+don't claim. Do NOT ask Emma incomprehensible low-level questions — use engineering
+judgment and barrel through.
 
 ## Context (read first, do not work on)
 
