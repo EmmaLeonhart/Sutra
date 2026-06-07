@@ -295,7 +295,8 @@ a substrate bitwise stdlib) are in place and individually verified.
   not from the original authors; where they differ (≈18K vs ~30K tok/s) we report the
   measured value.
 - The artifact under study is Percepta's `transformer-vm`. Its repository was
-  originally scaffolded against a separate neural-computers e-print before
+  originally scaffolded against a separate neural-computers e-print (Zhuge et al.,
+  *Neural Computers*) before
   `transformer-vm` was identified as the actual target; that source was fetched and
   then removed, and we do **not** reproduce it here.
 
@@ -353,5 +354,8 @@ Repository: https://github.com/EmmaLeonhart/Sutra
   ICML 2021 (the RASP language).
 - D. Lindner, J. Kramár, S. Farquhar, et al. *Tracr: Compiled Transformers as a
   Laboratory for Interpretability.* arXiv:2301.05062, 2023.
+- M. Zhuge, C. Zhao, H. Liu, et al. *Neural Computers* (preprint) — the e-print the
+  artifact's repository was scaffolded against; related work only, not reproduced here
+  (§6).
 - Percepta-Core. *transformer-vm* / "Can LLMs Be Computers?" (code + blog; no arXiv).
   https://github.com/Percepta-Core/transformer-vm
