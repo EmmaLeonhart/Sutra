@@ -34,7 +34,10 @@ directions carry the actual byte logic. The effective reduction lever is the
 *computation schedule*, not the weight spectrum: of the nominal 19 heads × 7 layers =
 133 attention head-slots, only **42 (31.6%) actually attend**, concentrated in 5
 layers (two attention layers are entirely zero), and the 915-symbol vocabulary
-embeds into a ~3-dimensional subspace. Second, we **build a RAM-state stack machine
+embeds into a ~3-dimensional subspace. We then **performed** the reduction and
+verified it: the other 91 head-slots are exactly zero (68% of attention
+parameters), and a model dropping them is **output-identical token-for-token** to
+the full model on random inputs. Second, we **build a RAM-state stack machine
 that runs on the Sutra substrate** and is Turing-complete (memory, arithmetic,
 bitwise, comparison, conditional branch, and backward-branch loops), with all machine
 state held in a RAM device and opcode dispatch performed by reading the opcode fresh
@@ -185,6 +188,22 @@ What *is* reducible, by measurement:
   reduction number (42) is an empirical property of the produced weights, recoverable
   only by inspecting them, not a restatement of the construction method.
 
+**The reduction is not just diagnosed — we performed and verified it.** We built the
+reduced model and checked equivalence directly: (i) dropping the two zero attention
+sublayers (`attn.5`, `attn.6`, measured `max|w| = 0`) and (ii) keeping only the 42
+attending head-slots while removing the other 91. The 91 idle head-slots turn out to
+be **fully zero** — not merely attention-idle: their value (V) rows *and* output-
+projection columns are also exactly zero, so they contribute nothing to the residual
+(a zeroed-Q,K head would otherwise emit `mean(V)` through `out_proj`; here that term is
+zero). In total **68% of the attention parameters are exactly zero** (27,664 of 40,432).
+The reduced model is **output-identical to the full model token-for-token on 5/5 random
+input sequences** for both reductions. So the 42/133 figure is the operative attention
+size, and a model built at that size reproduces the original exactly (scripts
+`prune_zero_attention.py`, `head_prune_verify.py`). The byte-for-byte check on the six
+reference programs is the broader end-to-end confirmation and is in progress; the
+equivalence above is exact for these two reductions because the removed weights are
+exactly zero.
+
 ## 5. A RAM-state machine that runs on the Sutra substrate
 
 Independent of the reduction question, we tested whether a RAM-editing machine can run
@@ -217,21 +236,22 @@ The machine is an interpreter in the strict sense — the program is data in RAM
 class is Turing-complete**: it has unbounded addressable memory (`LOAD`/`STORE` against
 the RAM device), a data-dependent conditional branch (`BR_IF`), and unbounded
 iteration (backward branch), which is the standard sufficient criterion — the claim is
-about the model, not the size of the opcode menu. The current opcode set is 17
+about the model, not the size of the opcode menu. The current opcode set is 21
 (`HALT`/`CONST`/`ADD`/`SUB`/`MUL`/`AND`/`BR_IF`/`LOAD`/`STORE`/`EQ`/`LT`/`OUTPUT`/`OR`/
-`XOR`/`DUP`/`SWAP`/`DROP`), enough to exercise every class. Measured on the substrate:
-arithmetic (e.g. `3+4 = 7`, `100+23 = 123`, chained `5×6−2 = 28`), bitwise
-(`12 AND 10 = 8`, `12 OR 10 = 14`, `12 XOR 10 = 6`, via a substrate bit-plane
-decomposition), comparison (`3<5 = 1`, `7==7 = 1`), stack manipulation (`DUP`, `SWAP`
-— verified by `7,2 SWAP SUB = −5` — and `DROP`), a conditional branch taking or not
-taking by data, a `STORE`/`LOAD` round-trip, byte `OUTPUT` to a buffer (emitting
+`XOR`/`DUP`/`SWAP`/`DROP`/`GT`/`GE`/`LE`/`NE`), enough to exercise every class. Measured
+on the substrate: arithmetic (e.g. `3+4 = 7`, `100+23 = 123`, chained `5×6−2 = 28`),
+bitwise (`12 AND 10 = 8`, `12 OR 10 = 14`, `12 XOR 10 = 6`, via a substrate bit-plane
+decomposition), the full comparison set (`3<5 = 1`, `7==7 = 1`, `5>3 = 1`, `7≥7 = 1`,
+`5≤5 = 1`, `7≠8 = 1`, including the equality boundaries), stack manipulation (`DUP`,
+`SWAP` — verified by `7,2 SWAP SUB = −5` — and `DROP`), a conditional branch taking or
+not taking by data, a `STORE`/`LOAD` round-trip, byte `OUTPUT` to a buffer (emitting
 72,73,74), and — the load-bearing cases for the Turing-completeness claim — a
 **backward-branch memory loop** (a counter at one address, an accumulator at another;
 each iteration increments the accumulator and decrements the counter, branching back
 while non-zero) that yields `acc = N` for `N = 1, 3, 5`, and a full
 **multiply-accumulate algorithm computing `factorial(3) = 6`** (the same loop with a
 multiplying accumulator) running end-to-end on the substrate. All cases are guarded by
-a regression test that compiles the machine and runs it on the substrate (20/20). The
+a regression test that compiles the machine and runs it on the substrate (30/30). The
 evaluation establishes the mechanism, not coverage of a full instruction set.
 
 The OCaml realization of the reference machine is being transpiled to Sutra by an

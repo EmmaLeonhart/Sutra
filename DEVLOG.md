@@ -5194,3 +5194,16 @@ inputs. Clang-free; canonical 6-program oracle is the committed-fixtures route.
 Script head_prune_verify.py; finding
 2026-06-06-pruned-transformer-step2-head-pruning.md. (plan_path passed -> no
 stray root artifacts this time.)
+
+## 2026-06-06 — percepta-ntm v10: fold the PERFORMED+verified reduction + 21-opcode/30-test machine (v9 review post 2710)
+
+v9 stayed Reject. Folded two real measured advances (not rewords): (1) the
+pruned-transformer steps 1+2 -- the paper now reports the reduction was
+PERFORMED and verified output-identical (drop 2 zero attn sublayers + keep
+42/133 heads; the 91 idle heads are fully zero, 68pct of attention params;
+token-for-token equal on 5/5 random inputs), turning S4 from diagnosis into a
+done+verified reduction. (2) Updated the substrate machine to its current state
+(17->21 opcodes incl GT/GE/LE/NE; guard 20->30) -- the reviewer cited "20
+tests". Persisting cons (Sutra niche, MILP-artifact, digital-simulation, seed
+needs SGD experiment) are contribution-nature judgments / await the downstream
+training experiment; not chased with rewords.
