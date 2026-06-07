@@ -1647,23 +1647,32 @@ class BaseCodegen:
                 prior_state_var_types[sp.name] = self._var_type.get(sp.name)
                 self._var_type[sp.name] = sp.type_ref.name
 
-        # do_while: body runs once unconditionally first.
-        if decl.kind == "do_while":
-            self._emit(f"# do_while: body runs once unconditionally first.")
-            for inner in decl.body.statements:
-                self._translate_stmt(inner)
-
-        # Loop driver (Python). The body is substrate-pure; the driver
-        # is Python and reads `_halted` at iteration boundary to
-        # decide whether to continue — the same kind of boundary scalar
-        # read as the codebook nearest_string lookup. There is no
-        # compile-time iteration count: programs halt themselves when
-        # the loop's halt condition fires, just like any other
-        # programming language. `_t` is kept as a Python iteration
-        # counter for diagnostics / iterative_loop arithmetic.
-        self._emit("_t = 0")
-        self._emit("while True:")
+        # ── Emit the per-tick STEP as a nested PURE function ──────────────
+        # Emma's orchestrator model ([[project_orchestrator_model]],
+        # planning/exploratory/fused-compile-target.md): the loop BODY /
+        # STEP is a pure substrate tensor function (the fusable, exportable
+        # weight artifact), and the driver below — the iteration + the
+        # `float(_halted)` halt-read — is the thin in-module orchestrator.
+        # Factoring the tick into `_step` makes it independently traceable
+        # (the export path can pull it out as the network) and keeps the
+        # ONLY host readout (`float(_halted)`) in the driver, never in the
+        # step graph. Behaviour is identical to the prior fused form: the
+        # driver breaks on the first tick whose halt term saturates, so the
+        # per-call `_halted` (reset each tick) matches the old cross-tick
+        # accumulation (which only ever transitioned 0->1 once).
+        step_params = (
+            ["_t"] + (["this"] if is_class_method else []) + state_names
+        )
+        step_returns = (
+            (["this"] if is_class_method else []) + state_names + ["_halted"]
+        )
+        self._emit(f"def _step({', '.join(step_params)}):")
         self._indent += 1
+        self._emit(
+            '"""One pure tick: condition + body + soft-halt. '
+            'No host readout -- the fusable/exportable step graph."""'
+        )
+        self._emit("_halted = 0.0")
         # Snapshot pre-step state for soft-mux freeze on halt.
         if is_class_method:
             self._emit(f"_pre_this = this")
@@ -1689,7 +1698,8 @@ class BaseCodegen:
             # foreach: condition is the array parameter (an Identifier
             # naming the array). The function takes the array as its
             # first parameter (in addition to state inits). Each tick:
-            # halt when _t >= length; bind `element` to arr[_t].
+            # halt when _t >= length; bind `element` to arr[_t]. The array
+            # param is read from the enclosing closure (read-only).
             if not isinstance(decl.condition, ast.Identifier):
                 raise CodegenNotSupported(
                     decl.condition,
@@ -1716,13 +1726,13 @@ class BaseCodegen:
         # Substrate-pure saturation: numpy.minimum / torch.minimum, not
         # Python's min(). Keeps _halted a substrate scalar.
         self._emit(f"_halted = _VSA.saturate_unit(_halted + _halt_term)")
-        # Body re-runs each tick; PassStmt updates state locals.
+        # Body runs each tick; PassStmt updates state locals.
         for inner in decl.body.statements:
             self._translate_stmt(inner)
         # Soft mux: freeze state at pre-step value once halt saturates.
         # This makes the iteration that converges produce a state
-        # numerically equivalent to its pre-state, so the early-break
-        # below exits with the converged value.
+        # numerically equivalent to its pre-state, so the driver's early
+        # break exits with the converged value.
         if is_class_method:
             self._emit(
                 "this = (1.0 - _halted) * this + _halted * _pre_this"
@@ -1732,12 +1742,29 @@ class BaseCodegen:
                 f"{state_name} = (1.0 - _halted) * {state_name} "
                 f"+ _halted * _pre_{state_name}"
             )
-        # Self-halt: programs terminate when the loop's halt condition
-        # fires. `float(_halted)` is one boundary scalar read per
-        # iteration (same kind of boundary op as the codebook lookup).
-        # No fixed iteration cap; if the program writes a non-
-        # converging loop, that's a programmer bug — same as any
-        # `while True` in any other language.
+        self._emit(f"return ({', '.join(step_returns)},)")
+        self._indent -= 1  # close _step
+
+        # do_while: body runs once unconditionally first (before the driver).
+        if decl.kind == "do_while":
+            self._emit(f"# do_while: body runs once unconditionally first.")
+            for inner in decl.body.statements:
+                self._translate_stmt(inner)
+
+        # ── The thin in-module orchestrator: drive _step, read halt ───────
+        # The driver is Python; it calls the pure step and reads `_halted`
+        # at the iteration boundary to decide whether to continue — the
+        # legitimate terminal/orchestrator boundary, NOT inside the step
+        # graph above. `float(_halted)` is the single host readout. No
+        # compile-time iteration cap: programs halt when the loop's halt
+        # condition fires, like any `while True` in any other language.
+        # `_t` is the iteration counter (also feeds iterative/foreach ticks).
+        self._emit("_t = 0")
+        self._emit("while True:")
+        self._indent += 1
+        self._emit(
+            f"{', '.join(step_returns)} = _step({', '.join(step_params)})"
+        )
         self._emit("_t += 1")
         self._emit("if float(_halted) >= 0.99:")
         self._indent += 1

@@ -81,14 +81,21 @@ def test_baseline_is_tight():
     )
 
 
-# ── Loop-emission host-readout (the prelude gate above misses this) ──────────
-# An unbounded substrate loop (do_while / while_loop) emits a HOST early-exit
-# `if float(_halted) >= 0.99: break` — a tensor→host readout (detaches autograd)
-# + host control flow, in the USER-FUNCTION emission, not the runtime prelude.
-# This is the obstacle to recurrence fusion (finding
-# 2026-06-07-loop-emission-host-readout-blocks-fusion). The fix is bounded-N
-# emission (no break); GOAL is 0. One unbounded loop currently emits one.
-BASELINE_LOOP_HALTED_READOUTS = 1  # per the one loop in examples/do_while_adder.su
+# ── Loop emission: the STEP must be readout-free; the halt-read lives in the
+# ──             driver (the legitimate orchestrator boundary, Emma 2026-06-07).
+# An unbounded substrate loop (do_while / while_loop) now compiles to a PURE
+# nested `_step(...)` (one tick: condition + body + soft-halt, all substrate, NO
+# host readout) plus a thin in-module DRIVER that calls it and reads
+# `float(_halted)` to break. Per Emma's orchestrator model
+# ([[project_orchestrator_model]], planning/exploratory/fused-compile-target.md),
+# that halt-read is the legitimate terminal/orchestrator boundary, NOT an in-graph
+# violation. So the invariant is NOT "0 float(_halted) anywhere" — it is:
+#   (1) the `_step` graph contains ZERO host readout (it is the fusable/exportable
+#       weight artifact), and
+#   (2) the single `float(_halted)` stays in the driver, never inside `_step`.
+# (Supersedes the prior "fix = bounded-N, goal 0" framing — codegen restructured
+# so the step is separable; see the loop-emission-host-readout finding.)
+BASELINE_DRIVER_HALTED_READOUTS = 1  # one driver read per loop in do_while_adder.su
 
 
 def _loop_program_source() -> str:
@@ -107,23 +114,76 @@ def _loop_program_source() -> str:
     return translate_module(ast, llm_model="none", runtime_dim=16)
 
 
-def test_loop_emission_host_readout_does_not_increase():
+def _step_blocks(code: str) -> list[str]:
+    """Extract the body of every nested `def _step(...):` from generated code
+    (the per-tick loop step). Returns one joined-source string per block."""
+    lines = code.splitlines()
+    blocks: list[str] = []
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
+        if ln.strip().startswith("def _step("):
+            def_indent = len(ln) - len(ln.lstrip())
+            body: list[str] = []
+            j = i + 1
+            while j < len(lines):
+                bl = lines[j]
+                if bl.strip() == "":
+                    body.append(bl)
+                    j += 1
+                    continue
+                indent = len(bl) - len(bl.lstrip())
+                if indent <= def_indent:
+                    break
+                body.append(bl)
+                j += 1
+            blocks.append("\n".join(body))
+            i = j
+        else:
+            i += 1
+    return blocks
+
+
+def test_step_graph_is_readout_free():
+    """The core overhaul invariant: the per-tick `_step` (the fusable/exportable
+    weight graph) contains NO host readout — no `float(`, no `.item()`."""
+    pytest.importorskip("torch")
+    code = _loop_program_source()
+    blocks = _step_blocks(code)
+    assert blocks, "expected at least one `def _step(` in a compiled loop program"
+    for blk in blocks:
+        for bad in ("float(", ".item()"):
+            # exclude the docstring/comment lines that merely mention it
+            offenders = [
+                ln for ln in blk.splitlines()
+                if bad in ln and not ln.strip().startswith("#")
+                and '"""' not in ln
+            ]
+            assert not offenders, (
+                f"the pure loop STEP graph contains a host readout `{bad}` "
+                f"(must live in the driver, not the step): {offenders}"
+            )
+
+
+def test_driver_halt_read_does_not_increase():
+    """The halt-read `float(_halted)` is the legitimate orchestrator boundary; it
+    must stay in the driver and not multiply (one per loop)."""
     pytest.importorskip("torch")
     code = _loop_program_source()
     n = code.count("float(_halted")
-    assert n <= BASELINE_LOOP_HALTED_READOUTS, (
-        f"loop-emission host-readout `float(_halted...)` count rose to {n} "
-        f"(baseline {BASELINE_LOOP_HALTED_READOUTS}). The loop halt-check must not "
-        f"cross to the host — move to bounded-N emission. Do not raise the baseline."
+    assert n <= BASELINE_DRIVER_HALTED_READOUTS, (
+        f"driver halt-read `float(_halted...)` count rose to {n} "
+        f"(baseline {BASELINE_DRIVER_HALTED_READOUTS}). One driver read per loop; "
+        f"do not multiply it, and do not let it leak into `_step`."
     )
 
 
-def test_loop_emission_baseline_is_tight():
+def test_driver_halt_read_baseline_is_tight():
     pytest.importorskip("torch")
     code = _loop_program_source()
     n = code.count("float(_halted")
-    assert n == BASELINE_LOOP_HALTED_READOUTS, (
-        f"loop-emission host-readout count is {n} but BASELINE is "
-        f"{BASELINE_LOOP_HALTED_READOUTS}. Lower BASELINE_LOOP_HALTED_READOUTS to "
-        f"{n} (goal 0) in the same commit that fixed it."
+    assert n == BASELINE_DRIVER_HALTED_READOUTS, (
+        f"driver halt-read count is {n} but BASELINE is "
+        f"{BASELINE_DRIVER_HALTED_READOUTS}. Adjust BASELINE_DRIVER_HALTED_READOUTS "
+        f"in the same commit that changed it."
     )

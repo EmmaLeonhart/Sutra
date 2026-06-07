@@ -44,18 +44,57 @@ while True:
    backpropagated through as emitted. This is the concrete obstacle to making the
    loop (and thus the machine's recurrence) a single differentiable graph.
 
-## The fix (path, not yet built)
+## The fix (RESOLVED 2026-06-07 — step/driver split, NOT bounded-N)
 
-The host early-exit is only an *efficiency* optimization — the soft-halt blend
-already no-ops post-halt iterations. Replace `while True: … if float(_halted) >=
-0.99: break` with a **fixed maximum iteration count** (unrolled or a bounded
-`for`), no host readout. The result is identical (extra iterations are frozen
-no-ops) but fully substrate and traceable/differentiable — the precondition for
-fusing the recurrence. Cost: a bound must be chosen (max iterations); the spec
-already frames loops as "bounded soft-halt recurrence," so a bound is in-spec.
+The original fix proposed here (replace the host break with a fixed max-iteration
+bound) was **superseded by Emma's orchestrator model** (2026-06-07,
+[[project_orchestrator_model]]). Under that model the `float(_halted)` halt-read
+is the *legitimate terminal/orchestrator boundary* — it does not need to be
+eliminated, it needs to live in the **driver** (the thin orchestrator), not in the
+fusable **step graph**. Bounding the iteration count would have been the wrong fix:
+it forces an arbitrary cap and still fuses driver-and-step together.
 
-This is the next real Phase-2 step for recurrence fusion. Multi-state recurrence
-(the WASM machine) additionally needs the v1 one-slot-`recur` limit lifted.
+**What shipped:** `_translate_loop_function_decl` in `codegen_base.py` now emits the
+per-tick computation as a nested **pure `_step(...)`** (condition + body + soft-halt
+blend, all substrate, returning `(state..., _halted)` — ZERO host readout), and a
+thin **driver** that calls `_step` and does the single `float(_halted) >= 0.99:
+break`. Generated shape for `do_while_adder.su`:
+
+```
+def _loop_addNumber(_init_x):
+    x = _init_x
+    def _step(_t, x):                         # <-- PURE, exportable step graph
+        _halted = 0.0
+        _pre_x = x
+        _cond = _VSA.gt(11, x); _cond_truth = _VSA.truth_axis(_cond)
+        _keep = _VSA.heaviside(_cond_truth)
+        _halted = _VSA.saturate_unit(_halted + (1.0 - _keep))
+        x = (x + 1)
+        x = (1.0 - _halted) * x + _halted * _pre_x
+        return (x, _halted,)
+    x = (x + 1)                               # do_while: body once
+    _t = 0
+    while True:                               # <-- thin in-module orchestrator
+        x, _halted = _step(_t, x)
+        _t += 1
+        if float(_halted) >= 0.99:            # halt-read: orchestrator boundary
+            break
+    return (x, _halted,)
+```
+
+Behaviour is identical (the driver breaks on the first saturating tick, so the
+per-call `_halted` matches the old cross-tick accumulation). Verified: loop +
+await suites green (59 passed), and the reframed `test_no_host_readout` now asserts
+**(1)** `_step` is readout-free (`test_step_graph_is_readout_free`) and **(2)** the
+single `float(_halted)` stays in the driver (`test_driver_halt_read_*`).
+
+This satisfies overhaul Phase-2 item #6 (relocate the halt-read to the orchestrator;
+make the step separable/fusable). **Remaining (#7):** the step is nested inside the
+loop function, so the export path can't yet pull it out as a standalone weight
+file — hoisting `_step` to a module-level `_step_<name>` (closing over only `_VSA`
++ the array param) is the next bounded step to realize the loop weight-file export.
+Multi-state recurrence (the WASM machine) additionally needs the v1 one-slot-`recur`
+limit lifted.
 
 ## Substrate-purity note
 
