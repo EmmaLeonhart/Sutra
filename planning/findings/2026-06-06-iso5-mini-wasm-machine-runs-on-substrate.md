@@ -11,7 +11,8 @@ driver `run_mini_machine.py` loads a program into the RAM device and calls `step
 once per instruction (the autoregressive model). Opcodes: 0=HALT, 1=CONST(imm),
 2=ADD, 3=SUB, 4=MUL, 5=AND (bitwise — `Bits.band`), 6=BR_IF (conditional branch),
 7=LOAD (pop addr, push ram[addr]), 8=STORE (pop value+addr, ram[addr]=value),
-9=EQ (push top2==top1 ?1:0), 10=LT (push top2<top1 ?1:0).
+9=EQ (push top2==top1 ?1:0), 10=LT (push top2<top1 ?1:0), 11=OUTPUT (pop byte ->
+append to the output buffer, like the reference's `output`).
 
 Measured (program-as-data — same machine, different RAM contents):
 
@@ -34,7 +35,7 @@ Measured (program-as-data — same machine, different RAM contents):
 It is a genuine interpreter: the program lives in RAM as data, not in the code. With
 LOAD/STORE + a backward BR_IF the machine is **Turing-complete on the substrate** — a
 memory-counter loop (counter@200, acc@201) runs N iterations to acc=N (N=1/3/5
-verified). CI-guarded: `sdk/sutra-compiler/tests/test_mini_wasm_machine.py` (13/13).
+verified). CI-guarded: `sdk/sutra-compiler/tests/test_mini_wasm_machine.py` (14/14).
 
 ## How the substrate tensions were resolved
 
@@ -65,7 +66,7 @@ verified). CI-guarded: `sdk/sutra-compiler/tests/test_mini_wasm_machine.py` (13/
 
 ## Scope / what's not claimed
 
-This is an 11-opcode (HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE/EQ/LT) hand-written machine demonstrating the
+This is a 12-opcode (HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE/EQ/LT/OUTPUT) hand-written machine demonstrating the
 mechanism end-to-end, NOT the full 35-opcode transformer-vm. The full machine adds
 the remaining opcodes (typed loads/stores, call/return, br_table — more of the same; the machine is now Turing-complete: memory loop via LOAD/STORE + backward BR_IF verified blended
 dispatch + RAM), byte/bitwise arithmetic (bitwise stdlib ready), and a larger

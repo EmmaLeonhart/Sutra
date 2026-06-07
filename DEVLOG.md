@@ -6,6 +6,15 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: WASM machine OUTPUT opcode (observable output, like the reference)
+
+Added OUTPUT (op 11) to the substrate machine: pop a byte, append it to an output
+buffer (region 300+, out_ptr in state cell ram[3]); advance out_ptr; else no-op write.
+This is how the reference machine produces observable output ("Hello World!" etc.).
+Measured: emitting 72,73,74 fills buffer[300..302] = [72,73,74] ("HIJ"); regression
+intact (3+4=7). 12 opcodes now (HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE/EQ/LT/
+OUTPUT). pytest guard 14/14. Artifact run_machine_output.py.
+
 ## 2026-06-06: third clawRxiv paper — DNC/NTM via the Percepta transformer + PCA (17:00 task)
 
 Created paper/percepta-ntm/paper.md, a THIRD paper (separate supersedes chain from
