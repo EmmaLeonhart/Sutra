@@ -68,6 +68,15 @@ _LOOP = [
     (1, 200), (7, 0), (6, 22), (0, 0),                         # if counter != 0 -> LOOP(22)
 ]
 
+# factorial(N): counter@200=N, acc@201=1; loop acc*=counter, counter--, br_if back.
+# A real multiply-accumulate algorithm (loop + memory + branch) -> acc = N!.
+_FACT3 = [
+    (1, 200), (1, 3), (8, 0), (1, 201), (1, 1), (8, 0),       # ram[200]=3, ram[201]=1
+    (1, 201), (1, 201), (7, 0), (1, 200), (7, 0), (4, 0), (8, 0),  # ram[201] = acc * counter
+    (1, 200), (1, 200), (7, 0), (1, 1), (3, 0), (8, 0),       # ram[200] = counter - 1
+    (1, 200), (7, 0), (6, 22), (0, 0),                        # if counter != 0 -> LOOP(22)
+]
+
 # (program, expected, steps, result_addr). Opcodes per the module docstring.
 _CASES = [
     ([(1, 3), (1, 4), (2, 0), (0, 0)], 7, 12, 100),            # const 3; const 4; add
@@ -84,6 +93,7 @@ _CASES = [
     ([(1, 7), (1, 8), (9, 0), (0, 0)], 0, 12, 100),           # 7 == 8 -> 0
     ([(1, 72), (11, 0), (1, 73), (11, 0), (0, 0)], 72, 10, 300),  # OUTPUT 72,73 -> buf[300]=72
     (_LOOP, 3, 60, 201),                                       # memory loop, 3 iterations -> acc 3
+    (_FACT3, 6, 70, 201),                                      # factorial(3) = 6 (real algorithm)
 ]
 
 

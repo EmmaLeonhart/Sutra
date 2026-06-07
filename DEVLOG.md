@@ -42,6 +42,16 @@ glossed "frozen-embedding substrate" + "defuzzes cleanly" ({-1,0,+1} Kleene axis
 "narrow insight" -> added the generalization that magnitude-PCA is unsafe for any
 constructed/distilled hardmax-routed model. Pushed -> next review cycle.
 
+## 2026-06-06: factorial runs on the substrate WASM machine (real-algorithm demo)
+
+Rather than another opcode, ran a real algorithm on the existing 12-opcode machine:
+factorial(N) as program-as-data (counter@200=N, acc@201=1; loop acc*=counter,
+counter--, br_if back). Measured on the substrate: factorial(3)=6, (4)=24, (5)=120 —
+a multiply-accumulate loop with memory + comparison + branch computing a recognizable
+algorithm. Added factorial(3) to the pytest guard (15/15) + run_machine_factorial.py.
+Demonstrates the Turing-complete machine computes real algorithms, not just opcode
+unit-cases. (Strong material for the percepta-ntm paper; the :30 loop can fold it in.)
+
 ## 2026-06-06: WASM machine OUTPUT opcode (observable output, like the reference)
 
 Added OUTPUT (op 11) to the substrate machine: pop a byte, append it to an output
