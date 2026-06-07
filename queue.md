@@ -110,10 +110,18 @@ state (avoid literal-vs-loop-state comparison).
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- *(none open — the HF flat-CSV orphans were over-escalated; resolved to the
-  sensible default: LEAVE them, they're harmless unreferenced duplicates and
-  block nothing. Prune only if Emma later wants the tidy-up. See "Active —
-  W2C".)*
+- **SUBSTRATE-PURITY BREACH in mini_wasm_machine (2026-06-07).** Measured: the
+  machine's ADD/SUB/MUL (and comparison operands) run on the HOST via
+  `.real()` scalar extraction (`ramRead().real()` → Python float; `top2+top1` →
+  host float), not the substrate. Only memory (ramRead/ramWrite), dispatch
+  (defuzzy), bitwise (Bits.*), and the blended writes are substrate tensors. This
+  contradicts percepta-ntm paper §5 ("arithmetic … measured on the substrate")
+  and the CLAUDE.md no-scalar-arithmetic rule. Finding:
+  `planning/findings/2026-06-07-mini-wasm-machine-arithmetic-runs-on-host.md`.
+  Fixable by keeping stack values as VECTORS and doing element-wise vector add/mul
+  (like Bits.* already does). **DECISION NEEDED:** rework to vector arithmetic
+  (fix), re-scope the paper §5 claim, or both. Opcode-breadth work STOPPED until
+  resolved (don't build on the breach).
 
 ## Context (read first, do not work on)
 
