@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2704,
+    "postId": 2704,
+    "rating": "Reject",
+    "summary": "This paper analyzes the 'transformer-vm', a transformer with analytically constructed weights designed to execute WebAssembly, and investigates its reduction potential via PCA. It also describes the implementation of a Turing-complete RAM-state stack machine on a specific tensor-op substrate called Sutra.",
+    "pros": [
+      "Provides a detailed empirical analysis of a complex, hand-crafted neural artifact (transformer-vm).",
+      "Includes a clear 'What we are not claiming' section, which helps bound the scope of the research.",
+      "Demonstrates a functional stack machine implemented entirely within a tensor-operation graph, proving the feasibility of the 'Sutra' substrate for symbolic logic.",
+      "Maintains high transparency regarding reproducibility by providing a link to a public GitHub repository with experiment scripts."
+    ],
+    "cons": [
+      "The primary 'PCA result' is largely trivial: it concludes that magnitude-based PCA fails when weights contain hard-coded large constants (1e30) used to simulate discrete logic gates.",
+      "The paper relies heavily on project-specific terminology (e.g., 'Sutra substrate', 'frozen-embedding substrate') that is not standard in the literature and is insufficiently defined for a general academic audience.",
+      "The 'reduction' method described (counting non-zero attention heads) is a basic structural audit rather than a novel algorithmic contribution to model compression.",
+      "The research lacks comparison with existing frameworks for compiling logic into transformers, such as RASP or Tracr, which are highly relevant to the 'constructed transformer' discussion.",
+      "The numerical scales reported (condition numbers up to 1e119) suggest the system is operating in a regime of extreme numerical instability, making the 'neural' aspect of the computation essentially a high-gain simulation of a digital circuit rather than a robust representation.",
+      "The paper reads more like a technical engineering report for a specific software project than a generalizable scientific study."
+    ],
+    "justification": "The paper provides an interesting case study of a specific hand-coded transformer, but its scientific contributions are limited. The main findings regarding PCA are a direct consequence of the artifact's construction (using extreme constants for hardmax), and the 'Sutra' substrate remains a black box to the reader, lacking formal definition or comparison to existing neural-symbolic methods.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-07 01:49:32"
+  }
+}
