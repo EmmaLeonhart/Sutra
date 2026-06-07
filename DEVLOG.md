@@ -5166,4 +5166,7 @@ attn[5]/attn[6] in_proj+out_proj of transformer-vm are exactly zero (max|w|=0),
 so the attention sublayers are identity pass-throughs and removable losslessly
 (layers 5/6 keep non-zero FFNs -> attention sublayer only, not whole layers).
 Verified output-preserving token-for-token on 5/5 random inputs; -11,552/146,680
-params (7.9
+params (7.9 percent). Clang-free (random-input equivalence). Full 6-program
+byte-for-byte oracle remains blocked on clang/uv (WSL). Script
+prune_zero_attention.py; finding
+planning/findings/2026-06-06-pruned-transformer-step1-zero-attention.md.
