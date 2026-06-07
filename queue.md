@@ -171,12 +171,23 @@ Pre-existing (not this work): complex `csin`/`ccos` imaginary-part inaccuracy vs
 cmath (16 test_transcendentals subtests) — separate bug, noted.
 
 Phase 2 — fusion into a real neural network / weight file (the actual target):
-6. Trace/compile the emitted op-sequence into a SINGLE connected tensor graph
-   (no Python orchestration mid-graph; no detach). `torch.compile`/`torch.fx`/
-   tracing territory. Verify end-to-end differentiability (gradient flows root→leaf).
-7. Export the fused program as a real **weight file** (the compilation artifact),
-   loadable + runnable + trainable. This is what "Sutra compiles to a neural
-   network" must literally mean.
+PROVEN so far (Ollama-free, CI-guarded test_fused_nn 3/3): substrate-pure functions
+are end-to-end differentiable; a function compiles to a single fused TorchScript
+graph saved as a weight file (reload+run+backprop identical); a BOUNDED recurrence
+loop(N) fuses with gradients through every step.
+ARCHITECTURE (Emma 2026-06-07, [[project_orchestrator_model]]): the fused
+weight-graph is the loop BODY / STEP (pure, exportable); a TINY Python orchestrator
+drives it — loads weights, runs on input, drives the recurrence, reads the HALT
+signal to stop, reads OUTPUT to print. The orchestrator's halt-read/output-read is
+the legitimate terminal boundary, NOT in-graph introspection.
+6. Restructure loop emission: emit the loop BODY as a pure step graph (no
+   `float(_halted)` inside it) and RELOCATE the halt-read + iteration + output-read
+   into the thin orchestrator. This meets the loop-readout gate goal (0 inside the
+   step) by relocation, and makes the recurrence fusable/exportable.
+7. Export the fused step + a tiny orchestrator that runs it = the **weight file**
+   compile target. Verify substrate-to-substrate (decoded output == reference).
+   The WASM machine additionally needs the v1 one-slot-`recur` limit lifted for its
+   multi-state recurrence (separate spec decision).
 
 HARD RAIL: every step RUN and verified substrate-to-substrate; no faking; "it ran"
 is not "it's pure" and not "it's one fused differentiable network."
