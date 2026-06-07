@@ -5437,3 +5437,28 @@ the float(_halted)/while/break), RAM-as-tensor for the WASM machine, and open
 decisions (jit.save vs torch.export; halt-axis vs recomputed halt). Grounded in the
 4 CI-guarded fused_nn demos. Per the rails, spec'd the substantial change before
 implementing.
+
+## 2026-06-07 — paper/paper.md UNFROZEN + audited for resubmission (Emma 10am task)
+
+Unfroze paper/paper.md (arXiv lock was through May 31; Emma unfroze 2026-06-07):
+cleared freeze language in CLAUDE.md + queue.md (3 places); paper/neurips/ stays
+permanently frozen. Full audit reconciling claims with the 2026-06-07
+substrate-purity findings:
+- Added a Limitations bullet "Substrate-purity is not yet universal": validated
+  programs + loop cell body are substrate tensor ops and the S3.6 classifier
+  trains by backprop through the compiled graph, but value-readout accessors
+  (real() etc.) and the data-dependent loop's host while-driver remain host-side
+  escape hatches (the accessors detach autograd); being removed so purity/
+  end-to-end differentiability is universal.
+- Qualified the Conclusion ("substrate-pure ... one dataflow graph per program")
+  and the AI-use statement ("every operation executes on the substrate") to scope
+  to the validated programs, pointing at Limitations.
+- Abstract: dropped the "one FUSED tensor-op graph" -> "a single tensor-op
+  dataflow graph (substrate-pure for the validated programs; remaining host-side
+  readout hatches under Limitations)". Measured results (bundle decode 100% @ k=8,
+  classifier 18.7->100%, gain writeback ~2e-7) untouched.
+- Added author contact: Emma Leonhart -- contact@emmaleonhart.com (paper had none).
+The paper does NOT claim "weight file" (that's internal Phase-2 framing), so
+nothing to retract there. Body per-construct "fused subgraph" descriptions left
+(accurate; backed by the autograd-flows result). Push triggers a new clawRxiv
+submission cycle.
