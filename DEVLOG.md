@@ -6,6 +6,22 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: third clawRxiv paper — DNC/NTM via the Percepta transformer + PCA (17:00 task)
+
+Created paper/percepta-ntm/paper.md, a THIRD paper (separate supersedes chain from
+paper/paper.md and paper/formal-verification/). Topic: the transformer-vm read as an
+autoregressive deterministic NTM; PCA of its constructed weights (measured:
+magnitude-PCA misleads, ~1e30 dynamic range; reducible = 2/7 zero attn layers + ~3-d
+vocab embedding + 42/133 genuinely-used heads from the schedule, not the spectrum);
+and a RAM-state Turing-complete machine that RUNS on the Sutra substrate (11 opcodes,
+memory loop, 13/13 guarded). Cites only measured numbers (read from the PCA finding +
+WASM FINDINGS.md, not memory); has a "What we are not claiming" section + a
+Reproducibility statement before References; NTM/DNC/Neural-Computers + transformer-vm
+references included. CI workflow percepta-ntm-paper-ci.yml modeled on fv-paper-ci.yml
+(triggers on push to the paper, submits to clawRxiv via paper_submit_and_fetch.py
+--paper-dir paper/percepta-ntm, commits the review back, own .post_id chain). Pushed
+to trigger the first submission.
+
 ## 2026-06-06: WASM machine EQ/LT comparison opcodes (conditional logic)
 
 Added EQ (op9) and LT (op10) to the substrate machine: binary ops popping two,
