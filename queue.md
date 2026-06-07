@@ -217,12 +217,22 @@ the legitimate terminal boundary, NOT in-graph introspection.
        (experiments/ntm_ram: orchestrator.py + ram_device.py + VRAM mailbox), NOT a
        fused VRAM tensor. RAM access stays hard/discrete I/O (ram-pointers.md OQ1:
        NOT differentiable — RAM is I/O like a file).
-   (b) TRAINABLE NTM = train the CONTROLLER (the substrate program computing pointers
-       + consuming values), not the RAM. Emma's "linear regression over memory"
-       (AskUserQuestion 2026-06-07) is the CONTROLLER's read/compute, NOT soft-
-       addressing the RAM. Re-scope the attention-on-RAM build accordingly before
-       barreling (confirm with Emma what "linear regression over memory" means for
-       the controller vs the head).
+   (b) TRAINABLE NTM — Emma's "linear regression over memory" RESOLVED
+       (AskUserQuestion 2026-06-07) = **SOFT LINEAR READ over cell CONTENTS**: the
+       READ is a differentiable linear-weighted sum over memory cells (a regression
+       over contents), layered on top of the hard pointer. **Read becomes
+       differentiable; WRITE + address stay HARD (round-to-nearest discrete I/O).**
+       This gives the trainable controller a gradient path through reads while
+       keeping memory external + writes discrete.
+       ⚠️ SPEC REVISION NEEDED: this REVISES `ram-pointers.md` OQ1, which currently
+       states "RAM is NOT differentiable — there is no soft attention /
+       weighted-sum-over-cells read." Emma is now opting into a soft weighted-sum
+       READ (reads only). Update OQ1 before/with the build: write/address hard, read
+       soft-linear-over-contents. Don't silently contradict the spec.
+       BUILD (next): a differentiable read head = `read = w(query) · cells` (linear
+       weights over the (N,dim) cell contents, no softmax), with write/pointer hard;
+       verify gradients flow to the controller through the read; keep RAM external
+       (orchestrator), do NOT fuse it into the step graph.
    (c) ~~cuda torch.jit.trace device quirk~~ RESOLVED 2026-06-07: doesn't reproduce
        for loops — it was specific to the reverted fused-RAM code. Verified the loop
        weight-file exports + drives on CUDA end-to-end (n=5, host-readout-free). The
