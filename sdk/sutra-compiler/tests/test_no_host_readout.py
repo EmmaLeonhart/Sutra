@@ -18,12 +18,13 @@ import sys
 
 import pytest
 
-# Audited 2026-06-07: 26 `.item()` host-readout calls in the generated runtime.
-# Categories (see the audit finding): pure accessors (real/imag/truth/component/
-# semantic/synthetic), array_length, ram_read/ram_write address decode (I/O wire),
-# is_char/is_string, js_strict_neq/js_loose_neq, _js_str_cmp, string_to_python.
-# GOAL: 0. This number must only go DOWN.
-BASELINE_ITEM_READOUTS = 26
+# Audited 2026-06-07: started at 26 `.item()` host-readout calls in the generated
+# runtime. 2026-06-07: removed the 6 dead accessors (imag/truth/component/
+# semantic/synthetic, −5 .item(); norm, −1 float-readout) → 21.
+# Remaining categories: `real` (next target), array_length, ram_read/ram_write
+# address decode (I/O wire decision), is_char/is_string, js_strict_neq/
+# js_loose_neq, _js_str_cmp, string_to_python. GOAL: 0. Only ever lower this.
+BASELINE_ITEM_READOUTS = 21
 
 
 def _generated_runtime_source() -> str:
