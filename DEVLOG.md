@@ -5207,3 +5207,17 @@ done+verified reduction. (2) Updated the substrate machine to its current state
 tests". Persisting cons (Sutra niche, MILP-artifact, digital-simulation, seed
 needs SGD experiment) are contribution-nature judgments / await the downstream
 training experiment; not chased with rewords.
+
+## 2026-06-06 — pruned transformer step 3 (NEGATIVE): embedding not SVD-compressible; paper overclaim fixed
+
+Step 3 of task #1. Expected the ~3-d-energy vocab/head embedding to be
+compressible; MEASURED the opposite: SVD-truncating tok.weight+head.weight to
+ANY rank flips generation, even the full rank-38 round-trip (1.1e-12
+reconstruction error) -- the 1e5 head + 1e10 hardmax amplify any perturbation
+into a different argmax. Confirms magnitude!=importance even for the embedding.
+This CONTRADICTED a paper bullet ("vocab embedding is a reduction the magnitude
+spectrum supports") -> integrity fix: corrected S4, abstract, S6, S7 to state
+the embedding is energy-concentrated but NOT spectrally compressible; the only
+output-preserving reductions are the exactly-zero parts (steps 1-2). Also fixed
+stale 17->21 opcodes in the S6 non-claim. Script vocab_compress_verify.py;
+finding 2026-06-06-pruned-transformer-step3-embedding-not-compressible.md.

@@ -33,11 +33,15 @@ energy-fraction rank is dominated by a few giant "switch" directions while the s
 directions carry the actual byte logic. The effective reduction lever is the
 *computation schedule*, not the weight spectrum: of the nominal 19 heads × 7 layers =
 133 attention head-slots, only **42 (31.6%) actually attend**, concentrated in 5
-layers (two attention layers are entirely zero), and the 915-symbol vocabulary
-embeds into a ~3-dimensional subspace. We then **performed** the reduction and
-verified it: the other 91 head-slots are exactly zero (68% of attention
-parameters), and a model dropping them is **output-identical token-for-token** to
-the full model on random inputs. Second, we **build a RAM-state stack machine
+layers (two attention layers are entirely zero). We then **performed** that
+reduction and verified it: the other 91 head-slots are exactly zero (68% of
+attention parameters), and a model dropping them is **output-identical
+token-for-token** to the full model on random inputs. Spectral compression, by
+contrast, fails even where it looks easiest: the 915-symbol vocabulary embedding
+has 99% of its energy in 3 of 38 dimensions, yet SVD-truncating it to any rank
+flips the output — a 1e-12 reconstruction error is enough, because the hardmax
+amplifies it — so the reducibility is the exactly-zero structure, not low rank.
+Second, we **build a RAM-state stack machine
 that runs on the Sutra substrate** and is Turing-complete (memory, arithmetic,
 bitwise, comparison, conditional branch, and backward-branch loops), with all machine
 state held in a RAM device and opcode dispatch performed by reading the opcode fresh
@@ -173,9 +177,18 @@ What *is* reducible, by measurement:
   input and output projections sum to exactly 0). The schedule places all attention
   in the first five layers; the last two are FFN-only. These attention blocks are
   directly removable.
-- **The 915-symbol vocabulary embedding is low-rank**: the token and head
-  embedding matrices (915×38) carry **99% of their energy in 3 of 38 dimensions** (90%
-  in 1–2). No giant switches live there, so this is a reduction the magnitude spectrum supports.
+- **The 915-symbol vocabulary embedding has concentrated energy but is NOT
+  spectrally compressible.** The token and head embedding matrices (915×38) carry
+  **99% of their energy in 3 of 38 dimensions** (90% in 1–2) — yet SVD-truncating
+  them to *any* rank fails to preserve the model's output. We measured this: a rank-k
+  truncation of `tok.weight` and `head.weight` changes generation at every k, and even
+  the full rank-38 round-trip (reconstruction error 1.1e-12) flips outputs. The reason
+  is the same one that defeats magnitude-PCA: the head readout (entries to 1e5) and the
+  `HARD_K = 1e10` hardmax amplify a 1e-12 perturbation into a different discrete
+  decision. So energy concentration here does **not** imply compressibility — the
+  embedding, the one place that looked cleanly low-rank, confirms rather than escapes
+  the magnitude≠importance thesis. The reducibility that holds is the exactly-zero
+  structure above, not low-rank truncation.
 - **The attention core's reduction lever is the schedule, not the spectrum.** Counting
   heads that actually attend (Q *and* K projection rows non-zero), only **42 of the
   nominal 133 head-slots (31.6%)** are used — per layer 7, 5, 11, 11, 8, 0, 0. The
@@ -268,14 +281,16 @@ a substrate bitwise stdlib) are in place and individually verified.
 - We do **not** present this as a finished, general system. It is deliberately a niche,
   hand-built artifact right now: its value is as a *seed* (§7), not as a deployed model.
 - We do **not** claim the full 35-opcode `transformer-vm` runs on the Sutra
-  substrate. The substrate machine implements 17 opcodes and demonstrates the
+  substrate. The substrate machine implements 21 opcodes and demonstrates the
   mechanism (memory, dispatch, loops, output, stack, bitwise); the remaining opcodes
   are breadth, and the reference's multi-megabyte linear memory exceeds the current
   host RAM device.
 - We do **not** claim PCA reduces the transformer. The measured result is the
-  opposite: magnitude-PCA is misleading here; the reducible structure is the two zero
-  attention layers, the ~3-dimensional vocabulary embedding, and the 42/133 actually
-  used heads — the last obtainable only from the schedule.
+  opposite: magnitude-PCA is misleading here; the reducible structure is the
+  exactly-zero parts (the two zero attention sublayers and the 42-of-133 used heads,
+  obtainable only from the schedule). The vocabulary embedding's energy is
+  concentrated in ~3 dims but is **not** spectrally compressible (SVD truncation flips
+  the output at every rank; §4).
 - Throughput and replication figures are quoted from the replication measurements,
   not from the original authors; where they differ (≈18K vs ~30K tok/s) we report the
   measured value.
@@ -309,9 +324,9 @@ weights are untrainable as they stand: with `HARD_K = 1e10` driving hardmax and 
 to ~1e30 (§4), the attention is saturated and gradients there vanish or explode — naive
 SGD on the raw weights would not move. We agree, and we do **not** propose that. The
 seed is not the raw saturated array; it is the **reduced, re-parameterized** network the
-arc produces: §4's reduction strips exactly the high-gain switch directions (the 2 zero
-attention sublayers, the ~91 unused head-slots, the ~3-d vocabulary), and the
-attention-on-RAM target is a *smooth* operator (a linear regression over memory), not a
+arc produces: §4's reduction removes the exactly-zero structure (the 2 zero attention
+sublayers, the ~91 unused head-slots), and the attention-on-RAM target is re-expressed
+as a *smooth* operator (a linear regression over memory), not a
 1e10-temperature hardmax. Training would operate on that smooth, low-magnitude form,
 with the hardmax constants factored out — the saturating gates are an artifact of the
 exact construction, not a property the trainable seed must inherit. We have not yet
