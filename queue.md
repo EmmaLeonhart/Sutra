@@ -71,10 +71,10 @@ so if a new session starts before these fire, recreate them:
 - **12:30 (cron `12c5f8b2`, moved from noon)** — PIVOT to PCA on the WASM
   transformer (todo.md TOP PRIORITY); overrides the OCaml grind from then on. (The
   11:30 hand-edit now has a full hour before this fires.)
-- **17:00 (cron `9b7d8c5d`)** — start a THIRD clawRxiv paper (`paper/percepta-ntm/`)
-  on implementing a DNC/NTM via the Percepta transformer + PCA and the measured
-  results; wire its own CI (`percepta-ntm-paper-ci.yml`, model on `fv-paper-ci.yml`)
-  for auto-submission; cite only measured numbers; commit+push (push triggers the CI).
+- **17:00 — DONE.** Third clawRxiv paper created: `paper/percepta-ntm/paper.md`
+  (DNC/NTM via the Percepta transformer + PCA + the Turing-complete substrate
+  machine); CI `percepta-ntm-paper-ci.yml` wired; pushed (triggers clawRxiv submit).
+  The hourly-:30 feedback loop now maintains it.
 - **18:00 (cron `3dced803`)** — edit `paper/percepta-ntm/paper.md` to add a Related
   Work / lit-review section if absent, citing at least: Neural Computers (Zhuge et
   al. 2026, arXiv:2604.06425), the DNC (Graves et al., Nature 2016), the NTM (Graves
