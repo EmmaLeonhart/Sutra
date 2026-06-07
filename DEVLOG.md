@@ -5130,3 +5130,17 @@ planning/findings/2026-06-06-substrate-comparison-equality-boundary.md. Re-run:
 30/30 passed on the substrate (790s). Also queued the Emma-greenlit pruned-
 transformer build (drop 2 zero attn layers -> 42/133 heads -> ~3-d vocab,
 verify byte-for-byte on the 6 WASM programs).
+
+## 2026-06-06 — percepta-ntm v7: clarify HARD_K is not a softmax exponent (v6 review post 2706)
+
+v6 review (post 2706, Reject) flagged a "mathematical inconsistency": hardmax
+temperature 1e10 would overflow softmax (e^1e10). Verified the actual
+mechanism in transformer-vm: HARD_K=1e10 scales the QUERY-PROJECTION WEIGHTS
+(weights.py:22,431 `* HARD_K * sqrt_dh`), not a softmax exponent; the
+reference uses numerically-stable max-subtracted F.softmax
+(standard_cache.py:31) so no exp(1e10) is evaluated and nothing overflows;
+the 1e30 figures are static weight entries (HARD_K composed with 2^k address
+constants), not activations. Added a code-grounded clarification to S4. The
+other v6 cons (Sutra-underdefined, PCA-trivial, title-DNC-not-built,
+needs-comparative-analysis) are persisting framing/contribution judgments;
+not chasing with rewords.
