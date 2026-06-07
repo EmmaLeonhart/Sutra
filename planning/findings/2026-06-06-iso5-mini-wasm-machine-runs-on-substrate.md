@@ -31,6 +31,7 @@ Measured (program-as-data — same machine, different RAM contents):
 | const 0; br_if 18; const 100 (NOT taken) | **100** | 100 |
 | store 42@200; load 200 | **42** | 42 |
 | **memory loop** (counter@200=N, acc@201; acc++/counter--/br_if back), N=1/3/5 | **1/3/5** | 1/3/5 |
+| **factorial(N)** (acc@201; loop acc*=counter, counter--, br_if), N=3/4/5 | **6/24/120** | 6/24/120 |
 
 It is a genuine interpreter: the program lives in RAM as data, not in the code. With
 LOAD/STORE + a backward BR_IF the machine is **Turing-complete on the substrate** — a
