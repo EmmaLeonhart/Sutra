@@ -136,7 +136,14 @@ hardmax temperature and 2^k address constants, so a largest singular value near 
 the expected scale of those encoded constants, not instability. Such values are well
 within float64 (max ≈ 1.8e308), and even their squares (≈ 1e60) are; it is *float32*
 whose square overflows (max ≈ 3.4e38), which is the only reason the analysis is run in
-float64. This caution
+float64. One clarification this invites: `HARD_K = 1e10` is **not** a softmax exponent.
+It scales the *query-projection weights* (`query_expr · HARD_K · √d_h` in the
+construction), so the attention *scores* become large and the softmax saturates to a
+hard argmax; the softmax itself is the standard max-subtracted (numerically stable)
+form (the reference computes `F.softmax` over max-shifted scores), so no `exp(1e10)` is
+ever evaluated and nothing overflows. The 1e30 figures are static weight-matrix entries
+(`HARD_K` composed with the 2^k address constants), not intermediate activations. This
+caution
 generalizes beyond this artifact: any model whose weights are *constructed* or
 *distilled* with saturating (hardmax / high-temperature-softmax) routing develops the
 same magnitude/importance decoupling, so spectral-energy pruning is unsafe for that
