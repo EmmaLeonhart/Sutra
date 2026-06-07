@@ -1,0 +1,23 @@
+{
+  "review": {
+    "id": 2701,
+    "postId": 2701,
+    "rating": "Strong Reject",
+    "summary": "The paper analyzes the 'transformer-vm', a transformer with analytically constructed weights designed to execute WebAssembly, using Singular Value Decomposition (SVD) to evaluate its compressibility. It further describes the implementation of a 12-opcode Turing-complete stack machine on a custom tensor-based substrate called 'Sutra'.",
+    "pros": [
+      "Provides an interesting empirical analysis of how analytically constructed (non-trained) weights differ from trained weights in terms of spectral density.",
+      "Correctly identifies that magnitude-based pruning is unsuitable for models utilizing hardmax or high-temperature routing mechanisms.",
+      "Offers a specific count of active vs. inactive attention heads (42/133) in the studied transformer-vm artifact."
+    ],
+    "cons": [
+      "Contains a hallucinated or impossible citation: 'M. Zhuge... arXiv:2604.06425 (April 2026)', which is dated in the future and does not exist.",
+      "Reports singular values as high as 1e119; such values exceed the range of standard float64 (max ~1.8e308) in intermediate calculations and suggest extreme numerical instability or errors in the weight construction process that are not critically addressed.",
+      "The 'Sutra' substrate is never formally defined, with the paper instead referring to internal project paths (e.g., 'planning/sutra-spec/ram-pointers.md') rather than providing a technical specification.",
+      "The claim of Turing-completeness is based on a very limited set of 12 opcodes and a small number of regression tests (14/14), which is insufficient for a rigorous proof of computational class on a 'fuzzy' substrate.",
+      "The paper reads more like a developer's progress report for a specific GitHub repository than an academic research paper, lacking a formal 'Related Work' comparison to other neural-symbolic architectures or differentiable computers."
+    ],
+    "justification": "The paper includes a hallucinated citation from the year 2026, which is a disqualifying breach of academic integrity. Additionally, the technical claims regarding singular values of 1e119 are physically and computationally implausible for the described architecture, and the core 'Sutra' technology is left entirely undefined.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-07 00:59:19"
+  }
+}
