@@ -9,7 +9,9 @@ blended writes to fixed cells. This test compiles the machine via the PyTorch
 codegen, attaches a RAM device, loads programs as DATA, runs them, and asserts
 the decoded results — the "compile AND run AND produce the expected output" bar.
 
-Opcodes: 0=HALT 1=CONST(imm) 2=ADD 3=SUB 4=MUL 5=AND(bitwise) 6=BR_IF(abs target).
+Opcodes: 0=HALT 1=CONST(imm) 2=ADD 3=SUB 4=MUL 5=AND(bitwise) 6=BR_IF(abs target)
+7=LOAD 8=STORE 9=EQ 10=LT 11=OUTPUT 12=OR(bitwise) 13=XOR(bitwise) 14=DUP 15=SWAP
+16=DROP.
 """
 
 from __future__ import annotations
@@ -92,6 +94,11 @@ _CASES = [
     ([(1, 7), (1, 7), (9, 0), (0, 0)], 1, 12, 100),           # 7 == 7 -> 1
     ([(1, 7), (1, 8), (9, 0), (0, 0)], 0, 12, 100),           # 7 == 8 -> 0
     ([(1, 72), (11, 0), (1, 73), (11, 0), (0, 0)], 72, 10, 300),  # OUTPUT 72,73 -> buf[300]=72
+    ([(1, 12), (1, 10), (12, 0), (0, 0)], 14, 12, 100),       # 12 OR 10 (bitwise) = 14
+    ([(1, 12), (1, 10), (13, 0), (0, 0)], 6, 12, 100),        # 12 XOR 10 (bitwise) = 6
+    ([(1, 5), (14, 0), (2, 0), (0, 0)], 10, 12, 100),         # CONST 5; DUP; ADD -> 10
+    ([(1, 9), (1, 3), (16, 0), (0, 0)], 9, 12, 100),          # CONST 9; CONST 3; DROP -> top 9
+    ([(1, 7), (1, 2), (15, 0), (3, 0), (0, 0)], -5, 12, 100), # 7,2; SWAP; SUB -> 2-7 = -5
     (_LOOP, 3, 60, 201),                                       # memory loop, 3 iterations -> acc 3
     (_FACT3, 6, 70, 201),                                      # factorial(3) = 6 (real algorithm)
 ]
