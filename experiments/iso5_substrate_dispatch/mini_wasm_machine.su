@@ -12,9 +12,11 @@
 //          6=BR_IF(imm = absolute target; pop top, jump if nonzero else fall through)
 //          7=LOAD(pop addr, push ram[addr])  8=STORE(pop value, pop addr, ram[addr]=value)
 //          9=EQ(push top2==top1 ?1:0)  10=LT(push top2<top1 ?1:0)
-// Data memory: any RAM region the program uses for LOAD/STORE (e.g. 200+), clear of
-// [0..2] (pc/sp/halted), program (10+), and stack (100+). LOAD/STORE + BR_IF enable
-// memory-counter loops (backward branch) -> Turing-complete.
+//          11=OUTPUT(pop value, append byte to the output buffer)
+// State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
+// output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
+// program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
+// enable memory-counter loops (backward branch) -> Turing-complete.
 // Binary ops pop two (top1=top, top2=second), push combine(top2, top1)
 // (matching the reference's `let b=pop in let a=pop in push (a OP b)`).
 function int step(scalar d) {
@@ -34,6 +36,7 @@ function int step(scalar d) {
     int is_store = truth_axis(defuzzy(op == 8));
     int is_eq = truth_axis(defuzzy(op == 9));
     int is_lt = truth_axis(defuzzy(op == 10));
+    int is_output = truth_axis(defuzzy(op == 11));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -72,11 +75,20 @@ function int step(scalar d) {
     int store_existing = ramRead(top2).real();
     int store_val = (((1 + is_store) * (top1)) + ((1 - is_store) * (store_existing))) / 2;
     ramWrite(top2, store_val);
+    // OUTPUT: pop value (top1), append it to the output buffer at 300+out_ptr and
+    // advance out_ptr (ram[3]); else no-op. Net sp -1.
+    int out_ptr = ramRead(3).real();
+    int out_existing = ramRead(300 + out_ptr).real();
+    int out_val = (((1 + is_output) * (top1)) + ((1 - is_output) * (out_existing))) / 2;
+    ramWrite(300 + out_ptr, out_val);
+    int new_out_ptr = (((1 + is_output) * (out_ptr + 1)) + ((1 - is_output) * (out_ptr))) / 2;
+    ramWrite(3, new_out_ptr);
     // sp: CONST +1; binary op / BR_IF -1; STORE -2; LOAD 0 (net); HALT/other keep.
     int sp_binop = sp - 1;
     int s_const = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (sp))) / 2;
     int s_store = (((1 + is_store) * (sp - 2)) + ((1 - is_store) * (s_const))) / 2;
-    int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_store))) / 2;
+    int s_out = (((1 + is_output) * (sp_binop)) + ((1 - is_output) * (s_store))) / 2;
+    int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_out))) / 2;
     int s_eq = (((1 + is_eq) * (sp_binop)) + ((1 - is_eq) * (s_lt))) / 2;
     int s_brif = (((1 + is_brif) * (sp_binop)) + ((1 - is_brif) * (s_eq))) / 2;
     int s_and = (((1 + is_and) * (sp_binop)) + ((1 - is_and) * (s_brif))) / 2;
