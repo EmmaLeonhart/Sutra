@@ -186,16 +186,23 @@ the legitimate terminal boundary, NOT in-graph introspection.
    first saturating tick). All 4 loop kinds. Gate reframed: `_step` readout-free
    (test_step_graph_is_readout_free) + halt-read stays in driver (the legitimate
    orchestrator boundary). Loop+await 59 green; finding resolution section.
-7. Export the fused step + a tiny orchestrator that runs it = the **weight file**
-   compile target. Verify substrate-to-substrate (decoded output == reference).
-   NEXT BOUNDED PIECE: `_step` is nested inside the loop function, so the export
-   path can't pull it out standalone yet — hoist it to a module-level
-   `_step_<name>` (do_while/while_loop close over only `_VSA`; foreach also the
-   array param; class loops also `this`). Then trace `_step_<name>` → network.pt +
-   a tiny driver that loops it reading halt = the loop weight-file target (the
-   non-loop case already shipped in emit_weight_file, 7181c2a4).
-   The WASM machine additionally needs the v1 one-slot-`recur` limit lifted for its
-   multi-state recurrence (separate spec decision).
+7. DONE: `_step` hoisted to a MODULE-LEVEL `_step_loop_<name>(_t,[this,][arr,]
+   state..., _init...)` — exportable by name. An UNBOUNDED `while_loop` now exports
+   end-to-end: trace the step → `step.pt` (host-readout-free, verified no
+   aten::item) + a tiny torch-only orchestrator that drives the recurrence (call
+   step, read halt) and reproduces the loop result (n=5), cross-checked vs the
+   eager driver. Demo `experiments/fused_nn/emit_loop_weight_file.py`, CI-guarded
+   (test_fused_nn 8/8). All loop kinds + captures green (64 loop/await/readout/
+   capture; codegen 91). Recurrent weight-file compile target realized.
+   FOLLOW-UP (cuda-trace device quirk): `torch.jit.trace` records a comparison
+   literal as a CPU constant on a CUDA box (eager runs fine on cuda), so the export
+   demo pins CPU; tracing a comparison-using step on GPU needs a device fix
+   (separate, bounded).
+   REMAINING toward the full machine as one fused recurrent net:
+   (a) the WASM machine keeps ALL state in a host RAM list + host-driven steps —
+       move state to one (N,dim) tensor threaded through the step (ram_gather/
+       ram_scatter primitives exist); (b) lift the v1 one-slot-`recur` limit so
+       pc+sp+stack+RAM recur together on the substrate (multi-state recurrence).
 
 HARD RAIL: every step RUN and verified substrate-to-substrate; no faking; "it ran"
 is not "it's pure" and not "it's one fused differentiable network."

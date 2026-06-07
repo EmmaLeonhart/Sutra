@@ -1590,30 +1590,26 @@ class BaseCodegen:
             # before the array param; that's a known wart but no
             # known programs use foreach as a class loop yet.
             py_params.insert(0, "_init_this")
-        self._emit(
-            f"def {py_loop_name}({', '.join(py_params)}):"
-        )
-        self._indent += 1
-        self._emit(
-            f'"""Loop function `{decl.name}` (kind={decl.kind}).'
-        )
-        self._emit(f"")
-        self._emit(
-            f"T-step soft-halt cell. Returns ({', '.join(state_names) or 'no state'}, halted)."
-        )
-        self._emit(f'"""')
-        # State locals init from caller args.
-        if is_class_method:
-            self._emit("this = _init_this")
-        for state_name, init_name in zip(state_names, init_param_names):
-            self._emit(f"{state_name} = {init_name}")
-        self._emit("_halted = 0.0")
+        # foreach array param — needed up front for the module-level step
+        # signature (the step takes the array explicitly; module-level fns
+        # cannot close over the driver's parameters).
+        arr_param_name: Optional[str] = None
+        if decl.kind == "foreach_loop":
+            if not isinstance(decl.condition, ast.Identifier):
+                raise CodegenNotSupported(
+                    decl.condition,
+                    "foreach_loop's first parameter must be a plain "
+                    "identifier naming the array (e.g. `arr`). Got "
+                    f"{type(decl.condition).__name__}.",
+                )
+            arr_param_name = decl.condition.name
 
         # Push (loop_name, state_names) so PassStmt and tail-call
         # ReturnStmt translation know what to assign and which loop
         # name a `return NAME(args)` surface targets. `this` is NOT
         # in state_names; it threads via Python local rebinding from
-        # field writes inside the body.
+        # field writes inside the body. Active across BOTH the step body
+        # and the do_while pre-run; torn down after the driver.
         self._loop_state_stack.append((decl.name, state_names))
         # For iterative_loop, `iterator` in the body resolves to the
         # runtime Python local `_iterator` instead of erroring.
@@ -1647,30 +1643,46 @@ class BaseCodegen:
                 prior_state_var_types[sp.name] = self._var_type.get(sp.name)
                 self._var_type[sp.name] = sp.type_ref.name
 
-        # ── Emit the per-tick STEP as a nested PURE function ──────────────
+        # ── Emit the per-tick STEP as a MODULE-LEVEL pure function ─────────
         # Emma's orchestrator model ([[project_orchestrator_model]],
-        # planning/exploratory/fused-compile-target.md): the loop BODY /
-        # STEP is a pure substrate tensor function (the fusable, exportable
-        # weight artifact), and the driver below — the iteration + the
-        # `float(_halted)` halt-read — is the thin in-module orchestrator.
-        # Factoring the tick into `_step` makes it independently traceable
-        # (the export path can pull it out as the network) and keeps the
-        # ONLY host readout (`float(_halted)`) in the driver, never in the
-        # step graph. Behaviour is identical to the prior fused form: the
-        # driver breaks on the first tick whose halt term saturates, so the
-        # per-call `_halted` (reset each tick) matches the old cross-tick
-        # accumulation (which only ever transitioned 0->1 once).
+        # planning/exploratory/fused-compile-target.md): the loop BODY / STEP
+        # is a pure substrate tensor function — the fusable, EXPORTABLE weight
+        # artifact. Emitting it at module level (not nested in the driver)
+        # lets the export path grab it BY NAME and trace it into a standalone
+        # weight file (`torch.jit`/`torch.export`). The driver below is the
+        # thin in-module orchestrator: it calls the step and reads
+        # `float(_halted)` at the iteration boundary — the single host
+        # readout, the legitimate terminal boundary, never inside the step.
+        # Behaviour is identical to the fused form: the driver breaks on the
+        # first tick whose halt term saturates, so the per-call `_halted`
+        # (reset each tick) matches the old cross-tick accumulation (which
+        # only ever transitioned 0->1 once). The step takes `_t` plus
+        # (this?, array?, state...) explicitly; it returns (this?, state...,
+        # halted).
+        step_name = f"_step{py_loop_name}"
+        # The step also receives the `_init_*` capture params: the loop-capture
+        # desugar re-pins captured loop-invariant vars inside the body via
+        # `name = _init_name` (e.g. an iterative count), so the body references
+        # those `_init_*` names. The nested form closed over them; the
+        # module-level form must take them explicitly. They are driver
+        # parameters, so the driver can forward them.
         step_params = (
-            ["_t"] + (["this"] if is_class_method else []) + state_names
+            ["_t"]
+            + (["this"] if is_class_method else [])
+            + ([arr_param_name] if arr_param_name else [])
+            + state_names
+            + init_param_names
         )
         step_returns = (
             (["this"] if is_class_method else []) + state_names + ["_halted"]
         )
-        self._emit(f"def _step({', '.join(step_params)}):")
+        self._emit(f"def {step_name}({', '.join(step_params)}):")
         self._indent += 1
         self._emit(
-            '"""One pure tick: condition + body + soft-halt. '
-            'No host readout -- the fusable/exportable step graph."""'
+            f'"""Pure per-tick step of loop `{decl.name}` (kind={decl.kind}): '
+            'condition + body + soft-halt. No host readout -- the fusable/'
+            'exportable step graph (Emma orchestrator model).'
+            '"""'
         )
         self._emit("_halted = 0.0")
         # Snapshot pre-step state for soft-mux freeze on halt.
@@ -1695,19 +1707,8 @@ class BaseCodegen:
                 f"_keep = _VSA.heaviside(int({count_src}) - _iterator + 1)"
             )
         elif decl.kind == "foreach_loop":
-            # foreach: condition is the array parameter (an Identifier
-            # naming the array). The function takes the array as its
-            # first parameter (in addition to state inits). Each tick:
-            # halt when _t >= length; bind `element` to arr[_t]. The array
-            # param is read from the enclosing closure (read-only).
-            if not isinstance(decl.condition, ast.Identifier):
-                raise CodegenNotSupported(
-                    decl.condition,
-                    "foreach_loop's first parameter must be a plain "
-                    "identifier naming the array (e.g. `arr`). Got "
-                    f"{type(decl.condition).__name__}.",
-                )
-            arr_param_name = decl.condition.name
+            # foreach: array is an explicit step parameter (`arr_param_name`).
+            # Each tick: halt when _t >= length; bind `element` to arr[_t].
             self._emit(f"# foreach_loop: array param `{arr_param_name}`,")
             self._emit(f"# bind `element` to {arr_param_name}[_t] each tick.")
             self._emit(f"_length = _VSA.array_length({arr_param_name})")
@@ -1743,27 +1744,40 @@ class BaseCodegen:
                 f"+ _halted * _pre_{state_name}"
             )
         self._emit(f"return ({', '.join(step_returns)},)")
-        self._indent -= 1  # close _step
+        self._indent -= 1  # close the module-level step
 
-        # do_while: body runs once unconditionally first (before the driver).
+        # ── The driver (thin in-module orchestrator) ──────────────────────
+        # Runs the pure step until soft-halt. The `float(_halted)` halt-read
+        # and the iteration live HERE — the legitimate orchestrator boundary,
+        # not inside the exportable step graph above.
+        self._emit(f"def {py_loop_name}({', '.join(py_params)}):")
+        self._indent += 1
+        self._emit(
+            f'"""Loop `{decl.name}` (kind={decl.kind}) driver: runs the pure '
+            f'step `{step_name}` until soft-halt. Returns '
+            f"({', '.join(state_names) or 'no state'}, halted)."
+            '"""'
+        )
+        # State locals init from caller args.
+        if is_class_method:
+            self._emit("this = _init_this")
+        for state_name, init_name in zip(state_names, init_param_names):
+            self._emit(f"{state_name} = {init_name}")
+        self._emit("_halted = 0.0")
+        # do_while: body runs once unconditionally first (before the loop).
         if decl.kind == "do_while":
             self._emit(f"# do_while: body runs once unconditionally first.")
             for inner in decl.body.statements:
                 self._translate_stmt(inner)
-
-        # ── The thin in-module orchestrator: drive _step, read halt ───────
-        # The driver is Python; it calls the pure step and reads `_halted`
-        # at the iteration boundary to decide whether to continue — the
-        # legitimate terminal/orchestrator boundary, NOT inside the step
-        # graph above. `float(_halted)` is the single host readout. No
-        # compile-time iteration cap: programs halt when the loop's halt
-        # condition fires, like any `while True` in any other language.
-        # `_t` is the iteration counter (also feeds iterative/foreach ticks).
+        # Iterate: call the pure step; read the halt at the boundary. The
+        # call args are exactly the step params (all names exist here as
+        # driver locals/params). No compile-time iteration cap: programs
+        # halt when the loop's halt condition fires.
         self._emit("_t = 0")
         self._emit("while True:")
         self._indent += 1
         self._emit(
-            f"{', '.join(step_returns)} = _step({', '.join(step_params)})"
+            f"{', '.join(step_returns)} = {step_name}({', '.join(step_params)})"
         )
         self._emit("_t += 1")
         self._emit("if float(_halted) >= 0.99:")
@@ -1771,25 +1785,6 @@ class BaseCodegen:
         self._emit("break")
         self._indent -= 1
         self._indent -= 1  # close the while loop
-
-        # Pop state stack and restore iterator/element runtime flags.
-        self._loop_state_stack.pop()
-        self._iterator_runtime_in_scope = prior_iter_runtime
-        self._element_runtime_in_scope = prior_elem_runtime
-        # Restore any state-param types shadowed in _var_type above.
-        for _sp_name, _sp_prior in prior_state_var_types.items():
-            if _sp_prior is None:
-                self._var_type.pop(_sp_name, None)
-            else:
-                self._var_type[_sp_name] = _sp_prior
-        # Restore class context if it was set for this loop body.
-        if is_class_method:
-            self._current_class_name = prior_class_name
-            if prior_var_type_this is None:
-                self._var_type.pop("this", None)
-            else:
-                self._var_type["this"] = prior_var_type_this
-
         # Return final state values + halted (last). Non-static class
         # loops also return `this` (first), so the call site can
         # rebind the caller's instance variable.
@@ -1799,7 +1794,23 @@ class BaseCodegen:
         return_items.extend(state_names)
         return_items.append("_halted")
         self._emit(f"return ({', '.join(return_items)},)")
-        self._indent -= 1  # close the function
+        self._indent -= 1  # close the driver function
+
+        # ── Teardown: pop state stack, restore flags / var types / class ──
+        self._loop_state_stack.pop()
+        self._iterator_runtime_in_scope = prior_iter_runtime
+        self._element_runtime_in_scope = prior_elem_runtime
+        for _sp_name, _sp_prior in prior_state_var_types.items():
+            if _sp_prior is None:
+                self._var_type.pop(_sp_name, None)
+            else:
+                self._var_type[_sp_name] = _sp_prior
+        if is_class_method:
+            self._current_class_name = prior_class_name
+            if prior_var_type_this is None:
+                self._var_type.pop("this", None)
+            else:
+                self._var_type["this"] = prior_var_type_this
 
     def _translate_loop_call_class_method(
         self, stmt: "ast.LoopCallStmt", decl: "ast.LoopFunctionDecl"
