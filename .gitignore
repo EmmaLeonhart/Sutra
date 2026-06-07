@@ -152,3 +152,9 @@ experiments/.*.su
 
 # Sutra compile-cache artifacts (sutra_compiler.compile_su disk cache)
 **/.*.compiled-sutra*.py
+
+# Saved Claude/web conversation dumps (reference only; metabolise into roadmap, do not commit)
+Neural network approaches to Turing completeness - Claude.html
+Neural network approaches to Turing completeness - Claude_files/
+*- Claude.html
+*- Claude_files/
