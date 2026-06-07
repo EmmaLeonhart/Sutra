@@ -5462,3 +5462,15 @@ The paper does NOT claim "weight file" (that's internal Phase-2 framing), so
 nothing to retract there. Body per-construct "fused subgraph" descriptions left
 (accurate; backed by the autograd-flows result). Push triggers a new clawRxiv
 submission cycle.
+
+## 2026-06-07 — overhaul Phase 2: emit weight file + tiny orchestrator (compile target realized, simple case)
+
+experiments/fused_nn/emit_weight_file.py: given a substrate-pure Sutra function
+f(x)=x*2+1, emits TWO artifacts -- network.pt (2878 bytes, the traced graph =
+weights) + a 12-line run.py orchestrator that imports ONLY torch (no compiler, no
+computation), loads the weights, builds the input vector, runs the network, prints
+output. Verified by running run.py in a fresh subprocess: f(9) -> printed 19.0,
+matches eager. So Emma's weight-file + tiny-connector compile target is realized
+end-to-end for the simple (straight-line/bounded-loop) case. Added to CI guard
+test_fused_nn (5/5). Remaining build: recurrence/RAM/unbounded-loop emission
+(fused-compile-target.md). Ollama-free.
