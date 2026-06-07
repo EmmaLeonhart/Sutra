@@ -142,17 +142,19 @@ state (avoid literal-vs-loop-state comparison).
   land/lor/lxor + lsl/lsr, arrays→RAM, failwith→sentinel). OCaml suite 79 passing.
   Substrate primitives shipped + verified: bitwise stdlib (band/bor/bxor), arrays→RAM
   (ramRead/ramWrite + RAM-device hardening). **CAPSTONE: a RAM-state WASM stack machine
-  RUNS on the substrate** and is now TURING-COMPLETE (17 opcodes 0-16:
-  HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE/EQ/LT/OUTPUT/OR/XOR/DUP/SWAP/DROP +
-  backward BR_IF memory loop: counter loop N=1/3/5 -> acc N, factorial(3)=6;
-  CI-guarded 20/20 in test_mini_wasm_machine.py)
+  RUNS on the substrate** and is now TURING-COMPLETE (21 opcodes 0-20:
+  HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE/EQ/LT/OUTPUT/OR/XOR/DUP/SWAP/DROP/GT/GE/
+  LE/NE + backward BR_IF memory loop: counter loop N=1/3/5 -> acc N, factorial(3)=6;
+  comparison equality boundaries gated by clean ==; CI-guarded 30/30 in
+  test_mini_wasm_machine.py)
   — RAM memory + fresh-`ramRead` dispatch + conditional-no-op-write side effects +
   HALT (= `raise Exit`); host-driven steps dodge the v1 one-slot-`recur` limit.
-  Findings: `planning/findings/2026-06-06-iso5-*`; artifacts
+  Findings: `planning/findings/2026-06-06-iso5-*`,
+  `2026-06-06-substrate-comparison-equality-boundary.md`; artifacts
   `experiments/iso5_substrate_dispatch/`. The four hard substrate questions
   (memory/dispatch/multi-state/side-effects) are answered with measurements.
-  **Remaining:** breadth (the other ~27 opcodes — same blended dispatch; arithmetic
-  DIV/REM, comparisons GT/GE/LE/NE, shifts SHL/SHR, more stack ops); a SCALABLE
+  **Remaining:** breadth (the other ~23 opcodes — same blended dispatch; arithmetic
+  DIV/REM, shifts SHL/SHR, more stack ops); a SCALABLE
   RAM device for the 10MB linear memory (host RAM-list doesn't scale); ground-truth
   .txt build (BLOCKED: `uv`/`clang` missing locally; `iso_equiv.sh` uses WSL).
 - **PCA on the WASM transformer (todo.md TOP PRIORITY — ACTIVE; first pass DONE).**
@@ -184,7 +186,14 @@ state (avoid literal-vs-loop-state comparison).
     `planning/findings/2026-06-06-pruned-transformer-step2-head-pruning.md`. Remaining
     mechanical bit: re-pack a literally-smaller `n_heads` model (output-identical by
     the above).
-  - **STEP 3:** compress the token/head embedding to its ~3-d effective subspace.
+  - **STEP 3 DONE (2026-06-06) — NEGATIVE:** the token/head embedding has 99% energy
+    in 3 dims but is NOT SVD-compressible at ANY rank — even the full rank-38 round-trip
+    (1.1e-12 reconstruction error) flips the output, because the 1e5 head + 1e10 hardmax
+    amplify any perturbation. Confirms magnitude≠importance even for the embedding;
+    fixed the paper's overclaiming "low-rank vocab" bullet to match. Script
+    `vocab_compress_verify.py`; finding
+    `planning/findings/2026-06-06-pruned-transformer-step3-embedding-not-compressible.md`.
+    So the only output-preserving reductions are the exactly-zero ones (steps 1-2).
   - **VERIFICATION DECISION (Emma 2026-06-06): commit wasm/token fixtures.** Generate
     the 6 programs' `.wasm` + token prefix `.txt` + reference `_ref.txt` ONCE on a
     clang-equipped environment and COMMIT them, so the byte-for-byte oracle becomes
