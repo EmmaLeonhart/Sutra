@@ -5243,3 +5243,16 @@ provenance non-claim and References (by title+authors, preprint), as related
 work the artifact's repo was scaffolded against, not reproduced. No arXiv number
 -> does not re-trigger the reviewer's 'impossible date' disqualifier. Cancelled
 the missed durable cron to avoid a later double-add.
+
+## 2026-06-07 — INTEGRITY: mini_wasm_machine arithmetic runs on the HOST (breach surfaced)
+
+While probing substrate division for DIV/REM, found that the mini_wasm_machine's
+ADD/SUB/MUL run on the host: ramRead().real() returns a Python float, so
+top2+top1 is host float arithmetic; only memory, dispatch (defuzzy), bitwise,
+and the blended writes are substrate tensors. Contradicts percepta-ntm paper S5
+("arithmetic measured on the substrate") and the no-scalar-arithmetic rule.
+30/30 guard passes only because host float math is correct (correct output !=
+ran on substrate). Fixable by keeping stack values as vectors (element-wise
+vector add/mul, like Bits.* already does). STOPPED opcode-breadth work; logged
+to queue A.0 for Emma's call (rework vs re-scope paper). Finding
+2026-06-07-mini-wasm-machine-arithmetic-runs-on-host.md.
