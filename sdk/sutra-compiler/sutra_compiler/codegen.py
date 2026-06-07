@@ -404,9 +404,12 @@ class Codegen(BaseCodegen):
     # planning/sutra-spec/control-flow.md §"Loops" and the audit
     # finding 2026-05-10-spec-implementation-audit.md (F2).
 
+    # `component`/`semantic`/`synthetic`/`imag`/`truth` removed 2026-06-07 — no
+    # introspection in the language (host-readout accessors). `real` is the last
+    # one, retained transiently until its consumers are reworked. See CLAUDE.md
+    # §"NO introspection".
     _VECTOR_ACCESSORS = frozenset({
-        "component", "semantic", "synthetic",
-        "real", "imag", "truth",
+        "real",
     })
 
     def _translate_call(self, call: ast.Call) -> str:

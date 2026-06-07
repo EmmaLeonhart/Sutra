@@ -151,29 +151,22 @@ class TestPyTorchExtendedState(unittest.TestCase):
 
 
 class TestPyTorchVectorAccessors(unittest.TestCase):
-    """Vector-accessor methods (.component / .semantic / .synthetic /
-    .real / .imag / .truth) lower to _VSA.<name>(v, args...) exactly
-    like in the numpy backend. The emitted runtime returns Python
-    floats via .item() so tensors never leak out."""
+    """Host-readout accessors (.component / .semantic / .synthetic / .imag /
+    .truth) were REMOVED 2026-06-07 — no introspection in the language (they
+    were `float(v[...].item())` host readouts). Only `real` remains transiently
+    while its consumers are reworked. See CLAUDE.md §"NO introspection"."""
 
-    def test_component_accessor_lowers(self):
-        src = (
-            "vector x = basis_vector(\"x\");\n"
-            "function fuzzy main() { return x.component(0); }\n"
-        )
-        py = _compile(src)
-        self.assertIn("_VSA.component(x, 0)", py)
+    def test_removed_accessors_are_gone(self):
+        py = _compile("function vector main() { return basis_vector(\"x\"); }\n")
+        self.assertNotIn("def component(self, v, i):", py)
+        self.assertNotIn("def imag(self, v):", py)
+        self.assertNotIn("def truth(self, v):", py)
+        self.assertNotIn("def semantic(self, v, i):", py)
+        self.assertNotIn("def synthetic(self, v, i):", py)
 
-    def test_real_imag_truth_accessors_defined(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
-        py = _compile(src)
-        self.assertIn("def component(self, v, i):", py)
+    def test_real_accessor_still_defined_transiently(self):
+        py = _compile("function vector main() { return basis_vector(\"x\"); }\n")
         self.assertIn("def real(self, v):", py)
-        self.assertIn("def imag(self, v):", py)
-        self.assertIn("def truth(self, v):", py)
-        # Scalar marshalling uses .item() so Python-side consumers see
-        # a float, not a tensor.
-        self.assertIn("float(v[int(i)].item())", py)
 
     def test_bigint_class_accepted_as_type(self):
         # Regression guard for the BigInt class declaration in
