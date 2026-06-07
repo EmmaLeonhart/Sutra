@@ -77,6 +77,26 @@ machine is closer to a hand-written virtual machine realized in tensor algebra; 
 contribution is the empirical bridge between the constructed-NTM weight structure and
 a runnable tensor-substrate machine.
 
+**Compiled and program-synthesized transformers.** The closest prior line is the
+work that *compiles* symbolic programs into transformer weights. RASP (Weiss,
+Goldberg & Yahav 2021) is a sequence-processing language whose primitives map onto
+attention and feed-forward layers, and Tracr (Lindner, Kramár et al. 2023) compiles
+RASP programs into concrete decoder weights, explicitly to produce
+known-ground-truth models for interpretability research. `transformer-vm` belongs to
+this compiled-transformer paradigm — it is a hand-constructed (rather than
+RASP-compiled) instance that targets a full WebAssembly interpreter rather than the
+histogram/sort/Dyck demonstrations Tracr ships. The distinction relevant to this
+paper is the analysis lens: RASP and Tracr study what *programs* a transformer can
+represent and provide ground-truth circuits for interpretability; we instead measure
+the **weight spectrum and head-utilization of a compiled artifact** to ask whether it
+is *reducible*. The two findings here — that magnitude-PCA is defeated by the
+hard-coded saturating constants such a compilation introduces (§4), and that the
+genuine reduction lever is the computation schedule, not the spectrum (§4) — are, to
+our knowledge, not reported for Tracr-style compiled models, whose magnitude regime
+is the same by construction. Our §5 substrate machine is then the converse move:
+rather than compiling a program *into* attention, we run the symbolic VM directly as
+a tensor-op graph on the Sutra substrate.
+
 ## 3. Question and method
 
 To build a DNC on Sutra we need a *small, runnable* attention core. The natural first
@@ -103,7 +123,14 @@ analysis does not overflow.) Consequently the energy-fraction "effective rank" i
 dominated by a few giant directions and reports a misleadingly low rank: the
 small-magnitude singular directions, which carry the actual computation, contribute
 almost nothing to the Frobenius norm. **Magnitude-PCA cannot truncate this machine** —
-dropping the small directions deletes the logic, not redundancy. These magnitudes are
+dropping the small directions deletes the logic, not redundancy. The right way to read
+this regime is that the high-magnitude, high-condition-number weights are a
+**digital logic circuit simulated at high gain inside attention**: the 1e30 constants
+push hardmax into a hard switch, so the "neural" computation here is an exact gate
+array, not a smooth learned representation. That is a property of *constructed/compiled*
+transformers (this artifact, and Tracr-style models §2), and it is precisely why
+spectral pruning fails on them — and why a *trainable* differentiable computer, the
+goal these measurements serve, is a different and more robust object. These magnitudes are
 by construction, not numerical error: the analytic weights literally encode the
 hardmax temperature and 2^k address constants, so a largest singular value near 1e30 is
 the expected scale of those encoded constants, not instability. Such values are well
@@ -222,5 +249,9 @@ Repository: https://github.com/EmmaLeonhart/Sutra
 - A. Graves, G. Wayne, M. Reynolds, et al. *Hybrid computing using a neural network
   with dynamic external memory.* Nature 538, 2016 (the Differentiable Neural
   Computer).
+- G. Weiss, Y. Goldberg, E. Yahav. *Thinking Like Transformers.* arXiv:2106.06981,
+  ICML 2021 (the RASP language).
+- D. Lindner, J. Kramár, S. Farquhar, et al. *Tracr: Compiled Transformers as a
+  Laboratory for Interpretability.* arXiv:2301.05062, 2023.
 - Percepta-Core. *transformer-vm* / "Can LLMs Be Computers?" (code + blog; no arXiv).
   https://github.com/Percepta-Core/transformer-vm
