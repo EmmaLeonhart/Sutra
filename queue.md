@@ -180,11 +180,16 @@ state (avoid literal-vs-loop-state comparison).
   - **STEP 2 (next):** keep only the 42/133 attending head-slots (per-layer
     7,5,11,11,8,0,0); not lossless a priori — verify equivalence.
   - **STEP 3:** compress the token/head embedding to its ~3-d effective subspace.
-  - **BLOCKED — full byte-for-byte sign-off on the 6 WASM programs:** the oracle needs
-    clang/uv (compile C→wasm→tokens + reference traces) — absent locally, needs WSL.
-    Step-1 equivalence was proved clang-free via random-input equivalence; steps 2/3
-    can use the same random-input equivalence, but the canonical 6-program oracle is
-    the WSL blocker. Multi-session; local submodule branch (don't push to Percepta).
+  - **VERIFICATION DECISION (Emma 2026-06-06): commit wasm/token fixtures.** Generate
+    the 6 programs' `.wasm` + token prefix `.txt` + reference `_ref.txt` ONCE on a
+    clang-equipped environment and COMMIT them, so the byte-for-byte oracle becomes
+    runnable locally forever with no toolchain. This machine has no clang/uv, so the
+    one-time generation routes through a clang-equipped path: preferred = a GitHub
+    Actions job (runners have clang/llvm) that runs `ensure_data()` + `generate_all()`
+    and commits the fixtures back (like the paper CI commits reviews); fallback = WSL
+    or Emma's other machine. After fixtures land: steps 2/3 verify byte-for-byte
+    against them (plus random-input equivalence for fast local checks). Multi-session;
+    local submodule branch for model edits (don't push to Percepta).
   HARD RAIL: "still works" means decoded output == reference, measured, not "ran".
 - **E3 — integrate a native `i32.sat_add_u` opcode (spec done; impl remaining).**
   Spec `WASM/notes/e3_native_opcode_spec.md`; E3a verified the `op_dot` vocabulary
