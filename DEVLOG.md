@@ -5474,3 +5474,15 @@ matches eager. So Emma's weight-file + tiny-connector compile target is realized
 end-to-end for the simple (straight-line/bounded-loop) case. Added to CI guard
 test_fused_nn (5/5). Remaining build: recurrence/RAM/unbounded-loop emission
 (fused-compile-target.md). Ollama-free.
+
+## 2026-06-07 — overhaul Phase 2: RAM-as-tensor step building block (gather/scatter, traceable, differentiable)
+
+experiments/fused_nn/ram_tensor_step.py: validates the RAM representation for
+machine fusion. RAM as a single (N,dim) tensor; ram_read = index_select(round(
+ptr.real).long()), ram_write = index_copy -- pure tensor ops, no host int/list, no
+.item(). Measured: a step (cell[addr].real += 1) gives 41->42; traced graph is
+host-readout-free (no aten::item); differentiable (d(out[3].real)/d(ram[3].real)
+= 1.0 through the gather/scatter). This is the building block the machine-fusion
+codegen change targets (compile ramRead/ramWrite to gather/scatter over a threaded
+RAM tensor, instead of host-list + int index). Added to CI guard test_fused_nn
+(6/6). Building block, not yet Sutra-compiled output. Ollama-free.
