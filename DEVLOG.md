@@ -5391,3 +5391,14 @@ Boundary: unbounded data-dependent loops still emit the host float(_halted)+brea
 early-exit (gradient wall; finding 2026-06-07-loop-emission-host-readout); the
 WASM machine's multi-state recurrence also needs the v1 one-slot-recur limit
 lifted. Ollama-free, self-asserting.
+
+## 2026-06-07 — overhaul: extend host-readout gate to loop emission (track float(_halted) leak)
+
+The test_no_host_readout gate scanned only the runtime prelude, so it missed the
+loop-emission host early-exit (if float(_halted) >= 0.99: break) found in 40e2ba0d.
+Extended it: compiles examples/do_while_adder.su and counts float(_halted in the
+emitted loop body (baseline 1, tight, goal 0 via bounded-N emission). Now the
+loop-recurrence readout is tracked + non-increasing, like the prelude .item()
+count. 4/4 pass. The actual fix (bounded-N loop emission, no host break) is
+design-gated: capping iterations of an unbounded loop changes termination
+semantics (the cap is an Emma decision), so it is queued, not hacked.
