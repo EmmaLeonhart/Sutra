@@ -229,10 +229,15 @@ the legitimate terminal boundary, NOT in-graph introspection.
        linear-over-contents — reads only; this is a readout layer, NOT soft
        addressing). This is the trainable-seed's first real training result —
        addresses the percepta-ntm reviewer's "no training experiments" con.
-       NEXT: wire the trainable read into the NTM controller loop (the controller
-       computes the hard pointer + consumes the soft read), and a controller-train
-       demo end-to-end; confirm with Emma whether the read coefficients should be
-       query-dependent (a function of controller state) vs fixed trainable params.
+       NEXT (build): wire the trainable read into the NTM CONTROLLER loop. Emma chose
+       (AskUserQuestion 2026-06-07) **QUERY-DEPENDENT read weights from controller
+       state**: each step the controller emits a query vector; read_weights =
+       (trainable) linear map of the query; read = sum_i read_weights_i * value(cell_i)
+       — the standard NTM read-head shape (the controller decides what to read each
+       step). Build: controller step emits query -> per-step soft read over cell
+       contents -> controller consumes read + computes the HARD pointer/action; a
+       controller-train demo end-to-end (SGD through the read, measured). Write +
+       address stay hard; RAM external (orchestrator), NOT fused.
    (c) ~~cuda torch.jit.trace device quirk~~ RESOLVED 2026-06-07: doesn't reproduce
        for loops — it was specific to the reverted fused-RAM code. Verified the loop
        weight-file exports + drives on CUDA end-to-end (n=5, host-readout-free). The
