@@ -401,21 +401,6 @@ iteration as it executes, which is the mechanism §3.6 relies on
 for backprop through the cell. Figure~\ref{fig:halt-cell}
 visualizes one tick.
 
-**The cell is a separable, exportable step.** The per-tick cell
-body is emitted as its own pure function with no host readout
-(confirmed by the purity gate): it traces into a single fused
-tensor-op graph that `torch.jit` saves as a standalone weight file
-and reloads. A tiny Python driver (~17 lines) then plays the
-orchestrator role — it calls the step, reads the cumulative halt at
-the boundary to decide whether to continue, and stops. A
-data-dependent `while_loop` exported this way reproduces its
-reference output when driven from the weight file alone, with no
-compiler in the loop (verified end-to-end in a fresh process). A
-Sutra recurrence therefore compiles to a real weight-file-plus-
-thin-driver artifact — the network is the step, the driver is the
-orchestrator — rather than a sequence of host-orchestrated library
-calls.
-
 \begin{figure}[h!]
 \centering
 \begin{tikzpicture}[
@@ -821,8 +806,8 @@ and stage 5 is the runtime forward pass; Figure~\ref{fig:compile-pipeline} diagr
 
 ### Substrate-purity invariants
 
-Three invariants govern substrate operations: (1) every primitive
-runs on the substrate (numpy is allowed only at compile time for
+Three invariants the compiler enforces: (1) every primitive runs
+on the substrate (numpy is allowed only at compile time for
 codebook construction and rotation pre-warm, never on the runtime
 hot path); (2) no scalar extraction inside an operation:
 operations may not unpack a Python float from a substrate vector,
@@ -830,26 +815,6 @@ do scalar arithmetic, and pack the result back; (3) no Python
 control flow inside an operation: loop halt uses substrate
 primitives (`heaviside`, `saturate_unit`) instead of Python
 ternaries.
-
-These invariants are **enforced and measured**, not aspirational. A
-continuous-integration gate counts the host-readout calls
-(`.item()` / scalar `float(...)` extractions) the compiler emits
-into the generated runtime and forbids any increase, ratcheting the
-count monotonically toward zero as readouts are removed. The
-readouts that remain are a small, explicitly enumerated set of
-**by-design I/O boundaries that lie outside the substrate by
-construction** — the external RAM device's address decode (the
-orchestrator wire of the external-memory / Neural-Turing-Machine
-path, where memory is host-side I/O, not a substrate operation),
-terminal output, and the JavaScript-interop coercion layer — none
-of which is a substrate operation. A separate structural check
-confirms that a compiled data-dependent loop's per-tick step graph
-contains **zero** host readout: the single boundary read (the
-loop's cumulative halt) lives in the driver, not in the step graph
-(next section). The hand-written substrate stack machine that
-interprets a small bytecode runs with zero scalar extraction in its
-step — arithmetic, comparison, and opcode dispatch are all tensor
-ops — verified by a regression test that compiles and runs it.
 
 ### Compile-time resolution of role rotations
 
@@ -915,23 +880,17 @@ explicitly:
 - **Training is in-sample.** The §3.6 experiment verifies gradient
   flow to every learnable parameter, not generalization; no
   held-out split is reported.
-- **Substrate-purity is enforced and measured, but not yet universal.** A prior
-  audit found host-side escape hatches: value-readout accessors (`real()` and
-  siblings) that project a vector to a host scalar — running subsequent arithmetic
-  off the substrate and detaching the autograd graph — and a data-dependent loop's
-  host halt-read. Since then: a CI gate now counts the emitted host readouts and
-  forbids any increase (ratcheting toward zero); the dead readout accessors were
-  removed (`real()` is the last surface accessor remaining, used by the
-  source-transpilers' record-field reads and the JavaScript-interop layer); the
-  loop's halt-read was relocated out of the per-tick step into the thin driver, so
-  the step graph is now readout-free; and the substrate stack machine was rewritten
-  to do its arithmetic, comparison, and dispatch with zero scalar extraction. The
-  host readouts that remain are a small enumerated set of by-design I/O boundaries
-  (the external-RAM orchestrator wire, terminal output, the JS-interop layer) plus
-  the in-progress `real()` removal. So "every operation on the substrate" is now
-  CI-enforced for substrate operations and exact for the validated programs, the
-  loop step, and the stack machine — but a universal guarantee for arbitrary `.su`
-  (zero non-I/O readout everywhere) is still in progress.
+- **Substrate-purity is not yet universal.** The validated programs and the
+  loop cell body lower to substrate tensor operations, and the §3.6 classifier
+  trains by backpropagation through the actually-compiled graph. A subsequent
+  audit, however, found host-side escape hatches the language still permits:
+  value-readout accessors (`real()` and siblings) that project a vector down to a
+  host scalar — which both runs any subsequent arithmetic off the substrate and
+  detaches the autograd graph — and the data-dependent loop's host `while`-driver
+  (disclosed above). These are being removed so that readout-freedom, and thus
+  end-to-end differentiability, holds for every program. Until that work
+  completes, "every operation on the substrate" is exact for the validated
+  programs and the cell body, not yet a universal guarantee for arbitrary `.su`.
 
 ---
 
