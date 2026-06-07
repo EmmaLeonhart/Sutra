@@ -5331,3 +5331,23 @@ consumers). Updated the codegen tests (test_codegen, test_codegen_pytorch) to
 assert the accessors are GONE rather than that they lower; 105/105 pass.
 Deferred: the deprecated numpy backend (codegen.py) still carries dead method
 defs for these — clean during numpy retirement.
+
+## 2026-06-07 — overhaul Phase 2 feasibility: substrate-pure functions are differentiable; readout is a gradient wall
+
+Measured: a substrate-pure Sutra function f(a,b)=a*b+a (zero .real()) is
+end-to-end differentiable — gradients flow to both inputs with correct chain-rule
+values (d/da=5=b+1, d/db=3=a). The SAME computation through .real() severs the
+graph (d/db=0, gradient wall — .real()/.item() detaches autograd). This is the
+concrete justification for the overhaul and the percepta-ntm trainable-seed
+claim: removing readout is the PRECONDITION for "Sutra compiles to a
+differentiable neural network / weight file." Script
+experiments/fused_nn/differentiable_substrate.py (self-asserting, Ollama-free);
+finding 2026-06-07-phase2-substrate-functions-are-differentiable.md. Remaining
+Phase 2: fuse a whole program + loop/RAM recurrence into ONE graph (RAM needs
+tensor re-representation) and export a weight file.
+
+Also this session: confirmed GUI demos (count.su/toggle.su) + math.su were
+already substrate-pure (.real() only in comments — false positives). Remaining
+Phase-1 real() removals (transpiler axon field reads) are Ollama-blocked here
+(axon keys need the embedding model); JS/RAM readouts are accepted boundaries;
+numpy backend dead defs deferred to its retirement.
