@@ -57,12 +57,18 @@ This moves the one host-readout (`float(_halted)`) out of the network and into t
 orchestrator — meeting the `test_no_host_readout` loop-emission goal (0 inside the
 step) by RELOCATION, and making the step graph exportable.
 
-### State as a tensor (for the WASM machine)
-The mini_wasm_machine keeps state in the RAM device (host-mutable list). For its
-step to be a pure exportable graph, RAM must be a single tensor threaded as
-`step(ram_tensor) -> ram_tensor'` (gather/scatter for cell reads/writes instead of
-device mutation). Additionally the machine's multi-state recurrence needs the v1
-one-slot-`recur` limit lifted (separate spec decision, `non-halting-loop.md`).
+### State as a single tensor (for the WASM machine)
+NOTE: the RAM cells are ALREADY in VRAM — each `self.ram[addr]` is a `cuda`
+number-vector. The data is not off-GPU. What is host-side is (a) the **container**
+(`self.ram` is a Python *list* of tensors, not one tensor) and (b) the
+**addressing** (`addr = int(round(ptr[AXIS_REAL]))` → Python list index
+`self.ram[addr]`), neither of which is a traceable tensor op. For the step to be a
+pure exportable graph, change the container to a single `(N, dim)` VRAM tensor and
+the access to tensor **gather/scatter** (a tensor index, not a host int), threaded
+as `step(ram_tensor) -> ram_tensor'`. The data stays in VRAM; only list→tensor +
+int-index→gather/scatter change. Additionally the machine's multi-state recurrence
+needs the v1 one-slot-`recur` limit lifted (separate spec decision,
+`non-halting-loop.md`).
 
 ## Open decisions
 - Artifact format: `torch.jit.save` (TorchScript) vs `torch.export` (the newer
