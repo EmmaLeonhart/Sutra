@@ -183,9 +183,13 @@ state (avoid literal-vs-loop-state comparison).
     zero (V rows AND out_proj cols exactly zero, not just Q/K), so dropping them is
     lossless — output-preserving on 5/5 random inputs. 68% of attention params are
     zero; the model uses 42/133 heads. Script `head_prune_verify.py`; finding
-    `planning/findings/2026-06-06-pruned-transformer-step2-head-pruning.md`. Remaining
-    mechanical bit: re-pack a literally-smaller `n_heads` model (output-identical by
-    the above).
+    `planning/findings/2026-06-06-pruned-transformer-step2-head-pruning.md`.
+  - **RE-PACK DONE (2026-06-07):** built the concrete reduced model — per-layer attention
+    sliced to its used heads ([7,5,11,11,8,0,0]=42/133), attention params 40,432→12,768
+    (68.4% removed); output-IDENTICAL to full on 8/8 random inputs (exact, since removed
+    rows/cols are zero). Script `repack_reduced.py`; finding
+    `planning/findings/2026-06-07-pruned-transformer-repack-reduced-core.md`. The pruned
+    core is now BUILT + locally verified; only the canonical 6-program oracle remains.
   - **STEP 3 DONE (2026-06-06) — NEGATIVE:** the token/head embedding has 99% energy
     in 3 dims but is NOT SVD-compressible at ANY rank — even the full rank-38 round-trip
     (1.1e-12 reconstruction error) flips the output, because the 1e5 head + 1e10 hardmax
