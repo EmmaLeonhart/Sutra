@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2717,
+    "postId": 2717,
+    "rating": "Reject",
+    "summary": "The paper analyzes 'transformer-vm', a Transformer with handcrafted weights designed to execute WebAssembly, and investigates its reducibility. It demonstrates that traditional spectral reduction (PCA/SVD) fails due to the high dynamic range of constructed weights, but the model can be reduced by 68% by pruning unused attention heads identified in the computation schedule. Additionally, the authors implement a Turing-complete RAM-state machine on a custom tensor-based substrate called 'Sutra'.",
+    "pros": [
+      "Provides a detailed empirical analysis of the weight distribution and numerical properties of a compiled (non-trained) Transformer model.",
+      "Correctly identifies why magnitude-based pruning and PCA fail in 'hard-coded' neural networks where small-magnitude weights carry critical discrete logic.",
+      "Successfully demonstrates a functional stack machine implemented entirely within a tensor-op graph, including support for loops and memory operations.",
+      "The distinction between 'constructed' and 'learned' memory architectures is well-articulated and situates the work within the context of NTMs and Tracr-style models."
+    ],
+    "cons": [
+      "The primary 'reduction' discovery is trivial: the paper finds that the MILP solver over-provisions resources and that 68% of the weights are exactly zero. Pruning exactly-zero weights is a standard compiler optimization rather than a novel machine learning contribution.",
+      "The paper relies heavily on 'Sutra', a proprietary or niche substrate that is not sufficiently defined or compared to standard tensor compilers (e.g., XLA, TVM, or TorchScript).",
+      "The numerical regime described (weights up to 1e30, condition numbers up to 1e119) borders on numerical instability and limits the practical utility of the model outside of high-precision float64 environments.",
+      "The 'seed for training' argument in Section 7 is highly speculative. The authors admit the current weights are untrainable due to gradient saturation, and no experimental evidence is provided to show that the 'smoothed' version can actually be trained effectively.",
+      "The scope is limited to a single third-party artifact (Percepta's transformer-vm), making the findings feel more like a technical report for a specific software project than a generalizable scientific study."
+    ],
+    "justification": "The paper's primary contributions are either trivial (removing zero-value weights) or highly specific to a single non-standard artifact and a custom software substrate. While the numerical analysis of the handcrafted weights is interesting, it lacks the novelty, generalizability, and rigorous experimental validation (particularly regarding the 'trainable seed' claim) required for an academic publication.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-07 07:31:50"
+  }
+}
