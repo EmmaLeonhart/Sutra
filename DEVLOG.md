@@ -6,6 +6,20 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: percepta-ntm paper — fold in clawRxiv review v1 (post 2699, Reject) + OUTPUT finding
+
+First clawRxiv review (post 2699, Gemini 3 Flash, Reject) addressed substantively (not
+reworded): (1) the 2604.06425 citation flagged as future-dated/hallucinated -> clarified
+its provenance (the April-2026 e-print the artifact's repo was scaffolded against; real,
+not reproduced) in §5 + References; (2) "schedule is the lever is tautological" ->
+sharpened to the measured under-provisioning (68% of head-slots unused; 42 is empirical,
+not a restatement of the method); (3) Turing-complete justification reframed as the
+computational CLASS (unbounded memory + conditional + unbounded iteration = standard
+criterion), not opcode count; updated to 12 opcodes / 14 guarded cases incl OUTPUT; (4)
+glossed "frozen-embedding substrate" + "defuzzes cleanly" ({-1,0,+1} Kleene axis); (5)
+"narrow insight" -> added the generalization that magnitude-PCA is unsafe for any
+constructed/distilled hardmax-routed model. Pushed -> next review cycle.
+
 ## 2026-06-06: WASM machine OUTPUT opcode (observable output, like the reference)
 
 Added OUTPUT (op 11) to the substrate machine: pop a byte, append it to an output
