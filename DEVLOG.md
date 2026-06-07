@@ -6,6 +6,17 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+### 2026-06-07 (later): "cuda trace device quirk" was a false alarm — removed the documented blocker
+
+Investigated the documented #7(c) "cuda torch.jit.trace device quirk." It does NOT
+reproduce for loops: isolated `n < 5` and the full `while_loop` step both trace fine
+on cuda, and the loop weight-file exports + drives end-to-end on CUDA (trace + save +
+reload + drive → n=5, graph host-readout-free). The earlier mismatch was specific to
+the now-reverted fused-RAM code (`ram_gather` shape ops + the 21-opcode dispatch
+constants). Corrected the false claim in queue.md #7(c), fused-compile-target.md, and
+the `emit_loop_weight_file` comment (the CPU pin is a portability choice — portable
+weight file + plain-CPU orchestrator — not a bug workaround). No device fix needed.
+
 ## 2026-06-07: daily audit (CLEAN, +dispatch gap) + overhaul #6 (loop step/driver split)
 
 Daily substrate-honesty audit over the overhaul window (after `ac10ef16`): CLEAN.

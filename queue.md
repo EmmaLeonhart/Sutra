@@ -223,8 +223,11 @@ the legitimate terminal boundary, NOT in-graph introspection.
        addressing the RAM. Re-scope the attention-on-RAM build accordingly before
        barreling (confirm with Emma what "linear regression over memory" means for
        the controller vs the head).
-   (c) cuda torch.jit.trace device quirk (comparison literal -> CPU constant on GPU)
-       — affects the loop-export path; export pins CPU; GPU export is a device fix.
+   (c) ~~cuda torch.jit.trace device quirk~~ RESOLVED 2026-06-07: doesn't reproduce
+       for loops — it was specific to the reverted fused-RAM code. Verified the loop
+       weight-file exports + drives on CUDA end-to-end (n=5, host-readout-free). The
+       emit_loop_weight_file demo pins CPU as a PORTABILITY choice (portable weight
+       file + plain-CPU orchestrator), not a bug workaround. No device fix needed.
 
 HARD RAIL: every step RUN and verified substrate-to-substrate; no faking; "it ran"
 is not "it's pure" and not "it's one fused differentiable network."
