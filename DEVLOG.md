@@ -5732,3 +5732,17 @@ smoke 11/11; the JS coercion break is latent (no test exercises it). PLAN A COMP
 `realvec(v)` (a real-axis projector matmul). The only real-axis reads remaining are
 substrate `realvec`, sanctioned host boundaries (direct indexing), and compile-time
 numpy `_np.real`.
+
+## 2026-06-07 (later): gate readout audit — js_neq negation on-substrate; baseline 20→18
+
+Audited the 18 remaining `.item()` host-readouts in the generated runtime. Found one
+GRATUITOUS readout: js_strict_neq / js_loose_neq computed the inequality as
+`out[truth] = -float(eq[truth].item())` — a host extraction just to negate the truth
+axis. Replaced with on-substrate `out[truth] = -eq[truth]` (a tensor negation, no
+readout, stays differentiable). Verified correct: js_strict_neq(5,5)=-1,
+js_strict_neq(5,7)=+1, js_loose_neq(5,5)=-1. Gate baseline 20→18.
+The remaining 18 are all by-design boundaries, NOT language introspection:
+ram_read/ram_write address decode (external-RAM orchestrator I/O wire), string_to_python
+(string→host terminal output), array_length (host loop-bound/control), is_char/is_string
+(host type dispatch), _js_str_cmp (JS-interop carve-out host string compare). Documented
+in the gate.

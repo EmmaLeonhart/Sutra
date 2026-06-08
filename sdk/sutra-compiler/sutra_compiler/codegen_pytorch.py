@@ -2292,7 +2292,7 @@ class PyTorchCodegen(Codegen):
         self._emit("# Flip the truth-axis component. Vector clone so we don't")
         self._emit("# mutate the input.")
         self._emit("out = eq.clone()")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = -float(eq[self.semantic_dim + self.AXIS_TRUTH].item())")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = -eq[self.semantic_dim + self.AXIS_TRUTH]")
         self._emit("return out")
         self._indent -= 1
         self._emit()
@@ -2333,7 +2333,7 @@ class PyTorchCodegen(Codegen):
         self._emit('of loose `==`)."""')
         self._emit("eq = self.js_loose_eq(a, b)")
         self._emit("out = eq.clone()")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = -float(eq[self.semantic_dim + self.AXIS_TRUTH].item())")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = -eq[self.semantic_dim + self.AXIS_TRUTH]")
         self._emit("return out")
         self._indent -= 1
         self._emit()
