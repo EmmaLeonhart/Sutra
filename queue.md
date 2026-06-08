@@ -521,7 +521,10 @@ first and never touches the RAM/W2C sections above.
   substrate-verified `match_or` = 300). **Catch-all name binding DONE** (`match_bind`).
   **Guarded patterns DONE** (`| x when x>0 -> …` → test = guard, or `(pat==k) && guard`;
   bound name substituted via `_MATCH_SUBST`; substrate-verified `match_guard` = 60).
-  Remaining: constructor-with-args / record-destructuring patterns.
+  **Record-destructuring DONE** (`| {x; y} -> body` → bind each field to
+  `realvec(scrut.item("f"))`, irrefutable terminal; substrate-verified `match_record` = 16).
+  Remaining: constructor-with-args patterns (gated on constructor-with-args *construction*,
+  which is itself UNSUPPORTED — only nullary variants build today; a paired feature).
 - [ ] **Records -> axons: DONE for numeric fields** (substrate-verified
   `getx (mk 7 9) = 7.0`). `type X = {…}` erased + record-name prepass; record-typed
   params -> `Axon`; construction `{x=a;y=b}` -> `Axon r; r.add("x",a); …`; field
