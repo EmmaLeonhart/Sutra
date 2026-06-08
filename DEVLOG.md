@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-08: axon string fillers RESOLVED (Emma) — strings are NOT axon fillers
+
+Drained A.0(c) via AskUserQuestion: Emma's call is **strings are NOT axon fillers** — fillers
+are numbers/vectors only; strings travel as separate codepoint-array values, not inside
+axons. So the string round-trip collapse (item→72='H') is BY DESIGN, not a bug. Recorded the
+resolution: `axons.md` gains a "Fillers are numbers/vectors, not strings" section; the
+open-question doc + the OCaml string-field finding are marked resolved; queue A.0(c) closed
+and the OCaml string-field item marked UNSUPPORTED-by-design; corrected the contradicted
+memory `project_axon_ipc_payload_is_strings_and_numbers`. Numeric record fields remain the
+supported scope.
+
 ## 2026-06-08: axon string fillers don't round-trip — spec/impl gap surfaced for Emma
 
 Sharpened yesterday's OCaml string-field blocker with a raw measurement: `a.add("k","Hi");

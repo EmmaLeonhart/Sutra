@@ -117,16 +117,13 @@ state (avoid literal-vs-loop-state comparison).
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- **A.0(c) — Axon string fillers don't round-trip (spec-vs-impl gap, measured 2026-06-08).**
-  `a.add("k","Hi"); a.item("k")` → 72.0 ('H', first codepoint), not "Hi" — single field, so
-  NOT bundle crosstalk; the String filler collapses through `bind`/`unbind`. The axon-as-IPC
-  vision says strings ARE fillers ([[project_axon_ipc_payload_is_strings_and_numbers]]), so
-  this is a spec/impl contradiction (integrity rule #5). Q for Emma: is this (a) a bug to fix
-  at the axon/substrate layer (how does a codepoint-array filler survive bind/unbind?), (b) a
-  scoped limitation for now (strings-as-fillers out of scope; document it), or (c) a specific
-  encoding (store string fillers un-rotated/keyed directly)? Blocks OCaml/TS string record
-  fields (transpiler pieces are easy on top of the chosen mechanism). Open-question doc:
-  `planning/open-questions/axon-string-filler-roundtrip.md`. NOT blocking other work.
+- **A.0(c) — Axon string fillers — RESOLVED (Emma 2026-06-08): strings are NOT axon fillers.**
+  Axon fillers are numbers/vectors only; strings are passed as separate codepoint-array
+  values, not inside axons. So the string round-trip "failure" (`a.item("k")`→72='H') is BY
+  DESIGN, not a bug. Consequence: OCaml/TS string record fields stay UNSUPPORTED (a record
+  with a string field can't be an axon-with-string-filler). Axon vision/docs updated to match
+  (`axons.md`); memory `[[project_axon_ipc_payload_is_strings_and_numbers]]` corrected.
+  Open-question doc closed: `planning/open-questions/axon-string-filler-roundtrip.md`.
 
 - **A.0(a) — DECISIONS (RESOLVED autonomously 2026-06-07, Emma "do those items autonomously").**
   1. **Boolean representation** — RESOLVED (Emma + spec `equality-and-defuzzification.md:92`):
@@ -593,14 +590,11 @@ first and never touches the RAM/W2C sections above.
   body-position calls — nested under operators like `f{..}+g{..}` is a follow-on recursive
   hoist). **Tuple literals in argument position: DONE** (`f (7, 9)` → hoist to a temp
   positional Axon, same machinery; substrate-verified `tuple_arg` = 16). **Non-numeric
-  (string) record fields: BLOCKED at the axon layer** (measured 2026-06-08, attempt
-  reverted): the field-type-aware read lowers correctly (`String get_name(Axon p){return
-  p.item("name");}`) but `axon.add("name","Alice")`+`item("name")` does NOT round-trip the
-  string — returns 65 (`'A'` codepoint), even with explicit annotations. Numbers recover via
-  `realvec`; a string codepoint-array has no clean inverse from the bundled filler. Real
-  blocker = axon string round-trip (substrate/axon-spec, NOT a transpiler fix); finding
-  `2026-06-08-ocaml-nonnumeric-record-fields-blocked-axon-string.md`. Numeric record fields
-  remain the supported scope. (Nullary **variants** ->
+  (string) record fields: UNSUPPORTED BY DESIGN** (Emma 2026-06-08: strings are NOT axon
+  fillers — axon fillers are numbers/vectors only, strings are separate codepoint-array
+  values). The measured `add("name","Alice")`+`item("name")`→65 collapse is expected, not a
+  bug to fix. Numeric record fields remain the supported scope; finding
+  `2026-06-08-ocaml-nonnumeric-record-fields-blocked-axon-string.md`. (Nullary **variants** ->
   enum ints + constructor-pattern `match`: DONE — `label Green = 200`. Parameterised
   constructors `C of t` still UNSUPPORTED.)
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
