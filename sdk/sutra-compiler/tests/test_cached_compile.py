@@ -27,6 +27,12 @@ import tempfile
 import textwrap
 import unittest
 
+def _rv(_vsa, _vec):
+    # Host-side terminal-boundary read of a number-vector's real axis
+    # (the `real()` runtime method was removed — no scalar accessor). This
+    # is the sanctioned external verification read, done by direct indexing.
+    return float(_vec[_vsa.semantic_dim + _vsa.AXIS_REAL])
+
 # torch is required to exec the emitted Python (the _TorchVSA runtime).
 # If torch isn't available the integration tests are skipped; the
 # cache-key tests still run since they only touch translate_module.
@@ -169,7 +175,7 @@ class TestCompileSuCacheBehavior(unittest.TestCase):
         # add_one(3) -> 4, via make_real -> real-axis vector
         vsa = mod._VSA
         out = mod.add_one(3.0)
-        decoded = float(vsa.real(out))
+        decoded = float(_rv(vsa, out))
         self.assertAlmostEqual(decoded, 4.0, places=6,
                                msg=f"add_one(3) decoded as {decoded}, expected ~4.0")
 

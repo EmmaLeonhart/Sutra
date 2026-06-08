@@ -5712,3 +5712,23 @@ the removed accessor, so reproduction was expected):
 So no paper DATA needs switching for §3.2/§3.7 — the published numbers are correct on
 the pure substrate. (§3.2.1 crosstalk + §3.6 K=5 still running; §3.6 K=5 is `vmap`-
 slow, mechanism already confirmed at K=3. Re-runs are ollama-embedding-bound ~2s/word.)
+
+## 2026-06-07 (later): A4 — `real()` removed ENTIRELY (Emma override; no host crutch even for JS)
+
+Emma: "none of the JS stuff should run on the host; if it can't run as a fused NN on
+the substrate, it should be broken." So the runtime `def real()` is removed entirely,
+not kept as a JS host helper. pytorch `def real()` -> a raising `_js_coerce_real` stub
+(the JS number<->string coercion paths that used it now fail loudly + clearly — number
+->string coercion needs a host scalar, which is not substrate-pure, so it is broken by
+design); numpy `def real()` deleted. Host-side reads (NOT language readouts) reworked
+to direct real-axis indexing at their sanctioned boundaries: 14 test-verification
+reads (`_rv` helper across test_ntm_ram / test_mini_wasm_machine / test_cached_compile
+/ test_optional_llm_model), the orchestrator's I/O-wire pointer/value decodes (5 sites),
+and examples/multi_program_axon/_run_os.py. Gate baseline 21->20 (real()'s `.item()`
+gone). test_codegen updated (runtime no longer defines `real`). Verified green:
+gate/codegen/ntm_ram/cached/optional_llm 118, TS fixtures 39/1xfail, axon 15, examples
+smoke 11/11; the JS coercion break is latent (no test exercises it). PLAN A COMPLETE —
+`real()`/scalar extraction is gone from the language; the on-substrate replacement is
+`realvec(v)` (a real-axis projector matmul). The only real-axis reads remaining are
+substrate `realvec`, sanctioned host boundaries (direct indexing), and compile-time
+numpy `_np.real`.

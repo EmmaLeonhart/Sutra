@@ -22,6 +22,13 @@ substrate did.
 """
 from __future__ import annotations
 
+def _real_axis(vsa, v):
+    # Orchestrator I/O-wire decode: a pointer/value vector's real axis to a
+    # host number. The `real()` runtime method was removed (no scalar accessor
+    # in the language); the orchestrator is host I/O (ram-pointers.md), so it
+    # reads the axis directly. NOT a substrate op.
+    return float(v[vsa.semantic_dim + vsa.AXIS_REAL])
+
 
 class Orchestrator:
     def __init__(self, vsa, ram, tick_fn):
@@ -34,7 +41,7 @@ class Orchestrator:
         same host accessor `recur`-state debugging uses (Audit.md
         LEGITIMATE) — a monitoring decode at the I/O wire, not an op
         inside the substrate computation."""
-        return int(round(self._vsa.real(ptr_vec)))
+        return int(round(_real_axis(self._vsa, ptr_vec)))
 
     def run_read_scan(self, max_steps: int, stop_on_sentinel: bool = True):
         """Drive the read head for up to `max_steps` ticks. Returns the
@@ -84,7 +91,7 @@ class Orchestrator:
             out = self._tick(cell)                    # carry through substrate
             if float(_torch.linalg.vector_norm(out).item()) <= 1e-7:
                 break                                 # zero cell == sentinel
-            code = int(round(self._vsa.real(out)))    # payload, at the wire
+            code = int(round(_real_axis(self._vsa, out)))    # payload, at the wire
             # `imag` accessor removed in the substrate-purity purge (87cfa407);
             # read the imag axis directly here (orchestrator/terminal boundary,
             # monitoring — same wire as `real` above).
@@ -108,9 +115,9 @@ class Orchestrator:
             req = self._tick()                          # program emits mailbox
             ptr_vec = self._vsa.axon_item(req, "ptr")   # substrate unbind
             data_vec = self._vsa.axon_item(req, "data")
-            addr = int(round(self._vsa.real(ptr_vec)))  # decode at the wire
+            addr = int(round(_real_axis(self._vsa, ptr_vec)))  # decode at the wire
             self._ram.write_vector(addr, data_vec)      # host RAM I/O
-            written.append((addr, int(round(self._vsa.real(data_vec)))))
+            written.append((addr, int(round(_real_axis(self._vsa, data_vec)))))
         return written
 
     def chase_text(self, trace) -> str:
@@ -125,7 +132,7 @@ class Orchestrator:
         for _addr, vec in trace:
             if float(_torch.linalg.vector_norm(vec).item()) <= 1e-7:
                 continue
-            code = int(round(self._vsa.real(vec)))
+            code = int(round(_real_axis(self._vsa, vec)))
             if code > 0:
                 out.append(chr(code))
         return "".join(out)
