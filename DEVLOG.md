@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-08: percepta-ntm paper — fold in the measured attention-on-RAM first step (addresses v13 con #4)
+
+v13 review (Reject) load-bearing con #4: the "trainable seed" claim is "speculative and
+unsupported by any training experiments or gradient analysis." Addressed with MEASUREMENTS,
+not rewording. §7 (and §6, Reproducibility) now report the first measured instances of the
+attention-on-RAM first step (linear regression over memory), in both regimes the arc
+distinguishes, on the SMOOTH operator (not the saturated hardmax weights):
+(a) constructed/untrained — the one-head attention-on-RAM parser runs on the substrate
+exact (sum/dot/select; today's work, be116cc0); (b) trained/SGD — `trainable_read.py`
+(re-run, measured this session): a differentiable soft linear read over external memory
+contents trains to recover the coefficients, loss 10.40→0.000000, ‖w−c‖=0, ‖∇‖=6.47>0 at
+step 0. Scoped carefully: this is the first-step operator learnable IN ISOLATION, NOT a
+claim that the 1e30-magnitude hardmax artifact is trainable; the composed-network training
+stays open. Does not touch the frozen `paper/neurips/`. Triggers percepta-ntm-paper-ci.
+
 ## 2026-06-08 (later still): attention-on-RAM build (b)+(c) — runs on the substrate, 3 tasks exact
 
 Took the parser from OCaml to the Sutra substrate. One constructed-weight (untrained)

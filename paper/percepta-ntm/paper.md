@@ -279,8 +279,11 @@ a substrate bitwise stdlib) are in place and individually verified.
 - We do **not** claim a Differentiable Neural Computer or a Neural Turing Machine, and
   we do not use those labels for this artifact. It is a *handcrafted, constructed-weight
   RAM-editing network* inspired by them. We measured the reduction target for its
-  attention and built a Turing-complete RAM-state machine on the substrate; we have not
-  trained anything. The trainable version is the *point* but it is future work (§7).
+  attention and built a Turing-complete RAM-state machine on the substrate. We have not
+  trained the *composed* artifact; we have trained the smooth first-step read operator in
+  isolation (a soft linear read over memory contents, SGD, coefficients recovered — §7),
+  which is the trainable-seed direction's first measured instance, not a trained
+  deployment of the full network.
 - We do **not** present this as a finished, general system. It is deliberately a niche,
   hand-built artifact right now: its value is as a *seed* (§7), not as a deployed model.
 - We do **not** claim the full 35-opcode `transformer-vm` runs on the Sutra
@@ -333,17 +336,37 @@ sublayers, the ~91 unused head-slots), and the attention-on-RAM target is re-exp
 as a *smooth* operator (a linear regression over memory), not a
 1e10-temperature hardmax. Training would operate on that smooth, low-magnitude form,
 with the hardmax constants factored out — the saturating gates are an artifact of the
-exact construction, not a property the trainable seed must inherit. We have not yet
-trained anything, so whether this smoothed seed is in practice trainable is an open
-empirical question, not a claim; the objection correctly rules out the naive version,
-which is not the one we intend.
+exact construction, not a property the trainable seed must inherit. The objection
+correctly rules out the naive version (SGD on the raw saturated array), which is not
+the one we intend.
+
+**First measured instances of the attention-on-RAM step.** The first step of the arc
+— *linear regression over memory* — is now built and measured in both regimes the arc
+distinguishes, on the smooth operator rather than the saturated weights. (a) *Constructed
+(untrained).* A single hand-constructed attention head reading a RAM tape, transpiled
+from OCaml and executed on the Sutra substrate, reproduces its reference exactly on three
+parse tasks: an aggregate (sum over the tape, query = ones), a fixed linear model
+`ŷ = w·x` evaluated by linear attention over the cells (the constructed-weight linear
+regression), and a hard location-addressed read. The aggregation is a loop-reduction of
+memory reads with the accumulator held in a RAM cell. (b) *Trained (SGD).* A
+*differentiable* soft linear read over external memory contents — the smooth, low-magnitude
+operator above, with the hard address/write factored out — is trained by gradient descent
+to recover an unknown coefficient vector: loss `10.40 → 0.000000`, recovered `w` equal to
+the true `c` to `‖w−c‖ = 0`, with non-vanishing gradients (`‖∇‖ = 6.47` at step 0). This
+is a training experiment with gradient analysis on the *smoothed read*, not on the
+hardmax weights; it shows the first-step operator is learnable in isolation. What remains
+open is training the *composed* reduced network end-to-end — not whether the first-step
+operator can be learned at all.
 
 ## Reproducibility
 
 The analysis and the substrate machine are reproducible from the project repository:
 the PCA/SVD and head-usage scripts (`experiments/wasm_transformer_pca/`), the
 substrate machine and its regression test (`experiments/iso5_substrate_dispatch/`,
-`sdk/sutra-compiler/tests/test_mini_wasm_machine.py`), and the replication of
+`sdk/sutra-compiler/tests/test_mini_wasm_machine.py`), the attention-on-RAM step — the
+constructed parser (`experiments/attention_on_ram/`, the OCaml→substrate fixtures
+`attn_{sum,dot,select}_*`) and the trained soft read (`experiments/ntm_ram/trainable_read.py`,
+guarded by `test_ntm_ram.py::TestTrainableRead`) — and the replication of
 `transformer-vm` (the `WASM/` subtree, with the authors' code as a submodule).
 Repository: https://github.com/EmmaLeonhart/Sutra
 
