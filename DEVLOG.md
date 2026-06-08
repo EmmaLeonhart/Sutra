@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — constructor-with-args (`C of t`) DESIGN RESOLVED + decomposed (not crammed)
+
+The OCaml frontend's easily-bounded surface is exhausted; the last high-value feature
+(parameterised constructors / single-arg ADTs) needs a careful 3-part change (prepass +
+construction + match) that must not regress the existing option/enum-variant paths — not a
+safe one-tick cram (esp. after reverting one over-reach earlier today). Per the
+don't-cram-what-needs-care rail, resolved the design call (engineering, mine: a variant with
+any parameterised ctor uses a UNIFORM tagged-axon `{_tag,_val}` for all its ctors, generalizing
+the option Some/None path; nullary-only variants stay enum-int) and decomposed it into a precise
+3-step queue item with the hard rail (keep option/variant fixtures green). Ready to build as a
+focused unit. No code shipped this tick by design — planning a multi-step feature, not forcing it.
+
 ## 2026-06-08: OCaml frontend — tail-recursion with a non-comparison (boolean) halt condition
 
 `_negate_cond` (halt condition → loop continue condition) now handles any BOOLEAN halt, not
