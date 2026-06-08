@@ -390,6 +390,18 @@ fixed-temperature, so the read converges *directionally* but stays a diffuse ble
 (`weight_on_target ≈ 0.37`); a crisp one-hot retrieval needs a temperature/`β` on `select`
 — a separable engineering lever (the language already has prior work on exactly this
 select-temperature control), not a question of whether the addressing is learnable.
+(f) *The smoothing argument, measured as a window.* The objection that these weights are
+"incompatible with standard optimization" despite a smoothing argument is testable, and
+the temperature is the test. Scaling the content scores by `β` (= 1/T; the established
+`similarity/T` lever, no new op) and re-training the query, the read sharpens with `β` and
+then breaks: `β = 1` diffuse (`cos = 0.80`, weight `0.37`); `β = 16` **crisp and still
+learnable** (`cos = 1.0000`, weight `0.9998`, `‖∇q‖ = 0.35`); `β = 64`, pushed toward the
+`HARD_K`-style saturated limit, **collapses** (`cos = 0.06`, the gradient regime breaks).
+So "smoothing" is not a hand-wave: there is a measured finite-`β` window in which the read
+both retrieves cleanly and trains, bounded below by diffuseness and above by exactly the
+saturation the objection describes. The constructed `1e10` hardmax sits past the upper
+edge — which is why we train the smoothed operator, not the raw weights, and why the seed
+is the smoothed form.
 
 ## Reproducibility
 

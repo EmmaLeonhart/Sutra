@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-08: percepta-ntm §7(f) — the smoothing argument measured as a β window (v17 Reject→Weak Reject)
+
+v17 moved Reject→Weak Reject (the measured §7 additions are working; "hallucinated
+substrate" softened to "lacks detail"). Folded the temperature-window finding (fbda01b0)
+into §7 as (f), converting v17 con #4 ("incompatible with standard optimization despite
+arguments for smoothing") from a hand-wave into a measurement: scaling content scores by β
+sharpens the substrate read then breaks — β=1 diffuse (cos 0.80), β=16 crisp+learnable
+(cos 1.0000, weight 0.9998, ‖∇q‖=0.35), β=64 (toward HARD_K saturation) collapses (cos
+0.06). A measured finite-β window bounded by diffuseness below and the saturation the
+objection describes above; the 1e10 hardmax sits past the upper edge, which is why the
+seed is the smoothed form. New measured content. Did NOT chase the jargon con (#5) with
+rewording. Triggers percepta-ntm-paper-ci.
+
 ## 2026-06-08: NTM — substrate content addressing sharpens to crisp retrieval in a finite-β window
 
 Completed the content-addressing thread: with a temperature (score-scaling similarity/T,
