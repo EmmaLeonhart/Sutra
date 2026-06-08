@@ -1281,21 +1281,25 @@ def _self_call_args(node, name: str, arity: int, source: bytes):
 
 
 def _negate_cond(cond, source: bytes) -> Optional[str]:
-    """Negate a simple infix-comparison condition (return the Sutra
-    source of its logical negation), or None if it is not a single
-    comparison the MVP can invert."""
-    if cond is None or cond.type != "infix_expression":
+    """Negate an OCaml halt condition into the loop's *continue* condition.
+    A single infix comparison is inverted precisely via `_NEG_CMP`
+    (`n = 0` -> `n != 0`); any other BOOLEAN condition (a bool flag, `&&`/`||`,
+    `not …`, a predicate call) is negated generally with Sutra `!(…)` — OCaml
+    `if` requires a bool, so this is always valid."""
+    if cond is None:
         return None
-    op = cond.child_by_field_name("operator")
-    left = cond.child_by_field_name("left")
-    right = cond.child_by_field_name("right")
-    if op is None or left is None or right is None:
-        return None
-    sutra_op = _OP_MAP.get(_node_text(op, source))
-    neg = _NEG_CMP.get(sutra_op) if sutra_op else None
-    if neg is None:
-        return None
-    return f"{_lower_expression(left, source)} {neg} {_lower_expression(right, source)}"
+    if cond.type == "infix_expression":
+        op = cond.child_by_field_name("operator")
+        left = cond.child_by_field_name("left")
+        right = cond.child_by_field_name("right")
+        if op is not None and left is not None and right is not None:
+            sutra_op = _OP_MAP.get(_node_text(op, source))
+            neg = _NEG_CMP.get(sutra_op) if sutra_op else None
+            if neg is not None:
+                return (f"{_lower_expression(left, source)} {neg} "
+                        f"{_lower_expression(right, source)}")
+            # A boolean infix (&&, ||) — fall through to general `!(…)` negation.
+    return f"!({_lower_expression(cond, source)})"
 
 
 def _try_lower_tail_recursive(

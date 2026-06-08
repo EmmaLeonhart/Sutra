@@ -564,8 +564,10 @@ first and never touches the RAM/W2C sections above.
   if COND then BASE else f a…` → Sutra `while_loop`; substrate-verified
   `sum_to 0 5 = 15`). Remaining: (a) **non-tail recursion** (factorial-shape,
   recursive call inside a larger expression) — still correctly UNSUPPORTED; needs
-  a bounded-depth encoding, open question. (b) Non-comparison halt conditions
-  (`&&`/bool) — needs a Sutra `not`/negation. [Simultaneous swap-update: DONE —
+  a bounded-depth encoding, open question. (b) **Non-comparison halt conditions: DONE** —
+  `_negate_cond` now negates any boolean halt (`&&`/`||`/bool-flag/`not`) via Sutra `!(…)`,
+  keeping precise `_NEG_CMP` for comparisons; substrate-verified `tail_rec_bool` = 15
+  (`if (n=0)||(acc>100) then acc else f (acc+n) (n-1)`). [Simultaneous swap-update: DONE —
   temp-based update, substrate-verified `swaploop 7 9 2 = 7`.]
 - [ ] `match … with`: **literal + trailing `_` DONE** (`classify 1 = 200`) and
   **nullary-constructor patterns DONE** (variant match, `label Green = 200`,
