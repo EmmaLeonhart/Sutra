@@ -256,6 +256,32 @@ def run_fuzzy_dispatch() -> bool:
     return correct >= 2
 
 
+def run_content_addressed_read() -> bool:
+    path = os.path.join(HERE, "content_addressed_read.su")
+    mod = compile_to_module(path)
+    tests = [
+        ("red",   mod.k_red,   "apple"),
+        ("green", mod.k_green, "leaf"),
+        ("blue",  mod.k_blue,  "sky"),
+    ]
+    print("=" * 72)
+    print("Example 7b: content_addressed_read.su (NTM read head: associative recall)")
+    print("=" * 72)
+    total = correct = 0
+    for lbl, q, exp in tests:
+        got = mod.recall(q)
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  recall({lbl:<5}) expected={exp:<6} got={got:<6} {mark}")
+        total += 1
+        correct += got == exp
+    print()
+    print(f"{correct}/{total} content-addressed reads match expected")
+    # Color keys (red/green/blue) separate cleanly under nomic + the BETA=8
+    # temperature sharpening, so we expect all three; allow a majority as the
+    # same embedding-separation hedge fuzzy_dispatch uses.
+    return correct >= 2
+
+
 def run_nearest_phrase() -> bool:
     path = os.path.join(HERE, "nearest_phrase.su")
     mod = compile_to_module(path)
@@ -354,6 +380,8 @@ def main() -> int:
     print()
     ok7 = run_fuzzy_dispatch()
     print()
+    ok7b = run_content_addressed_read()
+    print()
     ok8 = run_nearest_phrase()
     print()
     ok9 = run_sequence()
@@ -364,7 +392,7 @@ def main() -> int:
     # form via `do_while_adder.su` and the test_loop_function_decl.py
     # suite (23 tests, all green).
     print("=" * 72)
-    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9]):
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9]):
         print("PASS")
         return 0
     print("FAIL")

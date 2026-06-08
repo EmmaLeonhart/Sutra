@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-08: NTM read head as a runnable Sutra program — examples/content_addressed_read.su
+
+Packaged content-based associative recall (the NTM/DNC read head) as a real `.su`
+program, not a host orchestration: `recall(query) = select([similarity(query,key_i)*8...],
+[value_i...])` then decode. Querying a key retrieves its value BY CONTENT on the substrate
+— 3/3 (red→apple, green→leaf, blue→sky), cleaner than fuzzy_dispatch's 2/4 (color keys
+separate well + BETA=8 sharpening). Guarded in examples/_smoke_test.py (Example 7b,
+run_content_addressed_read, 3/3 PASS). The codable attention-on-RAM read the design doc
+pointed at, now a runnable artifact.
+
 ## 2026-06-08: percepta-ntm §7(f) — the smoothing argument measured as a β window (v17 Reject→Weak Reject)
 
 v17 moved Reject→Weak Reject (the measured §7 additions are working; "hallucinated
