@@ -356,7 +356,14 @@ the true `c` to `‖w−c‖ = 0`, with non-vanishing gradients (`‖∇‖ = 6.
 is a training experiment with gradient analysis on the *smoothed read*, not on the
 hardmax weights; it shows the first-step operator is learnable in isolation. What remains
 open is training the *composed* reduced network end-to-end — not whether the first-step
-operator can be learned at all.
+operator can be learned at all. (c) *The two routes agree.* On one shared task
+(coefficients `c`, 24 memory tapes `X`, targets `y = X·c`), evaluating the constructed
+head with `q = c` reproduces `y` to `max|ŷ − y| = 8.9e-16` (machine precision) while the
+trained read independently recovers `w` from `(X, y)` to `‖w − c‖ = 6.0e-8`; the two
+predictions agree to `max|ŷ_construct − ŷ_learn| = 2.2e-7`. So hand-construction and SGD
+reach the *same* linear-regression-over-memory operator — construction writing the
+coefficients into the query, training recovering them from data — which is the concrete
+sense in which the constructed artifact is a seed for the trained one.
 
 ## Reproducibility
 
