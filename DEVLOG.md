@@ -5696,3 +5696,19 @@ self._tick_state tensor + host re-calls tick()) is a host-driven approximation;
 substrate-recurrent is the target (the fused-NN/weight-file shape). Added a
 "Refinement (Emma 2026-06-07)" section to non-halting-loop.md; corrected the
 project_orchestrator_model memory.
+
+## 2026-06-07 (later): Plan B — paper experiments reproduce on the pure substrate (no data delta)
+
+Re-ran the main Sutra paper experiments on the now-substrate-pure compiler (Plan A
+removed the `.real()` accessor). Confirmed numbers match the paper (these experiments
+use `bind`/`unbind`/`similarity` + a non-`float()`-collapsed graph — they never used
+the removed accessor, so reproduction was expected):
+- §3.2 capacity (`rotation_binding_capacity_llm.py`): rotation 100% @ k=8 on ALL
+  three substrates (nomic/all-minilm/mxbai); Hadamard collapsed — mxbai 2.5%,
+  all-minilm 7.5% — EXACTLY the paper's cited numbers. Results JSON refreshed.
+- §3.7 weighted round-trip (`differentiable_training_weighted.py`): before 33.3% ->
+  after 100.0% (2 seeds), trained gain w*=1.434, baked-recompile round-trip
+  maxlogitΔ = 1.5e-7 / 2.1e-7 == paper's ≈2e-7/logit; round_trip_ok=True.
+So no paper DATA needs switching for §3.2/§3.7 — the published numbers are correct on
+the pure substrate. (§3.2.1 crosstalk + §3.6 K=5 still running; §3.6 K=5 is `vmap`-
+slow, mechanism already confirmed at K=3. Re-runs are ollama-embedding-bound ~2s/word.)
