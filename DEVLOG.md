@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-08 (later): attention-on-RAM build step (a) — Python reference oracle
+
+`experiments/attention_on_ram/reference.py` + `test_reference.py`. A single
+constructed-weight (untrained) attention head reading a location-addressed RAM tape
+(keys K = I_N, values = the tape). Three parse tasks, smallest-first: `sum_tape`
+(q=ones → Σ tape), `dot_tape` (q=coeffs → Σ wᵢxᵢ, i.e. linear regression over memory),
+`select_field` (q=HARD_K·eⱼ, hardmax → tape[j], the minimal structural parse). The
+cross-language oracle `TEST_SET` (10 cases) passes EXACTLY (float64, no training noise),
+guarded 3/3. Measured de-risk of design-doc O1: the linear regime (sum/dot) is a plain
+weighted sum with NO softmax — exact; hard location-addressing is a clean argmax one-hot.
+Runs off any Sutra runtime hot path (constructed-weight analysis in torch = compile/
+monitor, allowed). Next: OCaml port (imperative loop-reduction over a RAM array) →
+transpile via sutra-from-ocaml → substrate, verify substrate==reference.
+
 ## 2026-06-08: NTM track step 2 — design doc for the codable attention-on-RAM parser
 
 Wrote `planning/exploratory/codable-attention-on-ram-parser.md`, the design doc the
