@@ -214,9 +214,16 @@ NEXT (concrete, in order):
    redundant softmax. MEASURED LIMITATION: `select` has fixed β=1, so the read stays a
    diffuse blend (weight_on_target 0.37) — sharpening is a β/temperature lever (NOT a
    differentiability issue), ties into existing `experiments/select_temperature_adjustment.py`.
-   >>> NEXT (separable, lower urgency): expose/measure a β on `select` so the substrate
-   content read sharpens to crisp retrieval (fold into the select-temperature work); lift
-   into a `.su` program with a trainable query.
+   SHARPENING — DONE (measured): with a temperature (score-scaling `similarity/T`, the
+   established select-temperature lever, no primitive change) the substrate content read
+   sharpens from diffuse (β=1: cos 0.80/weight 0.37) to CRISP retrieval (β=16: cos 1.0/
+   weight 0.9998, ‖∇q‖=0.35, gradient still flows); β=64 (toward hardmax) COLLAPSES (cos
+   0.06) — a finite-β "does-stuff" window between diffuse and saturated. Finding
+   `2026-06-08-substrate-content-addressing-temperature-window.md`, guard
+   `test_substrate_content_read_sharpens_with_temperature`. The content-addressing thread
+   is complete + measured on the substrate (differentiable + sharpenable, no new primitive).
+   >>> REMAINING (separable, low urgency): lift into a `.su` program with a trainable query
+   (vs the host loop); training the composed reduced network end-to-end (still open).
    REMAINING: grow the example set (more parse tasks/tapes) per design doc §5; O4
    (head/operator-count reduction — fresh-isomorphic one-head construction is already the
    single-read minimum; a multi-head parse would be the next comparison) = my engineering

@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-08: NTM — substrate content addressing sharpens to crisp retrieval in a finite-β window
+
+Completed the content-addressing thread: with a temperature (score-scaling similarity/T,
+the established select-temperature lever — no primitive change), the substrate content
+read sharpens from diffuse (β=1: cos 0.80, weight 0.37) to CRISP retrieval (β=16: cos
+1.0000, weight 0.9998, ‖∇q‖=0.35, gradient still flows); β=64 (toward the hardmax limit)
+COLLAPSES (cos 0.06). A finite-β "does-stuff" window between diffuse and saturated —
+the measured form of Emma's distinction (finite-β softmax works; argmax/β→∞ hardmax is
+inert or breaks). substrate_content_read.py temperature_sweep + guard
+test_substrate_content_read_sharpens_with_temperature (8/8). Finding
+2026-06-08-substrate-content-addressing-temperature-window.md. Thread complete + measured
+on the substrate; no new primitive built (used select+similarity throughout).
+
 ## 2026-06-08: percepta-ntm §7(e) — content addressing runs on the substrate (discharges the §7d caveat)
 
 Folded the substrate-content-addressing finding (fa437530) into §7 as paragraph (e),

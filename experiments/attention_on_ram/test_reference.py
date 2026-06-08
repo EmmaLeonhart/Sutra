@@ -74,6 +74,22 @@ def test_substrate_select_content_read_is_differentiable():
     assert soft["cos_to_target"] > hard["cos_to_target"] + 0.3
 
 
+def test_substrate_content_read_sharpens_with_temperature():
+    """With a temperature (score-scaling), the substrate soft read sharpens from a
+    diffuse blend (β=1) to crisp content retrieval at moderate β, gradient still
+    flowing; pushing β→∞ (toward the hardmax limit) collapses it. The finite-β
+    'does-stuff' window, measured."""
+    import pytest
+    pytest.importorskip("torch")
+    import substrate_content_read as scr
+    sweep = scr.temperature_sweep(verbose=False)
+    assert sweep[1.0]["weight_on_target"] < 0.6          # β=1 diffuse
+    assert sweep[16.0]["weight_on_target"] > 0.9         # moderate β: crisp retrieval
+    assert sweep[16.0]["cos_to_target"] > 0.99
+    assert sweep[16.0]["grad0"] > 1e-3                   # and gradient still flows
+    assert sweep[64.0]["cos_to_target"] < sweep[16.0]["cos_to_target"]  # over-sharp collapses
+
+
 def test_evaluate_and_learn_agree():
     """Emma's 'do all of them, compare': evaluating a constructed linear model and
     LEARNING one by SGD realize the SAME linear regression over memory."""
