@@ -1868,26 +1868,37 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def ram_write(self, ptr, value):")
         self._indent += 1
-        self._emit("if self.ram is None:")
-        self._indent += 1
-        self._emit("return value")
-        self._indent -= 1
         self._emit("_pt = self._st(ptr)")
         self._emit("# Address decode (I/O boundary). ptr may be a full number-")
         self._emit("# vector (read AXIS_REAL) or a bare scalar address (a literal")
         self._emit("# or computed RAM offset, e.g. base+i) — handle both.")
         self._emit("addr = int(round(float((_pt if _pt.ndim == 0 else "
                    "_pt[self.semantic_dim + self.AXIS_REAL]).item())))")
-        self._emit("# Store a number-vector so ramRead(...).real() round-trips: a")
+        self._emit("# Store a number-vector so ramRead(...) round-trips: a")
         self._emit("# scalar value (literal / computed) is lifted to make_real at")
         self._emit("# the I/O boundary; a number-vector is stored as-is.")
         self._emit("_vt = self._st(value)")
         self._emit("val_vec = value if (hasattr(value, 'ndim') and "
                    "_vt.ndim != 0) else self.make_real(float(_vt.item()))")
-        self._emit("if 0 <= addr < len(self.ram):")
+        self._emit("# Standalone-run default orchestrator: a program that writes RAM")
+        self._emit("# (e.g. OCaml `Array.make` -> ramWrite) declares it needs memory,")
+        self._emit("# so when no external device is attached we lazily allocate the")
+        self._emit("# host RAM buffer and grow it to cover the address. Still the")
+        self._emit("# external-host-memory I/O wire (ram-pointers.md) — a separate")
+        self._emit("# orchestrator can still pre-attach self.ram before the run.")
+        self._emit("if self.ram is None:")
         self._indent += 1
-        self._emit("self.ram[addr] = val_vec")
+        self._emit("self.ram = []")
         self._indent -= 1
+        self._emit("if addr < 0:")
+        self._indent += 1
+        self._emit("return val_vec")
+        self._indent -= 1
+        self._emit("while len(self.ram) <= addr:")
+        self._indent += 1
+        self._emit("self.ram.append(self.zero_vector())")
+        self._indent -= 1
+        self._emit("self.ram[addr] = val_vec")
         self._emit("return val_vec")
         self._indent -= 1
         self._emit()

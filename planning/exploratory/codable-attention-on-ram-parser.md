@@ -171,11 +171,15 @@ Measuring *how small* it goes while holding the tests is the deliverable.
   to confirm a single substrate `loop` can carry the running accumulator (the v1
   one-slot-`recur` limit, `non-halting-loop.md`) — the memory-counter loop suggests
   yes for a scalar accumulator; a vector accumulator may need more.
-- **O3 — exact starting parse task.** `sum_tape` is the trivial floor; `dot_tape`
-  is the linear-regression headline; `select_field` is the minimal structural parse.
-  Recommend building in that order. **Confirm with Emma if `dot_tape` is the right
-  "linear regression over memory" she means**, since that phrase is hers and carries
-  design intent ([[feedback_never_invent_thing_emma_implies_exists]]).
+- **O3 — exact starting parse task. RESOLVED (Emma 2026-06-08): "do all of them so
+  we can compare them."** So the parse tasks are a *comparison set*, not one chosen
+  reading. Built + substrate-verified: `sum_tape` (aggregate), `dot_tape` (fixed
+  ŷ=w·x evaluated by linear attention), `select_field` (hard location read). The
+  remaining comparison point Emma named is the **fit-on-substrate** variant: the
+  mechanism *solves for* w from (x,y) pairs in RAM (least-squares / a gradient step on
+  the substrate) — "closer to regression in the statistical sense" — so the parser
+  *learns* the linear model rather than only evaluating a given one. Build it and
+  compare side-by-side with the fixed-eval `dot_tape`.
 - **O4 — does the construction reuse the re-packed 42-head core, or a fresh
   one-head construction?** Reusing a literal head from `repack_reduced.py` keeps
   "identical in structure" maximally true but drags in transformer-vm's 38-d stream;
@@ -204,6 +208,16 @@ Measuring *how small* it goes while holding the tests is the deliverable.
    verify the same test set substrate-to-substrate (decoded output == expected,
    measured — not "ran"). Resolve O1/O2 with measurements here.
 4. Write the reduction finding: smallest dim/head count that still passes, measured.
+5. **Fit-on-substrate variant** (Emma's "do all of them, compare"): a head/loop that
+   solves for `w` from (x,y) pairs held in RAM — least-squares (normal equations) or a
+   substrate gradient step — landing on the substrate via the same OCaml→Sutra path.
+   Compare to the fixed-eval `dot_tape` (evaluate vs learn). This is the bridge toward
+   the percepta-ntm paper §7 "seed that SGD could grow."
+
+Build status (2026-06-08): steps 1–3 DONE — `experiments/attention_on_ram/reference.py`
+(oracle 10/10) and the three OCaml→substrate fixtures (`attn_sum_tape`/`attn_dot_tape`/
+`attn_select_field`, exact); O1/O2 resolved (finding
+`2026-06-08-attention-on-ram-substrate.md`). Steps 4–5 remaining.
 
 Cross-refs: [[project_ram_editing_nn_framing]],
 [[feedback_never_invent_thing_emma_implies_exists]]; findings

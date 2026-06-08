@@ -152,6 +152,14 @@ _RUNNABLE_FIXTURES = {
     "tuple_local": 16.0,  # let p = pair 7 9 in fst p + snd p  (Axon-returning call -> local typed Axon)
     "bitwise": 1043.0,  # (255 land 12)+((3 lsl 8) lor 7)+(1024 lsr 2)  (land/lor->Bits, lsl/lsr->arith)
     "failwith_sentinel": 0.0,  # failwith "boom" -> 0 (no-runtime-error sentinel)
+    # Attention-on-RAM parser (NTM-archetype track; design doc
+    # planning/exploratory/codable-attention-on-ram-parser.md). One constructed
+    # attention head reading a RAM tape; cross-language oracle = experiments/
+    # attention_on_ram/reference.py. acc-in-RAM loop shape (scalar slot can't hold
+    # a vector ramRead; O2 finding 2026-06-08-attention-on-ram-substrate.md).
+    "attn_sum_tape": 10.0,      # sum_tape([1;2;3;4])  (q=ones -> Σ tape)
+    "attn_dot_tape": -2.0,      # dot_tape([1;2;3],[1;0;-1])  (Σ wᵢxᵢ = lin. regression)
+    "attn_select_field": 22.0,  # select_field([11;22;33],1)  (hard location read)
 }
 
 
