@@ -581,8 +581,9 @@ first and never touches the RAM/W2C sections above.
   **Record literals in argument position: DONE** (`f { x = 7; y = 9 }` → hoist the record
   to a temp Axon local before the call; substrate-verified `record_arg` = 16; covers
   body-position calls — nested under operators like `f{..}+g{..}` is a follow-on recursive
-  hoist). Remaining: tuples, non-numeric record fields (field-type-aware projection off the
-  record decl). (Nullary **variants** ->
+  hoist). **Tuple literals in argument position: DONE** (`f (7, 9)` → hoist to a temp
+  positional Axon, same machinery; substrate-verified `tuple_arg` = 16). Remaining:
+  non-numeric record fields (field-type-aware projection off the record decl). (Nullary **variants** ->
   enum ints + constructor-pattern `match`: DONE — `label Green = 200`. Parameterised
   constructors `C of t` still UNSUPPORTED.)
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)

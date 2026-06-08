@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — tuple literals in argument position (`f (7, 9)`)
+
+Extended the aggregate-arg hoist to tuple literals: a `tuple_expression` passed directly
+as a call argument is hoisted into a temp positional Axon (`Axon _arg0; _arg0.add("_0",7);
+_arg0.add("_1",9); return f(_arg0);`), the same machinery as the record-arg hoist.
+Refactored `_lower_tuple_body` to share `_emit_tuple_construction` (behavior-preserving;
+tuple_fst_snd/tuple_local green). New runnable fixture `tuple_arg` (`sum2 (7, 9)`)
+substrate-verified = 16. A parenthesized application like `sum2 (pair 7 9)` is NOT a
+tuple_expression so it's unaffected (no false positives). 78 passed.
+
 ## 2026-06-08: OCaml frontend — record literals in argument position (`f { x = 7; y = 9 }`)
 
 `sutra-from-ocaml` now hoists a record-literal call argument into a temp Axon local before
