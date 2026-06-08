@@ -397,6 +397,19 @@ def _lower_expression(node, source: bytes) -> str:
         if op_text in ("-", "~-"):
             return f"-({operand_src})"
         return f"/* UNSUPPORTED-PREFIX: {op_text} */"
+    if t == "sign_expression":
+        # A signed literal/expression: `-1`, `+x`, `- expr`. tree-sitter parses
+        # `(-1)` as sign_expression(sign_operator, operand), distinct from the
+        # `prefix_expression` used for `!r`. `-` -> arithmetic negation.
+        opn = next((c for c in node.named_children
+                    if c.type == "sign_operator"), None)
+        operand = next((c for c in node.named_children
+                        if c.type != "sign_operator"), None)
+        op_text = _node_text(opn, source) if opn is not None else "+"
+        operand_src = _lower_expression(operand, source) if operand is not None else "0"
+        if op_text in ("-", "~-"):
+            return f"-({operand_src})"
+        return operand_src
     if t == "infix_expression":
         left = node.child_by_field_name("left")
         op = node.child_by_field_name("operator")
