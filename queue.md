@@ -578,8 +578,11 @@ first and never touches the RAM/W2C sections above.
   axon-field-reads-need-real-projection.md`): numeric axon field reads REQUIRE
   `.real()` — without it they return zeros on the substrate. No type-tracking layer
   was needed (OCaml `p.x` is unambiguously a record field via `field_get_expression`).
-  Remaining: tuples, non-numeric record fields (field-type-aware `.real()` off the
-  record decl), record literals in argument position. (Nullary **variants** ->
+  **Record literals in argument position: DONE** (`f { x = 7; y = 9 }` → hoist the record
+  to a temp Axon local before the call; substrate-verified `record_arg` = 16; covers
+  body-position calls — nested under operators like `f{..}+g{..}` is a follow-on recursive
+  hoist). Remaining: tuples, non-numeric record fields (field-type-aware projection off the
+  record decl). (Nullary **variants** ->
   enum ints + constructor-pattern `match`: DONE — `label Green = 200`. Parameterised
   constructors `C of t` still UNSUPPORTED.)
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)

@@ -929,11 +929,11 @@ def _lower_param(param_node, source: bytes,
     return (_node_text(child, source), _DEFAULT_TYPE)
 
 
-def _lower_record_body(body, source: bytes, indent: str) -> str:
-    """Lower a `record_expression` function body `{ f1 = e1; … }` to Sutra
-    axon construction: `Axon _record; _record.add("f1", e1); …; return
-    _record;`. Mirrors the TS object-literal->axon lowering."""
-    lines = f"{indent}Axon _record;\n"
+def _emit_record_construction(body, source: bytes, indent: str, var: str) -> str:
+    """Emit Sutra axon construction for a `record_expression` into local `var`
+    (`Axon var; var.add("f", e); …`) — WITHOUT a trailing return, so it can be
+    reused both as a function body and as a hoisted call argument."""
+    lines = f"{indent}Axon {var};\n"
     for fe in body.named_children:
         if fe.type != "field_expression":
             continue
@@ -941,9 +941,44 @@ def _lower_record_body(body, source: bytes, indent: str) -> str:
         val = next((c for c in fe.named_children if c.type != "field_path"), None)
         fname = _node_text(fp, source) if fp is not None else ""
         val_src = _lower_expression(val, source) if val is not None else "0"
-        lines += f'{indent}_record.add("{fname}", {val_src});\n'
-    lines += f"{indent}return _record;\n"
+        lines += f'{indent}{var}.add("{fname}", {val_src});\n'
     return lines
+
+
+def _lower_record_body(body, source: bytes, indent: str) -> str:
+    """Lower a `record_expression` function body `{ f1 = e1; … }` to Sutra
+    axon construction + return. Mirrors the TS object-literal->axon lowering."""
+    return (_emit_record_construction(body, source, indent, "_record")
+            + f"{indent}return _record;\n")
+
+
+def _hoist_record_args(node, source: bytes, indent: str):
+    """If `node` is a call `f a1 … aN` with one or more *record-literal*
+    arguments, hoist each such argument into a temp Axon local and return the
+    statement block `Axon _argK; …; return f(…, _argK, …);`. Returns None when
+    there is no record-literal argument (the caller falls through to the normal
+    `return f(…);`). Record construction is statement-based (no inline axon
+    literal), so a record passed directly as an argument needs this lift."""
+    kids = node.named_children
+    if len(kids) < 2:
+        return None
+    func, args = kids[0], kids[1:]
+    prelude = ""
+    arg_srcs = []
+    found = False
+    for i, a in enumerate(args):
+        ua = _unwrap_parens(a)
+        if ua is not None and ua.type == "record_expression":
+            found = True
+            var = f"_arg{i}"
+            prelude += _emit_record_construction(ua, source, indent, var)
+            arg_srcs.append(var)
+        else:
+            arg_srcs.append(_lower_expression(a, source))
+    if not found:
+        return None
+    func_src = _lower_expression(func, source)
+    return prelude + f"{indent}return {func_src}({', '.join(arg_srcs)});\n"
 
 
 def _lower_tuple_body(body, source: bytes, indent: str) -> str:
@@ -1204,6 +1239,10 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
                 out += _lower_stmt_expr(s, source, indent, refs)
             out += _lower_body_to_statements(last, source, indent, record_types, refs)
             return out
+    if body.type == "application_expression":
+        hoisted = _hoist_record_args(body, source, indent)
+        if hoisted is not None:
+            return hoisted
     return f"{indent}return {_lower_expression(body, source)};\n"
 
 

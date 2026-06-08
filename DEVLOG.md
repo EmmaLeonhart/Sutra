@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — record literals in argument position (`f { x = 7; y = 9 }`)
+
+`sutra-from-ocaml` now hoists a record-literal call argument into a temp Axon local before
+the call (record construction is statement-based — no inline axon literal — so a record
+passed directly as an arg needs the lift): `Axon _arg0; _arg0.add("x",7); …; return
+f(_arg0);`. Refactored `_lower_record_body` to share `_emit_record_construction` (behavior-
+preserving; record/tuple/match_record fixtures green). New runnable fixture `record_arg`
+(`sum2 { x = 7; y = 9 }`) substrate-verified = 16. Scope: body-position calls; record args
+nested under operators (`f{..}+g{..}`) are a follow-on recursive hoist. 75 passed.
+
 ## 2026-06-08: NTM read head as a runnable Sutra program — examples/content_addressed_read.su
 
 Packaged content-based associative recall (the NTM/DNC read head) as a real `.su`
