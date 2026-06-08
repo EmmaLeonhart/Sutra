@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-08: NTM track step 2 — design doc for the codable attention-on-RAM parser
+
+Wrote `planning/exploratory/codable-attention-on-ram-parser.md`, the design doc the
+queue's NTM track named as the prerequisite to the reframed build (Emma: "WRITE A
+DESIGN DOC first; don't implement what's not fully understood"). It specifies a
+handcrafted (constructed-weight, untrained) single attention head reading a RAM tape —
+explicitly NOT a DNC/NTM ([[project_ram_editing_nn_framing]]), a strict structural
+sub-instance of the re-packed 42-head core. First step = linear regression over memory
+(`sum_tape`/`dot_tape`/`select_field`, smallest-first). Path: Python reference (off the
+runtime hot path) → OCaml port (same test set byte-for-byte) → Sutra substrate via the
+existing `sdk/sutra-from-ocaml/` frontend (arrays→RAM + `loop` reduction, the same
+primitives `mini_wasm_machine.su` already verified), landing as a second substrate
+machine. Reduction-under-behavioral-equivalence is the validation through-line (the
+schedule is the lever, not SVD — the PCA finding proved magnitude-truncation breaks
+this machine class). Four open questions marked (O1 soft-vs-hard attention on the
+substrate; O2 aggregate as a substrate `loop` accumulator; O3 exact first parse task —
+confirm `dot_tape` is the "linear regression over memory" Emma means; O4 reuse-a-real-
+head vs fresh-isomorphic) so the build doesn't paper over what isn't settled. Grounded
+in findings `2026-06-06-pca-wasm-transformer.md`,
+`2026-06-07-pruned-transformer-repack-reduced-core.md`,
+`2026-06-06-iso5-mini-wasm-machine-runs-on-substrate.md` and the percepta-ntm paper §0–§1.
+
 ## 2026-06-07 (later): Plan A COMPLETE — scalar-readout accessors removed from the language
 
 Finished removing `real()`/scalar-extraction from the language (Emma's TOP priority:
