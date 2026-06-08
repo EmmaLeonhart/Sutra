@@ -282,6 +282,17 @@ and `operations.md` define. The surface API is a thin user-facing
 layer over those primitives — `add` lowers to `bundle + bind`, `item`
 lowers to `unbind`, both running as substrate tensor ops.
 
+**Fillers are numbers/vectors, not strings (Emma 2026-06-08).** Axon
+fillers are complex-hypervector numbers and vectors. A **string is NOT a
+valid axon filler**: `bind`/`unbind` is a rotation that does not preserve a
+multi-codepoint codepoint-array, so a string stored via `add` and read back
+via `item` collapses (measured: `add("k","Hi"); item("k")` → `72` = `'H'`,
+the first codepoint — not `"Hi"`). Numbers survive because a single real-axis
+scalar is recoverable by the real-axis projector (`realvec`); a string has no
+such clean inverse. Strings that need to cross a boundary are passed as
+**separate codepoint-array values**, alongside an axon, not as fillers inside
+it. (Resolves `planning/open-questions/axon-string-filler-roundtrip.md`.)
+
 The user-facing surface should not require thinking about the
 rotation operators directly. They are an implementation detail that
 comes back into view only when the program does something the

@@ -1,7 +1,12 @@
 # Open question: axon string fillers don't round-trip (collapse to first codepoint)
 
 **Opened:** 2026-06-08 (from the OCaml non-numeric-record-fields attempt).
-**Status:** measured gap; needs Emma's call (is this a bug to fix or a scoped limitation?).
+**Status:** RESOLVED 2026-06-08 (Emma, AskUserQuestion) — **strings are NOT axon fillers.**
+Axon fillers are numbers/vectors only; strings are passed as separate codepoint-array
+values, not stored inside axons. The round-trip "failure" (`item("k")`→72='H') is therefore
+**by design**, not a bug. Consequence: string record fields (OCaml/TS) stay UNSUPPORTED;
+the axon vision/docs are updated so fillers = numbers/vectors. Option (d) of the four below
+was chosen. Keeping this doc as the record; no further action beyond the doc/memory updates.
 
 ## The question
 

@@ -1,5 +1,11 @@
 # Non-numeric (string) record fields are blocked on axon string round-trip
 
+> **RESOLVED 2026-06-08 (Emma):** strings are NOT axon fillers — axon fillers are
+> numbers/vectors only; strings are separate codepoint-array values. The round-trip
+> collapse below is **by design**, so string record fields are UNSUPPORTED-by-design (not
+> a bug to fix). See `planning/open-questions/axon-string-filler-roundtrip.md`. The
+> measurement record below stands.
+
 **Date:** 2026-06-08
 **Context:** OCaml frontend completeness — non-numeric record fields (`type person =
 { age : int; name : string }`, read `p.name`). Attempted; hit a deeper blocker; reverted
