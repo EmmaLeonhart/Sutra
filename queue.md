@@ -203,10 +203,20 @@ NEXT (concrete, in order):
    retrieval (loss→0, attends target weight 1.0, ‖∇q‖=0.48); hard/argmax read is
    differentiable-on-paper but INERT (‖∇q‖=0, never learns). This is the
    "theoretically-differentiable vs does-stuff" line Emma drew.
-   >>> NEXT SUBSTRATE STEP (top NTM priority): a substrate **softmax** (exp-based, β-scaled)
-   so the content-based soft read runs as a Sutra op, not just a host-trained demo. The
-   score (query·content) and weighted-sum read are already matmuls; softmax is the missing
-   primitive (design-doc O1). Check stdlib for an exp intrinsic (math.su) first.
+   >>> SUBSTRATE SOFTMAX — RESOLVED BY DISCOVERY (grep-first): the primitive ALREADY EXISTS.
+   `select(scores, options)` (`_select_softmax`, spec 26-select-and-gate.md) is the
+   autograd-preserving softmax read; `similarity(q,k)` is the content match. Content-based
+   addressing on the substrate = `select([similarity(q,K_i)...],[V_i...])` — exactly
+   `examples/fuzzy_dispatch.su`. MEASURED differentiable on the substrate
+   (`substrate_content_read.py`, guard `test_substrate_select_content_read_is_differentiable`,
+   finding `2026-06-08-substrate-content-addressing-via-select.md`): soft read learns
+   directionally (‖∇q‖=0.028, cos→0.80); hard argmax inert (‖∇q‖=0). Did NOT build a
+   redundant softmax. MEASURED LIMITATION: `select` has fixed β=1, so the read stays a
+   diffuse blend (weight_on_target 0.37) — sharpening is a β/temperature lever (NOT a
+   differentiability issue), ties into existing `experiments/select_temperature_adjustment.py`.
+   >>> NEXT (separable, lower urgency): expose/measure a β on `select` so the substrate
+   content read sharpens to crisp retrieval (fold into the select-temperature work); lift
+   into a `.su` program with a trainable query.
    REMAINING: grow the example set (more parse tasks/tapes) per design doc §5; O4
    (head/operator-count reduction — fresh-isomorphic one-head construction is already the
    single-read minimum; a multi-head parse would be the next comparison) = my engineering
