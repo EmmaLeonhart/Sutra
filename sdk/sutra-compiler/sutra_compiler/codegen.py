@@ -404,12 +404,17 @@ class Codegen(BaseCodegen):
     # planning/sutra-spec/control-flow.md §"Loops" and the audit
     # finding 2026-05-10-spec-implementation-audit.md (F2).
 
-    # `component`/`semantic`/`synthetic`/`imag`/`truth` removed 2026-06-07 — no
-    # introspection in the language (host-readout accessors). `real` is the last
-    # one, retained transiently until its consumers are reworked. See CLAUDE.md
-    # §"NO introspection".
-    _VECTOR_ACCESSORS = frozenset({
-        "real",
+    # ALL scalar-readout accessors are REMOVED from the language 2026-06-07 — no
+    # introspection (a `.real()`/`.imag()`/... host readout severs substrate-purity
+    # + the autograd graph; programs must compile to real fused neural networks).
+    # They are not lowered — they are REJECTED at compile so they are conceptually
+    # uncallable in `.su`. In-language code that needs the number a vector carries
+    # uses `realvec(v)` (a substrate matmul to a clean real-axis number-VECTOR —
+    # stays on the substrate). The host `_VSA.real()` helper remains ONLY for the
+    # JS-interop carve-out (number->JS-string coercion needs a host scalar;
+    # CLAUDE.md sanctions JS shims crossing to host). See CLAUDE.md §"NO introspection".
+    _REMOVED_SCALAR_ACCESSORS = frozenset({
+        "real", "imag", "truth", "component", "semantic", "synthetic", "norm",
     })
 
     def _translate_call(self, call: ast.Call) -> str:
@@ -422,11 +427,14 @@ class Codegen(BaseCodegen):
                     f"substrate (no cleanup circuit at runtime)",
                 )
         if (isinstance(callee, ast.MemberAccess)
-                and callee.member in self._VECTOR_ACCESSORS):
-            obj_src = self._translate_expr(callee.obj)
-            arg_srcs = [self._translate_expr(a) for a in call.args]
-            joined = ", ".join([obj_src, *arg_srcs])
-            return f"_VSA.{callee.member}({joined})"
+                and callee.member in self._REMOVED_SCALAR_ACCESSORS):
+            raise CodegenNotSupported(
+                call,
+                f"`.{callee.member}()` is not available: Sutra has no scalar-"
+                f"readout accessor — it would pull a host scalar off the substrate, "
+                f"severing substrate-purity and the autograd graph. Use `realvec(v)` "
+                f"for a clean real-axis number-vector (it stays on the substrate).",
+            )
         return super()._translate_call(call)
 
     def _emit_prelude(self) -> None:
