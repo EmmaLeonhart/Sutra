@@ -158,16 +158,29 @@ reads recover the number CLEANLY as a raw vector — no `real()` needed (the dim
 crosstalk was running axon programs below their model dim).
 
 ### A. Remove real()/scalar extraction entirely
-- A1. Transpilers (sutra-from-ocaml/ts/c): stop emitting `.real()` for record/tuple/
-  option field reads — emit the raw `axon_item` vector + VECTOR arithmetic; update
-  the generated `expected.su` fixtures. The fixture substrate-run tests invoke
-  `sutra_compiler --run` at the CLI default (dim 50, model-free) — axon programs
-  must run at their embedding-model dim so field reads are clean; fix the harness
-  (compile with the model / adequate dim) so fixtures pass WITHOUT `real()`.
-- A2. Tests using `.real()` (4 files): switch to host-side tensor indexing at the
-  terminal boundary (a verification read, not a language feature).
-- A3. Remove the SURFACE lowering of `.real()` (parser/codegen) -> uncallable in `.su`.
-- A4. Remove the runtime `def real()` method.
+- A1. Transpilers — DONE. NEW substrate op **`realvec(v)`** = `_real_projector() @ v`
+  (matmul -> clean real-axis number-VECTOR, no host readout; the decode primitive).
+  OCaml (d1ce16be) + TS (1a70b612) emit `realvec(axon_item)` for numeric field reads
+  instead of `.real()`. C transpiler parked + emits no actual `.real()`. CLI `--run`
+  decodes a number-vector `main()` result at the terminal boundary. Verified: OCaml
+  79, TS 39/1xfail, codegen 91. Corrected the wrong "axon read needs .real()/
+  crosstalk" finding (field reads clean at dim 50; the option-match tag compare was
+  the only crosstalk case — realvec fixes it).
+- A2. NEXT: tests using `.real()`. After A3, `.su`-surface `.real()` is gone; tests
+  that VERIFY via `v.real(...)` (host-side, test_ntm_ram / test_mini_wasm_machine /
+  test_cached_compile) are terminal-boundary reads — keep or switch to direct
+  indexing. `test_codegen` asserts `.real()` lowers to `_VSA.real(x)` -> update to
+  assert the surface is now REJECTED.
+- A3. NEXT: remove the SURFACE lowering of `.real()` (the last entry in the codegen
+  accessor set, e.g. `_VECTOR_ACCESSORS`) -> `.real()` uncallable in `.su`.
+- A4. Runtime `def real()` — JUDGMENT BOUNDARY, not a blind removal: it is still used
+  INTERNALLY by the JS-interop carve-out (string coercion / JS comparisons, lines
+  ~2246/2310/2400/2468 in codegen_pytorch — formatting a number as a JS string
+  fundamentally needs a host scalar; CLAUDE.md sanctions JS shims crossing to host
+  BY DESIGN). Plan: remove it as a LANGUAGE feature (A3 surface) but keep the host
+  helper for the JS carve-out only (rename to `_js_real`/keep internal). That makes
+  `real()` conceptually uncallable in Sutra while not breaking the sanctioned JS
+  ecosystem. (If Emma wants the JS one gone too, that's a separate JS-interop change.)
 - A5. Lower the host-readout gate baseline (test_no_host_readout 21 -> minus removed);
   keep ratcheting toward 0. Remaining = by-design I/O boundaries (terminal output,
   JS-interop) — name them.
