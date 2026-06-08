@@ -376,9 +376,20 @@ converges to the target (loss `0.98 → 0`, `‖∇q‖ = 0.48` at step 0). A **
 *zero* gradient (`‖∇q‖ = 0`), so it never moves and never retrieves the target. This is
 the measured form of the saturated-gradient objection: the `HARD_K → ∞` limit is the
 argmax case (no gradient to the addressing), while a finite-`β` softmax is the regime in
-which "learn where to look" is realizable. Caveat: that soft read is, so far, a
-host-trained demonstration; running it as a substrate operation needs a substrate softmax
-(an `exp`-based, finite-`β` op) — the concrete next step on this track.
+which "learn where to look" is realizable. (e) *On the substrate, not just in a host
+loop.* This content-addressed read is not an abstraction we added on top of the language:
+Sutra already provides it. `select(scores, options)` — a softmax-weighted superposition —
+over `similarity(query, key)` scores **is** the content-addressed read (the same
+construction `examples/fuzzy_dispatch.su` uses to dispatch by content). Training a query
+*through the compiled `select` + `similarity` runtime ops* (not a hand-written softmax),
+it is differentiable on the substrate: the gradient flows through the compiled read into
+the query and the read moves to the target by content (`cos(read, target)` `0.10 → 0.80`,
+`‖∇q‖ = 0.028`); the hard `argmax` over the same scores is again inert (`‖∇q‖ = 0`). The
+one remaining gap is sharpening, not differentiability: `select`'s softmax is
+fixed-temperature, so the read converges *directionally* but stays a diffuse blend
+(`weight_on_target ≈ 0.37`); a crisp one-hot retrieval needs a temperature/`β` on `select`
+— a separable engineering lever (the language already has prior work on exactly this
+select-temperature control), not a question of whether the addressing is learnable.
 
 ## Reproducibility
 
