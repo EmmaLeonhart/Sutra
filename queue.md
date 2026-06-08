@@ -175,12 +175,19 @@ crosstalk was running axon programs below their model dim).
   raises CodegenNotSupported with a realvec hint) -> `.real()` is conceptually
   UNCALLABLE in `.su`. Verified: rejects measured; codegen 91, smoke 11/11,
   gate+ntm_ram+cached 24 all green.
-- A4. Runtime `def real()` — KEPT as a host-only helper for the sanctioned
-  JS-interop carve-out (number->JS-string coercion needs a host scalar; CLAUDE.md
-  sanctions JS shims crossing to host) + host-side test verification. It is NO LONGER
-  a language feature (surface rejects). This satisfies "real() uncallable in the
-  language." (Stripping it from JS too would change JS-coercion semantics — separate,
-  not in scope.)
+- A4. Runtime `def real()` — **OVERRIDE (Emma 2026-06-07): remove it ENTIRELY, even
+  for JS.** "None of the JavaScript stuff should be running on the host; if it can't
+  run as a fused neural network on the substrate, it should be broken." So the JS
+  string-coercion ops that use `self.real()` (string-concat number promotion,
+  js_loose/strict eq with numeric coercion — codegen_pytorch ~2246/2310/2400/2468)
+  must NOT be propped up by host `real()`: number→JS-string coercion fundamentally
+  needs a host scalar, so it is NOT substrate-pure → it breaks. Plan: (1) rework the
+  host-side test-VERIFICATION reads `v.real(...)` (test_ntm_ram / test_mini_wasm_machine
+  / test_cached_compile) to direct tensor indexing at the terminal boundary (keep —
+  that's the sanctioned host output read, not a language readout); (2) remove
+  `def real()` entirely; (3) the JS coercion paths that lose it → strict xfail with
+  the precise reason (JS number→string host coercion is not substrate-pure, Emma
+  2026-06-07), do NOT loosen. (4) lower the gate baseline by real()'s `.item()`s.
 - A5. Host-readout gate baseline unchanged (21): the remaining `.item()` are all
   by-design boundaries — the RAM orchestrator wire, terminal output, the JS-interop
   layer, and the JS-only `real()` helper — not language-level introspection. The
@@ -189,9 +196,13 @@ crosstalk was running axon programs below their model dim).
   removed (87cfa407); loop step pure + exportable as a weight file (emit_loop_weight_file);
   mini_wasm_machine substrate-pure.
 
-**Plan A is COMPLETE: `real()`/scalar extraction is removed from the language
-(uncallable); the only `real()` left is the sanctioned JS-interop host helper.**
-Next: Plan B — re-run the main Sutra paper experiments on the pure substrate.
+**Plan A: language surface DONE (`.real()` uncallable in `.su`); A4 REOPENED by
+Emma's override — the runtime `def real()` must be removed entirely too (JS coercion
+breaks rather than use host real()). Remaining: A4 (remove def real(), rework test
+reads, xfail broken JS) + A5 (lower gate baseline).**
+Plan B (Emma "right now" 2026-06-07): re-run the main Sutra paper experiments on the
+pure substrate, update paper/paper.md with any changed numbers (data only), commit +
+push (clawRxiv + arXiv). IN PROGRESS — experiments running (experiments/_rerun.log).
 
 ### B. Re-run main Sutra paper experiments + switch wrong numbers (DATA ONLY)
 Run on the pure substrate, compare to reported, switch any that differ in
