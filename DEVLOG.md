@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-08: percepta-ntm §7(d) — fold in the content-based addressing soft-vs-hard measurement
+
+Folded the content-based-addressing finding into §7 as paragraph (d): the saturated-
+gradient objection, now measured. A soft `softmax(β·Kq)` read learns to address by content
+(gradient through the addressing; loss 0.98→0, target weight 1.0, ‖∇q‖=0.48); a hard
+`argmax` read is differentiable-on-paper but inert (‖∇q‖=0, never retrieves). Frames
+HARD_K→∞ as the argmax/no-gradient limit and finite-β softmax as the regime where "learn
+where to look" is realizable — directly evidencing the paper's smooth-trainable/saturated-
+inert claim. Caveat kept: soft read is host-trained so far; substrate softmax is the next
+step. New measured content (not rewording). Triggers percepta-ntm-paper-ci.
+
 ## 2026-06-08: NTM — content-based soft addressing learns; hard addressing is inert (Emma's distinction, measured)
 
 Emma flagged the real NTM/DNC hard part: editing RAM normally / hard-argmax / fixed-

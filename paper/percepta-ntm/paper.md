@@ -363,7 +363,22 @@ trained read independently recovers `w` from `(X, y)` to `‖w − c‖ = 6.0e-8
 predictions agree to `max|ŷ_construct − ŷ_learn| = 2.2e-7`. So hand-construction and SGD
 reach the *same* linear-regression-over-memory operator — construction writing the
 coefficients into the query, training recovering them from data — which is the concrete
-sense in which the constructed artifact is a seed for the trained one.
+sense in which the constructed artifact is a seed for the trained one. (d) *Content-based
+addressing is where soft and hard diverge.* The above reads a fixed set of cells; the
+load-bearing NTM/DNC capability is addressing memory **by content** — and this is exactly
+where the saturated/smooth distinction has teeth. On a "learn to address by content" task
+(memory rows with keys `K_i` and values `v_i`; a query `q` trained so the read returns a
+target value, reachable only by attending to the matching row), a **soft** read
+`w = softmax(β·K q)`, `read = w·v` learns it — gradient flows through the softmax
+addressing into `q`, the attention weight on the target row goes to `1.0`, the read
+converges to the target (loss `0.98 → 0`, `‖∇q‖ = 0.48` at step 0). A **hard** read
+`w = onehot(argmax K q)` is differentiable on paper but **inert**: the argmax gives `q`
+*zero* gradient (`‖∇q‖ = 0`), so it never moves and never retrieves the target. This is
+the measured form of the saturated-gradient objection: the `HARD_K → ∞` limit is the
+argmax case (no gradient to the addressing), while a finite-`β` softmax is the regime in
+which "learn where to look" is realizable. Caveat: that soft read is, so far, a
+host-trained demonstration; running it as a substrate operation needs a substrate softmax
+(an `exp`-based, finite-`β` op) — the concrete next step on this track.
 
 ## Reproducibility
 
