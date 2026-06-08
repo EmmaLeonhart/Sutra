@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — non-numeric record fields BLOCKED at axon layer (measured, reverted)
+
+Attempted string record fields (`{ name : string }`, read `p.name`). The field-type-aware
+read lowers correctly (numeric→realvec, string→plain `.item()`; `String get_name(Axon p){
+return p.item("name");}`), but on the substrate `main` returns 65.0 not "Alice" — even with
+explicit string annotations on the constructor param and main's return. The axon string
+filler does not round-trip: `add("name","Alice")`+`item("name")` collapses to ~65 (the 'A'
+codepoint). Numbers recover via realvec; a string codepoint-array has no clean inverse from
+the bundled filler — the real blocker is axon string round-trip (substrate/axon-spec, not a
+transpiler fix). Reverted the speculative field-type code (it enabled nothing that works
+end-to-end — the vibe-coded half-path hazard); shipped the measured negative finding
+`2026-06-08-ocaml-nonnumeric-record-fields-blocked-axon-string.md` + a precise queue blocker
+instead. Numeric record fields remain the supported, substrate-verified scope.
+
 ## 2026-06-08: OCaml frontend — tuple literals in argument position (`f (7, 9)`)
 
 Extended the aggregate-arg hoist to tuple literals: a `tuple_expression` passed directly
