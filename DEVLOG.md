@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-08: percepta-ntm §7 — constructed and trained routes reach the same operator
+
+Folded the new measured "compare them" finding (932a532d) into §7: on one shared
+linear-regression-over-memory task, the constructed head (q=c, max|ŷ-y|=8.9e-16) and
+the SGD-trained soft read (recovers c, ‖w-c‖=6.0e-8) agree to 2.2e-7 — hand-construction
+and SGD reach the SAME operator. Strengthens the trainable-seed thesis with measurement,
+not rewording. Still scoped to the smooth operator (not the 1e30 hardmax weights);
+composed-network training open. Triggers percepta-ntm-paper-ci.
+
 ## 2026-06-08: attention-on-RAM step (e) — evaluate-vs-learn comparison (Emma "do all, compare")
 
 `experiments/attention_on_ram/compare_variants.py` (+ guard
