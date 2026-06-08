@@ -1,5 +1,32 @@
 # Development Log
 
+## 2026-06-08 (later still): attention-on-RAM build (b)+(c) — runs on the substrate, 3 tasks exact
+
+Took the parser from OCaml to the Sutra substrate. One constructed-weight (untrained)
+attention head reading a RAM tape, transpiled via `sutra-from-ocaml` → `.su` → run on
+the real substrate (`sutrac --run`), reproduces the Python oracle EXACTLY on all three
+parse tasks: `attn_sum_tape`=10.0 (Σ tape), `attn_dot_tape`=-2.0 (Σ wᵢxᵢ = linear
+regression over memory), `attn_select_field`=22.0 (hard location read). CI-guarded as
+`_RUNNABLE_FIXTURES`; OCaml suite 88 passed. Finding:
+`planning/findings/2026-06-08-attention-on-ram-substrate.md`.
+
+Resolved the design-doc open questions with measurements:
+- **O1** — linear (no-softmax) attention is a plain weighted sum (exact); hard
+  location-addressing IS an indexed RAM read (exact). No softmax primitive needed for
+  the first step.
+- **O2** — the substrate `while`→`loop` carries SCALAR slots, but `ramRead` returns a
+  number-VECTOR, so a `ref` accumulator can't hold `acc + ramRead(i)` (measured: fails
+  at `slot_store` with `expand([N],size=[])`). Substrate-correct shape = accumulator
+  in a RAM cell (vector space) + only the scalar index in a slot (the mini_wasm_machine
+  pattern; the loop body's ramWrite persists across iterations).
+
+Supporting changes: (1) `codegen_pytorch.py` `ram_write` now lazily allocates the host
+RAM buffer for a standalone run (was `None` → writes no-op'd, reads returned zero;
+`select_field` returned 0 before the fix). A pre-attached orchestrator device is
+unchanged (mini_wasm/ntm_ram still attach `ram` themselves). No new `.item()` host
+readout. (2) `sutra-from-ocaml` now lowers OCaml `sign_expression` (`-1`) to
+arithmetic negation (needed for the negative `dot_tape` coefficient).
+
 ## 2026-06-08 (later): attention-on-RAM build step (a) — Python reference oracle
 
 `experiments/attention_on_ram/reference.py` + `test_reference.py`. A single

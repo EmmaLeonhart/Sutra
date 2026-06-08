@@ -117,6 +117,7 @@ state (avoid literal-vs-loop-state comparison).
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
+
 - **A.0(a) — DECISIONS (RESOLVED autonomously 2026-06-07, Emma "do those items autonomously").**
   1. **Boolean representation** — RESOLVED (Emma + spec `equality-and-defuzzification.md:92`):
      a boolean is a scalar on the **truth axis**, +1 true / −1 false, a subclass of
@@ -172,20 +173,27 @@ NEXT (concrete, in order):
    uses). Then verify the pruned core reproduces all 6 byte-for-byte (decoded == ref,
    MEASURED — not "ran").
 2. The reframed build: PCA-reduced core -> Python->OCaml -> a codable attention-parser
-   ("attention on RAM" for parsing). DESIGN DOC DONE:
-   `planning/exploratory/codable-attention-on-ram-parser.md` — one constructed
-   (untrained) attention head reading a RAM tape; first step = linear regression over
-   memory (`sum_tape`/`dot_tape`/`select_field`); structurally a sub-instance of the
-   re-packed 42-head core; Python->OCaml->Sutra (lands beside `mini_wasm_machine.su`
-   via the OCaml frontend's arrays->RAM + loop-reduction); reduction-under-equivalence
-   is the validation through-line. Open Qs O1-O4 marked (soft-vs-hard attention on
-   substrate; aggregate as substrate `loop`; exact first parse task — confirm `dot_tape`
-   is the "linear regression over memory" Emma means; reuse-real-head vs fresh-isomorphic).
-   BUILD SEQUENCE (when greenlit): (a) `experiments/attention_on_ram/reference.py`
-   constructed one-head linear attention + `(tape->output)` test set; (b) OCaml port,
-   same test set byte-for-byte; (c) transpile -> `.su` -> substrate, verify
-   substrate-to-substrate (decoded == expected, MEASURED); resolve O1/O2 here; (d) write
-   the reduction finding (smallest dim/head count still passing, measured).
+   ("attention on RAM" for parsing). DESIGN DOC + BUILD (a)(b)(c) DONE:
+   `planning/exploratory/codable-attention-on-ram-parser.md`; one constructed (untrained)
+   attention head reading a RAM tape, three parse tasks RUN ON THE SUBSTRATE exact to the
+   Python oracle (`attn_sum_tape`=10, `attn_dot_tape`=-2 [linear regression over memory],
+   `attn_select_field`=22; finding `2026-06-08-attention-on-ram-substrate.md`; CI-guarded
+   `_RUNNABLE_FIXTURES` + `experiments/attention_on_ram/`). O1/O2 RESOLVED by measurement
+   (linear attention = exact weighted sum, no softmax needed; hard-addressing = indexed
+   RAM read; O2: accumulator-in-RAM + scalar-index-slot is the substrate-correct loop
+   shape, the mini_wasm_machine pattern — a `ref` accumulator can't hold a vector ramRead).
+   O3 ANSWERED (Emma 2026-06-08): "do all of them so we can compare them" — so the
+   variants are a COMPARISON SET, not one chosen reading. Built so far: fixed-eval
+   `dot_tape` (ŷ=w·x evaluated by linear attention) + `sum_tape` (aggregate) +
+   `select_field` (hard read). REMAINING:
+   (e) **FIT-on-substrate variant** — the mechanism SOLVES for w from (x,y) pairs in RAM
+       (least-squares / gradient step on the substrate), so it learns the linear model,
+       not just evaluates it. This is the harder comparison point Emma wants alongside
+       the fixed-eval one ("closer to regression in the statistical sense").
+   (d) the reduction study (smallest dim/head count still passing the oracle, measured)
+       + grow the example set (design doc §5). O4 (reuse a sliced real 42-head-core head
+       vs fresh-isomorphic) = my engineering call: fresh-isomorphic, then show it's the
+       limit a real head reduces to. Compare all variants side-by-side per Emma's intent.
 
 HARD RAIL: every step RUN + verified substrate-to-substrate (decoded output ==
 reference); no faking; measure, don't claim. Use engineering judgment; do NOT ask Emma
