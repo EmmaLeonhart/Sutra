@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-08: NTM — content-based soft addressing learns; hard addressing is inert (Emma's distinction, measured)
+
+Emma flagged the real NTM/DNC hard part: editing RAM normally / hard-argmax / fixed-
+coefficient reads are the easy, inert side; content-based SOFT addressing (softmax over
+query·content) is what lets a system LEARN WHERE TO LOOK, because the gradient flows
+through the addressing into the query. Built the discriminating experiment
+(`experiments/attention_on_ram/content_addressed_read.py`, guard
+`test_content_addressing_soft_learns_hard_inert`): a query trained to retrieve a target
+value by content. Measured: SOFT read learns it (loss 0.98→0.0, attends target weight
+1.0, ‖∇q‖=0.48); HARD/argmax read is differentiable-on-paper but INERT (‖∇q‖=0 — the loss
+has no grad path to q — never moves, read stuck). This is exactly Emma's "theoretically
+differentiable vs logically-differentiable-that-does-stuff" line, measured. Finding
+`2026-06-08-content-based-addressing-soft-vs-hard.md`. Next substrate step: a substrate
+softmax (exp-based) so the content read runs as a Sutra op, not just a host-trained demo.
+
 ## 2026-06-08: OCaml frontend — record-destructuring in match (`| {x; y} -> body`)
 
 `sutra-from-ocaml` now lowers `record_pattern` match cases: an irrefutable terminal

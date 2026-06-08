@@ -194,6 +194,19 @@ NEXT (concrete, in order):
    below the transformer-vm's d=38 / the CLI default. Sweep `attention_on_ram/dim_sweep.py`,
    guard `test_parser_reduces_to_synthetic_axis_floor`, finding
    `2026-06-08-attention-on-ram-dim-reduction.md`.
+   CONTENT-BASED ADDRESSING (Emma 2026-06-08, the NTM/DNC hard part): editing RAM
+   normally / hard-argmax / fixed-coefficient reads are the easy, inert side; the
+   load-bearing thing is content-based SOFT addressing (softmax over query·content), where
+   the gradient flows through the addressing so the system LEARNS WHERE TO LOOK. MEASURED
+   (`content_addressed_read.py`, guard `test_content_addressing_soft_learns_hard_inert`,
+   finding `2026-06-08-content-based-addressing-soft-vs-hard.md`): soft read learns content
+   retrieval (loss→0, attends target weight 1.0, ‖∇q‖=0.48); hard/argmax read is
+   differentiable-on-paper but INERT (‖∇q‖=0, never learns). This is the
+   "theoretically-differentiable vs does-stuff" line Emma drew.
+   >>> NEXT SUBSTRATE STEP (top NTM priority): a substrate **softmax** (exp-based, β-scaled)
+   so the content-based soft read runs as a Sutra op, not just a host-trained demo. The
+   score (query·content) and weighted-sum read are already matmuls; softmax is the missing
+   primitive (design-doc O1). Check stdlib for an exp intrinsic (math.su) first.
    REMAINING: grow the example set (more parse tasks/tapes) per design doc §5; O4
    (head/operator-count reduction — fresh-isomorphic one-head construction is already the
    single-read minimum; a multi-head parse would be the next comparison) = my engineering

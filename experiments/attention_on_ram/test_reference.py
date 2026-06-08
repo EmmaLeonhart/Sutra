@@ -40,6 +40,23 @@ def test_parser_reduces_to_synthetic_axis_floor():
             f"{name} did not pass at runtime_dim=3: got {got!r}, expected {expected}")
 
 
+def test_content_addressing_soft_learns_hard_inert():
+    """Emma's distinction (2026-06-08), measured: content-based SOFT (softmax)
+    addressing learns where to look — gradient flows through the addressing into the
+    query; HARD (argmax) addressing is differentiable-on-paper but inert (zero
+    gradient), so it cannot learn content-based retrieval."""
+    import pytest
+    pytest.importorskip("torch")
+    import content_addressed_read as car
+    r = car.run(verbose=False)
+    soft, hard = r["soft"], r["hard"]
+    assert soft["grad0"] > 1e-3                 # gradient flows through softmax address
+    assert soft["lossN"] < 1e-2                 # learns to retrieve the target
+    assert soft["weight_on_target"] > 0.9       # attends to the right row by content
+    assert hard["grad0"] < 1e-9                 # argmax: zero gradient to the query
+    assert hard["lossN"] > soft["lossN"]        # and so it does not learn
+
+
 def test_evaluate_and_learn_agree():
     """Emma's 'do all of them, compare': evaluating a constructed linear model and
     LEARNING one by SGD realize the SAME linear regression over memory."""
