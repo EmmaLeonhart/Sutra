@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-08: percepta-ntm §7(e) — content addressing runs on the substrate (discharges the §7d caveat)
+
+Folded the substrate-content-addressing finding (fa437530) into §7 as paragraph (e),
+discharging §7(d)'s "host-trained, substrate softmax is next" caveat with a measurement:
+Sutra's `select`+`similarity` IS the content-addressed read (as fuzzy_dispatch.su), and
+training a query through the COMPILED runtime ops is differentiable on the substrate
+(cos(read,target) 0.10→0.80, ‖∇q‖=0.028; hard argmax inert). Remaining gap is sharpening
+(select's fixed β keeps the read diffuse, weight_on_target≈0.37) — a temperature lever,
+not a differentiability question. Doubles as a direct counter to v16 con #1 (substrate
+"potentially hallucinated"): content addressing runs on the real compiled substrate. New
+measured content, not rewording. v16 con #4 (goalpost-moving seed) is a framing critique —
+deliberately not chased with prose.
+
 ## 2026-06-08: NTM — content-based addressing IS a substrate primitive (`select`); differentiable on it
 
 Grep-first (don't-invent) resolved the "build a substrate softmax" queue item: it already
