@@ -429,16 +429,17 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
         prop_text = _node_text(prop, source) if prop is not None else ""
         obj_t = _expr_type(obj, source, ctx) if obj is not None else None
         if obj_t == "Axon":
-            # Numeric axon field reads need a `.real()` projection to
-            # decode the number off the axon's number-axis — without it
-            # the read is the raw filler vector and arithmetic collapses
-            # to ~0 on the substrate (measured 2026-06-05). String /
-            # literal-tag fields must NOT get `.real()` (they feed string
-            # comparisons). The field's type comes from the global
-            # interface/alias field-type map; unknown fields default to
-            # no projection (safe for strings).
+            # Numeric axon field reads are decoded to a CLEAN real-axis
+            # number-VECTOR via `realvec(...)` — a substrate matmul (the
+            # real-axis projector), NOT the removed `.real()` host accessor.
+            # This keeps the value on the substrate (fuzzy/differentiable),
+            # zeroes the axon filler's crosstalk in non-real dims so `==` /
+            # arithmetic see only the number. String / literal-tag fields
+            # must NOT get `realvec` (they feed string comparisons). The
+            # field's type comes from the global interface/alias field-type
+            # map; unknown fields default to no projection (safe for strings).
             if ctx.field_types.get(prop_text) in ("int", "float"):
-                return f'{obj_src}.item("{prop_text}").real()'
+                return f'realvec({obj_src}.item("{prop_text}"))'
             return f'{obj_src}.item("{prop_text}")'
         # Array-typed `arr.length` → `array_length(arr)` (a Sutra
         # builtin that emits Python `len(arr)`).
