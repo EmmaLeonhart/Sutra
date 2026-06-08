@@ -189,10 +189,16 @@ NEXT (concrete, in order):
    constructed-eval (max|ŷ-y|=8.9e-16, exact) and SGD-fit (recovers c, ‖w-c‖=6e-8) realize
    the SAME linear-regression-over-memory operator (agreement 2.2e-7). Finding
    `2026-06-08-attention-on-ram-evaluate-vs-learn.md`.
-   REMAINING: (d) the reduction study — smallest dim/head count still passing the oracle,
-   measured + grow the example set (design doc §5). O4 (reuse a sliced real 42-head-core
-   head vs fresh-isomorphic) = my engineering call: fresh-isomorphic, then show it's the
-   limit a real head reduces to.
+   (d) DIM REDUCTION DONE (measured): all three fixtures pass at the FLOOR runtime_dim=3
+   (synthetic-axis minimum, semantic_dim=0 — zero LLM capacity, 0 basis_vector), ~13-16×
+   below the transformer-vm's d=38 / the CLI default. Sweep `attention_on_ram/dim_sweep.py`,
+   guard `test_parser_reduces_to_synthetic_axis_floor`, finding
+   `2026-06-08-attention-on-ram-dim-reduction.md`.
+   REMAINING: grow the example set (more parse tasks/tapes) per design doc §5; O4
+   (head/operator-count reduction — fresh-isomorphic one-head construction is already the
+   single-read minimum; a multi-head parse would be the next comparison) = my engineering
+   call, low priority. The attention-on-RAM track's core deliverables (build + compare +
+   reduce, all measured) are DONE; what remains is breadth, not feasibility.
 
 HARD RAIL: every step RUN + verified substrate-to-substrate (decoded output ==
 reference); no faking; measure, don't claim. Use engineering judgment; do NOT ask Emma
