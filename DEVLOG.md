@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-08: daily substrate-honesty audit — CLEAN (attention-on-RAM commits)
+
+Discharged the auto-prepended daily-audit task against CLAUDE.md §"Subtler substrate
+breaches" for this session's substrate-touching commits (be116cc0, 932a532d, paper
+folds). (a) Dim: attn_* fixtures have 0 basis_vector calls → tiny dim correct;
+comparison/trainable-read use runtime_dim=4; no 768× waste. (b) Claims: the 3 fixtures
+are in _RUNNABLE_FIXTURES → test_fixture_runs_on_substrate RUNS them via `sutrac --run`
+and asserts 10/-2/22, so "runs on substrate, exact" is RUN-verified, not framing; the
+O2 finding honestly states accumulator-in-RAM + scalar-index-slot (no false RNN claim);
+"same operator" measured (2.2e-7); paper claims scoped to the smooth operator (not the
+1e30 hardmax weights). (c) No new fuzzy substrate classifier (sum/dot exact arithmetic,
+select_field exact argmax) → no gap table required. Nothing amiss; audit item deleted.
+
 ## 2026-06-08: percepta-ntm §7 — constructed and trained routes reach the same operator
 
 Folded the new measured "compare them" finding (932a532d) into §7: on one shared
