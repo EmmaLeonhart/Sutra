@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-08: NTM — content-based addressing IS a substrate primitive (`select`); differentiable on it
+
+Grep-first (don't-invent) resolved the "build a substrate softmax" queue item: it already
+exists. `select(scores, options)` (_select_softmax, autograd-preserving) + `similarity(q,k)`
+give content-based addressing on the substrate — `select([similarity(q,K_i)...],[V_i...])`,
+exactly examples/fuzzy_dispatch.su. Built `substrate_content_read.py` (+ guard) training a
+query THROUGH the compiled runtime ops: SOFT (substrate select) is differentiable and learns
+directionally (‖∇q‖=0.028, cos(read,target) 0.10→0.80); HARD argmax is inert (‖∇q‖=0). Same
+soft-vs-hard divergence as the raw-torch result, now on Sutra's real primitive. Measured
+limitation (honestly, not tuned away): select has fixed β=1 so the read stays a diffuse blend
+(weight_on_target 0.37) — sharpening is a β/temperature lever (ties into existing
+select_temperature work), NOT a differentiability issue; corrected the PASS criteria to the
+true claim rather than force full convergence. Finding
+`2026-06-08-substrate-content-addressing-via-select.md`.
+
 ## 2026-06-08: percepta-ntm §7(d) — fold in the content-based addressing soft-vs-hard measurement
 
 Folded the content-based-addressing finding into §7 as paragraph (d): the saturated-

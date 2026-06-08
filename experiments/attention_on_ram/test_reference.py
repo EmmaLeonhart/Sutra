@@ -57,6 +57,23 @@ def test_content_addressing_soft_learns_hard_inert():
     assert hard["lossN"] > soft["lossN"]        # and so it does not learn
 
 
+def test_substrate_select_content_read_is_differentiable():
+    """Content-based addressing via the COMPILED substrate `select`+`similarity` is
+    differentiable: a query trained through it learns directionally (gradient flows,
+    read moves toward target); a hard argmax over the same scores is inert. Full one-hot
+    sharpening is NOT claimed (select's fixed beta=1 keeps the read a diffuse blend)."""
+    import pytest
+    pytest.importorskip("torch")
+    import substrate_content_read as scr
+    r = scr.run(verbose=False)
+    soft, hard = r["soft"], r["hard"]
+    assert soft["grad0"] > 1e-4                       # gradient flows through substrate select
+    assert soft["lossN"] < soft["loss0"]              # learns directionally
+    assert soft["cos_to_target"] > 0.5
+    assert hard["grad0"] < 1e-9                        # argmax: inert
+    assert soft["cos_to_target"] > hard["cos_to_target"] + 0.3
+
+
 def test_evaluate_and_learn_agree():
     """Emma's 'do all of them, compare': evaluating a constructed linear model and
     LEARNING one by SGD realize the SAME linear regression over memory."""
