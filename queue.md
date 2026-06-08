@@ -172,8 +172,20 @@ NEXT (concrete, in order):
    uses). Then verify the pruned core reproduces all 6 byte-for-byte (decoded == ref,
    MEASURED — not "ran").
 2. The reframed build: PCA-reduced core -> Python->OCaml -> a codable attention-parser
-   ("attention on RAM" for parsing). WRITE A DESIGN DOC first (don't implement what's
-   not fully understood); confirm the exact shape with Emma if it doesn't compose.
+   ("attention on RAM" for parsing). DESIGN DOC DONE:
+   `planning/exploratory/codable-attention-on-ram-parser.md` — one constructed
+   (untrained) attention head reading a RAM tape; first step = linear regression over
+   memory (`sum_tape`/`dot_tape`/`select_field`); structurally a sub-instance of the
+   re-packed 42-head core; Python->OCaml->Sutra (lands beside `mini_wasm_machine.su`
+   via the OCaml frontend's arrays->RAM + loop-reduction); reduction-under-equivalence
+   is the validation through-line. Open Qs O1-O4 marked (soft-vs-hard attention on
+   substrate; aggregate as substrate `loop`; exact first parse task — confirm `dot_tape`
+   is the "linear regression over memory" Emma means; reuse-real-head vs fresh-isomorphic).
+   BUILD SEQUENCE (when greenlit): (a) `experiments/attention_on_ram/reference.py`
+   constructed one-head linear attention + `(tape->output)` test set; (b) OCaml port,
+   same test set byte-for-byte; (c) transpile -> `.su` -> substrate, verify
+   substrate-to-substrate (decoded == expected, MEASURED); resolve O1/O2 here; (d) write
+   the reduction finding (smallest dim/head count still passing, measured).
 
 HARD RAIL: every step RUN + verified substrate-to-substrate (decoded output ==
 reference); no faking; measure, don't claim. Use engineering judgment; do NOT ask Emma
