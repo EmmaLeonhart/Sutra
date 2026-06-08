@@ -158,3 +158,5 @@ Neural network approaches to Turing completeness - Claude.html
 Neural network approaches to Turing completeness - Claude_files/
 *- Claude.html
 *- Claude_files/
+experiments/_rerun*.log
+experiments/_rerun_paper.sh
