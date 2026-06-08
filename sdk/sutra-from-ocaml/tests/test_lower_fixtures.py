@@ -151,6 +151,7 @@ _RUNNABLE_FIXTURES = {
     "match_record": 16.0,  # sum (mk 7 9) via match p with {x; y} -> x + y  (record-destructure -> field reads)
     "record_arg": 16.0,  # sum2 { x = 7; y = 9 }  (record literal in arg position -> hoisted to a temp Axon)
     "tuple_arg": 16.0,  # sum2 (7, 9)  (tuple literal in arg position -> hoisted to a temp positional Axon)
+    "tail_rec_bool": 15.0,  # f 0 5 = if (n=0)||(acc>100) then acc else f (acc+n) (n-1)  (boolean halt -> !(...) continue)
     "option_some": 42.0,  # get_or (mk 42) 0  (option Some/None -> tagged axon; match binds payload via int locals)
     "let_in_expr": 20.0,  # (let x = 5 in x + x) + 10  (let..in in expression position via substitution)
     "modulo": 2.0,  # 17 mod 5  (OCaml mod -> Sutra %)

@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — tail-recursion with a non-comparison (boolean) halt condition
+
+`_negate_cond` (halt condition → loop continue condition) now handles any BOOLEAN halt, not
+just single comparisons: comparisons still invert precisely via `_NEG_CMP` (`n=0`→`n!=0`),
+and `&&`/`||`/bool-flag/`not` conditions negate generally via Sutra `!(…)` (valid since OCaml
+`if` requires a bool). New runnable fixture `tail_rec_bool` (`f 0 5 = if (n=0)||(acc>100) then
+acc else f (acc+n) (n-1)`) substrate-verified = 15; continue = `!((n==0)||(acc>100))`.
+Non-regressing (tail_rec_sum/swap, while_sum green); 78 passed.
+
 ## 2026-06-08: axon string fillers RESOLVED (Emma) — strings are NOT axon fillers
 
 Drained A.0(c) via AskUserQuestion: Emma's call is **strings are NOT axon fillers** — fillers
