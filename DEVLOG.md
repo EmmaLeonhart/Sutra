@@ -5762,3 +5762,14 @@ parenthetical. These are now TRUE (Plan A removed real() entirely). Data unchang
 Plan B re-ran the experiments and they reproduce EXACTLY (Appendix C §3.2 nomic/all-
 minilm/mxbai k=8 = 100%/100%/100% rotation, Hadamard 87.5/7.5/2.5; §3.7 round-trip
 ~2e-7) — no numbers needed switching. Pushed (papers-ci -> clawRxiv + arXiv).
+
+## 2026-06-08: queue cleared of completed overhaul; NTM track re-scoped to Emma's vision
+
+Substrate-purity → fused-NN overhaul + paper are DONE; removed that detail from
+queue.md (lives here + git log). Re-scoped the NTM track to Emma's REFRAMED vision:
+NOT a trainable NTM — instead PCA on Percepta's transformer-vm + Python→OCaml to build
+something identical in structure but using an attention mechanism for simple parsing
+("attention on RAM"), codable, with SGD-later optional. State: PCA done; pruned core
+built + verified output-identical on 8/8 random inputs; the 6-program byte-for-byte
+oracle is the next unblock (needs clang/uv — route via a GitHub Actions job). Do not
+chase the clawRxiv bot on percepta-ntm.
