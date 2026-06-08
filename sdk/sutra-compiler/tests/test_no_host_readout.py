@@ -18,13 +18,21 @@ import sys
 
 import pytest
 
-# Audited 2026-06-07: started at 26 `.item()` host-readout calls in the generated
-# runtime. 2026-06-07: removed the 6 dead accessors (imag/truth/component/
-# semantic/synthetic, −5 .item(); norm, −1 float-readout) → 21.
-# Remaining categories: `real` (next target), array_length, ram_read/ram_write
-# address decode (I/O wire decision), is_char/is_string, js_strict_neq/
-# js_loose_neq, _js_str_cmp, string_to_python. GOAL: 0. Only ever lower this.
-BASELINE_ITEM_READOUTS = 20
+# Audited 2026-06-07: started at 26 `.item()` host-readout calls. Removed the 6 dead
+# accessors (imag/truth/component/semantic/synthetic/norm) → 21; removed `real()`
+# entirely (def real() → raising JS stub; host reads → direct indexing) → 20;
+# removed the gratuitous host-readout in js_strict_neq/js_loose_neq (truth-axis
+# negation is now an on-substrate `-eq[truth]`, no `.item()`) → 18.
+# Remaining categories, all by-design boundaries (not language introspection):
+#   - ram_read/ram_write address decode — the external-RAM orchestrator I/O wire
+#     (ram-pointers.md; RAM is host I/O by design);
+#   - string_to_python — string→host conversion for terminal/display output;
+#   - array_length — host loop-bound (the driver/control boundary);
+#   - is_char/is_string — host type dispatch;
+#   - _js_str_cmp — JS-interop carve-out (host string comparison).
+# GOAL: 0 for genuine introspection; the above are sanctioned I/O/JS/control
+# boundaries. Only ever lower this.
+BASELINE_ITEM_READOUTS = 18
 
 
 def _generated_runtime_source() -> str:
