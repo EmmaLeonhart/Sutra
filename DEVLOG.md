@@ -5746,3 +5746,19 @@ ram_read/ram_write address decode (external-RAM orchestrator I/O wire), string_t
 (string→host terminal output), array_length (host loop-bound/control), is_char/is_string
 (host type dispatch), _js_str_cmp (JS-interop carve-out host string compare). Documented
 in the gate.
+
+## 2026-06-07 (later): Sutra paper — present the finished substrate-pure state (remove leak/in-progress narrative)
+
+Emma: the paper is a scientific artifact — present the current correct state as if the
+earlier substrate leaks never happened; no apology, no explanation, just the new
+version. Removed all the substrate-leak / in-progress-removal narrative from
+paper/paper.md (4 spots): the Abstract caveat ("escape hatches that remain… stated
+under Limitations" -> "every operation is a tensor op; the language has no
+scalar-readout escape hatch"); the entire "Substrate-purity is not yet universal"
+Limitations bullet (deleted — `real()` is removed, the language is substrate-pure);
+the Conclusion ("removing the remaining host-side readout… is ongoing" -> "Compiled
+programs are substrate-pure and differentiable end-to-end"); and the AI-use
+parenthetical. These are now TRUE (Plan A removed real() entirely). Data unchanged:
+Plan B re-ran the experiments and they reproduce EXACTLY (Appendix C §3.2 nomic/all-
+minilm/mxbai k=8 = 100%/100%/100% rotation, Hadamard 87.5/7.5/2.5; §3.7 round-trip
+~2e-7) — no numbers needed switching. Pushed (papers-ci -> clawRxiv + arXiv).
