@@ -517,8 +517,9 @@ first and never touches the RAM/W2C sections above.
 - [ ] `match … with`: **literal + trailing `_` DONE** (`classify 1 = 200`) and
   **nullary-constructor patterns DONE** (variant match, `label Green = 200`,
   substrate-verified; last case is the base, exact for exhaustive variant matches).
-  Remaining: constructor-with-args / record-destructuring / or- / guarded patterns;
-  `match` that binds a name in the catch-all (`| x -> …`).
+  **Or-patterns DONE** (`| 1 | 2 | 3 -> r` → disjunction of `==` tests via `||`;
+  substrate-verified `match_or` = 300). **Catch-all name binding DONE** (`match_bind`).
+  Remaining: constructor-with-args / record-destructuring / guarded (`when`) patterns.
 - [ ] **Records -> axons: DONE for numeric fields** (substrate-verified
   `getx (mk 7 9) = 7.0`). `type X = {…}` erased + record-name prepass; record-typed
   params -> `Axon`; construction `{x=a;y=b}` -> `Axon r; r.add("x",a); …`; field

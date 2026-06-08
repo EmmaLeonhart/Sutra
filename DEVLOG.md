@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — or-patterns in match (`| 1 | 2 | 3 -> r`)
+
+`sutra-from-ocaml` now lowers `or_pattern` match cases to a disjunction of the per-leaf
+equality tests (`(scrut==k1) || (scrut==k2) || …`, via Sutra `||`), recursing through
+left-nested or-patterns; leaves must be int literals or nullary-variant constructors.
+New runnable fixture `match_or` (`classify 2 + classify 8 + classify 5` with
+`| 1|2|3 -> 100 | 7|8 -> 200 | _ -> 0`) substrate-verified = 300. OCaml lowering/compile
+suite green incl. the new fixture. Also corrected the queue: catch-all name binding was
+already DONE (match_bind). Remaining match work: constructor-with-args / record-
+destructuring / guarded (`when`).
+
 ## 2026-06-08: attention-on-RAM step (d) — reduction study, parser runs at the dim floor
 
 `experiments/attention_on_ram/dim_sweep.py` (+ guard

@@ -699,6 +699,18 @@ def _lower_option_match_body(node, source: bytes, indent: str) -> str:
     return out
 
 
+def _or_pattern_leaves(pat) -> list:
+    """Flatten an `or_pattern` (`1 | 2 | 3`, possibly left-nested as
+    `(1 | 2) | 3`) into its leaf sub-patterns, in order."""
+    leaves: list = []
+    for c in pat.named_children:
+        if c.type == "or_pattern":
+            leaves.extend(_or_pattern_leaves(c))
+        else:
+            leaves.append(c)
+    return leaves
+
+
 def _lower_match(node, source: bytes) -> str:
     """Lower `match scrut with k1 -> r1 | k2 -> r2 | _ -> rd` to a nested
     strong-defuzz blend — the same machinery as if/then/else, chained.
@@ -764,6 +776,29 @@ def _lower_match(node, source: bytes) -> str:
             if cname not in _CONSTRUCTORS:
                 return f"/* UNSUPPORTED-MATCH-PATTERN: unknown constructor {cname} */"
             parsed.append(("ctor", f"{scrut_src} == {_CONSTRUCTORS[cname]}", res_src))
+        elif pat.type == "or_pattern":
+            # `k1 | k2 | … -> r`: the case fires if the scrutinee equals ANY
+            # alternative — a disjunction of the per-leaf equality tests.
+            # Leaves must be int literals or nullary-variant constructors
+            # (the patterns we already test by `==`); anything else is not
+            # supported (binding/nested patterns inside an or- need more).
+            subtests: list[str] = []
+            bad = None
+            for leaf in _or_pattern_leaves(pat):
+                if leaf.type == "number":
+                    subtests.append(f"{scrut_src} == {_node_text(leaf, source)}")
+                elif (leaf.type == "constructor_path"
+                      and _node_text(leaf, source) in _CONSTRUCTORS):
+                    subtests.append(
+                        f"{scrut_src} == {_CONSTRUCTORS[_node_text(leaf, source)]}")
+                else:
+                    bad = leaf.type
+                    break
+            if bad is not None or not subtests:
+                return ("/* UNSUPPORTED-MATCH-PATTERN: or-pattern leaf "
+                        f"{bad or 'empty'} (only int/variant literals) */")
+            test = " || ".join(f"({s})" for s in subtests)
+            parsed.append(("literal", test, res_src))
         else:
             return f"/* UNSUPPORTED-MATCH-PATTERN: {pat.type} */"
 
