@@ -519,7 +519,9 @@ first and never touches the RAM/W2C sections above.
   substrate-verified; last case is the base, exact for exhaustive variant matches).
   **Or-patterns DONE** (`| 1 | 2 | 3 -> r` → disjunction of `==` tests via `||`;
   substrate-verified `match_or` = 300). **Catch-all name binding DONE** (`match_bind`).
-  Remaining: constructor-with-args / record-destructuring / guarded (`when`) patterns.
+  **Guarded patterns DONE** (`| x when x>0 -> …` → test = guard, or `(pat==k) && guard`;
+  bound name substituted via `_MATCH_SUBST`; substrate-verified `match_guard` = 60).
+  Remaining: constructor-with-args / record-destructuring patterns.
 - [ ] **Records -> axons: DONE for numeric fields** (substrate-verified
   `getx (mk 7 9) = 7.0`). `type X = {…}` erased + record-name prepass; record-typed
   params -> `Axon`; construction `{x=a;y=b}` -> `Axon r; r.add("x",a); …`; field
