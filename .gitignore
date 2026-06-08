@@ -160,3 +160,6 @@ Neural network approaches to Turing completeness - Claude_files/
 *- Claude_files/
 experiments/_rerun*.log
 experiments/_rerun_paper.sh
+experiments/_r_*.txt
+experiments/_rerun2.sh
+experiments/_rerun3.sh
