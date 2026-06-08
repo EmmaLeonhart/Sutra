@@ -117,6 +117,16 @@ state (avoid literal-vs-loop-state comparison).
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
+- **A.0(c) — Axon string fillers don't round-trip (spec-vs-impl gap, measured 2026-06-08).**
+  `a.add("k","Hi"); a.item("k")` → 72.0 ('H', first codepoint), not "Hi" — single field, so
+  NOT bundle crosstalk; the String filler collapses through `bind`/`unbind`. The axon-as-IPC
+  vision says strings ARE fillers ([[project_axon_ipc_payload_is_strings_and_numbers]]), so
+  this is a spec/impl contradiction (integrity rule #5). Q for Emma: is this (a) a bug to fix
+  at the axon/substrate layer (how does a codepoint-array filler survive bind/unbind?), (b) a
+  scoped limitation for now (strings-as-fillers out of scope; document it), or (c) a specific
+  encoding (store string fillers un-rotated/keyed directly)? Blocks OCaml/TS string record
+  fields (transpiler pieces are easy on top of the chosen mechanism). Open-question doc:
+  `planning/open-questions/axon-string-filler-roundtrip.md`. NOT blocking other work.
 
 - **A.0(a) — DECISIONS (RESOLVED autonomously 2026-06-07, Emma "do those items autonomously").**
   1. **Boolean representation** — RESOLVED (Emma + spec `equality-and-defuzzification.md:92`):

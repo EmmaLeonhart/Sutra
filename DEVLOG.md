@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-08: axon string fillers don't round-trip — spec/impl gap surfaced for Emma
+
+Sharpened yesterday's OCaml string-field blocker with a raw measurement: `a.add("k","Hi");
+a.item("k")` → 72.0 ('H', first codepoint), NOT "Hi", on a SINGLE-field axon (no bundle, so
+not crosstalk). The String filler collapses through bind/unbind. Since the axon-as-IPC vision
+treats strings as first-class fillers, this is a spec/implementation contradiction (integrity
+rule #5: stop + surface, don't silently scope it away). Wrote open-question
+`planning/open-questions/axon-string-filler-roundtrip.md` + enriched the finding + added A.0(c)
+so the blocker-sweep asks Emma (bug-to-fix vs scoped-limit vs specific-encoding). Did NOT
+attempt a blind substrate fix (don't-implement-what-you-don't-understand). Not blocking other
+work; numeric record fields remain supported.
+
 ## 2026-06-08: OCaml frontend — non-numeric record fields BLOCKED at axon layer (measured, reverted)
 
 Attempted string record fields (`{ name : string }`, read `p.name`). The field-type-aware

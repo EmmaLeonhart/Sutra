@@ -36,6 +36,27 @@ recovers it, but a *string* (a multi-codepoint synthetic-axis array) is not reco
 any projection — the bundle superposition does not cleanly return the stored codepoint
 array. Numbers have `realvec`; strings have no clean inverse from the axon filler.
 
+## Sharper measurement: it is NOT bundle crosstalk
+
+Reduced to raw Sutra, a **single-field** axon string round-trip still fails:
+
+```
+function string one() { Axon a; a.add("k", "Hi"); return a.item("k"); }
+function string main() { return one(); }
+// runs on the substrate -> 72.0   (NOT "Hi"; 72 = codepoint of 'H', the first char)
+```
+
+A single field means `add` = `bind(R_k, F)` with **no bundle superposition**, and `item`
+= `unbind(R_k, …)` is its exact inverse — so this is *not* the multi-field crosstalk the
+numeric finding hit. The string filler itself does not survive store→load: it comes back
+decoding to its **first codepoint as a number** (72 = 'H'). So either the string is stored
+as a single real-axis scalar (its first codepoint) by `add`, or `bind`/`unbind` does not
+preserve the multi-codepoint synthetic-axis structure of a String filler, or the
+String-typed read collapses it. The axon vision treats strings as first-class fillers
+([[project_axon_ipc_payload_is_strings_and_numbers]]: "string-flag codepoint arrays +
+complex-hypervector numbers"), so this is a **spec/implementation contradiction**, not just
+a missing transpiler feature — surfaced for Emma (`planning/open-questions/`, A.0).
+
 ## Why reverted (not shipped behind a flag)
 
 The field-type-aware read is correct in direction but enables nothing that works:
