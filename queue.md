@@ -582,8 +582,15 @@ first and never touches the RAM/W2C sections above.
   to a temp Axon local before the call; substrate-verified `record_arg` = 16; covers
   body-position calls — nested under operators like `f{..}+g{..}` is a follow-on recursive
   hoist). **Tuple literals in argument position: DONE** (`f (7, 9)` → hoist to a temp
-  positional Axon, same machinery; substrate-verified `tuple_arg` = 16). Remaining:
-  non-numeric record fields (field-type-aware projection off the record decl). (Nullary **variants** ->
+  positional Axon, same machinery; substrate-verified `tuple_arg` = 16). **Non-numeric
+  (string) record fields: BLOCKED at the axon layer** (measured 2026-06-08, attempt
+  reverted): the field-type-aware read lowers correctly (`String get_name(Axon p){return
+  p.item("name");}`) but `axon.add("name","Alice")`+`item("name")` does NOT round-trip the
+  string — returns 65 (`'A'` codepoint), even with explicit annotations. Numbers recover via
+  `realvec`; a string codepoint-array has no clean inverse from the bundled filler. Real
+  blocker = axon string round-trip (substrate/axon-spec, NOT a transpiler fix); finding
+  `2026-06-08-ocaml-nonnumeric-record-fields-blocked-axon-string.md`. Numeric record fields
+  remain the supported scope. (Nullary **variants** ->
   enum ints + constructor-pattern `match`: DONE — `label Green = 200`. Parameterised
   constructors `C of t` still UNSUPPORTED.)
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
