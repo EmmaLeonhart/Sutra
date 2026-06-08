@@ -953,12 +953,14 @@ def _lower_record_body(body, source: bytes, indent: str) -> str:
 
 
 def _hoist_record_args(node, source: bytes, indent: str):
-    """If `node` is a call `f a1 … aN` with one or more *record-literal*
-    arguments, hoist each such argument into a temp Axon local and return the
-    statement block `Axon _argK; …; return f(…, _argK, …);`. Returns None when
-    there is no record-literal argument (the caller falls through to the normal
-    `return f(…);`). Record construction is statement-based (no inline axon
-    literal), so a record passed directly as an argument needs this lift."""
+    """If `node` is a call `f a1 … aN` with one or more *aggregate-literal*
+    arguments (a record `{…}` or a tuple `(e0, …)`), hoist each such argument into
+    a temp Axon local and return the statement block `Axon _argK; …; return
+    f(…, _argK, …);`. Returns None when there is no such argument (the caller falls
+    through to the normal `return f(…);`). Record/tuple construction is statement-
+    based (no inline axon literal), so an aggregate passed directly as an argument
+    needs this lift. NOTE: a single parenthesized expression `(e)` is NOT a tuple —
+    only a `tuple_expression` (comma-separated) is hoisted."""
     kids = node.named_children
     if len(kids) < 2:
         return None
@@ -973,6 +975,11 @@ def _hoist_record_args(node, source: bytes, indent: str):
             var = f"_arg{i}"
             prelude += _emit_record_construction(ua, source, indent, var)
             arg_srcs.append(var)
+        elif ua is not None and ua.type == "tuple_expression":
+            found = True
+            var = f"_arg{i}"
+            prelude += _emit_tuple_construction(ua, source, indent, var)
+            arg_srcs.append(var)
         else:
             arg_srcs.append(_lower_expression(a, source))
     if not found:
@@ -981,18 +988,22 @@ def _hoist_record_args(node, source: bytes, indent: str):
     return prelude + f"{indent}return {func_src}({', '.join(arg_srcs)});\n"
 
 
-def _lower_tuple_body(body, source: bytes, indent: str) -> str:
-    """Lower a `tuple_expression` function body `(e0, e1, …)` to Sutra
-    axon construction with positional fields `_0`, `_1`, …. A tuple is an
-    anonymous positional record; `fst`/`snd` read `_0`/`_1` back. Same
-    body-position constraint as records (can't build in a nested
-    expression). MVP scope: numeric tuple elements (read back via
-    `.real()`)."""
-    lines = f"{indent}Axon _tuple;\n"
+def _emit_tuple_construction(body, source: bytes, indent: str, var: str) -> str:
+    """Emit Sutra axon construction for a `tuple_expression` into local `var`
+    (positional fields `_0`, `_1`, …) — WITHOUT a trailing return, so it can be
+    reused as a function body or as a hoisted call argument."""
+    lines = f"{indent}Axon {var};\n"
     for i, el in enumerate(body.named_children):
-        lines += f'{indent}_tuple.add("_{i}", {_lower_expression(el, source)});\n'
-    lines += f"{indent}return _tuple;\n"
+        lines += f'{indent}{var}.add("_{i}", {_lower_expression(el, source)});\n'
     return lines
+
+
+def _lower_tuple_body(body, source: bytes, indent: str) -> str:
+    """Lower a `tuple_expression` function body `(e0, e1, …)` to Sutra axon
+    construction (positional fields) + return. A tuple is an anonymous positional
+    record; `fst`/`snd` read `_0`/`_1` back. MVP scope: numeric tuple elements."""
+    return (_emit_tuple_construction(body, source, indent, "_tuple")
+            + f"{indent}return _tuple;\n")
 
 
 def _unwrap_parens(node):
