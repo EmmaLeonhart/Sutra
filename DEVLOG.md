@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-08: attention-on-RAM step (e) — evaluate-vs-learn comparison (Emma "do all, compare")
+
+`experiments/attention_on_ram/compare_variants.py` (+ guard
+`test_reference.py::test_evaluate_and_learn_agree`, 4/4). Brings the four variants
+together on ONE shared linear-regression-over-memory task and measures whether
+constructed-evaluate and SGD-learn realize the same operator. Measured: evaluate
+(constructed q=c) max|ŷ-y|=8.9e-16 (exact); learn (SGD fit) loss 12.68→2.3e-14,
+‖grad‖@0=7.45, recovered w=[2,-1,0.5,3]=c, ‖w-c‖=6.0e-8; AGREEMENT max|ŷ_eval-ŷ_learn|
+=2.2e-7 — the constructed head (given c) and the trained head (recovering c from data)
+converge to the SAME operator. This is Emma's O3 "do all of them, compare" discharged.
+Scope: SGD is on the smooth read operator, NOT the saturated 1e30 hardmax weights;
+composed-network training stays open. Finding
+`2026-06-08-attention-on-ram-evaluate-vs-learn.md`.
+
 ## 2026-06-08: percepta-ntm paper — fold in the measured attention-on-RAM first step (addresses v13 con #4)
 
 v13 review (Reject) load-bearing con #4: the "trainable seed" claim is "speculative and
