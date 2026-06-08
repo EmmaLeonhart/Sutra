@@ -711,6 +711,25 @@ def _or_pattern_leaves(pat) -> list:
     return leaves
 
 
+def _record_pattern_fields(pat, source: bytes) -> list:
+    """[(field_name, bind_name)] for a `record_pattern`. Field-punning `{x; y}`
+    binds the field name itself; `{x = a}` binds the explicit name `a`."""
+    out: list = []
+    for fp in pat.named_children:
+        if fp.type != "field_pattern":
+            continue
+        field = None
+        bind = None
+        for ch in fp.named_children:
+            if ch.type == "field_path":
+                field = _node_text(ch, source).split(".")[-1]
+            elif ch.type == "value_pattern":
+                bind = _node_text(ch, source)
+        if field is not None:
+            out.append((field, bind or field))
+    return out
+
+
 def _lower_match(node, source: bytes) -> str:
     """Lower `match scrut with k1 -> r1 | k2 -> r2 | _ -> rd` to a nested
     strong-defuzz blend — the same machinery as if/then/else, chained.
@@ -804,6 +823,30 @@ def _lower_match(node, source: bytes) -> str:
                     _MATCH_SUBST.pop(bound, None)
                 else:
                     _MATCH_SUBST[bound] = saved
+            parsed.append(("wild", None, res_src))
+            continue
+        if pat.type == "record_pattern":
+            # `| {x; y} -> body`: destructuring a record (an axon). Irrefutable
+            # (one record shape) -> a terminal catch-all that binds each field
+            # name to its substrate field read `realvec(scrut.item("f"))` (the
+            # same projection record field access uses), then lowers the body.
+            fields = _record_pattern_fields(pat, source)
+            if not fields:
+                return "/* UNSUPPORTED-MATCH-PATTERN: empty record pattern */"
+            simple = _is_identifier(scrut_src) or scrut_src.lstrip("-").isdigit()
+            base = scrut_src if simple else f"({scrut_src})"
+            saved: dict = {}
+            for field, bind in fields:
+                saved[bind] = _MATCH_SUBST.get(bind, _MISSING)
+                _MATCH_SUBST[bind] = f'realvec({base}.item("{field}"))'
+            try:
+                res_src = _lower_expression(res, source)
+            finally:
+                for bind, sv in saved.items():
+                    if sv is _MISSING:
+                        _MATCH_SUBST.pop(bind, None)
+                    else:
+                        _MATCH_SUBST[bind] = sv
             parsed.append(("wild", None, res_src))
             continue
         res_src = _lower_expression(res, source)
