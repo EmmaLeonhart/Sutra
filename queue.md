@@ -166,27 +166,32 @@ crosstalk was running axon programs below their model dim).
   79, TS 39/1xfail, codegen 91. Corrected the wrong "axon read needs .real()/
   crosstalk" finding (field reads clean at dim 50; the option-match tag compare was
   the only crosstalk case — realvec fixes it).
-- A2. NEXT: tests using `.real()`. After A3, `.su`-surface `.real()` is gone; tests
-  that VERIFY via `v.real(...)` (host-side, test_ntm_ram / test_mini_wasm_machine /
-  test_cached_compile) are terminal-boundary reads — keep or switch to direct
-  indexing. `test_codegen` asserts `.real()` lowers to `_VSA.real(x)` -> update to
-  assert the surface is now REJECTED.
-- A3. NEXT: remove the SURFACE lowering of `.real()` (the last entry in the codegen
-  accessor set, e.g. `_VECTOR_ACCESSORS`) -> `.real()` uncallable in `.su`.
-- A4. Runtime `def real()` — JUDGMENT BOUNDARY, not a blind removal: it is still used
-  INTERNALLY by the JS-interop carve-out (string coercion / JS comparisons, lines
-  ~2246/2310/2400/2468 in codegen_pytorch — formatting a number as a JS string
-  fundamentally needs a host scalar; CLAUDE.md sanctions JS shims crossing to host
-  BY DESIGN). Plan: remove it as a LANGUAGE feature (A3 surface) but keep the host
-  helper for the JS carve-out only (rename to `_js_real`/keep internal). That makes
-  `real()` conceptually uncallable in Sutra while not breaking the sanctioned JS
-  ecosystem. (If Emma wants the JS one gone too, that's a separate JS-interop change.)
-- A5. Lower the host-readout gate baseline (test_no_host_readout 21 -> minus removed);
-  keep ratcheting toward 0. Remaining = by-design I/O boundaries (terminal output,
-  JS-interop) — name them.
+- A2. DONE. `test_codegen` updated: asserts the scalar accessors REJECT at compile
+  (was: assert `.real()` lowers). The `v.real(...)` reads in test_ntm_ram /
+  test_mini_wasm_machine / test_cached_compile are host-side terminal-boundary
+  VERIFICATION (call the runtime helper directly, not the surface) — kept.
+- A3. DONE. ALL scalar-readout accessors (`real`/`imag`/`truth`/`component`/
+  `semantic`/`synthetic`/`norm`) now REJECT at compile (codegen `_translate_call`
+  raises CodegenNotSupported with a realvec hint) -> `.real()` is conceptually
+  UNCALLABLE in `.su`. Verified: rejects measured; codegen 91, smoke 11/11,
+  gate+ntm_ram+cached 24 all green.
+- A4. Runtime `def real()` — KEPT as a host-only helper for the sanctioned
+  JS-interop carve-out (number->JS-string coercion needs a host scalar; CLAUDE.md
+  sanctions JS shims crossing to host) + host-side test verification. It is NO LONGER
+  a language feature (surface rejects). This satisfies "real() uncallable in the
+  language." (Stripping it from JS too would change JS-coercion semantics — separate,
+  not in scope.)
+- A5. Host-readout gate baseline unchanged (21): the remaining `.item()` are all
+  by-design boundaries — the RAM orchestrator wire, terminal output, the JS-interop
+  layer, and the JS-only `real()` helper — not language-level introspection. The
+  LANGUAGE is now free of scalar-readout accessors.
 - Already done (keep): dead accessors imag/truth/component/semantic/synthetic/norm
   removed (87cfa407); loop step pure + exportable as a weight file (emit_loop_weight_file);
   mini_wasm_machine substrate-pure.
+
+**Plan A is COMPLETE: `real()`/scalar extraction is removed from the language
+(uncallable); the only `real()` left is the sanctioned JS-interop host helper.**
+Next: Plan B — re-run the main Sutra paper experiments on the pure substrate.
 
 ### B. Re-run main Sutra paper experiments + switch wrong numbers (DATA ONLY)
 Run on the pure substrate, compare to reported, switch any that differ in
