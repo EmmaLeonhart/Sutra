@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — record-destructuring in match (`| {x; y} -> body`)
+
+`sutra-from-ocaml` now lowers `record_pattern` match cases: an irrefutable terminal
+catch-all that binds each field name to its substrate field read
+`realvec(scrut.item("f"))` (the same projection record field access uses), supporting
+field-punning `{x; y}` and rename `{x = a}`. New runnable fixture `match_record`
+(`sum (p:pt) = match p with {x; y} -> x + y`) substrate-verified = 16. Composes with the
+existing record→axon construction. match/record suite green (76 passed). Remaining match
+work: constructor-with-args (paired with constructor-with-args construction, both UNSUPPORTED).
+
 ## 2026-06-08: OCaml frontend — guarded match patterns (`| x when cond -> r`)
 
 `sutra-from-ocaml` now lowers guarded match cases: a `guard` child makes the case carry
