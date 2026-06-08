@@ -276,15 +276,20 @@ class TestCanonicalAxes(unittest.TestCase):
         self.assertIn("AXIS_IMAG = 1", py)
         self.assertIn("AXIS_TRUTH = 2", py)
 
-    def test_runtime_defines_canonical_methods(self):
+    def test_runtime_defines_constructors_not_readout_accessors(self):
         src = "function vector main() { return basis_vector(\"x\"); }\n"
         py = _compile(src)
-        self.assertIn("def real(self, v):", py)
-        self.assertIn("def imag(self, v):", py)
-        self.assertIn("def truth(self, v):", py)
+        # Constructors stay (they build vectors, no readout).
         self.assertIn("def make_real(self, x):", py)
         self.assertIn("def make_complex(self, re, im):", py)
         self.assertIn("def make_truth(self, t):", py)
+        # The `real()` scalar-READOUT accessor is REMOVED from the runtime (no
+        # introspection — it yanks a host scalar off the substrate, severing purity
+        # + autograd). The in-language replacement is `realvec` (a substrate matmul
+        # to a clean real-axis vector). (NOTE: `_compile` here uses the deprecated
+        # numpy backend, which still carries dead imag/truth method bodies — a
+        # separate cleanup; this test scopes the real()-removal.)
+        self.assertNotIn("def real(self, v):", py)
 
 
 class TestExtendedStateVector(unittest.TestCase):

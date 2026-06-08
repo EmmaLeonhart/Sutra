@@ -110,13 +110,11 @@ def main() -> int:
         rec_priority_vec = consumer_mod.recover_priority(loaded_vec)
         rec_query_vec    = consumer_mod.recover_query(loaded_vec)
 
-    # Decode each filler with the appropriate accessor. Sutra type
-    # annotations are surface-level only; recover_priority's `int`
-    # return type does not auto-extract the scalar via vsa.real() —
-    # the runtime axon_item returns a vector. The orchestrator does
-    # the type-aware decode here at the monitoring boundary.
+    # Decode each filler at the orchestrator monitoring boundary. The runtime
+    # `real()` accessor was removed (no scalar readout in the language); the
+    # orchestrator reads the real axis directly here (host I/O, not a substrate op).
     user_str    = _read_string_first_n(consumer_vsa, rec_user_vec, len("alice"))
-    rec_priority = consumer_vsa.real(rec_priority_vec)
+    rec_priority = float(rec_priority_vec[consumer_vsa.semantic_dim + consumer_vsa.AXIS_REAL])
 
     # Compare query embedding to expected
     expected_query = consumer_vsa.embed("find recent files about cats")
