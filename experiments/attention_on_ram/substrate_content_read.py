@@ -52,7 +52,7 @@ def _cos(a, b):
 
 
 def train_query(ns, mode: str, N: int = 6, target_row: int = 3, steps: int = 300,
-                seed: int = 0):
+                seed: int = 0, beta: float = 1.0):
     vsa = ns["_VSA"]
     select = ns["_select_softmax"]
     dim = vsa.dim
@@ -70,7 +70,10 @@ def train_query(ns, mode: str, N: int = 6, target_row: int = 3, steps: int = 300
     grad0 = loss0 = None
 
     def read(qv):
-        scores = [vsa.similarity(qv, K[i]) for i in range(N)]   # substrate content match
+        # Temperature via score-scaling: select() is a vanilla (fixed-T) softmax, so
+        # multiplying the scores by beta IS the temperature control — the established
+        # select-temperature pattern (similarity/T), here beta = 1/T. No primitive change.
+        scores = [beta * vsa.similarity(qv, K[i]) for i in range(N)]  # substrate content match
         if mode == "soft":
             return select(scores, V)                            # substrate softmax read
         # hard: argmax over the scores, return that value (no gradient to q)
@@ -93,8 +96,8 @@ def train_query(ns, mode: str, N: int = 6, target_row: int = 3, steps: int = 300
     with torch.no_grad():
         r = read(q)
         cos_target = float(_cos(r, target))
-        # attention weight the substrate select puts on the target row
-        scores = torch.stack([vsa.similarity(q, K[i]) for i in range(N)])
+        # attention weight the substrate select puts on the target row (at this beta)
+        scores = torch.stack([beta * vsa.similarity(q, K[i]) for i in range(N)])
         w = torch.softmax(scores - scores.amax(), dim=0)
         wt = float(w[target_row])
         lossN = float(((r - target) ** 2).mean())
@@ -123,8 +126,27 @@ def run(verbose: bool = True) -> dict:
     return {"soft": soft, "hard": hard}
 
 
+def temperature_sweep(verbose: bool = True) -> dict:
+    """Sharpening: with a temperature (score-scaling by beta = 1/T) the substrate soft
+    read converges from a diffuse blend (beta=1) to crisp content retrieval, while the
+    gradient keeps flowing. This is the established select-temperature lever, not a
+    primitive change."""
+    ns = _compile_ns()
+    out = {}
+    for beta in (1.0, 4.0, 16.0, 64.0):
+        out[beta] = train_query(ns, "soft", beta=beta)
+    if verbose:
+        print("\ntemperature sweep (beta = 1/T) on the substrate soft read:")
+        for beta, r in out.items():
+            print(f"  beta={beta:>5}  cos(read,target) = {r['cos_to_target']:.4f}  "
+                  f"weight_on_target = {r['weight_on_target']:.4f}  "
+                  f"||grad||@0 = {r['grad0']:.3e}")
+    return out
+
+
 def main() -> int:
     r = run(verbose=True)
+    temperature_sweep(verbose=True)
     soft, hard = r["soft"], r["hard"]
     # The claim that is actually true and load-bearing: the substrate content-addressed
     # read is DIFFERENTIABLE (gradient flows) and LEARNS directionally (loss drops, read
