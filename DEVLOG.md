@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — guarded match patterns (`| x when cond -> r`)
+
+`sutra-from-ocaml` now lowers guarded match cases: a `guard` child makes the case carry
+a test (never the terminal catch-all, since a guard can fail). Test = the lowered guard
+for a name-binding/`_` pattern (bound name substituted to the scrutinee via _MATCH_SUBST),
+or `(scrut==k) && guard` for a literal/variant pattern. New runnable fixture `match_guard`
+(`sign` via `| x when x>0 -> 1 | 0 -> 0 | _ -> -1`) substrate-verified = 60. match suite
+(lit/bind/or/guard/variant/option) green, 72 passed. Remaining match work:
+constructor-with-args / record-destructuring.
+
 ## 2026-06-08: OCaml frontend — or-patterns in match (`| 1 | 2 | 3 -> r`)
 
 `sutra-from-ocaml` now lowers `or_pattern` match cases to a disjunction of the per-leaf

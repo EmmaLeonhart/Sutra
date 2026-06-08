@@ -147,6 +147,7 @@ _RUNNABLE_FIXTURES = {
     "tuple_fst_snd": 16.0,  # main () = sum2 (pair 7 9)  (tuple -> positional axon; fst/snd off Axon param)
     "match_bind": 6.0,  # classify 5 = match n with 0 -> 100 | x -> x+1  (catch-all name binding)
     "match_or": 300.0,  # classify 2 + 8 + 5 = match | 1|2|3 -> 100 | 7|8 -> 200 | _ -> 0  (or-pattern -> ||)
+    "match_guard": 60.0,  # sign 7/0/-4 via | x when x>0 -> 1 | 0 -> 0 | _ -> -1  (guard -> && / blend test)
     "option_some": 42.0,  # get_or (mk 42) 0  (option Some/None -> tagged axon; match binds payload via int locals)
     "let_in_expr": 20.0,  # (let x = 5 in x + x) + 10  (let..in in expression position via substitution)
     "modulo": 2.0,  # 17 mod 5  (OCaml mod -> Sutra %)

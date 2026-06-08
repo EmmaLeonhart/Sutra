@@ -738,10 +738,50 @@ def _lower_match(node, source: bytes) -> str:
     parsed: list[tuple[str, Optional[str], str]] = []
     for c in cases:
         cc = c.named_children
+        guard_node = next((x for x in cc if x.type == "guard"), None)
+        if guard_node is not None:
+            # Guarded case `| pat when g -> r`: fires iff `pat` matches AND `g`
+            # holds. Since a guard can fail, a guarded case ALWAYS carries a test
+            # (kind "literal") and is never the terminal catch-all — there must be
+            # a following fallback. Pattern may bind a name (`| x when …`), be `_`,
+            # or be an int/variant literal.
+            others = [x for x in cc if x.type != "guard"]
+            gcond = guard_node.named_children[0] if guard_node.named_children else None
+            if len(others) != 2 or gcond is None:
+                return "/* UNSUPPORTED-MATCH-CASE: malformed guarded case */"
+            gpat, gres = others[0], others[1]
+            bound = None
+            pat_test = None
+            if gpat.type == "value_pattern" and _node_text(gpat, source) != "_":
+                bound = _node_text(gpat, source)  # binds the scrutinee
+            elif gpat.type == "value_pattern":
+                pat_test = None  # `_` matches anything
+            elif gpat.type == "number":
+                pat_test = f"{scrut_src} == {_node_text(gpat, source)}"
+            elif (gpat.type == "constructor_path"
+                  and _node_text(gpat, source) in _CONSTRUCTORS):
+                pat_test = f"{scrut_src} == {_CONSTRUCTORS[_node_text(gpat, source)]}"
+            else:
+                return f"/* UNSUPPORTED-MATCH-CASE: guarded pattern {gpat.type} */"
+            saved = _MISSING
+            if bound is not None:
+                saved = _MATCH_SUBST.get(bound, _MISSING)
+                simple = _is_identifier(scrut_src) or scrut_src.lstrip("-").isdigit()
+                _MATCH_SUBST[bound] = scrut_src if simple else f"({scrut_src})"
+            try:
+                guard_src = _lower_expression(gcond, source)
+                gres_src = _lower_expression(gres, source)
+            finally:
+                if bound is not None:
+                    if saved is _MISSING:
+                        _MATCH_SUBST.pop(bound, None)
+                    else:
+                        _MATCH_SUBST[bound] = saved
+            test = guard_src if pat_test is None else f"({pat_test}) && ({guard_src})"
+            parsed.append(("literal", test, gres_src))
+            continue
         if len(cc) != 2:
-            # A guarded case (`| p when g -> r`) or or-pattern has a
-            # different child count — not handled.
-            return "/* UNSUPPORTED-MATCH-CASE: guard/or-pattern not supported */"
+            return "/* UNSUPPORTED-MATCH-CASE: unexpected case shape */"
         pat, res = cc[0], cc[1]
         if pat.type == "value_pattern" and _node_text(pat, source) != "_":
             # A name-binding catch-all `| x -> body`: `x` binds the whole
