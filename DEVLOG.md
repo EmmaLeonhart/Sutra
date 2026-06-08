@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-08: attention-on-RAM step (d) — reduction study, parser runs at the dim floor
+
+`experiments/attention_on_ram/dim_sweep.py` (+ guard
+`test_parser_reduces_to_synthetic_axis_floor`). Swept each OCaml→substrate fixture at
+runtime_dim 3–16, RUN on the substrate, decoded vs oracle: all three pass at the FLOOR
+runtime_dim=3 (real/imag/truth synthetic axes, semantic_dim=0 — zero LLM capacity, 0
+basis_vector), and at every larger dim. ~13× below the transformer-vm's d=38, ~16× below
+the CLI default. Confirms the dim audit with a concrete smallest-passing number; the
+parser is a genuinely tiny object. Finding
+`2026-06-08-attention-on-ram-dim-reduction.md`. The attention-on-RAM track's core
+deliverables (build + compare + reduce, all measured) are now done; remaining is breadth.
+
 ## 2026-06-08: daily substrate-honesty audit — CLEAN (attention-on-RAM commits)
 
 Discharged the auto-prepended daily-audit task against CLAUDE.md §"Subtler substrate
