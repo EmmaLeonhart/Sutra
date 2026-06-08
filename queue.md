@@ -138,7 +138,18 @@ state (avoid literal-vs-loop-state comparison).
      substrate filler→number-vector decode primitive (NOT `.real()`). Real work, not a
      blind removal. RAM reads (array) are exempt — RAM stores clean number-vectors.
 
-## ⭐ ACTIVE TRACK — Neural Turing Machine via PCA + codable attention (Emma 2026-06-08)
+## ⭐ TRACK COMPLETE — Neural Turing Machine via PCA + codable attention (Emma 2026-06-08)
+
+**Emma's call (2026-06-08, AskUserQuestion): the content-addressing thread is DONE — the
+key/value-VECTOR associative recall IS the intended demonstration; do NOT build content-
+addressing over the RAM device. Move on (transpiler track / composed-network training).**
+So the whole arc shipped + measured: build (attention-on-RAM parser, 3 tasks substrate-
+exact) → compare (evaluate vs SGD-learn agree) → reduce (dim floor 3) → content addressing
+(soft learns / hard inert; differentiable on the substrate via select+similarity;
+sharpens to crisp retrieval in a finite-β window) → packaged as a runnable `.su`
+(`examples/content_addressed_read.su`, NTM read head, 3/3). NEXT EFFORT = transpiler track
+(below) per CLAUDE.md priority-1. Do NOT re-open "content-address the RAM device" (Emma
+declined it). The detail below is retained as the record of what was built.
 
 DONE (removed from this queue per the queue-cleared rule; see DEVLOG + git log): the
 substrate-purity -> fused-NN overhaul is complete — `real()`/scalar extraction removed
