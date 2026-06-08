@@ -227,21 +227,25 @@ class TestVectorAccessors(unittest.TestCase):
 class TestCanonicalAxes(unittest.TestCase):
     """First three synthetic axes carry designated semantics:
     synthetic[0] = real, synthetic[1] = imag, synthetic[2] = truth.
-    Accessor methods `.real()` / `.imag()` / `.truth()` and constructors
-    `real_number(x)` / `complex_number(re, im)` / `truth_value(t)` lower
-    to the appropriate runtime methods.
+    Constructors `real_number(x)` / `complex_number(re, im)` / `truth_value(t)`
+    lower to the appropriate runtime methods. The scalar-READOUT accessors
+    (`.real()` / `.imag()` / `.truth()` / ...) are REMOVED from the language —
+    they are rejected at compile (no introspection; substrate purity).
     """
 
-    def test_real_method_lowers_to_vsa_call(self):
-        src = (
-            "vector x = basis_vector(\"x\");\n"
-            "function fuzzy main() { return x.real(); }\n"
-        )
-        py = _compile(src)
-        self.assertIn("_VSA.real(x)", py)
-
-    # `.imag()` / `.truth()` surface lowering removed 2026-06-07 (no
-    # introspection in the language). `.real()` retained transiently above.
+    def test_real_accessor_is_rejected(self):
+        # `.real()` (and the other scalar-readout accessors) are not available in
+        # the language: they would pull a host scalar off the substrate, severing
+        # purity + the autograd graph. They reject at compile. In-language code
+        # uses `realvec(v)` (a substrate matmul) when it needs the carried number.
+        from sutra_compiler.codegen_base import CodegenNotSupported
+        for acc in ("real", "imag", "truth", "component", "synthetic"):
+            src = (
+                "vector x = basis_vector(\"x\");\n"
+                f"function fuzzy main() {{ return x.{acc}(); }}\n"
+            )
+            with self.assertRaises(CodegenNotSupported):
+                _compile(src)
 
     def test_real_number_constructor_lowers(self):
         src = (
