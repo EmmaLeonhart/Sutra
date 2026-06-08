@@ -1825,9 +1825,15 @@ class PyTorchCodegen(Codegen):
         # zero consumers. `imag`/`truth` accessors removed for the same reason.
         # `real` is retained TEMPORARILY (13 .su + 7 internal consumers) and is
         # the next target of the substrate-purity overhaul (queue.md).
-        self._emit("def real(self, v):")
+        # `real()` REMOVED from the language (Emma 2026-06-07): no scalar
+        # readout — it severs substrate-purity + autograd. This stub exists
+        # only so the JS-interop number->string coercion paths fail LOUDLY
+        # and CLEARLY (JS host coercion is not substrate-pure, so it is
+        # broken by design) instead of a cryptic AttributeError. There is no
+        # working scalar readout in the runtime.
+        self._emit("def _js_coerce_real(self, v):")
         self._indent += 1
-        self._emit("return float(v[self.semantic_dim + self.AXIS_REAL].item())")
+        self._emit("raise RuntimeError(\"JS number<->string coercion needs a host scalar (real()) which was removed: not substrate-pure (Emma 2026-06-07)\")")
         self._indent -= 1
         self._emit()
         # RAM pointers (planning/sutra-spec/ram-pointers.md). `self.ram` is
@@ -2243,8 +2249,8 @@ class PyTorchCodegen(Codegen):
         self._emit("# a string by reading its real-axis value and calling str().")
         self._emit("if self.is_string(av) or self.is_string(bv):")
         self._indent += 1
-        self._emit("a_str = av if self.is_string(av) else self.make_string(str(int(self.real(av))) if float(self.real(av)).is_integer() else str(self.real(av)))")
-        self._emit("b_str = bv if self.is_string(bv) else self.make_string(str(int(self.real(bv))) if float(self.real(bv)).is_integer() else str(self.real(bv)))")
+        self._emit("a_str = av if self.is_string(av) else self.make_string(str(int(self._js_coerce_real(av))) if float(self._js_coerce_real(av)).is_integer() else str(self._js_coerce_real(av)))")
+        self._emit("b_str = bv if self.is_string(bv) else self.make_string(str(int(self._js_coerce_real(bv))) if float(self._js_coerce_real(bv)).is_integer() else str(self._js_coerce_real(bv)))")
         self._emit("return self.string_concat(a_str, b_str)")
         self._indent -= 1
         self._emit("return av + bv")
@@ -2307,13 +2313,13 @@ class PyTorchCodegen(Codegen):
         self._emit("# string and compare codepoints.")
         self._emit("if a_is_str and not b_is_str:")
         self._indent += 1
-        self._emit("r = self.real(bv)")
+        self._emit("r = self._js_coerce_real(bv)")
         self._emit("b_promoted = self.make_string(str(int(r)) if float(r).is_integer() else str(r))")
         self._emit("return self.js_strict_eq(av, b_promoted)")
         self._indent -= 1
         self._emit("if b_is_str and not a_is_str:")
         self._indent += 1
-        self._emit("r = self.real(av)")
+        self._emit("r = self._js_coerce_real(av)")
         self._emit("a_promoted = self.make_string(str(int(r)) if float(r).is_integer() else str(r))")
         self._emit("return self.js_strict_eq(a_promoted, bv)")
         self._indent -= 1
@@ -2397,8 +2403,8 @@ class PyTorchCodegen(Codegen):
         self._emit("# Numeric path: coerce to real-axis scalars and compare.")
         self._emit("# NaN on either side → false for all four operators")
         self._emit("# (ECMAScript IsLessThan returns undefined → false).")
-        self._emit("ra = self.real(av)")
-        self._emit("rb = self.real(bv)")
+        self._emit("ra = self._js_coerce_real(av)")
+        self._emit("rb = self._js_coerce_real(bv)")
         self._emit("if ra != ra or rb != rb:")
         self._indent += 1
         self._emit("return self.make_truth(-1.0)")
@@ -2465,7 +2471,7 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit("# Numbers (real-axis scalars): falsy iff exactly zero. NaN")
         self._emit("# is also falsy in JS — torch.isnan handles it.")
-        self._emit("r = self.real(av)")
+        self._emit("r = self._js_coerce_real(av)")
         self._emit("import math as _math")
         self._emit("if r != r or r == 0.0:")  # NaN check + zero check
         self._indent += 1

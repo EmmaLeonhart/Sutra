@@ -21,6 +21,12 @@ import sys
 
 import pytest
 
+def _rv(_vsa, _vec):
+    # Host-side terminal-boundary read of a number-vector's real axis
+    # (the `real()` runtime method was removed — no scalar accessor). This
+    # is the sanctioned external verification read, done by direct indexing.
+    return float(_vec[_vsa.semantic_dim + _vsa.AXIS_REAL])
+
 
 def _machine_ns():
     pytest.importorskip("torch")
@@ -57,7 +63,7 @@ def _run(ns, prog, steps=12, addr=100):
     v.ram = ram
     for _ in range(steps):
         ns["step"](0.0)
-    return round(float(v.real(ram[addr])))
+    return round(float(_rv(v, ram[addr])))
 
 
 # Counter@200, acc@201 loop: each iter acc++, counter--, br_if back to LOOP(22).

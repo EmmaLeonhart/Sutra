@@ -15,6 +15,12 @@ from sutra_compiler.codegen_pytorch import translate_module as torch_translate
 from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
 
+def _rv(_vsa, _vec):
+    # Host-side terminal-boundary read of a number-vector's real axis
+    # (the `real()` runtime method was removed — no scalar accessor). This
+    # is the sanctioned external verification read, done by direct indexing.
+    return float(_vec[_vsa.semantic_dim + _vsa.AXIS_REAL])
+
 
 def _compile(src: str, **kw):
     lx = Lexer(src, file="<t>")
@@ -33,7 +39,7 @@ class TestOptionalLLMModel(unittest.TestCase):
             'function string main() { return "ok"; }\n',
             llm_model="none", runtime_dim=8,
         )
-        self.assertEqual(round(float(ns["_VSA"].real(ns["f"]()))), 5)
+        self.assertEqual(round(float(_rv(ns["_VSA"], ns["f"]()))), 5)
         self.assertEqual(ns["_VSA"].llm_model, "none")
 
     def test_embed_program_raises_clear_error_without_model(self):
@@ -66,7 +72,7 @@ class TestOptionalLLMModel(unittest.TestCase):
         mod = compile_su(digits, runtime_dim=8, runtime_dtype="float64",
                          verbose=False)  # no llm_model arg
         self.assertEqual(mod._VSA.llm_model, "none")
-        self.assertEqual(round(float(mod._VSA.real(mod.digit(1234.0, 100.0)))), 2)
+        self.assertEqual(round(float(_rv(mod._VSA, mod.digit(1234.0, 100.0)))), 2)
 
 
 if __name__ == "__main__":

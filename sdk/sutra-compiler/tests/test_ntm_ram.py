@@ -23,6 +23,12 @@ import os
 import sys
 import unittest
 
+def _rv(_vsa, _vec):
+    # Host-side terminal-boundary read of a number-vector's real axis
+    # (the `real()` runtime method was removed — no scalar accessor). This
+    # is the sanctioned external verification read, done by direct indexing.
+    return float(_vec[_vsa.semantic_dim + _vsa.AXIS_REAL])
+
 _REPO = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..")
 )
@@ -71,9 +77,9 @@ class TestRamInlineSurface(unittest.TestCase):
             'function string main() { return "ok"; }')
         v = ns["_VSA"]
         v.ram = [v.zero_vector() for _ in range(8)]
-        out = v.real(ns["sl"](v.make_real(2.0), v.make_real(77.0)))
+        out = _rv(v, ns["sl"](v.make_real(2.0), v.make_real(77.0)))
         self.assertAlmostEqual(out, 77.0, places=3)
-        self.assertAlmostEqual(v.real(v.ram[2]), 77.0, places=3)
+        self.assertAlmostEqual(_rv(v, v.ram[2]), 77.0, places=3)
 
     def test_await_ram_read_in_async(self):
         ns = _compile_src(
@@ -83,7 +89,7 @@ class TestRamInlineSurface(unittest.TestCase):
         v = ns["_VSA"]
         v.ram = [v.zero_vector() for _ in range(8)]
         v.ram[3] = v.make_real(55.0)
-        self.assertAlmostEqual(v.real(ns["ld"](v.make_real(3.0))), 55.0, places=3)
+        self.assertAlmostEqual(_rv(v, ns["ld"](v.make_real(3.0))), 55.0, places=3)
 
     def test_synchronous_ram_read_in_recur(self):
         # The NTM read head: a recurring VRAM cursor advances on the
@@ -99,7 +105,7 @@ class TestRamInlineSurface(unittest.TestCase):
         v = ns["_VSA"]
         v.ram = [v.make_real(72.0), v.make_real(73.0), v.make_real(74.0)] \
             + [v.zero_vector() for _ in range(5)]
-        out = [v.real(ns["head"](0.0)) for _ in range(3)]
+        out = [_rv(v, ns["head"](0.0)) for _ in range(3)]
         self.assertEqual([round(x) for x in out], [72, 73, 74])
 
     def test_no_device_reads_zero(self):
@@ -109,7 +115,7 @@ class TestRamInlineSurface(unittest.TestCase):
             'function vector r(vector ptr) { return ramRead(ptr); }'
             'function string main() { return "ok"; }')
         v = ns["_VSA"]
-        self.assertAlmostEqual(v.real(ns["r"](v.make_real(0.0))), 0.0, places=3)
+        self.assertAlmostEqual(_rv(v, ns["r"](v.make_real(0.0))), 0.0, places=3)
 
 
 class TestNtmRamReadPath(unittest.TestCase):
@@ -161,7 +167,7 @@ class TestNtmRamReadPath(unittest.TestCase):
         expected = [(i, i + 100) for i in range(5)]
         # program-chosen address + substrate-computed data land in RAM
         self.assertEqual(written, expected)
-        readback = [(a, int(round(vsa.real(ram.read_vector(a)))))
+        readback = [(a, int(round(_rv(vsa, ram.read_vector(a)))))
                     for a, _ in written]
         self.assertEqual(readback, expected)
 
@@ -190,8 +196,8 @@ class TestNtmRamReadPath(unittest.TestCase):
         os.unlink(path)
         vsa = ns["_VSA"]
         a = ns["build"](7.0, 65.0)
-        self.assertAlmostEqual(vsa.real(ns["gp"](a)), 7.0, places=3)
-        self.assertAlmostEqual(vsa.real(ns["gd"](a)), 65.0, places=3)
+        self.assertAlmostEqual(_rv(vsa, ns["gp"](a)), 7.0, places=3)
+        self.assertAlmostEqual(_rv(vsa, ns["gd"](a)), 65.0, places=3)
 
     def test_ram_lookup_render_matches_font_ground_truth(self):
         # RAM-lookup rendering (Emma 2026-06-01): store a glyph's 5x5
@@ -215,7 +221,7 @@ class TestNtmRamReadPath(unittest.TestCase):
             orch = Orchestrator(vsa, ram, ns["read_head"])
             # fixed 25-cell fetch; 0 bits are valid pixels -> no sentinel
             trace = orch.run_read_scan(max_steps=25, stop_on_sentinel=False)
-            got = [round(float(vsa.real(served))) for _a, served in trace]
+            got = [round(float(_rv(vsa, served))) for _a, served in trace]
             self.assertEqual(got, ground, f"glyph {ch!r} RAM render mismatch")
 
     def test_inline_ramread_demo_recovers_text(self):
@@ -227,7 +233,7 @@ class TestNtmRamReadPath(unittest.TestCase):
         text = "HELLO, RAM!"
         vsa.ram = [vsa.make_real(float(ord(c))) for c in text] \
             + [vsa.zero_vector() for _ in range(32 - len(text))]
-        out = "".join(chr(int(round(vsa.real(ns["read_step"](0.0)))))
+        out = "".join(chr(int(round(_rv(vsa, ns["read_step"](0.0)))))
                        for _ in range(len(text)))
         self.assertEqual(out, text)
 

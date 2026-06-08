@@ -1390,12 +1390,9 @@ class Codegen(BaseCodegen):
         self._emit("# See planning/sutra-spec/axon-io.md §'all-zeros edge case'.")
         self._emit("AXIS_AXON_POPULATED = 7")
         self._emit()
-        self._emit("def real(self, v):")
-        self._indent += 1
-        self._emit('"""Real component of v — synthetic[AXIS_REAL]."""')
-        self._emit("return float(v[self.semantic_dim + self.AXIS_REAL])")
-        self._indent -= 1
-        self._emit()
+        # `real()` REMOVED (Emma 2026-06-07): no scalar readout in the language
+        # (deprecated numpy backend kept in sync with codegen_pytorch). No
+        # consumers; the in-language path is `realvec(v)` (a substrate matmul).
         self._emit("def imag(self, v):")
         self._indent += 1
         self._emit('"""Imaginary component of v — synthetic[AXIS_IMAG].')

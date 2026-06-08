@@ -24,7 +24,7 @@ import pytest
 # Remaining categories: `real` (next target), array_length, ram_read/ram_write
 # address decode (I/O wire decision), is_char/is_string, js_strict_neq/
 # js_loose_neq, _js_str_cmp, string_to_python. GOAL: 0. Only ever lower this.
-BASELINE_ITEM_READOUTS = 21
+BASELINE_ITEM_READOUTS = 20
 
 
 def _generated_runtime_source() -> str:
