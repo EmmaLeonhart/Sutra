@@ -26,6 +26,20 @@ def test_select_field_is_location_read():
         assert reference.select_field([11.0, 22.0, 33.0], j) == expected
 
 
+def test_parser_reduces_to_synthetic_axis_floor():
+    """Reduction study (design doc §5): the parser carries no semantic content
+    (0 basis_vector), so it runs at the synthetic-axis floor runtime_dim=3 and still
+    reproduces the oracle — measured smallest passing dim."""
+    import pytest
+    pytest.importorskip("torch")
+    import dim_sweep
+    for name, expected in dim_sweep.CASES:
+        su = (dim_sweep._FIXTURES / name / "expected.su").read_text(encoding="utf-8")
+        got = dim_sweep.run_at_dim(su, 3)
+        assert isinstance(got, float) and abs(got - expected) < 0.5, (
+            f"{name} did not pass at runtime_dim=3: got {got!r}, expected {expected}")
+
+
 def test_evaluate_and_learn_agree():
     """Emma's 'do all of them, compare': evaluating a constructed linear model and
     LEARNING one by SGD realize the SAME linear regression over memory."""
