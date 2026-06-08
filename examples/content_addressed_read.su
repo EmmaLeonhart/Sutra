@@ -1,0 +1,49 @@
+// Associative recall via content-based addressing — the NTM/DNC read head, as a
+// runnable Sutra program (not a host orchestration of runtime calls).
+//
+// Memory is a set of (key, value) pairs. A query addresses memory BY CONTENT: the
+// read is select() — a softmax-weighted superposition — over similarity(query, key)
+// scores, returning the value whose key the query best matches. This is the
+// load-bearing NTM/DNC capability ("learn where to look by content"), here on the
+// Sutra substrate via select + similarity (the same primitives examples/fuzzy_dispatch.su
+// uses; cf. planning/findings/2026-06-08-substrate-content-addressing-*.md).
+//
+// The scores are scaled by a temperature (BETA) before select: select()'s softmax has
+// a fixed temperature, so multiplying the similarity scores IS the sharpening lever
+// (the established `similarity/T` select-temperature pattern). At BETA = 8 the read
+// sharpens to a near-one-hot retrieval; the decoder then names the retrieved value.
+
+// --- Memory keys (the content addressed against) ---
+vector k_red   = basis_vector("k_red");
+vector k_green = basis_vector("k_green");
+vector k_blue  = basis_vector("k_blue");
+
+// --- Memory values (what each key stores) ---
+vector v_apple = basis_vector("v_apple");
+vector v_leaf  = basis_vector("v_leaf");
+vector v_sky   = basis_vector("v_sky");
+
+map<vector, string> VALUE_NAME = {
+    v_apple: "apple",
+    v_leaf:  "leaf",
+    v_sky:   "sky"
+};
+
+// Content-addressed read: softmax-weighted superposition of the values, weighted by
+// how well the query matches each key. BETA=8 sharpens the softmax toward the
+// best-matching key's value.
+function string recall(vector query) {
+    vector result = select(
+        [similarity(query, k_red)   * 8,
+         similarity(query, k_green) * 8,
+         similarity(query, k_blue)  * 8],
+        [v_apple, v_leaf, v_sky]
+    );
+    vector winner = argmax_cosine(result, [v_apple, v_leaf, v_sky]);
+    return VALUE_NAME[winner];
+}
+
+// Query with the "green" key -> should retrieve "leaf" by content.
+function string main() {
+    return recall(k_green);
+}

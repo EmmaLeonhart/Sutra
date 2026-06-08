@@ -222,8 +222,13 @@ NEXT (concrete, in order):
    `2026-06-08-substrate-content-addressing-temperature-window.md`, guard
    `test_substrate_content_read_sharpens_with_temperature`. The content-addressing thread
    is complete + measured on the substrate (differentiable + sharpenable, no new primitive).
-   >>> REMAINING (separable, low urgency): lift into a `.su` program with a trainable query
-   (vs the host loop); training the composed reduced network end-to-end (still open).
+   `.su` PACKAGING — DONE: `examples/content_addressed_read.su` is the NTM read head as a
+   runnable Sutra program — associative recall via `select`+`similarity` content addressing
+   with a BETA=8 temperature; 3/3 keys retrieve the right value on the substrate
+   (red→apple, green→leaf, blue→sky), guarded in `examples/_smoke_test.py` (Example 7b).
+   >>> REMAINING (separable, low urgency): a TRAINABLE-query `.su` (the host loop already
+   trains a query through the compiled select); training the composed reduced network
+   end-to-end (still open research).
    REMAINING: grow the example set (more parse tasks/tapes) per design doc §5; O4
    (head/operator-count reduction — fresh-isomorphic one-head construction is already the
    single-read minimum; a multi-head parse would be the next comparison) = my engineering
