@@ -137,94 +137,47 @@ state (avoid literal-vs-loop-state comparison).
      substrate filler→number-vector decode primitive (NOT `.real()`). Real work, not a
      blind removal. RAM reads (array) are exempt — RAM stores clean number-vectors.
 
-## ⭐ TOP PRIORITY — make Sutra compile to REAL fused neural networks (Emma 2026-06-07; barrel through, IN THIS ORDER)
+## ⭐ ACTIVE TRACK — Neural Turing Machine via PCA + codable attention (Emma 2026-06-08)
 
-Emma's order — DO NOT reorder ([[feedback_priority_fused_nn_then_paper_ntm_parked]]):
-  A. Remove `real()` / scalar-extraction ENTIRELY so it is conceptually
-     uncallable in the language -> genuinely substrate-pure -> programs become real
-     neural networks. (The language was only PSEUDO-pure: a `.su` program could
-     scalar-extract via `real()` = `float(v[..].item())`, running host arithmetic in
-     the orchestrator. That escape hatch must not exist.)
-  B. Re-run ALL the main Sutra paper experiments on the now-pure substrate; switch
-     any wrong numbers; update `paper/paper.md` (DATA ONLY, no narrative). Goes to
-     clawRxiv + arXiv.
-  C. (PARKED until A+B done) the Neural Turing Machine. Do NOT touch it first. Stop
-     chasing clawRxiv bot feedback (not the vision).
+DONE (removed from this queue per the queue-cleared rule; see DEVLOG + git log): the
+substrate-purity -> fused-NN overhaul is complete — `real()`/scalar extraction removed
+ENTIRELY (language is substrate-pure; `realvec(v)` is the on-substrate replacement;
+host-readout gate 18, remaining are by-design I/O/JS/control boundaries); loop step
+fuses + exports as a weight file (#6/#7); the main Sutra paper was re-run on the pure
+substrate (data reproduces EXACTLY — §3.2 100%@k=8, §3.7 ~2e-7) and cleaned of all
+leak/in-progress narrative, pushed (4b49946e).
 
-Key facts (Emma): the CLI defaults to **50 dim BY DESIGN**; the **compile-time
-embedding model SETS the compilation dim** (nomic -> 768). Axons take embeddings as
-inputs. MEASURED: at the embedding-model dim (768), axon record/tuple/option field
-reads recover the number CLEANLY as a raw vector — no `real()` needed (the dim-50
-crosstalk was running axon programs below their model dim).
+### NTM track — Emma's REFRAMED vision (NOT a trainable NTM; do NOT chase clawRxiv bot)
+Use **PCA on Percepta's `transformer-vm`** + **Python->OCaml** to build something
+**identical in structure** to that transformer but that uses an **attention mechanism
+for simple straight-up parsing** ("attention on RAM"). Percepta's artifact is not
+literally an NTM and neither is ours — it is in the same *ballpark* (one of the three
+Turing-completeness archetypes: RNN / reservoir / NTM — see the metabolised roadmap in
+todo.md). The thing must be **codable**; SGD could later change where it does its
+memory (optional, future). Do NOT iterate the percepta-ntm paper against clawRxiv cons
+(not the vision); the paper advances only from real vision-aligned measured findings.
 
-### A. Remove real()/scalar extraction entirely
-- A1. Transpilers — DONE. NEW substrate op **`realvec(v)`** = `_real_projector() @ v`
-  (matmul -> clean real-axis number-VECTOR, no host readout; the decode primitive).
-  OCaml (d1ce16be) + TS (1a70b612) emit `realvec(axon_item)` for numeric field reads
-  instead of `.real()`. C transpiler parked + emits no actual `.real()`. CLI `--run`
-  decodes a number-vector `main()` result at the terminal boundary. Verified: OCaml
-  79, TS 39/1xfail, codegen 91. Corrected the wrong "axon read needs .real()/
-  crosstalk" finding (field reads clean at dim 50; the option-match tag compare was
-  the only crosstalk case — realvec fixes it).
-- A2. DONE. `test_codegen` updated: asserts the scalar accessors REJECT at compile
-  (was: assert `.real()` lowers). The `v.real(...)` reads in test_ntm_ram /
-  test_mini_wasm_machine / test_cached_compile are host-side terminal-boundary
-  VERIFICATION (call the runtime helper directly, not the surface) — kept.
-- A3. DONE. ALL scalar-readout accessors (`real`/`imag`/`truth`/`component`/
-  `semantic`/`synthetic`/`norm`) now REJECT at compile (codegen `_translate_call`
-  raises CodegenNotSupported with a realvec hint) -> `.real()` is conceptually
-  UNCALLABLE in `.su`. Verified: rejects measured; codegen 91, smoke 11/11,
-  gate+ntm_ram+cached 24 all green.
-- A4. Runtime `def real()` — DONE (Emma's override: removed ENTIRELY, even for JS).
-  pytorch `def real()` -> a raising `_js_coerce_real` stub (JS number<->string
-  coercion needs a host scalar = not substrate-pure -> breaks LOUDLY, by design);
-  numpy `def real()` deleted. Host-side reads reworked to direct real-axis indexing
-  (the sanctioned boundary, NOT a language readout): 14 test-verification reads (_rv
-  helper in 4 test files), the orchestrator I/O-wire decodes (5 sites,
-  experiments/ntm_ram/orchestrator.py), and examples/multi_program_axon/_run_os.py.
-  Gate baseline 21 -> 20 (real()'s `.item()` gone). test_codegen updated. Verified:
-  gate/codegen/ntm_ram/cached/optional_llm 118, TS fixtures 39/1xfail, axon 15,
-  smoke 11/11 — all green; JS number-coercion break is latent (no test exercises it).
-  The only real-axis reads left are: substrate `realvec` (matmul, on-substrate),
-  sanctioned host boundaries (I/O wire / terminal / test verification, direct
-  indexing), and compile-time numpy `_np.real` (complex eigendecomp).
-- A5. Host-readout gate baseline unchanged (21): the remaining `.item()` are all
-  by-design boundaries — the RAM orchestrator wire, terminal output, the JS-interop
-  layer, and the JS-only `real()` helper — not language-level introspection. The
-  LANGUAGE is now free of scalar-readout accessors.
-- Already done (keep): dead accessors imag/truth/component/semantic/synthetic/norm
-  removed (87cfa407); loop step pure + exportable as a weight file (emit_loop_weight_file);
-  mini_wasm_machine substrate-pure.
+STATE (measured): PCA done — magnitude-PCA is the wrong lens (1e30 dynamic range); the
+reducible structure is the exactly-zero parts (2 zero attention sublayers; 42/133 used
+heads). Pruned core BUILT + verified output-IDENTICAL to full on 8/8 random inputs
+(experiments/wasm_transformer_pca/repack_reduced.py; finding
+2026-06-07-pruned-transformer-repack-reduced-core). Findings:
+planning/findings/2026-06-0{6,7}-{pca,pruned}-*.
 
-**Plan A: COMPLETE. `real()`/scalar extraction is gone ENTIRELY — uncallable in `.su`
-(rejects at compile), no runtime `def real()` (pytorch stub raises for JS, numpy
-deleted), all host reads via direct indexing at sanctioned boundaries. The language
-is substrate-pure: no scalar-readout escape hatch. `realvec(v)` (substrate matmul) is
-the on-substrate replacement.**
-Plan B (Emma "right now" 2026-06-07): re-run the main Sutra paper experiments on the
-pure substrate, update paper/paper.md with any changed numbers (data only), commit +
-push (clawRxiv + arXiv). IN PROGRESS — experiments running (experiments/_rerun.log).
+NEXT (concrete, in order):
+1. UNBLOCK the 6-program byte-for-byte oracle (task #1). The canonical .wasm +
+   token-prefix + reference `_ref.txt` fixtures need clang/uv, ABSENT locally. Route
+   generation through a clang-equipped GitHub Actions job (runners have clang/llvm):
+   run ensure_data() + generate_all(), commit the fixtures back (the model papers-ci
+   uses). Then verify the pruned core reproduces all 6 byte-for-byte (decoded == ref,
+   MEASURED — not "ran").
+2. The reframed build: PCA-reduced core -> Python->OCaml -> a codable attention-parser
+   ("attention on RAM" for parsing). WRITE A DESIGN DOC first (don't implement what's
+   not fully understood); confirm the exact shape with Emma if it doesn't compose.
 
-### B. Re-run main Sutra paper experiments + switch wrong numbers (DATA ONLY)
-Run on the pure substrate, compare to reported, switch any that differ in
-`paper/paper.md` (no confessional/limitations narrative):
-- B1. §3.6 `differentiable_training_compiled.py --k 5 --per-class 10 --epochs 30
-  --seeds 0,1,2 --batched` -> paper: 18.7±9.5% -> 100.0±0.0%.
-- B2. §3.2 `rotation_binding_capacity_llm.py` -> 100% through k=8 (3 LLM substrates).
-- B3. §3.2.1 `crosstalk_chain.py` -> 100% through L=2.
-- B4. §3.7 `differentiable_training_weighted.py` -> recompile round-trip ≈2e-7/logit.
-- (§3.2 ESM-2 needs facebook/esm2 — may be unavailable locally; note if skipped.)
-
-### C. PARKED — Neural Turing Machine (do NOT work until A+B done)
-External-RAM NTM (experiments/ntm_ram) + the trainable read head
-(trainable_read.py, done) are PARKED. The fused-RAM "VRAM as RAM" approach was WRONG
-and reverted. Emma isn't sure the NTM is conceptually/actually running; revisit only
-after A+B. Stop iterating percepta-ntm against clawRxiv bot cons (one-shot kill cron
-375baa6c winds down the :30 percepta cron at 17:12).
-
-HARD RAIL: every step RUN + verified substrate-to-substrate; no faking; measure,
-don't claim. Do NOT ask Emma incomprehensible low-level questions — use engineering
-judgment and barrel through.
+HARD RAIL: every step RUN + verified substrate-to-substrate (decoded output ==
+reference); no faking; measure, don't claim. Use engineering judgment; do NOT ask Emma
+incomprehensible low-level questions.
 
 ## Context (read first, do not work on)
 
