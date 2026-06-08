@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-07 (later): Plan A COMPLETE — scalar-readout accessors removed from the language
+
+Finished removing `real()`/scalar-extraction from the language (Emma's TOP priority:
+the language must be genuinely substrate-pure — a `.real()` host readout severs purity
++ autograd; programs must be real fused NNs). After A1 (realvec + OCaml/TS transpilers,
+`d1ce16be`/`1a70b612`):
+- A3: `.real()` and the other scalar-readout accessors (`imag`/`truth`/`component`/
+  `semantic`/`synthetic`/`norm`) now REJECT at compile (codegen `_translate_call`
+  raises `CodegenNotSupported` with a `realvec(v)` hint) instead of lowering —
+  conceptually UNCALLABLE in `.su`.
+- A2: `test_codegen` updated to assert the rejection.
+- A4: the runtime `def real()` stays ONLY as a host helper for the sanctioned
+  JS-interop carve-out (number→JS-string coercion needs a host scalar) + host-side
+  test verification — no longer a language feature.
+- A5: gate baseline unchanged (21) — the remaining `.item()` are all by-design
+  boundaries (RAM orchestrator wire, terminal output, JS-interop), not language
+  introspection.
+Verified (all green): codegen 91, examples smoke 11/11, gate+ntm_ram+cached 24,
+OCaml fixtures 79, TS fixtures 39/1xfail; scalar accessors measured rejecting.
+Commit `52253aa5`. Next: Plan B — re-run the main Sutra paper experiments on the now
+substrate-pure compiler and switch any wrong numbers.
+
 ## 2026-06-07 (later): Plan A starts — `realvec` decode primitive; OCaml transpiler drops `.real()`
 
 Emma's TOP priority: remove `real()`/scalar-extraction ENTIRELY so the language is
