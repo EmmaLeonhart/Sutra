@@ -182,18 +182,17 @@ NEXT (concrete, in order):
    (linear attention = exact weighted sum, no softmax needed; hard-addressing = indexed
    RAM read; O2: accumulator-in-RAM + scalar-index-slot is the substrate-correct loop
    shape, the mini_wasm_machine pattern — a `ref` accumulator can't hold a vector ramRead).
-   O3 ANSWERED (Emma 2026-06-08): "do all of them so we can compare them" — so the
-   variants are a COMPARISON SET, not one chosen reading. Built so far: fixed-eval
-   `dot_tape` (ŷ=w·x evaluated by linear attention) + `sum_tape` (aggregate) +
-   `select_field` (hard read). REMAINING:
-   (e) **FIT-on-substrate variant** — the mechanism SOLVES for w from (x,y) pairs in RAM
-       (least-squares / gradient step on the substrate), so it learns the linear model,
-       not just evaluates it. This is the harder comparison point Emma wants alongside
-       the fixed-eval one ("closer to regression in the statistical sense").
-   (d) the reduction study (smallest dim/head count still passing the oracle, measured)
-       + grow the example set (design doc §5). O4 (reuse a sliced real 42-head-core head
-       vs fresh-isomorphic) = my engineering call: fresh-isomorphic, then show it's the
-       limit a real head reduces to. Compare all variants side-by-side per Emma's intent.
+   O3 ANSWERED (Emma 2026-06-08): "do all of them so we can compare them". COMPARISON SET
+   COMPLETE + MEASURED: `sum_tape`/`dot_tape`/`select_field` (constructed, substrate-exact)
+   + the SGD-fit soft read (`ntm_ram/trainable_read.py`). The evaluate-vs-learn comparison
+   (`attention_on_ram/compare_variants.py`, guard `test_evaluate_and_learn_agree`) shows
+   constructed-eval (max|ŷ-y|=8.9e-16, exact) and SGD-fit (recovers c, ‖w-c‖=6e-8) realize
+   the SAME linear-regression-over-memory operator (agreement 2.2e-7). Finding
+   `2026-06-08-attention-on-ram-evaluate-vs-learn.md`.
+   REMAINING: (d) the reduction study — smallest dim/head count still passing the oracle,
+   measured + grow the example set (design doc §5). O4 (reuse a sliced real 42-head-core
+   head vs fresh-isomorphic) = my engineering call: fresh-isomorphic, then show it's the
+   limit a real head reduces to.
 
 HARD RAIL: every step RUN + verified substrate-to-substrate (decoded output ==
 reference); no faking; measure, don't claim. Use engineering judgment; do NOT ask Emma
