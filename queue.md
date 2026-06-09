@@ -605,10 +605,13 @@ first and never touches the RAM/W2C sections above.
   the variant type name maps to `Axon` for params; match `| C x -> … | D -> …` reads `_vtag`/`_vval`
   and blends by tag, binding the payload to `_vval`. Substrate-verified `variant_arg` = 2
   (`eval (Lit 7) + eval (Neg 5)` = 7 + (-5)); option/enum-variant fixtures green (full suite).
-  REMAINING (follow-ons, same class as records): (a) construction in ARGUMENT position
-  (`eval (Neg 5)` directly) — needs the aggregate-arg hoist extended to variant values (today:
-  build via a helper + let-local); (b) a bare nullary axon-mode ctor as a value (`let z = Zero`);
-  (c) multi-arg constructors (`C of a * b`). Numeric payloads only (strings aren't axon fillers).
+  **Construction in ARGUMENT position: DONE** (`eval (Lit 7)` → the aggregate-arg hoist now
+  hoists variant values to a temp tagged Axon, same as records/tuples; substrate-verified
+  `variant_arg_pos` = 7; body-position calls, like the record/tuple hoist).
+  REMAINING (follow-ons): (b) a bare nullary axon-mode ctor as a value (`let z = Zero`);
+  (c) multi-arg constructors (`C of a * b`); (d) aggregate args nested under operators
+  (`f a + g b`, the shared recursive-hoist follow-on). Numeric payloads only (strings aren't
+  axon fillers).
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
 - [ ] (follow-on) Per-variable interface typing so field-type lookup is exact even
   when two interfaces share a field name with different types (current global
