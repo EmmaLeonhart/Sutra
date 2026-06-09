@@ -1066,6 +1066,14 @@ def _hoist_record_args(node, source: bytes, indent: str):
             var = f"_arg{i}"
             prelude += _emit_tuple_construction(ua, source, indent, var)
             arg_srcs.append(var)
+        elif _variant_value_kind(ua, source) is not None:
+            # An axon-mode variant value passed directly as an argument
+            # (`eval (Neg 5)`) — same statement-based construction as records.
+            found = True
+            var = f"_arg{i}"
+            prelude += _emit_variant_construction(
+                _variant_value_kind(ua, source), source, indent, var)
+            arg_srcs.append(var)
         else:
             arg_srcs.append(_lower_expression(a, source))
     if not found:
@@ -1154,17 +1162,23 @@ def _variant_value_kind(node, source: bytes):
     return None
 
 
+def _emit_variant_construction(kind, source: bytes, indent: str, var: str) -> str:
+    """Emit axon construction for an axon-mode variant value (`C x` / bare `C`)
+    into local `var` (`{_tag, _val}`) WITHOUT a trailing return — reusable as a
+    function body or a hoisted call argument. Nullary -> `_val`=0."""
+    tag, arity, arg = kind
+    val = _lower_expression(arg, source) if (arity == 1 and arg is not None) else "0"
+    return (f"{indent}Axon {var};\n"
+            f'{indent}{var}.add("_tag", {tag});\n'
+            f'{indent}{var}.add("_val", {val});\n')
+
+
 def _lower_variant_value_body(kind, source: bytes, indent: str) -> str:
     """Lower an axon-mode variant value (`C x` / bare `C`) in function-body
-    position to a tagged axon `{_tag, _val}` — the same shape as the option
-    body, generalized to any user constructor's tag. Nullary -> `_val`=0."""
-    tag, arity, arg = kind
-    lines = f"{indent}Axon _variant;\n"
-    lines += f'{indent}_variant.add("_tag", {tag});\n'
-    val = _lower_expression(arg, source) if (arity == 1 and arg is not None) else "0"
-    lines += f'{indent}_variant.add("_val", {val});\n'
-    lines += f"{indent}return _variant;\n"
-    return lines
+    position to a tagged axon `{_tag, _val}` + return — the same shape as the
+    option body, generalized to any user constructor's tag."""
+    return (_emit_variant_construction(kind, source, indent, "_variant")
+            + f"{indent}return _variant;\n")
 
 
 def _lower_local_binding(vd, source: bytes, indent: str,

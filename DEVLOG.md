@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — variant values in argument position (`eval (Lit 7)`)
+
+Extended the aggregate-arg hoist (records/tuples) to axon-mode variant values: a `C x`
+constructor application passed directly as a call argument is hoisted to a temp tagged Axon
+(`Axon _arg0; _arg0.add("_tag",0); _arg0.add("_val",7); return eval(_arg0);`). Refactored a
+shared `_emit_variant_construction` (no-return) reused by the body lowering and the hoist. New
+fixture `variant_arg_pos` substrate-verified = 7 (`eval (Lit 7)`); variant/record/tuple suite
+green (87 passed). Completes the variant feature's arg-position ergonomics, symmetric with
+records/tuples. Follow-ons: bare nullary-as-value, multi-arg ctors, nested-under-operators hoist.
+
 ## 2026-06-08: OCaml frontend — constructor-with-args (`C of t`) single-arg ADTs land on the substrate
 
 Built the decomposed feature as a focused unit. A variant with any parameterised constructor
