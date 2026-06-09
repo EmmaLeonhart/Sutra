@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-08: OCaml frontend — constructor-with-args (`C of t`) single-arg ADTs land on the substrate
+
+Built the decomposed feature as a focused unit. A variant with any parameterised constructor
+uses a UNIFORM tagged-axon `{_tag,_val}` for ALL its ctors (`_VARIANT_CTORS`, set in the prepass;
+nullary-only variants stay enum-int). Construction `C x` in body position → `{_tag:idx,_val:x}`
+(Axon-returning fn); the variant type name maps to `Axon` for params; match `| Lit x -> x |
+Neg x -> 0 - x` reads `_vtag`/`_vval`, blends by tag, binds the payload to `_vval` — generalizing
+the option Some/None path without touching it. New fixture `variant_arg` substrate-verified = 2
+(`eval (Lit 7) + eval (Neg 5)` = 7 + (-5)). Full OCaml suite green (option/enum-variant unbroken).
+Follow-ons (same class as records): arg-position construction (`eval (Neg 5)` directly) via the
+aggregate-arg hoist; bare nullary axon-mode ctor as a value; multi-arg ctors. Numeric payloads
+only (strings aren't axon fillers, per the 2026-06-08 ruling).
+
 ## 2026-06-08: OCaml frontend — constructor-with-args (`C of t`) DESIGN RESOLVED + decomposed (not crammed)
 
 The OCaml frontend's easily-bounded surface is exhausted; the last high-value feature
