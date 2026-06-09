@@ -92,6 +92,16 @@ _BITWISE_FN = {"land": "Bits.band", "lor": "Bits.bor", "lxor": "Bits.bxor"}
 # If OCaml gains module imports, move this onto a threaded context.
 _CONSTRUCTORS: dict[str, int] = {}
 
+# Parameterised-variant constructors. A variant type with ANY constructor that
+# carries an argument (`C of t`) uses a UNIFORM tagged-axon `{_tag, _val}`
+# representation for ALL its constructors (nullary ones store `_val`=0) —
+# generalizing the built-in option `Some/None` path. `_VARIANT_CTORS` maps each
+# such constructor name -> (tag, arity in {0,1}). A variant with ONLY nullary
+# constructors stays enum-int (`_CONSTRUCTORS`); its names are NOT added here.
+# MVP: single-argument constructors and numeric payloads (string payloads are
+# out — strings are not axon fillers, Emma 2026-06-08).
+_VARIANT_CTORS: dict = {}
+
 # Hoisted `while_loop` declarations collected while lowering function
 # bodies. A Sutra loop is a top-level declaration, but an OCaml `while`
 # is discovered deep inside a body — so we emit a uniquely-named
@@ -180,7 +190,8 @@ def _fn_returns_axon(lb, source: bytes, record_types) -> bool:
         return True
     ub = _unwrap_parens(body)
     if ub is not None and (ub.type == "tuple_expression"
-                           or _option_kind(ub, source) is not None):
+                           or _option_kind(ub, source) is not None
+                           or _variant_value_kind(ub, source) is not None):
         return True
     return False
 
@@ -639,6 +650,81 @@ def _is_option_match(node, source: bytes) -> bool:
     return False
 
 
+def _is_variant_match(node, source: bytes) -> bool:
+    """True if any case matches an axon-mode (parameterised) variant
+    constructor — `C x` or bare `C` where `C` is in `_VARIANT_CTORS`."""
+    for c in node.named_children:
+        if c.type != "match_case":
+            continue
+        pat = c.named_children[0] if c.named_children else None
+        if pat is None:
+            continue
+        if pat.type == "constructor_pattern":
+            cp = next((k for k in pat.named_children
+                       if k.type == "constructor_path"), None)
+            if cp is not None and _node_text(cp, source) in _VARIANT_CTORS:
+                return True
+        if pat.type == "constructor_path" and _node_text(pat, source) in _VARIANT_CTORS:
+            return True
+    return False
+
+
+def _lower_variant_match_body(node, source: bytes, indent: str) -> str:
+    """Lower `match v with C1 x -> … | C2 -> … | _ -> …` for an axon-mode
+    variant, in FUNCTION-BODY position. Same shape as the option match: read the
+    tag/payload into `int` locals first (an inline axon field read does not defuzz
+    to a clean boolean), then a nested blend tests `_vtag == <ctor tag>`; a
+    constructor-with-arg binds its payload to `_vval`. Numeric payloads only."""
+    kids = node.named_children
+    scrut_src = _lower_expression(kids[0], source)
+    cases = [c for c in kids[1:] if c.type == "match_case"]
+    if not cases:
+        return f"{indent}// UNSUPPORTED-MATCH: no cases\n"
+    out = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
+    out += f'{indent}int _vval = realvec({scrut_src}.item("_val"));\n'
+    parsed: list[tuple[Optional[str], str]] = []  # (test_or_None, res_src)
+    for c in cases:
+        cc = c.named_children
+        if len(cc) != 2:
+            return f"{indent}// UNSUPPORTED-MATCH-CASE: guard/or-pattern in variant match\n"
+        pat, res = cc[0], cc[1]
+        if pat.type == "constructor_pattern":
+            cp = next((k for k in pat.named_children
+                       if k.type == "constructor_path"), None)
+            name = _node_text(cp, source) if cp is not None else ""
+            if name not in _VARIANT_CTORS:
+                return f"{indent}// UNSUPPORTED-MATCH-PATTERN: unknown variant ctor {name}\n"
+            tag = _VARIANT_CTORS[name][0]
+            argpat = next((k for k in pat.named_children
+                           if k.type == "value_pattern"), None)
+            if argpat is not None and _node_text(argpat, source) != "_":
+                bound = _node_text(argpat, source)  # bind payload -> _vval
+                saved = _MATCH_SUBST.get(bound, _MISSING)
+                _MATCH_SUBST[bound] = "_vval"
+                try:
+                    res_src = _lower_expression(res, source)
+                finally:
+                    if saved is _MISSING:
+                        _MATCH_SUBST.pop(bound, None)
+                    else:
+                        _MATCH_SUBST[bound] = saved
+            else:
+                res_src = _lower_expression(res, source)
+            parsed.append((f"_vtag == {tag}", res_src))
+        elif pat.type == "constructor_path" and _node_text(pat, source) in _VARIANT_CTORS:
+            tag = _VARIANT_CTORS[_node_text(pat, source)][0]
+            parsed.append((f"_vtag == {tag}", _lower_expression(res, source)))
+        elif pat.type == "value_pattern" and _node_text(pat, source) == "_":
+            parsed.append((None, _lower_expression(res, source)))
+        else:
+            return f"{indent}// UNSUPPORTED-MATCH-PATTERN: {pat.type} in variant match\n"
+    expr = parsed[-1][1]
+    for test, res in reversed(parsed[:-1]):
+        expr = _blend(test, res, expr)
+    out += f"{indent}return {expr};\n"
+    return out
+
+
 def _lower_option_match_body(node, source: bytes, indent: str) -> str:
     """Lower `match o with Some x -> e1 | None -> e2` in FUNCTION-BODY
     position. The scrutinee is a tagged axon `{_tag,_val}`; its fields are
@@ -1046,6 +1132,41 @@ def _lower_option_body(kind, source: bytes, indent: str) -> str:
     return lines
 
 
+def _variant_value_kind(node, source: bytes):
+    """Classify an expression as a construction of an axon-mode (parameterised)
+    variant constructor: returns `(tag, arity, arg_node_or_None)` or None.
+    `C x` (arity-1) -> (tag, 1, x); bare `C` (arity-0 in an axon-mode type) ->
+    (tag, 0, None)."""
+    if node is None:
+        return None
+    if node.type == "constructor_path":
+        name = _node_text(node, source)
+        if name in _VARIANT_CTORS:
+            tag, arity = _VARIANT_CTORS[name]
+            return (tag, arity, None)
+        return None
+    if node.type == "application_expression":
+        kids = node.named_children
+        if len(kids) == 2 and kids[0].type == "constructor_path":
+            name = _node_text(kids[0], source)
+            if name in _VARIANT_CTORS and _VARIANT_CTORS[name][1] == 1:
+                return (_VARIANT_CTORS[name][0], 1, kids[1])
+    return None
+
+
+def _lower_variant_value_body(kind, source: bytes, indent: str) -> str:
+    """Lower an axon-mode variant value (`C x` / bare `C`) in function-body
+    position to a tagged axon `{_tag, _val}` — the same shape as the option
+    body, generalized to any user constructor's tag. Nullary -> `_val`=0."""
+    tag, arity, arg = kind
+    lines = f"{indent}Axon _variant;\n"
+    lines += f'{indent}_variant.add("_tag", {tag});\n'
+    val = _lower_expression(arg, source) if (arity == 1 and arg is not None) else "0"
+    lines += f'{indent}_variant.add("_val", {val});\n'
+    lines += f"{indent}return _variant;\n"
+    return lines
+
+
 def _lower_local_binding(vd, source: bytes, indent: str,
                          record_types=frozenset(), refs: Optional[dict] = None) -> str:
     """Lower one `value_definition` from a `let … in` into a Sutra local
@@ -1227,8 +1348,13 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
     _opt = _option_kind(_unwrapped, source)
     if _opt is not None:
         return _lower_option_body(_opt, source, indent)
+    _var = _variant_value_kind(_unwrapped, source)
+    if _var is not None:
+        return _lower_variant_value_body(_var, source, indent)
     if body.type == "match_expression" and _is_option_match(body, source):
         return _lower_option_match_body(body, source, indent)
+    if body.type == "match_expression" and _is_variant_match(body, source):
+        return _lower_variant_match_body(body, source, indent)
     if body.type == "let_expression":
         kids = body.named_children
         if len(kids) >= 2:
@@ -1437,7 +1563,8 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
     if ret_type is None:
         _ub = _unwrap_parens(body)
         if _ub is not None and (_ub.type == "tuple_expression"
-                                or _option_kind(_ub, source) is not None):
+                                or _option_kind(_ub, source) is not None
+                                or _variant_value_kind(_ub, source) is not None):
             ret = "Axon"
 
     if is_rec:
@@ -1485,6 +1612,7 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     # record_declaration.
     record_types: set[str] = set()
     _CONSTRUCTORS.clear()
+    _VARIANT_CTORS.clear()
     _HOISTED_LOOPS.clear()
     _HOISTED_DECLS.clear()
     _RAM_ARRAYS.clear()
@@ -1511,17 +1639,29 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
                 (c for c in tb.named_children if c.type == "variant_declaration"), None
             )
             if vd is not None:
-                idx = 0
-                for cd in vd.named_children:
-                    if cd.type != "constructor_declaration":
+                ctor_decls = [c for c in vd.named_children
+                              if c.type == "constructor_declaration"]
+                # Axon-mode iff ANY constructor carries an argument. A
+                # `constructor_declaration` with >1 named child has a payload
+                # type (`C of t`); a bare one (just `constructor_name`) is nullary.
+                axon_mode = any(len(cd.named_children) > 1 for cd in ctor_decls)
+                # An axon-mode variant value is carried by an Axon, so a param
+                # typed with this variant maps to `Axon` (same as a record type).
+                if axon_mode and tc is not None:
+                    record_types.add(_node_text(tc, src_bytes))
+                for idx, cd in enumerate(ctor_decls):
+                    cn = next((c for c in cd.named_children
+                               if c.type == "constructor_name"), None)
+                    if cn is None:
                         continue
-                    names = cd.named_children
-                    cn = next(
-                        (c for c in names if c.type == "constructor_name"), None
-                    )
-                    if cn is not None and len(names) == 1:
-                        _CONSTRUCTORS[_node_text(cn, src_bytes)] = idx
-                    idx += 1
+                    name = _node_text(cn, src_bytes)
+                    arity = 1 if len(cd.named_children) > 1 else 0
+                    if axon_mode:
+                        # Uniform tagged-axon: all ctors of this type (param +
+                        # nullary) get (tag, arity). NOT enum-int.
+                        _VARIANT_CTORS[name] = (idx, arity)
+                    elif arity == 0:
+                        _CONSTRUCTORS[name] = idx  # pure-enum variant
 
     # After record types are known: collect top-level binding names (so the
     # nested-function closed-ness check can tell a top-level reference from

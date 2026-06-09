@@ -598,24 +598,17 @@ first and never touches the RAM/W2C sections above.
   bug to fix. Numeric record fields remain the supported scope; finding
   `2026-06-08-ocaml-nonnumeric-record-fields-blocked-axon-string.md`. (Nullary **variants** ->
   enum ints + constructor-pattern `match`: DONE — `label Green = 200`.)
-- [ ] **Parameterised constructors `C of t` (single-arg ADTs) — DESIGN RESOLVED, ready to build
-  (needs a careful 3-part change, NOT a one-tick cram — deferred from the 2026-06-08 tick that
-  scoped it).** DESIGN CALL (engineering, mine): a variant type with ANY parameterised
-  constructor uses a UNIFORM tagged-axon `{_tag: idx, _val: payload}` for ALL its constructors
-  (nullary ones store `_val`=0) — generalizing the existing `option Some/None` path, which is
-  exactly this for a built-in 2-constructor type. A variant with ONLY nullary constructors keeps
-  the current enum-int representation (decide per-type in the prepass: any ctor has args ->
-  axon-mode, else enum-mode). STEPS: (1) prepass — for each `variant_declaration`, if any
-  `constructor_declaration` has a type arg, map ALL its ctors to (tag, arity, axon-mode) in a new
-  `_VARIANT_CTORS`; nullary-only variants stay in `_CONSTRUCTORS`. (2) construction — generalize
-  `_option_kind`/`_lower_option_body` so `C x` (axon-mode) emits `{_tag:idx,_val:x}` and bare `C`
-  (axon-mode nullary) emits `{_tag:idx,_val:0}`; body-position only (like records/options).
-  (3) match — generalize `_lower_option_match_body` so any axon-mode `C x -> body` tests
-  `_otag==idx` and binds the payload from `_oval` (numeric payloads only — string payloads are
-  out per the axon-string ruling). HARD RAIL: keep the existing `option_some`/`variant` fixtures
-  green (the option path is a special case; don't break it); add a fixture like
-  `type expr = Lit of int | Neg of int ... match` substrate-verified. Multi-step + must not
-  regress option/enum — do it as a focused unit, not squeezed into a mixed tick.
+- [ ] **Parameterised constructors `C of t` (single-arg ADTs) — DONE for construction-via-helper
+  + match (2026-06-08).** A variant with any parameterised ctor uses a UNIFORM tagged-axon
+  `{_tag,_val}` for ALL its ctors (`_VARIANT_CTORS`, prepass); nullary-only variants stay enum-int
+  (`_CONSTRUCTORS`). Construction `C x` in body position -> `{_tag:idx,_val:x}` (Axon-returning fn);
+  the variant type name maps to `Axon` for params; match `| C x -> … | D -> …` reads `_vtag`/`_vval`
+  and blends by tag, binding the payload to `_vval`. Substrate-verified `variant_arg` = 2
+  (`eval (Lit 7) + eval (Neg 5)` = 7 + (-5)); option/enum-variant fixtures green (full suite).
+  REMAINING (follow-ons, same class as records): (a) construction in ARGUMENT position
+  (`eval (Neg 5)` directly) — needs the aggregate-arg hoist extended to variant values (today:
+  build via a helper + let-local); (b) a bare nullary axon-mode ctor as a value (`let z = Zero`);
+  (c) multi-arg constructors (`C of a * b`). Numeric payloads only (strings aren't axon fillers).
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
 - [ ] (follow-on) Per-variable interface typing so field-type lookup is exact even
   when two interfaces share a field name with different types (current global
