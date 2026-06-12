@@ -63,6 +63,17 @@ the pass condition — a `test_gui_whole_frame.py` guard, not a visual glance.
 - It introduces the decoder-matrix abstraction that the **general** reverse-CNN wants,
   without yet needing a *learned* nonlinear decoder.
 
+## RESOLVED — decoder locus (Emma 2026-06-11)
+
+**`B` is an orchestrator-applied compile-time constant**, like the codebook / embedding
+matrix — NOT a `.su`-expressed op. The `.su` program computes the latent `c` (a substrate
+value); the orchestrator holds `B` (built once from grid geometry) and does `B @ c` on the
+substrate device, then paints. This matches the established orchestrator-model (the fused
+weight-graph / matrices live at the boundary; the `.su` computes the step/latent). So the
+build does NOT need new `.su` surface for an N²×K matrix — `B @ c` is the orchestrator's
+expansion of a substrate-computed latent, the same role `window.py` plays today (it just
+becomes one matmul instead of N² per-pixel calls).
+
 ## Open questions / what this does NOT yet do
 
 1. **Arbitrary images.** A fixed polynomial basis only spans smooth analytic fields.
