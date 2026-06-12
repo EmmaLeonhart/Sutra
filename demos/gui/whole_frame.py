@@ -98,6 +98,40 @@ def render_field_moving(size: int = 64, center_x: float = 0.0):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+def _compile_ring():
+    """Compile frame_ring.su and return its `ring` function + the _VSA."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_ring.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8,
+                     verbose=False)
+    return mod.ring, mod._VSA
+
+
+def render_field_ring(size: int = 64, radius: float = 0.5):
+    """Return a (size, size) array of a concentric ring, `1 - (x² + y² - radius)²`,
+    computed in ONE substrate op (frame_ring.su's `ring`). The bright locus is the
+    circle x² + y² = radius.
+    """
+    import torch
+
+    ring, vsa = _compile_ring()
+    dt, dev = vsa.dtype, vsa.device
+    xs, ys = [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(size * size, dtype=dt, device=dev)
+    rad = torch.full((size * size,), float(radius), dtype=dt, device=dev)
+    buf = ring(X, Y, ones, rad)                    # ONE substrate op -> the whole frame
+    buf = buf.real if buf.is_complex() else buf
+    return buf.reshape(size, size).detach().to("cpu").numpy()
+
+
 def _compile_moving_glow():
     """Compile moving_glow.su -> (step, frame_at, _VSA). `step` is the substrate-RNN
     that advances the glow centre on the substrate; `frame_at` renders the whole frame

@@ -734,8 +734,10 @@ block is complete. Items #1 and #2 are DONE; #3 design is locked (build next).
    (`1-(x-cx)²-y²`, whole-frame one-op, glow tracks `cx`); (b) substrate-RNN-driven
    animation `moving_glow.su` — `step()` advances the centre on the substrate (recur,
    no host feedback: walked 6×→[-0.75..0.5]) + `frame_at` renders the whole frame at
-   it; `animate_moving_glow` driver, GUI 13/13. Next increments: gradient/shape
-   fields; click→substrate-state interaction.)*
+   it; `animate_moving_glow` driver. (c) concentric-ring shape `frame_ring.su`
+   (`1-(x²+y²-R)²`, whole-frame one-op; measured ring: centre 0.759 < peak 0.999;
+   `render_field_ring` + guard). GUI 14/14. Remaining: click→substrate-state
+   interaction.)*
 5. **A human-facing GUI page on the website** (`docs/…`, rendered by
    `scripts/build_site.py`) — "see Sutra draw pixels." Website discipline: NO
    repo-internal refs (no queue/todo/planning/sdk paths), no numpy mentions; show the

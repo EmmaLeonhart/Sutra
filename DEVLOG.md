@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-11: GUI #4 (progress) — concentric-ring shape widget
+
+Third GUI #4 widget (a new shape, distinct from the radial glow): `demos/gui/frame_ring.su` —
+`ring(x,y,ones,radius) = ones - hadamard(r2 - radius, r2 - radius)` with `r2 = hadamard(x,x) +
+hadamard(y,y)` = `1 - (x²+y² - R)²`, rendered whole-frame in one substrate op (all elementwise
+buffer arithmetic). Bright locus is the circle x²+y²=R. Driver `whole_frame.render_field_ring` +
+guard `test_ring_widget_matches_oracle_and_is_a_ring`. MEASURED: == host oracle to 1.19e-07, and
+it IS a ring — centre 0.759 < peak 0.999 (the peak is on the circle, not the centre). GUI 14/14.
+#4 widget set now: glow (whole-frame), moving glow, substrate-RNN animation, ring. Remaining:
+click→substrate-state interaction; then #5 website page.
+
 ## 2026-06-11: GUI #4 (progress) — substrate-RNN-driven animation (moving glow)
 
 Second GUI #4 widget, and the one that combines the prior two: `demos/gui/moving_glow.su` drives
