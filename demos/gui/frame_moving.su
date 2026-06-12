@@ -1,0 +1,22 @@
+// frame_moving.su — an ANIMATABLE glow, rendered whole-frame in one substrate op.
+//
+// Generalizes frame_whole.su: the glow is centred at a movable x-position `cx`
+// instead of fixed at the origin, so sweeping `cx` across frames animates the glow
+// sliding horizontally. Still one substrate op per frame, still the whole frame as
+// one buffer vector (Emma's model). The host reshapes + paints each frame.
+//
+//   frame_at(x, y, ones, cx) = ones - hadamard(x - cx, x - cx) - hadamard(y, y)
+//                            = 1 - (x - cx)^2 - y^2
+//
+// `x`, `y`, `ones`, `cx` are length-(N*N) coordinate buffers the orchestrator builds;
+// `cx` is the per-frame centre broadcast to every pixel (it's what the host advances
+// to animate). `hadamard` is the elementwise/buffer product (one op over all pixels).
+function vector frame_at(vector x, vector y, vector ones, vector cx) {
+    vector dx = x - cx;
+    return ones - hadamard(dx, dx) - hadamard(y, y);
+}
+
+// Self-contained sanity entry: glow at the origin, centre pixel -> 1 - 0 - 0 = 1.
+function vector main() {
+    return frame_at(make_real(0.0), make_real(0.0), make_real(1.0), make_real(0.0));
+}

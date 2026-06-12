@@ -64,6 +64,40 @@ def render_field_whole(size: int = 64):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+def _compile_frame_moving():
+    """Compile frame_moving.su and return its `frame_at` function + the _VSA."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_moving.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8,
+                     verbose=False)
+    return mod.frame_at, mod._VSA
+
+
+def render_field_moving(size: int = 64, center_x: float = 0.0):
+    """Return a (size, size) array for a glow centred at x=`center_x` — `1 - (x -
+    center_x)² - y²`, computed in ONE substrate op (frame_moving.su's `frame_at`).
+    Sweep `center_x` across calls to animate the glow sliding horizontally.
+    """
+    import torch
+
+    frame_at, vsa = _compile_frame_moving()
+    dt, dev = vsa.dtype, vsa.device
+    xs, ys = [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(size * size, dtype=dt, device=dev)
+    cx_buf = torch.full((size * size,), float(center_x), dtype=dt, device=dev)
+    buf = frame_at(X, Y, ones, cx_buf)            # ONE substrate op -> the whole frame
+    buf = buf.real if buf.is_complex() else buf
+    return buf.reshape(size, size).detach().to("cpu").numpy()
+
+
 def main() -> None:
     import argparse
 
