@@ -830,6 +830,20 @@ rotation animation wrap) and the checker / diagonal / four-quadrant shapes. Thes
 HARD RAILS (CLAUDE.md): every pixel on the substrate; stateful widgets are substrate-RNNs;
 verify the rendered frame against a reference, measured.
 
+## [This year] NTM / attention-on-RAM — breadth backlog (track closed by Emma 2026-06-08)
+
+The content-addressing track is COMPLETE and closed (Emma's call: the key/value-vector
+associative recall IS the demonstration; do NOT content-address the RAM device). What
+remains is breadth, not feasibility — low priority, autonomous when the loop reaches it:
+
+- [ ] A TRAINABLE-query `.su` (the host loop already trains a query through the
+  compiled `select`; package it as a runnable example).
+- [ ] Training the composed reduced network end-to-end (open research).
+- [ ] Grow the parse-task/tape example set (design doc
+  `planning/exploratory/codable-attention-on-ram-parser.md` §5).
+- [ ] Multi-head parse comparison (the one-head construction is the single-read
+  minimum; a multi-head parse is the next comparison point).
+
 ## [This year] Make `sutralang.dev` more agent-accessible
 
 Sutra's stance per CLAUDE.md is that agents are first-class consumers
