@@ -1,100 +1,81 @@
-# GUI: whole-frame render in one substrate call (reverse-CNN-style decoder)
+# GUI: whole-frame render in one substrate call (frame-buffer vector)
 
-**Status:** exploratory design for GUI queue item #3. Not yet built. (The Yantra-era
-sketch `planning/24-first-gui.md` was never migrated to this repo — this is a fresh
-statement of the idea, grounded in what `demos/gui/` actually does today.)
+**Status:** exploratory design for GUI queue item #3. Corrected to Emma's model
+2026-06-11 (the earlier polynomial-basis `B @ c` "decoder" framing was overcomplicated
+and is dropped; there is NO learned decoder and NO deconvolution).
 
-## The problem
+## The model (Emma 2026-06-11)
 
-`demos/gui/window.py` renders the radial glow by calling `frame.su`'s `pixel(x, y)`
-**once per pixel** — `size²` separate substrate invocations to fill an `N×N` field.
-Emma's "fuller form" (noted in `frame.su`'s own header): the substrate should return
-**one vector** that encodes the whole frame, and a **reverse-CNN-style decoder**
-"reorganises" that vector into the pixel grid — one substrate call, not `N²`.
-
-## The mechanism (smallest honest version: the analytic glow)
-
-The current field is a fixed quadratic: `brightness(x, y) = 1 − x² − y²`. Any such
-field is a linear combination of a small polynomial basis evaluated at each pixel:
+The substrate returns **one vector that IS the frame buffer**. Its entries are the
+pixel channel values in raster order:
 
 ```
-brightness(x,y) = c · b(x,y),   b(x,y) = [1, x, y, x², y², xy],   c = [1,0,0,−1,−1,0]
+[ px0_R, px0_G, px0_B,  px1_R, px1_G, px1_B,  …,  px(N²−1)_R, _G, _B ]
 ```
 
-So the whole frame is a single matrix–vector product:
+"Rendering" is just **reshaping that flat vector to `N×N×3` and blitting it** — host
+display assembly, the same role `window.py` already plays. There is no decoder matrix,
+no basis reconstruction, no learning: the returned vector already holds the pixels.
+
+This replaces today's `frame.su` path, which calls `pixel(x, y)` **once per pixel**
+(`N²` separate substrate invocations). The whole point is **one** substrate result
+carrying the whole frame.
+
+## The efficient computation (the one piece to get right)
+
+To produce that buffer in one shot rather than `N²` per-pixel calls, the substrate
+evaluates the field over the **whole coordinate grid at once** — a single vectorized
+tensor op. For the radial glow:
 
 ```
-frame_flat  =  B @ c
-  B : (N², K)   fixed decoder matrix — row (i·N+j) is b(x_i, y_j), the basis
-                evaluated at pixel (i,j). Built once at compile time (host: it is
-                a constant of the grid, not a runtime value).
-  c : (K,)      the latent — the field's coefficients, a single substrate vector.
-  frame_flat : (N²,)   the whole frame, one substrate vector.
+buffer = 1 − X² − Y²      # X, Y are the N×N coordinate grids; one elementwise op → N² values
 ```
 
-This is the "reverse-CNN decoder" in its linear form: a fixed expansion matrix maps
-a tiny latent to the full output grid (exactly what a transposed-conv / CNN decoder
-does, minus the learned nonlinear stack). `B @ c` is **one substrate matmul** — every
-pixel computed in a single op, no per-cell Python loop, no per-cell substrate call.
+(RGB = map the field to three channels, or three fields, interleaved R,G,B per pixel.)
 
-- **Substrate-pure:** `B` is a compile-time constant (the grid geometry, like a
-  codebook is built before the run — sanctioned numpy-at-compile role); `c` is a
-  substrate vector; `B @ c` runs on the substrate; the host reads `frame_flat` at the
-  display boundary (`_display.read_real` per-component, or one bulk read) and reshapes
-  to `N×N` to paint. No host arithmetic in the op.
-- **The latent is the substrate state.** `c` can be produced by a substrate function
-  (and, later, carried/updated by a `recur` loop for animation — ties to item #4).
+`X`, `Y` (the grid geometry) are compile-time constants — the orchestrator boundary,
+like the codebook. The field evaluation runs on the substrate. The host reads the
+finished buffer at the display boundary, reshapes, and paints.
 
-## The oracle (how we verify, not "it ran")
+**If Sutra can't yet map a field over a grid in a single op**, that vectorized
+"render-the-grid → buffer" is the one small **primitive to expose** (per CLAUDE.md:
+the gap is usually a missing primitive, not a wrong idea) — NOT a decoder. The fallback
+(assemble the buffer from per-pixel results) is correct but is the inefficient shape
+Emma flagged; expose the vectorized op instead.
 
-Decoded-frame **must equal** the current per-pixel field, measured:
+## The oracle (verify, not "it ran")
+
+The buffer reshaped must equal today's per-pixel field, measured:
 
 ```
-max_ij | (B @ c)[i,j]  −  frame.su.pixel(x_i, y_j) |  <  1e-6
+max_ij | buffer.reshape(N,N)[i,j]  −  window.render_field()[i,j] |  <  1e-6
 ```
 
-i.e. the one-call decoder reproduces `window.render_field()` exactly. That equality is
-the pass condition — a `test_gui_whole_frame.py` guard, not a visual glance.
+i.e. the one-shot frame buffer reproduces `render_field()` exactly — a
+`test_gui_whole_frame.py` guard, not a visual glance.
 
-## Why this is the right first cut
+## What this does NOT need (explicitly dropped)
 
-- It is the **smallest** version that puts the whole frame in one substrate call and is
-  exactly checkable against the existing demo (no new ground truth needed).
-- It introduces the decoder-matrix abstraction that the **general** reverse-CNN wants,
-  without yet needing a *learned* nonlinear decoder.
+- **No learned decoder** (Emma: overkill — we just have the pixels).
+- **No `B @ c` basis matrix / "reverse-CNN" reconstruction** (the indirection that made
+  the earlier description inefficient).
+- **No deconvolution** unless a vectorized grid-render genuinely needs one internally;
+  the render is conceptually just "compute the field over the grid → reshape".
 
-## RESOLVED — decoder locus (Emma 2026-06-11)
+## Open follow-ons (not blocking the first cut)
 
-**`B` is an orchestrator-applied compile-time constant**, like the codebook / embedding
-matrix — NOT a `.su`-expressed op. The `.su` program computes the latent `c` (a substrate
-value); the orchestrator holds `B` (built once from grid geometry) and does `B @ c` on the
-substrate device, then paints. This matches the established orchestrator-model (the fused
-weight-graph / matrices live at the boundary; the `.su` computes the step/latent). So the
-build does NOT need new `.su` surface for an N²×K matrix — `B @ c` is the orchestrator's
-expansion of a substrate-computed latent, the same role `window.py` plays today (it just
-becomes one matmul instead of N² per-pixel calls).
-
-## Open questions / what this does NOT yet do
-
-1. **Arbitrary images.** A fixed polynomial basis only spans smooth analytic fields.
-   A real reverse-CNN decoder is a **learned** (nonlinear, multi-stage) expansion that
-   can produce arbitrary frames from a latent. That is the next step after the linear
-   case — and the natural place the "constrain-train / every-op-trainable" vision meets
-   GUI: fit the decoder so a learned latent → a target image.
-2. **Latent semantics.** For the analytic case the latent is literally the polynomial
-   coefficients. For learned decoders the latent is opaque — what carries it (a single
-   hypervector vs. an axon of named fields) is the same capacity question the rest of
-   Sutra has.
-3. **Colour.** The glow is single-channel brightness. RGB = three latents / a `(N²,3)`
-   decoder; trivial extension once the scalar case lands.
-4. **Bulk display read.** Reading `N²` components one-by-one at the boundary is fine for
-   correctness but slow; a single host-side bulk read of `frame_flat` is the display
-   boundary done once (still terminal I/O, not in-language introspection).
+1. **Colour.** Glow is single-channel today; RGB is interleaving three channel values
+   per pixel (trivial once the grayscale buffer lands).
+2. **Dynamic frames / animation.** A substrate-computed, time-varying buffer (the field
+   parameters carried/updated by a `recur` loop) — overlaps GUI item #4.
+3. **Bulk display read.** Read the whole buffer once at the boundary (not N² component
+   reads) — still terminal I/O, done once.
 
 ## Build order (when item #3 is worked)
 
-1. `demos/gui/frame_whole.su` — a function returning the latent `c` (substrate vector).
-2. Host decoder: build `B` (compile-time grid constant), do `B @ c` on the substrate,
-   reshape, paint (extend `window.py` or a sibling driver).
-3. `test_gui_whole_frame.py` — assert `B @ c` == per-pixel `render_field()` to 1e-6.
-4. Only then: sketch the learned-decoder generalisation (its own item).
+1. Decide the buffer mechanism: a single vectorized substrate op over the grid →
+   `frame_whole.su` (or expose the grid-render primitive if `.su` can't express it yet).
+2. Host driver: run the field op on the substrate, read the buffer at the display
+   boundary, reshape to `N×N`(×3), paint (extend `window.py` or a sibling).
+3. `test_gui_whole_frame.py` — assert buffer.reshape == `render_field()` to 1e-6.
+4. Then colour + the dynamic/animated buffer (ties to item #4).
