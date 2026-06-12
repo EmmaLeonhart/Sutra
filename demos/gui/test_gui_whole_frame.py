@@ -132,6 +132,34 @@ def test_click_interaction_gates_render_via_substrate_state() -> None:
     assert brights[1] < 1e-6 and brights[3] < 1e-6     # state 0 -> blank
 
 
+def test_rgb_colour_channels_match_host() -> None:
+    """frame_rgb.su: three substrate-computed colour channels (R=glow, G=ring,
+    B=gradient), each a whole-frame field, stacked into an N×N×3 image. Each channel
+    matches its host oracle (1e-6); B is a left→right ramp (0→1)."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size, R = 16, 0.5
+    img = whole.render_rgb(size, R)
+    assert img.shape == (size, size, 3)
+
+    def at(i, j):
+        return (2.0 * i / (size - 1) - 1.0, 2.0 * j / (size - 1) - 1.0)
+
+    worst = 0.0
+    for j in range(size):
+        for i in range(size):
+            x, y = at(i, j)
+            refR = 1.0 - x * x - y * y
+            refG = 1.0 - (x * x + y * y - R) ** 2
+            refB = (x + 1.0) / 2.0
+            worst = max(worst,
+                        abs(img[j, i, 0] - refR),
+                        abs(img[j, i, 1] - refG),
+                        abs(img[j, i, 2] - refB))
+    assert worst < 1e-6, f"RGB channel vs host max error {worst} >= 1e-6"
+    # B channel ramps left (dark) to right (bright)
+    assert img[0, 0, 2] < 0.01 and img[0, size - 1, 2] > 0.99
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""

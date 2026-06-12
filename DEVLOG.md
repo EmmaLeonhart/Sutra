@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-12: GUI long-horizon #7 (progress) — colour/RGB frames
+
+First #7 increment: `demos/gui/frame_rgb.su` — three substrate-computed colour channel fields,
+each a whole-frame op via the hadamard/buffer machinery: R = glow (`1-x²-y²`), G = ring
+(`1-(x²+y²-R)²`), B = horizontal gradient (`(x+1)/2` = `hadamard(x+ones, half)`). Driver
+`whole_frame.render_rgb(size)` evaluates the three on the substrate and stacks them into an
+N×N×3 image (the interleave is host display assembly). Guard `test_rgb_colour_channels_match_host`.
+MEASURED: each channel == host oracle (glow 5.96e-08, ring 1.19e-07, gradient 2.98e-08); B ramps
+0→1 left to right. GUI suite 16/16. #7 continues: multi-widget layout, real event loop, learned
+decoder, Yantra integration.
+
 ## 2026-06-12: OCaml frontend — CPS/accumulator transform: foldable non-tail `let rec` compiles
 
 The bounded #6 follow-on, productionizing approach 2 in the frontend. `_try_lower_foldable_nontail_recursive`

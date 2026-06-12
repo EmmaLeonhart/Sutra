@@ -98,6 +98,46 @@ def render_field_moving(size: int = 64, center_x: float = 0.0):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+def _compile_rgb():
+    """Compile frame_rgb.su -> (glow, ring, gradient, _VSA) channel fields."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_rgb.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
+    return mod.glow, mod.ring, mod.gradient, mod._VSA
+
+
+def render_rgb(size: int = 64, radius: float = 0.5):
+    """Return a (size, size, 3) colour image. Each channel is a whole-frame field
+    computed in one substrate op (frame_rgb.su): R=glow, G=ring, B=horizontal gradient.
+    The host stacks the three substrate-computed channels (display assembly)."""
+    import numpy as np
+    import torch
+
+    glow, ring, gradient, vsa = _compile_rgb()
+    dt, dev = vsa.dtype, vsa.device
+    xs, ys = [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(size * size, dtype=dt, device=dev)
+    rad = torch.full((size * size,), float(radius), dtype=dt, device=dev)
+    half = torch.full((size * size,), 0.5, dtype=dt, device=dev)
+
+    def chan(v):
+        v = v.real if v.is_complex() else v
+        return v.reshape(size, size).detach().to("cpu").numpy()
+
+    r = chan(glow(X, Y, ones))
+    g = chan(ring(X, Y, ones, rad))
+    b = chan(gradient(X, ones, half))
+    return np.stack([r, g, b], axis=-1)
+
+
 def _compile_ring():
     """Compile frame_ring.su and return its `ring` function + the _VSA."""
     from sutra_compiler import compile_su
