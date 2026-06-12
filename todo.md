@@ -626,6 +626,18 @@ transpiler note; see `sdk/sutra-from-ts/tests/fixtures/arrow_function/`).
 That works for the TS lowering but blocks several language-level
 features that need to pass behaviour as data:
 
+- **Non-tail recursion frontier (from queue #6, 2026-06-12).** The foldable case
+  (`+`/`*` non-tail `let rec`) now compiles via the CPS/accumulator transform in
+  `sdk/sutra-from-ocaml` (factorial/sum run on the substrate); Tree RNNs cover
+  fixed-structure recursion. What remains needs infrastructure: (a) **non-foldable
+  continuations** (where the pending work isn't an assoc.+comm. fold) need the
+  continuation reified as a first-class value — gated on THIS item; (b)
+  **dynamic-structure recursion** (the network decides the recursion shape at runtime)
+  needs a reified/external call stack — the NTM/stack-RNN frontier (architecture
+  diversification + `ram-pointers.md`), genuinely-unsolved-differentiably. Findings:
+  `planning/findings/2026-06-1{1,2}-non-tail-recursion-*`; design
+  `planning/exploratory/non-tail-recursion-on-the-substrate.md`.
+
 - **Full async/await Stage-1 desugar.** The trivial shapes (pure
   return, thin wrapper) are shipped (queue.md item 1, phase 3 first
   cut). Anything richer — `vector v = await x; return g(v);`,

@@ -152,6 +152,8 @@ _RUNNABLE_FIXTURES = {
     "record_arg": 16.0,  # sum2 { x = 7; y = 9 }  (record literal in arg position -> hoisted to a temp Axon)
     "tuple_arg": 16.0,  # sum2 (7, 9)  (tuple literal in arg position -> hoisted to a temp positional Axon)
     "tail_rec_bool": 15.0,  # f 0 5 = if (n=0)||(acc>100) then acc else f (acc+n) (n-1)  (boolean halt -> !(...) continue)
+    "nontail_factorial": 120.0,  # let rec fact n = if n=0 then 1 else n * fact (n-1); fact 5  (CPS/accumulator transform of foldable non-tail recursion)
+    "nontail_sum": 15.0,  # let rec sum n = if n=0 then 0 else n + sum (n-1); sum 5  (CPS/accumulator transform; + is assoc.+comm.)
     "variant_arg": 2.0,  # eval (Lit 7) + eval (Neg 5) = 7 + (-5)  (single-arg ADT -> uniform tagged-axon {_tag,_val})
     "variant_arg_pos": 7.0,  # eval (Lit 7)  (variant value in ARG position -> hoisted to a temp tagged Axon)
     "variant_nullary_value": 7.0,  # let z = Zero in let a = Lit 7 in eval z + eval a  (bare nullary + direct ctor in local-binding position)

@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-12: OCaml frontend — CPS/accumulator transform: foldable non-tail `let rec` compiles
+
+The bounded #6 follow-on, productionizing approach 2 in the frontend. `_try_lower_foldable_nontail_recursive`
+in `sdk/sutra-from-ocaml/lower.py` detects a foldable non-tail recursion `let rec f n = if COND then
+BASE else (LEAF <OP> f(REC))` (single param, OP ∈ {+, *}) and CPS-transforms it: the pending work
+`LEAF OP _` is reified as an accumulator carried by a Sutra `while_loop` (the trampoline) — `acc`
+starts at BASE, each step folds LEAF into `acc` and advances `n` via REC. Wired into the `is_rec`
+dispatch after the tail-recursion attempt, before UNSUPPORTED.
+
+Restricted to `+`/`*` ON PURPOSE: the transform folds leaves in the REVERSE order of the recursion,
+so the result is preserved only for associative+commutative ops. Non-commutative (`-`, `/`) stays
+UNSUPPORTED — measured: `let rec f n = if n=0 then 0 else n - f(n-1)` does NOT transform (not faked).
+
+New fixtures (raw non-tail source, previously UNSUPPORTED): `nontail_factorial` substrate-verified
+= 120, `nontail_sum` = 15. OCaml suite 130 passed (no regressions). So raw `let rec fact n = if n=0 then 1
+else n * fact (n-1)` now compiles and runs on the substrate. Remaining (#6 frontier): non-foldable
+continuations (need first-class fns), dynamic-structure recursion (reified stack / NTM).
+
 ## 2026-06-12: Non-tail recursion #6 — approach 2 (CPS) works; both approaches compared
 
 Built approach 2 (CPS + trampolining) and the two-approach comparison (the #6 deliverable).

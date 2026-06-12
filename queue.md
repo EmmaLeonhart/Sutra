@@ -677,61 +677,12 @@ fixtures that compile **AND run on the substrate** (the OCaml harness's
   `transpilers-ci.yml` that installs the tree-sitter grammars + runs every
   `sutra-from-*` test suite. Scope decision — not auto-started.
 
-## 🔁 Non-tail recursion — aggressively try CPS + Tree RNNs (Emma 2026-06-11; END of the queue)
-
-The GUI block is DONE (all 5 items shipped 2026-06-11; see DEVLOG), so this is now the
-**top actionable queue item**, ahead of the todo-end new-language frontends (it was
-promoted out of todo-end to here). Emma: aggressively try **two** approaches with a very
-large amount of effort, and compare
-which actually runs non-tail recursion on the substrate. Full design + her framing:
-`planning/exploratory/non-tail-recursion-on-the-substrate.md`.
-
-The problem: Sutra's `if/then/else` is a defuzz BLEND (evaluates both branches, no call
-stack), so naive `f(x)=1+f(x-1)` never halts — the `1+` is pending work. Tail recursion
-already lowers to `while_loop`; an RNN is tail-recursive by construction. The two builds:
-
-1. **CPS + trampolining** — rewrite `f(x)=1+f(x-1)` to `f(x,k)=f(x-1, λr. k(1+r))`:
-   tail-recursive, but the pending work becomes an explicit continuation CHAIN (the stack
-   as a data structure). Trampoline = return thunks, top-level `while_loop` bounces until
-   a real value. Open piece: representing the continuation (first-class fn values, or a
-   reified continuation). Target: `factorial` / `1+f(x-1)` shape.
-2. **Tree RNNs** — `h(node)=f(h(left),h(right))` over a FIXED topology: non-tail in
-   structure but computed bottom-up in a single forward pass, no stack. Target: a
-   fixed-topology tree fold.
-
-Spine: FIXED structure (tractable, bottom-up single pass) vs DYNAMIC structure (needs a
-reified/external stack — the genuinely-unsolved-differentiably case; out of scope here,
-noted as the frontier; overlaps the NTM/RAM track).
-
-HARD RAIL: every approach RUN on the substrate (`sutrac --run`), decoded output compared
-to ground truth; per-approach table (halts / correct / max clean depth / substrate-pure /
-differentiable); negative results marked with the measured reason. Deliver a finding +
-recommendation.
-
-PROGRESS — BOTH approaches built + substrate-verified + compared (the core deliverable):
-- **Approach 1 (Tree RNN) DONE** (2026-06-11) — `experiments/non_tail_recursion/
-  {tree_combine.su,tree_rnn_eval.py}`; fixed-topology bottom-up fold, non-associative
-  combine, root == host (18/90/8); fixed-structure recursion needs no stack. Finding
-  `2026-06-11-non-tail-recursion-approach1-tree-rnn.md`.
-- **Approach 2 (CPS + trampolining) DONE** (2026-06-12) — `cps_factorial{,_raw}.ml` +
-  `cps_eval.py`; raw non-tail = UNSUPPORTED, CPS/accumulator rewrite → `while_loop`
-  trampoline, `fact 5 = 120` == host. Continuation reified as `acc`; collapses to a
-  scalar for arithmetic. Guard suite 2/2.
-- **Comparison + recommendation DONE** — `2026-06-12-non-tail-recursion-cps-and-comparison.md`:
-  Tree RNN for fixed-structure, CPS-trampoline for sequential; complementary, both run today
-  for tractable cases; dynamic-structure = shared genuinely-unsolved frontier (reified stack/NTM).
-
-NEXT (bounded, the highest-value continuation): a mechanical **CPS/accumulator transform
-pass in `sdk/sutra-from-ocaml`** so raw foldable non-tail `let rec` (e.g. `fact n = n*fact
-(n-1)`) auto-derives the accumulator and COMPILES instead of UNSUPPORTED. Then (frontier,
-not blocking): first-class fns → general non-foldable continuations; dynamic-structure
-stack machine (NTM/RAM track).
-
-## 🎨 GUI long-horizon extensions (Emma 2026-06-11; END of the queue, after non-tail recursion)
+## 🎨 GUI long-horizon extensions (Emma 2026-06-11; END of the queue — now the top actionable item)
 
 The core GUI block shipped (DONE — `demos/gui/` whole-frame renders + `hadamard` primitive +
-`docs/gui.md`). These are the longer-horizon GUI extensions, at the back of the queue (after
-the non-tail-recursion build above). The loop works them in order; each is a runnable `.su`
+`docs/gui.md`), and the non-tail-recursion build (#6) is complete (both approaches + the
+foldable CPS frontend transform; see DEVLOG/findings). So these longer-horizon GUI extensions
+are now the top actionable queue item. The loop works them in order; each is a runnable `.su`
 (or driver) + a test asserting substrate-side correctness against a reference, dim-audited.
 
 - **Simple multi-widget layout** — compose several whole-frame widgets into regions of one
