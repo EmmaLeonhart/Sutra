@@ -614,10 +614,18 @@ first and never touches the RAM/W2C sections above.
   substrate-verified `variant_nullary_value` = 7 = `let z = Zero in let a = Lit 7 in eval z +
   eval a`). The helper path (`let a = lit 7` via an Axon-returning fn) was already covered; this
   is the direct-constructor case.
+  **Multi-arg constructors (`C of a * b`): DONE.** Arity is now counted from the payload type
+  components (prepass; `Pair of int * int` → arity 2), construction stores `_val0`/`_val1`/…
+  (single-arg keeps `_val`, backward-compatible), `_variant_value_kind` extracts the tuple
+  components from `C (a, b)`, and the variant match reads `_val{i}` + binds a (parenthesized)
+  `tuple_pattern` component-wise. Works in body, local-binding, AND argument position (shared
+  hoist machinery). Substrate-verified `variant_multiarg` = 16 (`let q = Pair (7,9) in let r =
+  Origin in sum_pt q + sum_pt r` = (7+9)+0; `| Pair (a, b) -> a + b`). Param must be annotated
+  (`(p : point)`) so it maps to `Axon`, same requirement as single-arg.
   REMAINING (follow-ons): (b') a bare/direct axon-mode ctor as a TOP-LEVEL value binding
   (`let z = Zero` at module scope — needs the construction emitted as top-level statements, a
-  different shape than the local case); (c) multi-arg constructors (`C of a * b`); (d) aggregate
-  args nested under operators (`f a + g b`, the shared recursive-hoist follow-on). Numeric
+  different shape than the local case); (d) aggregate args nested under operators (`f a + g b`,
+  the shared recursive-hoist follow-on). Numeric
   payloads only (strings aren't axon fillers).
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
 - [ ] (follow-on) Per-variable interface typing so field-type lookup is exact even
