@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-12: sutra-from-rust — MVP frontend (substrate-verified); roadmap sweep done
+
+Fifth language frontend, completing tonight's installable-grammar sweep. `fn` items
+with typed params/returns (i*/u* → int, f* → number); block bodies with `let` bindings
++ tail expression (bare or statement-wrapped); numeric suffixes stripped; binary ops;
+`if/else` expressions → the shared defuzz blend. Ownership/borrowing never reaches the
+lowering at MVP scope; structs/enums/match/loops/recursion surface as `UNSUPPORTED-*`.
+Substrate-verified: `add_main` = 16, `if_classify` = 100, `let_block` = 17; suite 6/6.
+Frontend census after tonight: OCaml (reference), TypeScript, Scala (named set
+complete), Elixir, Haskell, Rust all substrate-verified; F# + Clojure BLOCKED on
+grammar availability (no PyPI wheels; git builds need Emma authorization); WASM is
+phase 3.
+
 ## 2026-06-12: sutra-from-haskell — MVP frontend (substrate-verified); Clojure blocked
 
 Fourth language frontend. Top-level equations + zero-arg binds lower to Sutra
