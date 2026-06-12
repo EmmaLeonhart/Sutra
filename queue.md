@@ -557,9 +557,6 @@ first and never touches the RAM/W2C sections above.
   substrate-verified `let_in_expr` = 20. `mod`→`%` + bitwise-op-passthrough fix
   (now UNSUPPORTED-OP): DONE — substrate-verified `modulo` = 2. Axon-returning-call ->
   local typed Axon: DONE — substrate-verified `tuple_local` = 16. OCaml suite 71 passed.]
-- [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
-  ambiguity as an open-question — both frontends now work around it with
-  fully-grouped blends, but the grammar ambiguity itself is unresolved.
 - [ ] `let rec` — **tail-recursive accumulator shape DONE** (`let rec f p… =
   if COND then BASE else f a…` → Sutra `while_loop`; substrate-verified
   `sum_to 0 5 = 15`). Remaining: (a) **non-tail recursion** (factorial-shape,
