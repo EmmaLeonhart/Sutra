@@ -1,20 +1,21 @@
 """Yantra's first GUI — a window of substrate-computed pixels.
 
-The image FIELD is computed on the Sutra substrate: `apps/gui/frame.su` exposes
+The image FIELD is computed on the Sutra substrate: `demos/gui/frame.su` exposes
 `pixel(x, y)`, and this host walks the pixel grid, calls `pixel` per pixel on the
 substrate (mapping each pixel to centred coordinates in [-1, 1]), reads the
-brightness, then clamps, colour-maps, and paints. The host does assembly + I/O
+brightness at the display boundary (`_display.read_real`; the language has no
+readout), then clamps, colour-maps, and paints. The host does assembly + I/O
 only — the picture's content comes from the substrate, the same split as the
 calculator (host reads/writes; the substrate computes the value).
 
 Usage:
-    python apps/gui/window.py                 # render + open a window
-    python apps/gui/window.py --render out.png # render to a PNG only (no window)
-    python apps/gui/window.py --size 96        # grid resolution (default 64)
+    python demos/gui/window.py                 # render + open a window
+    python demos/gui/window.py --render out.png # render to a PNG only (no window)
+    python demos/gui/window.py --size 96        # grid resolution (default 64)
 
-This is the first-GUI proof of concept; planning/24-first-gui.md describes the
-path from here (a single returned vector decoded to a frame; the window living in
-the Rust orchestrator rather than host tkinter).
+This is the first-GUI proof of concept; the next step (a single returned vector
+decoded to a whole frame via a reverse-CNN-style decoder, the window living in the
+orchestrator rather than host tkinter) is GUI queue item #3.
 """
 from __future__ import annotations
 
@@ -31,6 +32,9 @@ if str(_SUTRA_SDK) not in sys.path:
     sys.path.insert(0, str(_SUTRA_SDK))
 
 DEMO_GUI = pathlib.Path(__file__).resolve().parent
+if str(DEMO_GUI) not in sys.path:
+    sys.path.insert(0, str(DEMO_GUI))
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 
 def _compile_frame():
@@ -56,7 +60,7 @@ def render_field(size: int = 64) -> np.ndarray:
         cy = 2.0 * j / (size - 1) - 1.0
         for i in range(size):  # col -> x
             cx = 2.0 * i / (size - 1) - 1.0
-            field[j, i] = float(vsa.real(pixel(cx, cy)))  # SUBSTRATE value
+            field[j, i] = read_real(vsa, pixel(cx, cy))  # SUBSTRATE value, read at the display boundary
     return field
 
 

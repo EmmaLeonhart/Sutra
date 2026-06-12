@@ -44,6 +44,9 @@ if str(_SUTRA_SDK) not in sys.path:
     sys.path.insert(0, str(_SUTRA_SDK))
 
 DEMO_GUI = pathlib.Path(__file__).resolve().parent
+if str(DEMO_GUI) not in sys.path:
+    sys.path.insert(0, str(DEMO_GUI))
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 # In-process memo: count.su's compiled module is reused across clicks. The
 # disk cache from sutra_compiler.compile_su skips codegen across PROCESS
@@ -88,7 +91,7 @@ def render_field(n: float, size: int = 64) -> np.ndarray:
         cy = 2.0 * j / (size - 1) - 1.0
         for i in range(size):
             cx = 2.0 * i / (size - 1) - 1.0
-            field[j, i] = float(vsa.real(pixel(cx, cy, float(n))))  # SUBSTRATE value
+            field[j, i] = read_real(vsa, pixel(cx, cy, float(n)))  # SUBSTRATE value, read at the display boundary
     return field
 
 
@@ -134,7 +137,7 @@ class _Counter:
 
     def click(self) -> float:
         new_state = self._step()  # substrate increments; state lives on substrate
-        self.state = float(self._vsa.real(new_state))  # decode for display
+        self.state = read_real(self._vsa, new_state)  # decode for display (terminal boundary)
         return self.state
 
 

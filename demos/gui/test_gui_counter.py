@@ -21,6 +21,10 @@ import pytest
 torch = pytest.importorskip("torch", reason="count.su runs through real Sutra")
 
 DEMO_GUI = pathlib.Path(__file__).resolve().parent
+import sys
+if str(DEMO_GUI) not in sys.path:
+    sys.path.insert(0, str(DEMO_GUI))
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 
 def _load_counter_demo():
@@ -45,7 +49,7 @@ def test_step_increments_on_substrate() -> None:
     seen = []
     for _ in range(10):
         state_vec = step()  # no host arg; substrate loads its own slot
-        seen.append(round(float(vsa.real(state_vec))))  # decode for display
+        seen.append(round(read_real(vsa, state_vec)))  # decode for display
     assert seen == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 
