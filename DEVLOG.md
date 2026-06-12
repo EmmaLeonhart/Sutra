@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-12: sutra-from-haskell — MVP frontend (substrate-verified); Clojure blocked
+
+Fourth language frontend. Top-level equations + zero-arg binds lower to Sutra
+functions; `signature` arrow chains flatten into param/return types; curried `apply`
+spines flatten to calls (`add 7 9` → `add(7, 9)`); `/=` → `!=`; `if/then/else` → the
+shared defuzz blend. Laziness is NOT modeled — stated plainly in the README (MVP scope
+is total arithmetic programs, insensitive to evaluation order). Pattern equations,
+guards, and recursion surface as `UNSUPPORTED-*`. Substrate-verified: `add_main` = 16,
+`if_classify` = 100; suite 4/4. Clojure is BLOCKED like F# (no PyPI grammar wheel).
+Next frontend: Rust (grammar installed).
+
 ## 2026-06-12: sutra-from-elixir — MVP frontend (substrate-verified); F# blocked on grammar
 
 Third language frontend goes live (roadmap: after Scala; F# SKIPPED-BLOCKED — no PyPI
