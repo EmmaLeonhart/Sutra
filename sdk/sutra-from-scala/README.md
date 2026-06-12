@@ -14,12 +14,14 @@ pattern: the def erases to a field prepass; construction `Point(a, b)` hoists to
 `Axon t; t.add("x", a); …` anywhere in an expression tree; field reads `p.x` →
 `realvec(p.item("x"))`). Substrate-verified fixtures (compile AND run): `add_main` = 16,
 `if_classify` = 100/200, `val_block` = 17, `match_literal` = 100/200/300,
-`case_class` = 12.
+`case_class` = 12, `tail_rec` = 15 (tail-recursive accumulator shape → declared
+`while_loop`, the OCaml `_try_lower_tail_recursive` port; non-tail recursion surfaces
+as `UNSUPPORTED-RECURSION`, never a silent self-call).
 
 Dependency: `tree-sitter-scala` (`pip install tree-sitter-scala`).
 
 ## Next (roadmap order, todo.md)
 
-Tail recursion (→ `while_loop`, reuse the OCaml shape), comparison/boolean match
-guards, `object`/method dispatch. New constructs model on the OCaml frontend's
-verified-running patterns.
+Comparison/boolean match guards, `object`/method dispatch, foldable non-tail
+recursion (the OCaml CPS/trampoline shape). New constructs model on the OCaml
+frontend's verified-running patterns.

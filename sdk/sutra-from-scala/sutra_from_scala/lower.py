@@ -240,6 +240,114 @@ def _lower_block(node, src: bytes) -> str:
     return stmts + _stmt_with_hoist(final, src, "    return {expr};\n")
 
 
+# Sutra comparison operator → its logical negation: turns a halt condition
+# (`if (n == 0) base else recurse`) into the loop's *continue* condition.
+_NEG_CMP = {"==": "!=", "!=": "==", "<": ">=", ">": "<=", "<=": ">", ">=": "<"}
+
+
+def _peel_parens(node):
+    while node is not None and node.type == "parenthesized_expression" \
+            and node.named_children:
+        node = node.named_children[0]
+    return node
+
+
+def _self_call_args(node, name: str, arity: int, src: bytes):
+    """If `node` is exactly `name(arg1, …, arg{arity})`, return the arg nodes; else None."""
+    node = _peel_parens(node)
+    if node is None or node.type != "call_expression" or not node.named_children:
+        return None
+    fn = node.named_children[0]
+    if fn.type not in ("identifier", "stable_identifier") or _text(fn, src) != name:
+        return None
+    args_node = next((c for c in node.named_children if c.type == "arguments"), None)
+    args = list(args_node.named_children) if args_node is not None else []
+    if len(args) != arity:
+        return None
+    return args
+
+
+def _negate_cond(cond, src: bytes) -> str:
+    """Negate a halt condition into the loop's continue condition: a single infix
+    comparison inverts precisely via `_NEG_CMP`; any other boolean condition negates
+    generally with Sutra `!(…)` (the OCaml frontend's `_negate_cond` shape)."""
+    cond = _peel_parens(cond)
+    if cond.type == "infix_expression":
+        kids = cond.named_children
+        op = next((c for c in kids if c.type == "operator_identifier"), None)
+        operands = [c for c in kids if c.type != "operator_identifier"]
+        if op is not None and len(operands) == 2:
+            sutra_op = _OP_MAP.get(_text(op, src))
+            neg = _NEG_CMP.get(sutra_op) if sutra_op else None
+            if neg is not None:
+                return (f"{_lower_expr(operands[0], src)} {neg} "
+                        f"{_lower_expr(operands[1], src)}")
+    return f"!({_lower_expr(cond, src)})"
+
+
+def _contains_self_call(node, name: str, src: bytes) -> bool:
+    """True if any call in the tree invokes `name` (recursion detector)."""
+    if node.type == "call_expression" and node.named_children:
+        fn = node.named_children[0]
+        if fn.type in ("identifier", "stable_identifier") and _text(fn, src) == name:
+            return True
+    return any(_contains_self_call(c, name, src) for c in node.named_children)
+
+
+def _try_lower_tail_recursive(
+    name: str, params: list[tuple[str, str]], ret: str, body, src: bytes,
+):
+    """Lower a TAIL-recursive accumulator shape `def f(p1, …, pk) = if (COND) BASE
+    else f(a1, …, ak)` (or with the self-call in the then-arm) to a Sutra declared
+    `while_loop` — bounded substrate iteration, no self-calling function (which
+    would not terminate through the fuzzy-if blend). The OCaml frontend's
+    substrate-verified `_try_lower_tail_recursive` shape, ported. Returns the
+    emitted Sutra (loop decl + function) or None if the body is not this shape."""
+    if body.type != "if_expression" or len(body.named_children) < 3:
+        return None
+    kids = body.named_children
+    cond, then_e, else_e = kids[0], kids[1], kids[2]
+    arity = len(params)
+    then_args = _self_call_args(then_e, name, arity, src)
+    else_args = _self_call_args(else_e, name, arity, src)
+    # Exactly ONE branch must be the self-call (the other is the base).
+    if (then_args is None) == (else_args is None):
+        return None
+    if else_args is not None:
+        cont = _negate_cond(cond, src)        # halt when COND, loop while not
+        rec_args, base = else_args, then_e
+    else:
+        cont = _lower_expr(_peel_parens(cond), src)  # loop while COND
+        rec_args, base = then_args, else_e
+
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in params)
+    # Simultaneous state update via temporaries: every new value computed from the
+    # OLD params first, then all assigned — a sequential update is wrong for swaps
+    # (the OCaml frontend measured `swaploop 7 9 2` giving 9 instead of 7).
+    temp_decls = "".join(
+        f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
+        for i, ((_nm, ty), arg) in enumerate(zip(params, rec_args))
+    )
+    assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(params))
+    loop_decl = f"while_loop {loop_name}({cont}, {state_decls}) {{\n{temp_decls}{assigns}}}\n"
+
+    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in params)
+    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in params)
+    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in params)
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
+    base_src = _lower_expr(_peel_parens(base), src)
+    fn = (
+        f"function {ret} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_function(node, src: bytes) -> str:
     kids = node.named_children
     name_node = next((c for c in kids if c.type == "identifier"), None)
@@ -261,6 +369,18 @@ def _lower_function(node, src: bytes) -> str:
     body = kids[-1] if kids else None
     if body is None or body.type in ("identifier", "parameters", "type_identifier"):
         return f"// UNSUPPORTED-DEF: '{name}' has no expression body\n"
+    # A self-recursive tail-accumulator body becomes a declared while_loop
+    # (a direct self-call would not terminate through the fuzzy-if blend).
+    if body.type == "if_expression" and params:
+        tail = _try_lower_tail_recursive(name, params, ret, body, src)
+        if tail is not None:
+            return tail
+    if _contains_self_call(body, name, src):
+        # Recursion that is NOT the tail-accumulator shape — a plain self-calling
+        # Sutra function would not terminate through the fuzzy-if blend. Surface
+        # the gap rather than mislower (the OCaml frontend's rule; its foldable
+        # non-tail CPS transform is the model when this is needed).
+        return f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the tail-accumulator shape\n"
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
     if body.type == "block":
         inner = _lower_block(body, src)
