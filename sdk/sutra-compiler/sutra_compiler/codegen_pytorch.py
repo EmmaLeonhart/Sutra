@@ -1267,6 +1267,18 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.dot(a, b)")
         self._indent -= 1
         self._emit()
+        self._emit("def hadamard(self, a, b):")
+        self._indent += 1
+        self._emit('"""Elementwise (Hadamard) product of two number-VECTORS / buffers.')
+        self._emit("Each component multiplied independently — the buffer-arithmetic")
+        self._emit("multiply, distinct from complex_mul (which is the d-dim complex")
+        self._emit("number product on the real/imag axes and collapses a multi-component")
+        self._emit("buffer to one number). Lets a whole frame be computed in ONE substrate")
+        self._emit("op over coordinate buffers: 1 - hadamard(X,X) - hadamard(Y,Y).")
+        self._emit('Substrate-pure: a single elementwise tensor op, autograd-preserving."""')
+        self._emit("return _torch.mul(a, b)")
+        self._indent -= 1
+        self._emit()
         # ===================================================================
         # Transcendental + modulus intrinsics — SUBSTRATE-PURE.
         #

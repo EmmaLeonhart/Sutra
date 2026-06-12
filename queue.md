@@ -718,16 +718,13 @@ block is complete. Items #1 and #2 are DONE; #3 design is locked (build next).
    (8fb49d73/e73ea106); VERIFIED by measurement 2026-06-11 (step×5=[1,2,3,4,5],
    flip×4=[1,0,1,0], no host feedback; state-locus tests test_gui_counter/test_gui_click
    pass) + stale vsa.real() docs cleaned. See DEVLOG.)*
-3. **Whole-frame render in ONE substrate call** (the "fuller form" Emma described):
-   a single returned vector decoded to a full frame via a reverse-CNN-style decoder,
-   instead of N per-pixel calls. DESIGN DOC DONE:
-   `planning/exploratory/gui-whole-frame-decoder.md` (smallest cut: linear decoder
-   `frame_flat = B @ c`, `B` a compile-time grid×polynomial-basis constant, `c` the
-   substrate latent; oracle = decoded-frame == per-pixel `render_field()` to 1e-6).
-   **OPEN (ask Emma — A.0): the decoder LOCUS** — is `B` an orchestrator-applied
-   compile-time constant (like the codebook/embedding matrix; the orchestrator-model
-   precedent) or a `.su`-expressed op? Resolve before building. Then build
-   `frame_whole.su` + host decoder + `test_gui_whole_frame.py` per the doc's build order.
+   *(Item 3 — whole-frame render in ONE substrate op — DONE 2026-06-11, see DEVLOG.
+   Emma's model: the returned vector IS the frame buffer. Added the `hadamard`
+   elementwise/buffer primitive (the measured missing piece); `frame_whole.su` =
+   `ones - hadamard(x,x) - hadamard(y,y)` over length-N² coordinate buffers; one
+   `frame(...)` call produces the whole frame; `whole_frame.py` driver +
+   `test_gui_whole_frame.py`. Oracle MEASURED: == per-pixel render_field() to
+   5.96e-08; GUI 11/11.)*
 4. **Broaden the widget / interaction set** — more demos establishing GUI as the
    early-adoption showcase: richer rendering (gradients/shapes/animation via the
    substrate-RNN step), input handling (click → substrate state transition), simple
