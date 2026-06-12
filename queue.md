@@ -33,11 +33,9 @@ deleted on completion. Keep the task tool in sync with this file.
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **Scala next increments** (`sdk/sutra-from-scala/`; through foldable
-  non-tail recursion shipped 2026-06-12, suite 16/16): `object`/method dispatch.
-  Substrate-verify every fixture (compile AND run, OCaml `_RUNNABLE_FIXTURES` bar).
 - [ ] **F#** — `sdk/sutra-from-fsharp/` (ML-family; should reuse much of the
-  OCaml lowering shape).
+  OCaml lowering shape). [Scala's named roadmap set is COMPLETE 2026-06-12,
+  suite 18/18 — further Scala breadth only as needs arise.]
 - [ ] **Elixir / Erlang** — `sdk/sutra-from-erlang/` (BEAM pair; message-passing
   maps onto the axon IPC story).
 - [ ] **Clojure** — `sdk/sutra-from-clojure/` (Lisp).
@@ -45,6 +43,11 @@ deleted on completion. Keep the task tool in sync with this file.
   of the functional set).
 - [ ] **Rust** — `sdk/sutra-from-rust/` (expression-oriented, algebraic enums).
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
+- [ ] **OCaml: check the foldable-nontail BASE guard** — the Scala port (2026-06-12)
+  rejects param-dependent BASE because `_acc = BASE` is emitted pre-loop at the
+  INITIAL param; the OCaml `_try_lower_foldable_nontail_recursive` has no such
+  guard. Write a param-dependent-base OCaml fixture, MEASURE whether it
+  mis-evaluates, and add the guard if so.
 - [ ] **OCaml: arrays → RAM blocked on the core-compiler `dict<int,int>` defect**
   (finding `2026-06-06-dict-int-keys-broken`) — verify whether still broken; if so,
   fix the core defect (it gates OCaml arrays and the full ISO-5 machine).
