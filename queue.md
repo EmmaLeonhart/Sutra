@@ -521,13 +521,12 @@ table; polynomial-interpolant-rationale paragraph (prose in `git show
 
 ## Transpiler track (source -> Sutra; OCaml first) — 1pm cron, owns this section only
 
-> **⏸ ON HOLD BEHIND GUI (Emma 2026-06-11).** GUI is TOP PRIORITY — work the GUI
-> block (below, before the pinned tail) FIRST. The OCaml constructor/aggregate group
-> is complete; the remaining transpiler work — the **new-language frontends**
-> (Scala/F#/Elixir/Clojure/Haskell/Rust/WASM) and **`let rec` non-tail recursion** —
-> is deprioritized and moved to todo.md's "[ON HOLD — after GUI]" section. The loop
-> attempts them automatically AFTER the GUI block is done. Do not start them while
-> GUI work remains.
+> **▶ ACTIVE again (2026-06-12) — GUI top-priority push is DONE.** The new-language
+> frontends are now the loop's active track (roadmap order: Scala → F# → Elixir/Erlang →
+> Clojure → Haskell → Rust → WASM). `let rec` non-tail recursion is also done (foldable
+> CPS transform + Tree RNN; see DEVLOG/findings). **Scala MVP STARTED 2026-06-12** —
+> `sdk/sutra-from-scala/` (top-level `def` fns, arithmetic, calls; `add_main`
+> substrate-verified = 16). Each new frontend models on `sutra-from-ocaml`.
 
 Roadmap: todo.md §"Multi-language transpiler frontends".
 
@@ -660,7 +659,11 @@ Each: source reader (`tree-sitter-<lang>`) -> `lower.py` -> `.su` emission ->
 fixtures that compile **AND run on the substrate** (the OCaml harness's
 `_RUNNABLE_FIXTURES` pattern, not the TS compile-only bar). Functional first
 (they map cleanly), then Rust, then WASM.
-- [ ] **Scala** — `sdk/sutra-from-scala/` (`tree-sitter-scala`).
+- **Scala** — `sdk/sutra-from-scala/` (`tree-sitter-scala`). MVP STARTED 2026-06-12:
+  top-level `def` functions (Int/Double/Boolean/String), int/float literals, infix
+  arithmetic/comparison/boolean ops, calls, parens; `add_main` substrate-verified = 16
+  (compile-AND-run harness, 2/2). NEXT (model on OCaml): if/else→defuzz blend, `val`
+  bindings, `match`, case classes→axons, tail recursion→`while_loop`.
 - [ ] **F#** — `sdk/sutra-from-fsharp/` (ML-family, close cousin of OCaml — should reuse much of the OCaml lowering shape).
 - [ ] **Elixir / Erlang** — `sdk/sutra-from-erlang/` (the BEAM pair; immutable, message-passing maps onto the axon IPC story).
 - [ ] **Clojure** — `sdk/sutra-from-clojure/` (Lisp; homoiconic, persistent data structures).
