@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-12: GUI #7 — learned decoder DEFERRED (Emma); remainder parked to todo.md
+
+Emma's call (AskUserQuestion): defer the learned decoder (latent→frame training) — research-
+scale. With the substantive item parked and the rest (real event loop, more shapes) being
+low-value/host-plumbing padding, GUI #7's valuable increments are shipped: colour/RGB frames
+and two-widget masked layout, on top of the core (whole-frame render + hadamard), animation
+(moving glow + substrate-RNN), interaction (click-gated), and the website page. Removed the #7
+block from queue.md; parked the deferred remainder (learned decoder [deferred], real event
+loop, more shapes, Yantra integration) in todo.md's GUI section. The work loop now proceeds to
+todo (the new-language transpiler frontends are the deprioritized next track). GUI suite 17/17.
+
 ## 2026-06-12: GUI long-horizon #7 (progress) — multi-widget layout
 
 Second #7 increment: `demos/gui/frame_layout.su` composes two whole-frame widgets into

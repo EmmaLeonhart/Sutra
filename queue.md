@@ -677,32 +677,6 @@ fixtures that compile **AND run on the substrate** (the OCaml harness's
   `transpilers-ci.yml` that installs the tree-sitter grammars + runs every
   `sutra-from-*` test suite. Scope decision — not auto-started.
 
-## 🎨 GUI long-horizon extensions (Emma 2026-06-11; END of the queue — now the top actionable item)
-
-The core GUI block shipped (DONE — `demos/gui/` whole-frame renders + `hadamard` primitive +
-`docs/gui.md`), and the non-tail-recursion build (#6) is complete (both approaches + the
-foldable CPS frontend transform; see DEVLOG/findings). So these longer-horizon GUI extensions
-are now the top actionable queue item. The loop works them in order; each is a runnable `.su`
-(or driver) + a test asserting substrate-side correctness against a reference, dim-audited.
-
-- **Simple multi-widget layout** — DONE 2026-06-12: `demos/gui/frame_layout.su` composes
-  glow (left) + ring (right) via a region mask in one substrate op (`hadamard(maskL,glow) +
-  hadamard(ones-maskL,ring)`); `render_layout` + guard; == region-selected host (1.14e-07),
-  GUI 17/17. (Richer N-region layouts are an open extension.)
-- **Colour / RGB frames** — DONE 2026-06-12: `demos/gui/frame_rgb.su` (R=glow, G=ring,
-  B=gradient), each a whole-frame substrate channel field; `render_rgb` stacks them N×N×3;
-  each channel == host (≤1.2e-7), GUI 16/16. (More shapes/gradients — checker etc. — open.)
-- **A real window event loop** — live clicks/animation driving the substrate state, not just
-  per-frame render calls from a script.
-- **Learned decoder / arbitrary-image generation** — a trained nonlinear decoder from a latent
-  to an arbitrary frame (the constrain-train "every op trainable" vision meets GUI); the
-  analytic whole-frame render is the fixed-weight base case.
-- **Yantra GUI integration** — the window living in the orchestrator, per the Yantra OS.
-
-HARD RAILS (CLAUDE.md): every pixel computed on the substrate; no host math inside the op;
-stateful widgets are substrate-RNNs (state a vector across ticks, not a host shuttle); verify
-the rendered frame against a reference, measured.
-
 ## Pinned tail (always present — bracket every session)
 
 Per CLAUDE.md §"Autonomous productivity loop" lifecycle: a fresh session
