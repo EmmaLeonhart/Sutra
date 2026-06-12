@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-11: GUI item #4 DONE — click→substrate-state interaction (widget set complete)
+
+Final GUI #4 widget — input handling: `demos/gui/click_frame.su` combines toggle.su's
+substrate-state flip with the whole-frame render. `flip()` toggles a 0/1 state on the
+substrate (recur, no host feedback between clicks); `frame_gated(x,y,ones,gate) =
+hadamard(gate, 1-x²-y²)` renders the glow GATED by that state — visible when 1, blank when 0.
+Driver `whole_frame.click_frames` + guard `test_click_interaction_gates_render_via_substrate_state`.
+MEASURED: `flip()` ×6 no-feedback → `[1,0,1,0,1,0]` (substrate-state toggle); clicking alternates
+the frame glow↔blank (max 0.999 ↔ 0.0). GUI 15/15.
+
+This completes GUI #4's described scope: richer rendering (ring shape, moving glow), animation
+via the substrate-RNN step (moving_glow), and input handling (click→substrate state). The widget
+set: whole-frame glow, moving glow, substrate-RNN animation, concentric ring, click-gated glow —
+all whole-frame one-op renders on the `hadamard`/buffer machinery, each substrate-verified against
+a host oracle. Simple multi-widget layout remains an open optional extra (not blocking). Next: #5
+human-facing website page.
+
 ## 2026-06-11: GUI #4 (progress) — concentric-ring shape widget
 
 Third GUI #4 widget (a new shape, distinct from the radial glow): `demos/gui/frame_ring.su` —
