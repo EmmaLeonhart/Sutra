@@ -1,0 +1,28 @@
+// frame_rgb.su — COLOUR (RGB) frames: three substrate-computed channel fields.
+//
+// GUI long-horizon increment. Each colour channel is its own whole-frame field,
+// computed in one substrate op over the coordinate grid (the #3 hadamard/buffer
+// machinery). The host evaluates the three channels on the substrate and stacks them
+// into an N×N×3 image (the interleave is host display assembly, like reshape). Here:
+//   R = glow      (1 - x² - y²)            bright centre
+//   G = ring      (1 - (x²+y² - R)²)       a ring
+//   B = gradient  ((x + 1) / 2)            left→right ramp
+function vector glow(vector x, vector y, vector ones) {
+    return ones - hadamard(x, x) - hadamard(y, y);
+}
+
+function vector ring(vector x, vector y, vector ones, vector radius) {
+    vector r2 = hadamard(x, x) + hadamard(y, y);
+    vector d = r2 - radius;
+    return ones - hadamard(d, d);
+}
+
+function vector gradient(vector x, vector ones, vector half) {
+    // (x + 1) * 0.5 = (x + 1) / 2, a horizontal ramp in [0, 1].
+    return hadamard(x + ones, half);
+}
+
+// Sanity entry: gradient at x = 0 is (0 + 1) * 0.5 = 0.5.
+function vector main() {
+    return gradient(make_real(0.0), make_real(1.0), make_real(0.5));
+}
