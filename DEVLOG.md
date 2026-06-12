@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-12: sutra-from-scala — foldable non-tail recursion (CPS trampoline)
+
+Eighth Scala increment: `def f(n) = if (COND) BASE else LEAF +|* f(REC)` lowers via
+the OCaml accumulator transform — pending call-stack work reified as an `_acc` carried
+by a `while_loop`; only associative+commutative ops (`+`, `*`) qualify, `-`/`/` stay
+UNSUPPORTED rather than silently wrong. One guard is STRICTER than the OCaml original:
+BASE is evaluated before the loop at the initial param, so param-dependent bases are
+rejected (the OCaml version would mis-evaluate them — flagged for an upstream check).
+Fixture `nontail_fact`: substrate-verified `fact(5)` = 120. Scala suite 16/16.
+
 ## 2026-06-12: W2C official baseline model PUBLISHED (Emma's call); both A.0 items drained
 
 Emma resolved both held ask-Emma items in chat: the Le Chat AI-use breakdown is DROPPED

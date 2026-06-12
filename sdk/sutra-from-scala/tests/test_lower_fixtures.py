@@ -28,6 +28,7 @@ _RUNNABLE = {
     "case_class": 12.0,  # case class Point -> axon; getx(mk(7,9))=7 + sum2(Point(2,3))=5
     "tail_rec": 15.0,  # def sumTo(acc,n) = if (n==0) acc else sumTo(acc+n, n-1); sumTo(0,5)
     "match_guard": 60.0,  # case 0 => 100; case x if x > 0 => x*10; case _ => 300; classify(6)
+    "nontail_fact": 120.0,  # def fact(n) = if (n==0) 1 else n * fact(n-1); fact(5)  (CPS fold)
 }
 
 
