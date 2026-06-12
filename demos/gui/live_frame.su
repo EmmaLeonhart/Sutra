@@ -1,0 +1,44 @@
+// live_frame.su — the live-window widget: animation + interaction + render in ONE program.
+//
+// The union of moving_glow.su (substrate-RNN animation) and click_frame.su (substrate-
+// state interaction), so a single program owns all the window's state. Two independent
+// recur slots (the one-recurring-slot limit is per FUNCTION): the animation phase and
+// the click gate. The host event loop calls step() on a timer tick, flip() on a click,
+// and frame() once per tick — one substrate op whose returned vector IS the frame.
+//
+//   step()  — one animation tick. The glow centre's phase lives ON THE SUBSTRATE as a
+//             complex number z (starts 1+0i) and advances by a fixed rotation each
+//             tick: z' = z · e^{iπ/8} (complex_mul — pure tensor ops). The centre is
+//             Re(z) = cos(kπ/8): a smooth perpetual sweep of [-1, 1], period 16 ticks.
+//             The rotation IS the wrap — no modulus. (Math.mod cannot wrap a vector
+//             recurrence: rotation_mod's trig readout is scalar-shaped and collapses
+//             number-vectors — measured, see the 2026-06-12 finding.)
+//   flip()  — one click. Toggles the recurring 0/1 gate on the substrate
+//             (make_real(1.0) - state) and returns it, exactly click_frame.su's flip.
+//   frame(x, y, ones, cx, gate) — the whole frame for centre cx gated by the click
+//             state, one substrate op: hadamard(gate, 1 - (x-cx)^2 - y^2). gate=1 ->
+//             the moving glow, gate=0 -> blank. x/y/ones/cx/gate are length-(N·N)
+//             buffers (host grid geometry + the two states broadcast at the display
+//             boundary, like moving_glow/click_frame).
+function vector step() {
+    recurring vector z = make_real(1.0);
+    vector next = z * (0.9238795325112867 + 0.3826834323650898i);
+    recur(next);
+    return next;
+}
+
+function vector flip() {
+    recurring vector state = make_real(0.0);
+    vector new_state = make_real(1.0) - state;
+    recur(new_state);
+    return new_state;
+}
+
+function vector frame(vector x, vector y, vector ones, vector cx, vector gate) {
+    vector dx = x - cx;
+    vector glow = ones - hadamard(dx, dx) - hadamard(y, y);
+    return hadamard(gate, glow);
+}
+
+// Sanity entry: first tick rotates the phase to cos(pi/8) = 0.924.
+function vector main() { return step(); }
