@@ -317,6 +317,14 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ## [This year] Multi-language transpiler frontends (source → Sutra) — roadmap (Emma 2026-06-05)
 
+> **⏸ ON HOLD — DEPRIORITIZED BEHIND GUI (Emma 2026-06-11).** GUI is the top
+> priority. The work-loop finishes the GUI block (queue.md) FIRST, then attempts
+> these new-language frontends automatically via this todo. They are *not* killed —
+> just last to pull. OCaml (the reference frontend) is already done for now; the
+> on-hold set is the **new languages** (Scala → F# → Elixir/Erlang → Clojure →
+> Haskell → Rust → WASM) plus **`let rec` non-tail recursion**. See the consolidated
+> "[ON HOLD — after GUI]" section at the END of this file for the pull-last summary.
+
 Sutra today has exactly one working source-language frontend:
 `sdk/sutra-from-ts/` (TypeScript, with JavaScript read as untyped TS).
 `sdk/sutra-from-c/` is parked. The TS/JS path works but is not a great
@@ -2677,3 +2685,33 @@ the agenda reads as one coherent plan rather than scattered docs.
 - [ ] Build a planning index / map tying each planning doc to the roadmap
   stage it serves; surface it from `todo.md` and the roadmap so the planning
   surface is legible end to end.
+
+---
+
+## [ON HOLD — after GUI] Deprioritized, pull LAST (Emma 2026-06-11)
+
+GUI is the top priority. The work-loop completes the GUI block (queue.md) first;
+only after that does it attempt the items below, automatically, from this todo.
+They are on hold, not cancelled.
+
+### New-language transpiler frontends — ON HOLD
+The full roadmap (the bet, priority order, per-language notes, Rust/WASM phases)
+lives in "## [This year] Multi-language transpiler frontends" above, now banner-marked
+ON HOLD. Pull order when GUI is done: **Scala → F# → Elixir/Erlang → Clojure →
+Haskell → Rust → WASM** (F# is the cheapest — OCaml's ML cousin — and a defensible
+first pick over Scala on effort/reward). Each is a multi-session build: new
+`tree-sitter-<lang>` grammar → `sdk/sutra-from-<lang>/lower.py` → `.su` emission →
+fixtures that compile AND run on the substrate (the OCaml harness bar). OCaml stays
+the reference implementation; new frontends model on it, not `-ts`.
+
+### OCaml `let rec` non-tail recursion — ON HOLD (design-first)
+Tail-recursive accumulators already lower to a Sutra `while_loop` (done,
+substrate-verified). NON-tail recursion (`factorial n = n * factorial (n-1)`, the
+recursive call inside a larger expression) is correctly UNSUPPORTED today and stays
+that way until designed. Why hard: Sutra's `if/then/else` is a defuzz BLEND that
+evaluates BOTH branches unconditionally, so a self-call never terminates on the
+substrate; there is no call stack. Needs a **bounded-depth encoding** (compile-time
+depth cap / data-driven bound / CPS-style transform) — an open design question that
+must land in `planning/open-questions/` BEFORE any code. Lower value than shipped work
+(the WASM machine's OCaml needs are already covered by the tail-recursive + constructor
+features).

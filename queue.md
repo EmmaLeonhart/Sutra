@@ -521,6 +521,14 @@ table; polynomial-interpolant-rationale paragraph (prose in `git show
 
 ## Transpiler track (source -> Sutra; OCaml first) — 1pm cron, owns this section only
 
+> **⏸ ON HOLD BEHIND GUI (Emma 2026-06-11).** GUI is TOP PRIORITY — work the GUI
+> block (below, before the pinned tail) FIRST. The OCaml constructor/aggregate group
+> is complete; the remaining transpiler work — the **new-language frontends**
+> (Scala/F#/Elixir/Clojure/Haskell/Rust/WASM) and **`let rec` non-tail recursion** —
+> is deprioritized and moved to todo.md's "[ON HOLD — after GUI]" section. The loop
+> attempts them automatically AFTER the GUI block is done. Do not start them while
+> GUI work remains.
+
 Roadmap: todo.md §"Multi-language transpiler frontends".
 
 **PRIORITY ORDER (Emma 2026-06-05):**
@@ -669,14 +677,15 @@ fixtures that compile **AND run on the substrate** (the OCaml harness's
   `transpilers-ci.yml` that installs the tree-sitter grammars + runs every
   `sutra-from-*` test suite. Scope decision — not auto-started.
 
-## ⭐ GUI — substantial expansion (Emma 2026-06-11; the LAST work block before the pinned tail)
+## ⭐⭐ GUI — TOP PRIORITY (Emma 2026-06-11) — work this BEFORE anything else
 
 **Vision (Emma).** GUI is a much stronger component of Sutra for *early adoption*
 than earlier framing assumed — a window of substrate-computed pixels is the most
 legible "Sutra actually runs and produces something you can see" demo there is.
-Invest substantially more here. This block is the last work item in the queue; the
-work loop barrels the rest of the queue, then lands on this. The long-horizon GUI
-agenda continues in `todo.md` once this is decomposed and underway.
+Invest substantially more here. **This is now the top-priority active work** — the
+transpiler track above is ON HOLD behind it (Emma 2026-06-11); the work-loop does
+GUI first and only pulls the on-hold new-language frontends (todo.md) once the GUI
+block is complete. Items #1 and #2 are DONE; #3 design is locked (build next).
 
 **Grounding (what exists today — do NOT reinvent; build on it).**
 - `demos/gui/frame.su` — per-pixel substrate brightness field `pixel(x,y)=1−x²−y²`;
