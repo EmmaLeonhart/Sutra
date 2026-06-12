@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-11: Daily substrate-honesty audit (06-09/06-10/06-11 stacked) — CLEAN
+
+Discharged the three stacked daily-audit items against CLAUDE.md §"Subtler substrate
+breaches — measurement-required". Reviewed the commit window since the last audit (the
+OCaml-frontend advances `9351f252`..`fbe024a4`: or-patterns, guarded/record-destructuring
+match, record/tuple/variant arg-position hoists, parameterised ctors, boolean-halt tail
+recursion; plus the content-addressing/attention-on-RAM work `af2ad4ec`/`c07ab880`).
+- **(a) dim audit:** `examples/content_addressed_read.su` has 6 `basis_vector` calls → it
+  genuinely needs semantic dim (not a zero-basis_vector bloat case). The OCaml transpiler
+  fixtures have **zero** `basis_vector` (pure integer arithmetic) and run at the CLI default
+  `runtime_dim=50` — small, no 768-style bloat, no substrate-purity efficiency overclaim.
+  `af2ad4ec` is itself a dim audit (parser reduced to the synthetic-axis floor, dim 3).
+- **(b) "verified" claims:** every "substrate-verified X = N" in the OCaml commits is backed
+  by `test_fixture_runs_on_substrate` (`sutrac --run` + assert output), i.e. measured, not
+  carried-over framing.
+- **(c) classifier gap:** the content-addressed read ships measured separation in
+  `planning/findings/2026-06-08-substrate-content-addressing-temperature-window.md`
+  (weight_on_target 0.9998 @β=16; 3/3 keys retrieve the right value). No unverified classifier.
+No breaches → no finding/fix item needed; deleted the three audit items from queue.md.
+
 ## 2026-06-08: OCaml frontend — variant values in argument position (`eval (Lit 7)`)
 
 Extended the aggregate-arg hoist (records/tuples) to axon-mode variant values: a `C x`
