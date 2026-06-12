@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-11: complete the no-introspection `real` removal — update the transitional test
+
+`real` (the host-readout `float(v[...].item())` accessor) was removed from codegen on
+2026-06-07, but kept "transiently" in a test guard (`test_real_accessor_still_defined_transiently`)
+"while its consumers are reworked." Those consumers were the GUI/font/calc demos — reworked THIS
+session to the display-boundary `read_real` helper. With the last consumers moved off it, the
+transitional keep is over: at HEAD the runtime emits only `realvec` (the substrate-pure real-axis
+projection), no `def real`. The stale test asserted `def real(self, v):` still existed and was
+failing (pre-existing, surfaced by the GUI #3 compiler run). Updated it to
+`test_real_host_readout_accessor_is_removed` (asserts `def real` is GONE, `def realvec` present) +
+refreshed the class docstring. This STRENGTHENS the no-introspection purity guard rather than
+weakening a test. Accessor tests 5/5.
+
 ## 2026-06-11: GUI item #3 — whole-frame render in ONE substrate op (+ `hadamard` primitive)
 
 Built Emma's whole-frame model: the substrate returns ONE vector that IS the frame buffer;
