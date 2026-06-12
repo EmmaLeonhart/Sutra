@@ -33,10 +33,9 @@ deleted on completion. Keep the task tool in sync with this file.
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **Scala next increments** (`sdk/sutra-from-scala/`; through match guards
-  shipped 2026-06-12, suite 14/14): `object`/method dispatch; foldable non-tail
-  recursion (OCaml CPS shape). Substrate-verify every fixture (compile AND run,
-  OCaml `_RUNNABLE_FIXTURES` bar).
+- [ ] **Scala next increments** (`sdk/sutra-from-scala/`; through foldable
+  non-tail recursion shipped 2026-06-12, suite 16/16): `object`/method dispatch.
+  Substrate-verify every fixture (compile AND run, OCaml `_RUNNABLE_FIXTURES` bar).
 - [ ] **F#** — `sdk/sutra-from-fsharp/` (ML-family; should reuse much of the
   OCaml lowering shape).
 - [ ] **Elixir / Erlang** — `sdk/sutra-from-erlang/` (BEAM pair; message-passing
