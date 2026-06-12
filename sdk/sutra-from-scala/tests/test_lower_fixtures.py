@@ -22,6 +22,7 @@ _REPO = HERE.parents[2]
 # Fixtures with a callable `main` and a known substrate result.
 _RUNNABLE = {
     "add_main": 16.0,  # def add(a,b)=a+b; def main()=add(7,9)
+    "if_classify": 100.0,  # if (n>0) 100 else 200; classify(5)  (if -> defuzz blend)
 }
 
 

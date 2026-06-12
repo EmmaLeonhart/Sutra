@@ -60,6 +60,19 @@ def _lower_expr(node, src: bytes) -> str:
         if sop is None:
             return f"/* UNSUPPORTED-OP: {_text(op, src)} */"
         return f"({_lower_expr(operands[0], src)} {sop} {_lower_expr(operands[1], src)})"
+    if t == "if_expression":
+        # Sutra has no control-flow branch: an if is a defuzz BLEND that weights both
+        # arms by the condition's truth (same shape as the OCaml frontend's `_blend`).
+        # Every arm fully parenthesised so a bare `* (atom)` never precedes an infix op
+        # (the Sutra `(atom) <binop>` cast ambiguity). A missing else is implicit-zero.
+        kids = node.named_children
+        if len(kids) < 2:
+            return "/* UNSUPPORTED-EXPR: malformed if */"
+        cond_src = _lower_expr(kids[0], src)
+        then_src = _lower_expr(kids[1], src)
+        else_src = _lower_expr(kids[2], src) if len(kids) >= 3 else "0"
+        w = f"truth_axis(defuzzy({cond_src}))"
+        return f"(((1 + {w}) * ({then_src})) + ((1 - {w}) * ({else_src}))) / 2"
     if t == "call_expression":
         kids = node.named_children
         if not kids:
