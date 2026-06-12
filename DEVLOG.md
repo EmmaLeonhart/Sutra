@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-11: Non-tail recursion #6 — approach 1 (Tree RNN) works on the substrate
+
+First of the two queue-#6 approaches. `experiments/non_tail_recursion/tree_combine.su`
+(`combine(l,r)=2*l+r`, non-associative) + `tree_rnn_eval.py`: a fixed balanced-binary-tree
+fold computed bottom-up, the combine running on the substrate at each internal node, the host
+walking the known tree level by level. MEASURED (guard `test_non_tail_recursion.py`):
+`f(f(1,2),f(3,4))`=18, 8-leaf depth-3=90, [2,0,0,0]=8 — all == host. The non-associative
+combine means the result depends on the tree bracketing, so the match confirms the substrate
+computes the real tree-structured (non-tail-in-structure) reduction, not a flat reduce.
+Reading: fixed-topology non-tail recursion needs NO stack (bottom-up single pass) — the
+solved end of the spectrum. Finding `2026-06-11-non-tail-recursion-approach1-tree-rnn.md`.
+Next: approach 2, CPS + trampolining (the sequential `f(x)=1+f(x-1)` case).
+
 ## 2026-06-11: GUI long-horizon extensions → end of queue.md (Emma)
 
 Emma's call: the GUI long-horizon extensions belong in the active queue, not todo.md. Moved

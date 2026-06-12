@@ -1,0 +1,18 @@
+// tree_combine.su — the COMBINE step of a Tree RNN (approach 1 to non-tail recursion).
+//
+// A Tree RNN computes h(node) = f(h(left), h(right)): a node's value depends on the
+// FULLY-COMPUTED child values — non-tail in structure. But for a FIXED tree topology
+// you evaluate bottom-up in a single pass, no stack: the host walks the known tree
+// level by level, calling this combine on the substrate at each internal node.
+//
+// The combine here is NON-ASSOCIATIVE on purpose — f(l, r) = 2*l + r — so the result
+// depends on the TREE BRACKETING, not just the multiset of leaves. That makes the test
+// prove the substrate is computing the actual tree-structured reduction, not a flat sum.
+function vector combine(vector l, vector r) {
+    return (make_real(2.0) * l) + r;
+}
+
+// Sanity entry: combine(3, 4) = 2*3 + 4 = 10.
+function vector main() {
+    return combine(make_real(3.0), make_real(4.0));
+}
