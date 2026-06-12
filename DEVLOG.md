@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-12: sutra-from-scala — object/method dispatch; named Scala roadmap COMPLETE
+
+Ninth Scala increment: singleton `object`s lower as NAMESPACES — each method emits as
+a top-level `{obj}_{method}` function (recursion transforms get an `emit_name` so
+tail/CPS loops prefix correctly); `Calc.add(7, 9)` call sites and bare sibling calls
+inside the object rewrite to the prefixed names; unknown members surface as
+`UNSUPPORTED-OBJECT-MEMBER`. Fixture `object_dispatch`: substrate-verified
+`Calc.add(7,9) + Calc.twice(5)` = 26 (twice exercises the sibling-call prefix).
+Scala suite 18/18. The named Scala set (MVP, if/else, val, match, case classes, tail
+recursion, guards, non-tail CPS, objects) is COMPLETE — next language: F#.
+
 ## 2026-06-12: sutra-from-scala — foldable non-tail recursion (CPS trampoline)
 
 Eighth Scala increment: `def f(n) = if (COND) BASE else LEAF +|* f(REC)` lowers via

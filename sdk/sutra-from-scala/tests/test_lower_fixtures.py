@@ -29,6 +29,7 @@ _RUNNABLE = {
     "tail_rec": 15.0,  # def sumTo(acc,n) = if (n==0) acc else sumTo(acc+n, n-1); sumTo(0,5)
     "match_guard": 60.0,  # case 0 => 100; case x if x > 0 => x*10; case _ => 300; classify(6)
     "nontail_fact": 120.0,  # def fact(n) = if (n==0) 1 else n * fact(n-1); fact(5)  (CPS fold)
+    "object_dispatch": 26.0,  # object Calc { add, twice }; Calc.add(7,9)=16 + Calc.twice(5)=10
 }
 
 
