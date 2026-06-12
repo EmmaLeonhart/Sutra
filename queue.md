@@ -687,8 +687,9 @@ are now the top actionable queue item. The loop works them in order; each is a r
 
 - **Simple multi-widget layout** — compose several whole-frame widgets into regions of one
   frame (e.g. glow + ring side by side via buffer offsets/masks).
-- **Colour / RGB frames** — three channels interleaved (`[R,G,B,…]` buffer), plus more
-  shapes/gradients (linear gradient, checker, etc.).
+- **Colour / RGB frames** — DONE 2026-06-12: `demos/gui/frame_rgb.su` (R=glow, G=ring,
+  B=gradient), each a whole-frame substrate channel field; `render_rgb` stacks them N×N×3;
+  each channel == host (≤1.2e-7), GUI 16/16. (More shapes/gradients — checker etc. — open.)
 - **A real window event loop** — live clicks/animation driving the substrate state, not just
   per-frame render calls from a script.
 - **Learned decoder / arbitrary-image generation** — a trained nonlinear decoder from a latent
