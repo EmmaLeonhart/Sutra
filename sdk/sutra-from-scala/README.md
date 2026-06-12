@@ -6,16 +6,20 @@ frontend). `lower(source)` turns Scala source into Sutra source; fixtures are ve
 
 ## Status
 
-First cut (2026-06-12): top-level `def` functions with Int/Double/Boolean/String
-params + return types, integer/float literals, infix arithmetic/comparison/boolean ops,
-function calls, parenthesized expressions. Substrate-verified: `add_main`
-(`def add(a,b)=a+b; def main()=add(7,9)`) runs to 16.
+As of 2026-06-12: top-level `def` functions with Int/Double/Boolean/String params +
+return types, integer/float literals, infix arithmetic/comparison/boolean ops, function
+calls, parenthesized expressions, `if/else` (→ defuzz blend), block `val` bindings,
+literal `match` (→ nested defuzz blend), and **case classes → axons** (the OCaml record
+pattern: the def erases to a field prepass; construction `Point(a, b)` hoists to
+`Axon t; t.add("x", a); …` anywhere in an expression tree; field reads `p.x` →
+`realvec(p.item("x"))`). Substrate-verified fixtures (compile AND run): `add_main` = 16,
+`if_classify` = 100/200, `val_block` = 17, `match_literal` = 100/200/300,
+`case_class` = 12.
 
 Dependency: `tree-sitter-scala` (`pip install tree-sitter-scala`).
 
 ## Next (roadmap order, todo.md)
 
-`if/else` (→ Sutra defuzz blend), `val` bindings, `match` (→ tagged-axon / blend),
-case classes (→ axons, like OCaml records/variants), `object`/method dispatch, tail
-recursion (→ `while_loop`, reuse the OCaml shape). New constructs model on the OCaml
-frontend's verified-running patterns.
+Tail recursion (→ `while_loop`, reuse the OCaml shape), comparison/boolean match
+guards, `object`/method dispatch. New constructs model on the OCaml frontend's
+verified-running patterns.

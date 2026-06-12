@@ -40,10 +40,10 @@ deleted on completion. Keep the task tool in sync with this file.
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **Scala next increments** (`sdk/sutra-from-scala/`; MVP through literal
-  `match` shipped 2026-06-12, suite 8/8): case classes → axons; tail recursion →
-  `while_loop`; comparison/boolean match guards. Substrate-verify every fixture
-  (compile AND run, OCaml `_RUNNABLE_FIXTURES` bar).
+- [ ] **Scala next increments** (`sdk/sutra-from-scala/`; through case classes →
+  axons shipped 2026-06-12, suite 10/10): tail recursion → `while_loop`;
+  comparison/boolean match guards. Substrate-verify every fixture (compile AND
+  run, OCaml `_RUNNABLE_FIXTURES` bar).
 - [ ] **F#** — `sdk/sutra-from-fsharp/` (ML-family; should reuse much of the
   OCaml lowering shape).
 - [ ] **Elixir / Erlang** — `sdk/sutra-from-erlang/` (BEAM pair; message-passing

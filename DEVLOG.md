@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-12: sutra-from-scala — case classes → axons
+
+Fifth Scala increment, the OCaml record pattern ported whole: `case class Point(x: Int,
+y: Int)` erases to a field prepass (`_CASE_CLASSES`); the class name maps to `Axon` in
+param/return types; construction `Point(a, b)` is statement-hoisted (`Axon _ahN;
+_ahN.add("x", a); …`) anywhere in an expression tree via the OCaml `_ARG_HOIST`
+machinery (post-order, so nested constructions resolve first; `val p = Point(7,9)`
+binds the name directly); field reads `p.x` → `realvec(p.item("x"))` (the substrate-pure
+projection — raw fillers carry crosstalk, finding 2026-06-05). Unhoistable constructions
+surface as `UNSUPPORTED-CONSTRUCTION`, never a silent mislower. Fixture `case_class`
+(construction in return + argument position, field reads, two-field sums):
+substrate-verified `getx(mk(7, 9)) + sum2(Point(2, 3))` = 12. Scala suite 10/10.
+Next: tail recursion → `while_loop`, match guards.
+
 ## 2026-06-12: GUI #8 — more shapes + 4-region layout; docs/gui.md live-window section; block CLOSED
 
 Second half of Emma's GUI #8 pick. Three new whole-frame shapes, each ONE substrate op:
