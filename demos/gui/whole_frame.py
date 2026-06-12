@@ -292,6 +292,119 @@ def animate_moving_glow(size: int = 64, frames: int = 8):
     return out
 
 
+def _compile_checker():
+    """Compile frame_checker.su and return its `checker` function + the _VSA."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_checker.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8,
+                     verbose=False)
+    return mod.checker, mod._VSA
+
+
+def render_checker(size: int = 64, block: int = 8):
+    """Return a (size, size) checkerboard, `0.5 * (1 + px*py)`, computed in ONE
+    substrate op (frame_checker.su). px/py are host-built cell-parity buffers
+    (coordinate-derived grid geometry, the frame_layout mask precedent): +1/-1 by
+    `(col // block) % 2` / `(row // block) % 2`."""
+    import torch
+
+    checker, vsa = _compile_checker()
+    dt, dev = vsa.dtype, vsa.device
+    pxs, pys = [], []
+    for j in range(size):
+        py = 1.0 if (j // block) % 2 == 0 else -1.0
+        for i in range(size):
+            px = 1.0 if (i // block) % 2 == 0 else -1.0
+            pxs.append(px)
+            pys.append(py)
+    PX = torch.tensor(pxs, dtype=dt, device=dev)
+    PY = torch.tensor(pys, dtype=dt, device=dev)
+    ones = torch.ones(size * size, dtype=dt, device=dev)
+    half = torch.full((size * size,), 0.5, dtype=dt, device=dev)
+    buf = checker(ones, PX, PY, half)              # ONE substrate op -> the whole frame
+    buf = buf.real if buf.is_complex() else buf
+    return buf.reshape(size, size).detach().to("cpu").numpy()
+
+
+def _compile_diag():
+    """Compile frame_diag.su and return its `diag` function + the _VSA."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_diag.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8,
+                     verbose=False)
+    return mod.diag, mod._VSA
+
+
+def render_diag(size: int = 64):
+    """Return a (size, size) diagonal gradient, `0.5 * (1 + 0.5*(x + y))`, computed
+    in ONE substrate op (frame_diag.su): 0 at top-left, 1 at bottom-right."""
+    import torch
+
+    diag, vsa = _compile_diag()
+    dt, dev = vsa.dtype, vsa.device
+    xs, ys = [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(size * size, dtype=dt, device=dev)
+    half = torch.full((size * size,), 0.5, dtype=dt, device=dev)
+    buf = diag(X, Y, ones, half)                   # ONE substrate op -> the whole frame
+    buf = buf.real if buf.is_complex() else buf
+    return buf.reshape(size, size).detach().to("cpu").numpy()
+
+
+def _compile_quad():
+    """Compile frame_quad.su and return its `quad` function + the _VSA."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_quad.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8,
+                     verbose=False)
+    return mod.quad, mod._VSA
+
+
+def render_quad(size: int = 64, radius: float = 0.5, block: int = 8):
+    """Return a (size, size) FOUR-region frame: glow (top-left), ring (top-right),
+    diagonal gradient (bottom-left), checker (bottom-right), composed via three
+    host-provided quadrant masks + the substrate-derived fourth complement, in ONE
+    substrate op (frame_quad.su)."""
+    import torch
+
+    quad, vsa = _compile_quad()
+    dt, dev = vsa.dtype, vsa.device
+    xs, ys, m0s, m1s, m2s, pxs, pys = [], [], [], [], [], [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        py = 1.0 if (j // block) % 2 == 0 else -1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+            m0s.append(1.0 if (cx < 0.0 and cy < 0.0) else 0.0)   # top-left
+            m1s.append(1.0 if (cx >= 0.0 and cy < 0.0) else 0.0)  # top-right
+            m2s.append(1.0 if (cx < 0.0 and cy >= 0.0) else 0.0)  # bottom-left
+            pxs.append(1.0 if (i // block) % 2 == 0 else -1.0)
+            pys.append(py)
+    n2 = size * size
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(n2, dtype=dt, device=dev)
+    M0 = torch.tensor(m0s, dtype=dt, device=dev)
+    M1 = torch.tensor(m1s, dtype=dt, device=dev)
+    M2 = torch.tensor(m2s, dtype=dt, device=dev)
+    rad = torch.full((n2,), float(radius), dtype=dt, device=dev)
+    half = torch.full((n2,), 0.5, dtype=dt, device=dev)
+    PX = torch.tensor(pxs, dtype=dt, device=dev)
+    PY = torch.tensor(pys, dtype=dt, device=dev)
+    buf = quad(X, Y, ones, M0, M1, M2, rad, half, PX, PY)  # ONE substrate op
+    buf = buf.real if buf.is_complex() else buf
+    return buf.reshape(size, size).detach().to("cpu").numpy()
+
+
 def main() -> None:
     import argparse
 

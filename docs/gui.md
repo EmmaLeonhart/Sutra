@@ -45,15 +45,36 @@ per-pixel loop, no decoder — the program produces the picture directly.
 python demos/gui/whole_frame.py --size 96
 ```
 
+## A live window
+
+The whole-frame form runs in real time. [`live_frame.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/live_frame.su)
+is one program owning a live window's whole behaviour: a timer tick advances the glow's
+position **on the substrate**, a mouse click flips a gate **on the substrate**, and every
+tick is a single substrate call whose returned vector is the frame on screen.
+
+```bash
+python demos/gui/live_demo.py             # open the live window; click to gate the glow
+python demos/gui/live_demo.py --bench     # measure the per-tick cost, no window
+```
+
+The animation needs no modulus to loop: the glow's position is carried as a **complex
+number rotated a fixed step each tick** — the rotation is inherently periodic, so the
+centre sweeps back and forth forever, easing at the edges. Per tick the whole 64×64
+frame costs well under a millisecond.
+
 ## The gallery
 
 | Demo | Source | What you see |
 |---|---|---|
 | Glow | [`frame.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame.su) | A radial glow, one substrate value per pixel. |
+| Live window | [`live_frame.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/live_frame.su) | A real event loop: timer ticks animate, clicks gate, every frame is one substrate call. |
 | Whole-frame glow | [`frame_whole.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_whole.su) | The same glow, the entire frame computed in one substrate op. |
 | Moving glow | [`frame_moving.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_moving.su) | A glow centred at a movable point; sweep it to animate. |
 | Animated glow | [`moving_glow.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/moving_glow.su) | The glow's centre advances **on the substrate** each tick — the animation's state is a recurrent value, not a host variable. |
 | Ring | [`frame_ring.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_ring.su) | A concentric ring, `1 - (x² + y² - R)²`. |
+| Checkerboard | [`frame_checker.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_checker.su) | A crisp checkerboard from cell parities, `(1 + px·py) / 2`. |
+| Diagonal gradient | [`frame_diag.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_diag.su) | A corner-to-corner ramp, `(1 + (x + y)/2) / 2`. |
+| Four-region layout | [`frame_quad.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_quad.su) | Glow, ring, gradient and checker tiled into the four quadrants of one frame, composed in one substrate op. |
 | Click toggle | [`click_frame.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/click_frame.su) | A click flips a state on the substrate; the glow appears and disappears with it. |
 | Counter | [`count.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/count.su) | A click counter whose count lives on the substrate between clicks. |
 | Toggle | [`toggle.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/toggle.su) | A 0/1 state flipped on the substrate. |
