@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-11: GUI #4 (progress) — substrate-RNN-driven animation (moving glow)
+
+Second GUI #4 widget, and the one that combines the prior two: `demos/gui/moving_glow.su` drives
+the animation from a SUBSTRATE-RNN. `step()` holds the glow centre `cx` in a recurring slot and
+advances it +0.25 each tick (recur, like count.su); `frame_at(x,y,ones,cx)` renders the whole
+frame at that centre in one op (the #3 hadamard/buffer machinery). So the animation STATE lives on
+the substrate — the centre persists across ticks in the recur slot, never round-tripping through a
+host scalar between ticks; the host reads it only to drive the render (display boundary, like
+count.su's title). Driver `whole_frame.animate_moving_glow(size, frames)` + guard
+`test_animation_centre_is_a_substrate_rnn`. MEASURED: `step()` walked 6× with no host feedback →
+`[-0.75,-0.5,-0.25,0,0.25,0.5]` (advancing on the substrate); across animation frames the brightest
+column moves monotonically right (the glow slides with the substrate centre); per-frame oracle
+5.96e-08. GUI suite 13/13. This is the honest-substrate-RNN form the prior moving-glow increment
+flagged as next. #4 stays open (gradient/shape fields, click→state interaction remain).
+
 ## 2026-06-11: GUI item #4 (progress) — animatable moving-glow whole-frame demo
 
 First widget added to the GUI #4 "broaden" set: `demos/gui/frame_moving.su` — a glow centred at

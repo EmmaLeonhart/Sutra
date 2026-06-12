@@ -1,0 +1,31 @@
+// moving_glow.su — animation as a SUBSTRATE-RNN driving a whole-frame render.
+//
+// Combines the two earlier pieces: count.su's substrate-state recurrence and
+// frame_whole.su's one-op whole-frame render. The glow's centre `cx` lives ON THE
+// SUBSTRATE in a recurring slot and advances each tick; the frame is rendered at the
+// current centre. The recurrence never round-trips through a host scalar between
+// ticks (the recur slot is the source of truth) — the host reads the current centre
+// only to drive the display (the terminal boundary), exactly like count.su's title.
+//
+//   step()                     — one animation tick. Loads the recurring `cx`,
+//                                advances it right by 0.25, writes it back via
+//                                recur(...), returns the new centre. Walk it N times
+//                                and the centre sweeps left→right on the substrate.
+//   frame_at(x, y, ones, cx)   — the whole frame for centre `cx`, one substrate op:
+//                                ones - hadamard(x - cx, x - cx) - hadamard(y, y)
+//                                = 1 - (x - cx)^2 - y^2. `cx` is the current centre
+//                                broadcast to every pixel.
+function vector step() {
+    recurring vector cx = make_real(-1.0);   // start at the left edge
+    vector next = cx + make_real(0.25);      // slide right each tick
+    recur(next);
+    return next;
+}
+
+function vector frame_at(vector x, vector y, vector ones, vector cx) {
+    vector dx = x - cx;
+    return ones - hadamard(dx, dx) - hadamard(y, y);
+}
+
+// Sanity entry: first tick advances the centre to -1.0 + 0.25 = -0.75.
+function vector main() { return step(); }

@@ -730,10 +730,12 @@ block is complete. Items #1 and #2 are DONE; #3 design is locked (build next).
    substrate-RNN step), input handling (click → substrate state transition), simple
    layout. Each demo: a runnable `.su` + driver + a test asserting substrate-side
    correctness, dim-audited (smallest `runtime_dim` it needs).
-   *(IN PROGRESS — landed 2026-06-11: animatable moving-glow `frame_moving.su`
-   (`1-(x-cx)²-y²`, whole-frame one-op, glow tracks `cx`; `render_field_moving` +
-   guard, GUI 12/12). Next increments: drive `cx` from a substrate-RNN `recur` so
-   animation state lives on the substrate; gradient/shape fields; click→state.)*
+   *(IN PROGRESS — landed 2026-06-11: (a) animatable moving-glow `frame_moving.su`
+   (`1-(x-cx)²-y²`, whole-frame one-op, glow tracks `cx`); (b) substrate-RNN-driven
+   animation `moving_glow.su` — `step()` advances the centre on the substrate (recur,
+   no host feedback: walked 6×→[-0.75..0.5]) + `frame_at` renders the whole frame at
+   it; `animate_moving_glow` driver, GUI 13/13. Next increments: gradient/shape
+   fields; click→substrate-state interaction.)*
 5. **A human-facing GUI page on the website** (`docs/…`, rendered by
    `scripts/build_site.py`) — "see Sutra draw pixels." Website discipline: NO
    repo-internal refs (no queue/todo/planning/sdk paths), no numpy mentions; show the
