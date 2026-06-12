@@ -84,6 +84,27 @@ def _lower_expr(node, src: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
+def _lower_block(node, src: bytes) -> str:
+    """A `{ val a = …; val b = …; finalExpr }` block body → Sutra local declarations
+    + a `return` of the final expression. `val a = e` → `<ty> a = <e>;` (ty from a
+    `val a: T = e` annotation, else the int default)."""
+    stmts = ""
+    final = None
+    for c in node.named_children:
+        if c.type == "val_definition":
+            kids = c.named_children
+            if len(kids) < 2:
+                continue
+            name = _text(kids[0], src)
+            ty_node = next((k for k in kids if k.type == "type_identifier"), None)
+            ty = _map_type(ty_node, src) if ty_node is not None else _DEFAULT_TYPE
+            stmts += f"    {ty} {name} = {_lower_expr(kids[-1], src)};\n"
+        else:
+            final = c  # the block's value is its last non-val expression
+    final_src = _lower_expr(final, src) if final is not None else "0"
+    return stmts + f"    return {final_src};\n"
+
+
 def _lower_function(node, src: bytes) -> str:
     kids = node.named_children
     name_node = next((c for c in kids if c.type == "identifier"), None)
@@ -105,11 +126,10 @@ def _lower_function(node, src: bytes) -> str:
     body = kids[-1] if kids else None
     if body is None or body.type in ("identifier", "parameters", "type_identifier"):
         return f"// UNSUPPORTED-DEF: '{name}' has no expression body\n"
-    body_src = _lower_expr(body, src)
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
-    return (f"function {ret} {name}({params_src}) {{\n"
-            f"    return {body_src};\n"
-            f"}}\n")
+    inner = _lower_block(body, src) if body.type == "block" \
+        else f"    return {_lower_expr(body, src)};\n"
+    return f"function {ret} {name}({params_src}) {{\n{inner}}}\n"
 
 
 def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:

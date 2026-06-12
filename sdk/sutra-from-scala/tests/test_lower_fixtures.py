@@ -23,6 +23,7 @@ _REPO = HERE.parents[2]
 _RUNNABLE = {
     "add_main": 16.0,  # def add(a,b)=a+b; def main()=add(7,9)
     "if_classify": 100.0,  # if (n>0) 100 else 200; classify(5)  (if -> defuzz blend)
+    "val_block": 17.0,  # { val y=x+1; val z=y*2; z+x } at x=5  (block val bindings -> Sutra locals)
 }
 
 
