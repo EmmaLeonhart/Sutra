@@ -19,6 +19,11 @@ deleted on completion. Keep the task tool in sync with this file.
   coeff-family IO 0.41 — see `planning/findings/2026-05-30-w2c-coeff-head-diagnostic.md`
   § "Bigger-corpus test") is SCRATCH ONLY. Push the official model/eval to the
   submodule + HF, or keep scratch? (Held since 2026-05-31.)
+- **Le Chat section-granular AI-use breakdown (paper polish item).** The current
+  AI-use statement (`paper/paper.md` §AI-use) is generic. A per-section breakdown
+  naming Le Chat requires Emma's ground truth of WHICH sections she used Le Chat
+  for — writing it from guesswork would fabricate an integrity statement. Needs:
+  the section list + what Le Chat did there (ideation/drafting/lit-search).
 
 ## Context (read first, do not work on)
 
@@ -65,9 +70,10 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## Next-venue paper polish (UNFROZEN — active)
 
-`paper/paper.md`: ablation table; polynomial-interpolant-rationale paragraph
-(prose in `git show 41fa446b`); Le Chat section-granular AI-use breakdown;
-optional Futamura 1971 bib entry.
+`paper/paper.md`: ablation table (requires DEFINING + RUNNING the ablations —
+e.g. semantic vs random codebook, dimension sweep, mean-centering on/off —
+measured numbers only, never filled from memory). Le Chat AI-use breakdown →
+A.0 (needs Emma's ground truth).
 
 ## 🌐 Merged queue — from the Neural WebAssembly (`WASM/`) repo
 
