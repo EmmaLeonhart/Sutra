@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-12: GUI long-horizon #7 (progress) — multi-widget layout
+
+Second #7 increment: `demos/gui/frame_layout.su` composes two whole-frame widgets into
+regions of one frame via a region mask, one substrate op — `hadamard(maskL, glow) +
+hadamard(ones-maskL, ring)` (masked superposition; maskR is maskL's complement, so the
+regions tile with no overlap/gap). Driver `whole_frame.render_layout` (left half = glow,
+right half = ring) + guard `test_layout_composes_two_widgets_into_regions`. MEASURED: the
+composed frame == the region-selected host oracle to 1.14e-07; GUI suite 17/17. #7 continues:
+real window event loop, learned decoder, Yantra integration.
+
 ## 2026-06-12: GUI long-horizon #7 (progress) — colour/RGB frames
 
 First #7 increment: `demos/gui/frame_rgb.su` — three substrate-computed colour channel fields,

@@ -1,0 +1,24 @@
+// frame_layout.su — multi-widget LAYOUT: two whole-frame widgets composed into
+// regions of one frame, on the substrate.
+//
+// GUI long-horizon increment. A region mask selects which widget shows where: the
+// left half (maskL = 1) shows the glow, the right half (maskL = 0) shows the ring.
+// Composition is masked superposition — `maskL*glow + maskR*ring` — all elementwise
+// buffer arithmetic (hadamard + add), one substrate pass. maskR is the complement of
+// maskL, so the two regions tile the frame with no overlap and no gap.
+//
+//   layout = hadamard(maskL, glow) + hadamard(ones - maskL, ring)
+function vector layout(vector x, vector y, vector ones, vector maskL, vector radius) {
+    vector glow = ones - hadamard(x, x) - hadamard(y, y);
+    vector r2 = hadamard(x, x) + hadamard(y, y);
+    vector d = r2 - radius;
+    vector ring = ones - hadamard(d, d);
+    vector maskR = ones - maskL;
+    return hadamard(maskL, glow) + hadamard(maskR, ring);
+}
+
+// Sanity entry: maskL = 1 (left region) at the centre -> shows the glow = 1 - 0 - 0 = 1.
+function vector main() {
+    return layout(make_real(0.0), make_real(0.0), make_real(1.0),
+                  make_real(1.0), make_real(0.5));
+}

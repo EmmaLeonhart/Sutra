@@ -685,8 +685,10 @@ foldable CPS frontend transform; see DEVLOG/findings). So these longer-horizon G
 are now the top actionable queue item. The loop works them in order; each is a runnable `.su`
 (or driver) + a test asserting substrate-side correctness against a reference, dim-audited.
 
-- **Simple multi-widget layout** — compose several whole-frame widgets into regions of one
-  frame (e.g. glow + ring side by side via buffer offsets/masks).
+- **Simple multi-widget layout** — DONE 2026-06-12: `demos/gui/frame_layout.su` composes
+  glow (left) + ring (right) via a region mask in one substrate op (`hadamard(maskL,glow) +
+  hadamard(ones-maskL,ring)`); `render_layout` + guard; == region-selected host (1.14e-07),
+  GUI 17/17. (Richer N-region layouts are an open extension.)
 - **Colour / RGB frames** — DONE 2026-06-12: `demos/gui/frame_rgb.su` (R=glow, G=ring,
   B=gradient), each a whole-frame substrate channel field; `render_rgb` stacks them N×N×3;
   each channel == host (≤1.2e-7), GUI 16/16. (More shapes/gradients — checker etc. — open.)
