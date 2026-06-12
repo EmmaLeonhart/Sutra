@@ -1,0 +1,27 @@
+// click_frame.su — click→substrate-state INTERACTION driving a whole-frame render.
+//
+// Combines toggle.su's substrate-state flip with frame_whole.su's one-op render: a
+// click flips a 0/1 state ON THE SUBSTRATE, and the rendered frame is the glow GATED
+// by that state — visible when the state is 1, blank when 0. The interaction's state
+// lives in the substrate recur slot across clicks (never round-tripping through a host
+// scalar between clicks); the host reads it only to drive the render (display boundary).
+//
+//   flip()                       — one click. Toggles the recurring 0/1 state on the
+//                                  substrate (make_real(1.0) - state) and returns it.
+//   frame_gated(x, y, ones, gate)— the glow gated by `gate` (the state, broadcast):
+//                                  hadamard(gate, 1 - x^2 - y^2). gate=1 -> glow,
+//                                  gate=0 -> all zeros (blank). One substrate op.
+function vector flip() {
+    recurring vector state = make_real(0.0);
+    vector new_state = make_real(1.0) - state;
+    recur(new_state);
+    return new_state;
+}
+
+function vector frame_gated(vector x, vector y, vector ones, vector gate) {
+    vector glow = ones - hadamard(x, x) - hadamard(y, y);
+    return hadamard(gate, glow);
+}
+
+// Sanity entry: first click flips the state 0 -> 1.
+function vector main() { return flip(); }

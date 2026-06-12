@@ -109,6 +109,29 @@ def test_ring_widget_matches_oracle_and_is_a_ring() -> None:
     assert peak > centre + 1e-3, f"expected a ring (peak {peak} > centre {centre})"
 
 
+def test_click_interaction_gates_render_via_substrate_state() -> None:
+    """click_frame.su: a click flips a 0/1 state on the SUBSTRATE (no host feedback
+    between clicks) and the rendered frame is the glow GATED by that state — visible
+    when 1, blank when 0. Verifies the substrate-state toggle and that clicking
+    alternates the frame between glow and blank (interaction → visible change)."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    flip, _frame_gated, vsa = whole._compile_click_frame()
+
+    def read(v):
+        v = v.real if v.is_complex() else v
+        return float(v[vsa.semantic_dim + vsa.AXIS_REAL])
+
+    seq = [round(read(flip()), 3) for _ in range(6)]   # no host arg
+    assert seq == [1.0, 0.0, 1.0, 0.0, 1.0, 0.0], seq  # substrate-state toggle
+
+    size = 16
+    frames = whole.click_frames(size, clicks=4)        # glow, blank, glow, blank
+    assert len(frames) == 4
+    brights = [float(f.max()) for f in frames]
+    assert brights[0] > 0.9 and brights[2] > 0.9       # state 1 -> glow visible
+    assert brights[1] < 1e-6 and brights[3] < 1e-6     # state 0 -> blank
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""

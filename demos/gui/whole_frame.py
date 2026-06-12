@@ -132,6 +132,48 @@ def render_field_ring(size: int = 64, radius: float = 0.5):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+def _compile_click_frame():
+    """Compile click_frame.su -> (flip, frame_gated, _VSA). `flip` toggles the 0/1
+    state on the substrate; `frame_gated` renders the glow gated by that state."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "click_frame.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8,
+                     verbose=False)
+    return mod.flip, mod.frame_gated, mod._VSA
+
+
+def click_frames(size: int = 64, clicks: int = 4):
+    """Interaction driven by SUBSTRATE state: each click flips a 0/1 state on the
+    substrate (click_frame.su's `flip`), then renders the glow GATED by that state
+    (visible when 1, blank when 0). Returns a list of `clicks` (size, size) arrays —
+    the frame the user would see after each click. The state lives in the substrate
+    recur slot across clicks; the host reads it only to drive the render.
+    """
+    import torch
+
+    flip, frame_gated, vsa = _compile_click_frame()
+    dt, dev = vsa.dtype, vsa.device
+    xs, ys = [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(size * size, dtype=dt, device=dev)
+    out = []
+    for _ in range(clicks):
+        st = flip()                                  # substrate-state toggle
+        g = float((st.real if st.is_complex() else st)[vsa.semantic_dim + vsa.AXIS_REAL])
+        gate = torch.full((size * size,), g, dtype=dt, device=dev)
+        buf = frame_gated(X, Y, ones, gate)          # one-op gated render
+        buf = buf.real if buf.is_complex() else buf
+        out.append(buf.reshape(size, size).detach().to("cpu").numpy())
+    return out
+
+
 def _compile_moving_glow():
     """Compile moving_glow.su -> (step, frame_at, _VSA). `step` is the substrate-RNN
     that advances the glow centre on the substrate; `frame_at` renders the whole frame

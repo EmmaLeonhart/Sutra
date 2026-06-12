@@ -725,19 +725,13 @@ block is complete. Items #1 and #2 are DONE; #3 design is locked (build next).
    `frame(...)` call produces the whole frame; `whole_frame.py` driver +
    `test_gui_whole_frame.py`. Oracle MEASURED: == per-pixel render_field() to
    5.96e-08; GUI 11/11.)*
-4. **Broaden the widget / interaction set** — more demos establishing GUI as the
-   early-adoption showcase: richer rendering (gradients/shapes/animation via the
-   substrate-RNN step), input handling (click → substrate state transition), simple
-   layout. Each demo: a runnable `.su` + driver + a test asserting substrate-side
-   correctness, dim-audited (smallest `runtime_dim` it needs).
-   *(IN PROGRESS — landed 2026-06-11: (a) animatable moving-glow `frame_moving.su`
-   (`1-(x-cx)²-y²`, whole-frame one-op, glow tracks `cx`); (b) substrate-RNN-driven
-   animation `moving_glow.su` — `step()` advances the centre on the substrate (recur,
-   no host feedback: walked 6×→[-0.75..0.5]) + `frame_at` renders the whole frame at
-   it; `animate_moving_glow` driver. (c) concentric-ring shape `frame_ring.su`
-   (`1-(x²+y²-R)²`, whole-frame one-op; measured ring: centre 0.759 < peak 0.999;
-   `render_field_ring` + guard). GUI 14/14. Remaining: click→substrate-state
-   interaction.)*
+   *(Item 4 — broaden the widget/interaction set — DONE 2026-06-11, see DEVLOG. Widget
+   set: whole-frame glow, moving glow (`frame_moving.su`), substrate-RNN animation
+   (`moving_glow.su`, centre advances on the substrate), concentric ring
+   (`frame_ring.su`), click→substrate-state interaction (`click_frame.su`, flip gates
+   the glow). All whole-frame one-op renders on the hadamard/buffer machinery, each
+   substrate-verified vs a host oracle. GUI 15/15. Optional extra (not blocking):
+   simple multi-widget layout.)*
 5. **A human-facing GUI page on the website** (`docs/…`, rendered by
    `scripts/build_site.py`) — "see Sutra draw pixels." Website discipline: NO
    repo-internal refs (no queue/todo/planning/sdk paths), no numpy mentions; show the
