@@ -651,6 +651,65 @@ fixtures that compile **AND run on the substrate** (the OCaml harness's
   `transpilers-ci.yml` that installs the tree-sitter grammars + runs every
   `sutra-from-*` test suite. Scope decision — not auto-started.
 
+## ⭐ GUI — substantial expansion (Emma 2026-06-11; the LAST work block before the pinned tail)
+
+**Vision (Emma).** GUI is a much stronger component of Sutra for *early adoption*
+than earlier framing assumed — a window of substrate-computed pixels is the most
+legible "Sutra actually runs and produces something you can see" demo there is.
+Invest substantially more here. This block is the last work item in the queue; the
+work loop barrels the rest of the queue, then lands on this. The long-horizon GUI
+agenda continues in `todo.md` once this is decomposed and underway.
+
+**Grounding (what exists today — do NOT reinvent; build on it).**
+- `demos/gui/frame.su` — per-pixel substrate brightness field `pixel(x,y)=1−x²−y²`;
+  host (`demos/gui/window.py`) walks the grid, calls `pixel` per cell, paints a window.
+- `demos/gui/count.su`, `toggle.su` — stateful demos, plus drivers
+  (`counter_demo.py`, `click_demo.py`, `counter_substrate_server.py`) + tests
+  (`test_gui_{click,counter,render}.py`).
+- `demos/font/` — substrate font rendering (companion surface).
+- Audit: `planning/findings/2026-05-28-demos-gui-substrate-audit.md` (dim hygiene PASS
+  — dim=8, 0 basis_vector; the two stateful demos are host-state-shuttle, refactor flagged).
+
+**HARD RAILS for ALL GUI work (CLAUDE.md):**
+- Every pixel/step value is computed ON THE SUBSTRATE. No host arithmetic inside ops.
+- **No host readout inside the language.** `real()`/`make_real`-as-readout is removed;
+  `realvec(v)` is the on-substrate replacement. The ONE legitimate boundary is the
+  orchestrator/host reading the FINAL frame vector to paint it (terminal I/O, the
+  orchestrator-model boundary) — not per-op extraction.
+- Stateful GUI MUST be a substrate-RNN: hidden state is a VECTOR carried across loop
+  iterations, NOT a Python variable shuttled between calls (the count/toggle failure).
+- Verify against ground truth: decoded frame/pixels == expected, MEASURED, not "it ran".
+
+**Decomposition (work top→bottom; each its own commit + DEVLOG entry):**
+1. **Bring the existing GUI demos current to the post-purity language.** `frame.su` +
+   `window.py` (and font drivers) still use pre-2026-06-07 `real()`/`make_real` host
+   readout. Re-lower so the per-op path is substrate-pure (`realvec`), the host reads
+   only the final frame. Re-run the demos; confirm the painted output is unchanged
+   (measured: same brightness field). Update the now-stale "recurrent loop" driver/test
+   docstrings flagged by the audit.
+2. **Substrate-RNN refactor of the stateful demos (`count.su`, `toggle.su`).** Rewrite
+   so the counter/toggle state is a vector carried across `loop` iterations on the
+   substrate (no host `n += 1`). Add a state-locus test (walk N steps, assert no host
+   extraction between ticks — the template the audit names). This discharges the
+   long-flagged "host-state-shuttle dressed as recurrence" design failure.
+3. **Whole-frame render in ONE substrate call** (the "fuller form" Emma described):
+   a single returned vector decoded to a full frame via a reverse-CNN-style decoder,
+   instead of N per-pixel calls. (Original Yantra-era sketch `planning/24-first-gui.md`
+   was NOT migrated — write a fresh `planning/exploratory/` design doc here first, then
+   build the smallest version and measure decoded-frame == per-pixel-field as the oracle.)
+4. **Broaden the widget / interaction set** — more demos establishing GUI as the
+   early-adoption showcase: richer rendering (gradients/shapes/animation via the
+   substrate-RNN step), input handling (click → substrate state transition), simple
+   layout. Each demo: a runnable `.su` + driver + a test asserting substrate-side
+   correctness, dim-audited (smallest `runtime_dim` it needs).
+5. **A human-facing GUI page on the website** (`docs/…`, rendered by
+   `scripts/build_site.py`) — "see Sutra draw pixels." Website discipline: NO
+   repo-internal refs (no queue/todo/planning/sdk paths), no numpy mentions; show the
+   real mechanism (substrate computes the image field, host paints).
+
+Mirror these into the task tool. As each lands: delete it here, append a dated DEVLOG
+entry, push. When this block is cleared, the GUI long-horizon agenda lives in `todo.md`.
+
 ## Pinned tail (always present — bracket every session)
 
 Per CLAUDE.md §"Autonomous productivity loop" lifecycle: a fresh session
