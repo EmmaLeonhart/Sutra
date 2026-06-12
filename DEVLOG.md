@@ -1,5 +1,13 @@
 # Development Log
 
+## 2026-06-12: sutra-from-scala — `val` bindings (block bodies)
+
+Third Scala increment. A `{ val a = …; val b = …; finalExpr }` block body lowers to Sutra
+local declarations + a `return` of the final expression (`val a = e` → `<ty> a = <e>;`, ty
+from a `val a: T = e` annotation else int default). Fixture `val_block`
+(`{ val y=x+1; val z=y*2; z+x }` at x=5): substrate-verified = 17 (y=6, z=12, z+x=17). Scala
+suite 6/6. Next: `match` (→ tagged-axon/blend), case classes (→ axons).
+
 ## 2026-06-12: sutra-from-scala — if/else → defuzz blend
 
 Second Scala increment. `if_expression` lowers to the Sutra defuzz blend (same shape as the
