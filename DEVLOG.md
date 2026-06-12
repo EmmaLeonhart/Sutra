@@ -1,6 +1,19 @@
 # Development Log
 
-## 2026-06-12: sutra-from-scala — match guards + name-binding patterns
+## 2026-06-12: paper polish — polynomial-rationale paragraph restored + Futamura 1971 reference
+
+Two of the four next-venue polish items. (1) The §1.1-1 paragraph justifying Lagrange
+interpolation over softened t-norms (Emma-approved prose from `41fa446b`, 2026-05-20)
+had been dropped by the 2026-06-07 paper rewrite — restored verbatim at its original
+position after the connective polynomials (grid-exactness as the non-negotiable;
+the AND(0.5, 0)=0.125 non-monotonicity trade-off named plainly). (2) The related-work
+section cited "the Futamura projections" with no reference — added the Futamura 1971
+*Systems, Computers, Controls* bib entry + in-text citation. Remaining polish items:
+ablation table (needs ablations DEFINED + RUN — never filled from memory); Le Chat
+section-granular AI-use breakdown moved to A.0 (needs Emma's ground truth of which
+sections used Le Chat — guesswork would fabricate an integrity statement). Push
+triggers the papers-ci clawRxiv cycle.
+
 
 Seventh Scala increment: `case x if x > 0 => x * 10` lowers with the guard
 AND-combined into the clause test (`(pattern == k) && (guard)`, or the guard alone for
