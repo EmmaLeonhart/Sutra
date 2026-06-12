@@ -39,6 +39,7 @@ DEMO_FONT = pathlib.Path(__file__).resolve().parent
 # font_data.py is the test-time oracle for what each glyph SHOULD be.
 sys.path.insert(0, str(DEMO_FONT))
 from font_data import CHARS_ORDER, FONT_5x5, bits_for  # noqa: E402
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 
 def _load_font_demo():
@@ -70,7 +71,7 @@ def test_glyph_pixel_matches_font_data_on_substrate(char: str, fontmod) -> None:
 
     for y in range(5):
         for x in range(5):
-            got = float(vsa.real(glyph_pixel(float(x), float(y), code)))
+            got = read_real(vsa, glyph_pixel(float(x), float(y), code))
             want = expected[y * 5 + x]
             # The defuzzified-select trick makes off-branch weights exactly 0
             # (exp(-1000) underflows in both float32 and float64), so the
@@ -96,7 +97,7 @@ def test_step_zeros_previous_state_on_substrate(fontmod) -> None:
         for x in range(5):
             for prev_val in (0.0, 1.0, 7.5, -3.0):
                 prev = vsa.make_real(prev_val)
-                got = float(vsa.real(step(prev, float(x), float(y), code)))
+                got = read_real(vsa, step(prev, float(x), float(y), code))
                 want = expected[y * 5 + x]
                 assert abs(got - want) < 1e-9, (
                     f"step(prev={prev_val}) at ({x},{y}) for 'I': got {got}, "

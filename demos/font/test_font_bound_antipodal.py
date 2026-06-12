@@ -33,6 +33,7 @@ SUTRA_ROOT = DEMO_FONT.parent.parent
 
 sys.path.insert(0, str(DEMO_FONT))
 from font_data import CHARS_ORDER, bits_for  # noqa: E402
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 _RUNTIME_DIM = 256
 _THRESHOLD = 0.0  # Antipodal: lit cosines positive, unlit negative; midpoint is 0.
@@ -73,7 +74,7 @@ def test_antipodal_recovers_every_glyph_pixel_exact(font_bound_antipodal_mod) ->
         bits = bits_for(ch)
         for y in range(5):
             for x in range(5):
-                sim = float(vsa.real(glyph_pixel_antipodal(float(x), float(y), float(ord(ch)))))
+                sim = read_real(vsa, glyph_pixel_antipodal(float(x), float(y), float(ord(ch))))
                 got = 1.0 if sim > _THRESHOLD else 0.0
                 want = bits[y * 5 + x]
                 if got != want:
@@ -101,7 +102,7 @@ def test_antipodal_cosine_separation_holds(font_bound_antipodal_mod) -> None:
         bits = bits_for(ch)
         for y in range(5):
             for x in range(5):
-                sim = float(vsa.real(glyph_pixel_antipodal(float(x), float(y), float(ord(ch)))))
+                sim = read_real(vsa, glyph_pixel_antipodal(float(x), float(y), float(ord(ch))))
                 (lit_sims if bits[y * 5 + x] > 0.5 else unlit_sims).append(sim)
 
     lit_min = min(lit_sims)

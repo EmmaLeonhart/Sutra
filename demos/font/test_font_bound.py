@@ -27,6 +27,7 @@ SUTRA_ROOT = DEMO_FONT.parent.parent
 # font_data.py is the test-time oracle (sits in demos/font/).
 sys.path.insert(0, str(DEMO_FONT))
 from font_data import CHARS_ORDER, bits_for  # noqa: E402
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 # The dim where the sparse-only-LIT encoding crosses no-overlap (per
 # planning/26's measured table). Lower dims still produce mostly-correct
@@ -87,7 +88,7 @@ def test_sparse_only_lit_recovers_every_glyph_pixel_exact(font_bound_mod) -> Non
         bits = bits_for(ch)
         for y in range(5):
             for x in range(5):
-                sim = float(vsa.real(glyph_pixel_bound(float(x), float(y), float(ord(ch)))))
+                sim = read_real(vsa, glyph_pixel_bound(float(x), float(y), float(ord(ch))))
                 got = 1.0 if sim > _THRESHOLD else 0.0
                 want = bits[y * 5 + x]
                 if got != want:
@@ -115,7 +116,7 @@ def test_lit_unlit_cosine_separation_holds(font_bound_mod) -> None:
         bits = bits_for(ch)
         for y in range(5):
             for x in range(5):
-                sim = float(vsa.real(glyph_pixel_bound(float(x), float(y), float(ord(ch)))))
+                sim = read_real(vsa, glyph_pixel_bound(float(x), float(y), float(ord(ch))))
                 (lit_sims if bits[y * 5 + x] > 0.5 else unlit_sims).append(sim)
 
     lit_min = min(lit_sims)
