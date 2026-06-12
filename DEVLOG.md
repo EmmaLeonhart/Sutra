@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-11: Filed the `(atom) <binop>` cast-vs-grouping parser ambiguity as an open-question
+
+New `planning/open-questions/paren-cast-vs-grouping-ambiguity.md` (+ a README triage row).
+Sutra's `paren_or_cast = "(" ( type ")" unary | expr ")" )` production makes `(x) - y` parse as
+`CastExpr(x, -y)` rather than the subtraction, when the parenthesized atom reads as a type and the
+operator can begin a unary expression. Both transpiler frontends already side-step it by
+fully-parenthesising every operand (`_blend`, the TS lowering); a hand-written `.su` still
+mis-parses silently. The doc states the production + disambiguation heuristic, the exact conflict,
+the frontend workaround, and four resolution options (distinct cast syntax / type-aware position /
+following-token rule / leave-and-lint). No code change — recording a known grammar gap, per the
+open-questions discipline. Clears the (optional) transpiler-track item.
+
 ## 2026-06-11: OCaml frontend — top-level ctor value binding (`let z = Zero` at module scope)
 
 Closed follow-on (b'), the last item in the constructor/aggregate group. A zero-parameter

@@ -38,6 +38,7 @@ one line).
 | `nested-loops-as-orthogonal-subspaces.md` | OPEN | subspace allocation + termination + cross-subspace channel for nested `loop(cond)` |
 | `cosine-vs-euclidean-for-post-algebraic-similarity.md` | OPEN | is Euclidean right for post-bind/bundle compare (magnitude info); never tested; gates any "right metric" claim |
 | `contextual-vs-static-embedding-keys.md` | OPEN | static string-keyed `embed()` vs contextual; load-bearing only for beyond-toy NL claims |
+| `paren-cast-vs-grouping-ambiguity.md` | OPEN | `(atom) <binop>` parses as a cast not a group; transpilers fully-group around it, hand-written `.su` still mis-parses; pick a cast syntax / disambiguation rule |
 
 Tally (after the 2026-05-28 pruning pass):
 **2 RESOLVED-core with a narrow OPEN tail** (`literals-and-auto-embedding`,
