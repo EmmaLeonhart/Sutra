@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-12: W2C official baseline model PUBLISHED (Emma's call); both A.0 items drained
+
+Emma resolved both held ask-Emma items in chat: the Le Chat AI-use breakdown is DROPPED
+(ancient/stale), and the W2C official push is GO. Published `corpus/model/` — the
+2026-06-01 retrain checkpoint (d128/L3, 1.48M params, 40 epochs on the 7200-program
+corpus), vocab, and the full substrate eval (`eval_result.json`) it was measured by:
+exact 0.811 / canonical 0.825 / IO reproduction 0.826 on 720 held-out, 0 compile/run
+failures — provenance cross-checked against `_drive_2x.log` before publishing. Card
+documents the per-structure coefficient wall. Submodule `7dfb660a` (GitHub) + HF
+`fbf07a2d` (the whole-folder mirror 504'd on the commit call but landed server-side;
+verified via list_repo_files). A.0 is now empty.
+
 ## 2026-06-12: paper polish — polynomial-rationale paragraph restored + Futamura 1971 reference
 
 Two of the four next-venue polish items. (1) The §1.1-1 paragraph justifying Lagrange
