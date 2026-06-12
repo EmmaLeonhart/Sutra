@@ -744,6 +744,36 @@ block is complete. Items #1 and #2 are DONE; #3 design is locked (build next).
 Mirror these into the task tool. As each lands: delete it here, append a dated DEVLOG
 entry, push. When this block is cleared, the GUI long-horizon agenda lives in `todo.md`.
 
+## 🔁 Non-tail recursion — aggressively try CPS + Tree RNNs (Emma 2026-06-11; END of the queue)
+
+After the GUI block (above), before the pinned tail — runs once all current GUI work is
+done, and BEFORE the todo-end new-language frontends (promoted out of todo-end to here).
+Emma: aggressively try **two** approaches with a very large amount of effort, and compare
+which actually runs non-tail recursion on the substrate. Full design + her framing:
+`planning/exploratory/non-tail-recursion-on-the-substrate.md`.
+
+The problem: Sutra's `if/then/else` is a defuzz BLEND (evaluates both branches, no call
+stack), so naive `f(x)=1+f(x-1)` never halts — the `1+` is pending work. Tail recursion
+already lowers to `while_loop`; an RNN is tail-recursive by construction. The two builds:
+
+1. **CPS + trampolining** — rewrite `f(x)=1+f(x-1)` to `f(x,k)=f(x-1, λr. k(1+r))`:
+   tail-recursive, but the pending work becomes an explicit continuation CHAIN (the stack
+   as a data structure). Trampoline = return thunks, top-level `while_loop` bounces until
+   a real value. Open piece: representing the continuation (first-class fn values, or a
+   reified continuation). Target: `factorial` / `1+f(x-1)` shape.
+2. **Tree RNNs** — `h(node)=f(h(left),h(right))` over a FIXED topology: non-tail in
+   structure but computed bottom-up in a single forward pass, no stack. Target: a
+   fixed-topology tree fold.
+
+Spine: FIXED structure (tractable, bottom-up single pass) vs DYNAMIC structure (needs a
+reified/external stack — the genuinely-unsolved-differentiably case; out of scope here,
+noted as the frontier; overlaps the NTM/RAM track).
+
+HARD RAIL: every approach RUN on the substrate (`sutrac --run`), decoded output compared
+to ground truth; per-approach table (halts / correct / max clean depth / substrate-pure /
+differentiable); negative results marked with the measured reason. Deliver a finding +
+recommendation.
+
 ## Pinned tail (always present — bracket every session)
 
 Per CLAUDE.md §"Autonomous productivity loop" lifecycle: a fresh session
