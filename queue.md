@@ -708,6 +708,28 @@ to ground truth; per-approach table (halts / correct / max clean depth / substra
 differentiable); negative results marked with the measured reason. Deliver a finding +
 recommendation.
 
+## 🎨 GUI long-horizon extensions (Emma 2026-06-11; END of the queue, after non-tail recursion)
+
+The core GUI block shipped (DONE — `demos/gui/` whole-frame renders + `hadamard` primitive +
+`docs/gui.md`). These are the longer-horizon GUI extensions, at the back of the queue (after
+the non-tail-recursion build above). The loop works them in order; each is a runnable `.su`
+(or driver) + a test asserting substrate-side correctness against a reference, dim-audited.
+
+- **Simple multi-widget layout** — compose several whole-frame widgets into regions of one
+  frame (e.g. glow + ring side by side via buffer offsets/masks).
+- **Colour / RGB frames** — three channels interleaved (`[R,G,B,…]` buffer), plus more
+  shapes/gradients (linear gradient, checker, etc.).
+- **A real window event loop** — live clicks/animation driving the substrate state, not just
+  per-frame render calls from a script.
+- **Learned decoder / arbitrary-image generation** — a trained nonlinear decoder from a latent
+  to an arbitrary frame (the constrain-train "every op trainable" vision meets GUI); the
+  analytic whole-frame render is the fixed-weight base case.
+- **Yantra GUI integration** — the window living in the orchestrator, per the Yantra OS.
+
+HARD RAILS (CLAUDE.md): every pixel computed on the substrate; no host math inside the op;
+stateful widgets are substrate-RNNs (state a vector across ticks, not a host shuttle); verify
+the rendered frame against a reference, measured.
+
 ## Pinned tail (always present — bracket every session)
 
 Per CLAUDE.md §"Autonomous productivity loop" lifecycle: a fresh session

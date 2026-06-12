@@ -1,5 +1,13 @@
 # Development Log
 
+## 2026-06-11: GUI long-horizon extensions → end of queue.md (Emma)
+
+Emma's call: the GUI long-horizon extensions belong in the active queue, not todo.md. Moved
+them from the todo.md section (added in c06abcea) to the END of queue.md, after the non-tail-
+recursion build, before the pinned tail (layout / colour-RGB / real event loop / learned
+decoder / Yantra integration). The loop works them in order after non-tail recursion; each is
+a runnable demo + a substrate-verified test.
+
 ## 2026-06-11: GUI item #5 DONE — human-facing website page; GUI block COMPLETE
 
 Wrote `docs/gui.md` ("Drawing pixels") — the human-facing early-adoption page: Sutra computes

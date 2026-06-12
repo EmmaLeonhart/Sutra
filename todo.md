@@ -798,29 +798,6 @@ Remaining work:
   for `Greeter g`). Needs variable type tracking through the
   codegen.
 
-## [This year] GUI — long-horizon (early-adoption surface)
-
-The GUI block shipped 2026-06-11 (Emma's top priority): `demos/gui/` whole-frame renders
-(glow / moving glow / substrate-RNN animation / ring / click→substrate-state), the
-`hadamard` elementwise/buffer primitive, and the human-facing `docs/gui.md` page ("Drawing
-pixels"). Emma's framing: GUI is a much stronger early-adoption surface than earlier
-assumed — a window of substrate-computed pixels is the most legible "Sutra runs and you can
-see it" demo. Long-horizon extensions (autonomous, as the loop reaches them):
-
-- [ ] Simple multi-widget **layout** — compose several whole-frame widgets into regions.
-- [ ] **Colour / RGB** frames (three channels interleaved) and more shapes/gradients.
-- [ ] A real **window event loop** (live clicks/animation, not just per-frame render calls).
-- [ ] **Learned decoder / arbitrary-image generation** — a trained nonlinear decoder from a
-  latent to an arbitrary frame (the constrain-train "every op trainable" vision meets GUI);
-  the analytic whole-frame render is the fixed-weight base case.
-- [ ] **Yantra GUI integration** — the window living in the orchestrator, per the Yantra OS.
-
-HARD RAILS (same as all substrate work, CLAUDE.md): every pixel on the substrate; no host
-math in the op; stateful widgets are substrate-RNNs (state a vector across ticks, not a host
-shuttle); verify the rendered frame against a reference, measured.
-
----
-
 ## [This year] Make `sutralang.dev` more agent-accessible
 
 Sutra's stance per CLAUDE.md is that agents are first-class consumers
