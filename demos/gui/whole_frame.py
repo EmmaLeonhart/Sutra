@@ -98,6 +98,50 @@ def render_field_moving(size: int = 64, center_x: float = 0.0):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+def _compile_moving_glow():
+    """Compile moving_glow.su -> (step, frame_at, _VSA). `step` is the substrate-RNN
+    that advances the glow centre on the substrate; `frame_at` renders the whole frame
+    at a centre."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "moving_glow.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8,
+                     verbose=False)
+    return mod.step, mod.frame_at, mod._VSA
+
+
+def animate_moving_glow(size: int = 64, frames: int = 8):
+    """Animation driven by a SUBSTRATE-RNN: each frame advances the glow centre on
+    the substrate (moving_glow.su's `step`), then renders the whole frame at that
+    centre in one op. Returns a list of `frames` (size, size) arrays. The centre
+    lives in the substrate recur slot across ticks; the host reads it only to drive
+    the render (display boundary), never to feed the recurrence.
+    """
+    import torch
+
+    step, frame_at, vsa = _compile_moving_glow()
+    dt, dev = vsa.dtype, vsa.device
+    xs, ys = [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(size * size, dtype=dt, device=dev)
+    out = []
+    for _ in range(frames):
+        cx_vec = step()                                  # substrate-RNN advance
+        cx_val = float((cx_vec.real if cx_vec.is_complex() else cx_vec)
+                       [vsa.semantic_dim + vsa.AXIS_REAL])
+        cx_buf = torch.full((size * size,), cx_val, dtype=dt, device=dev)
+        buf = frame_at(X, Y, ones, cx_buf)               # one-op whole-frame render
+        buf = buf.real if buf.is_complex() else buf
+        out.append(buf.reshape(size, size).detach().to("cpu").numpy())
+    return out
+
+
 def main() -> None:
     import argparse
 

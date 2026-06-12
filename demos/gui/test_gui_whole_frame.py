@@ -67,6 +67,30 @@ def test_moving_glow_tracks_center_on_the_substrate() -> None:
         assert abs(col_x - center) <= 2.0 / (size - 1) + 1e-6
 
 
+def test_animation_centre_is_a_substrate_rnn() -> None:
+    """moving_glow.su drives the animation from a SUBSTRATE-RNN: `step()` advances
+    the glow centre on the substrate (no host arg, no host feedback between ticks),
+    and the rendered frame's brightest column tracks that advancing centre."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    step, _frame_at, vsa = whole._compile_moving_glow()
+
+    def read(v):
+        v = v.real if v.is_complex() else v
+        return float(v[vsa.semantic_dim + vsa.AXIS_REAL])
+
+    seq = [round(read(step()), 3) for _ in range(6)]   # walk the recurrence, no host arg
+    # centre advances by +0.25 each tick, held on the substrate slot across calls.
+    assert all(abs(seq[i + 1] - seq[i] - 0.25) < 1e-5 for i in range(len(seq) - 1)), seq
+
+    # The animation renders track the advancing centre (state drives the picture).
+    size = 16
+    frames = whole.animate_moving_glow(size, frames=4)
+    assert len(frames) == 4
+    cols = [2.0 * (int(f.argmax()) % size) / (size - 1) - 1.0 for f in frames]
+    # brightest column moves right across frames (the glow slides with the substrate centre).
+    assert cols == sorted(cols) and cols[-1] > cols[0]
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""
