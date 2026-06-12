@@ -45,6 +45,9 @@ _REPO_ROOT = HERE.parent.parent
 _SUTRA_SDK = _REPO_ROOT / "sdk" / "sutra-compiler"
 if str(_SUTRA_SDK) not in sys.path:
     sys.path.insert(0, str(_SUTRA_SDK))
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 # Width of every axon AND of every substrate vector (compile_su's runtime_dim).
 # 8 per the Yantra audit: none of the .su files call basis_vector, so the
@@ -123,7 +126,7 @@ class Calculator:
         vsa = self._digit_vsa
         n = abs(value)
         digs = [
-            round(float(vsa.real(self._digit(float(n), float(place)))))  # SUBSTRATE
+            round(read_real(vsa, self._digit(float(n), float(place))))  # SUBSTRATE, display boundary
             for place in (1000.0, 100.0, 10.0, 1.0)
         ]
         s = "".join(str(d) for d in digs).lstrip("0") or "0"
@@ -220,7 +223,7 @@ class Calculator:
         axon = vsa.axon_add(axon, "b", b)
         axon = vsa.axon_add(axon, "op_char", vsa.make_string(op))
         out = self._switch_on_axon(axon)
-        return float(vsa.real(out))  # decode real axis
+        return read_real(vsa, out)  # decode real axis at the display boundary
 
 
 def main() -> None:  # pragma: no cover - interactive REPL
