@@ -1702,6 +1702,14 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
                 f"// UNSUPPORTED-LET: value binding '{name}' "
                 "(binder is not a plain identifier)\n"
             )
+        # A direct axon-mode variant construction at module scope (`let z = Zero`,
+        # `let p = Pair (7, 9)`) -> a top-level multi-statement axon construction
+        # (`Axon z; z.add("_tag", …); …`). A top-level Axon is visible inside
+        # functions on the substrate (verified), the same as a top-level constant.
+        # Same machinery as the local/body/arg positions; nullary stores `_val`=0.
+        _vk = _variant_value_kind(_unwrap_parens(body), source)
+        if _vk is not None:
+            return _emit_variant_construction(_vk, source, "", name)
         # A type annotation (`let x : int = …`) overrides the inferred type.
         ann_type = next((_map_type(k, source, record_types)
                          for k in middle if _is_type_node(k)), None)

@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-11: OCaml frontend — top-level ctor value binding (`let z = Zero` at module scope)
+
+Closed follow-on (b'), the last item in the constructor/aggregate group. A zero-parameter
+top-level value binding whose body is a direct axon-mode variant construction (`let z = Zero`,
+`let p = Pair (7, 9)`) previously returned UNSUPPORTED-LET because `_lower_expression` of the
+constructor yields a single (unsupported) expression, while the construction needs the
+multi-statement `Axon z; z.add(...)` shape. Verified that a top-level `Axon` declaration +
+`.add()` calls compile and are visible inside functions on the substrate, so the top-level
+value-binding path now detects `_variant_value_kind(_unwrap_parens(body))` and emits
+`_emit_variant_construction(..., indent="")` straight into the binder. New fixture
+`variant_toplevel_value` substrate-verified = 16 (`let z = Zero  let p = Pair (7,9) … sum_e z +
+sum_e p` = 0 + 16). Full OCaml suite 124 passed. The constructor/aggregate group (single-arg,
+nullary, multi-arg, arg-position, local-binding, top-level, nested-under-operators) is now
+complete for numeric payloads.
+
 ## 2026-06-11: OCaml frontend — aggregate args nested under operators (shared recursive hoist)
 
 Closed transpiler follow-on (d). Until now an aggregate literal (record / tuple / variant

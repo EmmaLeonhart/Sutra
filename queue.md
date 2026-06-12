@@ -629,9 +629,13 @@ first and never touches the RAM/W2C sections above.
   emits the temp at the call site (nested calls recursed into; aggregate-in-aggregate-field left
   to lower normally). Benefits records, tuples, AND variants at once. Substrate-verified
   `aggregate_arg_nested_op` = 12 (`getx {x=7;y=9} + eval (Lit 5)` = 7 + 5).
-  REMAINING (follow-on): (b') a bare/direct axon-mode ctor as a TOP-LEVEL value binding
-  (`let z = Zero` at module scope — needs the construction emitted as top-level statements, a
-  different shape than the local case). Numeric
+  **Top-level ctor value binding (`let z = Zero` / `let p = Pair (7,9)` at module scope): DONE.**
+  The zero-param top-level value-binding path detects `_variant_value_kind` and emits a top-level
+  multi-statement axon construction (`Axon z; z.add("_tag", …); …`) — a top-level Axon is visible
+  inside functions on the substrate (verified). Substrate-verified `variant_toplevel_value` = 16
+  (`let z = Zero  let p = Pair (7,9) … sum_e z + sum_e p` = 0 + 16). The constructor/aggregate
+  group (single-arg, nullary, multi-arg, arg-position, local-binding, top-level, nested-under-
+  operators) is now COMPLETE for numeric payloads. Numeric
   payloads only (strings aren't axon fillers).
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
 - [ ] (follow-on) Per-variable interface typing so field-type lookup is exact even
