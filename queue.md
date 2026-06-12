@@ -663,8 +663,9 @@ fixtures that compile **AND run on the substrate** (the OCaml harness's
   top-level `def` functions (Int/Double/Boolean/String), int/float literals, infix
   arithmetic/comparison/boolean ops, calls, parens; `add_main` substrate-verified = 16
   (compile-AND-run harness). **if/else→defuzz blend DONE** (`if_classify` 100/200, crisp).
-  **`val` block bindings DONE** (`val_block` = 17; locals + return final). Scala suite 6/6.
-  NEXT (model on OCaml): `match`, case classes→axons, tail recursion→`while_loop`.
+  **`val` block bindings DONE** (`val_block` = 17). **literal `match` DONE** (`match_literal`:
+  1→100/2→200/9→300, nested defuzz blend). Scala suite 8/8. NEXT (model on OCaml): case
+  classes→axons, tail recursion→`while_loop`, comparison/boolean match guards.
 - [ ] **F#** — `sdk/sutra-from-fsharp/` (ML-family, close cousin of OCaml — should reuse much of the OCaml lowering shape).
 - [ ] **Elixir / Erlang** — `sdk/sutra-from-erlang/` (the BEAM pair; immutable, message-passing maps onto the axon IPC story).
 - [ ] **Clojure** — `sdk/sutra-from-clojure/` (Lisp; homoiconic, persistent data structures).

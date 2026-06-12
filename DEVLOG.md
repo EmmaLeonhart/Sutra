@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-12: sutra-from-scala — literal `match`
+
+Fourth Scala increment. `n match { case k => …; case _ => … }` lowers to a nested defuzz
+blend over `n == k` tests (the OCaml frontend's literal-match shape), the last case the base
+(trailing `_` wildcard, or the final literal for an exhaustive set). Added a shared `_blend`
+helper (if/else now routes through it too). Fixture `match_literal`
+(`n match {1=>100; 2=>200; _=>300}`): substrate-verified all three branches — classify(1)=100,
+classify(2)=200, classify(9)=300 (crisp; `==` defuzzes to ±1). Scala suite 8/8. Next: case
+classes → axons, tail recursion → while_loop.
+
 ## 2026-06-12: sutra-from-scala — `val` bindings (block bodies)
 
 Third Scala increment. A `{ val a = …; val b = …; finalExpr }` block body lowers to Sutra
