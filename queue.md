@@ -50,8 +50,10 @@ deleted on completion. Keep the task tool in sync with this file.
   2026-06-12, suite 4/4 — signatured equations, curried apply, if/then/else
   blend; laziness explicitly out of scope): recursion transforms, pattern
   equations → blends, guards, where/let, `data` ADTs → tagged axons.
-- [ ] **Rust** — `sdk/sutra-from-rust/` (expression-oriented, algebraic enums;
-  grammar installed).
+- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; MVP shipped 2026-06-12,
+  suite 6/6 — fn items, let bindings, if/else blend): `match` + enums → tagged
+  axons (the OCaml variant pattern); structs → axons; recursion transforms;
+  `while`/`loop` → substrate loops.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
 - [ ] **OCaml: check the foldable-nontail BASE guard** — the Scala port (2026-06-12)
   rejects param-dependent BASE because `_acc = BASE` is emitted pre-loop at the
