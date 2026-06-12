@@ -62,6 +62,9 @@ if str(_SUTRA_SDK) not in sys.path:
     sys.path.insert(0, str(_SUTRA_SDK))
 
 DEMO_FONT = pathlib.Path(__file__).resolve().parent
+if str(DEMO_FONT) not in sys.path:
+    sys.path.insert(0, str(DEMO_FONT))
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 # TWO separate compiles:
 #   font.su                  — cycle_step (the character-code counter, runtime_dim=8,
@@ -142,9 +145,9 @@ def render_glyph(char_code: float, prev_field: np.ndarray | None = None) -> np.n
     out = np.empty((5, 5), dtype=np.float64)
     for y in range(5):
         for x in range(5):
-            cos_lit = float(vsa.real(
-                glyph_pixel_antipodal(float(x), float(y), float(char_code))
-            ))
+            cos_lit = read_real(
+                vsa, glyph_pixel_antipodal(float(x), float(y), float(char_code))
+            )
             # Threshold to a clean 0/1 field. Substrate returns a cosine in
             # roughly [-1, +1]; host paints the binary result.
             out[y, x] = 1.0 if cos_lit > _ANTIPODAL_THRESHOLD else 0.0

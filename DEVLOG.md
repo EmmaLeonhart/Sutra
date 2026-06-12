@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-11: font demos ported to the post-purity runtime (display-boundary read)
+
+Completes GUI queue item #1. The `demos/font/` drivers/tests had the same break as the GUI ones
+— they called the removed `vsa.real(v)` accessor (pre-fix: 38 failed, 1 passed, all
+`AttributeError: '_TorchVSA' object has no attribute 'real'`). Added `demos/font/_display.py`
+(same `read_real(vsa, v)` display-boundary helper) and routed the seven sites through it
+(font_demo.py + test_font.py + test_font_bound.py + test_font_bound_antipodal.py). Font suite now
+47 passed (was 38 failed). Behavior unchanged — the tests assert glyph bits / bound-similarity
+exactly as before; only the host readout path changed. `demos/calc/calc.py` has the identical
+break (two `vsa.real` sites) but is a separate demo (not the GUI block) — noted as a follow-on in
+queue.md, not fixed here. count.su/toggle.su doc-comments still mention `vsa.real()`; those are
+tied to the item-#2 substrate-RNN rewrite of those files.
+
 ## 2026-06-11: GUI demos ported to the post-purity runtime (display-boundary read)
 
 GUI queue item #1 (core). The `demos/gui/` drivers and tests were broken against the current
