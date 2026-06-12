@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-12: sutra-from-scala — if/else → defuzz blend
+
+Second Scala increment. `if_expression` lowers to the Sutra defuzz blend (same shape as the
+OCaml frontend's `_blend`): `(((1 + w)*(then)) + ((1 - w)*(else)))/2` with
+`w = truth_axis(defuzzy(cond))`, arms fully parenthesised (avoids the `(atom) <binop>` cast
+ambiguity), missing-else = implicit zero. Fixture `if_classify`
+(`if (n>0) 100 else 200`): substrate-verified `classify(5)`=100 and `classify(-5)`=200 (crisp
+both directions — the comparison defuzzes to ±1). Scala suite 4/4. Next: `val` bindings, `match`.
+
 ## 2026-06-12: New-language frontends — Scala MVP started (substrate-verified)
 
 With GUI (top priority) and non-tail recursion done, the loop began the deprioritized-
