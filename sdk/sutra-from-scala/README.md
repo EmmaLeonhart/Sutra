@@ -24,9 +24,14 @@ name-binding patterns substitute the bound name to the scrutinee, the OCaml
 stricter guard rejecting param-dependent base cases, which the transform would
 mis-evaluate).
 
+`object_dispatch` = 26 (singleton `object`s lower as namespaces: `object Calc`
+methods emit as top-level `Calc_add(…)` functions; `Calc.add(7, 9)` call sites and
+bare sibling calls inside the object rewrite to the prefixed names).
+
 Dependency: `tree-sitter-scala` (`pip install tree-sitter-scala`).
 
-## Next (roadmap order, todo.md)
+## Next
 
-`object`/method dispatch. New constructs model on the OCaml frontend's
-verified-running patterns.
+The named roadmap set is complete. Further breadth (closures, generics, traits,
+instance classes, String operations) models on the OCaml frontend's
+verified-running patterns as needs arise.

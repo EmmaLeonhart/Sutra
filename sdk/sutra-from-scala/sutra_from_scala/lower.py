@@ -35,6 +35,14 @@ _ARG_HOIST: dict[int, str] = {}
 # guard + result — the OCaml `_MATCH_SUBST` shape.
 _SUBST: dict[str, str] = {}
 
+# Singleton objects lower as NAMESPACES: `object Calc { def add … }` emits a
+# top-level `function … Calc_add(…)` per method; `Calc.add(7, 9)` call sites
+# rewrite to `Calc_add(7, 9)`. `_OBJECTS[obj] = {method, …}` from the prepass;
+# `_METHOD_PREFIX` maps bare sibling-method names to their prefixed names while
+# lowering inside an object's body.
+_OBJECTS: dict[str, set[str]] = {}
+_METHOD_PREFIX: dict[str, str] = {}
+
 # Scala infix operator → Sutra operator.
 _OP_MAP = {
     "+": "+", "-": "-", "*": "*", "/": "/", "%": "%",
@@ -218,9 +226,22 @@ def _lower_expr(node, src: bytes) -> str:
             # A construction reaching here was not hoisted — emitting `Point(…)`
             # would silently mislower (no such Sutra function). Surface the gap.
             return "/* UNSUPPORTED-CONSTRUCTION: case-class call outside a hoistable position */"
-        fn = _lower_expr(kids[0], src)
         args_node = next((c for c in kids if c.type == "arguments"), None)
         args = [_lower_expr(a, src) for a in (args_node.named_children if args_node else [])]
+        callee = kids[0]
+        # `Obj.method(args)` — object-method dispatch rewrites to the prefixed
+        # top-level function (objects lower as namespaces).
+        if callee.type == "field_expression" and len(callee.named_children) == 2:
+            obj_n, member_n = callee.named_children
+            if obj_n.type == "identifier" and _text(obj_n, src) in _OBJECTS:
+                obj, member = _text(obj_n, src), _text(member_n, src)
+                if member in _OBJECTS[obj]:
+                    return f"{obj}_{member}({', '.join(args)})"
+                return f"/* UNSUPPORTED-OBJECT-MEMBER: {obj}.{member} */"
+        # Bare sibling-method call inside an object's body.
+        if callee.type == "identifier" and _text(callee, src) in _METHOD_PREFIX:
+            return f"{_METHOD_PREFIX[_text(callee, src)]}({', '.join(args)})"
+        fn = _lower_expr(callee, src)
         return f"{fn}({', '.join(args)})"
     if t == "field_expression":
         # Case-class field read `p.x` → the axon item read, projected to a clean
@@ -323,6 +344,7 @@ def _contains_identifier(node, ident: str, src: bytes) -> bool:
 
 def _try_lower_foldable_nontail(
     name: str, params: list[tuple[str, str]], ret: str, body, src: bytes,
+    emit_name: str | None = None,
 ):
     """CPS / accumulator transform for a FOLDABLE non-tail recursion
     `def f(n) = if (COND) BASE else LEAF <OP> f(REC)` (single param, OP in
@@ -372,8 +394,9 @@ def _try_lower_foldable_nontail(
     pname, pty = params[0][0], params[0][1]
     if _contains_identifier(_peel_parens(base), pname, src):
         return None  # param-dependent base: see docstring
+    emit = emit_name or name
     sutra_op = _OP_MAP.get(op_text, op_text)
-    loop_name = f"_rec_{name}"
+    loop_name = f"_rec_{emit}"
     leaf_src = _lower_expr(_peel_parens(leaf), src)
     rec_src = _lower_expr(rec_arg, src)
     base_src = _lower_expr(_peel_parens(base), src)
@@ -390,7 +413,7 @@ def _try_lower_foldable_nontail(
         f"}}\n"
     )
     fn = (
-        f"function {ret} {name}({pty} {pname}) {{\n"
+        f"function {ret} {emit}({pty} {pname}) {{\n"
         f"    {pty} _acc = {base_src};\n"
         f"    slot {pty} _{pname}_r = {pname};\n"
         f"    slot {pty} _acc_r = _acc;\n"
@@ -412,6 +435,7 @@ def _contains_self_call(node, name: str, src: bytes) -> bool:
 
 def _try_lower_tail_recursive(
     name: str, params: list[tuple[str, str]], ret: str, body, src: bytes,
+    emit_name: str | None = None,
 ):
     """Lower a TAIL-recursive accumulator shape `def f(p1, …, pk) = if (COND) BASE
     else f(a1, …, ak)` (or with the self-call in the then-arm) to a Sutra declared
@@ -436,7 +460,8 @@ def _try_lower_tail_recursive(
         cont = _lower_expr(_peel_parens(cond), src)  # loop while COND
         rec_args, base = then_args, else_e
 
-    loop_name = f"_rec_{name}"
+    emit = emit_name or name
+    loop_name = f"_rec_{emit}"
     state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in params)
     # Simultaneous state update via temporaries: every new value computed from the
     # OLD params first, then all assigned — a sequential update is wrong for swaps
@@ -454,7 +479,7 @@ def _try_lower_tail_recursive(
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
     base_src = _lower_expr(_peel_parens(base), src)
     fn = (
-        f"function {ret} {name}({params_src}) {{\n"
+        f"function {ret} {emit}({params_src}) {{\n"
         f"{slot_lines}"
         f"    loop {loop_name}({cont}, {slot_args});\n"
         f"{writeback}"
@@ -464,12 +489,13 @@ def _try_lower_tail_recursive(
     return loop_decl + fn
 
 
-def _lower_function(node, src: bytes) -> str:
+def _lower_function(node, src: bytes, obj_name: str | None = None) -> str:
     kids = node.named_children
     name_node = next((c for c in kids if c.type == "identifier"), None)
     if name_node is None:
         return "// UNSUPPORTED-DEF: no name\n"
     name = _text(name_node, src)
+    emit_name = f"{obj_name}_{name}" if obj_name else name
     params: list[tuple[str, str]] = []
     params_node = next((c for c in kids if c.type == "parameters"), None)
     if params_node is not None:
@@ -488,10 +514,12 @@ def _lower_function(node, src: bytes) -> str:
     # A self-recursive tail-accumulator body becomes a declared while_loop
     # (a direct self-call would not terminate through the fuzzy-if blend).
     if body.type == "if_expression" and params:
-        tail = _try_lower_tail_recursive(name, params, ret, body, src)
+        tail = _try_lower_tail_recursive(name, params, ret, body, src,
+                                         emit_name=emit_name)
         if tail is not None:
             return tail
-        fold = _try_lower_foldable_nontail(name, params, ret, body, src)
+        fold = _try_lower_foldable_nontail(name, params, ret, body, src,
+                                           emit_name=emit_name)
         if fold is not None:
             return fold
     if _contains_self_call(body, name, src):
@@ -505,7 +533,7 @@ def _lower_function(node, src: bytes) -> str:
         inner = _lower_block(body, src)
     else:
         inner = _stmt_with_hoist(body, src, "    return {expr};\n")
-    return f"function {ret} {name}({params_src}) {{\n{inner}}}\n"
+    return f"function {ret} {emit_name}({params_src}) {{\n{inner}}}\n"
 
 
 def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
@@ -521,9 +549,24 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
 
     # Prepass: collect case classes (name → ordered field list); their defs are
     # erased — the runtime shape is an axon (the OCaml record-type erasure).
+    # Also collect singleton objects (name → method set) — they lower as
+    # namespaces (top-level `{obj}_{method}` functions).
     _CASE_CLASSES.clear()
     _ARG_HOIST.clear()
+    _OBJECTS.clear()
+    _METHOD_PREFIX.clear()
     for child in tree.root_node.named_children:
+        if child.type == "object_definition":
+            kids = child.named_children
+            name_node = next((c for c in kids if c.type == "identifier"), None)
+            tbody = next((c for c in kids if c.type == "template_body"), None)
+            if name_node is not None and tbody is not None:
+                methods = {
+                    _text(m, src)
+                    for f in tbody.named_children if f.type == "function_definition"
+                    for m in f.named_children[:1] if m.type == "identifier"
+                }
+                _OBJECTS[_text(name_node, src)] = methods
         if child.type == "class_definition" \
                 and _text(child, src).lstrip().startswith("case class"):
             kids = child.named_children
@@ -544,5 +587,21 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     for child in tree.root_node.named_children:
         if child.type == "function_definition":
             out.append(_lower_function(child, src))
-        # other top-level forms (objects, non-case classes, vals) are later items
+        elif child.type == "object_definition":
+            kids = child.named_children
+            name_node = next((c for c in kids if c.type == "identifier"), None)
+            tbody = next((c for c in kids if c.type == "template_body"), None)
+            if name_node is None or tbody is None:
+                out.append("// UNSUPPORTED-OBJECT: malformed object definition\n")
+                continue
+            obj = _text(name_node, src)
+            # Bare sibling-method calls inside this object's bodies prefix too.
+            _METHOD_PREFIX.update({m: f"{obj}_{m}" for m in _OBJECTS.get(obj, ())})
+            try:
+                for f in tbody.named_children:
+                    if f.type == "function_definition":
+                        out.append(_lower_function(f, src, obj_name=obj))
+            finally:
+                _METHOD_PREFIX.clear()
+        # other top-level forms (non-case classes, vals) are later items
     return "\n".join(out)
