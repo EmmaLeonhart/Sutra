@@ -5,7 +5,7 @@ function (planning/sutra-spec/non-halting-loop.md) whose `recurring vector
 state` lives on the substrate as a tensor in a module-level slot, surviving
 across calls without host scalar extraction. Each click invokes `flip()`
 with NO host arg; the substrate loads the slot, computes `make_real(1.0)
-- state`, writes back via `recur(...)`. The host decodes vsa.real(new) for
+- state`, writes back via `recur(...)`. The host decodes read_real(new) for
 display only. This test guards the flip is on the substrate and that the
 host tint maps state 0 -> red, state 1 -> blue. No window/click is
 exercised (headless-safe); live click verified by hand via `python
