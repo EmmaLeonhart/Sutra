@@ -24,6 +24,7 @@ _RUNNABLE = {
     "add_main": 16.0,  # def add(a,b)=a+b; def main()=add(7,9)
     "if_classify": 100.0,  # if (n>0) 100 else 200; classify(5)  (if -> defuzz blend)
     "val_block": 17.0,  # { val y=x+1; val z=y*2; z+x } at x=5  (block val bindings -> Sutra locals)
+    "match_literal": 200.0,  # n match {1=>100; 2=>200; _=>300} at n=2  (literal match -> nested blend)
 }
 
 
