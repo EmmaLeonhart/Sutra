@@ -71,6 +71,17 @@ i.e. the one-shot frame buffer reproduces `render_field()` exactly — a
 3. **Bulk display read.** Read the whole buffer once at the boundary (not N² component
    reads) — still terminal I/O, done once.
 
+## MEASURED 2026-06-11 — the one-op buffer needs a new primitive
+
+Confirmed by measurement (`planning/findings/2026-06-11-whole-frame-buffer-needs-grid-primitive.md`):
+existing arithmetic does NOT vectorize over a multi-component buffer. `complex_mul` uses d×d
+real/imag-axis matrices (computes one number, mixes/zeros other components) — a `[1,2,3,4]`
+buffer squared returns `[0,0,0,0]`, not `[1,4,9,16]`. `complex_add`/`complex_sub` are
+elementwise, but multiply (needed for any field like `1−x²−y²`) is not. So the efficient
+one-op whole-frame render needs a NEW grid/elementwise-render primitive (see the finding for
+candidate shapes A/B/C; recommended A = elementwise-buffer ops). This is a substrate-runtime
+addition — its shape is Emma's call (her substrate).
+
 ## Build order (when item #3 is worked)
 
 1. Decide the buffer mechanism: a single vectorized substrate op over the grid →
