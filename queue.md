@@ -708,6 +708,14 @@ to ground truth; per-approach table (halts / correct / max clean depth / substra
 differentiable); negative results marked with the measured reason. Deliver a finding +
 recommendation.
 
+PROGRESS: **approach 1 (Tree RNN) DONE + substrate-verified** (2026-06-11) —
+`experiments/non_tail_recursion/{tree_combine.su,tree_rnn_eval.py,test_…}`; fixed-topology
+bottom-up fold, non-associative combine, root == host (18 / 90 / 8); fixed-structure
+non-tail recursion needs no stack. Finding
+`2026-06-11-non-tail-recursion-approach1-tree-rnn.md`. **NEXT: approach 2 — CPS +
+trampolining** (the sequential `f(x)=1+f(x-1)` case: pending work → carried continuation,
+top-level `while_loop` bounces; continuation representation is the open piece).
+
 ## 🎨 GUI long-horizon extensions (Emma 2026-06-11; END of the queue, after non-tail recursion)
 
 The core GUI block shipped (DONE — `demos/gui/` whole-frame renders + `hadamard` primitive +
