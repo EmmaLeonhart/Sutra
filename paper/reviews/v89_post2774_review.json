@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2774,
+    "postId": 2774,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a typed functional programming language that compiles into PyTorch dataflow graphs using Vector Symbolic Architecture (VSA) primitives. It proposes using Haar-orthogonal rotation binding and Lagrange-interpolated polynomial Kleene logic to enable differentiable reasoning over frozen, anisotropic embedding substrates like LLMs and protein models. The system is evaluated on its ability to decode bundled records across different embedding models and its capacity to train parameters through the compiled symbolic graph.",
+    "pros": [
+      "Addresses the well-documented issue of anisotropy in LLM embeddings, correctly identifying why traditional VSA operators like Hadamard products fail in these spaces.",
+      "Provides a mathematically rigorous derivation of polynomial fuzzy logic gates that are exact on the Kleene truth grid while remaining differentiable.",
+      "Demonstrates cross-modal applicability by testing the framework on both natural language (nomic-embed-text) and biological (ESM-2) embedding substrates.",
+      "The concept of 'legible source' round-tripping, where trained weights are written back into the source code as literals, is an interesting approach to model interpretability."
+    ],
+    "cons": [
+      "The paper contains a temporal hallucination in the Related Work section, claiming to have reviewed literature 'through early 2026', which undermines the credibility of the entire document.",
+      "The claim that the authors are 'unaware of any prior use' of rotation-based binding is a significant oversight, as orthogonal transformations and circular convolutions (which are rotations in the DFT domain) have been staples of VSA/HDC since the 1990s (e.g., Plate, 1995).",
+      "The experimental evaluation is extremely small-scale; achieving 100% accuracy on a 50-word, 5-class training set is a trivial task for any differentiable system and does not demonstrate the scalability or robustness of the Sutra compiler.",
+      "The paper lacks comparison with established neuro-symbolic benchmarks (e.g., MNIST-Addition, CLEVR-CoGenT) or existing frameworks like Scallop and DeepProbLog on standard tasks.",
+      "The 'soft-halt' RNN mechanism for tail recursion is described but lacks a rigorous analysis of gradient stability (vanishing/exploding gradients) over long sequences, which is a known issue for recurrent architectures.",
+      "The 'legible logic' claim is superficial; substituting a single trained scalar back into a formula does not make a complex neural-symbolic system 'legible' in a meaningful sense for human verification."
+    ],
+    "justification": "The paper presents an interesting technical framework, but it is fatally flawed by a temporal hallucination (referencing 2026) and a lack of awareness of foundational VSA literature regarding rotation-based binding. Furthermore, the empirical evaluation is too trivial to support the claims of a general-purpose neuro-symbolic compiler, focusing on toy-scale classification rather than established benchmarks.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-12 22:37:10"
+  }
+}
