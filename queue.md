@@ -677,74 +677,12 @@ fixtures that compile **AND run on the substrate** (the OCaml harness's
   `transpilers-ci.yml` that installs the tree-sitter grammars + runs every
   `sutra-from-*` test suite. Scope decision — not auto-started.
 
-## ⭐⭐ GUI — TOP PRIORITY (Emma 2026-06-11) — work this BEFORE anything else
-
-**Vision (Emma).** GUI is a much stronger component of Sutra for *early adoption*
-than earlier framing assumed — a window of substrate-computed pixels is the most
-legible "Sutra actually runs and produces something you can see" demo there is.
-Invest substantially more here. **This is now the top-priority active work** — the
-transpiler track above is ON HOLD behind it (Emma 2026-06-11); the work-loop does
-GUI first and only pulls the on-hold new-language frontends (todo.md) once the GUI
-block is complete. Items #1 and #2 are DONE; #3 design is locked (build next).
-
-**Grounding (what exists today — do NOT reinvent; build on it).**
-- `demos/gui/frame.su` — per-pixel substrate brightness field `pixel(x,y)=1−x²−y²`;
-  host (`demos/gui/window.py`) walks the grid, calls `pixel` per cell, paints a window.
-- `demos/gui/count.su`, `toggle.su` — stateful demos, plus drivers
-  (`counter_demo.py`, `click_demo.py`, `counter_substrate_server.py`) + tests
-  (`test_gui_{click,counter,render}.py`).
-- `demos/font/` — substrate font rendering (companion surface).
-- Audit: `planning/findings/2026-05-28-demos-gui-substrate-audit.md` (dim hygiene PASS
-  — dim=8, 0 basis_vector). NOTE: that audit's "host-state-shuttle" finding is SUPERSEDED —
-  count/toggle were rewritten to substrate-RNNs (8fb49d73/e73ea106) and verified by
-  measurement 2026-06-11 (state persists across no-arg calls; see DEVLOG).
-
-**HARD RAILS for ALL GUI work (CLAUDE.md):**
-- Every pixel/step value is computed ON THE SUBSTRATE. No host arithmetic inside ops.
-- **No host readout inside the language.** `real()`/`make_real`-as-readout is removed;
-  `realvec(v)` is the on-substrate replacement. The ONE legitimate boundary is the
-  orchestrator/host reading the FINAL frame vector to paint it (terminal I/O, the
-  orchestrator-model boundary) — not per-op extraction.
-- Stateful GUI MUST be a substrate-RNN: hidden state is a VECTOR carried across loop
-  iterations, NOT a Python variable shuttled between calls (the count/toggle failure).
-- Verify against ground truth: decoded frame/pixels == expected, MEASURED, not "it ran".
-
-**Decomposition (work top→bottom; each its own commit + DEVLOG entry):**
-   *(Item 1 — port demos to the post-purity runtime — DONE 2026-06-11, see DEVLOG: GUI
-   `vsa.real` → `_display.read_real` boundary, GUI 9/9 + font 47/47, render unchanged.)*
-   FOLLOW-ON from item 1: `demos/calc/calc.py` has the identical `vsa.real` break (2 sites)
-   — same `read_real` fix; separate demo (not GUI), low priority, do opportunistically.
-   *(Item 2 — substrate-RNN refactor of count/toggle — DONE: the refactor already landed
-   (8fb49d73/e73ea106); VERIFIED by measurement 2026-06-11 (step×5=[1,2,3,4,5],
-   flip×4=[1,0,1,0], no host feedback; state-locus tests test_gui_counter/test_gui_click
-   pass) + stale vsa.real() docs cleaned. See DEVLOG.)*
-   *(Item 3 — whole-frame render in ONE substrate op — DONE 2026-06-11, see DEVLOG.
-   Emma's model: the returned vector IS the frame buffer. Added the `hadamard`
-   elementwise/buffer primitive (the measured missing piece); `frame_whole.su` =
-   `ones - hadamard(x,x) - hadamard(y,y)` over length-N² coordinate buffers; one
-   `frame(...)` call produces the whole frame; `whole_frame.py` driver +
-   `test_gui_whole_frame.py`. Oracle MEASURED: == per-pixel render_field() to
-   5.96e-08; GUI 11/11.)*
-   *(Item 4 — broaden the widget/interaction set — DONE 2026-06-11, see DEVLOG. Widget
-   set: whole-frame glow, moving glow (`frame_moving.su`), substrate-RNN animation
-   (`moving_glow.su`, centre advances on the substrate), concentric ring
-   (`frame_ring.su`), click→substrate-state interaction (`click_frame.su`, flip gates
-   the glow). All whole-frame one-op renders on the hadamard/buffer machinery, each
-   substrate-verified vs a host oracle. GUI 15/15. Optional extra (not blocking):
-   simple multi-widget layout.)*
-5. **A human-facing GUI page on the website** (`docs/…`, rendered by
-   `scripts/build_site.py`) — "see Sutra draw pixels." Website discipline: NO
-   repo-internal refs (no queue/todo/planning/sdk paths), no numpy mentions; show the
-   real mechanism (substrate computes the image field, host paints).
-
-Mirror these into the task tool. As each lands: delete it here, append a dated DEVLOG
-entry, push. When this block is cleared, the GUI long-horizon agenda lives in `todo.md`.
-
 ## 🔁 Non-tail recursion — aggressively try CPS + Tree RNNs (Emma 2026-06-11; END of the queue)
 
-After the GUI block (above), before the pinned tail — runs once all current GUI work is
-done, and BEFORE the todo-end new-language frontends (promoted out of todo-end to here).
-Emma: aggressively try **two** approaches with a very large amount of effort, and compare
+The GUI block is DONE (all 5 items shipped 2026-06-11; see DEVLOG), so this is now the
+**top actionable queue item**, ahead of the todo-end new-language frontends (it was
+promoted out of todo-end to here). Emma: aggressively try **two** approaches with a very
+large amount of effort, and compare
 which actually runs non-tail recursion on the substrate. Full design + her framing:
 `planning/exploratory/non-tail-recursion-on-the-substrate.md`.
 
