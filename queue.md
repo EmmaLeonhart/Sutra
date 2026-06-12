@@ -608,10 +608,17 @@ first and never touches the RAM/W2C sections above.
   **Construction in ARGUMENT position: DONE** (`eval (Lit 7)` → the aggregate-arg hoist now
   hoists variant values to a temp tagged Axon, same as records/tuples; substrate-verified
   `variant_arg_pos` = 7; body-position calls, like the record/tuple hoist).
-  REMAINING (follow-ons): (b) a bare nullary axon-mode ctor as a value (`let z = Zero`);
-  (c) multi-arg constructors (`C of a * b`); (d) aggregate args nested under operators
-  (`f a + g b`, the shared recursive-hoist follow-on). Numeric payloads only (strings aren't
-  axon fillers).
+  **Direct construction in LOCAL-BINDING position: DONE** (`let z = Zero in …` / `let a = Lit 7
+  in …` → `_lower_local_binding` detects `_variant_value_kind` and emits the tagged-axon
+  construction into the binder, same machinery as body/arg positions; nullary stores `_val`=0;
+  substrate-verified `variant_nullary_value` = 7 = `let z = Zero in let a = Lit 7 in eval z +
+  eval a`). The helper path (`let a = lit 7` via an Axon-returning fn) was already covered; this
+  is the direct-constructor case.
+  REMAINING (follow-ons): (b') a bare/direct axon-mode ctor as a TOP-LEVEL value binding
+  (`let z = Zero` at module scope — needs the construction emitted as top-level statements, a
+  different shape than the local case); (c) multi-arg constructors (`C of a * b`); (d) aggregate
+  args nested under operators (`f a + g b`, the shared recursive-hoist follow-on). Numeric
+  payloads only (strings aren't axon fillers).
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
 - [ ] (follow-on) Per-variable interface typing so field-type lookup is exact even
   when two interfaces share a field name with different types (current global

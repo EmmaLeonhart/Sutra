@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-11: OCaml frontend — direct axon-mode variant ctor in local-binding position
+
+Closed transpiler follow-on (b): a direct constructor application bound to a local
+(`let z = Zero in …`, `let a = Lit 7 in …`) where the constructor belongs to an axon-mode
+variant (a `type` with at least one parameterised ctor) previously fell through to
+`UNSUPPORTED-EXPR` because `_lower_expression`'s `constructor_path`/`application_expression`
+branches only know how to return a single expression, while a tagged-axon construction is a
+multi-statement `Axon v; v.add("_tag",…); v.add("_val",…)`. The arg-position hoist and the
+body-position path already handled this; only the local-binding path was missing it.
+Fix: `_lower_local_binding` now checks `_variant_value_kind(_unwrap_parens(value))` and, when it
+matches, emits `_emit_variant_construction(...)` straight into the binder name (typed `Axon`),
+reusing the exact machinery the other two positions use. Nullary ctors store `_val`=0.
+New fixture `variant_nullary_value` substrate-verified = 7
+(`let z = Zero in let a = Lit 7 in eval z + eval a` = 0 + 7); full OCaml suite 115 passed.
+Remaining follow-ons: top-level value binding (`let z = Zero` at module scope, needs a
+top-level-statement shape), multi-arg ctors, aggregate args nested under operators.
+
 ## 2026-06-11: Daily substrate-honesty audit (06-09/06-10/06-11 stacked) — CLEAN
 
 Discharged the three stacked daily-audit items against CLAUDE.md §"Subtler substrate
