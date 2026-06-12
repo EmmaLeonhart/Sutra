@@ -1,0 +1,19 @@
+// frame_diag.su — DIAGONAL GRADIENT: a corner-to-corner ramp as a whole-frame field.
+//
+// GUI shapes increment. The diagonal cousin of frame_rgb.su's horizontal `gradient`:
+//
+//   diag = 0.5 * (1 + 0.5 * (x + y))   — 0 at the top-left corner (x = y = -1),
+//                                        0.5 on the anti-diagonal (x + y = 0),
+//                                        1 at the bottom-right corner (x = y = +1).
+//
+// One substrate op over the coordinate grid; `half` is the same host-provided
+// constant buffer frame_rgb.su uses (there is no literal-times-buffer — `*` is the
+// complex product, so scalars enter as buffers).
+function vector diag(vector x, vector y, vector ones, vector half) {
+    return hadamard(half, ones + hadamard(half, x + y));
+}
+
+// Sanity entry: the bottom-right corner (1, 1) -> 0.5 * (1 + 0.5 * 2) = 1.
+function vector main() {
+    return diag(make_real(1.0), make_real(1.0), make_real(1.0), make_real(0.5));
+}

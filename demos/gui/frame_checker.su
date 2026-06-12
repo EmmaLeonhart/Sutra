@@ -1,0 +1,20 @@
+// frame_checker.su — CHECKERBOARD: a binary cell pattern as a whole-frame field.
+//
+// GUI shapes increment. There is no periodic primitive on buffers, and none is
+// needed: the cell parities are coordinate-DERIVED grid geometry, exactly like the
+// region mask of frame_layout.su and the `half` constant of frame_rgb.su — the host
+// builds px, py in {+1, -1} per pixel ((col // block) % 2 and (row // block) % 2),
+// and the substrate computes the field from them in one op:
+//
+//   checker = 0.5 * (1 + px*py)   — 1 where the parities agree, 0 where they differ.
+//
+// The field math (the parity product and the affine map to {0, 1}) is all substrate
+// elementwise arithmetic (hadamard + add); the host never computes a brightness.
+function vector checker(vector ones, vector px, vector py, vector half) {
+    return hadamard(half, ones + hadamard(px, py));
+}
+
+// Sanity entry: agreeing parities (+1, +1) -> 0.5 * (1 + 1) = 1 (an "on" cell).
+function vector main() {
+    return checker(make_real(1.0), make_real(1.0), make_real(1.0), make_real(0.5));
+}
