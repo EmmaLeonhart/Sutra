@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-11: GUI item #4 (progress) — animatable moving-glow whole-frame demo
+
+First widget added to the GUI #4 "broaden" set: `demos/gui/frame_moving.su` — a glow centred at
+a movable x, `frame_at(x, y, ones, cx) = ones - hadamard(x-cx, x-cx) - hadamard(y, y)` =
+`1 - (x-cx)² - y²`, rendered whole-frame in ONE substrate op per frame (builds on the #3
+`hadamard`/buffer machinery). Sweeping `cx` slides the glow horizontally — an animation. Driver
+`whole_frame.render_field_moving(size, center_x)` + guard `test_moving_glow_tracks_center_on_the_substrate`.
+MEASURED: rendered field == `1-(x-cx)²-y²` to ≤1.2e-7 at cx∈{0.0,0.5}, and the brightest column
+TRACKS cx (center 0.0→col x≈0, 0.5→≈0.47) — the glow really moves. GUI suite 12/12.
+Honest scope: `cx` is host-swept per frame here; driving `cx` from a substrate-RNN `recur` (so the
+animation state lives on the substrate, combining item #2's recur with the whole-frame render) is
+the natural next increment. #4 stays open for more widgets (gradients/shapes, click→state interaction).
+
 ## 2026-06-11: complete the no-introspection `real` removal — update the transitional test
 
 `real` (the host-readout `float(v[...].item())` accessor) was removed from codegen on
