@@ -1,11 +1,12 @@
 // count.su — a GUI counter that's a real substrate-state RNN.
 //
 // The recurrence (state across ticks) lives ON THE SUBSTRATE as a vector
-// surviving across calls, NOT as a host scalar shuttled through real().
+// surviving across calls, NOT as a host scalar read out and shuttled each tick.
 // This is the substrate-RNN shape per planning/sutra-spec/non-halting-loop.md
 // (Emma 2026-05-28). The count itself never gets extracted to a Python
-// number between ticks; the host can decode it for display via vsa.real(),
-// but that's a monitoring boundary — separate from the recurrence.
+// number between ticks; the host can decode it for display at the display
+// boundary (demos/gui/_display.read_real), separate from the recurrence.
+// Measured 2026-06-11: step() x5 with no host feedback = [1,2,3,4,5].
 //
 //   step()           — one click. Loads the recurring `state` vector,
 //                      increments its real axis by 1.0, writes the new
@@ -15,8 +16,8 @@
 //                      back without extraction.
 //
 //   pixel(x, y, n)   — radial-glow field. Stateless per-cell dispatch;
-//                      the host passes the current count `n` (decoded via
-//                      vsa.real() — that's the monitoring boundary, fine).
+//                      the host passes the current count `n` (decoded at the
+//                      display boundary, _display.read_real — fine).
 //                      The pixel function itself is just geometry.
 //
 // We do NOT wrap back to 0 after 9 (Emma: don't care past the count); the

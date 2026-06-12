@@ -6,8 +6,8 @@ lives as a `recurring vector state` on the substrate, held between calls
 in a module-level tensor slot. Each click invokes `step()` with NO host
 arg; the substrate loads its slot, adds make_real(1.0), writes the new
 state back via `recur(...)`, returns the new state vector. The host
-decodes vsa.real(state_vec) only for display (the window title), never
-to feed back into step() — the substrate's slot is the source of truth.
+decodes the state at the display boundary (read_real) only for the window
+title, never to feed back into step() — the substrate's slot is the truth.
 This is the substrate-state RNN shape: closes CLAUDE.md "Subtler
 substrate breaches" #2.
 
@@ -17,7 +17,7 @@ Two substrate computations drive the per-click path (count.su):
                        at position n decoded from the substrate slot.
 
 The window title shows the current count, decoded from the substrate
-(vsa.real() is a monitoring boundary, not feedback).
+(read_real is the display boundary, not feedback).
 
 Usage:
     python apps/gui/counter_demo.py                 # open the window; click to count

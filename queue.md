@@ -686,7 +686,9 @@ agenda continues in `todo.md` once this is decomposed and underway.
   (`test_gui_{click,counter,render}.py`).
 - `demos/font/` — substrate font rendering (companion surface).
 - Audit: `planning/findings/2026-05-28-demos-gui-substrate-audit.md` (dim hygiene PASS
-  — dim=8, 0 basis_vector; the two stateful demos are host-state-shuttle, refactor flagged).
+  — dim=8, 0 basis_vector). NOTE: that audit's "host-state-shuttle" finding is SUPERSEDED —
+  count/toggle were rewritten to substrate-RNNs (8fb49d73/e73ea106) and verified by
+  measurement 2026-06-11 (state persists across no-arg calls; see DEVLOG).
 
 **HARD RAILS for ALL GUI work (CLAUDE.md):**
 - Every pixel/step value is computed ON THE SUBSTRATE. No host arithmetic inside ops.
@@ -703,11 +705,10 @@ agenda continues in `todo.md` once this is decomposed and underway.
    `vsa.real` → `_display.read_real` boundary, GUI 9/9 + font 47/47, render unchanged.)*
    FOLLOW-ON from item 1: `demos/calc/calc.py` has the identical `vsa.real` break (2 sites)
    — same `read_real` fix; separate demo (not GUI), low priority, do opportunistically.
-2. **Substrate-RNN refactor of the stateful demos (`count.su`, `toggle.su`).** Rewrite
-   so the counter/toggle state is a vector carried across `loop` iterations on the
-   substrate (no host `n += 1`). Add a state-locus test (walk N steps, assert no host
-   extraction between ticks — the template the audit names). This discharges the
-   long-flagged "host-state-shuttle dressed as recurrence" design failure.
+   *(Item 2 — substrate-RNN refactor of count/toggle — DONE: the refactor already landed
+   (8fb49d73/e73ea106); VERIFIED by measurement 2026-06-11 (step×5=[1,2,3,4,5],
+   flip×4=[1,0,1,0], no host feedback; state-locus tests test_gui_counter/test_gui_click
+   pass) + stale vsa.real() docs cleaned. See DEVLOG.)*
 3. **Whole-frame render in ONE substrate call** (the "fuller form" Emma described):
    a single returned vector decoded to a full frame via a reverse-CNN-style decoder,
    instead of N per-pixel calls. (Original Yantra-era sketch `planning/24-first-gui.md`
