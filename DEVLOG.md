@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-12: Daily substrate-honesty audit — CLEAN
+
+Discharged the 2026-06-12 audit item. Reviewed commits `7ad82862..HEAD` (this session: OCaml
+constructor/aggregate group, the GUI block + `hadamard` primitive, non-tail-recursion approach 1)
+against CLAUDE.md §"Subtler substrate breaches":
+- **(a) dim:** every new GUI/tree `.su` (frame_whole, frame_moving, moving_glow, frame_ring,
+  click_frame, tree_combine) has **0 basis_vector** and runs at `runtime_dim=8` — no 768-bloat.
+  The whole-frame buffers are length-N² *pixel* tensors passed to elementwise ops, not runtime_dim,
+  so dim stays 8 (correct).
+- **(b) "substrate-RNN"/"verified":** all measured, not framed — count/toggle/moving_glow/
+  click_frame substrate-RNN via walked-N×-no-host-feedback sequences ([1..5], [1,0,1,0],
+  [-0.75..0.5], [1,0,1,0,1,0]); GUI renders vs host oracle (5.96e-08/1.19e-07); Tree RNN root ==
+  host (18/90/8); OCaml "substrate-verified X=N" backed by `test_fixture_runs_on_substrate`.
+- **(c) classifier gap:** the only decision (click toggle) ships measured on/off separation
+  (glow 0.999 vs blank 0.0); no unverified classifier. `hadamard` = `torch.mul` (substrate-pure,
+  autograd-preserving, no host readout / no numpy).
+No breaches → no finding/fix item; deleted the audit item.
+
 ## 2026-06-11: Non-tail recursion #6 — approach 1 (Tree RNN) works on the substrate
 
 First of the two queue-#6 approaches. `experiments/non_tail_recursion/tree_combine.su`
