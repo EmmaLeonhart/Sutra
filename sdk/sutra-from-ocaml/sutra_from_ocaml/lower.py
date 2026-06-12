@@ -682,6 +682,22 @@ def _lower_variant_match_body(node, source: bytes, indent: str) -> str:
         return f"{indent}// UNSUPPORTED-MATCH: no cases\n"
     out = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
     out += f'{indent}int _vval = realvec({scrut_src}.item("_val"));\n'
+    # Multi-arg ctors store their payload in `_val0`, `_val1`, … — read those
+    # slots too when any matched ctor has arity >= 2.
+    _multi = 0
+    for c in cases:
+        p0 = c.named_children[0] if c.named_children else None
+        cpath = None
+        if p0 is not None and p0.type == "constructor_pattern":
+            cpath = next((k for k in p0.named_children
+                          if k.type == "constructor_path"), None)
+        elif p0 is not None and p0.type == "constructor_path":
+            cpath = p0
+        if cpath is not None and _node_text(cpath, source) in _VARIANT_CTORS:
+            _multi = max(_multi, _VARIANT_CTORS[_node_text(cpath, source)][1])
+    if _multi >= 2:
+        for i in range(_multi):
+            out += f'{indent}int _val{i} = realvec({scrut_src}.item("_val{i}"));\n'
     parsed: list[tuple[Optional[str], str]] = []  # (test_or_None, res_src)
     for c in cases:
         cc = c.named_children
@@ -695,21 +711,50 @@ def _lower_variant_match_body(node, source: bytes, indent: str) -> str:
             if name not in _VARIANT_CTORS:
                 return f"{indent}// UNSUPPORTED-MATCH-PATTERN: unknown variant ctor {name}\n"
             tag = _VARIANT_CTORS[name][0]
-            argpat = next((k for k in pat.named_children
-                           if k.type == "value_pattern"), None)
-            if argpat is not None and _node_text(argpat, source) != "_":
-                bound = _node_text(argpat, source)  # bind payload -> _vval
-                saved = _MATCH_SUBST.get(bound, _MISSING)
-                _MATCH_SUBST[bound] = "_vval"
+            # Payload binding: a multi-arg ctor binds a (parenthesized) tuple
+            # pattern, component i -> `_val{i}`; a single-arg ctor binds one
+            # value_pattern -> `_vval`.
+            tuple_pat = None
+            for k in pat.named_children:
+                kk = (k.named_children[0]
+                      if k.type == "parenthesized_pattern" and k.named_children
+                      else k)
+                if kk is not None and kk.type == "tuple_pattern":
+                    tuple_pat = kk
+                    break
+            if tuple_pat is not None:
+                binds = [vp for vp in tuple_pat.named_children
+                         if vp.type == "value_pattern"]
+                saved: dict = {}
+                for i, vp in enumerate(binds):
+                    nm = _node_text(vp, source)
+                    if nm != "_":
+                        saved[nm] = _MATCH_SUBST.get(nm, _MISSING)
+                        _MATCH_SUBST[nm] = f"_val{i}"
                 try:
                     res_src = _lower_expression(res, source)
                 finally:
-                    if saved is _MISSING:
-                        _MATCH_SUBST.pop(bound, None)
-                    else:
-                        _MATCH_SUBST[bound] = saved
+                    for nm, sv in saved.items():
+                        if sv is _MISSING:
+                            _MATCH_SUBST.pop(nm, None)
+                        else:
+                            _MATCH_SUBST[nm] = sv
             else:
-                res_src = _lower_expression(res, source)
+                argpat = next((k for k in pat.named_children
+                               if k.type == "value_pattern"), None)
+                if argpat is not None and _node_text(argpat, source) != "_":
+                    bound = _node_text(argpat, source)  # bind payload -> _vval
+                    saved1 = _MATCH_SUBST.get(bound, _MISSING)
+                    _MATCH_SUBST[bound] = "_vval"
+                    try:
+                        res_src = _lower_expression(res, source)
+                    finally:
+                        if saved1 is _MISSING:
+                            _MATCH_SUBST.pop(bound, None)
+                        else:
+                            _MATCH_SUBST[bound] = saved1
+                else:
+                    res_src = _lower_expression(res, source)
             parsed.append((f"_vtag == {tag}", res_src))
         elif pat.type == "constructor_path" and _node_text(pat, source) in _VARIANT_CTORS:
             tag = _VARIANT_CTORS[_node_text(pat, source)][0]
@@ -1142,35 +1187,58 @@ def _lower_option_body(kind, source: bytes, indent: str) -> str:
 
 def _variant_value_kind(node, source: bytes):
     """Classify an expression as a construction of an axon-mode (parameterised)
-    variant constructor: returns `(tag, arity, arg_node_or_None)` or None.
-    `C x` (arity-1) -> (tag, 1, x); bare `C` (arity-0 in an axon-mode type) ->
-    (tag, 0, None)."""
+    variant constructor: returns `(tag, arity, args)` or None, where `args` is a
+    list of argument expression nodes (length == arity).
+    `C x` (arity-1) -> (tag, 1, [x]); `C (a, b)` (arity-2) -> (tag, 2, [a, b]);
+    bare `C` (arity-0 in an axon-mode type) -> (tag, 0, [])."""
     if node is None:
         return None
     if node.type == "constructor_path":
         name = _node_text(node, source)
         if name in _VARIANT_CTORS:
             tag, arity = _VARIANT_CTORS[name]
-            return (tag, arity, None)
+            # A bare constructor is a value only when nullary; a bare
+            # parameterised ctor would be a partial application (a function
+            # value) — not supported, so leave it UNSUPPORTED.
+            if arity == 0:
+                return (tag, 0, [])
         return None
     if node.type == "application_expression":
         kids = node.named_children
         if len(kids) == 2 and kids[0].type == "constructor_path":
             name = _node_text(kids[0], source)
-            if name in _VARIANT_CTORS and _VARIANT_CTORS[name][1] == 1:
-                return (_VARIANT_CTORS[name][0], 1, kids[1])
+            if name not in _VARIANT_CTORS:
+                return None
+            tag, arity = _VARIANT_CTORS[name]
+            if arity == 1:
+                return (tag, 1, [kids[1]])
+            if arity >= 2:
+                # `C (a, b, …)` — the argument is a (parenthesized) tuple whose
+                # components are the payload. Arity must match the declaration.
+                arg = _unwrap_parens(kids[1])
+                if arg is not None and arg.type == "tuple_expression":
+                    comps = list(arg.named_children)
+                    if len(comps) == arity:
+                        return (tag, arity, comps)
     return None
 
 
 def _emit_variant_construction(kind, source: bytes, indent: str, var: str) -> str:
-    """Emit axon construction for an axon-mode variant value (`C x` / bare `C`)
-    into local `var` (`{_tag, _val}`) WITHOUT a trailing return — reusable as a
-    function body or a hoisted call argument. Nullary -> `_val`=0."""
-    tag, arity, arg = kind
-    val = _lower_expression(arg, source) if (arity == 1 and arg is not None) else "0"
-    return (f"{indent}Axon {var};\n"
-            f'{indent}{var}.add("_tag", {tag});\n'
-            f'{indent}{var}.add("_val", {val});\n')
+    """Emit axon construction for an axon-mode variant value (`C x` / `C (a,b)` /
+    bare `C`) into local `var` WITHOUT a trailing return — reusable as a function
+    body or a hoisted call argument. Slot naming: nullary -> `_val`=0; single-arg
+    -> `_val` (backward-compatible); multi-arg -> `_val0`, `_val1`, … (one per
+    payload component)."""
+    tag, arity, args = kind
+    out = (f"{indent}Axon {var};\n"
+           f'{indent}{var}.add("_tag", {tag});\n')
+    if arity <= 1:
+        val = _lower_expression(args[0], source) if (arity == 1 and args) else "0"
+        out += f'{indent}{var}.add("_val", {val});\n'
+    else:
+        for i in range(arity):
+            out += f'{indent}{var}.add("_val{i}", {_lower_expression(args[i], source)});\n'
+    return out
 
 
 def _lower_variant_value_body(kind, source: bytes, indent: str) -> str:
@@ -1679,7 +1747,11 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
                     if cn is None:
                         continue
                     name = _node_text(cn, src_bytes)
-                    arity = 1 if len(cd.named_children) > 1 else 0
+                    # Arity = number of payload type components. `Origin` -> 0,
+                    # `Lit of int` -> 1, `Pair of int * int` -> 2 (each tuple
+                    # component is a separate type child under the declaration).
+                    arity = sum(1 for c in cd.named_children
+                                if c.type != "constructor_name")
                     if axon_mode:
                         # Uniform tagged-axon: all ctors of this type (param +
                         # nullary) get (tag, arity). NOT enum-int.
