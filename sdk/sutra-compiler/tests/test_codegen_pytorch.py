@@ -151,10 +151,12 @@ class TestPyTorchExtendedState(unittest.TestCase):
 
 
 class TestPyTorchVectorAccessors(unittest.TestCase):
-    """Host-readout accessors (.component / .semantic / .synthetic / .imag /
-    .truth) were REMOVED 2026-06-07 — no introspection in the language (they
-    were `float(v[...].item())` host readouts). Only `real` remains transiently
-    while its consumers are reworked. See CLAUDE.md §"NO introspection"."""
+    """Host-readout accessors (.real / .component / .semantic / .synthetic /
+    .imag / .truth) were REMOVED — no introspection in the language (they were
+    `float(v[...].item())` host readouts). `real` was kept transiently 2026-06-07
+    while its consumers were reworked; that rework finished 2026-06-11 (the demos
+    moved to the display-boundary `read_real` helper / `realvec`), so the host-
+    readout `real` accessor is now gone too. See CLAUDE.md §"NO introspection"."""
 
     def test_removed_accessors_are_gone(self):
         py = _compile("function vector main() { return basis_vector(\"x\"); }\n")
@@ -164,9 +166,12 @@ class TestPyTorchVectorAccessors(unittest.TestCase):
         self.assertNotIn("def semantic(self, v, i):", py)
         self.assertNotIn("def synthetic(self, v, i):", py)
 
-    def test_real_accessor_still_defined_transiently(self):
+    def test_real_host_readout_accessor_is_removed(self):
+        # The host-readout `real` (float(v[...].item())) is gone; `realvec` (the
+        # substrate-pure real-axis projection) is its on-substrate replacement.
         py = _compile("function vector main() { return basis_vector(\"x\"); }\n")
-        self.assertIn("def real(self, v):", py)
+        self.assertNotIn("def real(self, v):", py)
+        self.assertIn("def realvec(self, v):", py)
 
     def test_bigint_class_accepted_as_type(self):
         # Regression guard for the BigInt class declaration in
