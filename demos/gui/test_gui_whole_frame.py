@@ -47,6 +47,26 @@ def test_whole_frame_matches_per_pixel_render() -> None:
     assert worst < 1e-6, f"whole-frame vs per-pixel max error {worst} >= 1e-6"
 
 
+def test_moving_glow_tracks_center_on_the_substrate() -> None:
+    """frame_moving.su renders a glow centred at a movable x; the rendered field
+    matches `1 - (x - cx)² - y²` (1e-6) and the brightest column TRACKS cx as it
+    moves — the animation property, computed one-op-per-frame on the substrate."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size = 16
+    for center in (0.0, 0.5):
+        got = whole.render_field_moving(size, center)
+        ref = [[1.0 - (2.0 * i / (size - 1) - 1.0 - center) ** 2
+                - (2.0 * j / (size - 1) - 1.0) ** 2
+                for i in range(size)] for j in range(size)]
+        worst = max(abs(got[j][i] - ref[j][i])
+                    for j in range(size) for i in range(size))
+        assert worst < 1e-6, f"moving glow center={center}: max error {worst} >= 1e-6"
+        # brightest pixel's column maps to ~center (the glow moved with cx).
+        flat = int(got.argmax())
+        col_x = 2.0 * (flat % size) / (size - 1) - 1.0
+        assert abs(col_x - center) <= 2.0 / (size - 1) + 1e-6
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""
