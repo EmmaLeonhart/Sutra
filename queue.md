@@ -708,13 +708,24 @@ to ground truth; per-approach table (halts / correct / max clean depth / substra
 differentiable); negative results marked with the measured reason. Deliver a finding +
 recommendation.
 
-PROGRESS: **approach 1 (Tree RNN) DONE + substrate-verified** (2026-06-11) —
-`experiments/non_tail_recursion/{tree_combine.su,tree_rnn_eval.py,test_…}`; fixed-topology
-bottom-up fold, non-associative combine, root == host (18 / 90 / 8); fixed-structure
-non-tail recursion needs no stack. Finding
-`2026-06-11-non-tail-recursion-approach1-tree-rnn.md`. **NEXT: approach 2 — CPS +
-trampolining** (the sequential `f(x)=1+f(x-1)` case: pending work → carried continuation,
-top-level `while_loop` bounces; continuation representation is the open piece).
+PROGRESS — BOTH approaches built + substrate-verified + compared (the core deliverable):
+- **Approach 1 (Tree RNN) DONE** (2026-06-11) — `experiments/non_tail_recursion/
+  {tree_combine.su,tree_rnn_eval.py}`; fixed-topology bottom-up fold, non-associative
+  combine, root == host (18/90/8); fixed-structure recursion needs no stack. Finding
+  `2026-06-11-non-tail-recursion-approach1-tree-rnn.md`.
+- **Approach 2 (CPS + trampolining) DONE** (2026-06-12) — `cps_factorial{,_raw}.ml` +
+  `cps_eval.py`; raw non-tail = UNSUPPORTED, CPS/accumulator rewrite → `while_loop`
+  trampoline, `fact 5 = 120` == host. Continuation reified as `acc`; collapses to a
+  scalar for arithmetic. Guard suite 2/2.
+- **Comparison + recommendation DONE** — `2026-06-12-non-tail-recursion-cps-and-comparison.md`:
+  Tree RNN for fixed-structure, CPS-trampoline for sequential; complementary, both run today
+  for tractable cases; dynamic-structure = shared genuinely-unsolved frontier (reified stack/NTM).
+
+NEXT (bounded, the highest-value continuation): a mechanical **CPS/accumulator transform
+pass in `sdk/sutra-from-ocaml`** so raw foldable non-tail `let rec` (e.g. `fact n = n*fact
+(n-1)`) auto-derives the accumulator and COMPILES instead of UNSUPPORTED. Then (frontier,
+not blocking): first-class fns → general non-foldable continuations; dynamic-structure
+stack machine (NTM/RAM track).
 
 ## 🎨 GUI long-horizon extensions (Emma 2026-06-11; END of the queue, after non-tail recursion)
 
