@@ -1674,6 +1674,105 @@ def _try_lower_tail_recursive(
     return loop_decl + fn
 
 
+# Associative + commutative integer combine ops. The accumulator transform below
+# folds leaves in the REVERSE order of the recursion, so the result is preserved
+# only for ops where order does not matter — `+` and `*`. NOT `-` / `/` (the
+# reversed fold would change the value): those stay UNSUPPORTED, not faked.
+_FOLD_OPS = {"+", "*"}
+
+
+def _try_lower_foldable_nontail_recursive(
+    name: str, params: list[tuple[str, str]], ret: str, body, source: bytes,
+) -> Optional[str]:
+    """CPS / accumulator transform for a FOLDABLE non-tail recursion of the shape
+    `let rec f n = if COND then BASE else (LEAF <OP> f(REC))` (single param), where
+    OP is associative + commutative (`+` or `*`). The pending work `LEAF OP _` — which
+    in a stack language sits on the call stack — is reified as an accumulator carried
+    by a Sutra `while_loop` (the trampoline): `acc` starts at BASE, each step folds
+    LEAF into `acc` and advances `n` via REC. This lets raw non-tail factorial/sum
+    compile + run on the substrate instead of UNSUPPORTED.
+
+    Only `+`/`*` qualify (see `_FOLD_OPS`): the transform folds leaves in the reverse
+    order of the recursion, which preserves the result only for commutative+associative
+    ops. Returns the emitted Sutra (loop decl + function) or None (→ UNSUPPORTED).
+    Substrate-verified: `fact 5 = 120`, `sum 5 = 15`."""
+    if len(params) != 1 or body.type != "if_expression":
+        return None
+    cond = body.child_by_field_name("condition")
+    if cond is None:
+        return None
+    then_c = next((c for c in body.named_children if c.type == "then_clause"), None)
+    else_c = next((c for c in body.named_children if c.type == "else_clause"), None)
+    if (then_c is None or else_c is None or not then_c.named_children
+            or not else_c.named_children):
+        return None
+    then_e = then_c.named_children[0]
+    else_e = else_c.named_children[0]
+
+    def _foldable(node):
+        """`LEAF OP f(REC)` / `f(REC) OP LEAF` with OP in _FOLD_OPS and a single-arg
+        self-call → (op_text, leaf_node, rec_arg_node); else None."""
+        n = _unwrap_parens(node)
+        if n is None or n.type != "infix_expression":
+            return None
+        op = n.child_by_field_name("operator")
+        left = n.child_by_field_name("left")
+        right = n.child_by_field_name("right")
+        if op is None or left is None or right is None:
+            return None
+        op_text = _node_text(op, source)
+        if op_text not in _FOLD_OPS:
+            return None
+        lc = _self_call_args(_unwrap_parens(left), name, 1, source)
+        rc = _self_call_args(_unwrap_parens(right), name, 1, source)
+        if (lc is None) == (rc is None):
+            return None  # exactly one operand must be the self-call
+        return (op_text, right, lc[0]) if lc is not None else (op_text, left, rc[0])
+
+    fold_else, fold_then = _foldable(else_e), _foldable(then_e)
+    if (fold_else is None) == (fold_then is None):
+        return None
+    if fold_else is not None:
+        cont = _negate_cond(cond, source)            # loop while not COND
+        op_text, leaf, rec_arg = fold_else
+        base = then_e
+    else:
+        cont = _lower_expression(cond, source)        # loop while COND
+        op_text, leaf, rec_arg = fold_then
+        base = else_e
+    if cont is None:
+        return None
+
+    pname, pty = params[0]
+    sutra_op = _OP_MAP.get(op_text, op_text)
+    loop_name = f"_rec_{name}"
+    leaf_src = _lower_expression(leaf, source)
+    rec_src = _lower_expression(rec_arg, source)
+    base_src = _lower_expression(base, source)
+    if any("UNSUPPORTED" in s for s in (leaf_src, rec_src, base_src, cont)):
+        return None
+    # while_loop carries (n, acc); simultaneous update via temporaries (new acc from
+    # the OLD n and OLD acc; new n from REC of the OLD n).
+    loop_decl = (
+        f"while_loop {loop_name}({cont}, {pty} {pname} = 0, {pty} _acc = 0) {{\n"
+        f"    {pty} _t_n = {rec_src};\n"
+        f"    {pty} _t_acc = _acc {sutra_op} {leaf_src};\n"
+        f"    {pname} = _t_n;\n"
+        f"    _acc = _t_acc;\n"
+        f"}}\n"
+    )
+    fn = (
+        f"function {ret} {name}({pty} {pname}) {{\n"
+        f"    {pty} _acc = {base_src};\n"
+        f"    slot {pty} _{pname}_r = {pname};\n"
+        f"    slot {pty} _acc_r = _acc;\n"
+        f"    loop {loop_name}({cont}, _{pname}_r, _acc_r);\n"
+        f"    return _acc_r;\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
                        is_rec: bool = False) -> str:
     kids = lb.named_children
@@ -1760,11 +1859,18 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
         tail = _try_lower_tail_recursive(name, params, ret, body, source)
         if tail is not None:
             return tail
+        # FOLDABLE non-tail recursion (factorial/sum: `LEAF +|* f(n-1)`) — the CPS/
+        # accumulator transform reifies the pending work as an accumulator carried by
+        # a while_loop (trampoline). Only +/* (assoc.+comm.); others stay UNSUPPORTED.
+        fold = _try_lower_foldable_nontail_recursive(name, params, ret, body, source)
+        if fold is not None:
+            return fold
         return (
             f"// UNSUPPORTED-LET-REC: recursive function '{name}' is not the "
-            "tail-recursive accumulator shape; Sutra's fuzzy if/else evaluates "
-            "both branches, so general recursion does not terminate — needs a "
-            "loop/recur encoding (queue.md Transpiler track)\n"
+            "tail-recursive accumulator shape nor a foldable (+/*) non-tail "
+            "recursion; Sutra's fuzzy if/else evaluates both branches, so general "
+            "recursion does not terminate — needs a loop/recur encoding "
+            "(queue.md Transpiler track)\n"
         )
 
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
