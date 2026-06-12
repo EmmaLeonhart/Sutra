@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-11: OCaml frontend — multi-arg constructors (`C of a * b`)
+
+Closed transpiler follow-on (c). A constructor carrying a tuple payload (`Pair of int * int`)
+is now a first-class axon-mode variant. Four coordinated changes in `lower.py`:
+- **Prepass arity** now counts the payload type components (`arity = #named_children − the
+  constructor_name`), so `Origin`→0, `Lit of int`→1, `Pair of int * int`→2 (was capped at 1).
+- **`_variant_value_kind`** returns `(tag, arity, args)` with `args` a list; it extracts the
+  components of `C (a, b)` from the (parenthesized) `tuple_expression`, requires the arity to
+  match, and only treats a *bare* ctor as a value when it is nullary.
+- **`_emit_variant_construction`** emits `_val0`, `_val1`, … for arity ≥ 2 (arity ≤ 1 keeps the
+  single `_val` slot — backward-compatible with the existing single-arg/nullary fixtures).
+- **`_lower_variant_match_body`** reads the `_val{i}` slots when any matched ctor has arity ≥ 2
+  and binds a (parenthesized) `tuple_pattern` component-wise to `_val{i}` (single-arg still
+  binds one `value_pattern` → `_vval`).
+Works in body, local-binding, and argument position (the shared aggregate-arg hoist already
+routes through the two updated helpers). New fixture `variant_multiarg` substrate-verified = 16
+(`let q = Pair (7,9) in let r = Origin in sum_pt q + sum_pt r` = (7+9)+0; match `| Pair (a,b)
+-> a + b`). Variant-typed params must be annotated (`(p : point)`) to map to `Axon`, the same
+requirement single-arg already had (an un-annotated param defaults to `int`, and `.item("…")`
+then hits torch's `Tensor.item()`). Full OCaml suite 116 passed. Remaining follow-ons:
+top-level value binding of a ctor, and aggregate args nested under operators.
+
 ## 2026-06-11: OCaml frontend — direct axon-mode variant ctor in local-binding position
 
 Closed transpiler follow-on (b): a direct constructor application bound to a local
