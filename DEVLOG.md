@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-11: GUI item #5 DONE — human-facing website page; GUI block COMPLETE
+
+Wrote `docs/gui.md` ("Drawing pixels") — the human-facing early-adoption page: Sutra computes
+the picture on the substrate, the host paints; run `python demos/gui/window.py`; the one-vector-
+is-the-frame whole-frame render; a gallery table (glow / whole-frame / moving / animated /
+ring / click-toggle / counter / toggle); and the "state lives on the substrate" note. Wired into
+the site nav (`scripts/build_site.py` ORDER + BLURB). Built it (`/gui/` renders) and checked
+website discipline — NO repo-internal refs (no queue/todo/planning/DEVLOG/deep-sdk paths), NO
+numpy mentions; github source links only (public example source).
+
+This COMPLETES the GUI block (Emma's top priority, 2026-06-11): #1 demos ported to the post-
+purity runtime, #2 count/toggle substrate-RNN verified, #3 whole-frame render + `hadamard`
+primitive, #4 widget/interaction set (moving glow / substrate-RNN animation / ring / click→state),
+#5 website page. Removed the finished block from queue.md; GUI long-horizon (layout, colour, real
+event loop, learned decoder, Yantra integration) moved to todo.md. Next queue item: #6 non-tail
+recursion (CPS + Tree RNNs). GUI suite 15/15.
+
 ## 2026-06-11: GUI item #4 DONE — click→substrate-state interaction (widget set complete)
 
 Final GUI #4 widget — input handling: `demos/gui/click_frame.su` combines toggle.su's
