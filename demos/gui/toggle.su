@@ -5,8 +5,9 @@
 // 2026-05-28). flip() takes no argument; each call loads the substrate
 // slot, computes `make_real(1.0) - state` (vector subtraction; if state's
 // real axis is 0 the result's is 1, and vice versa), writes the new state
-// back via recur(...), and returns the new state vector. The host can
-// vsa.real() the result for display — that's monitoring, not feedback.
+// back via recur(...), and returns the new state vector. The host reads
+// the result for display at the boundary (_display.read_real), not feedback.
+// Measured 2026-06-11: flip() x4 with no host feedback = [1,0,1,0].
 //
 // Same shape as count.su's step() — both are substrate-state RNNs where
 // the click is purely a trigger and the state never round-trips through

@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-11: GUI item #2 — count/toggle substrate-RNN VERIFIED (refactor already landed) + docs cleaned
+
+The queue's item #2 ("substrate-RNN refactor of count.su/toggle.su") was written from the stale
+2026-05-28 audit, which flagged the two stateful GUI demos as host-state-shuttle. Checking what is
+true NOW (CLAUDE.md: verify the code, not the old queue note): the refactor already landed —
+`8fb49d73` (count.su rewrite + recur/non-halting-loop v1) and `e73ea106` (toggle.su rewrite). Both
+use `recurring vector state` + `recur(...)`: the state is a substrate vector held across calls, not
+a host scalar. Directly measured (no host feedback between ticks): `count.su step()` ×5 = [1,2,3,4,5];
+`toggle.su flip()` ×4 = [1,0,1,0]; each return is a substrate tensor decoded only for display. The
+state-locus tests the audit asked for already exist and pass (`test_gui_counter` walks 10 no-arg
+steps → [1..10]; `test_gui_click` 4 no-arg flips → 1,0,1,0). So item #2's substantive work was done;
+this session's contribution is the measurement-verification plus a doc-accuracy pass: the count/toggle
+`.su` headers and the driver/test docstrings still named the removed `vsa.real()` monitoring accessor
+— updated to the current display boundary (`_display.read_real`), with the measured no-feedback
+sequences recorded in the `.su` headers. Now that the architecture is genuinely recurrent, the
+audit's "recurrent loop" wording is accurate, not misleading. GUI suite 9/9.
+
 ## 2026-06-11: font demos ported to the post-purity runtime (display-boundary read)
 
 Completes GUI queue item #1. The `demos/font/` drivers/tests had the same break as the GUI ones

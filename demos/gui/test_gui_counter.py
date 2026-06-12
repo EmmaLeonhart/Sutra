@@ -6,8 +6,8 @@ state` lives on the substrate as a tensor in a module-level slot, surviving
 across calls without host scalar extraction. Each click invokes `step()`
 with NO host arg; the substrate loads the slot, increments the real axis,
 writes back via `recur(...)`, returns the new state vector. `pixel(x, y, n)`
-is stateless geometry — host decodes the current count via vsa.real() for
-display purposes only (monitoring boundary, allowed). This test guards
+is stateless geometry — host decodes the current count via read_real() for
+display purposes only (display boundary, allowed). This test guards
 both pieces. No window/click is exercised (headless-safe); the live click
 is verified by hand via `python demos/gui/counter_demo.py`.
 """
