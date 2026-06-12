@@ -300,6 +300,17 @@ def _builtin_dot(args: List[str]) -> str:
     return f"_VSA.dot({args[0]}, {args[1]})"
 
 
+def _builtin_hadamard(args: List[str]) -> str:
+    # Elementwise (Hadamard) product of two number-VECTORS / buffers, via
+    # `_VSA.hadamard` -> raw `a * b`. Distinct from `*` (which lowers to
+    # complex_mul, the d-dim complex number product on the real/imag axes and
+    # collapses a multi-component buffer to a single number). hadamard is the
+    # buffer-arithmetic op: each component multiplied independently. Enables a
+    # whole frame to be computed in ONE substrate op over coordinate buffers
+    # (`1 - hadamard(X,X) - hadamard(Y,Y)`), the GUI whole-frame render.
+    return f"_VSA.hadamard({args[0]}, {args[1]})"
+
+
 def _builtin_real(args: List[str]) -> str:
     # Substrate-pure real-axis read -> 0-d tensor via `_VSA._re`. This is
     # the SUBSTRATE-PURE extractor (dot with the real one-hot), distinct
@@ -395,6 +406,11 @@ BUILTINS = {
     # "Blocked on: dot" in stdlib/similarity.su + logic.su. A backend
     # lacking the method fails at runtime with a clear AttributeError.
     "dot": (_builtin_dot, 2),
+    # Elementwise (Hadamard) product over number-vectors / buffers (`_VSA.hadamard`).
+    # The buffer-arithmetic multiply (each component independent), distinct from `*`
+    # (complex_mul, single-number real/imag-axis product). Used by the GUI whole-frame
+    # render to compute all pixels in one op: `1 - hadamard(X,X) - hadamard(Y,Y)`.
+    "hadamard": (_builtin_hadamard, 2),
     # Substrate-pure canonical-axis reads as free functions: real(v)/imag(v)
     # -> 0-d tensor (_VSA._re/_im). The SUBSTRATE-PURE form (NOT the
     # host-float `.real()` accessor), safe to use inside operations such as
