@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-12: New-language frontends — Scala MVP started (substrate-verified)
+
+With GUI (top priority) and non-tail recursion done, the loop began the deprioritized-
+autonomous new-language transpiler track (roadmap order: Scala first). Installed
+`tree-sitter-scala` (0.26.0) and scaffolded `sdk/sutra-from-scala/` modeled on the OCaml
+reference frontend: `lower(source)` handles top-level `def` functions (Int/Long→int,
+Double/Float→number, Boolean→bool, String), integer/float literals, infix
+arithmetic/comparison/boolean ops, function calls, parens. Fixture `add_main`
+(`def add(a,b)=a+b; def main()=add(7,9)`) lowers + compiles + RUNS on the substrate = 16
+(test harness mirrors OCaml's compile-AND-run bar; 2/2). README + pyproject (declares the
+tree-sitter-scala dep). Proves the toolchain end-to-end for a second source language. Next
+(model on OCaml's verified patterns): if/else→defuzz blend, val bindings, match, case
+classes→axons, tail recursion→while_loop.
+
 ## 2026-06-12: GUI #7 — learned decoder DEFERRED (Emma); remainder parked to todo.md
 
 Emma's call (AskUserQuestion): defer the learned decoder (latent→frame training) — research-

@@ -2720,18 +2720,17 @@ the agenda reads as one coherent plan rather than scattered docs.
 
 ---
 
-## [ON HOLD — after GUI] Deprioritized, pull LAST (Emma 2026-06-11)
+## [ACTIVE — GUI done 2026-06-12] New-language frontends + (done) non-tail recursion
 
-GUI is the top priority. The work-loop completes the GUI block (queue.md) first;
-only after that does it attempt the items below, automatically, from this todo.
-They are on hold, not cancelled.
+GUI (top priority) shipped and `let rec` non-tail recursion is done (foldable CPS transform
++ Tree RNN). So this track is now ACTIVE — the loop works it from `queue.md` §Transpiler track.
 
-### New-language transpiler frontends — ON HOLD
+### New-language transpiler frontends — ACTIVE (Scala MVP started 2026-06-12)
 The full roadmap (the bet, priority order, per-language notes, Rust/WASM phases)
-lives in "## [This year] Multi-language transpiler frontends" above, now banner-marked
-ON HOLD. Pull order when GUI is done: **Scala → F# → Elixir/Erlang → Clojure →
-Haskell → Rust → WASM** (F# is the cheapest — OCaml's ML cousin — and a defensible
-first pick over Scala on effort/reward). Each is a multi-session build: new
+lives in "## [This year] Multi-language transpiler frontends" above. Pull order:
+**Scala → F# → Elixir/Erlang → Clojure → Haskell → Rust → WASM**. **Scala MVP STARTED**
+(`sdk/sutra-from-scala/`, top-level `def` fns substrate-verified). Each is a multi-session
+build: new
 `tree-sitter-<lang>` grammar → `sdk/sutra-from-<lang>/lower.py` → `.su` emission →
 fixtures that compile AND run on the substrate (the OCaml harness bar). OCaml stays
 the reference implementation; new frontends model on it, not `-ts`.
