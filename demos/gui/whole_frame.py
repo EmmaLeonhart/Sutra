@@ -98,6 +98,40 @@ def render_field_moving(size: int = 64, center_x: float = 0.0):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+def _compile_layout():
+    """Compile frame_layout.su -> (layout, _VSA). Composes glow (left) + ring (right)
+    via a region mask, one substrate pass."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_layout.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
+    return mod.layout, mod._VSA
+
+
+def render_layout(size: int = 64, radius: float = 0.5):
+    """Return a (size, size) frame with the glow in the left half and the ring in the
+    right half, composed via a region mask in one substrate op (frame_layout.su)."""
+    import torch
+
+    layout, vsa = _compile_layout()
+    dt, dev = vsa.dtype, vsa.device
+    xs, ys, mask = [], [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+            mask.append(1.0 if cx < 0.0 else 0.0)   # left region = glow
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(size * size, dtype=dt, device=dev)
+    rad = torch.full((size * size,), float(radius), dtype=dt, device=dev)
+    mL = torch.tensor(mask, dtype=dt, device=dev)
+    out = layout(X, Y, ones, mL, rad)
+    out = out.real if out.is_complex() else out
+    return out.reshape(size, size).detach().to("cpu").numpy()
+
+
 def _compile_rgb():
     """Compile frame_rgb.su -> (glow, ring, gradient, _VSA) channel fields."""
     from sutra_compiler import compile_su

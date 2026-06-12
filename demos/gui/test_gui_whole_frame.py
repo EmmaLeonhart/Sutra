@@ -160,6 +160,23 @@ def test_rgb_colour_channels_match_host() -> None:
     assert img[0, 0, 2] < 0.01 and img[0, size - 1, 2] > 0.99
 
 
+def test_layout_composes_two_widgets_into_regions() -> None:
+    """frame_layout.su composes two whole-frame widgets via a region mask in one
+    substrate op: the left half shows the glow, the right half the ring. The composed
+    frame matches the region-selected host oracle (1e-6)."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size, R = 16, 0.5
+    got = whole.render_layout(size, R)
+    worst = 0.0
+    for j in range(size):
+        for i in range(size):
+            x = 2.0 * i / (size - 1) - 1.0
+            y = 2.0 * j / (size - 1) - 1.0
+            want = (1.0 - x * x - y * y) if x < 0.0 else (1.0 - (x * x + y * y - R) ** 2)
+            worst = max(worst, abs(float(got[j, i]) - want))
+    assert worst < 1e-6, f"layout vs region-selected host max error {worst} >= 1e-6"
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""
