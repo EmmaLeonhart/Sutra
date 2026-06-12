@@ -15,14 +15,18 @@ pattern: the def erases to a field prepass; construction `Point(a, b)` hoists to
 `realvec(p.item("x"))`). Substrate-verified fixtures (compile AND run): `add_main` = 16,
 `if_classify` = 100/200, `val_block` = 17, `match_literal` = 100/200/300,
 `case_class` = 12, `tail_rec` = 15 (tail-recursive accumulator shape → declared
-`while_loop`, the OCaml `_try_lower_tail_recursive` port; non-tail recursion surfaces
-as `UNSUPPORTED-RECURSION`, never a silent self-call), `match_guard` = 60 (guards
-`case x if x > 0 => …` AND-combine with the pattern test; name-binding patterns
-substitute the bound name to the scrutinee, the OCaml `_MATCH_SUBST` shape).
+`while_loop`, the OCaml `_try_lower_tail_recursive` port; non-tail recursion outside
+the supported shapes surfaces as `UNSUPPORTED-RECURSION`, never a silent self-call),
+`match_guard` = 60 (guards `case x if x > 0 => …` AND-combine with the pattern test;
+name-binding patterns substitute the bound name to the scrutinee, the OCaml
+`_MATCH_SUBST` shape), `nontail_fact` = 120 (foldable non-tail recursion
+`LEAF +|* f(REC)` → accumulator `while_loop` trampoline, the OCaml CPS port — with a
+stricter guard rejecting param-dependent base cases, which the transform would
+mis-evaluate).
 
 Dependency: `tree-sitter-scala` (`pip install tree-sitter-scala`).
 
 ## Next (roadmap order, todo.md)
 
-`object`/method dispatch, foldable non-tail recursion (the OCaml CPS/trampoline
-shape). New constructs model on the OCaml frontend's verified-running patterns.
+`object`/method dispatch. New constructs model on the OCaml frontend's
+verified-running patterns.
