@@ -662,8 +662,9 @@ fixtures that compile **AND run on the substrate** (the OCaml harness's
 - **Scala** — `sdk/sutra-from-scala/` (`tree-sitter-scala`). MVP STARTED 2026-06-12:
   top-level `def` functions (Int/Double/Boolean/String), int/float literals, infix
   arithmetic/comparison/boolean ops, calls, parens; `add_main` substrate-verified = 16
-  (compile-AND-run harness, 2/2). NEXT (model on OCaml): if/else→defuzz blend, `val`
-  bindings, `match`, case classes→axons, tail recursion→`while_loop`.
+  (compile-AND-run harness). **if/else→defuzz blend DONE** (`if_classify`: classify(5)=100,
+  classify(-5)=200, crisp; Scala suite 4/4). NEXT (model on OCaml): `val` bindings, `match`,
+  case classes→axons, tail recursion→`while_loop`.
 - [ ] **F#** — `sdk/sutra-from-fsharp/` (ML-family, close cousin of OCaml — should reuse much of the OCaml lowering shape).
 - [ ] **Elixir / Erlang** — `sdk/sutra-from-erlang/` (the BEAM pair; immutable, message-passing maps onto the axon IPC story).
 - [ ] **Clojure** — `sdk/sutra-from-clojure/` (Lisp; homoiconic, persistent data structures).
