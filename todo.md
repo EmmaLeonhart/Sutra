@@ -815,16 +815,16 @@ Remaining work:
 The GUI block + its near-term extensions shipped 2026-06-11/12 (Emma's top-priority push):
 `demos/gui/` whole-frame renders (glow / moving glow / substrate-RNN animation / ring /
 click-gated / colour RGB / two-widget layout), the `hadamard` elementwise/buffer primitive,
-the `docs/gui.md` page. These remain (deferred, autonomous when the loop reaches them):
+the `docs/gui.md` page. GUI #8 (2026-06-12, Emma's pick) shipped the real window event loop
+(`live_frame.su`/`live_demo.py` — live tkinter window, all state on the substrate, complex-
+rotation animation wrap) and the checker / diagonal / four-quadrant shapes. These remain
+(deferred, autonomous when the loop reaches them):
 
 - [ ] **Learned decoder / arbitrary-image generation** — DEFERRED (Emma 2026-06-12,
   research-scale): a trained nonlinear decoder from a latent to an arbitrary frame (the
   constrain-train "every op trainable" vision meets GUI; the analytic whole-frame render is
   the fixed-weight base case). Likely ties into the weight→code / constrain-train work
   (`experiments/w2c_*`). Pick the approach with Emma before a large build.
-- [ ] **Real window event loop** — live clicks/animation driving the substrate state (host UI
-  plumbing; low substrate-verification value, environment-dependent).
-- [ ] **More shapes / N-region layouts** — checker, diagonal gradient, >2-region compose.
 - [ ] **Yantra GUI integration** — the window living in the orchestrator, per the Yantra OS.
 
 HARD RAILS (CLAUDE.md): every pixel on the substrate; stateful widgets are substrate-RNNs;
