@@ -21,6 +21,10 @@ import pytest
 torch = pytest.importorskip("torch", reason="toggle.su runs through real Sutra")
 
 DEMO_GUI = pathlib.Path(__file__).resolve().parent
+import sys
+if str(DEMO_GUI) not in sys.path:
+    sys.path.insert(0, str(DEMO_GUI))
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 
 def _load_click_demo():
@@ -41,10 +45,10 @@ def test_flip_toggles_state_on_substrate() -> None:
     # test or _Flip() instance.
     ns["_flip__state_state"] = None
     # Sequence: 0 -> 1 -> 0 -> 1 -> 0
-    a = float(vsa.real(flip()))
-    b = float(vsa.real(flip()))
-    c = float(vsa.real(flip()))
-    d = float(vsa.real(flip()))
+    a = read_real(vsa, flip())
+    b = read_real(vsa, flip())
+    c = read_real(vsa, flip())
+    d = read_real(vsa, flip())
     assert abs(a - 1.0) < 1e-6
     assert abs(b - 0.0) < 1e-6
     assert abs(c - 1.0) < 1e-6

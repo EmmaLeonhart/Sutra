@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-11: GUI demos ported to the post-purity runtime (display-boundary read)
+
+GUI queue item #1 (core). The `demos/gui/` drivers and tests were broken against the current
+runtime: they called `vsa.real(v)`, the in-language scalar accessor removed in the 2026-06-07
+purity overhaul (`_TorchVSA` has no `.real`). The three `.su` files themselves still compile and
+run — only the Python host code was stale. Added `demos/gui/_display.py` with `read_real(vsa, v)`
+— the sanctioned terminal/display boundary read (`float(v[vsa.semantic_dim + vsa.AXIS_REAL])`,
+mirroring the compiler CLI's `_decode_terminal_result`): the host reading the FINAL frame value
+for display is the one external boundary, not in-language introspection. Routed all seven sites
+through it (window.py, counter_demo.py, click_demo.py, counter_substrate_server.py + the three
+test files). Behavior preserved exactly — measured: `render_field` is still `1−x²−y²` (centre
+1.0, corner −1.0, edge-mid 0.0); GUI suite 9/9 passing (was 2 failing on the missing accessor).
+Also de-staled frame.su's comment + window.py's docstring (old `apps/gui/` path, removed `real()`
+reference). NOT done here (separate items): the substrate-RNN refactor of count/toggle (item #2),
+and the font demos' identical `vsa.real` port.
+
 ## 2026-06-11: Filed the `(atom) <binop>` cast-vs-grouping parser ambiguity as an open-question
 
 New `planning/open-questions/paren-cast-vs-grouping-ambiguity.md` (+ a README triage row).
