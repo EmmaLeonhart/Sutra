@@ -30,6 +30,11 @@ _DEFAULT_TYPE = "int"
 _CASE_CLASSES: dict[str, list[str]] = {}
 _ARG_HOIST: dict[int, str] = {}
 
+# Match-pattern name bindings (`case x if x > 0 => x * 10`): the bound name
+# substitutes to the (parenthesised) scrutinee while lowering that clause's
+# guard + result — the OCaml `_MATCH_SUBST` shape.
+_SUBST: dict[str, str] = {}
+
 # Scala infix operator → Sutra operator.
 _OP_MAP = {
     "+": "+", "-": "-", "*": "*", "/": "/", "%": "%",
@@ -131,7 +136,8 @@ def _lower_expr(node, src: bytes) -> str:
     if t in ("floating_point_literal", "float_literal"):
         return _text(node, src).rstrip("fFdD")
     if t in ("identifier", "stable_identifier"):
-        return _text(node, src)
+        text = _text(node, src)
+        return _SUBST.get(text, text)
     if t == "boolean_literal":
         return _text(node, src)
     if t == "parenthesized_expression":
@@ -174,13 +180,30 @@ def _lower_expr(node, src: bytes) -> str:
                 continue
             ck = cc.named_children
             pat, res = ck[0], ck[-1]
+            guard = next((c for c in ck if c.type == "guard"), None)
+            binding = None
             if pat.type == "wildcard":
                 test = None
             elif pat.type == "integer_literal":
                 test = f"({scrut_src} == {_text(pat, src)})"
+            elif pat.type == "identifier":
+                # Name-binding pattern: irrefutable; the name substitutes to the
+                # scrutinee in this clause's guard + result.
+                binding = _text(pat, src)
+                test = None
             else:
                 return f"/* UNSUPPORTED-MATCH-PATTERN: {pat.type} */"
-            parsed.append((test, _lower_expr(res, src)))
+            if binding is not None:
+                _SUBST[binding] = f"({scrut_src})"
+            try:
+                if guard is not None and guard.named_children:
+                    guard_src = f"({_lower_expr(guard.named_children[0], src)})"
+                    test = f"({test} && {guard_src})" if test is not None else guard_src
+                res_src = _lower_expr(res, src)
+            finally:
+                if binding is not None:
+                    _SUBST.pop(binding, None)
+            parsed.append((test, res_src))
         if not parsed:
             return "/* UNSUPPORTED-EXPR: empty match */"
         expr = parsed[-1][1]
