@@ -13,18 +13,6 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ---
 
-## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
-
-- **W2C official push decision.** The 2× corpus retrain (decoder exact 0.811,
-  coeff-family IO 0.41 — see `planning/findings/2026-05-30-w2c-coeff-head-diagnostic.md`
-  § "Bigger-corpus test") is SCRATCH ONLY. Push the official model/eval to the
-  submodule + HF, or keep scratch? (Held since 2026-05-31.)
-- **Le Chat section-granular AI-use breakdown (paper polish item).** The current
-  AI-use statement (`paper/paper.md` §AI-use) is generic. A per-section breakdown
-  naming Le Chat requires Emma's ground truth of WHICH sections she used Le Chat
-  for — writing it from guesswork would fabricate an integrity statement. Needs:
-  the section list + what Le Chat did there (ideation/drafting/lit-search).
-
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN (Emma 2026-06-07)** — the live revision target
@@ -125,13 +113,14 @@ head) is shipped + guarded (`test_ntm_ram.py` 11/11). Remaining:
 ## W2C / corpus (not active work)
 
 Corpus at 7200 programs (submodule `corpus/` + HF mirror, consistency-guarded).
-The coefficient wall stands measured (structure transfers ~1.0; coefficients
-~0.41 at 2× data — data-bound at least partially). Scale further = one-flag
-bump on `experiments/weight_to_code_corpus.py` → push submodule → HF mirror →
-bump pointer. Loose end (low priority, default leave): 5760 old-layout flat
-CSV orphans on HF — if tidying, precise explicit-path delete (NOT a `*.csv`
+The official baseline model is PUBLISHED (Emma greenlit 2026-06-12): `corpus/model/`
+carries checkpoint + vocab + substrate eval (exact 0.811 / IO 0.826), on GitHub
+(`7dfb660a`) + HF (`fbf07a2d`). The coefficient wall stands measured (structure
+transfers ~1.0; coefficient families drag — data-bound at least partially). Scale
+further = one-flag bump on `experiments/weight_to_code_corpus.py` → push submodule →
+HF mirror → bump pointer. Loose end (low priority, default leave): 5760 old-layout
+flat CSV orphans on HF — if tidying, precise explicit-path delete (NOT a `*.csv`
 wildcard) + harden `mirror_corpus_to_hf.py` to prune stale files.
-Official-push decision → A.0.
 
 ## Formal verification (roadmap lives in formal-verification.md + todo.md)
 
