@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-11: OCaml frontend — aggregate args nested under operators (shared recursive hoist)
+
+Closed transpiler follow-on (d). Until now an aggregate literal (record / tuple / variant
+construction) could be a call argument only when the call WAS the whole function body
+(`_hoist_record_args`). A body like `f {..} + g {..}` — aggregates as operands of an operator —
+fell through to `return _lower_expression(body)`, where the inline record/tuple/variant lowered
+to UNSUPPORTED. New `_hoist_aggregate_args_deep` walks the entire return expression, hoists every
+aggregate-literal call argument anywhere in the tree to a temp Axon (`_ah0`, `_ah1`, …), and
+registers each argument node id in a new module-level `_ARG_HOIST` map; `_lower_expression` checks
+that map at the top and emits the temp name instead of the (unsupported) inline literal. Nested
+calls are recursed into; an aggregate nested inside another aggregate's field is left to lower
+normally (rare, out of scope). One mechanism covers records, tuples, AND variants. New fixture
+`aggregate_arg_nested_op` substrate-verified = 12 (`getx {x=7;y=9} + eval (Lit 5)` = 7 + 5).
+Full OCaml suite 119 passed. Only follow-on (b') (top-level ctor value binding) remains in the
+constructor/aggregate group.
+
 ## 2026-06-11: OCaml frontend — multi-arg constructors (`C of a * b`)
 
 Closed transpiler follow-on (c). A constructor carrying a tuple payload (`Pair of int * int`)

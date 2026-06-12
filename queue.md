@@ -622,10 +622,16 @@ first and never touches the RAM/W2C sections above.
   hoist machinery). Substrate-verified `variant_multiarg` = 16 (`let q = Pair (7,9) in let r =
   Origin in sum_pt q + sum_pt r` = (7+9)+0; `| Pair (a, b) -> a + b`). Param must be annotated
   (`(p : point)`) so it maps to `Axon`, same requirement as single-arg.
-  REMAINING (follow-ons): (b') a bare/direct axon-mode ctor as a TOP-LEVEL value binding
+  **Aggregate args nested under operators (`f {..} + g {..}`): DONE (the shared recursive
+  hoist).** `_hoist_aggregate_args_deep` walks the return expression, hoists every aggregate
+  -literal call argument (record / tuple / variant construction) anywhere in the tree to a temp
+  Axon (`_ah0`, `_ah1`, …), and registers each node in `_ARG_HOIST` so `_lower_expression`
+  emits the temp at the call site (nested calls recursed into; aggregate-in-aggregate-field left
+  to lower normally). Benefits records, tuples, AND variants at once. Substrate-verified
+  `aggregate_arg_nested_op` = 12 (`getx {x=7;y=9} + eval (Lit 5)` = 7 + 5).
+  REMAINING (follow-on): (b') a bare/direct axon-mode ctor as a TOP-LEVEL value binding
   (`let z = Zero` at module scope — needs the construction emitted as top-level statements, a
-  different shape than the local case); (d) aggregate args nested under operators (`f a + g b`,
-  the shared recursive-hoist follow-on). Numeric
+  different shape than the local case). Numeric
   payloads only (strings aren't axon fillers).
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
 - [ ] (follow-on) Per-variable interface typing so field-type lookup is exact even
