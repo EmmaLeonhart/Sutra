@@ -31,3 +31,12 @@ def test_tree_rnn_fold_matches_host_bottom_up() -> None:
         got = ev.fold_substrate(leaves)
         want = ev._fold_host(leaves)
         assert abs(got - want) < 1e-5, f"{leaves}: substrate {got} != host {want}"
+
+
+def test_cps_factorial_runs_raw_is_unsupported() -> None:
+    """Approach 2 (CPS + trampolining): the raw non-tail factorial lowers to
+    UNSUPPORTED; the CPS/accumulator rewrite lowers to a while_loop (trampoline) and
+    runs on the substrate to the host factorial."""
+    ev = _load("cps_eval", "cps_eval.py")
+    assert ev.raw_is_unsupported()
+    assert abs(ev.run_cps_on_substrate() - 120.0) < 1e-5

@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-12: Non-tail recursion #6 — approach 2 (CPS) works; both approaches compared
+
+Built approach 2 (CPS + trampolining) and the two-approach comparison (the #6 deliverable).
+`experiments/non_tail_recursion/cps_factorial{,_raw}.ml` + `cps_eval.py`: the raw non-tail
+`fact n = n*fact(n-1)` lowers to UNSUPPORTED (no stack on the both-branches blend); the CPS/
+accumulator rewrite `fact n acc = if n=0 then acc else fact (n-1) (acc*n)` reifies the
+continuation as `acc`, lowers to a Sutra `while_loop` (the trampoline), and runs on the
+substrate to `fact 5 = 120` = host. Guard `test_cps_factorial_runs_raw_is_unsupported`
+(suite 2/2). Boundary: for linear arithmetic recursion the continuation collapses to a scalar
+accumulator (= the existing tail-loop); non-foldable continuations need first-class functions
+(open). Comparison + recommendation in `2026-06-12-non-tail-recursion-cps-and-comparison.md`:
+Tree RNN for fixed-structure recursion (no stack), CPS→accumulator-trampoline for sequential
+recursion — complementary, both run today for their tractable cases; dynamic-structure
+recursion is the shared genuinely-unsolved frontier (reified stack / NTM). Next bounded step:
+a mechanical CPS/accumulator transform in `sdk/sutra-from-ocaml` so raw foldable non-tail
+`let rec` compiles instead of UNSUPPORTED.
+
 ## 2026-06-12: Daily substrate-honesty audit — CLEAN
 
 Discharged the 2026-06-12 audit item. Reviewed commits `7ad82862..HEAD` (this session: OCaml
