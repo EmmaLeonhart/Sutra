@@ -156,6 +156,7 @@ _RUNNABLE_FIXTURES = {
     "variant_arg_pos": 7.0,  # eval (Lit 7)  (variant value in ARG position -> hoisted to a temp tagged Axon)
     "variant_nullary_value": 7.0,  # let z = Zero in let a = Lit 7 in eval z + eval a  (bare nullary + direct ctor in local-binding position)
     "variant_multiarg": 16.0,  # let q = Pair (7,9) in sum_pt q + sum_pt Origin = (7+9) + 0  (multi-arg C of a*b -> _val0/_val1; tuple-pattern match)
+    "aggregate_arg_nested_op": 12.0,  # getx {x=7;y=9} + eval (Lit 5) = 7 + 5  (aggregate args hoisted from operands of an operator — record + variant)
     "option_some": 42.0,  # get_or (mk 42) 0  (option Some/None -> tagged axon; match binds payload via int locals)
     "let_in_expr": 20.0,  # (let x = 5 in x + x) + 10  (let..in in expression position via substitution)
     "modulo": 2.0,  # 17 mod 5  (OCaml mod -> Sutra %)

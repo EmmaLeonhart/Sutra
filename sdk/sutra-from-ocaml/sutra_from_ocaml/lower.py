@@ -157,6 +157,14 @@ def _is_array_alloc(value, source: bytes) -> bool:
 # with explicit save/restore in `_lower_match` for nested matches.
 _MATCH_SUBST: dict = {}
 
+# Maps a tree-sitter node `.id` -> a temp-var name, for aggregate-literal call
+# arguments (record / tuple / variant construction) that were hoisted to a temp
+# Axon BEFORE the enclosing return expression. When `_lower_expression` reaches
+# such a node it emits the temp name instead of the (unsupported) inline literal.
+# Lets `f {..} + g {..}` work: the aggregates hoist, the call sites reference the
+# temps. Populated + cleared per return-expression by `_hoist_aggregate_args_deep`.
+_ARG_HOIST: dict = {}
+
 # Sentinel for "key absent" in save/restore (distinct from a real None value).
 _MISSING = object()
 
@@ -358,6 +366,10 @@ def _map_type(type_node, source: bytes, record_types=frozenset()) -> str:
 
 
 def _lower_expression(node, source: bytes) -> str:
+    # An aggregate-literal argument hoisted to a temp Axon (see _ARG_HOIST):
+    # emit the temp name instead of trying to lower the inline literal.
+    if _ARG_HOIST and node is not None and node.id in _ARG_HOIST:
+        return _ARG_HOIST[node.id]
     t = node.type
     if t == "number":
         return _normalize_number(_node_text(node, source))
@@ -1137,6 +1149,63 @@ def _emit_tuple_construction(body, source: bytes, indent: str, var: str) -> str:
     return lines
 
 
+def _aggregate_arg_emitter(ua, source: bytes, indent: str, var: str):
+    """If `ua` (an unwrapped node) is an aggregate LITERAL — a record `{…}`, a
+    `tuple_expression`, or an axon-mode variant construction — return its
+    statement-based construction into `var`; otherwise None."""
+    if ua is None:
+        return None
+    if ua.type == "record_expression":
+        return _emit_record_construction(ua, source, indent, var)
+    if ua.type == "tuple_expression":
+        return _emit_tuple_construction(ua, source, indent, var)
+    vk = _variant_value_kind(ua, source)
+    if vk is not None:
+        return _emit_variant_construction(vk, source, indent, var)
+    return None
+
+
+def _hoist_aggregate_args_deep(body, source: bytes, indent: str):
+    """Hoist aggregate-literal arguments of ANY call nested inside the return
+    expression `body` — e.g. `f {..} + g {..}`, where the aggregates are operands
+    of an operator rather than the single body call `_hoist_record_args` handles.
+    Each aggregate arg is built into a temp Axon (`_ah0`, `_ah1`, …) and registered
+    in `_ARG_HOIST` so `_lower_expression` emits the temp at the call site. Returns
+    `(prelude, added_node_ids)` or None. The caller lowers `body` then pops the ids.
+    Scope: aggregates that are DIRECT call arguments (nested calls are recursed
+    into); an aggregate nested inside another aggregate's field lowers normally."""
+    prelude_parts: list[str] = []
+    added: list[int] = []
+    counter = [0]
+
+    def visit(n):
+        if n is None:
+            return
+        if n.type == "application_expression":
+            kids = n.named_children
+            if len(kids) >= 2:
+                for a in kids[1:]:
+                    ua = _unwrap_parens(a)
+                    var = f"_ah{counter[0]}"
+                    emit = _aggregate_arg_emitter(ua, source, indent, var)
+                    if emit is not None:
+                        prelude_parts.append(emit)
+                        _ARG_HOIST[a.id] = var
+                        added.append(a.id)
+                        counter[0] += 1
+                    else:
+                        visit(a)
+                visit(kids[0])
+                return
+        for c in n.named_children:
+            visit(c)
+
+    visit(body)
+    if not prelude_parts:
+        return None
+    return "".join(prelude_parts), added
+
+
 def _lower_tuple_body(body, source: bytes, indent: str) -> str:
     """Lower a `tuple_expression` function body `(e0, e1, …)` to Sutra axon
     construction (positional fields) + return. A tuple is an anonymous positional
@@ -1472,6 +1541,18 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
         hoisted = _hoist_record_args(body, source, indent)
         if hoisted is not None:
             return hoisted
+    # Aggregate-literal args nested inside a larger return expression
+    # (`f {..} + g {..}`): hoist them to temps, then lower the expression — the
+    # call sites now reference the temps via `_ARG_HOIST`.
+    deep = _hoist_aggregate_args_deep(body, source, indent)
+    if deep is not None:
+        prelude, added = deep
+        try:
+            replaced = _lower_expression(body, source)
+        finally:
+            for nid in added:
+                _ARG_HOIST.pop(nid, None)
+        return prelude + f"{indent}return {replaced};\n"
     return f"{indent}return {_lower_expression(body, source)};\n"
 
 
@@ -1705,6 +1786,7 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     record_types: set[str] = set()
     _CONSTRUCTORS.clear()
     _VARIANT_CTORS.clear()
+    _ARG_HOIST.clear()
     _HOISTED_LOOPS.clear()
     _HOISTED_DECLS.clear()
     _RAM_ARRAYS.clear()
