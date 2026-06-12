@@ -1,0 +1,22 @@
+// frame_ring.su — a concentric RING, rendered whole-frame in one substrate op.
+//
+// A second shape for the GUI widget set (distinct from the radial glow): brightness
+// peaks on a circle of squared-radius R and falls off both inside and outside, so the
+// bright locus is a ring rather than a centred blob.
+//
+//   ring(x, y, ones, radius) = ones - hadamard(r2 - radius, r2 - radius)
+//                            = 1 - (x^2 + y^2 - R)^2,   r2 = x^2 + y^2
+//
+// All elementwise/buffer arithmetic (hadamard + add/sub), one op over the whole
+// coordinate grid; x/y/ones/radius are length-(N*N) buffers the orchestrator builds
+// (radius is R broadcast to every pixel). The host reshapes + paints.
+function vector ring(vector x, vector y, vector ones, vector radius) {
+    vector r2 = hadamard(x, x) + hadamard(y, y);
+    vector d = r2 - radius;
+    return ones - hadamard(d, d);
+}
+
+// Sanity entry: at the centre r2=0, so 1 - (0 - 0.5)^2 = 0.75 (dimmer than the ring peak 1).
+function vector main() {
+    return ring(make_real(0.0), make_real(0.0), make_real(1.0), make_real(0.5));
+}

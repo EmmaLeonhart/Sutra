@@ -91,6 +91,24 @@ def test_animation_centre_is_a_substrate_rnn() -> None:
     assert cols == sorted(cols) and cols[-1] > cols[0]
 
 
+def test_ring_widget_matches_oracle_and_is_a_ring() -> None:
+    """frame_ring.su renders a concentric ring `1 - (x²+y² - R)²` in one substrate op:
+    matches the host oracle (1e-6), and the bright locus is a RING — the peak is on
+    the circle, brighter than the centre (not a centred blob)."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size, R = 16, 0.5
+    got = whole.render_field_ring(size, R)
+    ref = [[1.0 - ((2.0 * i / (size - 1) - 1.0) ** 2
+                   + (2.0 * j / (size - 1) - 1.0) ** 2 - R) ** 2
+            for i in range(size)] for j in range(size)]
+    worst = max(abs(got[j][i] - ref[j][i])
+                for j in range(size) for i in range(size))
+    assert worst < 1e-6, f"ring vs oracle max error {worst} >= 1e-6"
+    centre = float(got[size // 2][size // 2])
+    peak = float(got.max())
+    assert peak > centre + 1e-3, f"expected a ring (peak {peak} > centre {centre})"
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""
