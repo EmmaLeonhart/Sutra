@@ -810,6 +810,26 @@ Remaining work:
   for `Greeter g`). Needs variable type tracking through the
   codegen.
 
+## [This year] GUI — deferred / long-horizon (core + most extensions shipped)
+
+The GUI block + its near-term extensions shipped 2026-06-11/12 (Emma's top-priority push):
+`demos/gui/` whole-frame renders (glow / moving glow / substrate-RNN animation / ring /
+click-gated / colour RGB / two-widget layout), the `hadamard` elementwise/buffer primitive,
+the `docs/gui.md` page. These remain (deferred, autonomous when the loop reaches them):
+
+- [ ] **Learned decoder / arbitrary-image generation** — DEFERRED (Emma 2026-06-12,
+  research-scale): a trained nonlinear decoder from a latent to an arbitrary frame (the
+  constrain-train "every op trainable" vision meets GUI; the analytic whole-frame render is
+  the fixed-weight base case). Likely ties into the weight→code / constrain-train work
+  (`experiments/w2c_*`). Pick the approach with Emma before a large build.
+- [ ] **Real window event loop** — live clicks/animation driving the substrate state (host UI
+  plumbing; low substrate-verification value, environment-dependent).
+- [ ] **More shapes / N-region layouts** — checker, diagonal gradient, >2-region compose.
+- [ ] **Yantra GUI integration** — the window living in the orchestrator, per the Yantra OS.
+
+HARD RAILS (CLAUDE.md): every pixel on the substrate; stateful widgets are substrate-RNNs;
+verify the rendered frame against a reference, measured.
+
 ## [This year] Make `sutralang.dev` more agent-accessible
 
 Sutra's stance per CLAUDE.md is that agents are first-class consumers
