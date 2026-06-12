@@ -1,6 +1,18 @@
 # Development Log
 
-## 2026-06-12: sutra-from-scala — case classes → axons
+## 2026-06-12: sutra-from-scala — tail recursion → while_loop
+
+Sixth Scala increment, the OCaml `_try_lower_tail_recursive` port: `def f(p…) = if
+(COND) BASE else f(a…)` (self-call in either arm) lowers to a declared Sutra
+`while_loop` — bounded substrate iteration, slots + loop + write-back, simultaneous
+state update via temporaries (the OCaml swaploop lesson). Halt conditions invert
+precisely via `_NEG_CMP` for comparisons, generally via `!(…)`. Recursion that is NOT
+the tail shape emits `UNSUPPORTED-RECURSION` (a plain self-call would not terminate
+through the fuzzy-if blend — never silently mislower). Fixture `tail_rec`
+(`sumTo(acc,n) = if (n==0) acc else sumTo(acc+n, n-1)`): substrate-verified
+`sumTo(0, 5)` = 15. Scala suite 12/12. Next: match guards, object/method dispatch,
+foldable non-tail recursion.
+
 
 Fifth Scala increment, the OCaml record pattern ported whole: `case class Point(x: Int,
 y: Int)` erases to a field prepass (`_CASE_CLASSES`); the class name maps to `Axon` in
