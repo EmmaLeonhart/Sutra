@@ -257,6 +257,45 @@ HARD RAIL: every step RUN + verified substrate-to-substrate (decoded output ==
 reference); no faking; measure, don't claim. Use engineering judgment; do NOT ask Emma
 incomprehensible low-level questions.
 
+## ⭐ ACTIVE — GUI #8 (Emma 2026-06-12): live window event loop + more shapes
+
+Emma picked two of the parked GUI items (AskUserQuestion 2026-06-12): real window
+event loop + more shapes/N-region layouts. Learned decoder stays deferred; Yantra
+integration stays parked. Approved plan:
+`C:\Users\Immanuelle\.claude\plans\planning-the-next-gui-mossy-key.md`.
+Shape: ONE combined tkinter window on the whole-frame path — timer tick advances a
+substrate-RNN glow centre, click toggles a substrate gate, each tick is ONE substrate
+call returning the whole frame. Hard rails: every pixel on the substrate; state in
+recur slots only; measured verification (oracle ≤1e-6, gap tables, 0 basis_vector →
+runtime_dim=8).
+
+1. [ ] **Wrap probe (measure first):** scratch `step()` with `Math.mod` on a
+   `make_real` recurrence at dim=8; 20-tick walk; expect −0.875+0.25k wrapping into
+   [−1,1) (deltas +0.25, wrap −1.75, period 8, err ≤1e-5). Fallback if Math.mod
+   rejects vector args / branch cut bites: non-wrapping `cx + 0.25`; record negative.
+2. [ ] **`demos/gui/live_frame.su`** — `step()` (RNN centre, wrap per probe) +
+   `flip()` (RNN gate 0/1) + `frame(x,y,ones,cx,gate)` (gated glow via hadamard).
+3. [ ] **`demos/gui/live_demo.py`** — headless-testable `LiveFrame` class (compile
+   dim=8, reset both recur slots, X/Y/ones built once; `tick()` = step → boundary
+   read → ONE frame call; `click()` = flip → display-cache gate) + tkinter `main()`
+   (font_demo `root.after` tick loop, toplevel-only click bind, heat colormap,
+   `--fps`/`--render`/`--bench`).
+4. [ ] **`demos/gui/test_gui_live.py`** — step wrap walk; flip [1,0,1,0,1,0];
+   one-tick oracle ≤1e-6 (size=16); animate+click-gate signal separation
+   (≥0.99 on / ≤1e-6 off); latency 50 ticks N=64 (record mean/p95/max).
+5. [ ] **`frame_checker.su`** + `render_checker()` in whole_frame.py + test —
+   host parity buffers px,py∈{±1} (maskL precedent); substrate
+   `hadamard(half, ones + hadamard(px,py))`; oracle ≤1e-6; gap = min(on)−max(off).
+6. [ ] **`frame_diag.su`** + `render_diag()` + test — substrate
+   `hadamard(half, ones + hadamard(half, x+y))`; oracle ≤1e-6; corner spot checks.
+7. [ ] **`frame_quad.su`** + `render_quad()` + test — host passes m0–m2, substrate
+   derives m3 = ones−m0−m1−m2; composes glow/ring/diag/checker one per quadrant in
+   ONE call; per-pixel quadrant oracle ≤1e-6; masks tile exactly.
+8. [ ] **`docs/gui.md`** — "A live window" section + 4 gallery rows (github blob
+   links only, no repo-internal refs, no numpy mentions).
+9. [ ] **Close-out** — full demos/gui suite; live-window manual smoke; commit with
+   measured numbers; delete this block; DEVLOG entry; push.
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN (Emma 2026-06-07)** — arXiv lock lifted (was
