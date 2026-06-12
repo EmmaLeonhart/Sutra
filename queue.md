@@ -575,8 +575,11 @@ first and never touches the RAM/W2C sections above.
   bound name substituted via `_MATCH_SUBST`; substrate-verified `match_guard` = 60).
   **Record-destructuring DONE** (`| {x; y} -> body` → bind each field to
   `realvec(scrut.item("f"))`, irrefutable terminal; substrate-verified `match_record` = 16).
-  Remaining: constructor-with-args patterns (gated on constructor-with-args *construction*,
-  which is itself UNSUPPORTED — only nullary variants build today; a paired feature).
+  **Constructor-with-args patterns DONE** (`| Lit x -> x` binds the payload to `_vval`;
+  `| Pair (a, b) -> a + b` binds a (parenthesized) tuple pattern component-wise to `_val{i}`;
+  substrate-verified via `variant_arg`, `variant_multiarg`). The paired construction side
+  (single-arg, nullary, multi-arg, all argument positions) is also DONE — see the
+  constructor/aggregate group below.
 - [ ] **Records -> axons: DONE for numeric fields** (substrate-verified
   `getx (mk 7 9) = 7.0`). `type X = {…}` erased + record-name prepass; record-typed
   params -> `Axon`; construction `{x=a;y=b}` -> `Axon r; r.add("x",a); …`; field
