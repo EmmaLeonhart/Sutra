@@ -2704,14 +2704,9 @@ first pick over Scala on effort/reward). Each is a multi-session build: new
 fixtures that compile AND run on the substrate (the OCaml harness bar). OCaml stays
 the reference implementation; new frontends model on it, not `-ts`.
 
-### OCaml `let rec` non-tail recursion — ON HOLD (design-first)
-Tail-recursive accumulators already lower to a Sutra `while_loop` (done,
-substrate-verified). NON-tail recursion (`factorial n = n * factorial (n-1)`, the
-recursive call inside a larger expression) is correctly UNSUPPORTED today and stays
-that way until designed. Why hard: Sutra's `if/then/else` is a defuzz BLEND that
-evaluates BOTH branches unconditionally, so a self-call never terminates on the
-substrate; there is no call stack. Needs a **bounded-depth encoding** (compile-time
-depth cap / data-driven bound / CPS-style transform) — an open design question that
-must land in `planning/open-questions/` BEFORE any code. Lower value than shipped work
-(the WASM machine's OCaml needs are already covered by the tail-recursive + constructor
-features).
+### OCaml `let rec` non-tail recursion — PROMOTED to the back of `queue.md` (Emma 2026-06-11)
+No longer todo-end / on-hold: Emma moved this to the END of `queue.md` (after the GUI
+block, ahead of the new-language frontends) as an aggressive build of **two** approaches —
+**CPS + trampolining** and **Tree RNNs** — to be compared on the substrate. Full design:
+`planning/exploratory/non-tail-recursion-on-the-substrate.md`. (Tail-recursive
+accumulators already lower to a Sutra `while_loop`; the non-tail case is the target.)
