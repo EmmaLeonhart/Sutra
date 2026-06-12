@@ -699,12 +699,10 @@ agenda continues in `todo.md` once this is decomposed and underway.
 - Verify against ground truth: decoded frame/pixels == expected, MEASURED, not "it ran".
 
 **Decomposition (work top→bottom; each its own commit + DEVLOG entry):**
-1. **Bring the existing GUI demos current to the post-purity language.** `frame.su` +
-   `window.py` (and font drivers) still use pre-2026-06-07 `real()`/`make_real` host
-   readout. Re-lower so the per-op path is substrate-pure (`realvec`), the host reads
-   only the final frame. Re-run the demos; confirm the painted output is unchanged
-   (measured: same brightness field). Update the now-stale "recurrent loop" driver/test
-   docstrings flagged by the audit.
+   *(Item 1 — port demos to the post-purity runtime — DONE 2026-06-11, see DEVLOG: GUI
+   `vsa.real` → `_display.read_real` boundary, GUI 9/9 + font 47/47, render unchanged.)*
+   FOLLOW-ON from item 1: `demos/calc/calc.py` has the identical `vsa.real` break (2 sites)
+   — same `read_real` fix; separate demo (not GUI), low priority, do opportunistically.
 2. **Substrate-RNN refactor of the stateful demos (`count.su`, `toggle.su`).** Rewrite
    so the counter/toggle state is a vector carried across `loop` iterations on the
    substrate (no host `n += 1`). Add a state-locus test (walk N steps, assert no host
