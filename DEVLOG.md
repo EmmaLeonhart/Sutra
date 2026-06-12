@@ -1,6 +1,15 @@
 # Development Log
 
-## 2026-06-12: sutra-from-scala — tail recursion → while_loop
+## 2026-06-12: sutra-from-scala — match guards + name-binding patterns
+
+Seventh Scala increment: `case x if x > 0 => x * 10` lowers with the guard
+AND-combined into the clause test (`(pattern == k) && (guard)`, or the guard alone for
+irrefutable patterns); a bare-identifier pattern binds the name to the (parenthesised)
+scrutinee via a substitution map consulted at identifier lowering — the OCaml
+`_MATCH_SUBST` shape. Fixture `match_guard` (literal + guarded-binding + wildcard
+cases): substrate-verified `classify(6)` = 60. Scala suite 14/14. Next: object/method
+dispatch, foldable non-tail recursion.
+
 
 Sixth Scala increment, the OCaml `_try_lower_tail_recursive` port: `def f(p…) = if
 (COND) BASE else f(a…)` (self-call in either arm) lowers to a declared Sutra

@@ -16,12 +16,13 @@ pattern: the def erases to a field prepass; construction `Point(a, b)` hoists to
 `if_classify` = 100/200, `val_block` = 17, `match_literal` = 100/200/300,
 `case_class` = 12, `tail_rec` = 15 (tail-recursive accumulator shape → declared
 `while_loop`, the OCaml `_try_lower_tail_recursive` port; non-tail recursion surfaces
-as `UNSUPPORTED-RECURSION`, never a silent self-call).
+as `UNSUPPORTED-RECURSION`, never a silent self-call), `match_guard` = 60 (guards
+`case x if x > 0 => …` AND-combine with the pattern test; name-binding patterns
+substitute the bound name to the scrutinee, the OCaml `_MATCH_SUBST` shape).
 
 Dependency: `tree-sitter-scala` (`pip install tree-sitter-scala`).
 
 ## Next (roadmap order, todo.md)
 
-Comparison/boolean match guards, `object`/method dispatch, foldable non-tail
-recursion (the OCaml CPS/trampoline shape). New constructs model on the OCaml
-frontend's verified-running patterns.
+`object`/method dispatch, foldable non-tail recursion (the OCaml CPS/trampoline
+shape). New constructs model on the OCaml frontend's verified-running patterns.
