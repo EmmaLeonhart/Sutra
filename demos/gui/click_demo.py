@@ -33,6 +33,9 @@ if str(_SUTRA_SDK) not in sys.path:
     sys.path.insert(0, str(_SUTRA_SDK))
 
 DEMO_GUI = pathlib.Path(__file__).resolve().parent
+if str(DEMO_GUI) not in sys.path:
+    sys.path.insert(0, str(DEMO_GUI))
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 
 def _compile(su_name: str) -> dict:
@@ -61,7 +64,7 @@ def render_field(size: int = 64) -> np.ndarray:
         cy = 2.0 * j / (size - 1) - 1.0
         for i in range(size):
             cx = 2.0 * i / (size - 1) - 1.0
-            field[j, i] = float(vsa.real(pixel(cx, cy)))
+            field[j, i] = read_real(vsa, pixel(cx, cy))  # display boundary
     return field
 
 
@@ -106,7 +109,7 @@ class _Flip:
 
     def toggle(self) -> float:
         new_state = self._flip()  # no arg; substrate loads its own slot
-        self.state = float(self._vsa.real(new_state))  # decode for display
+        self.state = read_real(self._vsa, new_state)  # decode for display (terminal boundary)
         return self.state
 
 

@@ -35,6 +35,7 @@ DEMO_GUI = pathlib.Path(__file__).resolve().parent
 if str(DEMO_GUI) not in sys.path:
     sys.path.insert(0, str(DEMO_GUI))
 import counter_demo as cd  # noqa: E402
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 
 def _binary_stdout():
@@ -72,7 +73,7 @@ def main() -> None:
             break  # EOF: Rust closed the pipe
         cmd = line.strip()[:1].upper()
         if cmd == "C":
-            state = float(vsa.real(step(state)))  # SUBSTRATE +1, fed back as state
+            state = read_real(vsa, step(state))  # SUBSTRATE +1, decoded at the display boundary
             send_frame(state)
         elif cmd == "I":
             send_frame(state)

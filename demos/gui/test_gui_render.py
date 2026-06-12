@@ -18,6 +18,10 @@ import pytest
 torch = pytest.importorskip("torch", reason="frame.su runs through real Sutra")
 
 DEMO_GUI = pathlib.Path(__file__).resolve().parent
+import sys
+if str(DEMO_GUI) not in sys.path:
+    sys.path.insert(0, str(DEMO_GUI))
+from _display import read_real  # noqa: E402  (display/output boundary helper)
 
 
 def _load_window():
@@ -36,7 +40,7 @@ def test_frame_su_computes_brightness_on_substrate() -> None:
              (0.5, 0.5, 0.5), (-0.5, 0.25, 1.0 - 0.25 - 0.0625)]
     worst = 0.0
     for x, y, expect in cases:
-        got = float(vsa.real(pixel(x, y)))
+        got = read_real(vsa, pixel(x, y))
         worst = max(worst, abs(got - expect))
         assert abs(got - expect) < 1e-6, (
             f"pixel({x},{y}) = {got}, expected {expect} (1 - x^2 - y^2)"

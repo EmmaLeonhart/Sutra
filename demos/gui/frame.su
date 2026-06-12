@@ -7,9 +7,11 @@
 //
 // which is 1 at the centre and falls off radially to the edges — a glow. Every
 // arithmetic step (x*x, the subtractions) runs on the Sutra substrate; make_real
-// lifts the result onto the real axis so the host can read it with real().
+// lifts the result onto the real axis. The host reads that final per-pixel vector's
+// real-axis value at the display boundary (the language has no readout — real() was
+// removed for substrate purity; demos/gui/_display.py is the host-side decode).
 //
-// The host (apps/gui/window.py) walks the pixel grid, maps each pixel to centred
+// The host (demos/gui/window.py) walks the pixel grid, maps each pixel to centred
 // coordinates, calls pixel(x, y) on the substrate, then clamps + colour-maps +
 // displays. The substrate computes the image FIELD; the host only assembles the
 // grid and paints the window — the same host-is-I/O split as the calculator
