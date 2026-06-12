@@ -33,11 +33,17 @@ deleted on completion. Keep the task tool in sync with this file.
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **F#** — `sdk/sutra-from-fsharp/` (ML-family; should reuse much of the
-  OCaml lowering shape). [Scala's named roadmap set is COMPLETE 2026-06-12,
-  suite 18/18 — further Scala breadth only as needs arise.]
-- [ ] **Elixir / Erlang** — `sdk/sutra-from-erlang/` (BEAM pair; message-passing
-  maps onto the axon IPC story).
+- [ ] **F# — BLOCKED on grammar availability.** No PyPI wheel for
+  `tree-sitter-fsharp`; installing from the ionide git repo was denied by the
+  permission classifier (external build needs Emma's authorization, e.g. an
+  allowlist entry or her running `pip install git+https://github.com/ionide/tree-sitter-fsharp`).
+  Skipped per roadmap; revisit when the grammar is installable.
+  [Scala's named roadmap set is COMPLETE 2026-06-12, suite 18/18.]
+- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; MVP shipped
+  2026-06-12, suite 4/4 — defmodule fns, if/else blend, binary ops): tail
+  recursion → `while_loop` + foldable non-tail CPS (recursion IS iteration in
+  Elixir — the load-bearing increment); `case` → blends; multi-clause `def`
+  heads; maps/structs → axons. (Erlang proper is a separate later frontend.)
 - [ ] **Clojure** — `sdk/sutra-from-clojure/` (Lisp).
 - [ ] **Haskell** — `sdk/sutra-from-haskell/` (laziness + typeclasses hardest; last
   of the functional set).

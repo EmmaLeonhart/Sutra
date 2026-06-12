@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-12: sutra-from-elixir — MVP frontend (substrate-verified); F# blocked on grammar
+
+Third language frontend goes live (roadmap: after Scala; F# SKIPPED-BLOCKED — no PyPI
+wheel for tree-sitter-fsharp and the git build was denied by the permission classifier,
+needs Emma's authorization; queued). `sdk/sutra-from-elixir/` lowers a `defmodule`'s
+`def`s to top-level Sutra functions: tree-sitter-elixir is homogeneous (`def`/`if` are
+`call` nodes), so the lowering dispatches on the call-head keyword; inline `, do:` and
+block bodies; binary ops; `if/else` → the shared defuzz blend; dynamically-typed values
+lower as `number`. Recursion surfaces as `UNSUPPORTED-RECURSION` until the transforms
+port. Substrate-verified (compile-AND-run): `add_main` = 16, `if_classify` = 100.
+Suite 4/4. Next: the recursion transforms (load-bearing — recursion IS iteration in
+Elixir), `case`, multi-clause heads, maps/structs → axons.
+
 ## 2026-06-12: sutra-from-scala — object/method dispatch; named Scala roadmap COMPLETE
 
 Ninth Scala increment: singleton `object`s lower as NAMESPACES — each method emits as
