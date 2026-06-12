@@ -1,0 +1,20 @@
+// frame_whole.su — the WHOLE frame computed in ONE substrate pass, returned as a
+// single buffer vector. This is Emma's model (2026-06-11): the returned vector IS
+// the pixels; the host just reshapes it to N x N and paints. No per-pixel calls,
+// no decoder, no learning.
+//
+//   frame(x, y, ones) = ones - hadamard(x, x) - hadamard(y, y) = 1 - x^2 - y^2
+//
+// evaluated ELEMENTWISE over the whole coordinate grid at once. `x`, `y`, `ones`
+// are length-(N*N) coordinate buffers the orchestrator builds (compile-time grid
+// geometry, the codebook-like boundary); `hadamard` is the elementwise/buffer
+// product (each pixel independent), distinct from `*` (the single-number complex
+// product). The result is the flat frame buffer; the host reshapes + blits it.
+function vector frame(vector x, vector y, vector ones) {
+    return ones - hadamard(x, x) - hadamard(y, y);
+}
+
+// Self-contained sanity entry: a 1-pixel "grid" at the centre -> 1 - 0 - 0 = 1.
+function vector main() {
+    return frame(make_real(0.0), make_real(0.0), make_real(1.0));
+}

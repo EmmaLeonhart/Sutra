@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-11: GUI item #3 — whole-frame render in ONE substrate op (+ `hadamard` primitive)
+
+Built Emma's whole-frame model: the substrate returns ONE vector that IS the frame buffer;
+the host reshapes + paints (no decoder, no learning — the earlier `B @ c` framing was dropped).
+The gap (measured 2026-06-11): existing arithmetic can't compute an N²-pixel buffer in one op —
+`complex_mul` is the single-number real/imag-axis product and zeros a multi-component buffer
+(`[1,2,3,4]²→[0,0,0,0]`); `complex_add`/`complex_sub` are already elementwise. So the one missing
+primitive was an elementwise multiply. Added it (Emma chose "elementwise buffer ops"):
+- `hadamard` builtin (`codegen_base.py` BUILTINS + `_builtin_hadamard`) → `_VSA.hadamard`
+  (`codegen_pytorch.py`) = `torch.mul(a, b)`, a single elementwise tensor op (autograd-preserving).
+  Spec'd in `operations.md`'s builtin table (also added the previously-undocumented `dot` row).
+- `demos/gui/frame_whole.su`: `frame(x, y, ones) = ones - hadamard(x,x) - hadamard(y,y)` =
+  `1 - x² - y²` evaluated elementwise over the whole coordinate grid at once; `x`/`y`/`ones` are
+  length-(N·N) coordinate buffers the orchestrator builds (compile-time grid geometry).
+- `demos/gui/whole_frame.py` (driver: build grids → one `frame(...)` call → reshape → paint) +
+  `test_gui_whole_frame.py`.
+MEASURED oracle: the one-op buffer (256 pixels at N=16) reproduces per-pixel `window.render_field()`
+to max error 5.96e-08 < 1e-6, and the returned buffer length == N·N (it really is the whole frame
+in one vector). GUI suite 11/11. The earlier finding's "needs a new primitive" is discharged.
+
 ## 2026-06-11: GUI item #2 — count/toggle substrate-RNN VERIFIED (refactor already landed) + docs cleaned
 
 The queue's item #2 ("substrate-RNN refactor of count.su/toggle.su") was written from the stale

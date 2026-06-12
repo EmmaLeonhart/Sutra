@@ -24,6 +24,8 @@ where it currently runs.
 | `identity_permutation` | 0 | `ones(d)` sign-flip identity | ✓ |
 | `vector_literal` | variadic floats | Frozen 1-d substrate tensor from float literals (`_VSA.vector_from_floats`) | ✓ |
 | `matrix_literal` | variadic row-vectors | Frozen 2-d substrate tensor, rows stacked (`_VSA.matrix_from_rows` → `torch.stack`) | ✓ (2026-05-28) |
+| `dot` | 2 | Inner product → 0-d tensor (`_VSA.dot` → `torch.dot`), substrate-pure | ✓ |
+| `hadamard` | 2 | Elementwise/buffer product `a * b` (`_VSA.hadamard` → `torch.mul`) — each component independent; distinct from `*` (complex_mul, the single-number real/imag-axis product). Buffer arithmetic; computes a whole frame in one op. | ✓ (2026-06-11) |
 | `snap` | 1 | Cleanup against a real attractor circuit | ✗ rejected (no cleanup circuit) |
 | `make_rotation` | 1–2 | Build a Haar-random rotation matrix | ✗ rejected (substrate-level) |
 | `compile_prototypes` | 1 | Compile a codebook to substrate-readable patterns | ✗ rejected (substrate-level) |
