@@ -1,0 +1,33 @@
+// frame_quad.su — FOUR-REGION LAYOUT: four whole-frame widgets composed into the
+// quadrants of one frame, on the substrate.
+//
+// GUI shapes increment — frame_layout.su generalized past two regions. The host
+// passes three quadrant masks (m0 = top-left, m1 = top-right, m2 = bottom-left,
+// coordinate-derived grid geometry like maskL); the substrate derives the fourth as
+// the complement (m3 = 1 - m0 - m1 - m2, mirroring layout's maskR), so the four
+// regions tile the frame with no overlap and no gap by construction. Composition is
+// masked superposition over the four shape fields of this demo set:
+//
+//   quad = m0*glow + m1*ring + m2*diag + m3*checker
+//
+// all elementwise buffer arithmetic (hadamard + add), one substrate pass.
+function vector quad(vector x, vector y, vector ones,
+                     vector m0, vector m1, vector m2,
+                     vector radius, vector half, vector px, vector py) {
+    vector glow = ones - hadamard(x, x) - hadamard(y, y);
+    vector r2 = hadamard(x, x) + hadamard(y, y);
+    vector d = r2 - radius;
+    vector ring = ones - hadamard(d, d);
+    vector dg = hadamard(half, ones + hadamard(half, x + y));
+    vector check = hadamard(half, ones + hadamard(px, py));
+    vector m3 = ones - m0 - m1 - m2;
+    return hadamard(m0, glow) + hadamard(m1, ring)
+         + hadamard(m2, dg) + hadamard(m3, check);
+}
+
+// Sanity entry: m0 = 1 (top-left region) at the centre -> shows the glow = 1.
+function vector main() {
+    return quad(make_real(0.0), make_real(0.0), make_real(1.0),
+                make_real(1.0), make_real(0.0), make_real(0.0),
+                make_real(0.5), make_real(0.5), make_real(1.0), make_real(1.0));
+}

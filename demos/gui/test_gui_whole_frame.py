@@ -177,6 +177,71 @@ def test_layout_composes_two_widgets_into_regions() -> None:
     assert worst < 1e-6, f"layout vs region-selected host max error {worst} >= 1e-6"
 
 
+def test_checker_matches_oracle_with_crisp_gap() -> None:
+    """frame_checker.su: `0.5 * (1 + px*py)` over host-built cell-parity buffers
+    (grid geometry, the layout-mask precedent) renders a checkerboard in one
+    substrate op. Matches the host oracle (1e-6), and the on/off separation is the
+    full 1.0 gap (min(on) − max(off)) — a crisp binary pattern, no ambiguity."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size, block = 16, 4
+    got = whole.render_checker(size, block)
+    on, off, worst = [], [], 0.0
+    for j in range(size):
+        for i in range(size):
+            want = 1.0 if ((i // block) % 2) == ((j // block) % 2) else 0.0
+            worst = max(worst, abs(float(got[j, i]) - want))
+            (on if want == 1.0 else off).append(float(got[j, i]))
+    assert worst < 1e-6, f"checker vs oracle max error {worst} >= 1e-6"
+    gap = min(on) - max(off)
+    assert gap > 1.0 - 1e-6, f"checker on/off gap {gap} (expected 1.0)"
+    # block structure: cell (0,0) on, the next block over differs
+    assert float(got[0, 0]) > 0.99 and float(got[0, block]) < 1e-6
+
+
+def test_diag_gradient_matches_oracle_and_ramps() -> None:
+    """frame_diag.su: the diagonal ramp `0.5 * (1 + 0.5*(x + y))` in one substrate
+    op. Matches the host oracle (1e-6); 0 at top-left, 1 at bottom-right, 0.5 on
+    the anti-diagonal."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size = 16
+    got = whole.render_diag(size)
+    worst = 0.0
+    for j in range(size):
+        for i in range(size):
+            x = 2.0 * i / (size - 1) - 1.0
+            y = 2.0 * j / (size - 1) - 1.0
+            worst = max(worst, abs(float(got[j, i]) - 0.5 * (1.0 + 0.5 * (x + y))))
+    assert worst < 1e-6, f"diag vs oracle max error {worst} >= 1e-6"
+    assert float(got[0, 0]) < 1e-6                        # top-left corner = 0
+    assert float(got[size - 1, size - 1]) > 1.0 - 1e-6    # bottom-right corner = 1
+    assert abs(float(got[0, size - 1]) - 0.5) < 1e-6      # anti-diagonal = 0.5
+
+
+def test_quad_layout_composes_four_widgets() -> None:
+    """frame_quad.su: FOUR whole-frame widgets (glow / ring / diag / checker)
+    composed into quadrants in one substrate op — three host masks + the
+    substrate-derived complement. The frame matches the quadrant-selected host
+    oracle (1e-6) at every pixel, so the masks tile exactly (no overlap, no gap)."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size, R, block = 16, 0.5, 4
+    got = whole.render_quad(size, R, block)
+    worst = 0.0
+    for j in range(size):
+        for i in range(size):
+            x = 2.0 * i / (size - 1) - 1.0
+            y = 2.0 * j / (size - 1) - 1.0
+            if x < 0.0 and y < 0.0:                       # top-left: glow
+                want = 1.0 - x * x - y * y
+            elif x >= 0.0 and y < 0.0:                    # top-right: ring
+                want = 1.0 - (x * x + y * y - R) ** 2
+            elif x < 0.0 and y >= 0.0:                    # bottom-left: diag
+                want = 0.5 * (1.0 + 0.5 * (x + y))
+            else:                                         # bottom-right: checker
+                want = 1.0 if ((i // block) % 2) == ((j // block) % 2) else 0.0
+            worst = max(worst, abs(float(got[j, i]) - want))
+    assert worst < 1e-6, f"quad vs quadrant-selected host max error {worst} >= 1e-6"
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""

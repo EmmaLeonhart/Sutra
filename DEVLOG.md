@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-12: GUI #8 — more shapes + 4-region layout; docs/gui.md live-window section; block CLOSED
+
+Second half of Emma's GUI #8 pick. Three new whole-frame shapes, each ONE substrate op:
+`frame_checker.su` (checkerboard `0.5·(1+px·py)` over host-built cell-parity buffers — the
+frame_layout mask precedent; no periodic primitive needed), `frame_diag.su` (corner-to-corner
+ramp `0.5·(1+0.5·(x+y))`), and `frame_quad.su` (frame_layout generalized past two regions:
+glow/ring/diag/checker tiled into four quadrants, three host masks + the substrate-derived
+complement m3 = 1−m0−m1−m2). Render drivers in `whole_frame.py`. Measured: every shape
+matches its host oracle ≤1e-6 at every pixel; checker on/off gap = 1.0 exactly (crisp);
+quad masks tile with no overlap/gap (per-pixel quadrant-selected oracle). GUI suite 26/26.
+`docs/gui.md` gains "A live window" + 4 gallery rows (github links only). Live-window smoke:
+opened, ticked 8 s, no crash. GUI #8 queue block cleared; remaining GUI items (learned
+decoder — deferred by Emma, Yantra integration) stay parked in todo.md.
+
 ## 2026-06-12: GUI #8 — REAL window event loop (live tkinter window on the whole-frame path)
 
 The first parked GUI item (Emma's pick, with more-shapes next): a live window whose picture
