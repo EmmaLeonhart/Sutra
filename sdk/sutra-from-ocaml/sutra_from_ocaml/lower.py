@@ -1220,6 +1220,16 @@ def _lower_local_binding(vd, source: bytes, indent: str,
         _HOISTED_DECLS.append(_lower_let_binding(lb, source, record_types))
         return ""
     value = kids[-1]
+    # A DIRECT axon-mode variant construction (`let z = Zero` / `let a = Lit 7`)
+    # binds a tagged axon `{_tag,_val}`; emit the construction into `name` (typed
+    # Axon by `_emit_variant_construction`), the same shape the body/arg positions
+    # use. A nullary ctor (`Zero`) stores `_val`=0. (A `let a = lit 7` via an
+    # Axon-returning *helper function* is handled below by `binds_axon_call`; this
+    # branch is the direct-constructor case the helper path doesn't cover.)
+    if _is_identifier(name):
+        _vk = _variant_value_kind(_unwrap_parens(value), source)
+        if _vk is not None:
+            return _emit_variant_construction(_vk, source, indent, name)
     # `let a = Array.make n v` / `Bytes.make n v` -> a RAM region. Assign a
     # compile-time base; `a.(i)` / `a.(i) <- v` route to ramRead/ramWrite at
     # base+i. The binding itself emits a marker (the RAM device is the array;
