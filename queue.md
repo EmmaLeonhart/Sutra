@@ -269,20 +269,6 @@ call returning the whole frame. Hard rails: every pixel on the substrate; state 
 recur slots only; measured verification (oracle ≤1e-6, gap tables, 0 basis_vector →
 runtime_dim=8).
 
-1. [ ] **Wrap probe (measure first):** scratch `step()` with `Math.mod` on a
-   `make_real` recurrence at dim=8; 20-tick walk; expect −0.875+0.25k wrapping into
-   [−1,1) (deltas +0.25, wrap −1.75, period 8, err ≤1e-5). Fallback if Math.mod
-   rejects vector args / branch cut bites: non-wrapping `cx + 0.25`; record negative.
-2. [ ] **`demos/gui/live_frame.su`** — `step()` (RNN centre, wrap per probe) +
-   `flip()` (RNN gate 0/1) + `frame(x,y,ones,cx,gate)` (gated glow via hadamard).
-3. [ ] **`demos/gui/live_demo.py`** — headless-testable `LiveFrame` class (compile
-   dim=8, reset both recur slots, X/Y/ones built once; `tick()` = step → boundary
-   read → ONE frame call; `click()` = flip → display-cache gate) + tkinter `main()`
-   (font_demo `root.after` tick loop, toplevel-only click bind, heat colormap,
-   `--fps`/`--render`/`--bench`).
-4. [ ] **`demos/gui/test_gui_live.py`** — step wrap walk; flip [1,0,1,0,1,0];
-   one-tick oracle ≤1e-6 (size=16); animate+click-gate signal separation
-   (≥0.99 on / ≤1e-6 off); latency 50 ticks N=64 (record mean/p95/max).
 5. [ ] **`frame_checker.su`** + `render_checker()` in whole_frame.py + test —
    host parity buffers px,py∈{±1} (maskL precedent); substrate
    `hadamard(half, ones + hadamard(px,py))`; oracle ≤1e-6; gap = min(on)−max(off).

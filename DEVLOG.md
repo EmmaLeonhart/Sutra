@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-12: GUI #8 — REAL window event loop (live tkinter window on the whole-frame path)
+
+The first parked GUI item (Emma's pick, with more-shapes next): a live window whose picture
+is recomputed on the substrate every timer tick, with clicks toggling substrate state.
+`demos/gui/live_frame.su` owns ALL the widget's state in two recur slots — `step()` carries
+the glow centre's phase as a COMPLEX number rotated by e^{iπ/8} per tick (the rotation IS
+the wrap: Re(z)=cos(kπ/8) sweeps [−1,1] forever, measured 40-tick walk max err 1.13e-6) and
+`flip()` is the click_frame 0/1 gate; `frame()` renders the gated moving glow in ONE
+substrate op. `live_demo.py` adds the tkinter event loop (`root.after` tick per font_demo,
+toplevel-only click bind per click_demo) around a tkinter-free `LiveFrame` driver, plus
+`--render`/`--bench` headless modes. Probe negative result on the way in (finding
+`2026-06-12-rotation-mod-vector-collapse-complex-rotation-animation.md`): `Math.mod` cannot
+wrap a vector recurrence — vector/vector → all-NaN, vector/literal → 0-d collapse (its trig
+readout is scalar-shaped). Mid-session Emma ruled: NEVER use Math.mod anywhere (worst-
+implemented function); the complex rotation is the wrap pattern. Measured: tests 6/6
+(`test_gui_live.py`) — phase walk ≤1e-5 over 40 no-feedback ticks, flip [1,0,1,0,1,0] exact,
+one-tick frame oracle ≤1e-6, gate separation ≥0.99 lit / ≤1e-6 blank, per-tick latency
+mean 0.35 ms p95 0.44 ms max 0.92 ms at N=64 (285× under the 100 ms tick budget); 0
+basis_vector → runtime_dim=8.
+
 ## 2026-06-12: sutra-from-scala — literal `match`
 
 Fourth Scala increment. `n match { case k => …; case _ => … }` lowers to a nested defuzz
