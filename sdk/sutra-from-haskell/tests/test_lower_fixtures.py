@@ -24,6 +24,7 @@ _RUNNABLE = {
     "add_main": 16.0,  # add a b = a + b; main = add 7 9
     "if_classify": 100.0,  # classify n = if n > 0 then 100 else 200; main = classify 5
     "tail_rec": 15.0,  # sumTo acc n = if n == 0 then acc else sumTo (acc+n) (n-1); main = sumTo 0 5
+    "nontail_fact": 120.0,  # fact n = if n == 0 then 1 else n * fact (n-1); main = fact 5  (CPS fold)
 }
 
 
