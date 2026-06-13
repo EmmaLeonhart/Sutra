@@ -261,10 +261,6 @@ the existing frontends' data-structure tier.
 - [ ] **Erlang** — its own frontend (Elixir is done on the BEAM, but Erlang's own
   syntax/grammar is separate). Model on `sutra-from-ocaml`; reuse the shared
   shapes (multi-clause function heads with guards map to the dispatch blend).
-- [ ] **Q** — a "Q" language frontend. ⚠️ CONFIRM WHICH Q before starting: most
-  likely **q (kdb+/Kx)**, a functional array language (fits the roadmap); the
-  other candidate is **Q#** (quantum). Emma to disambiguate when this surfaces —
-  do not guess at build time.
 
 ## Pointers
 
