@@ -281,6 +281,40 @@ def _lower_expr(node, src: bytes) -> str:
             then_src = _lower_expr(body[-1], src) if body else "0"
             else_src = _lower_expr(els[-1], src) if els else "0"
             return _blend(cond_src, then_src, else_src)
+        if kw == "case":
+            # case(scrut, do_block(stab_clause(arguments(pat), body(res)), …)) →
+            # a nested defuzz blend over `scrut == k` tests; the last clause is
+            # the base (`_` catch-all, or the final literal). Literal patterns
+            # only — a name-binding pattern needs substitution (a later item).
+            kids = node.named_children
+            args = next((c for c in kids if c.type == "arguments"), None)
+            do_block = next((c for c in kids if c.type == "do_block"), None)
+            if args is None or not args.named_children or do_block is None:
+                return "/* UNSUPPORTED-EXPR: malformed case */"
+            scrut_src = _lower_expr(args.named_children[0], src)
+            parsed = []
+            for cl in do_block.named_children:
+                if cl.type != "stab_clause":
+                    continue
+                pa = next((c for c in cl.named_children if c.type == "arguments"), None)
+                bd = next((c for c in cl.named_children if c.type == "body"), None)
+                if pa is None or not pa.named_children or bd is None \
+                        or not bd.named_children:
+                    return "/* UNSUPPORTED-CASE: malformed clause */"
+                pat = pa.named_children[0]
+                res_src = _lower_expr(bd.named_children[-1], src)
+                if pat.type == "integer":
+                    parsed.append((f"({scrut_src} == {_text(pat, src)})", res_src))
+                elif pat.type == "identifier" and _text(pat, src) == "_":
+                    parsed.append((None, res_src))  # catch-all base
+                else:
+                    return f"/* UNSUPPORTED-CASE-PATTERN: {pat.type} */"
+            if not parsed:
+                return "/* UNSUPPORTED-EXPR: empty case */"
+            expr = parsed[-1][1]
+            for test, res in reversed(parsed[:-1]):
+                expr = res if test is None else _blend(test, res, expr)
+            return expr
         if kw is not None:
             # Ordinary application `f(a, b)`.
             args = next((c for c in node.named_children if c.type == "arguments"), None)

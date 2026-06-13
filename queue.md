@@ -37,10 +37,19 @@ deleted on completion. Keep the task tool in sync with this file.
   CPS shipped 2026-06-13, suite 12/12): type annotations; variant/record `match`
   patterns; records/DUs → axons. Measured grammar quirk: parenthesize call
   operands under infix. [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
-- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through foldable
-  non-tail CPS shipped 2026-06-13, suite 8/8): `case` → blends; multi-clause
-  `def` heads (pattern dispatch); maps/structs → axons. (Erlang proper is a
-  separate later frontend.) [Foldable non-tail is now in ALL 7 frontends.]
+- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through `case` →
+  blends shipped 2026-06-13, suite 10/10): multi-clause `def` heads (pattern
+  dispatch); name-binding `case` patterns; maps/structs → axons. (Erlang proper
+  is a separate later frontend.)
+- [ ] **F# records/DUs → axons — needs F# infrastructure first.** Records port
+  the OCaml pattern conceptually, but F# lacks the prerequisites: (a) typed-param
+  extraction (`(p: Point)` is a `typed_pattern`, the current param loop only
+  handles bare/unit); (b) let-SEQUENCE function bodies (a `let a = … ; expr` body
+  is nested `declaration_expression`s; `_lower_expr` currently takes only the
+  first child); (c) a construction hoist (F# has none — needed for brace
+  construction in argument position) OR let-bound-only construction (needs (b)).
+  Field access `p.x` is a dotted `long_identifier`, not a `field_expression`.
+  Build (a)+(b)+the hoist first, then records are straightforward.
 - [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through foldable
   non-tail CPS shipped 2026-06-13, suite 14/14): maps → axons; destructuring
   binds; `loop`/`recur` with an explicit accumulator.
