@@ -27,21 +27,16 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## Active — transpiler track (source -> Sutra) — top priority
 
-### 🔍 Daily substrate-honesty audit — 2026-06-13
-
-Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
-
 > New-language frontends are the loop's active track (Emma roadmap order:
 > Scala → F# → Elixir/Erlang → Clojure → Haskell → Rust → WASM). Each models on
 > `sutra-from-ocaml` (the reference frontend; OCaml `let rec` incl. non-tail
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through tail recursion →
-  `while_loop` shipped 2026-06-12, suite 10/10): type annotations; foldable
-  non-tail CPS transform; variant/record `match` patterns; records/DUs → axons.
-  Measured grammar quirk: parenthesize call operands under infix.
-  [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
+- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through foldable non-tail
+  CPS shipped 2026-06-13, suite 12/12): type annotations; variant/record `match`
+  patterns; records/DUs → axons. Measured grammar quirk: parenthesize call
+  operands under infix. [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tail
   recursion → `while_loop` shipped 2026-06-12, suite 6/6): foldable non-tail
   CPS; `case` → blends; multi-clause `def` heads (pattern dispatch);

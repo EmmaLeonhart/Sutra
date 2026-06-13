@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-13: daily substrate-honesty audit CLEAN + sutra-from-fsharp foldable non-tail CPS
+
+Discharged the auto-prepended daily substrate-honesty audit (CLAUDE.md §"Subtler
+substrate breaches"): reviewed all 35 commits since the prior audit. (a) Dimension — the
+transpiler fixtures have zero basis_vector and are dim-independent real-axis arithmetic;
+the dim-conscious shipped artifacts (GUI #8, int_dict) correctly use runtime_dim=8. (b)
+Claims — every "substrate-verified" was a compile-AND-run vs ground truth; GUI
+substrate-RNN claims verified by no-host-arg walks; dict "exact" measured 5/5; the paper
+ablation measured + reported honestly. (c) Signal-separation — no substrate classifier
+shipped without a gap. Nothing amiss; no finding/fix needed; audit item deleted.
+
+Then F# foldable non-tail recursion (5th frontend with it). `let rec f n = if COND then
+BASE else LEAF +|* (f REC)` → an `_acc` `while_loop` trampoline (OCaml CPS port); the
+self-call must be PARENTHESISED (`n * (fact (n-1))`) — the ionide grammar mis-associates
+`n * fact (n-1)` as an application, so the fold detector peels the paren before matching
+the spine. Param-dependent BASE rejected. Fixture `nontail_fact`: substrate-verified
+`fact 5` = 120. F# suite 12/12. Foldable non-tail now in 5 frontends (OCaml, Scala, Rust,
+Haskell, F#); Elixir + Clojure remain.
+
 ## 2026-06-13: sutra-from-haskell — foldable non-tail recursion (CPS trampoline)
 
 Ported the foldable non-tail transform to Haskell (the fifth frontend with it, after
