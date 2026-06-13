@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-13: dict<int,int> FIXED — separate int-dict object (Emma's design)
+
+Emma's call after the morning's measurement: integers get a SEPARATE dict object backed
+by preallocated synthetic-space slots — one dimension per integer key — dispatched at
+compile time on the (statically scalar) key type. Implemented: `_VSA.int_dict_{new,set,
+get}` in `codegen_pytorch.py` (a `cap=256` zero-slot tensor; set = functional one-hot
+write of the value's real axis; get = one-hot gather lifted back to a number-vector),
+addressing substrate-pure (round + `arange == k`, NO host `.item()`). Compile-time
+routing in `codegen_base.py`: `dict<int,int>` (key type in `_SCALAR_DICT_KEY_TYPES`)
+declares via `int_dict_new` and routes subscript get/set + the `.Add()` form to the
+int-dict methods; vector-keyed dicts keep the rotation-hashmap. The rotation-hashmap
+NEVER worked for scalar values (identity on the synthetic axes → Σ-of-values crosstalk,
+measured this morning). Now EXACT: `tests/test_int_dict.py` 5/5 — single=42, the
+3-entry case that returned 148 reads 42/7/99 per key, runtime/variable key + overwrite
+=77, absent key=0, 4 distinct slots sum to 100. Full compiler suite 147 pass / 85
+subtests (one PRE-EXISTING unrelated failure, `test_fused_nn …[differentiable_substrate]`,
+fails on HEAD before this change — verified via stash; separate item). Finding
+2026-06-06-dict-int-keys-broken marked RESOLVED; A.0 drained. Unblocks OCaml arrays
+(frontend wiring is the remaining follow-up).
+
 ## 2026-06-13: dict<int,int> root cause MEASURED — rotation-hashmap can't back scalar dicts
 
 Investigated the `dict<int,int>` blocker (gates OCaml arrays + the full ISO-5 machine).
