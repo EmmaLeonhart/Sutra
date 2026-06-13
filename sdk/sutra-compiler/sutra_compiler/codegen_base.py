@@ -32,6 +32,14 @@ from . import ast_nodes as ast
 _TRANSCENDENTALS_DISABLED = frozenset()
 
 
+# Dict key types that route to the separate scalar int-dict object (preallocated
+# synthetic-space slots) instead of the rotation-hashmap. The hashmap can only
+# address-separate VECTOR keys; a scalar key/value lives on the synthetic real
+# axis, which rotations leave untouched (Σ-of-values crosstalk — finding
+# 2026-06-06-dict-int-keys-broken). Emma 2026-06-13.
+_SCALAR_DICT_KEY_TYPES = frozenset({"int", "number"})
+
+
 # Mapping from Sutra operator symbols to the spelled-out form used in
 # mangled function names. User-class operator overloads emit as
 # `Class_operator_<name>` so the Python identifier is valid.
@@ -459,6 +467,14 @@ class BaseCodegen:
         # dispatches to _VSA.hashmap_get, assignment (d[k] = v)
         # dispatches to _VSA.hashmap_set (functional update).
         self._dict_declared: set[str] = set()
+        # Subset of _dict_declared whose KEY type is a scalar (e.g.
+        # `dict<int, int>`). The rotation-hashmap can't back these (rotations
+        # are identity on the synthetic axes where numbers live — it returns
+        # Σ-of-values for every key; finding 2026-06-06-dict-int-keys-broken).
+        # Emma 2026-06-13: integers get a SEPARATE dict object backed by
+        # preallocated synthetic-space slots (one dimension per key) — routed at
+        # compile time to _VSA.int_dict_{new,set,get}, exact, no crosstalk.
+        self._int_dict_declared: set[str] = set()
         # Set of variable names declared with type `Axon`. An axon's
         # instance methods route specially: `a.add(k, v)` (statement)
         # rebinds `a` to `_VSA.axon_add(a, k, v)`; `a.item(k)`
@@ -974,9 +990,19 @@ class BaseCodegen:
         # dispatch to the rotation-hashmap runtime.
         if decl.type_ref is not None and decl.type_ref.name == "dict":
             self._dict_declared.add(decl.name)
+            # A SCALAR key type (`dict<int, int>`) routes to the separate
+            # int-dict object (preallocated slots) — the rotation-hashmap only
+            # works for vector keys. Emma 2026-06-13.
+            key_t = (decl.type_ref.type_args[0].name
+                     if decl.type_ref.type_args else "vector")
+            if key_t in _SCALAR_DICT_KEY_TYPES:
+                self._int_dict_declared.add(decl.name)
+                if decl.initializer is None:
+                    self._emit(f"{decl.name} = _VSA.int_dict_new()")
+                    return
             # Uninitialized `dict<K, V> d;` emits `d = _VSA.hashmap_new()`.
             # Initialized form falls through to the initializer translation.
-            if decl.initializer is None:
+            elif decl.initializer is None:
                 self._emit(f"{decl.name} = _VSA.hashmap_new()")
                 return
         # Track Axon declarations so that a.add(...) / a.item(...) on
@@ -2133,8 +2159,10 @@ class BaseCodegen:
                     and expr.callee.member == "Add"):
                 dict_name = expr.callee.obj.name
                 arg_srcs = [self._translate_expr(a) for a in expr.args]
+                setter = ("int_dict_set" if dict_name in self._int_dict_declared
+                          else "hashmap_set")
                 self._emit(
-                    f"{dict_name} = _VSA.hashmap_set({dict_name}, "
+                    f"{dict_name} = _VSA.{setter}({dict_name}, "
                     f"{', '.join(arg_srcs)})"
                 )
                 return
@@ -2279,8 +2307,11 @@ class BaseCodegen:
                     dict_name = expr.target.target.name
                     key_src = self._translate_expr(expr.target.index)
                     value_src = self._translate_expr(expr.value)
+                    setter = ("int_dict_set"
+                              if dict_name in self._int_dict_declared
+                              else "hashmap_set")
                     self._emit(
-                        f"{dict_name} = _VSA.hashmap_set({dict_name}, "
+                        f"{dict_name} = _VSA.{setter}({dict_name}, "
                         f"{key_src}, {value_src})"
                     )
                     return
@@ -3002,7 +3033,11 @@ class BaseCodegen:
         if isinstance(expr, ast.Subscript):
             target_src = self._translate_expr(expr.target)
             index_src = self._translate_expr(expr.index)
-            # dict<K, V> subscripts route through the rotation-hashmap.
+            # dict<K, V> subscripts route through the rotation-hashmap; a
+            # scalar-keyed dict<int, int> routes to the int-dict slots.
+            if (isinstance(expr.target, ast.Identifier)
+                    and expr.target.name in self._int_dict_declared):
+                return f"_VSA.int_dict_get({target_src}, {index_src})"
             if (isinstance(expr.target, ast.Identifier)
                     and expr.target.name in self._dict_declared):
                 return f"_VSA.hashmap_get({target_src}, {index_src})"

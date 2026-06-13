@@ -1,5 +1,16 @@
 # `dict<int,int>` is broken — blocks the substrate-faithful array mapping (ISO-5 item 4)
 
+> **RESOLVED 2026-06-13 (Emma's design).** Integers get a SEPARATE dict object
+> backed by preallocated synthetic-space slots (one dimension per integer key);
+> the compiler routes `dict<int,int>` to `_VSA.int_dict_{new,set,get}` at compile
+> time (key type statically scalar). Each key addresses its own slot — no
+> rotation, no crosstalk. Addressing is substrate-pure (round + one-hot `==`, no
+> host `.item()`). **Verified exact** (`tests/test_int_dict.py`, 5/5): single
+> entry = 42; the 3-entry case that returned 148 now reads 42/7/99 per key;
+> runtime/variable key + overwrite = 77; absent key = 0; 4 distinct slots sum to
+> 100. The body below is the original diagnosis + the measurement that drove the
+> design.
+
 **Date:** 2026-06-06
 **Context:** ISO-5 needs OCaml arrays (`Array.make` / `arr.(i)` / `arr.(i) <- v`,
 e.g. the machine's 256-int `locals`). Sutra's collection options are `dict<K,V>`

@@ -13,18 +13,6 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ---
 
-## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
-
-- **`dict<int,int>` storage mechanism — design call (MEASURED 2026-06-13).** The
-  rotation-hashmap cannot back scalar-keyed/valued dicts: rotations are identity on
-  the synthetic axes where numbers live, so storing 3 entries (k0→42, k1→7, k2→99)
-  returns **148 = Σ of all values for EVERY key** (1 entry is exact; finding
-  `2026-06-06-dict-int-keys-broken-blocks-arrays.md`). This gates OCaml arrays +
-  the full ISO-5 machine. Which mechanism should back `dict<int,int>`?
-  (a) per-instance RAM array — exact, the array semantics ISO-5 needs (recommended);
-  (b) semantic-embed values — not exact at array scale (~1/√N SNR);
-  (c) keep UNSUPPORTED, require `dict<vector,vector>` + a distinct array type.
-
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN (Emma 2026-06-07)** — the live revision target
@@ -65,9 +53,13 @@ deleted on completion. Keep the task tool in sync with this file.
   `while_loop` shipped 2026-06-12, suite 10/10): structs → axons; foldable
   non-tail CPS; `while`/`loop` → substrate loops; nested/non-tail `match`.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
-- [ ] **OCaml: arrays → RAM blocked on the core-compiler `dict<int,int>` defect**
-  (finding `2026-06-06-dict-int-keys-broken`) — verify whether still broken; if so,
-  fix the core defect (it gates OCaml arrays and the full ISO-5 machine).
+- [ ] **OCaml: arrays → now UNBLOCKED** — the core `dict<int,int>` defect is FIXED
+  (Emma's separate-int-dict-object design, 2026-06-13, exact; `test_int_dict.py`
+  5/5). Remaining: wire the OCaml frontend's `Array.make`/`arr.(i)`/`arr.(i)<-v`
+  to `dict<int,int>` (or its int-dict surface) and substrate-verify an array
+  fixture end-to-end. (Also: a pre-existing, UNRELATED failure exists —
+  `test_fused_nn.py::...[differentiable_substrate]` fails on HEAD independent of
+  this change; separate item.)
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type
   lookup is exact when two interfaces share a field name with different types
   (current global map marks collisions non-numeric to stay safe; no fixture needs it).

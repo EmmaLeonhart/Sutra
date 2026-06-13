@@ -805,6 +805,59 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.unbind(key_vec, acc)")
         self._indent -= 1
         self._emit()
+        # ---- Scalar-keyed dict (dict<int,int>) — Emma 2026-06-13 ----
+        # Integers get a SEPARATE dict object: a preallocated block of `cap`
+        # scalar slots, one synthetic-space dimension per integer key. The
+        # rotation-hashmap can't back this (rotations are identity on the
+        # synthetic axes where numbers live, so it returns Σ-of-values for every
+        # key — measured, finding 2026-06-06-dict-int-keys-broken). Dedicated
+        # slots make each key address its own dimension: no rotation, no
+        # crosstalk, exact. Addressing is substrate-pure (round + one-hot ==,
+        # no host .item()); the compiler routes dict<int,int> here at compile
+        # time (key type is statically a scalar).
+        self._emit("def int_dict_new(self, cap=256):")
+        self._indent += 1
+        self._emit('"""A scalar-keyed dict: `cap` preallocated zero slots, one per key."""')
+        self._emit("return _torch.zeros(int(cap), dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _int_dict_axis(self, x):")
+        self._indent += 1
+        self._emit('"""Real-axis scalar of a number-vector (or a 0-d scalar as-is) —')
+        self._emit('a tensor, never a host float (no .item())."""')
+        self._emit("xt = self._st(x)")
+        self._emit("return xt if xt.ndim == 0 else xt[self.semantic_dim + self.AXIS_REAL]")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _int_dict_onehot(self, d, key):")
+        self._indent += 1
+        self._emit('"""One-hot selector over the slots for the rounded integer key."""')
+        self._emit("k = _torch.round(self._int_dict_axis(key))")
+        self._emit("idx = _torch.arange(d.shape[0], dtype=self.dtype, device=self.device)")
+        self._emit("return (idx == k).to(self.dtype)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def int_dict_set(self, d, key, val):")
+        self._indent += 1
+        self._emit('"""Functional update: write val\'s real-axis scalar into the key slot.')
+        self._emit('Out-of-range keys select no slot (no-op), like RAM OOB."""')
+        self._emit("oh = self._int_dict_onehot(d, key)")
+        self._emit("v = self._int_dict_axis(val)")
+        self._emit("return d * (1.0 - oh) + v * oh")
+        self._indent -= 1
+        self._emit()
+        self._emit("def int_dict_get(self, d, key):")
+        self._indent += 1
+        self._emit('"""Read the key slot, lifted to a number-vector (real axis = slot).')
+        self._emit('Gather via one-hot dot product; absent/OOB keys read 0."""')
+        self._emit("oh = self._int_dict_onehot(d, key)")
+        self._emit("slot = (d * oh).sum()")
+        self._emit("real_axis = self.semantic_dim + self.AXIS_REAL")
+        self._emit("dimmask = (_torch.arange(self.dim, device=self.device) "
+                   "== real_axis).to(self.dtype)")
+        self._emit("return dimmask * slot")
+        self._indent -= 1
+        self._emit()
         self._emit("# ---- Promise runtime methods ----")
         self._emit("# Promise<T> is a vector wearing one of two synthetic-axis flags.")
         self._emit("# resolve(v) sets AXIS_PROMISE_FULFILLED to 1; reject(r) sets")
