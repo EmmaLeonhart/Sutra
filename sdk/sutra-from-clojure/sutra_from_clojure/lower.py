@@ -70,9 +70,82 @@ def _head_symbol(list_lit, src: bytes) -> Optional[str]:
 
 
 def _contains_self_call(node, name: str, src: bytes) -> bool:
-    if node.type == "list_lit" and _head_symbol(node, src) == name:
+    if node.type == "list_lit" and _head_symbol(node, src) in (name, "recur"):
         return True
     return any(_contains_self_call(c, name, src) for c in node.named_children)
+
+
+# Sutra comparison op → its negation (halt condition → loop continue condition).
+_NEG_CMP = {"==": "!=", "!=": "==", "<": ">=", ">": "<=", "<=": ">", ">=": "<"}
+
+
+def _self_call_args(node, name: str, arity: int, src: bytes):
+    """If `node` is `(name a…)` or `(recur a…)` at the right arity, return the
+    arg nodes; else None. `recur` is Clojure's idiomatic tail-call form."""
+    if node.type != "list_lit":
+        return None
+    if _head_symbol(node, src) not in (name, "recur"):
+        return None
+    args = node.named_children[1:]
+    return args if len(args) == arity else None
+
+
+def _negate_cond(cond, src: bytes) -> str:
+    """Negate a halt condition into the loop's continue condition (the OCaml
+    `_negate_cond` shape): a single comparison list `(op a b)` inverts via
+    `_NEG_CMP`, else `!(…)`."""
+    if cond.type == "list_lit":
+        sop = _OP_MAP.get(_head_symbol(cond, src) or "")
+        neg = _NEG_CMP.get(sop) if sop else None
+        args = cond.named_children[1:]
+        if neg is not None and len(args) == 2:
+            return f"({_lower_expr(args[0], src)} {neg} {_lower_expr(args[1], src)})"
+    return f"!({_lower_expr(cond, src)})"
+
+
+def _try_lower_tail_recursive(name: str, params: list, body, src: bytes):
+    """Lower a TAIL-recursive `(defn f [p…] (if COND BASE (recur a…)))` (or a
+    named self-call) to a declared Sutra `while_loop` — the OCaml/Scala/F#/Rust/
+    Haskell shape ported. Returns the emitted Sutra or None."""
+    if body.type != "list_lit" or _head_symbol(body, src) != "if":
+        return None
+    args = body.named_children[1:]
+    if len(args) < 3:
+        return None
+    cond, then_e, else_e = args[0], args[1], args[2]
+    arity = len(params)
+    then_args = _self_call_args(then_e, name, arity, src)
+    else_args = _self_call_args(else_e, name, arity, src)
+    if (then_args is None) == (else_args is None):
+        return None
+    if else_args is not None:
+        cont = _negate_cond(cond, src)
+        rec_args, base = else_args, then_e
+    else:
+        cont = _lower_expr(cond, src)
+        rec_args, base = then_args, else_e
+
+    ty = _TYPE
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {p} = 0" for p in params)
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
+                         for i, arg in enumerate(rec_args))
+    assigns = "".join(f"    {p} = _t{i};\n" for i, p in enumerate(params))
+    loop_decl = f"while_loop {loop_name}({cont}, {state_decls}) {{\n{temp_decls}{assigns}}}\n"
+    slot_lines = "".join(f"    slot {ty} _{p}_r = {p};\n" for p in params)
+    slot_args = ", ".join(f"_{p}_r" for p in params)
+    writeback = "".join(f"    {p} = _{p}_r;\n" for p in params)
+    params_src = ", ".join(f"{ty} {p}" for p in params)
+    base_src = _lower_expr(base, src)
+    fn = (
+        f"function {ty} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
 
 
 def _lower_expr(node, src: bytes) -> str:
@@ -172,9 +245,15 @@ def _lower_defn(list_lit, src: bytes) -> str:
     if not body_nodes:
         return f"// UNSUPPORTED-DEFN: '{name}' has no body\n"
     body = body_nodes[-1]  # multi-form bodies (side effects) are later items
+    if params:
+        rec = _try_lower_tail_recursive(name, params, body, src)
+        if rec is not None:
+            return rec
     if _contains_self_call(body, name, src):
-        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive "
-                f"(transforms not yet ported)\n")
+        # Recursion / `recur` outside the supported tail shape — a plain
+        # self-call would not terminate through the fuzzy-if blend. Surface it.
+        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
+                f"tail-accumulator shape\n")
     params_src = ", ".join(f"{_TYPE} {p}" for p in params)
     return (f"function {_TYPE} {name}({params_src}) {{\n"
             f"    return {_lower_expr(body, src)};\n"

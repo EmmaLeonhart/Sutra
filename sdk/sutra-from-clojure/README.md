@@ -29,11 +29,12 @@ numbers only, so re-evaluating a substituted value is side-effect-free); `(cond
 t1 r1 … :else d)` → a nested defuzz blend (`:else` or the final clause is the
 base). Dynamically-typed values lower as `number`. Substrate-verified:
 `add_main` = 16, `if_classify` = 100, `nary_sum` = 16, `let_block` = 17,
-`cond_grade` = 150. Destructuring and recursion surface as `UNSUPPORTED-*`
-(recursion until the tail/CPS transforms are ported — never a silent
-self-call).
+`cond_grade` = 150, `tail_rec` = 15 (`(defn f [p…] (if COND BASE (recur a…)))`
+→ a declared `while_loop`; both `recur` and a named self-call are accepted, the
+OCaml/Scala/F#/Rust/Haskell shape). Destructuring and non-tail recursion surface
+as `UNSUPPORTED-*` (never a silent self-call).
 
 ## Next
 
-The recursion transforms (`recur` is Clojure's own loop form — it maps
-naturally onto the Sutra `while_loop`); maps → axons; destructuring binds.
+`loop`/`recur` with an explicit accumulator; the foldable non-tail CPS
+transform; maps → axons; destructuring binds.

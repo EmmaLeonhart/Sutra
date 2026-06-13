@@ -34,6 +34,7 @@ _RUNNABLE = {
     "nary_sum": 16.0,  # (+ a b c d) n-ary left-fold; (sum4 1 2 3 (* 2 5))
     "let_block": 17.0,  # (let [y (+ x 1) z (* y 2)] (+ z x)) at x=5  (sequential let subst)
     "cond_grade": 150.0,  # (cond (> n 90) 100 (> n 50) 50 :else 0); grade(95)=100 + grade(70)=50
+    "tail_rec": 15.0,  # (defn sumTo [acc n] (if (= n 0) acc (recur (+ acc n) (- n 1)))); (sumTo 0 5)
 }
 
 
