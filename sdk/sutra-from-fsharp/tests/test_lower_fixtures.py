@@ -32,6 +32,7 @@ _RUNNABLE = {
     "add_main": 16.0,  # let add a b = a + b; let main () = add 7 9
     "if_classify": 100.0,  # if n > 0 then 100 else 200; classify 5  (if -> defuzz blend)
     "paren_sum": 26.0,  # (add 7 9) + (double 5)  (parenthesized application + infix)
+    "match_literal": 200.0,  # match n with | 1 -> 100 | 2 -> 200 | _ -> 300; classify 2
 }
 
 
