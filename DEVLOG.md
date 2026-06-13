@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-13: dict<int,int> root cause MEASURED — rotation-hashmap can't back scalar dicts
+
+Investigated the `dict<int,int>` blocker (gates OCaml arrays + the full ISO-5 machine).
+Confirmed still crashing (`'int' object has no attribute 'detach'` — raw int keys reach
+`_role_hash`). Measured the deeper cause the 2026-06-06 finding flagged as unmeasured:
+lifting key/value to substrate vectors and round-tripping through hashmap_set/get
+directly, 1 entry is exact (42) but 3 entries (k0→42, k1→7, k2→99) return **148 = Σ of
+all values for EVERY key**. Root cause: `_rotation_for` is identity on the synthetic
+block where scalar numbers live, so `bind(key, val)` leaves the value's real part
+un-rotated and the accumulator holds the plain sum — `unbind(any_key, acc)` returns Σ.
+So "lift scalars to vectors" stops the crash but ships a silently-wrong answer (worse
+than the honest crash); the rotation-hashmap is structurally right only for
+`dict<vector,vector>`. The fix is a design decision (per-instance RAM array vs semantic
+embedding vs keep-unsupported) — surfaced to Emma via queue.md A.0, NOT hacked
+(CLAUDE.md §"never invent a thing Emma implies exists" + work-loop hard rail). Finding
+updated with the measured table.
+
 ## 2026-06-12: sutra-from-elixir — tail recursion → while_loop; transform now in 7 frontends
 
 Elixir tail-recursion transform, completing the tail-rec port across every `if`-bodied
