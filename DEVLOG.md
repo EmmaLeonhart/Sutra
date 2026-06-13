@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-13: sutra-from-rust — structs → axons (the OCaml record pattern)
+
+First Rust depth increment past recursion. `struct Point { x: i32, y: i32 }` erases to a
+name prepass (`_STRUCTS`); the struct name maps to `Axon` in param/return types;
+construction `Point { x: a, y: b }` builds a named-field axon — directly into a `let`
+binding (no temp), or hoisted to a temp in argument position via the enum/struct hoist
+machinery; field access `p.x` → `realvec(p.item("x"))` (the 2026-06-05 crosstalk finding).
+Fixed two latent bugs in the shared hoist while extending it: (1) the temp counter reset
+per-STATEMENT, so `let a = …` and the tail both restarted at `_ah0` and collided —
+made it function-scoped (`_HOIST_N`); (2) struct/enum `let`s now construct directly into
+the bound name instead of via a redundant temp. Fixture `struct_axon`: substrate-verified
+`getx(a{7,9}) + sum2(Point{2,3})` = 12. Rust suite 14/14. (The counter fix also hardens
+the enum-construction path against the same multi-statement collision.)
+
 ## 2026-06-13: sutra-from-elixir — foldable non-tail recursion; CPS rollout COMPLETE (7/7 frontends)
 
 Ported the foldable non-tail transform to Elixir, the last frontend without it. `def f(n)
