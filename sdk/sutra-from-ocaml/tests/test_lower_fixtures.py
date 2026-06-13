@@ -177,6 +177,20 @@ _RUNNABLE_FIXTURES = {
 }
 
 
+def test_foldable_nontail_param_dependent_base_stays_unsupported():
+    """The CPS/accumulator transform seeds `_acc = BASE` BEFORE the loop, at the
+    INITIAL param value — so a BASE that references the param mis-evaluates.
+    MEASURED 2026-06-12: `let rec weird n = if n = 0 then n + 7 else
+    n + weird (n - 1)` lowered through the unguarded transform and RAN on the
+    substrate to 16; ground truth is weird 3 = 13. The transform must reject
+    this shape (→ UNSUPPORTED), never lower it silently wrong."""
+    src = ("let rec weird n = if n = 0 then n + 7 else n + weird (n - 1)\n"
+           "\nlet main () = weird 3\n")
+    out = lower(src)
+    assert "UNSUPPORTED" in out, f"param-dependent base was lowered:\n{out}"
+    assert "while_loop _rec_weird" not in out, f"transform fired anyway:\n{out}"
+
+
 def _extract_result(out: str) -> float:
     """Pull the numeric result from `sutrac --run` output, which may be
     a bare float (`5.0`) or a tensor repr (`tensor(5., device='cuda:0')`)

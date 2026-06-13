@@ -57,11 +57,6 @@ deleted on completion. Keep the task tool in sync with this file.
   axons (the OCaml variant pattern); structs → axons; recursion transforms;
   `while`/`loop` → substrate loops.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
-- [ ] **OCaml: check the foldable-nontail BASE guard** — the Scala port (2026-06-12)
-  rejects param-dependent BASE because `_acc = BASE` is emitted pre-loop at the
-  INITIAL param; the OCaml `_try_lower_foldable_nontail_recursive` has no such
-  guard. Write a param-dependent-base OCaml fixture, MEASURE whether it
-  mis-evaluates, and add the guard if so.
 - [ ] **OCaml: arrays → RAM blocked on the core-compiler `dict<int,int>` defect**
   (finding `2026-06-06-dict-int-keys-broken`) — verify whether still broken; if so,
   fix the core defect (it gates OCaml arrays and the full ISO-5 machine).

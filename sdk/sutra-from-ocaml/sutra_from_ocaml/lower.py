@@ -1744,6 +1744,12 @@ def _try_lower_foldable_nontail_recursive(
         return None
 
     pname, pty = params[0]
+    if pname in _value_paths(base, source):
+        # BASE is emitted pre-loop, evaluated at the INITIAL param — a BASE that
+        # references the param would be mis-evaluated (MEASURED 2026-06-12:
+        # `let rec weird n = if n = 0 then n + 7 else n + weird (n - 1)` ran to
+        # 16 on the substrate, ground truth 13). Reject → UNSUPPORTED, not wrong.
+        return None
     sutra_op = _OP_MAP.get(op_text, op_text)
     loop_name = f"_rec_{name}"
     leaf_src = _lower_expression(leaf, source)

@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-12: OCaml foldable-nontail transform — param-dependent BASE bug confirmed + guarded
+
+The Scala port's suspicion, measured on the OCaml original: `let rec weird n = if n = 0
+then n + 7 else n + weird (n - 1)` lowered through the unguarded CPS/accumulator
+transform and RAN on the substrate to **16**; ground truth is weird 3 = **13** (the
+transform seeds `_acc = BASE` pre-loop at the INITIAL n, so `n + 7` evaluated as 3+7).
+Fix: `_try_lower_foldable_nontail_recursive` now rejects a BASE that references the
+param (via the existing `_value_paths`) → the shape falls through to UNSUPPORTED
+instead of lowering silently wrong. Regression test
+`test_foldable_nontail_param_dependent_base_stays_unsupported` (a fixture-level
+expected.su can't assert it — the harness normalizer strips comment lines). Full OCaml
+suite 131/131; the constant-base `nontail_factorial`/`nontail_sum` fixtures still pass,
+so the guard does not over-reject.
+
 ## 2026-06-12: sutra-from-fsharp + sutra-from-clojure — MVPs live; grammar blocks dissolved
 
 Emma authorized the two grammar sources via AskUserQuestion (allowlist entries added to
