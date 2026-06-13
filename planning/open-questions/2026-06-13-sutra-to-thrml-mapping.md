@@ -45,9 +45,23 @@ anything that doesn't work. Direction seed: **vectors → spin-node graph**
   the memory ops — each bit is an independent constraint, so NO capacity wall.
   → both Sutra op classes now demonstrated on thrml: **memory** (bundle/cleanup/
   retrieval, #1–#2) and **transformational** (bind/unbind, #3).
-- next attempts: **arithmetic-as-energy** (add/compare on bit-registers — likely
-  needs carry-chain factors); a **composed** pipeline (bind then retrieve); then
-  wire a solid pattern into `codegen_thrml`.
+- **#4 integer addition (ripple-carry) — PARTIAL (2026-06-13).** `experiments/
+  thrml/adder_demo.py`. The first attempt that does NOT cleanly work — and the
+  most informative. n-bit adder as spin factors, ALL correct: sum bit = 4-body
+  parity factor (`a⊕b⊕c⊕s=0` ⟺ `∏σ=+1`); carry = MAJ(a,b,c) = sign(σ-sum) for 3
+  spins, so three **pairwise** factors `−J σ_cout(σ_a+σ_b+σ_c)`. The ground state
+  IS the correct sum. **Measured (4-bit, 30 random pairs):** exact-sum
+  0.80/0.77/0.70/0.667 at β=1.5/2/6/8 vs **0.031 chance** — well above chance, so
+  addition genuinely computes, but NOT reliable. **Accuracy DROPS as β rises** —
+  the signature of single-site block-Gibbs **freezing into local minima** on the
+  carry chain before it relaxes to the global min. **Lesson:** ops with long
+  *sequential dependency chains* (carry propagation) don't reliably relax under
+  naive Gibbs, unlike per-bit-independent ops (bind #3 = 100%) and shallow memory
+  ops (#1–2). Fixes to try next: **annealing** (β schedule), **carry-chain-aware
+  blocking**, or a **carry-lookahead** encoding (shorter dependency depth).
+- next attempts: anneal/blocked adder (fix #4); a **composed** pipeline (bind then
+  retrieve); then wire a solid (clean) pattern — bind/unbind or memory — into
+  `codegen_thrml`.
 
 ## Emma's encoding steer (2026-06-13)
 
