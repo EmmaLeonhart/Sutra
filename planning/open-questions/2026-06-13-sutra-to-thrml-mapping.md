@@ -71,10 +71,22 @@ anything that doesn't work. Direction seed: **vectors → spin-node graph**
   (uniform J lets spurious states sit at/below the answer). Also: concentration
   degrades with width (modal 0.85 @4-bit → 0.60 @6-bit). NOT claiming min-energy
   as a fix.
-- next attempts: **penalty-weighted adder** — boost the constraint weights (or add
-  the missing penalty terms) so the correct sum is the STRICT global min, then
-  min-energy decode should hit ~1.0; a **composed** pipeline (bind then retrieve);
-  then wire a CLEAN pattern (bind/unbind or memory) into `codegen_thrml`.
+- **#5 composed VSA key-value query — WORKS (2026-06-13).** `experiments/thrml/
+  kv_store_demo.py`. The first real multi-op *program* on the sampler — the
+  `role_filler_record` pattern. Data: K role/filler bit-registers, stored record
+  `M = sign(Σ_k r_k⊙f_k)` (bundle of bound pairs). Query role j, on the substrate,
+  in two staged sampling runs (host hand-off between stages = the orchestrator/
+  readout boundary): **stage 1 unbind** (3-body factor, clamp M,r_j → sample
+  u = M⊙r_j, a NOISY f_j) then **stage 2 cleanup** (Hebbian assoc-memory over the
+  filler codebook, init=u → nearest stored filler). **Measured:** raw unbind = 0%
+  exact (always crosstalk-noisy) vs cleanup = **0.75 (N=12,K=2)** / **1.00
+  (N=16,K=2)** exact recovery of the full filler, vs chance ~1e-5. The 0%→100% gap
+  IS the value of composing the ops; N=16 gives the cleanup comfortable capacity
+  margin (K=2 < 0.14·16). → composing the clean ops (unbind #3 + cleanup #1) runs
+  a complete Sutra program on the thermodynamic substrate.
+- next attempts: **penalty-weighted adder** — make the correct sum the STRICT
+  global min (the #4b gap); then wire a CLEAN pattern (the kv-query, or bind/
+  cleanup) into `codegen_thrml` behind the additive `--target thrml` flag.
 
 ## Emma's encoding steer (2026-06-13)
 
