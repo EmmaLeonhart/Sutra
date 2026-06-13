@@ -33,10 +33,10 @@ deleted on completion. Keep the task tool in sync with this file.
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through literal `match`
-  shipped 2026-06-12, suite 8/8): type annotations; recursion transforms (OCaml
-  shapes port almost directly); variant/record `match` patterns; records/DUs →
-  axons. Measured grammar quirk: parenthesize call operands under infix.
+- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through tail recursion →
+  `while_loop` shipped 2026-06-12, suite 10/10): type annotations; foldable
+  non-tail CPS transform; variant/record `match` patterns; records/DUs → axons.
+  Measured grammar quirk: parenthesize call operands under infix.
   [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; MVP shipped
   2026-06-12, suite 4/4 — defmodule fns, if/else blend, binary ops): tail
