@@ -143,6 +143,89 @@ def _contains_self_call(node, name: str, src: bytes) -> bool:
     return any(_contains_self_call(c, name, src) for c in node.named_children)
 
 
+# Sutra comparison op → its negation (halt condition → loop continue condition).
+_NEG_CMP = {"==": "!=", "!=": "==", "<": ">=", ">": "<=", "<=": ">", ">=": "<"}
+
+
+def _self_call_args(node, name: str, arity: int, src: bytes):
+    """If `node` is `name(a1, …, a{arity})`, return the arg nodes; else None."""
+    if node.type != "call_expression" or not node.named_children:
+        return None
+    fn = node.named_children[0]
+    if fn.type != "identifier" or _text(fn, src) != name:
+        return None
+    args_node = next((c for c in node.named_children if c.type == "arguments"), None)
+    args = list(args_node.named_children) if args_node is not None else []
+    return args if len(args) == arity else None
+
+
+def _negate_cond(cond, src: bytes) -> str:
+    """Negate a halt condition into the loop's continue condition (the OCaml
+    `_negate_cond` shape): a single comparison inverts via `_NEG_CMP`, else `!(…)`."""
+    if cond.type == "binary_expression":
+        op = cond.child_by_field_name("operator")
+        left = cond.child_by_field_name("left")
+        right = cond.child_by_field_name("right")
+        if op is not None and left is not None and right is not None:
+            sop = _OP_MAP.get(_text(op, src))
+            neg = _NEG_CMP.get(sop) if sop else None
+            if neg is not None:
+                return f"{_lower_expr(left, src)} {neg} {_lower_expr(right, src)}"
+    return f"!({_lower_expr(cond, src)})"
+
+
+def _try_lower_tail_recursive(name: str, params, ret: str, body, src: bytes):
+    """Lower a TAIL-recursive `fn f(p…) { if COND { BASE } else { f(a…) } }` to a
+    declared Sutra `while_loop` (the OCaml/Scala/F# shape ported). Each arm must
+    be a single tail expression. Returns the emitted Sutra or None."""
+    if body.type != "if_expression":
+        return None
+    kids = body.named_children
+    if len(kids) < 2:
+        return None
+    cond = kids[0]
+    then_blk = kids[1]
+    else_clause = next((c for c in kids if c.type == "else_clause"), None)
+    if else_clause is None or not else_clause.named_children:
+        return None
+    then_lets, then_tail = _block_value(then_blk, src)
+    else_lets, else_tail = _block_value(else_clause.named_children[0], src)
+    if then_lets or else_lets or then_tail is None or else_tail is None:
+        return None
+    arity = len(params)
+    then_args = _self_call_args(then_tail, name, arity, src)
+    else_args = _self_call_args(else_tail, name, arity, src)
+    if (then_args is None) == (else_args is None):
+        return None
+    if else_args is not None:
+        cont = _negate_cond(cond, src)
+        rec_args, base = else_args, then_tail
+    else:
+        cont = _lower_expr(cond, src)
+        rec_args, base = then_args, else_tail
+
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in params)
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
+                         for i, ((_nm, ty), arg) in enumerate(zip(params, rec_args)))
+    assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(params))
+    loop_decl = f"while_loop {loop_name}({cont}, {state_decls}) {{\n{temp_decls}{assigns}}}\n"
+    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in params)
+    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in params)
+    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in params)
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
+    base_src = _lower_expr(base, src)
+    fn = (
+        f"function {ret} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _block_value(block, src: bytes):
     """Split a `block` into (let_declarations, tail_expr_node). The tail
     expression may be bare or wrapped in an `expression_statement`."""
@@ -322,12 +405,18 @@ def _lower_function(item, src: bytes) -> str:
     block = next((c for c in kids if c.type == "block"), None)
     if block is None:
         return f"// UNSUPPORTED-FN: '{name}' has no body\n"
-    if _contains_self_call(block, name, src):
-        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive "
-                f"(transforms not yet ported)\n")
     lets, tail = _block_value(block, src)
     if tail is None:
         return f"// UNSUPPORTED-FN: '{name}' has no tail expression\n"
+    if not lets and params and tail.type == "if_expression":
+        rec = _try_lower_tail_recursive(name, params, ret, tail, src)
+        if rec is not None:
+            return rec
+    if _contains_self_call(block, name, src):
+        # Recursion outside the supported tail shape — a plain self-call would
+        # not terminate through the fuzzy-if blend. Surface the gap.
+        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
+                f"tail-accumulator shape\n")
     stmts = ""
     for ld in lets:
         ld_kids = ld.named_children

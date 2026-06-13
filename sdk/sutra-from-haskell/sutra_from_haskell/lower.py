@@ -117,6 +117,79 @@ def _lower_expr(node, src: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
+# Sutra comparison op → its negation (halt condition → loop continue condition).
+_NEG_CMP = {"==": "!=", "!=": "==", "<": ">=", ">": "<=", "<=": ">", ">=": "<"}
+
+
+def _self_call_args(node, name: str, arity: int, src: bytes):
+    """If `node` is `name a1 … a{arity}` (a curried self-application), return the
+    arg nodes; else None."""
+    if node.type != "apply":
+        return None
+    head, args = _flatten_apply(node, src)
+    if head.type != "variable" or _text(head, src) != name or len(args) != arity:
+        return None
+    return args
+
+
+def _negate_cond(cond, src: bytes) -> str:
+    """Negate a halt condition into the loop's continue condition (the OCaml
+    `_negate_cond` shape): a single `infix` comparison inverts via `_NEG_CMP`,
+    else `!(…)`."""
+    if cond.type == "infix":
+        kids = cond.named_children
+        op = next((c for c in kids if c.type == "operator"), None)
+        operands = [c for c in kids if c.type != "operator"]
+        if op is not None and len(operands) == 2:
+            sop = _OP_MAP.get(_text(op, src))
+            neg = _NEG_CMP.get(sop) if sop else None
+            if neg is not None:
+                return (f"{_lower_expr(operands[0], src)} {neg} "
+                        f"{_lower_expr(operands[1], src)}")
+    return f"!({_lower_expr(cond, src)})"
+
+
+def _try_lower_tail_recursive(name: str, params, ret: str, body, src: bytes):
+    """Lower a TAIL-recursive equation `f p… = if COND then BASE else f a…` to a
+    declared Sutra `while_loop` (the OCaml/Scala/F#/Rust shape ported). `body` is
+    a `conditional`; `params` is a list of (name, type). Returns Sutra or None."""
+    if body.type != "conditional" or len(body.named_children) < 3:
+        return None
+    cond, then_e, else_e = body.named_children[0], body.named_children[1], body.named_children[2]
+    arity = len(params)
+    then_args = _self_call_args(then_e, name, arity, src)
+    else_args = _self_call_args(else_e, name, arity, src)
+    if (then_args is None) == (else_args is None):
+        return None
+    if else_args is not None:
+        cont = _negate_cond(cond, src)
+        rec_args, base = else_args, then_e
+    else:
+        cont = _lower_expr(cond, src)
+        rec_args, base = then_args, else_e
+
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in params)
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
+                         for i, ((_nm, ty), arg) in enumerate(zip(params, rec_args)))
+    assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(params))
+    loop_decl = f"while_loop {loop_name}({cont}, {state_decls}) {{\n{temp_decls}{assigns}}}\n"
+    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in params)
+    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in params)
+    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in params)
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
+    base_src = _lower_expr(base, src)
+    fn = (
+        f"function {ret} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _match_body(decl, src: bytes):
     """The expression node of a declaration's `match` (`= expr`), or None.
     Guarded matches (multiple `match` children / guards) are later items."""
@@ -145,9 +218,6 @@ def _lower_equation(decl, src: bytes) -> str:
     body = _match_body(decl, src)
     if body is None:
         return f"// UNSUPPORTED-DECL: '{name}' has no single plain `= expr` body\n"
-    if _contains_self_call(body, name, src):
-        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive "
-                f"(transforms not yet ported)\n")
     sig = _SIGNATURES.get(name)
     if sig is not None and len(sig) == len(params) + 1:
         ptypes = [_map_type(s) for s in sig[:-1]]
@@ -155,6 +225,16 @@ def _lower_equation(decl, src: bytes) -> str:
     else:
         ptypes = [_DEFAULT_TYPE] * len(params)
         ret = _DEFAULT_TYPE
+    typed_params = list(zip(params, ptypes))
+    if body.type == "conditional" and params:
+        rec = _try_lower_tail_recursive(name, typed_params, ret, body, src)
+        if rec is not None:
+            return rec
+    if _contains_self_call(body, name, src):
+        # Recursion outside the supported tail shape — a plain self-call would
+        # not terminate through the fuzzy-if blend. Surface the gap.
+        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
+                f"tail-accumulator shape\n")
     params_src = ", ".join(f"{ty} {nm}" for ty, nm in zip(ptypes, params))
     return (f"function {ret} {name}({params_src}) {{\n"
             f"    return {_lower_expr(body, src)};\n"

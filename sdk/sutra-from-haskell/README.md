@@ -13,7 +13,9 @@ zero-arg binds (`main = …`); `signature` declarations supply param/return type
 bool); curried application spines flatten to Sutra calls (`add 7 9` →
 `add(7, 9)`); infix arithmetic/comparison/boolean operators (`/=` → `!=`);
 `if/then/else` → the defuzz blend. Substrate-verified: `add_main` = 16,
-`if_classify` = 100. **Laziness is not modeled** — Sutra is strict, and the MVP
+`if_classify` = 100, `tail_rec` = 15 (tail-recursive `f p… = if COND then BASE
+else f a…` → a declared `while_loop`, the OCaml/Scala shape). **Laziness is not
+modeled** — Sutra is strict, and the MVP
 scope (total arithmetic programs) is insensitive to evaluation order; programs
 relying on laziness are out of scope, stated plainly. Pattern equations, guards,
 `where`/`let`, and recursion surface as `UNSUPPORTED-*` markers (recursion until
@@ -23,6 +25,6 @@ Dependency: `tree-sitter-haskell` (`pip install tree-sitter-haskell`).
 
 ## Next
 
-The recursion transforms (tail → `while_loop`, foldable non-tail CPS — port the
-Scala/OCaml shapes); pattern equations (multi-clause dispatch → blends); guards;
-`where`/`let` bindings; `data` ADTs → tagged axons (the OCaml variant pattern).
+The foldable non-tail CPS transform; pattern equations (multi-clause dispatch →
+blends); guards; `where`/`let` bindings; `data` ADTs → tagged axons (the OCaml
+variant pattern).
