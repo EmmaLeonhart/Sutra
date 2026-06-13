@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-13: sutra-from-rust — foldable non-tail recursion (CPS trampoline)
+
+Ported the OCaml/Scala foldable non-tail transform to Rust. `fn f(n) { if COND { BASE }
+else { LEAF +|* f(REC) } }` reifies the pending call-stack work as an `_acc` carried by a
+`while_loop`; only associative+commutative ops (`+`, `*`) qualify, others stay
+UNSUPPORTED. Param-dependent BASE rejected (the OCaml-discovered guard — BASE is evaluated
+pre-loop at the initial param). Reuses the Rust tail-rec scaffolding (`_self_call_args`,
+`_negate_cond`, `_block_value`); runs after the tail-rec attempt, before the
+recursion-reject. Fixture `nontail_fact` (`if n==0 { 1 } else { n * fact(n-1) }`):
+substrate-verified `fact(5)` = 120. Rust suite 12/12. (Also: clawRxiv review v90 came back
+on the §3.7 ablation push — Weak Reject, mostly known toy-scale cons + a bot date-
+confusion artifact; left for the paper-feedback cron.)
+
 ## 2026-06-13: paper §3.7 ablation table — measured, honest (refines the gain framing)
 
 Ran a real ablation for the weighted-Equals training (the paper-polish priority item),

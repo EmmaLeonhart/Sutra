@@ -226,6 +226,97 @@ def _try_lower_tail_recursive(name: str, params, ret: str, body, src: bytes):
     return loop_decl + fn
 
 
+# Associative + commutative combine ops for the non-tail fold transform.
+_FOLD_OPS = {"+", "*"}
+
+
+def _contains_identifier(node, ident: str, src: bytes) -> bool:
+    if node.type == "identifier" and _text(node, src) == ident:
+        return True
+    return any(_contains_identifier(c, ident, src) for c in node.named_children)
+
+
+def _try_lower_foldable_nontail(name: str, params, ret: str, body, src: bytes):
+    """CPS / accumulator transform for a FOLDABLE non-tail recursion
+    `fn f(n) { if COND { BASE } else { LEAF <OP> f(REC) } }` (single param, OP in
+    `_FOLD_OPS`): the pending call-stack work is reified as an accumulator carried
+    by a Sutra `while_loop` trampoline — the OCaml/Scala shape ported. BASE is
+    evaluated before the loop at the INITIAL param, so a param-dependent BASE is
+    rejected (→ None). Returns loop decl + function, or None."""
+    if body.type != "if_expression" or len(params) != 1:
+        return None
+    kids = body.named_children
+    if len(kids) < 2:
+        return None
+    cond = kids[0]
+    then_blk = kids[1]
+    else_clause = next((c for c in kids if c.type == "else_clause"), None)
+    if else_clause is None or not else_clause.named_children:
+        return None
+    then_lets, then_tail = _block_value(then_blk, src)
+    else_lets, else_tail = _block_value(else_clause.named_children[0], src)
+    if then_lets or else_lets or then_tail is None or else_tail is None:
+        return None
+
+    def foldable(node):
+        if node.type != "binary_expression":
+            return None
+        op = node.child_by_field_name("operator")
+        left = node.child_by_field_name("left")
+        right = node.child_by_field_name("right")
+        if op is None or left is None or right is None:
+            return None
+        if _text(op, src) not in _FOLD_OPS:
+            return None
+        lc = _self_call_args(left, name, 1, src)
+        rc = _self_call_args(right, name, 1, src)
+        if (lc is None) == (rc is None):
+            return None  # exactly one operand must be the self-call
+        return (_text(op, src), right, lc[0]) if lc is not None \
+            else (_text(op, src), left, rc[0])
+
+    fold_then, fold_else = foldable(then_tail), foldable(else_tail)
+    if (fold_else is None) == (fold_then is None):
+        return None
+    if fold_else is not None:
+        cont = _negate_cond(cond, src)
+        op_text, leaf, rec_arg = fold_else
+        base = then_tail
+    else:
+        cont = _lower_expr(cond, src)
+        op_text, leaf, rec_arg = fold_then
+        base = else_tail
+
+    pname, pty = params[0][0], params[0][1]
+    if _contains_identifier(base, pname, src):
+        return None  # param-dependent base — the transform would mis-evaluate it
+    sutra_op = _OP_MAP.get(op_text, op_text)
+    loop_name = f"_rec_{name}"
+    leaf_src = _lower_expr(leaf, src)
+    rec_src = _lower_expr(rec_arg, src)
+    base_src = _lower_expr(base, src)
+    if any("UNSUPPORTED" in s for s in (leaf_src, rec_src, base_src, cont)):
+        return None
+    loop_decl = (
+        f"while_loop {loop_name}({cont}, {pty} {pname} = 0, {pty} _acc = 0) {{\n"
+        f"    {pty} _t_n = {rec_src};\n"
+        f"    {pty} _t_acc = _acc {sutra_op} {leaf_src};\n"
+        f"    {pname} = _t_n;\n"
+        f"    _acc = _t_acc;\n"
+        f"}}\n"
+    )
+    fn = (
+        f"function {ret} {name}({pty} {pname}) {{\n"
+        f"    {pty} _acc = {base_src};\n"
+        f"    slot {pty} _{pname}_r = {pname};\n"
+        f"    slot {pty} _acc_r = _acc;\n"
+        f"    loop {loop_name}({cont}, _{pname}_r, _acc_r);\n"
+        f"    return _acc_r;\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _block_value(block, src: bytes):
     """Split a `block` into (let_declarations, tail_expr_node). The tail
     expression may be bare or wrapped in an `expression_statement`."""
@@ -412,11 +503,14 @@ def _lower_function(item, src: bytes) -> str:
         rec = _try_lower_tail_recursive(name, params, ret, tail, src)
         if rec is not None:
             return rec
+        fold = _try_lower_foldable_nontail(name, params, ret, tail, src)
+        if fold is not None:
+            return fold
     if _contains_self_call(block, name, src):
-        # Recursion outside the supported tail shape — a plain self-call would
-        # not terminate through the fuzzy-if blend. Surface the gap.
+        # Recursion outside the supported tail/foldable shapes — a plain
+        # self-call would not terminate through the fuzzy-if blend. Surface it.
         return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
-                f"tail-accumulator shape\n")
+                f"tail-accumulator or foldable non-tail shape\n")
     stmts = ""
     for ld in lets:
         ld_kids = ld.named_children
