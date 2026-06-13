@@ -390,14 +390,42 @@ def _collect_used_names(node, src: bytes, names: set) -> list:
     return found
 
 
+def _lower_assign(a, src: bytes, mutable: set):
+    """Lower a Rust assignment statement to a Sutra `lhs = rhs` body expression
+    (no indent/semicolon). Handles plain `x = rhs` (`assignment_expression`) and
+    compound `x op= rhs` (`compound_assignment_expr`, desugared to `x = (x op
+    rhs)`). The target must be a `mut` identifier. Returns the string or None if
+    the node is not a (compound-)assignment to a mutable local."""
+    if a.type not in ("assignment_expression", "compound_assignment_expr"):
+        return None
+    akids = a.named_children
+    if len(akids) < 2 or akids[0].type != "identifier":
+        return None
+    lhs = _text(akids[0], src)
+    if lhs not in mutable:
+        return None  # assigning a non-`mut` binding — out of shape
+    rhs = _lower_expr(akids[-1], src)
+    if "UNSUPPORTED" in rhs:
+        return None
+    if a.type == "assignment_expression":
+        return f"{lhs} = {rhs}"
+    op = a.child_by_field_name("operator")
+    if op is None:
+        return None
+    sop = _OP_MAP.get(_text(op, src)[:-1])  # `+=` -> `+`
+    if sop is None:
+        return None
+    return f"{lhs} = ({lhs} {sop} {rhs})"
+
+
 def _lower_while_rust(node, src: bytes, scope_ty: dict, mutable: set, idx: int):
     """Lower a Rust `while COND { BODY }` to a hoisted Sutra `while_loop` + the
     `slot`/`loop`/write-back call sequence — the OCaml `_lower_while` shape. State
     = the in-scope names (locals + params) the cond/body touch, cond-first; only
     `mut` locals are written back (params/immutable locals are read-only). The
-    body is a sequence of plain `lhs = rhs;` assignments (sequential update, the
-    OCaml while-body shape). Returns (loop_decl, call_block) or None if outside
-    this shape."""
+    body is a sequence of `lhs = rhs;` / `lhs op= rhs;` assignments (sequential
+    update, the OCaml while-body shape). Returns (loop_decl, call_block) or None
+    if outside this shape."""
     cond = node.child_by_field_name("condition")
     body = node.child_by_field_name("body")
     if cond is None:
@@ -419,19 +447,10 @@ def _lower_while_rust(node, src: bytes, scope_ty: dict, mutable: set, idx: int):
     for st in body.named_children:
         if st.type != "expression_statement" or not st.named_children:
             return None
-        a = st.named_children[0]
-        if a.type != "assignment_expression":
+        line = _lower_assign(st.named_children[0], src, mutable)
+        if line is None:
             return None
-        akids = a.named_children
-        if len(akids) < 2 or akids[0].type != "identifier":
-            return None
-        lhs = _text(akids[0], src)
-        if lhs not in mutable:
-            return None  # assigning a non-`mut` binding — out of shape
-        rhs = _lower_expr(akids[-1], src)
-        if "UNSUPPORTED" in rhs:
-            return None
-        body_lines += f"    {lhs} = {rhs};\n"
+        body_lines += f"    {line};\n"
     loop_name = f"_while{idx}"
     state_decls = ", ".join(f"{scope_ty[v]} {v} = 0" for v in state)
     loop_decl = (f"while_loop {loop_name}({cond_src}, {state_decls}) {{\n"
@@ -493,17 +512,11 @@ def _try_lower_imperative(name: str, params, ret: str, block, src: bytes):
                 loop_decls += decl
                 body += call
                 idx += 1
-            elif inner.type == "assignment_expression":
-                akids = inner.named_children
-                if len(akids) < 2 or akids[0].type != "identifier":
+            elif inner.type in ("assignment_expression", "compound_assignment_expr"):
+                line = _lower_assign(inner, src, mutable)
+                if line is None:
                     return None
-                lhs = _text(akids[0], src)
-                if lhs not in mutable:
-                    return None
-                rhs = _lower_expr(akids[-1], src)
-                if "UNSUPPORTED" in rhs:
-                    return None
-                body += f"    {lhs} = {rhs};\n"
+                body += f"    {line};\n"
             else:
                 return None
         else:

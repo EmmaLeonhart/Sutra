@@ -43,11 +43,16 @@ thermodynamic sampler is a physical realization of fuzzy computation.
 
 Steps (expand as we go):
 
-- [ ] **0. Vendor + study.** Add `thrml/` (or `external/thrml/`) as a git
-  submodule pinned to a commit. Stand up a minimal thrml example (one Ising EBM,
-  block-Gibbs `sample_states`), RUN it, record the API actually used. New dep:
-  **JAX** (note it vs the PyTorch canonical target — keep it isolated to this
-  backend). Do NOT wire to Sutra codegen yet.
+- [ ] **0. Vendor + study. ⛔ BLOCKED ON EMMA — integration authorization.** Add
+  `external/thrml/` as a git submodule pinned to a commit; stand up a minimal
+  thrml example (one Ising EBM, block-Gibbs `sample_states`), RUN it, record the
+  API actually used. New dep: **JAX** (isolate to this backend). — The work-loop
+  attempted this 2026-06-13 and the safety classifier **denied** cloning the
+  external Extropic repo (untrusted-code integration needs explicit
+  authorization); the partial `git submodule add` was cleanly backed out. Emma
+  must grant a Bash permission rule for `git submodule add …/thrml` (or add the
+  submodule herself), THEN the loop continues. Asked via AskUserQuestion
+  2026-06-13.
 - [ ] **1. Design the Sutra→thrml mapping. DIRECTION SET BY EMMA 2026-06-13:
   vectors → spin-node graph.** Map Sutra's dense semantic vectors / hypervectors
   onto thrml **spin nodes + a factor graph**, so the substrate ops — bind /
@@ -105,11 +110,10 @@ thrml's ACTUAL API (NO MATH SHORTCUTS / no invented primitives).
   equations + guards shipped 2026-06-13, suite 12/12; laziness out of scope):
   where/let bindings; `data` ADTs → tagged axons; guarded/multi-equation
   recursion (currently `UNSUPPORTED-RECURSION`); non-integer literal patterns.
-- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through imperative `while`
-  → substrate `while_loop` shipped 2026-06-13, suite 16/16): unbounded
-  `loop { … break }` (halt-flag transform); compound assignment (`+=`);
-  nested/non-tail `match`; field-init shorthand / `..base`. (Loop bounds need
-  strict `<`/`>` — `<=` drops the boundary iteration, finding
+- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through compound assignment
+  shipped 2026-06-13, suite 18/18): unbounded `loop { … break }` (halt-flag
+  transform); nested/non-tail `match`; field-init shorthand / `..base`. (Loop
+  bounds need strict `<`/`>` — `<=` drops the boundary iteration, finding
   `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
 - [ ] **OCaml arrays — RAM device for the 10MB linear memory.** `Bytes.make` and
