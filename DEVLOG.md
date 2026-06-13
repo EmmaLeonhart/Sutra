@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-12: sutra-from-fsharp + sutra-from-clojure — MVPs live; grammar blocks dissolved
+
+Emma authorized the two grammar sources via AskUserQuestion (allowlist entries added to
+`.claude/settings.local.json`). The pip route stayed dead for real reasons — no PyPI
+wheels; the ionide repo's `pip install git+…` fails on SSH-only example submodules AND
+ships no Python binding — so each frontend gets a `build_grammar.py` that clones the
+authorized repo (https, no submodules) and compiles the parser into a machine-local
+`_grammar/*.dll` with MSVC (VS 2022 Enterprise found locally — the "no clang" note only
+covered clang), loaded via ctypes. Tests skip loudly when the DLL is absent.
+**F#** (6/6): ML-shaped grammar mirrors OCaml — `let` functions, application-spine
+flattening, `<>`→`!=`, if/then/else blend; substrate-verified 16/100/26; measured
+grammar quirk recorded (unparenthesized application under infix mis-associates —
+parenthesize). **Clojure** (6/6): single list-head dispatch — n-ary operator heads
+left-fold (`(+ a b c d)`), `if` → blend, symbol heads → calls; substrate-verified
+16/100/16. Frontend census: OCaml, TS, Scala, Elixir, Haskell, Rust, F#, Clojure —
+**eight live**; every roadmap language except WASM (phase 3) now has a
+substrate-verified frontend.
+
 ## 2026-06-12: sutra-from-rust — MVP frontend (substrate-verified); roadmap sweep done
 
 Fifth language frontend, completing tonight's installable-grammar sweep. `fn` items
