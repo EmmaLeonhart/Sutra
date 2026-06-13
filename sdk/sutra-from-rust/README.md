@@ -7,21 +7,28 @@ bar), not compile-only.
 
 ## Status
 
-First cut (2026-06-12): top-level `fn` items with typed parameters + returns
+As of 2026-06-12: top-level `fn` items with typed parameters + returns
 (i8…i64/u8…u64/usize/isize → int, f32/f64 → number, bool → bool); block bodies
 with `let` bindings and a tail expression; integer/float literals with numeric
 suffixes stripped; binary arithmetic/comparison/boolean operators; `if/else`
-expressions → the defuzz blend; calls; parens. Substrate-verified: `add_main`
-= 16, `if_classify` = 100, `let_block` = 17. Ownership/borrowing never reaches
-the lowering at this scope (the value domain is copies of numbers); `&`/`mut`,
-structs/enums/`match`, loops, and recursion surface as `UNSUPPORTED-*` markers
-(recursion until the tail/CPS transforms are ported — never a silent
-self-call).
+expressions → the defuzz blend; calls; parens; **algebraic `enum`s + `match` →
+tagged axons** (the OCaml variant pattern: the enum erases to a tag/arity
+prepass; the enum name maps to `Axon` in param/return types; construction
+`E::V(a, b)` hoists to `Axon t; t.add("_tag", …); t.add("_val0", a); …`; a
+`match` on an enum param binds `_vtag`/`_val{i}` to clean number-vector locals
+first — the inline repeated `realvec(...)` reads do not project crisply,
+measured 3.5 vs 2 — then blends by tag with the payload names substituted, the
+last arm the exhaustive base). Substrate-verified: `add_main` = 16,
+`if_classify` = 100, `let_block` = 17, `enum_match` = 2 (`eval(Expr::Lit 7) +
+eval(Expr::Neg 5)`, with a `Pair(a, b)` multi-arg arm). Ownership/borrowing
+never reaches the lowering at this scope; structs, `&`/`mut`, loops, and
+recursion surface as `UNSUPPORTED-*` markers (recursion until the tail/CPS
+transforms are ported — never a silent self-call). A `match` is supported as a
+function-body tail; nested in a larger expression it is a later item.
 
 Dependency: `tree-sitter-rust` (`pip install tree-sitter-rust`).
 
 ## Next
 
-`match` + enums → tagged axons (Rust's algebraic enums map onto the OCaml
-variant pattern); structs → axons; the recursion transforms; `while`/`loop` →
-substrate loops; statement-bearing if-arms.
+Structs → axons; the recursion transforms; `while`/`loop` → substrate loops;
+statement-bearing if-arms; nested / non-tail `match`; nullary-variant values.
