@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-12: sutra-from-clojure — recur / self-call → while_loop
+
+Clojure tail-recursion transform. `(defn f [p…] (if COND BASE (recur a…)))` lowers to a
+declared Sutra `while_loop` — both `recur` (Clojure's idiomatic tail-call form) and a
+named self-call are accepted as the recurrence; `_negate_cond` inverts the `(= n 0)`
+comparison list to the loop's continue condition. `_contains_self_call` extended to spot
+`recur` so a non-tail recur is flagged UNSUPPORTED rather than mislowered to a
+`recur(...)` call. Fixture `tail_rec` (`(defn sumTo [acc n] (if (= n 0) acc (recur (+ acc
+n) (- n 1))))`): substrate-verified `(sumTo 0 5)` = 15. Clojure suite 12/12.
+
 ## 2026-06-12: sutra-from-rust + sutra-from-haskell — tail recursion → while_loop
 
 The tail-recursion transform ported to two more frontends (same OCaml/Scala/F# shape,
