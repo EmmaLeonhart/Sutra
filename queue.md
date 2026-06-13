@@ -48,14 +48,17 @@ Steps (expand as we go):
   block-Gibbs `sample_states`), RUN it, record the API actually used. New dep:
   **JAX** (note it vs the PyTorch canonical target — keep it isolated to this
   backend). Do NOT wire to Sutra codegen yet.
-- [ ] **1. Design the Sutra→thrml mapping — Emma-driven open-questions doc.** The
-  core question: which Sutra subset compiles to an energy-based model, and how do
-  Sutra primitives map onto thrml's (spin nodes / blocks / factors / sampling
-  schedule)? This is Emma's design territory (she has the mechanism intent — do
-  NOT invent a mapping). Write `planning/open-questions/2026-…-sutra-to-thrml.md`;
-  settle the mapping + the first concrete demonstration with her BEFORE codegen.
-  (Asked Emma 2026-06-13; if unanswered when this is reached, re-ask via
-  AskUserQuestion before starting step 2 — do not invent the mapping.)
+- [ ] **1. Design the Sutra→thrml mapping. DIRECTION SET BY EMMA 2026-06-13:
+  vectors → spin-node graph.** Map Sutra's dense semantic vectors / hypervectors
+  onto thrml **spin nodes + a factor graph**, so the substrate ops — bind /
+  bundle / similarity — become **factor interactions** sampled by block-Gibbs.
+  The whole Sutra substrate becomes a PGM (not "defuzz=sampling", not a one-off
+  hand-encoded EBM — those were the alternatives Emma rejected). Write
+  `planning/open-questions/2026-…-sutra-to-thrml.md` working out the concrete
+  encoding (real/complex vector components → spin states; which factor form
+  realizes each op; how `sample_states` recovers the op result) and the first
+  demonstration op, then check the specifics with Emma before codegen. Don't
+  invent the per-op factor forms silently — measure/verify each.
 - [ ] **2. Minimal `codegen_thrml.py` backend** for the simplest mappable Sutra
   subset (per step 1). Mirror `codegen_pytorch.py`'s structure. One `.su` fixture
   compiles AND runs (samples on thrml), decoded output compared to ground truth
