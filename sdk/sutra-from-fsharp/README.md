@@ -25,8 +25,10 @@ First cut (2026-06-12): top-level `let f a b = expr` functions (and
 `let main () = expr`); integer/float consts; infix arithmetic/comparison/
 boolean operators (`<>` → `!=`, expression-position `=` → `==`); application
 spines flatten to Sutra calls (`add 7 9` → `add(7, 9)`); `if/then/else` → the
-defuzz blend. Untyped params default to int. Substrate-verified: `add_main`
-= 16, `if_classify` = 100, `paren_sum` = 26. **Measured grammar quirk:**
+defuzz blend; literal `match` (`| 1 -> … | _ -> …`) → a nested defuzz blend
+over `scrut == k` tests (the OCaml/Scala shape; last rule the base). Untyped
+params default to int. Substrate-verified: `add_main` = 16, `if_classify` =
+100, `paren_sum` = 26, `match_literal` = 200. **Measured grammar quirk:**
 unparenthesized application mixed with infix (`add 7 9 + classify 5`)
 mis-associates in the ionide grammar — parenthesize call operands. Recursion
 surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms are ported.
@@ -34,5 +36,5 @@ surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms are ported.
 ## Next
 
 Type annotations; the recursion transforms (the OCaml shapes port almost
-directly); `match` → blends; records/DUs → axons (the OCaml record/variant
-pattern); modules.
+directly); variant/record `match` patterns; records/DUs → axons (the OCaml
+record/variant pattern); modules.
