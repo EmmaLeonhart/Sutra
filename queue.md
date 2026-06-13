@@ -53,13 +53,17 @@ deleted on completion. Keep the task tool in sync with this file.
   `while_loop` shipped 2026-06-12, suite 10/10): structs → axons; foldable
   non-tail CPS; `while`/`loop` → substrate loops; nested/non-tail `match`.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
-- [ ] **OCaml: arrays → now UNBLOCKED** — the core `dict<int,int>` defect is FIXED
-  (Emma's separate-int-dict-object design, 2026-06-13, exact; `test_int_dict.py`
-  5/5). Remaining: wire the OCaml frontend's `Array.make`/`arr.(i)`/`arr.(i)<-v`
-  to `dict<int,int>` (or its int-dict surface) and substrate-verify an array
-  fixture end-to-end. (Also: a pre-existing, UNRELATED failure exists —
-  `test_fused_nn.py::...[differentiable_substrate]` fails on HEAD independent of
-  this change; separate item.)
+- [ ] **OCaml arrays — per-context backing (Emma decided 2026-06-13: "both /
+  depends").** Keep the global RAM device for the **ISO-5 WASM machine's linear
+  memory**; back **ordinary OCaml arrays** (`Array.make`/`arr.(i)`/`arr.(i)<-v`)
+  with the new per-instance **`dict<int,int>` int-dict object** (exact, no
+  base-offset aliasing; FIXED 2026-06-13, `test_int_dict.py` 5/5). Wire
+  `sutra-from-ocaml/lower.py` to choose per context — likely: the explicit ISO-5
+  machine memory stays RAM, all other `Array.make` lowers to an int-dict local;
+  decide the discriminator (size? a machine-memory marker?). Then substrate-verify
+  an ordinary-array fixture end-to-end with a real `main ()` (today `array_ram`
+  only compile-checks). int-dict is fixed-cap 256 — may need a cap arg for larger
+  arrays.
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type
   lookup is exact when two interfaces share a field name with different types
   (current global map marks collisions non-numeric to stay safe; no fixture needs it).
