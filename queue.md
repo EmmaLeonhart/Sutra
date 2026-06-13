@@ -50,41 +50,42 @@ prototyping platform for their **thermodynamic sampling hardware (TSU)**. The
 resonance: Sutra is fuzzy-by-default (uncertainty IS ground truth); a
 thermodynamic sampler is a physical realization of fuzzy computation.
 
-Steps (expand as we go):
+**This is an EXPLORATION LOOP (Emma 2026-06-13):** "I do not have a massive
+preconceived notion of how this works. Try various ways until we can get our
+computation to actually work on this hardware … a giant loop of constantly trying
+different ways until it actually works." So each work-loop tick = one attempt:
+pick an approach, RUN it on thrml, MEASURE, log it in the attempt log
+(`planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md`), iterate. We can
+change anything that doesn't work. Locked encoding interpretation: a Sutra value
+= an N-bit spin register (each bit a `SpinNode`).
 
-- [x] **0. Vendor + study — DONE 2026-06-13** (Emma authorized the integration).
-  `external/thrml` submodule pinned `db629a0`; API studied + the README Ising /
-  block-Gibbs example RUN on JAX-CPU (Windows, no WSL): `sample_states` → valid
-  `(1000,5)` spin samples. Full API surface + the step-1-relevant facts in
-  `planning/findings/2026-06-13-thrml-api-study.md`. Dep JAX/equinox is
-  backend-only (NOT in core requirements). [delete this line once step 1 starts]
-- [ ] **1. Design the Sutra→thrml mapping. DIRECTION SET BY EMMA 2026-06-13:
-  vectors → spin-node graph.** Map Sutra's dense semantic vectors / hypervectors
-  onto thrml **spin nodes + a factor graph**, so the substrate ops — bind /
-  bundle / similarity — become **factor interactions** sampled by block-Gibbs.
-  The whole Sutra substrate becomes a PGM (not "defuzz=sampling", not a one-off
-  hand-encoded EBM — those were the alternatives Emma rejected). Write
-  `planning/open-questions/2026-…-sutra-to-thrml.md` working out the concrete
-  encoding (real/complex vector components → spin states; which factor form
-  realizes each op; how `sample_states` recovers the op result) and the first
-  demonstration op, then check the specifics with Emma before codegen. Don't
-  invent the per-op factor forms silently — measure/verify each.
-- [ ] **2. Minimal `codegen_thrml.py` backend** for the simplest mappable Sutra
-  subset (per step 1). A NEW file mirroring `codegen_pytorch.py`'s structure,
-  selected by an **additive CLI flag** (new `--target thrml` / `--emit-thrml` /
-  `--run-thrml`; default stays PyTorch). Must NOT modify `codegen_pytorch.py` or
-  the existing `--emit`/`--run` path (see the non-destructive constraint above).
-  One `.su` fixture compiles AND runs (samples on thrml), decoded output compared
-  to ground truth (measured — sampling noise documented, never hidden); the full
-  existing test suite stays green.
-- [ ] **3. Expand op coverage** toward the broader Sutra surface; per-op
-  signal-separation / correctness measurements (the substrate-honesty bar).
-- [ ] **4. Hardware-alignment notes** — how the thrml backend maps onto Extropic
+- [x] **0. Vendor + study — DONE 2026-06-13.** `external/thrml` submodule pinned
+  `db629a0`; API studied + README example RUN on JAX-CPU. Facts:
+  `planning/findings/2026-06-13-thrml-api-study.md`. JAX/equinox backend-only.
+- [x] **1. First attempt: associative memory — WORKS 2026-06-13.**
+  `experiments/thrml/assoc_memory_demo.py`. value=N-bit register; bundle=Hebbian
+  couplings; cleanup=block-Gibbs. MEASURED (N=16,M=3): β=6 → **96.8%** of samples
+  recover a stored value vs **0.0%** baseline (gap 0.968). Sutra's bundle/cleanup
+  genuinely computes on thrml.
+- [ ] **Keep iterating (the loop).** Next attempts, each RUN + MEASURED: retrieval
+  from a **clamped partial cue**; **bind/unbind**; **arithmetic-as-energy**
+  (add/compare on bit-registers); robustness sweeps (N, M capacity). Log each in
+  the attempt log; failed approaches recorded as negative results, then try
+  another. Goal: find the approach(es) under which real Sutra programs run on the
+  sampler.
+- [ ] **Then wire it into `codegen_thrml.py`** once a working pattern is solid: a
+  NEW file mirroring `codegen_pytorch.py`, selected by an **additive CLI flag**
+  (`--target thrml` / `--emit-thrml` / `--run-thrml`; default stays PyTorch).
+  Must NOT modify `codegen_pytorch.py` or `--emit`/`--run` (non-destructive
+  constraint above). One `.su` fixture compiles AND samples on thrml, decoded vs
+  ground truth (measured); existing suite stays green.
+- [ ] **Hardware-alignment notes** — how the working approach maps onto Extropic
   TSU semantics; what stays host vs sampled.
 
-HARD RAILS unchanged: every op runs on the (sampling) substrate; no faked
-results; compile-AND-run fixtures with measured ground-truth deltas; read
-thrml's ACTUAL API (NO MATH SHORTCUTS / no invented primitives).
+HARD RAILS: every op runs on the (sampling) substrate; no faked results; RUN +
+MEASURE every attempt (gap vs baseline, never asserted); read thrml's ACTUAL API
+(NO MATH SHORTCUTS / no invented primitives). Failed attempts are logged as
+negative results, not hidden.
 
 ## Active — transpiler track (source -> Sutra) — continues (now second to the thrml track)
 
