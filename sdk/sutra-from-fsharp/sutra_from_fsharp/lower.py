@@ -77,6 +77,88 @@ def _contains_self_call(node, name: str, src: bytes) -> bool:
     return any(_contains_self_call(c, name, src) for c in node.named_children)
 
 
+# Sutra comparison op → its negation: a halt condition becomes the loop's
+# *continue* condition.
+_NEG_CMP = {"==": "!=", "!=": "==", "<": ">=", ">": "<=", "<=": ">", ">=": "<"}
+
+
+def _self_call_args(node, name: str, arity: int, src: bytes):
+    """If `node` is `name arg1 … arg{arity}` (a curried self-application at the
+    right arity), return the arg nodes; else None."""
+    if node.type != "application_expression":
+        return None
+    head, args = _flatten_apply(node)
+    if head.type not in ("identifier", "long_identifier_or_op", "long_identifier"):
+        return None
+    if _text(head, src) != name or len(args) != arity:
+        return None
+    return args
+
+
+def _negate_cond(cond, src: bytes) -> str:
+    """Negate a halt condition into the loop's continue condition: a single infix
+    comparison inverts precisely via `_NEG_CMP`; any other boolean negates with
+    Sutra `!(…)` (the OCaml frontend's `_negate_cond` shape)."""
+    if cond.type == "infix_expression":
+        kids = cond.named_children
+        op = next((c for c in kids if c.type == "infix_op"), None)
+        operands = [c for c in kids if c.type != "infix_op"]
+        if op is not None and len(operands) == 2:
+            sop = _OP_MAP.get(_text(op, src))
+            neg = _NEG_CMP.get(sop) if sop else None
+            if neg is not None:
+                return (f"{_lower_expr(operands[0], src)} {neg} "
+                        f"{_lower_expr(operands[1], src)}")
+    return f"!({_lower_expr(cond, src)})"
+
+
+def _try_lower_tail_recursive(name: str, params: list, body, src: bytes):
+    """Lower a TAIL-recursive accumulator `let rec f p… = if COND then BASE else
+    f a…` (self-call in either arm) to a Sutra declared `while_loop` — bounded
+    substrate iteration, no self-calling function (which would not terminate
+    through the fuzzy-if blend). The OCaml/Scala `_try_lower_tail_recursive`
+    shape, ported. Returns the emitted Sutra or None."""
+    if body.type != "if_expression" or len(body.named_children) < 3:
+        return None
+    kids = body.named_children
+    cond, then_e, else_e = kids[0], kids[1], kids[2]
+    arity = len(params)
+    then_args = _self_call_args(then_e, name, arity, src)
+    else_args = _self_call_args(else_e, name, arity, src)
+    if (then_args is None) == (else_args is None):
+        return None  # exactly one branch must be the self-call
+    if else_args is not None:
+        cont = _negate_cond(cond, src)            # halt when COND, loop while not
+        rec_args, base = else_args, then_e
+    else:
+        cont = _lower_expr(cond, src)             # loop while COND
+        rec_args, base = then_args, else_e
+
+    ty = _DEFAULT_TYPE
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {p} = 0" for p in params)
+    # Simultaneous update via temporaries (the swaploop lesson).
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
+                         for i, arg in enumerate(rec_args))
+    assigns = "".join(f"    {p} = _t{i};\n" for i, p in enumerate(params))
+    loop_decl = f"while_loop {loop_name}({cont}, {state_decls}) {{\n{temp_decls}{assigns}}}\n"
+
+    slot_lines = "".join(f"    slot {ty} _{p}_r = {p};\n" for p in params)
+    slot_args = ", ".join(f"_{p}_r" for p in params)
+    writeback = "".join(f"    {p} = _{p}_r;\n" for p in params)
+    params_src = ", ".join(f"{ty} {p}" for p in params)
+    base_src = _lower_expr(base, src)
+    fn = (
+        f"function {ty} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_expr(node, src: bytes) -> str:
     t = node.type
     if t == "const":
@@ -172,9 +254,15 @@ def _lower_defn(defn, src: bytes) -> str:
             else:
                 return (f"// UNSUPPORTED-LET: '{name}' has a pattern parameter "
                         f"({p.type}) — later item\n")
+    if body.type == "if_expression" and params:
+        tail = _try_lower_tail_recursive(name, params, body, src)
+        if tail is not None:
+            return tail
     if _contains_self_call(body, name, src):
-        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive "
-                f"(transforms not yet ported)\n")
+        # Recursion outside the supported tail shape — a plain self-call would
+        # not terminate through the fuzzy-if blend. Surface the gap.
+        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
+                f"tail-accumulator shape\n")
     params_src = ", ".join(f"{_DEFAULT_TYPE} {p}" for p in params)
     return (f"function {_DEFAULT_TYPE} {name}({params_src}) {{\n"
             f"    return {_lower_expr(body, src)};\n"
