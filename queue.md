@@ -46,13 +46,13 @@ deleted on completion. Keep the task tool in sync with this file.
 - [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through `let` +
   `cond` shipped 2026-06-12, suite 10/10): `recur` → `while_loop` (Clojure's own
   loop form maps naturally); maps → axons; destructuring binds.
-- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; MVP shipped
-  2026-06-12, suite 4/4 — signatured equations, curried apply, if/then/else
-  blend; laziness explicitly out of scope): recursion transforms, pattern
-  equations → blends, guards, where/let, `data` ADTs → tagged axons.
-- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through enums + `match`
-  → tagged axons shipped 2026-06-12, suite 8/8): structs → axons; recursion
-  transforms; `while`/`loop` → substrate loops; nested/non-tail `match`.
+- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through tail
+  recursion → `while_loop` shipped 2026-06-12, suite 6/6; laziness out of
+  scope): foldable non-tail CPS, pattern equations → blends, guards, where/let,
+  `data` ADTs → tagged axons.
+- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through tail recursion →
+  `while_loop` shipped 2026-06-12, suite 10/10): structs → axons; foldable
+  non-tail CPS; `while`/`loop` → substrate loops; nested/non-tail `match`.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
 - [ ] **OCaml: arrays → RAM blocked on the core-compiler `dict<int,int>` defect**
   (finding `2026-06-06-dict-int-keys-broken`) — verify whether still broken; if so,

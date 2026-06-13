@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-12: sutra-from-rust + sutra-from-haskell — tail recursion → while_loop
+
+The tail-recursion transform ported to two more frontends (same OCaml/Scala/F# shape,
+different ASTs). **Rust**: `fn f(p…) { if COND { BASE } else { f(a…) } }` — self-call
+detected on the if-arm block tails (call_expression head == name), `_NEG_CMP` halt
+inversion on binary_expression; the tail-rec attempt runs before the recursion-reject in
+`_lower_function`. Fixture `tail_rec` `sum_to(0,5)` = 15; suite 10/10. **Haskell**:
+`f p… = if COND then BASE else f a…` — self-call on `apply` spines, `infix` condition;
+signature supplies the typed params. Fixture `tail_rec` `sumTo 0 5` = 15; suite 6/6.
+Both keep non-tail recursion as `UNSUPPORTED-RECURSION`. Tail-rec is now in 6 frontends
+(OCaml, Scala, F#, Rust, Haskell + the OCaml foldable-nontail CPS).
+
 ## 2026-06-12: sutra-from-fsharp — tail recursion → while_loop
 
 F# depth increment, the OCaml/Scala tail-recursion transform ported. `let rec f p… =
