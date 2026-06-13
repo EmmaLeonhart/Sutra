@@ -27,6 +27,7 @@ _RUNNABLE = {
     "nontail_fact": 120.0,  # def fact(n) do if n == 0 do 1 else n * fact(n-1) end end; fact(5)  (CPS fold)
     "case_literal": 200.0,  # case n do 1 -> 100; 2 -> 200; _ -> 300 end; classify(2)  (nested blend)
     "case_bind": 60.0,  # case n do 0 -> 100; x -> x * 10 end; classify(6)  (name-binding pattern)
+    "multiclause": 120.0,  # def classify(0)/( 1)/(n) heads -> dispatch fn; classify(0)+classify(2) = 100+20
 }
 
 

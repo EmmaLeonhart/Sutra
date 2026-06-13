@@ -345,16 +345,19 @@ def _lower_expr(node, src: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
-def _def_parts(def_call, src: bytes):
+def _def_head(def_call, src: bytes):
     """Decompose `call(def, arguments(head [, keywords(do: expr)]) [, do_block])`
-    into (name, param_names, body_expr_node) or None. `head` is either
-    `call(name, arguments(params…))` or a bare `identifier` (zero-arg, no parens)."""
+    into (name, [param_pattern_nodes], body_expr_node) or None. `head` is either
+    `call(name, arguments(patterns…))` or a bare `identifier` (zero-arg, no
+    parens). Param patterns are returned as raw nodes (literal or identifier) so
+    the multi-clause dispatcher can inspect them; `_def_parts` is the bare-param
+    view for the single-clause path."""
     kids = def_call.named_children
     args = next((c for c in kids if c.type == "arguments"), None)
     if args is None or not args.named_children:
         return None
     head = args.named_children[0]
-    params: list[str] = []
+    param_nodes: list = []
     if head.type == "call":
         name_node = head.named_children[0] if head.named_children else None
         if name_node is None or name_node.type != "identifier":
@@ -362,10 +365,7 @@ def _def_parts(def_call, src: bytes):
         name = _text(name_node, src)
         head_args = next((c for c in head.named_children if c.type == "arguments"), None)
         if head_args is not None:
-            for p in head_args.named_children:
-                if p.type != "identifier":
-                    return None  # pattern params (tuples, literals) are later items
-                params.append(_text(p, src))
+            param_nodes = list(head_args.named_children)
     elif head.type == "identifier":
         name = _text(head, src)
     else:
@@ -385,7 +385,104 @@ def _def_parts(def_call, src: bytes):
                 body = stmts[-1]  # multi-statement bodies (bindings) are later items
     if body is None:
         return None
+    return name, param_nodes, body
+
+
+def _def_parts(def_call, src: bytes):
+    """Single-clause view: (name, param_names, body) with BARE-identifier params
+    only (literal/pattern params → None, handled by the clause dispatcher)."""
+    head = _def_head(def_call, src)
+    if head is None:
+        return None
+    name, param_nodes, body = head
+    params: list[str] = []
+    for p in param_nodes:
+        if p.type != "identifier":
+            return None  # pattern params (literals, tuples) → multi-clause path
+        params.append(_text(p, src))
     return name, params, body
+
+
+def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
+    """Lower a group of same-name/arity `def` heads into ONE dispatching Sutra
+    function — a nested defuzz blend over the clauses (the `case`/`_MATCH` shape
+    lifted to function heads). Each clause's params are matched positionally:
+    an integer-literal pattern becomes an `(_ai == k)` test; an identifier
+    pattern binds that name to `_ai` (the `_SUBST` shape) and contributes no
+    test. A clause with no literal patterns is a catch-all; the LAST clause is
+    the base (Elixir's first-match-wins, lifted to the blend). `clauses` is a
+    list of (param_pattern_nodes, body_node)."""
+    arity = len(clauses[0][0])
+    for _pn, body in clauses:
+        if _contains_self_call(body, name, src):
+            return (f"// UNSUPPORTED-RECURSION: '{name}' multi-clause dispatch with "
+                    f"recursion (later item)\n")
+    argnames = [f"_a{i}" for i in range(arity)]
+    parsed = []  # (test_src_or_None, result_src)
+    for param_nodes, body in clauses:
+        if len(param_nodes) != arity:
+            return f"// UNSUPPORTED-DEF: '{name}' clause arity mismatch\n"
+        tests: list[str] = []
+        binds: list[tuple[str, str]] = []
+        for i, p in enumerate(param_nodes):
+            if p.type == "integer":
+                tests.append(f"({argnames[i]} == {_text(p, src).replace('_', '')})")
+            elif p.type == "identifier":
+                nm = _text(p, src)
+                if nm != "_":
+                    binds.append((nm, argnames[i]))
+            else:
+                return (f"// UNSUPPORTED-DEF: '{name}' clause has pattern param "
+                        f"{p.type} (later item)\n")
+        for nm, sub in binds:
+            _SUBST[nm] = sub
+        try:
+            res_src = _lower_expr(body, src)
+        finally:
+            for nm, _sub in binds:
+                _SUBST.pop(nm, None)
+        if "UNSUPPORTED" in res_src:
+            return f"// UNSUPPORTED-DEF: '{name}' clause body not lowerable\n"
+        test = " && ".join(tests) if tests else None
+        parsed.append((test, res_src))
+    expr = parsed[-1][1]  # last clause = base
+    for test, res in reversed(parsed[:-1]):
+        expr = res if test is None else _blend(test, res, expr)
+    params_src = ", ".join(f"{_TYPE} {a}" for a in argnames)
+    return (f"function {_TYPE} {name}({params_src}) {{\n"
+            f"    return {expr};\n"
+            f"}}\n")
+
+
+def _lower_defs(def_calls, src: bytes) -> list:
+    """Group `def`s by (name, arity); a single-clause bare-param group routes
+    through `_lower_def` (so the tail/fold recursion transforms still own it),
+    while a multi-clause group — or any group with a literal/pattern param —
+    becomes one dispatching function via `_lower_def_clauses`."""
+    groups: dict = {}
+    order: list = []
+    out: list = []
+    for dc in def_calls:
+        head = _def_head(dc, src)
+        if head is None:
+            out.append(_lower_def(dc, src))  # surfaces UNSUPPORTED-DEF
+            continue
+        name, param_nodes, body = head
+        key = (name, len(param_nodes))
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append((dc, param_nodes, body))
+    for key in order:
+        members = groups[key]
+        bare_single = (len(members) == 1
+                       and all(p.type == "identifier" for p in members[0][1]))
+        if bare_single:
+            out.append(_lower_def(members[0][0], src))
+        else:
+            out.append(_lower_def_clauses(
+                key[0], [(pn, bd) for _dc, pn, bd in members], src))
+    return out
 
 
 def _lower_def(def_call, src: bytes) -> str:
@@ -432,10 +529,11 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
             if do_block is None:
                 out.append("// UNSUPPORTED-MODULE: defmodule without body\n")
                 continue
-            for member in do_block.named_children:
-                if _call_kw(member, src) == "def":
-                    out.append(_lower_def(member, src))
-                # defp/defstruct/use/alias are later items
+            # Collect `def` members and group by (name, arity) so multi-clause
+            # heads lower to ONE dispatching function (defp/defstruct/use/alias
+            # are later items).
+            defs = [m for m in do_block.named_children if _call_kw(m, src) == "def"]
+            out.extend(_lower_defs(defs, src))
         elif kw == "def":
-            out.append(_lower_def(child, src))
+            out.extend(_lower_defs([child], src))
     return "\n".join(out)

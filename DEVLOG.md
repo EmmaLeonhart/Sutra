@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-13: sutra-from-elixir — multi-clause `def` heads → dispatch function
+
+Same-name/arity `def` heads now group into ONE dispatching Sutra function instead of
+clashing as repeated definitions. Refactored `_def_parts` to share a `_def_head` helper
+(returns raw param-pattern nodes); added `_lower_def_clauses` (the `case`/`_MATCH` nested-
+blend shape lifted to function heads: an integer-literal param → an `(_ai == k)` test, an
+identifier param binds that name to the canonical arg `_ai`, the last clause is the base)
+and `_lower_defs` (groups by `(name, arity)`; a single-clause bare-param group still
+routes through the recursion-aware `_lower_def` so the tail/fold transforms are
+untouched). Fixture `multiclause` (`def classify(0)/( 1)/(n)`; `classify(0) +
+classify(2)`): substrate-verified = 120 — `classify(0)`=100 proves literal dispatch picks
+the right head, `classify(2)`=20 proves the catch-all variable clause binds `n`→`_a0`
+(`n * 10`). Elixir suite 14/14 (the refactor left tail_rec/nontail_fact/case green).
+Multi-clause heads with recursion stay `UNSUPPORTED-RECURSION`; guards + maps→axons are
+next.
+
 ## 2026-06-13: sutra-from-rust — imperative `while` → substrate `while_loop`
 
 Ported the OCaml `_lower_while` shape to Rust. A `fn` body of leading `let [mut]`
