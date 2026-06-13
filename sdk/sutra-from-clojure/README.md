@@ -31,10 +31,11 @@ base). Dynamically-typed values lower as `number`. Substrate-verified:
 `add_main` = 16, `if_classify` = 100, `nary_sum` = 16, `let_block` = 17,
 `cond_grade` = 150, `tail_rec` = 15 (`(defn f [p…] (if COND BASE (recur a…)))`
 → a declared `while_loop`; both `recur` and a named self-call are accepted, the
-OCaml/Scala/F#/Rust/Haskell shape). Destructuring and non-tail recursion surface
-as `UNSUPPORTED-*` (never a silent self-call).
+OCaml/Scala/F#/Rust/Haskell shape), `nontail_fact` = 120 (foldable non-tail
+recursion `(OP LEAF (f REC))` → an accumulator `while_loop` trampoline, the OCaml
+CPS port; param-dependent bases rejected). Destructuring and other non-tail
+recursion surface as `UNSUPPORTED-*` (never a silent self-call).
 
 ## Next
 
-`loop`/`recur` with an explicit accumulator; the foldable non-tail CPS
-transform; maps → axons; destructuring binds.
+`loop`/`recur` with an explicit accumulator; maps → axons; destructuring binds.

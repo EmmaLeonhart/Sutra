@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-13: sutra-from-clojure — foldable non-tail recursion (CPS trampoline)
+
+Ported the foldable non-tail transform to Clojure (6th frontend with it). `(defn f [n]
+(if COND BASE (OP LEAF (f REC))))` reifies the pending work as an `_acc` carried by a
+`while_loop`; only assoc+comm heads (`+`, `*`) with exactly 2 operands qualify;
+param-dependent BASE rejected. Reuses the Clojure tail-rec scaffolding (`_self_call_args`,
+`_negate_cond`); runs after the tail-rec attempt. Fixture `nontail_fact` (`(if (= n 0) 1
+(* n (fact (- n 1))))`): substrate-verified `(fact 5)` = 120. Clojure suite 14/14.
+Foldable non-tail now in 6 frontends (OCaml, Scala, Rust, Haskell, F#, Clojure); only
+Elixir remains.
+
 ## 2026-06-13: daily substrate-honesty audit CLEAN + sutra-from-fsharp foldable non-tail CPS
 
 Discharged the auto-prepended daily substrate-honesty audit (CLAUDE.md §"Subtler
