@@ -34,6 +34,7 @@ _RUNNABLE = {
     "paren_sum": 26.0,  # (add 7 9) + (double 5)  (parenthesized application + infix)
     "match_literal": 200.0,  # match n with | 1 -> 100 | 2 -> 200 | _ -> 300; classify 2
     "tail_rec": 15.0,  # let rec sumTo acc n = if n = 0 then acc else sumTo (acc+n) (n-1); sumTo 0 5
+    "nontail_fact": 120.0,  # let rec fact n = if n = 0 then 1 else n * fact (n-1); fact 5  (CPS fold)
 }
 
 

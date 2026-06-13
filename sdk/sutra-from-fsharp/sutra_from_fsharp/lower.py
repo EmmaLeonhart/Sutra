@@ -159,6 +159,99 @@ def _try_lower_tail_recursive(name: str, params: list, body, src: bytes):
     return loop_decl + fn
 
 
+# Associative + commutative combine ops for the non-tail fold transform.
+_FOLD_OPS = {"+", "*"}
+
+
+def _contains_identifier(node, ident: str, src: bytes) -> bool:
+    if node.type == "identifier" and _text(node, src) == ident:
+        return True
+    return any(_contains_identifier(c, ident, src) for c in node.named_children)
+
+
+def _try_lower_foldable_nontail(name: str, params: list, body, src: bytes):
+    """CPS / accumulator transform for a FOLDABLE non-tail `let rec f n = if COND
+    then BASE else LEAF <OP> f REC` (single param, OP in `_FOLD_OPS`): the pending
+    call-stack work is reified as an accumulator carried by a Sutra `while_loop`
+    trampoline — the OCaml/Scala/Rust/Haskell shape ported. BASE is evaluated
+    pre-loop at the INITIAL param, so a param-dependent BASE is rejected (→ None).
+    Returns loop decl + function, or None."""
+    if body.type != "if_expression" or len(body.named_children) < 3 \
+            or len(params) != 1:
+        return None
+    kids = body.named_children
+    cond, then_e, else_e = kids[0], kids[1], kids[2]
+
+    def foldable(node):
+        if node.type != "infix_expression":
+            return None
+        nk = node.named_children
+        op = next((c for c in nk if c.type == "infix_op"), None)
+        operands = [c for c in nk if c.type != "infix_op"]
+        if op is None or len(operands) != 2:
+            return None
+        op_text = _text(op, src)
+        if op_text not in _FOLD_OPS:
+            return None
+
+        def peel(n):
+            while (n is not None and n.type == "paren_expression"
+                   and n.named_children):
+                n = n.named_children[0]
+            return n
+
+        # The self-call is parenthesised (`n * (fact (n-1))`) per the F# grammar
+        # quirk — peel the parens before matching the application spine.
+        lc = _self_call_args(peel(operands[0]), name, 1, src)
+        rc = _self_call_args(peel(operands[1]), name, 1, src)
+        if (lc is None) == (rc is None):
+            return None
+        return (op_text, operands[1], lc[0]) if lc is not None \
+            else (op_text, operands[0], rc[0])
+
+    fold_then, fold_else = foldable(then_e), foldable(else_e)
+    if (fold_else is None) == (fold_then is None):
+        return None
+    if fold_else is not None:
+        cont = _negate_cond(cond, src)
+        op_text, leaf, rec_arg = fold_else
+        base = then_e
+    else:
+        cont = _lower_expr(cond, src)
+        op_text, leaf, rec_arg = fold_then
+        base = else_e
+
+    pname = params[0]
+    if _contains_identifier(base, pname, src):
+        return None  # param-dependent base — the transform would mis-evaluate it
+    ty = _DEFAULT_TYPE
+    sutra_op = _OP_MAP.get(op_text, op_text)
+    loop_name = f"_rec_{name}"
+    leaf_src = _lower_expr(leaf, src)
+    rec_src = _lower_expr(rec_arg, src)
+    base_src = _lower_expr(base, src)
+    if any("UNSUPPORTED" in s for s in (leaf_src, rec_src, base_src, cont)):
+        return None
+    loop_decl = (
+        f"while_loop {loop_name}({cont}, {ty} {pname} = 0, {ty} _acc = 0) {{\n"
+        f"    {ty} _t_n = {rec_src};\n"
+        f"    {ty} _t_acc = _acc {sutra_op} {leaf_src};\n"
+        f"    {pname} = _t_n;\n"
+        f"    _acc = _t_acc;\n"
+        f"}}\n"
+    )
+    fn = (
+        f"function {ty} {name}({ty} {pname}) {{\n"
+        f"    {ty} _acc = {base_src};\n"
+        f"    slot {ty} _{pname}_r = {pname};\n"
+        f"    slot {ty} _acc_r = _acc;\n"
+        f"    loop {loop_name}({cont}, _{pname}_r, _acc_r);\n"
+        f"    return _acc_r;\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_expr(node, src: bytes) -> str:
     t = node.type
     if t == "const":
@@ -258,11 +351,14 @@ def _lower_defn(defn, src: bytes) -> str:
         tail = _try_lower_tail_recursive(name, params, body, src)
         if tail is not None:
             return tail
+        fold = _try_lower_foldable_nontail(name, params, body, src)
+        if fold is not None:
+            return fold
     if _contains_self_call(body, name, src):
-        # Recursion outside the supported tail shape — a plain self-call would
-        # not terminate through the fuzzy-if blend. Surface the gap.
+        # Recursion outside the supported tail/foldable shapes — a plain
+        # self-call would not terminate through the fuzzy-if blend. Surface it.
         return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
-                f"tail-accumulator shape\n")
+                f"tail-accumulator or foldable non-tail shape\n")
     params_src = ", ".join(f"{_DEFAULT_TYPE} {p}" for p in params)
     return (f"function {_DEFAULT_TYPE} {name}({params_src}) {{\n"
             f"    return {_lower_expr(body, src)};\n"
