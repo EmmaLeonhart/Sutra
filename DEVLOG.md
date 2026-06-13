@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-13: sutra-from-rust — imperative `while` → substrate `while_loop`
+
+Ported the OCaml `_lower_while` shape to Rust. A `fn` body of leading `let [mut]`
+bindings, one or more `while COND { lhs = rhs; … }` loops, and a bare tail expression
+lowers to a hoisted Sutra `while_loop` + the `slot`/`loop`/write-back call sequence
+(`_try_lower_imperative` / `_lower_while_rust`, fires only when the block contains a
+`while`, so the functional recursion/expression paths still own their shapes). Loop
+state = the in-scope names (locals + params) the cond/body touch, cond-first; params
+referenced in the loop are threaded read-only (the hoisted `while_loop` is top-level and
+sees only its params), and only `mut` locals are written back. Fixture `while_sum`
+(`let mut acc/i = 0; while i < n { i = i + 1; acc = acc + i } acc`, `sum_to(5)`):
+substrate-verified = 15. Rust suite 16/16.
+
+**Measured negative result** (`planning/findings/2026-06-13-while-loop-le-boundary-equality-defuzz.md`):
+the lowering is correct, but loop bounds must use strict `<`/`>`. At exact equality the
+substrate comparison defuzzes false, so a `<=` bound drops the boundary iteration —
+measured `i < n` → 15 vs identical `i <= n` → 10 (same equality-defuzz-false behavior as
+the ISO-5 `==` boundary). Not a transpiler bug (it faithfully emits Sutra `<=`); a fix
+would live at the substrate comparison level. The OCaml reference frontend writes all its
+`while` fixtures with `<` for the same reason. Rust's unbounded `loop { … break }` (needs
+a halt-flag transform) and `+=` stay later items.
+
 ## 2026-06-13: sutra-from-elixir — name-binding case patterns
 
 Extended the Elixir `case` lowering with name-binding clauses: `case n do 0 -> 100; x ->

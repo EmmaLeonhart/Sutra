@@ -55,9 +55,12 @@ deleted on completion. Keep the task tool in sync with this file.
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through foldable
   non-tail CPS shipped 2026-06-13, suite 8/8; laziness out of scope): pattern
   equations → blends, guards, where/let, `data` ADTs → tagged axons.
-- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through structs → axons
-  shipped 2026-06-13, suite 14/14): `while`/`loop` → substrate loops;
-  nested/non-tail `match`; field-init shorthand / `..base`.
+- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through imperative `while`
+  → substrate `while_loop` shipped 2026-06-13, suite 16/16): unbounded
+  `loop { … break }` (halt-flag transform); compound assignment (`+=`);
+  nested/non-tail `match`; field-init shorthand / `..base`. (Loop bounds need
+  strict `<`/`>` — `<=` drops the boundary iteration, finding
+  `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
 - [ ] **OCaml arrays — RAM device for the 10MB linear memory.** `Bytes.make` and
   loop-carried arrays use the global RAM list, which doesn't scale to 10MB. A
