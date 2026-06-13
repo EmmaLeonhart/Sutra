@@ -53,17 +53,20 @@ deleted on completion. Keep the task tool in sync with this file.
   `while_loop` shipped 2026-06-12, suite 10/10): structs → axons; foldable
   non-tail CPS; `while`/`loop` → substrate loops; nested/non-tail `match`.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
-- [ ] **OCaml arrays — per-context backing (Emma decided 2026-06-13: "both /
-  depends").** Keep the global RAM device for the **ISO-5 WASM machine's linear
-  memory**; back **ordinary OCaml arrays** (`Array.make`/`arr.(i)`/`arr.(i)<-v`)
-  with the new per-instance **`dict<int,int>` int-dict object** (exact, no
-  base-offset aliasing; FIXED 2026-06-13, `test_int_dict.py` 5/5). Wire
-  `sutra-from-ocaml/lower.py` to choose per context — likely: the explicit ISO-5
-  machine memory stays RAM, all other `Array.make` lowers to an int-dict local;
-  decide the discriminator (size? a machine-memory marker?). Then substrate-verify
-  an ordinary-array fixture end-to-end with a real `main ()` (today `array_ram`
-  only compile-checks). int-dict is fixed-cap 256 — may need a cap arg for larger
-  arrays.
+- [ ] **OCaml arrays — per-context backing: BLOCKED on a discriminator (negative
+  result 2026-06-13).** Tried the obvious wiring (`Array.make`/`Array.create` →
+  int-dict, `Bytes.make` → RAM) and REVERTED: the ONLY current OCaml-frontend
+  `Array.make` users are the **attention-on-RAM parsers** (`attn_sum_tape`/
+  `attn_dot_tape`/`attn_select_field`), which use `Array.make` AS the RAM tape and
+  genuinely need `ramRead`/`ramWrite` — they FAIL on int-dict (`NameError: acc` —
+  the ramRead-accumulator loop shape doesn't survive the reroute). So the
+  discriminator can't be allocation type (ordinary arrays AND the RAM tape both
+  use `Array.make`), and there is **no ordinary-array consumer yet** to benefit.
+  The core object is DONE + verified and available directly in Sutra as
+  `dict<int,int>` (`test_int_dict.py` 5/5). Reopen when (a) a genuine ordinary-
+  OCaml-array program exists AND (b) Emma gives the discriminator (a per-binding
+  marker / type annotation, or migrate the attn parsers off `Array.make`). Don't
+  reroute `Array.make` blindly — it breaks the RAM parsers.
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type
   lookup is exact when two interfaces share a field name with different types
   (current global map marks collisions non-numeric to stay safe; no fixture needs it).
