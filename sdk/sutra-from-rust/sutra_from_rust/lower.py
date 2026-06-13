@@ -371,6 +371,154 @@ def _try_lower_foldable_nontail(name: str, params, ret: str, body, src: bytes):
     return loop_decl + fn
 
 
+def _collect_used_names(node, src: bytes, names: set) -> list:
+    """Identifiers from `names` used anywhere in `node`, in first-seen order.
+    Used to pick the `while`-loop state: the in-scope locals/params the loop's
+    condition and body touch (which must be threaded as Sutra loop state, since
+    the hoisted `while_loop` is a top-level decl and sees only its params)."""
+    found: list = []
+
+    def walk(n):
+        if n.type == "identifier":
+            t = _text(n, src)
+            if t in names and t not in found:
+                found.append(t)
+        for c in n.named_children:
+            walk(c)
+
+    walk(node)
+    return found
+
+
+def _lower_while_rust(node, src: bytes, scope_ty: dict, mutable: set, idx: int):
+    """Lower a Rust `while COND { BODY }` to a hoisted Sutra `while_loop` + the
+    `slot`/`loop`/write-back call sequence — the OCaml `_lower_while` shape. State
+    = the in-scope names (locals + params) the cond/body touch, cond-first; only
+    `mut` locals are written back (params/immutable locals are read-only). The
+    body is a sequence of plain `lhs = rhs;` assignments (sequential update, the
+    OCaml while-body shape). Returns (loop_decl, call_block) or None if outside
+    this shape."""
+    cond = node.child_by_field_name("condition")
+    body = node.child_by_field_name("body")
+    if cond is None:
+        cond = node.named_children[0] if node.named_children else None
+    if body is None:
+        body = next((c for c in node.named_children if c.type == "block"), None)
+    if cond is None or body is None:
+        return None
+    in_scope = set(scope_ty)
+    used_cond = _collect_used_names(cond, src, in_scope)
+    used_body = _collect_used_names(body, src, in_scope)
+    state = used_cond + [v for v in used_body if v not in used_cond]
+    if not state:
+        return None
+    cond_src = _lower_expr(cond, src)
+    if "UNSUPPORTED" in cond_src:
+        return None
+    body_lines = ""
+    for st in body.named_children:
+        if st.type != "expression_statement" or not st.named_children:
+            return None
+        a = st.named_children[0]
+        if a.type != "assignment_expression":
+            return None
+        akids = a.named_children
+        if len(akids) < 2 or akids[0].type != "identifier":
+            return None
+        lhs = _text(akids[0], src)
+        if lhs not in mutable:
+            return None  # assigning a non-`mut` binding — out of shape
+        rhs = _lower_expr(akids[-1], src)
+        if "UNSUPPORTED" in rhs:
+            return None
+        body_lines += f"    {lhs} = {rhs};\n"
+    loop_name = f"_while{idx}"
+    state_decls = ", ".join(f"{scope_ty[v]} {v} = 0" for v in state)
+    loop_decl = (f"while_loop {loop_name}({cond_src}, {state_decls}) {{\n"
+                 f"{body_lines}}}\n")
+    slot_lines = "".join(f"    slot {scope_ty[v]} _{v}_r = {v};\n" for v in state)
+    slot_args = ", ".join(f"_{v}_r" for v in state)
+    writeback = "".join(f"    {v} = _{v}_r;\n" for v in state if v in mutable)
+    call = (f"{slot_lines}"
+            f"    loop {loop_name}({cond_src}, {slot_args});\n"
+            f"{writeback}")
+    return loop_decl, call
+
+
+def _try_lower_imperative(name: str, params, ret: str, block, src: bytes):
+    """Lower an imperative `fn` body — leading `let [mut]` bindings, `while`
+    loops (-> hoisted Sutra `while_loop`), top-level `lhs = rhs;` reassignments,
+    and a bare tail expression. Fires only when the block contains a `while`
+    (so the recursion/expression paths still own the functional shapes). Returns
+    loop decls + the function source, or None if any part is out of shape."""
+    children = list(block.named_children)
+    has_while = any(
+        c.type == "expression_statement" and c.named_children
+        and c.named_children[0].type == "while_expression"
+        for c in children)
+    if not has_while:
+        return None
+    if not children or children[-1].type in ("let_declaration", "expression_statement"):
+        return None  # needs a bare tail value expression
+    tail_node = children[-1]
+    scope_ty = {nm: ty for nm, ty in params}
+    mutable: set = set()
+    body = ""
+    loop_decls = ""
+    idx = 0
+    for c in children[:-1]:
+        if c.type == "let_declaration":
+            kids = c.named_children
+            ident = next((k for k in kids if k.type == "identifier"), None)
+            if ident is None:
+                return None  # pattern let — later item
+            nm = _text(ident, src)
+            ty_node = next((k for k in kids if k.type == "primitive_type"), None)
+            ty = _map_type(ty_node, src) if ty_node is not None else _DEFAULT_TYPE
+            value = kids[-1]
+            val_src = _lower_expr(value, src)
+            if "UNSUPPORTED" in val_src:
+                return None
+            body += f"    {ty} {nm} = {val_src};\n"
+            scope_ty[nm] = ty
+            if any(k.type == "mutable_specifier" for k in kids):
+                mutable.add(nm)
+        elif c.type == "expression_statement" and c.named_children:
+            inner = c.named_children[0]
+            if inner.type == "while_expression":
+                res = _lower_while_rust(inner, src, scope_ty, mutable, idx)
+                if res is None:
+                    return None
+                decl, call = res
+                loop_decls += decl
+                body += call
+                idx += 1
+            elif inner.type == "assignment_expression":
+                akids = inner.named_children
+                if len(akids) < 2 or akids[0].type != "identifier":
+                    return None
+                lhs = _text(akids[0], src)
+                if lhs not in mutable:
+                    return None
+                rhs = _lower_expr(akids[-1], src)
+                if "UNSUPPORTED" in rhs:
+                    return None
+                body += f"    {lhs} = {rhs};\n"
+            else:
+                return None
+        else:
+            return None
+    tail_src = _lower_expr(tail_node, src)
+    if "UNSUPPORTED" in tail_src:
+        return None
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
+    fn = (f"function {ret} {name}({params_src}) {{\n"
+          f"{body}"
+          f"    return {tail_src};\n"
+          f"}}\n")
+    return loop_decls + fn
+
+
 def _block_value(block, src: bytes):
     """Split a `block` into (let_declarations, tail_expr_node). The tail
     expression may be bare or wrapped in an `expression_statement`."""
@@ -571,6 +719,9 @@ def _lower_function(item, src: bytes) -> str:
         fold = _try_lower_foldable_nontail(name, params, ret, tail, src)
         if fold is not None:
             return fold
+    imperative = _try_lower_imperative(name, params, ret, block, src)
+    if imperative is not None:
+        return imperative
     if _contains_self_call(block, name, src):
         # Recursion outside the supported tail/foldable shapes — a plain
         # self-call would not terminate through the fuzzy-if blend. Surface it.

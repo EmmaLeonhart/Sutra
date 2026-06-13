@@ -28,6 +28,7 @@ _RUNNABLE = {
     "tail_rec": 15.0,  # fn sum_to(acc, n) { if n==0 { acc } else { sum_to(acc+n, n-1) } }; sum_to(0, 5)
     "nontail_fact": 120.0,  # fn fact(n) { if n==0 { 1 } else { n * fact(n-1) } }; fact(5)  (CPS fold)
     "struct_axon": 12.0,  # struct Point -> axon; getx(a{7,9})=7 + sum2(Point{2,3})=5
+    "while_sum": 15.0,  # let mut acc/i; while i < n { i+=1; acc+=i }; sum_to(5)=15  (while -> substrate loop)
 }
 
 
