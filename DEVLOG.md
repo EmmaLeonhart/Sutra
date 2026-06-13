@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-13: OCaml arrays → int-dict wiring — NEGATIVE result, reverted
+
+Attempted the decided OCaml-array reroute (Emma: ordinary arrays → the new int-dict,
+RAM stays for the machine's linear memory). Implemented `Array.make`/`Array.create` →
+a per-instance `dict<int,int>` local (`a.(i)` → `a[i]`), `Bytes.make` → RAM. A standalone
+array program lowered + RAN correctly (`f 3 42 + h 10 20` = 72 on the substrate). BUT the
+only current OCaml-frontend `Array.make` users are the attention-on-RAM parsers
+(`attn_sum_tape`/`attn_dot_tape`/`attn_select_field`), which use `Array.make` AS the RAM
+tape and depend on `ramRead`/`ramWrite` — they FAILED on int-dict (`NameError: acc`, the
+ramRead-accumulator loop shape doesn't survive the reroute). So the allocation-type
+discriminator is wrong (both ordinary arrays and the RAM tape use `Array.make`) and there
+is no ordinary-array consumer yet to benefit. REVERTED the frontend change (attn fixtures
+green again, 9/9); the int-dict object itself stays done + verified and usable directly as
+`dict<int,int>`. Queue item reopened with the constraint: needs a real per-binding
+discriminator from Emma (or migrate the attn parsers off `Array.make`) before rerouting.
+Negative result recorded per the integrity rule rather than shipping the breakage.
+
 ## 2026-06-13: fused-NN demo — drop the obsolete .real() leg (Emma's call)
 
 `experiments/fused_nn/differentiable_substrate.py` had a second leg that deliberately
