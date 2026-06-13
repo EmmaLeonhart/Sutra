@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-12: sutra-from-fsharp — literal match → nested defuzz blend
+
+F# depth increment. `match scrut with | k1 -> r1 | … | _ -> base` lowers to a nested
+defuzz blend over `scrut == k` tests (the OCaml/Scala literal-match shape; the F#
+grammar exposes a clean `rules`/`rule` structure with `const`/`wildcard_pattern`
+patterns). Pure-expression lowering, last rule the base. Literal patterns only;
+variant/record patterns are a later item. Fixture `match_literal` (1→100/2→200/_→300):
+substrate-verified `classify 2` = 200. F# suite 8/8.
+
 ## 2026-06-12: sutra-from-clojure — let bindings + cond
 
 Clojure depth increment. `(let [n1 v1 n2 v2 …] body)` lowers via sequential

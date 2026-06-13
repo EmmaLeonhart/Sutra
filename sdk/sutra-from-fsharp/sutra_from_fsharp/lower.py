@@ -113,6 +113,36 @@ def _lower_expr(node, src: bytes) -> str:
             return f"/* UNSUPPORTED-EXPR: application head {head.type} */"
         arg_srcs = [_lower_expr(a, src) for a in args]
         return f"{_text(head, src)}({', '.join(arg_srcs)})"
+    if t == "match_expression":
+        # `match scrut with | k1 -> r1 | … | _ -> base` → a nested defuzz blend
+        # over `scrut == k` tests (the OCaml/Scala literal-match shape). The last
+        # rule is the base (a trailing `_`, or the final literal for an
+        # exhaustive set). Literal patterns only — variant/record patterns are a
+        # later item.
+        kids = node.named_children
+        scrut_src = _lower_expr(kids[0], src) if kids else "0"
+        rules = next((c for c in kids if c.type == "rules"), None)
+        if rules is None:
+            return "/* UNSUPPORTED-EXPR: match without rules */"
+        parsed = []
+        for rule in rules.named_children:
+            if rule.type != "rule":
+                continue
+            rk = rule.named_children
+            pat, res = rk[0], rk[-1]
+            if pat.type == "wildcard_pattern":
+                test = None
+            elif pat.type == "const":
+                test = f"({scrut_src} == {_lower_expr(pat, src)})"
+            else:
+                return f"/* UNSUPPORTED-MATCH-PATTERN: {pat.type} */"
+            parsed.append((test, _lower_expr(res, src)))
+        if not parsed:
+            return "/* UNSUPPORTED-EXPR: empty match */"
+        expr = parsed[-1][1]
+        for test, res in reversed(parsed[:-1]):
+            expr = res if test is None else _blend(test, res, expr)
+        return expr
     if t == "declaration_expression" and node.named_children:
         return _lower_expr(node.named_children[0], src)
     return f"/* UNSUPPORTED-EXPR: {t} */"
