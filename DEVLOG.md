@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-13: sutra-from-elixir — foldable non-tail recursion; CPS rollout COMPLETE (7/7 frontends)
+
+Ported the foldable non-tail transform to Elixir, the last frontend without it. `def f(n)
+do if COND do BASE else LEAF +|* f(REC) end end` reifies the pending work as an `_acc`
+carried by a `while_loop`; the else-arm is a `binary_operator` with a `call` self-call
+operand; only assoc+comm ops (`+`, `*`) qualify; param-dependent BASE rejected. Fixture
+`nontail_fact`: substrate-verified `fact(5)` = 120. Elixir suite 8/8. **Foldable non-tail
+recursion → `while_loop` trampoline is now in ALL 7 transpiler frontends** (OCaml, Scala,
+F#, Rust, Haskell, Clojure, Elixir) — same proven shape (accumulator + `_NEG_CMP` halt
+inversion + param-dependent-BASE guard), adapted to each grammar; every one keeps
+non-foldable recursion as `UNSUPPORTED-RECURSION`.
+
 ## 2026-06-13: sutra-from-clojure — foldable non-tail recursion (CPS trampoline)
 
 Ported the foldable non-tail transform to Clojure (6th frontend with it). `(defn f [n]
