@@ -25,7 +25,51 @@ deleted on completion. Keep the task tool in sync with this file.
   vector-collapse/NaN, finding `2026-06-12-rotation-mod-vector-collapse-…`). For
   wrap/periodic behavior use complex rotation (`demos/gui/live_frame.su`).
 
-## Active — transpiler track (source -> Sutra) — top priority
+## 🔥 NEXT MAJOR TRACK — Sutra → thrml (Extropic): submodule + compilation target (Emma 2026-06-13)
+
+Emma's direction (2026-06-13): vendor Extropic's **`thrml`**
+(<https://github.com/extropic-ai/thrml>) as a git submodule and make it a Sutra
+**compilation target** — a thermodynamic / energy-based backend alongside the
+canonical PyTorch one. This is the second task in the queue (after the in-flight
+transpiler increment) and a multi-step track to expand as it goes.
+
+What thrml is (researched 2026-06-13): a **JAX** library for GPU block-Gibbs
+sampling of **energy-based models** on sparse heterogeneous graphs — Ising/spin
+nodes, factor graphs; public API `SpinNode` / `Block` / `SamplingSchedule` /
+`IsingEBM` / `IsingSamplingProgram` / `sample_states()`. It is Extropic's
+prototyping platform for their **thermodynamic sampling hardware (TSU)**. The
+resonance: Sutra is fuzzy-by-default (uncertainty IS ground truth); a
+thermodynamic sampler is a physical realization of fuzzy computation.
+
+Steps (expand as we go):
+
+- [ ] **0. Vendor + study.** Add `thrml/` (or `external/thrml/`) as a git
+  submodule pinned to a commit. Stand up a minimal thrml example (one Ising EBM,
+  block-Gibbs `sample_states`), RUN it, record the API actually used. New dep:
+  **JAX** (note it vs the PyTorch canonical target — keep it isolated to this
+  backend). Do NOT wire to Sutra codegen yet.
+- [ ] **1. Design the Sutra→thrml mapping — Emma-driven open-questions doc.** The
+  core question: which Sutra subset compiles to an energy-based model, and how do
+  Sutra primitives map onto thrml's (spin nodes / blocks / factors / sampling
+  schedule)? This is Emma's design territory (she has the mechanism intent — do
+  NOT invent a mapping). Write `planning/open-questions/2026-…-sutra-to-thrml.md`;
+  settle the mapping + the first concrete demonstration with her BEFORE codegen.
+  (Asked Emma 2026-06-13; if unanswered when this is reached, re-ask via
+  AskUserQuestion before starting step 2 — do not invent the mapping.)
+- [ ] **2. Minimal `codegen_thrml.py` backend** for the simplest mappable Sutra
+  subset (per step 1). Mirror `codegen_pytorch.py`'s structure. One `.su` fixture
+  compiles AND runs (samples on thrml), decoded output compared to ground truth
+  (measured — sampling noise documented, never hidden).
+- [ ] **3. Expand op coverage** toward the broader Sutra surface; per-op
+  signal-separation / correctness measurements (the substrate-honesty bar).
+- [ ] **4. Hardware-alignment notes** — how the thrml backend maps onto Extropic
+  TSU semantics; what stays host vs sampled.
+
+HARD RAILS unchanged: every op runs on the (sampling) substrate; no faked
+results; compile-AND-run fixtures with measured ground-truth deltas; read
+thrml's ACTUAL API (NO MATH SHORTCUTS / no invented primitives).
+
+## Active — transpiler track (source -> Sutra) — continues (now second to the thrml track)
 
 > New-language frontends are the loop's active track (Emma roadmap order:
 > Scala → F# → Elixir/Erlang → Clojure → Haskell → Rust → WASM). Each models on
