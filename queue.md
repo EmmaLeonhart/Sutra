@@ -51,9 +51,9 @@ deleted on completion. Keep the task tool in sync with this file.
   construction in argument position) OR let-bound-only construction (needs (b)).
   Field access `p.x` is a dotted `long_identifier`, not a `field_expression`.
   Build (a)+(b)+the hoist first, then records are straightforward.
-- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through foldable
-  non-tail CPS shipped 2026-06-13, suite 14/14): maps → axons; destructuring
-  binds; `loop`/`recur` with an explicit accumulator.
+- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through `loop`/`recur`
+  → substrate `while_loop` shipped 2026-06-13, suite 16/16): maps → axons;
+  destructuring binds; `case`; multi-arity `defn`.
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through pattern
   equations + guards shipped 2026-06-13, suite 12/12; laziness out of scope):
   where/let bindings; `data` ADTs → tagged axons; guarded/multi-equation

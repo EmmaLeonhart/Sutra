@@ -232,6 +232,99 @@ def _try_lower_foldable_nontail(name: str, params: list, body, src: bytes):
     return loop_decl + fn
 
 
+def _try_lower_loop_form(name: str, params: list, body, src: bytes):
+    """Lower `(defn f [p…] (loop [v0 i0 v1 i1 …] (if COND (recur a…) BASE)))` to a
+    declared Sutra `while_loop`. The loop bindings become the recurrent state
+    (initialised from their init exprs, not 0); `recur` updates them simultaneously
+    via temps (the tail-recursion shape); any defn param the cond/recur-args/base
+    reference is threaded read-only (the Rust `while`-loop param shape, since the
+    hoisted loop is top-level). The base is returned after write-back. Returns the
+    emitted Sutra or None when the body is not this loop shape."""
+    if body.type != "list_lit" or _head_symbol(body, src) != "loop":
+        return None
+    bargs = body.named_children[1:]
+    if len(bargs) < 2 or bargs[0].type != "vec_lit":
+        return None
+    bvec = bargs[0].named_children
+    if len(bvec) == 0 or len(bvec) % 2 != 0:
+        return None
+    loop_vars: list[str] = []
+    inits: list = []
+    for i in range(0, len(bvec), 2):
+        if bvec[i].type != "sym_lit":
+            return None  # destructuring bind — a later item
+        loop_vars.append(_text(bvec[i], src))
+        inits.append(bvec[i + 1])
+    loop_body = bargs[-1]
+    if loop_body.type != "list_lit" or _head_symbol(loop_body, src) != "if":
+        return None
+    iargs = loop_body.named_children[1:]
+    if len(iargs) < 3:
+        return None
+    cond, then_e, else_e = iargs[0], iargs[1], iargs[2]
+    arity = len(loop_vars)
+
+    def recur_args(node):
+        if node.type == "list_lit" and _head_symbol(node, src) == "recur":
+            a = node.named_children[1:]
+            return a if len(a) == arity else None
+        return None
+
+    then_r, else_r = recur_args(then_e), recur_args(else_e)
+    if (then_r is None) == (else_r is None):
+        return None  # exactly one branch must be the `recur`
+    if then_r is not None:
+        cont, rec_args, base = _lower_expr(cond, src), then_r, else_e
+    else:
+        cont, rec_args, base = _negate_cond(cond, src), else_r, then_e
+
+    # Defn params referenced by cond/recur-args/base (not loop vars) — threaded
+    # read-only so the hoisted top-level loop sees them.
+    extra: list[str] = []
+
+    def collect(node):
+        if node.type == "sym_lit":
+            t = _text(node, src)
+            if t in params and t not in loop_vars and t not in extra:
+                extra.append(t)
+        for c in node.named_children:
+            collect(c)
+
+    collect(cond)
+    for a in rec_args:
+        collect(a)
+    collect(base)
+
+    ty = _TYPE
+    state = loop_vars + extra
+    loop_name = f"_loop_{name}"
+    state_decls = ", ".join(f"{ty} {v} = 0" for v in state)
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(a, src)};\n"
+                         for i, a in enumerate(rec_args))
+    assigns = "".join(f"    {loop_vars[i]} = _t{i};\n" for i in range(arity))
+    init_lines = "".join(f"    {ty} {v} = {_lower_expr(init, src)};\n"
+                         for v, init in zip(loop_vars, inits))
+    base_src = _lower_expr(base, src)
+    if any("UNSUPPORTED" in s for s in (cont, base_src, temp_decls, init_lines)):
+        return None
+    loop_decl = (f"while_loop {loop_name}({cont}, {state_decls}) {{\n"
+                 f"{temp_decls}{assigns}}}\n")
+    slot_lines = "".join(f"    slot {ty} _{v}_r = {v};\n" for v in state)
+    slot_args = ", ".join(f"_{v}_r" for v in state)
+    writeback = "".join(f"    {v} = _{v}_r;\n" for v in loop_vars)
+    params_src = ", ".join(f"{ty} {p}" for p in params)
+    fn = (
+        f"function {ty} {name}({params_src}) {{\n"
+        f"{init_lines}"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_expr(node, src: bytes) -> str:
     t = node.type
     if t == "num_lit":
@@ -336,6 +429,9 @@ def _lower_defn(list_lit, src: bytes) -> str:
         fold = _try_lower_foldable_nontail(name, params, body, src)
         if fold is not None:
             return fold
+    loop_form = _try_lower_loop_form(name, params, body, src)
+    if loop_form is not None:
+        return loop_form
     if _contains_self_call(body, name, src):
         # Recursion / `recur` outside the supported tail/foldable shapes — a
         # plain self-call would not terminate through the fuzzy-if blend.

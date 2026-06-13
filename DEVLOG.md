@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-13: sutra-from-clojure — `loop`/`recur` → substrate `while_loop`
+
+Added the explicitly-named next Clojure item: an inline `(loop [v0 i0 v1 i1 …] (if COND
+(recur a…) BASE))` now lowers to a hoisted Sutra `while_loop` (`_try_lower_loop_form`).
+Combines two existing pieces — the loop bindings become the recurrent state initialised
+from their init exprs (not 0), `recur` updates them simultaneously via temps (the
+tail-recursion shape), and any defn param the cond/recur-args/base reference is threaded
+read-only (the Rust `while`-loop param shape, since the hoisted loop is top-level). The
+base is returned after write-back. Fixture `loop_recur` (`(loop [acc 0 i 0] (if (< i n)
+(recur (+ acc i) (+ i 1)) acc))`, `sumLoop 6`): substrate-verified = 15. Clojure suite
+16/16. As with all loop bounds, strict `<`/`>` only (the `<=` boundary-equality defuzz,
+finding 2026-06-13). Hooked before the recur-as-self-call UNSUPPORTED check so a
+recognised loop form returns first; an unrecognised one still surfaces, never a silent
+self-call. Maps→axons / destructuring / `case` / multi-arity `defn` next.
+
 ## 2026-06-13: sutra-from-fsharp — name-binding `match` patterns
 
 Brought F#'s `match` to parity with the other frontends' `_MATCH_SUBST` shape. F# already

@@ -36,6 +36,7 @@ _RUNNABLE = {
     "cond_grade": 150.0,  # (cond (> n 90) 100 (> n 50) 50 :else 0); grade(95)=100 + grade(70)=50
     "tail_rec": 15.0,  # (defn sumTo [acc n] (if (= n 0) acc (recur (+ acc n) (- n 1)))); (sumTo 0 5)
     "nontail_fact": 120.0,  # (defn fact [n] (if (= n 0) 1 (* n (fact (- n 1))))); (fact 5)  (CPS fold)
+    "loop_recur": 15.0,  # (loop [acc 0 i 0] (if (< i n) (recur (+ acc i) (+ i 1)) acc)); sumLoop(6)
 }
 
 
