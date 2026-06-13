@@ -53,20 +53,12 @@ deleted on completion. Keep the task tool in sync with this file.
   `while_loop` shipped 2026-06-12, suite 10/10): structs → axons; foldable
   non-tail CPS; `while`/`loop` → substrate loops; nested/non-tail `match`.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
-- [ ] **OCaml arrays — per-context backing: BLOCKED on a discriminator (negative
-  result 2026-06-13).** Tried the obvious wiring (`Array.make`/`Array.create` →
-  int-dict, `Bytes.make` → RAM) and REVERTED: the ONLY current OCaml-frontend
-  `Array.make` users are the **attention-on-RAM parsers** (`attn_sum_tape`/
-  `attn_dot_tape`/`attn_select_field`), which use `Array.make` AS the RAM tape and
-  genuinely need `ramRead`/`ramWrite` — they FAIL on int-dict (`NameError: acc` —
-  the ramRead-accumulator loop shape doesn't survive the reroute). So the
-  discriminator can't be allocation type (ordinary arrays AND the RAM tape both
-  use `Array.make`), and there is **no ordinary-array consumer yet** to benefit.
-  The core object is DONE + verified and available directly in Sutra as
-  `dict<int,int>` (`test_int_dict.py` 5/5). Reopen when (a) a genuine ordinary-
-  OCaml-array program exists AND (b) Emma gives the discriminator (a per-binding
-  marker / type annotation, or migrate the attn parsers off `Array.make`). Don't
-  reroute `Array.make` blindly — it breaks the RAM parsers.
+- [ ] **OCaml arrays — RAM device for the 10MB linear memory.** `Bytes.make` and
+  loop-carried arrays use the global RAM list, which doesn't scale to 10MB. A
+  scalable RAM device is the remaining array work (the ordinary-array →
+  int-dict split shipped 2026-06-13; see below). Also: non-zero `Array.make`
+  fill value for int-dict arrays (slots start at 0; straight-line arrays write
+  before read, so this is a documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type
   lookup is exact when two interfaces share a field name with different types
   (current global map marks collisions non-numeric to stay safe; no fixture needs it).
