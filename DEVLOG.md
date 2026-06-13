@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-13: sutra-from-elixir — case → nested defuzz blend
+
+Literal `case n do 1 -> 100; 2 -> 200; _ -> 300 end` lowers to a nested defuzz blend over
+`n == k` tests (the shared literal-match shape — `stab_clause`(arguments=pattern,
+body=result); the last clause / `_` is the base). Needs no new infrastructure (no axons,
+no hoist), just the blend. Name-binding `case` patterns are a later item (need
+substitution). Fixture `case_literal` (`classify(2)`): substrate-verified = 200. Elixir
+suite 10/10. (Picked over F# records this tick: F# records need typed-param extraction +
+let-sequence bodies + a construction hoist that F# lacks — a multi-piece overhaul,
+recorded as a precise queue dependency rather than left half-built.)
+
 ## 2026-06-13: sutra-from-rust — structs → axons (the OCaml record pattern)
 
 First Rust depth increment past recursion. `struct Point { x: i32, y: i32 }` erases to a
