@@ -39,6 +39,11 @@ _OP_MAP = {
 # signature name → flattened arrow-chain type texts ([param…, return]).
 _SIGNATURES: dict[str, list[str]] = {}
 
+# Pattern-equation variable bindings: a clause's variable pattern maps its name
+# to the canonical arg slot `_ai` while lowering that clause's body (the OCaml
+# `_MATCH_SUBST` / Elixir / Rust shape).
+_SUBST: dict[str, str] = {}
+
 
 def _text(node, src: bytes) -> str:
     return src[node.start_byte:node.end_byte].decode("utf-8")
@@ -87,7 +92,8 @@ def _lower_expr(node, src: bytes) -> str:
     if t in ("integer", "float"):
         return _text(node, src)
     if t == "variable":
-        return _text(node, src)
+        text = _text(node, src)
+        return _SUBST.get(text, text)
     if t == "parens":
         inner = node.named_children[0] if node.named_children else None
         return f"({_lower_expr(inner, src)})" if inner is not None else "0"
@@ -281,8 +287,158 @@ def _match_body(decl, src: bytes):
     return m.named_children[-1] if m.named_children else None
 
 
+def _resolve_types(name: str, arity: int):
+    """(param_types, return_type) from the signature prepass, defaulting to int."""
+    sig = _SIGNATURES.get(name)
+    if sig is not None and len(sig) == arity + 1:
+        return [_map_type(s) for s in sig[:-1]], _map_type(sig[-1])
+    return [_DEFAULT_TYPE] * arity, _DEFAULT_TYPE
+
+
+def _lower_guards(matches, src: bytes):
+    """Lower a guarded equation's `match` list (`| COND = expr`, … `| otherwise =
+    expr`) to a nested defuzz blend — the shared blend shape, guards as the tests.
+    Each `match` carries a `guards` node (its `boolean` children are the guard
+    conditions, AND-combined; `otherwise` marks the catch-all base) and a result.
+    The params are real Sutra params, so guard exprs reference them directly (no
+    `_SUBST`). Returns the blend expr, or None if any match is not guarded."""
+    parsed = []  # (test_src_or_None, result_src)
+    for m in matches:
+        guards = next((c for c in m.named_children if c.type == "guards"), None)
+        if guards is None or not m.named_children:
+            return None
+        result = m.named_children[-1]
+        conds = [c for c in guards.named_children if c.type == "boolean"]
+        if not conds:
+            return None
+        test_srcs: list[str] = []
+        is_base = False
+        for b in conds:
+            inner = b.named_children[0] if b.named_children else None
+            if inner is None:
+                return None
+            if inner.type == "variable" and _text(inner, src) == "otherwise":
+                is_base = True
+            else:
+                ts = _lower_expr(inner, src)
+                if "UNSUPPORTED" in ts:
+                    return None
+                test_srcs.append(ts)
+        res_src = _lower_expr(result, src)
+        if "UNSUPPORTED" in res_src:
+            return None
+        test = None if is_base else (" && ".join(test_srcs) if test_srcs else None)
+        parsed.append((test, res_src))
+    if not parsed:
+        return None
+    expr = parsed[-1][1]  # last guard = base (typically `otherwise`)
+    for test, res in reversed(parsed[:-1]):
+        expr = res if test is None else _blend(test, res, expr)
+    return expr
+
+
+def _decl_name_arity(decl, src: bytes):
+    """(name, arity) for a `function`/`bind` decl; (None, 0) if unnamed."""
+    name_node = next((c for c in decl.named_children if c.type == "variable"), None)
+    if name_node is None:
+        return None, 0
+    patterns = next((c for c in decl.named_children if c.type == "patterns"), None)
+    arity = len(patterns.named_children) if patterns is not None else 0
+    return _text(name_node, src), arity
+
+
+def _lower_pattern_equations(name: str, decls, src: bytes) -> str:
+    """Group same-name/arity equations (`classify 0 = …`, `classify 1 = …`,
+    `classify n = …`) into ONE dispatching Sutra function — the Elixir multi-
+    clause shape ported. An integer-literal pattern → an `(_ai == k)` test; a
+    variable pattern binds that name to `_ai` (via `_SUBST`); the last equation
+    is the base. Each equation must have a single plain `= expr` body (guarded
+    pattern equations are a later item)."""
+    arity = _decl_name_arity(decls[0], src)[1]
+    clauses = []  # (pattern_nodes, body_node)
+    for d in decls:
+        patterns = next((c for c in d.named_children if c.type == "patterns"), None)
+        pnodes = list(patterns.named_children) if patterns is not None else []
+        if len(pnodes) != arity:
+            return f"// UNSUPPORTED-DECL: '{name}' equation arity mismatch\n"
+        body = _match_body(d, src)
+        if body is None:
+            return (f"// UNSUPPORTED-DECL: '{name}' has a guarded pattern equation "
+                    f"(later item)\n")
+        clauses.append((pnodes, body))
+    for _pn, body in clauses:
+        if _contains_self_call(body, name, src):
+            return (f"// UNSUPPORTED-RECURSION: '{name}' multi-equation dispatch with "
+                    f"recursion (later item)\n")
+    ptypes, ret = _resolve_types(name, arity)
+    argnames = [f"_a{i}" for i in range(arity)]
+    parsed = []  # (test_src_or_None, result_src)
+    for pnodes, body in clauses:
+        tests: list[str] = []
+        binds: list[tuple[str, str]] = []
+        for i, p in enumerate(pnodes):
+            if p.type == "literal":
+                inner = p.named_children[0] if p.named_children else None
+                if inner is None or inner.type != "integer":
+                    return (f"// UNSUPPORTED-DECL: '{name}' non-integer literal "
+                            f"pattern (later item)\n")
+                tests.append(f"({argnames[i]} == {_text(inner, src)})")
+            elif p.type == "variable":
+                nm = _text(p, src)
+                if nm != "_":
+                    binds.append((nm, argnames[i]))
+            else:
+                return f"// UNSUPPORTED-DECL: '{name}' pattern {p.type} (later item)\n"
+        for nm, sub in binds:
+            _SUBST[nm] = sub
+        try:
+            res_src = _lower_expr(body, src)
+        finally:
+            for nm, _sub in binds:
+                _SUBST.pop(nm, None)
+        if "UNSUPPORTED" in res_src:
+            return f"// UNSUPPORTED-DECL: '{name}' equation body not lowerable\n"
+        test = " && ".join(tests) if tests else None
+        parsed.append((test, res_src))
+    expr = parsed[-1][1]  # last equation = base
+    for test, res in reversed(parsed[:-1]):
+        expr = res if test is None else _blend(test, res, expr)
+    params_src = ", ".join(f"{ty} {a}" for ty, a in zip(ptypes, argnames))
+    return (f"function {ret} {name}({params_src}) {{\n"
+            f"    return {expr};\n"
+            f"}}\n")
+
+
+def _lower_decls(decl_nodes, src: bytes) -> list:
+    """Group `function`/`bind` decls by (name, arity); a single-decl group routes
+    through `_lower_equation` (guards / recursion transforms), a multi-decl group
+    becomes one dispatching function via `_lower_pattern_equations`."""
+    groups: dict = {}
+    order: list = []
+    out: list = []
+    for d in decl_nodes:
+        name, arity = _decl_name_arity(d, src)
+        if name is None:
+            out.append(_lower_equation(d, src))
+            continue
+        key = (name, arity)
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(d)
+    for key in order:
+        members = groups[key]
+        if len(members) == 1:
+            out.append(_lower_equation(members[0], src))
+        else:
+            out.append(_lower_pattern_equations(key[0], members, src))
+    return out
+
+
 def _lower_equation(decl, src: bytes) -> str:
-    """A `function` equation (`add a b = …`) or zero-arg `bind` (`main = …`)."""
+    """A `function` equation (`add a b = …`) or zero-arg `bind` (`main = …`).
+    A guarded equation (multiple `match` clauses / a `guards` child) lowers via
+    `_lower_guards`."""
     kids = decl.named_children
     name_node = next((c for c in kids if c.type == "variable"), None)
     if name_node is None:
@@ -296,16 +452,26 @@ def _lower_equation(decl, src: bytes) -> str:
                 return (f"// UNSUPPORTED-DECL: '{name}' has a pattern parameter "
                         f"({p.type}) — pattern equations are a later item\n")
             params.append(_text(p, src))
+    ptypes, ret = _resolve_types(name, len(params))
+    # Guarded equation: one or more `match` clauses each with a `guards` child.
+    matches = [c for c in kids if c.type == "match"]
+    guarded = len(matches) > 1 or (
+        len(matches) == 1 and any(c.type == "guards" for c in matches[0].named_children))
+    if guarded:
+        gbody = _lower_guards(matches, src)
+        if gbody is None:
+            return f"// UNSUPPORTED-DECL: '{name}' has a guard shape not yet lowerable\n"
+        if any(_contains_self_call(m.named_children[-1], name, src)
+               for m in matches if m.named_children):
+            return (f"// UNSUPPORTED-RECURSION: '{name}' guarded equation with "
+                    f"recursion (later item)\n")
+        params_src = ", ".join(f"{ty} {nm}" for ty, nm in zip(ptypes, params))
+        return (f"function {ret} {name}({params_src}) {{\n"
+                f"    return {gbody};\n"
+                f"}}\n")
     body = _match_body(decl, src)
     if body is None:
         return f"// UNSUPPORTED-DECL: '{name}' has no single plain `= expr` body\n"
-    sig = _SIGNATURES.get(name)
-    if sig is not None and len(sig) == len(params) + 1:
-        ptypes = [_map_type(s) for s in sig[:-1]]
-        ret = _map_type(sig[-1])
-    else:
-        ptypes = [_DEFAULT_TYPE] * len(params)
-        ret = _DEFAULT_TYPE
     typed_params = list(zip(params, ptypes))
     if body.type == "conditional" and params:
         rec = _try_lower_tail_recursive(name, typed_params, ret, body, src)
@@ -340,6 +506,7 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
 
     # Prepass: signatures supply the types for their equations.
     _SIGNATURES.clear()
+    _SUBST.clear()
     for child in decls.named_children:
         if child.type == "signature" and len(child.named_children) == 2:
             var, ty = child.named_children
@@ -347,8 +514,9 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
                 _SIGNATURES[_text(var, src)] = _flatten_arrow(ty, src)
 
     out = ["// Generated by sutra-from-haskell. See sdk/sutra-from-haskell/README.md.\n"]
-    for child in decls.named_children:
-        if child.type in ("function", "bind"):
-            out.append(_lower_equation(child, src))
-        # signatures are consumed by the prepass; data/class/instance are later items
+    # Collect `function`/`bind` decls and group by (name, arity) so multi-equation
+    # pattern dispatch lowers to ONE function (signatures are consumed by the
+    # prepass; data/class/instance are later items).
+    decl_nodes = [c for c in decls.named_children if c.type in ("function", "bind")]
+    out.extend(_lower_decls(decl_nodes, src))
     return "\n".join(out)

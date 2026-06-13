@@ -25,6 +25,8 @@ _RUNNABLE = {
     "if_classify": 100.0,  # classify n = if n > 0 then 100 else 200; main = classify 5
     "tail_rec": 15.0,  # sumTo acc n = if n == 0 then acc else sumTo (acc+n) (n-1); main = sumTo 0 5
     "nontail_fact": 120.0,  # fact n = if n == 0 then 1 else n * fact (n-1); main = fact 5  (CPS fold)
+    "pattern_eq": 120.0,  # classify 0/1/n equations -> dispatch fn; classify 0 + classify 2 = 100+20
+    "guards": 120.0,  # classify n | n==0 | n==1 | otherwise -> guard blend; classify 0 + classify 2
 }
 
 
