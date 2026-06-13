@@ -32,6 +32,8 @@ _RUNNABLE = {
     "add_main": 16.0,  # (defn add [a b] (+ a b)); (main) = (add 7 9)
     "if_classify": 100.0,  # (if (> n 0) 100 200); (classify 5)  (if -> defuzz blend)
     "nary_sum": 16.0,  # (+ a b c d) n-ary left-fold; (sum4 1 2 3 (* 2 5))
+    "let_block": 17.0,  # (let [y (+ x 1) z (* y 2)] (+ z x)) at x=5  (sequential let subst)
+    "cond_grade": 150.0,  # (cond (> n 90) 100 (> n 50) 50 :else 0); grade(95)=100 + grade(70)=50
 }
 
 

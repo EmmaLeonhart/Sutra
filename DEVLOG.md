@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-12: sutra-from-clojure — let bindings + cond
+
+Clojure depth increment. `(let [n1 v1 n2 v2 …] body)` lowers via sequential
+substitution (each value lowered with the earlier binds active, the OCaml `let..in`
+expression-position shape; numbers only so re-evaluating a substituted value is
+side-effect-free), and `(cond t1 r1 … :else d)` → a nested defuzz blend with `:else`
+(or the final clause) as the base. Both are pure-expression lowerings — the
+s-expression surface needs no statement context. Substrate-verified: `let_block`
+(`(let [y (+ x 1) z (* y 2)] (+ z x))` at x=5) = 17, `cond_grade` (`grade 95 + grade 70`)
+= 150. Clojure suite 10/10.
+
 ## 2026-06-12: sutra-from-rust — algebraic enums + match → tagged axons
 
 First depth increment on a new frontend, porting the OCaml variant pattern to Rust.

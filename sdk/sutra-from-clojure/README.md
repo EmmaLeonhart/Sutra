@@ -23,13 +23,17 @@ First cut (2026-06-12): `(defn name [params] body)` lowers to a Sutra
 function; the s-expression surface makes the lowering a single dispatch on the
 list head — arithmetic/comparison/boolean heads lower as left-folded n-ary
 infix (`(+ a b c d)` works), `(if c t e)` → the defuzz blend, any other symbol
-head is a call. Dynamically-typed values lower as `number`. Substrate-verified:
-`add_main` = 16, `if_classify` = 100, `nary_sum` = 16. `let`, `cond`,
-destructuring, and recursion surface as `UNSUPPORTED-*` (recursion until the
-tail/CPS transforms are ported — never a silent self-call).
+head is a call; `(let [n1 v1 n2 v2 …] body)` lowers via sequential substitution
+(each value lowered with the earlier binds active, the OCaml `let..in` shape —
+numbers only, so re-evaluating a substituted value is side-effect-free); `(cond
+t1 r1 … :else d)` → a nested defuzz blend (`:else` or the final clause is the
+base). Dynamically-typed values lower as `number`. Substrate-verified:
+`add_main` = 16, `if_classify` = 100, `nary_sum` = 16, `let_block` = 17,
+`cond_grade` = 150. Destructuring and recursion surface as `UNSUPPORTED-*`
+(recursion until the tail/CPS transforms are ported — never a silent
+self-call).
 
 ## Next
 
-`let` bindings; `cond` → nested blends; the recursion transforms (`recur` is
-Clojure's own loop form — it maps naturally onto the Sutra `while_loop`);
-maps → axons.
+The recursion transforms (`recur` is Clojure's own loop form — it maps
+naturally onto the Sutra `while_loop`); maps → axons; destructuring binds.
