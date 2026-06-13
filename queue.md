@@ -43,16 +43,12 @@ thermodynamic sampler is a physical realization of fuzzy computation.
 
 Steps (expand as we go):
 
-- [ ] **0. Vendor + study. ⛔ BLOCKED ON EMMA — integration authorization.** Add
-  `external/thrml/` as a git submodule pinned to a commit; stand up a minimal
-  thrml example (one Ising EBM, block-Gibbs `sample_states`), RUN it, record the
-  API actually used. New dep: **JAX** (isolate to this backend). — The work-loop
-  attempted this 2026-06-13 and the safety classifier **denied** cloning the
-  external Extropic repo (untrusted-code integration needs explicit
-  authorization); the partial `git submodule add` was cleanly backed out. Emma
-  must grant a Bash permission rule for `git submodule add …/thrml` (or add the
-  submodule herself), THEN the loop continues. Asked via AskUserQuestion
-  2026-06-13.
+- [x] **0. Vendor + study — DONE 2026-06-13** (Emma authorized the integration).
+  `external/thrml` submodule pinned `db629a0`; API studied + the README Ising /
+  block-Gibbs example RUN on JAX-CPU (Windows, no WSL): `sample_states` → valid
+  `(1000,5)` spin samples. Full API surface + the step-1-relevant facts in
+  `planning/findings/2026-06-13-thrml-api-study.md`. Dep JAX/equinox is
+  backend-only (NOT in core requirements). [delete this line once step 1 starts]
 - [ ] **1. Design the Sutra→thrml mapping. DIRECTION SET BY EMMA 2026-06-13:
   vectors → spin-node graph.** Map Sutra's dense semantic vectors / hypervectors
   onto thrml **spin nodes + a factor graph**, so the substrate ops — bind /
