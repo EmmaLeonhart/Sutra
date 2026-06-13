@@ -57,6 +57,55 @@ write the spec/queue item instead"), this is recorded as a blocker rather than
 hacked. The OCaml array item stays UNSUPPORTED until the scalar-dict path is wired
 and its exactness measured.
 
+## MEASURED root cause (2026-06-13) — the crosstalk concern is now confirmed
+
+Lifting the scalar key/value to substrate vectors (`make_int`) and round-tripping
+through `hashmap_set`/`hashmap_get` directly (runtime probe, `runtime_dim=868`):
+
+| entries stored | read key 0 | read key 1 | read key 2 |
+|---|---|---|---|
+| 1 (k0→42) | **42.0** ✓ | — | — |
+| 3 (k0→42, k1→7, k2→99) | 148.0 | 148.0 | 148.0 |
+
+Every key returns **148 = 42 + 7 + 99 = Σ of all stored values**. This is the §2
+concern, now measured, not hypothesized: `_rotation_for` is **identity in the
+synthetic block**, and a scalar int value lives entirely on the synthetic real
+axis, so `bind(key_vec, val_vec) = Q_key @ val_vec` leaves the value's real part
+**un-rotated** regardless of key. The accumulator's real axis is therefore the
+plain sum of every value, and `unbind(key, acc)` (also identity on the synthetic
+block) returns that sum for **any** key. So:
+
+- **Single-entry** `dict<int,int>` is exact (no other entry to superpose).
+- **Multi-entry** returns Σ-of-all-values for every key — silently wrong.
+
+So "lift scalars to vectors" stops the crash but ships a wrong answer for the
+real (array) use case — **worse than the crash**, which is at least honest. The
+rotation-hashmap is structurally right only for `dict<vector,vector>` (values in
+the *semantic* block, which the rotation scrambles + recovers). It cannot
+address-separate values that live in the synthetic block.
+
+## The fix is a design decision (→ Emma, queue.md A.0)
+
+Three substrate-faithful options, none a mechanical fix:
+
+1. **Route scalar-keyed dicts to a per-instance RAM array.** `dict<int,int> a`
+   becomes its own fixed-size substrate tensor; `a[k] = v` → a RAM write at the
+   rounded int address, `a[k]` → a RAM read. EXACT (RAM stores clean
+   number-vectors — the ISO-5 inline `ramRead`/`ramWrite` surface already proves
+   this) and per-instance. This is the array semantics the OCaml port actually
+   needs. **Recommended.** Cost: dict subscript codegen must dispatch on
+   scalar-key type to the RAM path, and each dict needs its own RAM region/tensor
+   (the global `_VSA.ram` device is single-instance).
+2. **Embed values into the semantic block** so the key rotation scrambles them —
+   but exact int decode then needs a codebook + has VSA capacity limits (~1/√N
+   SNR), so it is not exact at array scale either.
+3. **Keep `dict<int,int>` UNSUPPORTED**; require `dict<vector,vector>` for the
+   hashmap and a distinct array type for integer-keyed storage.
+
+Choosing the mechanism changes what `dict<int,int>` *means* on the substrate, so
+it is Emma's design call, not an agent's to invent (CLAUDE.md §"never invent a
+thing Emma implies exists"). Surfaced in queue.md A.0.
+
 ## Status of ISO-5 transpiler items after this tick
 
 Done & substrate-verified: top-level value bindings, sequence + ref mutation,
