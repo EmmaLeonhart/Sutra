@@ -28,13 +28,15 @@ spines flatten to Sutra calls (`add 7 9` → `add(7, 9)`); `if/then/else` → th
 defuzz blend; literal `match` (`| 1 -> … | _ -> …`) → a nested defuzz blend
 over `scrut == k` tests (the OCaml/Scala shape; last rule the base). Untyped
 params default to int. Substrate-verified: `add_main` = 16, `if_classify` =
-100, `paren_sum` = 26, `match_literal` = 200. **Measured grammar quirk:**
+100, `paren_sum` = 26, `match_literal` = 200, `tail_rec` = 15 (tail-recursive
+accumulator `let rec f p… = if COND then BASE else f a…` → a declared
+`while_loop`, the OCaml/Scala shape; non-tail recursion stays
+`UNSUPPORTED-RECURSION`). **Measured grammar quirk:**
 unparenthesized application mixed with infix (`add 7 9 + classify 5`)
 mis-associates in the ionide grammar — parenthesize call operands. Recursion
 surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms are ported.
 
 ## Next
 
-Type annotations; the recursion transforms (the OCaml shapes port almost
-directly); variant/record `match` patterns; records/DUs → axons (the OCaml
-record/variant pattern); modules.
+Type annotations; the foldable non-tail CPS transform; variant/record `match`
+patterns; records/DUs → axons (the OCaml record/variant pattern); modules.

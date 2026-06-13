@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-12: sutra-from-fsharp — tail recursion → while_loop
+
+F# depth increment, the OCaml/Scala tail-recursion transform ported. `let rec f p… =
+if COND then BASE else f a…` (self-call via a curried `application_expression` spine in
+either arm) lowers to a declared Sutra `while_loop` — slots + loop + write-back,
+simultaneous state update via temporaries (the swaploop lesson), `_NEG_CMP` precise
+halt inversion (`n = 0` → `n != 0`) with `!(…)` fallback. Non-tail recursion stays
+`UNSUPPORTED-RECURSION` (a plain self-call wouldn't terminate through the fuzzy-if
+blend). Fixture `tail_rec` (`sumTo acc n = if n = 0 then acc else sumTo (acc+n) (n-1)`):
+substrate-verified `sumTo 0 5` = 15. F# suite 10/10.
+
 ## 2026-06-12: sutra-from-fsharp — literal match → nested defuzz blend
 
 F# depth increment. `match scrut with | k1 -> r1 | … | _ -> base` lowers to a nested
