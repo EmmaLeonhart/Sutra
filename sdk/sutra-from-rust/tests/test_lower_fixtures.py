@@ -25,6 +25,7 @@ _RUNNABLE = {
     "if_classify": 100.0,  # if n > 0 { 100 } else { 200 }; classify(5)  (if -> defuzz blend)
     "let_block": 17.0,  # let y = x + 1; let z = y * 2; z + x  at x=5
     "enum_match": 2.0,  # enum Expr -> tagged axon; eval(Lit 7)=7 + eval(Neg 5)=-5
+    "tail_rec": 15.0,  # fn sum_to(acc, n) { if n==0 { acc } else { sum_to(acc+n, n-1) } }; sum_to(0, 5)
 }
 
 

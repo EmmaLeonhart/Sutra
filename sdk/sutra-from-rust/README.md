@@ -20,7 +20,10 @@ first — the inline repeated `realvec(...)` reads do not project crisply,
 measured 3.5 vs 2 — then blends by tag with the payload names substituted, the
 last arm the exhaustive base). Substrate-verified: `add_main` = 16,
 `if_classify` = 100, `let_block` = 17, `enum_match` = 2 (`eval(Expr::Lit 7) +
-eval(Expr::Neg 5)`, with a `Pair(a, b)` multi-arg arm). Ownership/borrowing
+eval(Expr::Neg 5)`, with a `Pair(a, b)` multi-arg arm), `tail_rec` = 15
+(tail-recursive `fn f(p…) { if COND { BASE } else { f(a…) } }` → a declared
+`while_loop`, the OCaml/Scala/F# shape; non-tail recursion stays
+`UNSUPPORTED-RECURSION`). Ownership/borrowing
 never reaches the lowering at this scope; structs, `&`/`mut`, loops, and
 recursion surface as `UNSUPPORTED-*` markers (recursion until the tail/CPS
 transforms are ported — never a silent self-call). A `match` is supported as a
@@ -30,5 +33,6 @@ Dependency: `tree-sitter-rust` (`pip install tree-sitter-rust`).
 
 ## Next
 
-Structs → axons; the recursion transforms; `while`/`loop` → substrate loops;
-statement-bearing if-arms; nested / non-tail `match`; nullary-variant values.
+Structs → axons; the foldable non-tail CPS transform; `while`/`loop` → substrate
+loops; statement-bearing if-arms; nested / non-tail `match`; nullary-variant
+values.
