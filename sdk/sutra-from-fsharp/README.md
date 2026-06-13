@@ -25,10 +25,15 @@ First cut (2026-06-12): top-level `let f a b = expr` functions (and
 `let main () = expr`); integer/float consts; infix arithmetic/comparison/
 boolean operators (`<>` → `!=`, expression-position `=` → `==`); application
 spines flatten to Sutra calls (`add 7 9` → `add(7, 9)`); `if/then/else` → the
-defuzz blend; literal `match` (`| 1 -> … | _ -> …`) → a nested defuzz blend
-over `scrut == k` tests (the OCaml/Scala shape; last rule the base). Untyped
+defuzz blend; `match` (`| 1 -> … | _ -> …`, and **name-binding** `| x -> …`) →
+a nested defuzz blend over `scrut == k` tests (the OCaml/Scala shape; last rule
+the base — a `_` wildcard, the final literal, or an identifier pattern that
+binds the scrutinee to the name via the `_MATCH_SUBST` substitution shared with
+the Elixir/Rust/Haskell frontends). Untyped
 params default to int. Substrate-verified: `add_main` = 16, `if_classify` =
-100, `paren_sum` = 26, `match_literal` = 200, `tail_rec` = 15 (tail-recursive
+100, `paren_sum` = 26, `match_literal` = 200, `match_bind` = 160
+(`| 0 -> 100 | x -> x * 10`; `(classify 0) + (classify 6)` = 100 + 60, literal
+dispatch + the bound catch-all), `tail_rec` = 15 (tail-recursive
 accumulator `let rec f p… = if COND then BASE else f a…` → a declared
 `while_loop`, the OCaml/Scala shape; non-tail recursion stays
 `UNSUPPORTED-RECURSION`), `nontail_fact` = 120 (foldable non-tail recursion
@@ -42,4 +47,5 @@ surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms are ported.
 ## Next
 
 Type annotations; variant/record `match` patterns; records/DUs → axons (the
-OCaml record/variant pattern); modules.
+OCaml record/variant pattern); modules. (Literal + name-binding `match` patterns
+shipped 2026-06-13.)
