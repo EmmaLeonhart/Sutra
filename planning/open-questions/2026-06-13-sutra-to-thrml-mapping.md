@@ -20,8 +20,21 @@ anything that doesn't work. Direction seed: **vectors → spin-node graph**
   confirmed by measurement (sign +1 = stored values are minima; sign −1 → 0%).
   Single-site blocks (valid Gibbs). → the bundle/cleanup op genuinely computes on
   the thrml substrate.
-- next: retrieval from a *clamped partial cue*; bind/unbind; arithmetic-as-energy;
-  then wire the working pattern into `codegen_thrml`.
+- **#2 clamped-cue retrieval — WORKS (2026-06-13).** `experiments/thrml/
+  clamped_retrieval_demo.py`. The actual *use* of the memory: clamp half a stored
+  value's bits (the query), block-Gibbs INFERS the rest. **Measured (N=16, M=3,
+  cue=8 bits):** inferred-half per-bit accuracy 0.751/0.868/0.949/**0.992** at
+  β=1/2/4/6 vs 0.5 random baseline. Clamping fixes the sign (resolves the
+  ±-symmetry of #1). → content-addressable recall (query→answer) computes on the
+  substrate.
+  **Capacity wall (measured, honest):** at β=6, N=16, recovery is
+  1.00 (M≤2) / 0.99 (M=3) / **0.84 (M=4)** / ~0.85–0.89 (M=6,8) — clean up to
+  ≈Hopfield capacity (~0.14·N≈2.2 patterns), crosstalk-degraded beyond. Not a
+  bug; the known associative-memory limit. Denser codes (a later attempt) would
+  push it.
+- next attempts: **bind/unbind** (the transformational op — does it fall out as an
+  energy, or need a different trick?); **arithmetic-as-energy** (add/compare on
+  bit-registers); then wire a solid pattern into `codegen_thrml`.
 
 ## Emma's encoding steer (2026-06-13)
 
