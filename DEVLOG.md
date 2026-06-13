@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-13: fused-NN demo — drop the obsolete .real() leg (Emma's call)
+
+`experiments/fused_nn/differentiable_substrate.py` had a second leg that deliberately
+routed `a*b + a` through `.real()` to demonstrate the host-readout gradient wall. `.real()`
+was removed from the language in the 2026-06-07 no-introspection purge (it now raises
+`CodegenNotSupported` at compile time), so that leg could no longer compile and the demo
+crashed — a pre-existing failure since the purge, unrelated to the dict work (confirmed
+via stash earlier). Emma chose: drop leg-2. The demo now keeps only the substrate-pure
+leg (gradients flow to both inputs, d/da=b+1, d/db=a) and notes that `.real()` is now a
+compile-time error, so the gradient wall cannot be reintroduced. `test_fused_nn …
+[differentiable_substrate]` passes; the full compiler suite is now green
+(148 pass, 0 fail). Also recorded Emma's OCaml-array decision in queue.md: keep RAM for
+the ISO-5 machine's linear memory, back ordinary arrays with the new int-dict.
+
 ## 2026-06-13: dict<int,int> FIXED — separate int-dict object (Emma's design)
 
 Emma's call after the morning's measurement: integers get a SEPARATE dict object backed
