@@ -4,3 +4,6 @@
 [submodule "WASM/replication_target/transformer-vm"]
 	path = WASM/replication_target/transformer-vm
 	url = https://github.com/Percepta-Core/transformer-vm
+[submodule "external/thrml"]
+	path = external/thrml
+	url = https://github.com/extropic-ai/thrml

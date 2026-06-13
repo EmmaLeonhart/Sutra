@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-13: Sutra → thrml track — step 0 (vendor + study + run) DONE
+
+Emma authorized the external integration (earlier the safety classifier had blocked it).
+Vendored Extropic's **thrml** as a git submodule at `external/thrml` (pinned `db629a0`),
+installed it editable (pulled JAX 0.10.1 + jaxlib + equinox + jaxtyping — JAX runs CPU on
+this Windows box, no WSL), and **RAN the README minimal example** (5-spin Ising chain,
+two-colour block Gibbs): `sample_states` returned `(1000, 5)` valid spin samples, mean
+≈ 0.51 (measured, not "it imported"). Full public-API surface (`SpinNode`/`CategoricalNode`,
+`Block`, `WeightedFactor`/`InteractionGroup`, `FactorizedEBM`/`EBMFactor`, `IsingEBM` +
+`IsingSamplingProgram`/`hinton_init`/`estimate_kl_grad`, `Bernoulli`/`SoftmaxConditional`,
+`SamplingSchedule`/`sample_states`) and the step-1-relevant facts recorded in
+`planning/findings/2026-06-13-thrml-api-study.md`. JAX/equinox is a backend-only dep, NOT
+added to core requirements. Next: step 1 — the Emma-driven vectors→spin-node-graph mapping
+design (the spin quantization of continuous vector components is the load-bearing open
+specific; do not invent it).
+
 ## 2026-06-13: sutra-from-rust — compound assignment (`+=`) in while loops
 
 Added compound-assignment support (`x += rhs`, `-=`, `*=`, `/=`, `%=`) to the Rust
