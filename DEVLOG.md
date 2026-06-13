@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-13: sutra-from-elixir — name-binding case patterns
+
+Extended the Elixir `case` lowering with name-binding clauses: `case n do 0 -> 100; x ->
+x * 10 end` binds the scrutinee to `x` (substituted into the clause result via a new
+`_SUBST` map, the OCaml `_MATCH_SUBST`/Scala/Rust shape) as a catch-all base. No new
+infra beyond the substitution map. Fixture `case_bind` (`classify(6)` → `6 * 10`):
+substrate-verified = 60. Elixir suite 12/12. (Picked over Haskell `data` ADTs / F#
+records this tick — both need a construction hoist + statement-form variant binding that
+those frontends lack; recorded as queue dependencies. The remaining transpiler depth is
+that harder infrastructure tier, not more clean blend/recursion increments.)
+
 ## 2026-06-13: sutra-from-elixir — case → nested defuzz blend
 
 Literal `case n do 1 -> 100; 2 -> 200; _ -> 300 end` lowers to a nested defuzz blend over
