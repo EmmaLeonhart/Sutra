@@ -49,9 +49,9 @@ deleted on completion. Keep the task tool in sync with this file.
   recursion → `while_loop` shipped 2026-06-12, suite 6/6; laziness out of
   scope): foldable non-tail CPS, pattern equations → blends, guards, where/let,
   `data` ADTs → tagged axons.
-- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through tail recursion →
-  `while_loop` shipped 2026-06-12, suite 10/10): structs → axons; foldable
-  non-tail CPS; `while`/`loop` → substrate loops; nested/non-tail `match`.
+- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through foldable non-tail
+  CPS shipped 2026-06-13, suite 12/12): structs → axons; `while`/`loop` →
+  substrate loops; nested/non-tail `match`.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
 - [ ] **OCaml arrays — RAM device for the 10MB linear memory.** `Bytes.make` and
   loop-carried arrays use the global RAM list, which doesn't scale to 10MB. A

@@ -23,7 +23,9 @@ last arm the exhaustive base). Substrate-verified: `add_main` = 16,
 eval(Expr::Neg 5)`, with a `Pair(a, b)` multi-arg arm), `tail_rec` = 15
 (tail-recursive `fn f(p…) { if COND { BASE } else { f(a…) } }` → a declared
 `while_loop`, the OCaml/Scala/F# shape; non-tail recursion stays
-`UNSUPPORTED-RECURSION`). Ownership/borrowing
+`UNSUPPORTED-RECURSION`), `nontail_fact` = 120 (foldable non-tail recursion
+`LEAF +|* f(REC)` → an accumulator `while_loop` trampoline, the OCaml CPS port;
+param-dependent base cases are rejected, not mis-evaluated). Ownership/borrowing
 never reaches the lowering at this scope; structs, `&`/`mut`, loops, and
 recursion surface as `UNSUPPORTED-*` markers (recursion until the tail/CPS
 transforms are ported — never a silent self-call). A `match` is supported as a
@@ -33,6 +35,5 @@ Dependency: `tree-sitter-rust` (`pip install tree-sitter-rust`).
 
 ## Next
 
-Structs → axons; the foldable non-tail CPS transform; `while`/`loop` → substrate
-loops; statement-bearing if-arms; nested / non-tail `match`; nullary-variant
-values.
+Structs → axons; `while`/`loop` → substrate loops; statement-bearing if-arms;
+nested / non-tail `match`; nullary-variant values.
