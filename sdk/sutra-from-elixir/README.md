@@ -20,12 +20,13 @@ non-tail recursion `LEAF +|* f(REC)` → an accumulator `while_loop` trampoline,
 the OCaml CPS port; param-dependent bases rejected). Other non-tail recursion
 surfaces as `UNSUPPORTED-RECURSION` (never a silent self-call). `case_literal`
 (`classify(2)`) = 200 — literal `case n do 1 -> 100; … _ -> 300 end` → a nested
-defuzz blend over `n == k` tests (the shared literal-match shape; name-binding
-patterns are a later item).
+defuzz blend over `n == k` tests (the shared literal-match shape). `case_bind`
+(`classify(6)`) = 60 — a name-binding `case` clause (`x -> x * 10`) binds the
+scrutinee to the name (substituted into the result, the `_MATCH_SUBST` shape) as
+a catch-all base.
 
 Dependency: `tree-sitter-elixir` (`pip install tree-sitter-elixir`).
 
 ## Next
 
-Multi-clause `def` heads (pattern dispatch); name-binding `case` patterns;
-maps/structs → axons; pipe operator.
+Multi-clause `def` heads (pattern dispatch); maps/structs → axons; pipe operator.

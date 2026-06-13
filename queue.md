@@ -37,10 +37,9 @@ deleted on completion. Keep the task tool in sync with this file.
   CPS shipped 2026-06-13, suite 12/12): type annotations; variant/record `match`
   patterns; records/DUs → axons. Measured grammar quirk: parenthesize call
   operands under infix. [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
-- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through `case` →
-  blends shipped 2026-06-13, suite 10/10): multi-clause `def` heads (pattern
-  dispatch); name-binding `case` patterns; maps/structs → axons. (Erlang proper
-  is a separate later frontend.)
+- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through name-binding
+  `case` shipped 2026-06-13, suite 12/12): multi-clause `def` heads (pattern
+  dispatch); maps/structs → axons. (Erlang proper is a separate later frontend.)
 - [ ] **F# records/DUs → axons — needs F# infrastructure first.** Records port
   the OCaml pattern conceptually, but F# lacks the prerequisites: (a) typed-param
   extraction (`(p: Point)` is a `typed_pattern`, the current param loop only
