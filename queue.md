@@ -52,10 +52,9 @@ deleted on completion. Keep the task tool in sync with this file.
   2026-06-12, suite 4/4 — signatured equations, curried apply, if/then/else
   blend; laziness explicitly out of scope): recursion transforms, pattern
   equations → blends, guards, where/let, `data` ADTs → tagged axons.
-- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; MVP shipped 2026-06-12,
-  suite 6/6 — fn items, let bindings, if/else blend): `match` + enums → tagged
-  axons (the OCaml variant pattern); structs → axons; recursion transforms;
-  `while`/`loop` → substrate loops.
+- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through enums + `match`
+  → tagged axons shipped 2026-06-12, suite 8/8): structs → axons; recursion
+  transforms; `while`/`loop` → substrate loops; nested/non-tail `match`.
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
 - [ ] **OCaml: arrays → RAM blocked on the core-compiler `dict<int,int>` defect**
   (finding `2026-06-06-dict-int-keys-broken`) — verify whether still broken; if so,

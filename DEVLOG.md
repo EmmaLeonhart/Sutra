@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-12: sutra-from-rust — algebraic enums + match → tagged axons
+
+First depth increment on a new frontend, porting the OCaml variant pattern to Rust.
+`enum E { V0(t), V1(t,t), V2 }` erases to a tag/arity prepass (`_ENUMS`/`_VARIANTS`);
+the enum name maps to `Axon` in param/return types; construction `E::V(a, b)` hoists
+to a tagged-axon temp (`_tag` + `_val0`/`_val1`/…) via the post-order `_ARG_HOIST`
+machinery (detection is call-form only — a bare `scoped_identifier` is also a call head
+and a pattern path, so hoisting it over-fired; restricted). A `match` on an enum param
+binds `_vtag`/`_val{i}` to clean number-vector LOCALS first then blends by tag — the
+load-bearing fix: inline repeated `realvec(scrut.item(...))` reads do NOT project
+crisply (measured 3.5; bound locals give the correct 2.0), the same axon-field-read
+finding the OCaml frontend hit. Payload names substitute to the `_val{i}` locals; the
+exhaustive last arm is the base. Match supported as the function-body tail (it needs the
+binding statements); nested-in-expression is a later item. Fixture `enum_match`
+(Lit/Neg single-arg + Pair multi-arg): substrate-verified `eval(Expr::Lit 7) +
+eval(Expr::Neg 5)` = 2. Rust suite 8/8.
+
 ## 2026-06-12: OCaml foldable-nontail transform — param-dependent BASE bug confirmed + guarded
 
 The Scala port's suspicion, measured on the OCaml original: `let rec weird n = if n = 0

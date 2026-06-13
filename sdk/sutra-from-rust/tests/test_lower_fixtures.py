@@ -24,6 +24,7 @@ _RUNNABLE = {
     "add_main": 16.0,  # fn add(a, b) { a + b }; main = add(7, 9)
     "if_classify": 100.0,  # if n > 0 { 100 } else { 200 }; classify(5)  (if -> defuzz blend)
     "let_block": 17.0,  # let y = x + 1; let z = y * 2; z + x  at x=5
+    "enum_match": 2.0,  # enum Expr -> tagged axon; eval(Lit 7)=7 + eval(Neg 5)=-5
 }
 
 
