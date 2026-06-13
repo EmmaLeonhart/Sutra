@@ -33,9 +33,20 @@ base). Dynamically-typed values lower as `number`. Substrate-verified:
 → a declared `while_loop`; both `recur` and a named self-call are accepted, the
 OCaml/Scala/F#/Rust/Haskell shape), `nontail_fact` = 120 (foldable non-tail
 recursion `(OP LEAF (f REC))` → an accumulator `while_loop` trampoline, the OCaml
-CPS port; param-dependent bases rejected). Destructuring and other non-tail
-recursion surface as `UNSUPPORTED-*` (never a silent self-call).
+CPS port; param-dependent bases rejected).
+
+As of 2026-06-13: **`(loop [v0 i0 v1 i1 …] (if COND (recur a…) BASE))` → a
+substrate `while_loop`.** The loop bindings become the recurrent state
+(initialised from their init exprs, not 0), `recur` updates them simultaneously
+via temps (the tail-recursion shape), and any defn param the cond/recur-args/base
+reference is threaded read-only (the Rust `while`-loop param shape, since the
+hoisted loop is top-level); the base is returned after write-back. Substrate-
+verified: `loop_recur` = 15 (`(loop [acc 0 i 0] (if (< i n) (recur (+ acc i)
+(+ i 1)) acc))`, `sumLoop 6`). As with all loop bounds, use strict `<`/`>` — `<=`
+drops the boundary iteration on the substrate (finding `2026-06-13-while-loop-le-
+boundary-equality-defuzz`). Destructuring binds, `(loop …)` with a non-`if` body,
+and other non-tail recursion surface as `UNSUPPORTED-*` (never a silent self-call).
 
 ## Next
 
-`loop`/`recur` with an explicit accumulator; maps → axons; destructuring binds.
+Maps → axons; destructuring binds; `case`; multi-arity `defn`.
