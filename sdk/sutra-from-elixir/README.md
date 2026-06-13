@@ -13,15 +13,14 @@ scope); inline (`, do: expr`) and `do … end` block bodies; integer/float
 literals; binary arithmetic/comparison/boolean operators; `if/else` → the
 defuzz blend; calls; parens. Elixir is dynamically typed — every value lowers
 as Sutra `number`. Substrate-verified: `add_main` (`add(7, 9)`) = 16,
-`if_classify` (`classify(5)`) = 100. Recursion is detected and surfaces as
-`UNSUPPORTED-RECURSION` until the tail/CPS transforms are ported (never a
-silent self-call).
+`if_classify` (`classify(5)`) = 100, `tail_rec` (`sum_to(0, 5)`) = 15
+(tail-recursive `def f(p…) do if COND do BASE else f(a…) end end` → a declared
+`while_loop`, the OCaml/Scala shape). Non-tail recursion surfaces as
+`UNSUPPORTED-RECURSION` (never a silent self-call).
 
 Dependency: `tree-sitter-elixir` (`pip install tree-sitter-elixir`).
 
 ## Next
 
-Tail recursion → `while_loop` + the foldable non-tail CPS transform (port the
-Scala/OCaml shapes — recursion IS iteration in Elixir, so this is the
-load-bearing increment); `case` → defuzz blends; multi-clause `def` heads
-(pattern dispatch); maps/structs → axons; pipe operator.
+The foldable non-tail CPS transform; `case` → defuzz blends; multi-clause `def`
+heads (pattern dispatch); maps/structs → axons; pipe operator.

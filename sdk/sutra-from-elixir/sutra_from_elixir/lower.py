@@ -72,6 +72,85 @@ def _contains_self_call(node, name: str, src: bytes) -> bool:
     return any(_contains_self_call(c, name, src) for c in node.named_children)
 
 
+# Sutra comparison op → its negation (halt condition → loop continue condition).
+_NEG_CMP = {"==": "!=", "!=": "==", "<": ">=", ">": "<=", "<=": ">", ">=": "<"}
+
+
+def _self_call_args(node, name: str, arity: int, src: bytes):
+    """If `node` is `name(a…)` at the right arity, return the arg nodes; else None."""
+    if node.type != "call" or _call_kw(node, src) != name:
+        return None
+    args_node = next((c for c in node.named_children if c.type == "arguments"), None)
+    args = list(args_node.named_children) if args_node is not None else []
+    return args if len(args) == arity else None
+
+
+def _negate_cond(cond, src: bytes) -> str:
+    """Negate a halt condition into the loop's continue condition (the OCaml
+    `_negate_cond` shape): a single `binary_operator` comparison inverts via
+    `_NEG_CMP`, else `!(…)`."""
+    if cond.type == "binary_operator":
+        op = cond.child_by_field_name("operator")
+        left = cond.child_by_field_name("left")
+        right = cond.child_by_field_name("right")
+        if op is not None and left is not None and right is not None:
+            sop = _OP_MAP.get(_text(op, src))
+            neg = _NEG_CMP.get(sop) if sop else None
+            if neg is not None:
+                return f"{_lower_expr(left, src)} {neg} {_lower_expr(right, src)}"
+    return f"!({_lower_expr(cond, src)})"
+
+
+def _try_lower_tail_recursive(name: str, params, body, src: bytes):
+    """Lower a TAIL-recursive `def f(p…) do if COND do BASE else f(a…) end end` to
+    a declared Sutra `while_loop` (the OCaml/Scala/F#/Rust/Haskell shape ported).
+    `body` is the `if` call; `params` is a list of names. Returns Sutra or None."""
+    if body.type != "call" or _call_kw(body, src) != "if":
+        return None
+    args_node = next((c for c in body.named_children if c.type == "arguments"), None)
+    do_block = next((c for c in body.named_children if c.type == "do_block"), None)
+    if args_node is None or not args_node.named_children or do_block is None:
+        return None
+    cond = args_node.named_children[0]
+    then_forms, else_forms = _do_block_value(do_block, src)
+    if not then_forms or not else_forms:
+        return None  # both arms required (the if must have an else)
+    then_e, else_e = then_forms[-1], else_forms[-1]
+    arity = len(params)
+    then_args = _self_call_args(then_e, name, arity, src)
+    else_args = _self_call_args(else_e, name, arity, src)
+    if (then_args is None) == (else_args is None):
+        return None
+    if else_args is not None:
+        cont = _negate_cond(cond, src)
+        rec_args, base = else_args, then_e
+    else:
+        cont = _lower_expr(cond, src)
+        rec_args, base = then_args, else_e
+
+    ty = _TYPE
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {p} = 0" for p in params)
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
+                         for i, arg in enumerate(rec_args))
+    assigns = "".join(f"    {p} = _t{i};\n" for i, p in enumerate(params))
+    loop_decl = f"while_loop {loop_name}({cont}, {state_decls}) {{\n{temp_decls}{assigns}}}\n"
+    slot_lines = "".join(f"    slot {ty} _{p}_r = {p};\n" for p in params)
+    slot_args = ", ".join(f"_{p}_r" for p in params)
+    writeback = "".join(f"    {p} = _{p}_r;\n" for p in params)
+    params_src = ", ".join(f"{ty} {p}" for p in params)
+    base_src = _lower_expr(base, src)
+    fn = (
+        f"function {ty} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_expr(node, src: bytes) -> str:
     t = node.type
     if t == "integer":
@@ -172,11 +251,15 @@ def _lower_def(def_call, src: bytes) -> str:
     if parts is None:
         return "// UNSUPPORTED-DEF: unrecognized def shape\n"
     name, params, body = parts
+    if params:
+        rec = _try_lower_tail_recursive(name, params, body, src)
+        if rec is not None:
+            return rec
     if _contains_self_call(body, name, src):
-        # The tail/CPS recursion transforms are not ported yet; a plain
-        # self-calling Sutra function would not terminate through the fuzzy-if
-        # blend. Surface the gap rather than mislower.
-        return f"// UNSUPPORTED-RECURSION: '{name}' is recursive (transforms not yet ported)\n"
+        # Recursion outside the supported tail shape — a plain self-calling
+        # Sutra function would not terminate through the fuzzy-if blend. Surface
+        # the gap rather than mislower.
+        return f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the tail-accumulator shape\n"
     params_src = ", ".join(f"{_TYPE} {p}" for p in params)
     body_src = _lower_expr(body, src)
     return (f"function {_TYPE} {name}({params_src}) {{\n"

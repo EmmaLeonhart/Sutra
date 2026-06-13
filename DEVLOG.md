@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-12: sutra-from-elixir — tail recursion → while_loop; transform now in 7 frontends
+
+Elixir tail-recursion transform, completing the tail-rec port across every `if`-bodied
+frontend. `def f(p…) do if COND do BASE else f(a…) end end` — the def body is an `if`
+call, the self-call a `call` with head == name; `_negate_cond` inverts the
+`binary_operator` condition. Fixture `tail_rec` (`sum_to(acc, n)`): substrate-verified
+`sum_to(0, 5)` = 15; suite 6/6. Tail recursion → `while_loop` is now in **7 frontends**
+(OCaml, Scala, F#, Rust, Haskell, Clojure, Elixir) — same proven shape (slots + loop +
+write-back, simultaneous update via temps, `_NEG_CMP` halt inversion), each adapted to
+its grammar; all keep non-tail recursion as `UNSUPPORTED-RECURSION`.
+
 ## 2026-06-12: sutra-from-clojure — recur / self-call → while_loop
 
 Clojure tail-recursion transform. `(defn f [p…] (if COND BASE (recur a…)))` lowers to a
