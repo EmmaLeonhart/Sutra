@@ -38,11 +38,10 @@ deleted on completion. Keep the task tool in sync with this file.
   non-tail CPS transform; variant/record `match` patterns; records/DUs → axons.
   Measured grammar quirk: parenthesize call operands under infix.
   [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
-- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; MVP shipped
-  2026-06-12, suite 4/4 — defmodule fns, if/else blend, binary ops): tail
-  recursion → `while_loop` + foldable non-tail CPS (recursion IS iteration in
-  Elixir — the load-bearing increment); `case` → blends; multi-clause `def`
-  heads; maps/structs → axons. (Erlang proper is a separate later frontend.)
+- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tail
+  recursion → `while_loop` shipped 2026-06-12, suite 6/6): foldable non-tail
+  CPS; `case` → blends; multi-clause `def` heads (pattern dispatch);
+  maps/structs → axons. (Erlang proper is a separate later frontend.)
 - [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through `recur` →
   `while_loop` shipped 2026-06-12, suite 12/12): foldable non-tail CPS; maps →
   axons; destructuring binds.
