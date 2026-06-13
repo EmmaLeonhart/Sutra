@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-13: sutra-from-rust — compound assignment (`+=`) in while loops
+
+Added compound-assignment support (`x += rhs`, `-=`, `*=`, `/=`, `%=`) to the Rust
+imperative path. A shared `_lower_assign` helper now handles both plain
+`assignment_expression` (`x = rhs`) and `compound_assignment_expr` (`x op= rhs`,
+desugared to `x = (x op rhs)` — operator text minus the trailing `=`, mapped through
+`_OP_MAP`); both the `while`-body loop and the top-level statement handler route through
+it. Fixture `while_compound` (`while i < n { i += 1; acc += i }`, `sum_to(5)`): substrate-
+verified = 15 (the `+=` form of `while_sum`). Rust suite 18/18.
+
+(Work-loop note: the top queue item — thrml step 0 — is BLOCKED on Emma authorization. The
+loop attempted the `git submodule add` for Extropic's thrml; the safety classifier denied
+the untrusted-code integration, the partial add was cleanly backed out, and the loop took
+this next-actionable transpiler item instead. Raised to Emma via AskUserQuestion.)
+
 ## 2026-06-13: sutra-from-clojure — `loop`/`recur` → substrate `while_loop`
 
 Added the explicitly-named next Clojure item: an inline `(loop [v0 i0 v1 i1 …] (if COND

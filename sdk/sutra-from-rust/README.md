@@ -47,16 +47,19 @@ OCaml reference frontend writes all its `while` fixtures with `<` for the same
 reason. Rust's unbounded `loop { … break }` (needs a halt-flag transform) is a
 later item.
 
+Compound assignment (`x += rhs`, `-=`, `*=`, `/=`, `%=`) is supported in `while`
+bodies and at statement scope — it desugars to `x = (x op rhs)` (substrate-
+verified `while_compound` = 15, the `+=` form of `while_sum`).
+
 Ownership/borrowing never reaches the lowering at this scope; `&`/borrows,
-`loop`/`break`, compound assignment (`+=`), and non-tail/foldable-exempt
-recursion surface as `UNSUPPORTED-*` markers (never a silent self-call). A
-`match` is supported as a function-body tail; nested in a larger expression it
-is a later item.
+`loop`/`break`, and non-tail/foldable-exempt recursion surface as `UNSUPPORTED-*`
+markers (never a silent self-call). A `match` is supported as a function-body
+tail; nested in a larger expression it is a later item.
 
 Dependency: `tree-sitter-rust` (`pip install tree-sitter-rust`).
 
 ## Next
 
-`loop { … break }` → substrate loops (halt-flag transform); compound assignment
-(`+=`); statement-bearing if-arms; nested / non-tail `match`; nullary-variant
-values; struct field-init shorthand / `..base`.
+`loop { … break }` → substrate loops (halt-flag transform); statement-bearing
+if-arms; nested / non-tail `match`; nullary-variant values; struct field-init
+shorthand / `..base`.
