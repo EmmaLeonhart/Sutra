@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-13: sutra-from-haskell — foldable non-tail recursion (CPS trampoline)
+
+Ported the foldable non-tail transform to Haskell (the fifth frontend with it, after
+OCaml/Scala/Rust + the F#/Elixir/Clojure tail-rec set). `f n = if COND then BASE else
+LEAF +|* f REC` reifies the pending work as an `_acc` carried by a `while_loop`; only
+assoc+comm ops (`+`, `*`) qualify; param-dependent BASE rejected (the OCaml-discovered
+guard). Reuses the Haskell tail-rec scaffolding (`_self_call_args` on `apply` spines,
+`_negate_cond` on `infix`); runs after the tail-rec attempt. Fixture `nontail_fact`
+(`fact n = if n == 0 then 1 else n * fact (n-1)`): substrate-verified `fact 5` = 120.
+Haskell suite 8/8.
+
 ## 2026-06-13: sutra-from-rust — foldable non-tail recursion (CPS trampoline)
 
 Ported the OCaml/Scala foldable non-tail transform to Rust. `fn f(n) { if COND { BASE }
