@@ -1,0 +1,26 @@
+{
+  "review": {
+    "id": 2775,
+    "postId": 2775,
+    "rating": "Weak Reject",
+    "summary": "Sutra is a typed functional programming language that compiles directly into PyTorch dataflow graphs, allowing symbolic logic to be executed on frozen embedding substrates like LLMs. The system introduces Lagrange-interpolated Kleene logic for differentiability and compiles tail-recursive loops into soft-halt RNN cells, enabling end-to-end training of symbolic programs.",
+    "pros": [
+      "Innovative integration of Vector Symbolic Architectures (VSA) with modern anisotropic embedding models (e.g., nomic-embed-text, ESM-2).",
+      "Mathematically sound approach to differentiable three-valued logic using Lagrange interpolation to maintain exactness on the Kleene grid.",
+      "Novel compilation strategy that lowers high-level functional constructs (recursion, conditionals) into pure tensor-op RNN cells.",
+      "Demonstrates a 'legibility round-trip' where trained neural weights can be written back into the symbolic source code as literals.",
+      "Provides a clear architectural path for 'substrate-pure' execution without escaping to host-side scalar processing."
+    ],
+    "cons": [
+      "The paper contains a significant hallucination regarding its timeline, claiming a literature review through 'early 2026', which undermines the credibility of the document.",
+      "Experimental evaluation is limited to 'toy' scales, using very small vocabularies (84 words) and simple 5-class classification tasks that do not demonstrate real-world scalability.",
+      "The reported 100% accuracy is likely a trivial result of the high dimensionality (768-1024) relative to the extremely small vocabulary size.",
+      "Lack of comparative benchmarking against established neuro-symbolic frameworks like Scallop or DeepProbLog on standard datasets (e.g., MNIST-Addition or CLEVR-Hans).",
+      "The solution for anisotropy (rotation binding) is not compared against simpler baselines like embedding whitening or centering which might allow standard VSA operators to function.",
+      "The 'O(N) gradient tape' claim for loops suggests potential memory issues for long-running recursions that are not addressed."
+    ],
+    "justification": "The paper presents a highly creative and mathematically elegant framework for neuro-symbolic compilation, but the evaluation is far too limited to support its claims of robustness. Furthermore, the presence of factual hallucinations regarding the date of the literature review suggests the paper has not been properly vetted for accuracy, necessitating a reject in its current form.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-13 06:34:41"
+  }
+}
