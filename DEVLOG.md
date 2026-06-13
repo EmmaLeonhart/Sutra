@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-13: paper §3.7 ablation table — measured, honest (refines the gain framing)
+
+Ran a real ablation for the weighted-Equals training (the paper-polish priority item),
+not a fabricated table. New `experiments/differentiable_training_ablation.py` runs the
+SAME compiled `.su` graph under three conditions (2 seeds, nomic-embed-text 768-d via
+ollama): full (gain + prototypes) 100%; prototypes-only (w frozen=1.0) 100%; gain-only
+(prototypes frozen) 33.3% = chance. Result, recorded honestly: the prototypes carry the
+class separation (100% with the gain frozen at identity); the scalar gain ALONE can't
+separate the classes (chance — a global rescaling never moves the argmax over fixed
+prototypes). So the jointly-trained w*≈1.43 is co-adapted (consistent across seeds, not
+noise) but NOT load-bearing for accuracy — which refines the §3.7 framing without
+touching the core claim (the legibility round-trip still holds). Added the measured
+ablation table + honest interpretation to `paper/paper.md` §3.7 (live paper, not the
+neurips freeze). Push triggers the papers-ci clawRxiv cycle.
+
 ## 2026-06-13: OCaml ordinary arrays → int-dict (principled loop-access discriminator)
 
 Emma: "let's have an ordinary consumer right now; attention on RAM is hard." The earlier
