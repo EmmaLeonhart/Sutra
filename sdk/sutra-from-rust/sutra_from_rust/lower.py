@@ -52,6 +52,18 @@ _ENUMS: dict[str, dict] = {}
 _VARIANTS: dict[str, tuple] = {}
 _ARG_HOIST: dict[int, str] = {}
 _SUBST: dict[str, str] = {}
+# Function-scoped counter for hoisted aggregate temps (`_ahN`), so constructions
+# across DIFFERENT statements in one function get unique names (a per-statement
+# counter collides — `let a = …` and the tail both restart at _ah0). Reset at
+# each function.
+_HOIST_N: list = [0]
+# Structs -> axons (the OCaml record pattern). `_STRUCTS` is the set of struct
+# names (the field set is carried by the named axon keys, so no order needed).
+# A struct-typed param maps to `Axon`; construction `S { x: a, y: b }` hoists to
+# `Axon t; t.add("x", a); t.add("y", b);`; field access `p.x` -> `realvec(
+# p.item("x"))` (a raw axon field read collapses arithmetic to ~0 at low dims —
+# finding 2026-06-05). Numeric fields only (strings aren't axon fillers).
+_STRUCTS: set = set()
 
 
 def _text(node, src: bytes) -> str:
@@ -68,9 +80,41 @@ def _map_type(node, src: bytes) -> str:
     if node is None:
         return _DEFAULT_TYPE
     text = _text(node, src)
-    if text in _ENUMS:
+    if text in _ENUMS or text in _STRUCTS:
         return "Axon"
     return _TYPE_MAP.get(text, _DEFAULT_TYPE)
+
+
+def _struct_construction(node, src: bytes):
+    """If `node` is a struct construction `S { x: a, y: b }` (a `struct_expression`
+    whose type names a known struct), return (struct_name, [(field, value), …]);
+    else None."""
+    if node.type != "struct_expression":
+        return None
+    tid = next((c for c in node.named_children if c.type == "type_identifier"), None)
+    flist = next((c for c in node.named_children
+                  if c.type == "field_initializer_list"), None)
+    if tid is None or flist is None or _text(tid, src) not in _STRUCTS:
+        return None
+    fields = []
+    for fi in flist.named_children:
+        if fi.type != "field_initializer":
+            return None  # shorthand / base (`..rest`) inits are a later item
+        fid = next((c for c in fi.named_children
+                    if c.type == "field_identifier"), None)
+        val = fi.named_children[-1]
+        if fid is None:
+            return None
+        fields.append((_text(fid, src), val))
+    return _text(tid, src), fields
+
+
+def _emit_struct_construction(fields, src: bytes, var: str, indent: str) -> str:
+    """Axon-construction statements for a struct bound to `var` (named keys)."""
+    stmts = f"{indent}Axon {var};\n"
+    for field, val in fields:
+        stmts += f'{indent}{var}.add("{field}", {_lower_expr(val, src)});\n'
+    return stmts
 
 
 def _enum_construction(node, src: bytes):
@@ -116,8 +160,18 @@ def _hoist_enum_constructions(body, src: bytes, indent: str = "    "):
         ctor = _enum_construction(n, src)
         if ctor is not None:
             variant, args = ctor
-            tmp = f"_ah{len(added)}"
+            tmp = f"_ah{_HOIST_N[0]}"
+            _HOIST_N[0] += 1
             prelude.append(_emit_enum_construction(variant, args, src, tmp, indent))
+            _ARG_HOIST[n.id] = tmp
+            added.append(n.id)
+            return
+        sctor = _struct_construction(n, src)
+        if sctor is not None:
+            _name, fields = sctor
+            tmp = f"_ah{_HOIST_N[0]}"
+            _HOIST_N[0] += 1
+            prelude.append(_emit_struct_construction(fields, src, tmp, indent))
             _ARG_HOIST[n.id] = tmp
             added.append(n.id)
 
@@ -400,6 +454,16 @@ def _lower_expr(node, src: bytes) -> str:
         # `_val{i}` binding statements — see `_lower_match_stmts`). Nested in a
         # larger expression it would need those bindings hoisted: a later item.
         return "/* UNSUPPORTED-MATCH: match nested in an expression (use as the function tail) */"
+    if t == "field_expression":
+        # Struct field read `p.x` -> the axon item read, projected to a clean
+        # number-vector (realvec — raw fillers carry crosstalk, finding 2026-06-05).
+        kids = node.named_children
+        if len(kids) == 2 and kids[1].type == "field_identifier":
+            return f'realvec({_lower_expr(kids[0], src)}.item("{_text(kids[1], src)}"))'
+        return "/* UNSUPPORTED-EXPR: field_expression arity */"
+    if t == "struct_expression" and _struct_construction(node, src) is not None:
+        # A construction reaching here was not hoisted — surface the gap.
+        return "/* UNSUPPORTED-CONSTRUCTION: struct value outside a hoistable position */"
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
@@ -473,6 +537,7 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    "):
 
 
 def _lower_function(item, src: bytes) -> str:
+    _HOIST_N[0] = 0  # per-function unique aggregate-temp counter
     kids = item.named_children
     name_node = next((c for c in kids if c.type == "identifier"), None)
     if name_node is None:
@@ -517,14 +582,20 @@ def _lower_function(item, src: bytes) -> str:
         if len(ld_kids) < 2 or ld_kids[0].type != "identifier":
             return f"// UNSUPPORTED-FN: '{name}' has a pattern let (later item)\n"
         value = ld_kids[-1]
-        # An enum-construction let binds an Axon; otherwise the annotated /
-        # default scalar type.
-        if _enum_construction(value, src) is not None:
-            ty = "Axon"
-        else:
-            ty_node = next((c for c in ld_kids if c.type == "primitive_type"), None)
-            ty = _map_type(ty_node, src) if ty_node is not None else _DEFAULT_TYPE
-        stmts += _stmt_with_hoist(value, src, f"    {ty} {_text(ld_kids[0], src)} = {{expr}};\n")
+        nm = _text(ld_kids[0], src)
+        # A struct/enum construction let constructs DIRECTLY into the bound name
+        # (no redundant temp), the OCaml record-let shape.
+        sctor = _struct_construction(value, src)
+        if sctor is not None:
+            stmts += _emit_struct_construction(sctor[1], src, nm, "    ")
+            continue
+        ector = _enum_construction(value, src)
+        if ector is not None:
+            stmts += _emit_enum_construction(ector[0], ector[1], src, nm, "    ")
+            continue
+        ty_node = next((c for c in ld_kids if c.type == "primitive_type"), None)
+        ty = _map_type(ty_node, src) if ty_node is not None else _DEFAULT_TYPE
+        stmts += _stmt_with_hoist(value, src, f"    {ty} {nm} = {{expr}};\n")
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
     if tail.type == "match_expression":
         # A variant match as the function tail emits its `_vtag` / `_val{i}`
@@ -573,7 +644,13 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     _VARIANTS.clear()
     _ARG_HOIST.clear()
     _SUBST.clear()
+    _STRUCTS.clear()
     for child in tree.root_node.named_children:
+        if child.type == "struct_item":
+            tid = next((c for c in child.named_children
+                        if c.type == "type_identifier"), None)
+            if tid is not None:
+                _STRUCTS.add(_text(tid, src))
         if child.type == "enum_item":
             name_node = next((c for c in child.named_children
                               if c.type == "type_identifier"), None)
