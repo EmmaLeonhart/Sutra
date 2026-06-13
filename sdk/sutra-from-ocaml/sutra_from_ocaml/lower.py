@@ -129,25 +129,68 @@ _TOPLEVEL_NAMES: set = set()
 # accessor instead of clashing with torch's tensor `.item()`.
 _AXON_RETURNING: set = set()
 
-# OCaml arrays/bytes -> RAM (Emma 2026-06-06: "the wasm array isn't a sutra
-# array, it's ram"). Each `let a = Array.make …` / `Bytes.make …` binding gets
-# a compile-time base offset into the flat RAM device; `a.(i)` -> ramRead(base+i),
-# `a.(i) <- v` -> ramWrite(base+i, v). `_RAM_ARRAYS` maps array-var name -> base;
-# bases are spaced by `_RAM_STRIDE` (fits locals-sized arrays). NOTE: a 10MB Bytes
-# region exceeds the host RAM-list and is a documented limit, not handled here.
+# OCaml array/bytes allocations split per ACCESS PATTERN (Emma 2026-06-13):
+#   - An array touched INSIDE a `while` loop (a vector accumulator carried across
+#     iterations, e.g. the attention-on-RAM `acc`) -> the global RAM device. The
+#     while->loop substrate transform carries only SCALAR slots, so a vector store
+#     mutated across iterations must live in RAM (ram-pointers.md / the
+#     attention-on-RAM O2 finding). `_RAM_ARRAYS` maps name -> compile-time base
+#     (spaced by `_RAM_STRIDE`); `a.(i)` -> ramRead(base+i), `a.(i) <- v` ->
+#     ramWrite. `Bytes.make` (raw linear-memory shape) is always RAM.
+#   - A STRAIGHT-LINE `Array.make` array (no loop access) -> a per-instance
+#     `dict<int,int>` int-dict local (preallocated synthetic-space slots; exact,
+#     no global-device aliasing — FIXED 2026-06-13). `a.(i)` -> `a[i]`,
+#     `a.(i) <- v` -> `a[i] = v`. `_INT_DICT_ARRAYS` is the set of such names.
+# This is the principled discriminator: the loop-carried-vector constraint is
+# exactly why the attn parsers need RAM; ordinary arrays don't and get the exact
+# per-instance object. No need to touch the (hard) attention-on-RAM parsers.
 _RAM_ARRAYS: dict = {}
 _RAM_STRIDE = 4096
+_INT_DICT_ARRAYS: set = set()
+
+
+def _array_alloc_kind(value, source: bytes):
+    """'array' for `Array.make`/`Array.create`, 'bytes' for `Bytes.make`, else
+    None. `Bytes` is always RAM; `Array` chooses RAM vs int-dict by access."""
+    if value is None or value.type != "application_expression":
+        return None
+    head = value.named_children[0] if value.named_children else None
+    if head is None or head.type != "value_path":
+        return None
+    name = _node_text(head, source)
+    if name in ("Array.make", "Array.create"):
+        return "array"
+    if name == "Bytes.make":
+        return "bytes"
+    return None
 
 
 def _is_array_alloc(value, source: bytes) -> bool:
-    """True if `value` is an `Array.make`/`Array.create`/`Bytes.make` call —
-    an allocation that lowers to a RAM region."""
-    if value is None or value.type != "application_expression":
-        return False
-    head = value.named_children[0] if value.named_children else None
-    if head is None or head.type != "value_path":
-        return False
-    return _node_text(head, source) in ("Array.make", "Array.create", "Bytes.make")
+    """True if `value` is any array/bytes allocation."""
+    return _array_alloc_kind(value, source) is not None
+
+
+def _enclosing_definition(node):
+    """Walk up to the outermost ancestor below the compilation unit (a top-level
+    definition) — the scope to scan for an array's loop access."""
+    n = node
+    while n.parent is not None and n.parent.type not in ("compilation_unit", "source"):
+        n = n.parent
+    return n
+
+
+def _array_loop_accessed(name: str, scope, source: bytes) -> bool:
+    """True if `name` is read/written via `a.(i)` ANYWHERE inside a `while` loop
+    within `scope` — the loop-carried-vector pattern that requires RAM."""
+    def walk(n, in_loop: bool) -> bool:
+        if in_loop and n.type == "array_get_expression":
+            kids = n.named_children
+            arr = kids[0] if kids else None
+            if arr is not None and _node_text(arr, source) == name:
+                return True
+        nl = in_loop or n.type == "while_expression"
+        return any(walk(c, nl) for c in n.named_children)
+    return walk(scope, False)
 
 # Active name -> Sutra-source substitutions for the body of a `match` arm
 # that binds a name (a catch-all `| x -> …` binds the scrutinee to `x`).
@@ -581,9 +624,11 @@ def _lower_expression(node, source: bytes) -> str:
         arr = kids[0] if kids else None
         idx = kids[1] if len(kids) > 1 else None
         arr_name = _node_text(arr, source) if arr is not None else ""
-        if arr_name not in _RAM_ARRAYS:
-            return f"/* UNSUPPORTED-EXPR: array_get on non-RAM '{arr_name}' */"
         idx_src = _lower_expression(idx, source) if idx is not None else "0"
+        if arr_name in _INT_DICT_ARRAYS:
+            return f"{arr_name}[{idx_src}]"
+        if arr_name not in _RAM_ARRAYS:
+            return f"/* UNSUPPORTED-EXPR: array_get on unknown array '{arr_name}' */"
         base = _RAM_ARRAYS[arr_name]
         addr = idx_src if base == 0 else f"{base} + {idx_src}"
         return f"ramRead({addr})"
@@ -1367,11 +1412,21 @@ def _lower_local_binding(vd, source: bytes, indent: str,
         _vk = _variant_value_kind(_unwrap_parens(value), source)
         if _vk is not None:
             return _emit_variant_construction(_vk, source, indent, name)
-    # `let a = Array.make n v` / `Bytes.make n v` -> a RAM region. Assign a
-    # compile-time base; `a.(i)` / `a.(i) <- v` route to ramRead/ramWrite at
-    # base+i. The binding itself emits a marker (the RAM device is the array;
-    # init to `v` is host-side at device-attach time).
-    if _is_array_alloc(value, source) and _is_identifier(name):
+    # Array/bytes allocation — backing chosen by access pattern (Emma 2026-06-13).
+    _arr_kind = _array_alloc_kind(value, source)
+    if _arr_kind is not None and _is_identifier(name):
+        scope = _enclosing_definition(lb)
+        loop_used = (_arr_kind == "array"
+                     and _array_loop_accessed(name, scope, source))
+        if _arr_kind == "array" and not loop_used:
+            # Straight-line ordinary array -> a per-instance int-dict local. Slots
+            # start at 0 (an `Array.make` fill value other than 0 is a documented
+            # limitation — straight-line arrays write before read). `a.(i)` /
+            # `a.(i) <- v` route to `a[i]` / `a[i] = v`.
+            _INT_DICT_ARRAYS.add(name)
+            return f"{indent}dict<int, int> {name};\n"
+        # `Bytes.make`, or an `Array` mutated across a loop (vector accumulator)
+        # -> the global RAM device at a compile-time base.
         base = len(_RAM_ARRAYS) * _RAM_STRIDE
         _RAM_ARRAYS[name] = base
         return f"{indent}// {name}: RAM-backed array at base {base}\n"
@@ -1471,13 +1526,15 @@ def _lower_stmt_expr(node, source: bytes, indent: str,
             arr = tk[0] if tk else None
             idx = tk[1] if len(tk) > 1 else None
             arr_name = _node_text(arr, source) if arr is not None else ""
+            idx_src = _lower_expression(idx, source) if idx is not None else "0"
+            val_src = _lower_expression(val, source) if val is not None else "0"
+            if arr_name in _INT_DICT_ARRAYS:
+                return f"{indent}{arr_name}[{idx_src}] = {val_src};\n"
             if arr_name in _RAM_ARRAYS:
-                idx_src = _lower_expression(idx, source) if idx is not None else "0"
                 base = _RAM_ARRAYS[arr_name]
                 addr = idx_src if base == 0 else f"{base} + {idx_src}"
-                val_src = _lower_expression(val, source) if val is not None else "0"
                 return f"{indent}ramWrite({addr}, {val_src});\n"
-            return f"{indent}// UNSUPPORTED-SET: array set on non-RAM '{arr_name}'\n"
+            return f"{indent}// UNSUPPORTED-SET: array set on unknown array '{arr_name}'\n"
     if node.type == "infix_expression":
         op = node.child_by_field_name("operator")
         if op is not None and _node_text(op, source) == ":=":
@@ -1910,6 +1967,7 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     _HOISTED_LOOPS.clear()
     _HOISTED_DECLS.clear()
     _RAM_ARRAYS.clear()
+    _INT_DICT_ARRAYS.clear()
     for child in tree.root_node.named_children:
         if child.type != "type_definition":
             continue

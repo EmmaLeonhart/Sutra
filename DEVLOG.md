@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-13: OCaml ordinary arrays → int-dict (principled loop-access discriminator)
+
+Emma: "let's have an ordinary consumer right now; attention on RAM is hard." The earlier
+naive reroute (all `Array.make` → int-dict) broke the attn-on-RAM parsers because their
+`acc`/`tape` are vector accumulators carried across a `while` loop — which is *exactly*
+why they need the global RAM store (the while→loop transform carries only scalar slots).
+That constraint IS the discriminator: an `Array.make` array touched inside a `while` loop
+→ RAM; a straight-line array → a per-instance `dict<int,int>` int-dict (exact, no
+base-offset aliasing). Implemented in `sutra-from-ocaml/lower.py` via a per-binding scan
+(`_array_loop_accessed` walks the enclosing definition for `a.(i)` under a
+`while_expression`). No need to touch the attention-on-RAM parsers. New runnable fixture
+`array_int_dict` (two straight-line array functions): substrate-verified `f 3 42 + h 10
+20` = 72. `attn_select_field` (straight-line, no loop) correctly moved to int-dict (runs
+22); `attn_sum_tape`/`attn_dot_tape` (loop accumulators) stay on RAM (10 / -2). Removed
+the redundant compile-only `array_ram` fixture. Full OCaml suite 132 passed. This is the
+first ordinary consumer of the int-dict through a language frontend.
+
 ## 2026-06-13: OCaml arrays → int-dict wiring — NEGATIVE result, reverted
 
 Attempted the decided OCaml-array reroute (Emma: ordinary arrays → the new int-dict,
