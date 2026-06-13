@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-13: sutra-from-fsharp — name-binding `match` patterns
+
+Brought F#'s `match` to parity with the other frontends' `_MATCH_SUBST` shape. F# already
+lowered literal (`| k -> …`) and wildcard (`| _ -> …`) patterns; added the name-binding
+identifier pattern (`| x -> …`), which binds the scrutinee to the name (a new module-level
+`_SUBST` consulted in identifier lowering, cleared per `lower()`) and serves as the
+catch-all base. Fixture `match_bind` (`match n with | 0 -> 100 | x -> x * 10`;
+`(classify 0) + (classify 6)`): substrate-verified = 160 (100 literal dispatch + 60 bound
+catch-all, `x`→`n`, `n * 10`). F# suite 14/14. (The `main` body parenthesizes the call
+operands per the documented ionide infix/application precedence quirk — unrelated to the
+match work.) Records/DUs → axons still need the typed-param + let-sequence + hoist infra
+recorded in queue.md.
+
 ## 2026-06-13: sutra-from-haskell — pattern equations + guards → dispatch blends
 
 Two related surfaces, the Elixir multi-clause shape ported to Haskell. (1) **Pattern
