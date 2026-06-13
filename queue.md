@@ -33,6 +33,15 @@ Emma's direction (2026-06-13): vendor Extropic's **`thrml`**
 canonical PyTorch one. This is the second task in the queue (after the in-flight
 transpiler increment) and a multi-step track to expand as it goes.
 
+**⚠️ NON-DESTRUCTIVE / ADDITIVE-ONLY (Emma 2026-06-13).** The existing neural-
+network pipeline is a SEPARATE thing and must stay exactly as it is. thrml is an
+**additive command-line OPTION** — a new compile target selected by a flag (e.g.
+`--target thrml` / `--emit-thrml` / `--run-thrml`), with the default staying the
+PyTorch path. It does NOT rewire, replace, or alter `codegen_pytorch.py`, the
+`--emit`/`--run` behavior, or any existing test. If a change to the thrml backend
+would touch the shared pipeline destructively, that is NOT what Emma asked — stop
+and reconsider. The existing pipeline + all its tests stay green throughout.
+
 What thrml is (researched 2026-06-13): a **JAX** library for GPU block-Gibbs
 sampling of **energy-based models** on sparse heterogeneous graphs — Ising/spin
 nodes, factor graphs; public API `SpinNode` / `Block` / `SamplingSchedule` /
@@ -61,9 +70,13 @@ Steps (expand as we go):
   demonstration op, then check the specifics with Emma before codegen. Don't
   invent the per-op factor forms silently — measure/verify each.
 - [ ] **2. Minimal `codegen_thrml.py` backend** for the simplest mappable Sutra
-  subset (per step 1). Mirror `codegen_pytorch.py`'s structure. One `.su` fixture
-  compiles AND runs (samples on thrml), decoded output compared to ground truth
-  (measured — sampling noise documented, never hidden).
+  subset (per step 1). A NEW file mirroring `codegen_pytorch.py`'s structure,
+  selected by an **additive CLI flag** (new `--target thrml` / `--emit-thrml` /
+  `--run-thrml`; default stays PyTorch). Must NOT modify `codegen_pytorch.py` or
+  the existing `--emit`/`--run` path (see the non-destructive constraint above).
+  One `.su` fixture compiles AND runs (samples on thrml), decoded output compared
+  to ground truth (measured — sampling noise documented, never hidden); the full
+  existing test suite stays green.
 - [ ] **3. Expand op coverage** toward the broader Sutra surface; per-op
   signal-separation / correctness measurements (the substrate-honesty bar).
 - [ ] **4. Hardware-alignment notes** — how the thrml backend maps onto Extropic
