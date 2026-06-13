@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-06-13: Sutra → thrml — exploration loop attempts #1–#3 (memory + bind both WORK)
+
+Emma reframed the thrml track as an exploration loop: try approaches until Sutra
+computation actually runs on Extropic's sampler, measuring each. Three attempts so far,
+all RUN + measured on the thrml substrate (JAX-CPU), all in `experiments/thrml/`:
+
+- **#1 associative memory** — value = N-bit spin register; bundle = Hebbian couplings;
+  cleanup = block-Gibbs. β=6 → 96.8% of samples recover a stored value vs 0% baseline.
+- **#2 clamped-cue retrieval** — clamp half a value's bits, infer the rest. β=6 → 99.2%
+  per-bit vs 50% baseline. Honest capacity wall measured: clean to ~Hopfield 0.14·N
+  (M≤3 for N=16), crosstalk beyond (M=4 → 84%).
+- **#3 bind/unbind** — the transformational op. Answer to "energy or different trick?":
+  an **energy** — bipolar bind `c_i=a_i b_i` is the 3-body constraint `a_i b_i c_i=+1`,
+  expressible via thrml's arbitrary-arity `SpinEBMFactor` (not pairwise Ising). β=6 →
+  bind 1.000, unbind 1.000 per-bit vs 0.5. No capacity wall (per-bit independent).
+
+So both Sutra operation classes — memory (bundle/cleanup/retrieval) and transformational
+(bind/unbind) — genuinely compute on the thermodynamic sampler, measured. Attempt log:
+`planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md`. Non-destructive: all
+additive (submodule + isolated JAX dep + experiments/), the PyTorch pipeline untouched.
+Next: arithmetic-as-energy, a composed pipeline, then `codegen_thrml` behind an additive
+`--target thrml` flag.
+
 ## 2026-06-13: Sutra → thrml track — step 0 (vendor + study + run) DONE
 
 Emma authorized the external integration (earlier the safety classifier had blocked it).

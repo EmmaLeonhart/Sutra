@@ -32,9 +32,22 @@ anything that doesn't work. Direction seed: **vectors → spin-node graph**
   ≈Hopfield capacity (~0.14·N≈2.2 patterns), crosstalk-degraded beyond. Not a
   bug; the known associative-memory limit. Denser codes (a later attempt) would
   push it.
-- next attempts: **bind/unbind** (the transformational op — does it fall out as an
-  energy, or need a different trick?); **arithmetic-as-energy** (add/compare on
-  bit-registers); then wire a solid pattern into `codegen_thrml`.
+- **#3 bind / unbind — WORKS (2026-06-13).** `experiments/thrml/bind_unbind_demo.py`.
+  The transformational op, and the answer to "does it fall out as an energy or need
+  a different trick?": **it falls out as an energy — a 3-body factor.** Bipolar VSA
+  bind `c = a⊙b` (`c_i=a_i b_i`) is the constraint `a_i b_i c_i = +1`, a 3-body
+  interaction — NOT expressible in a pairwise Ising model, but thrml's
+  `SpinEBMFactor` takes arbitrary-arity factors (`E = -Σ_k w_k ∏ spins`). A
+  positive-weight 3-body factor over `(a_i,b_i,c_i)` enforces bind; **unbind**
+  (`b = a⊙c`) falls out of the SAME factor by clamping the other two.
+  **Measured (N=16):** bind 0.881/0.979/0.999/**1.000** and unbind
+  0.885/0.983/0.999/**1.000** per-bit at β=1/2/4/6 vs 0.5 baseline. Cleaner than
+  the memory ops — each bit is an independent constraint, so NO capacity wall.
+  → both Sutra op classes now demonstrated on thrml: **memory** (bundle/cleanup/
+  retrieval, #1–#2) and **transformational** (bind/unbind, #3).
+- next attempts: **arithmetic-as-energy** (add/compare on bit-registers — likely
+  needs carry-chain factors); a **composed** pipeline (bind then retrieve); then
+  wire a solid pattern into `codegen_thrml`.
 
 ## Emma's encoding steer (2026-06-13)
 
