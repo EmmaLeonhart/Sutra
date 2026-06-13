@@ -60,6 +60,8 @@ def run(n, beta, trials, seed):
     schedule = SamplingSchedule(n_warmup=400, n_samples=200, steps_per_sample=6)
     key = jax.random.key(seed)
     exact = 0
+    best = 0
+    emin = 0
     for t in range(trials):
         key, ka, kb, kinit, ksamp = jax.random.split(key, 5)
         av = jax.random.randint(ka, (n,), 0, 2)   # bits
@@ -80,10 +82,26 @@ def run(n, beta, trials, seed):
         pw = 2 ** jnp.arange(n + 1)
         per = jnp.concatenate([s_samp, c_samp[:, n:n + 1]], axis=1)  # (S, n+1)
         ints = (per * pw).sum(axis=1)                                # (S,)
+        truth = a_int + b_int
+
+        # Min-energy decode: the correct sum is the unique global min of the
+        # adder Hamiltonian, so rank the drawn samples by energy (a pure readout,
+        # no use of `truth`) and return the lowest. sigma = 2*bit-1.
+        sa, sb = 2 * av - 1, 2 * bv - 1                  # (n,)
+        ss = 2 * s_samp - 1                              # (S, n)
+        sc = 2 * c_samp - 1                              # (S, n+1)
+        scin, scout = sc[:, :n], sc[:, 1:]               # (S, n)
+        e_par = (sa * sb * scin * ss).sum(axis=1)        # parity term per sample
+        e_car = (scout * (sa + sb + scin)).sum(axis=1)   # carry term per sample
+        energy = -(e_par + e_car)                        # (S,) lower = better
+        got_e = int(ints[int(jnp.argmin(energy))])
+
         vals, counts = jnp.unique(ints, return_counts=True)
         got = int(vals[int(jnp.argmax(counts))])
-        exact += int(got == (a_int + b_int))
-    return exact / trials
+        exact += int(got == truth)                  # modal decode
+        best += int(bool(jnp.any(ints == truth)))   # did ANY sample hit it?
+        emin += int(got_e == truth)                 # min-energy decode
+    return exact / trials, best / trials, emin / trials
 
 
 def main():
@@ -97,10 +115,10 @@ def main():
     chance = 1.0 / (2 ** (args.n + 1))
     print(f"thrml ripple-carry adder: N={args.n}-bit, {args.trials} random (a,b) pairs, "
           f"backend={jax.default_backend()}")
-    print(f"{'beta':>5} {'exact-sum':>10} {'chance':>9}")
+    print(f"{'beta':>5} {'modal':>8} {'min-energy':>11} {'best-of-S':>10} {'chance':>9}")
     for b in betas:
-        acc = run(args.n, b, args.trials, args.seed)
-        print(f"{b:>5.1f} {acc:>10.3f} {chance:>9.4f}")
+        acc, best, emin = run(args.n, b, args.trials, args.seed)
+        print(f"{b:>5.1f} {acc:>8.3f} {emin:>11.3f} {best:>10.3f} {chance:>9.4f}")
 
 
 if __name__ == "__main__":

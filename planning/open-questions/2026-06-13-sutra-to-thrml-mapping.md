@@ -59,9 +59,22 @@ anything that doesn't work. Direction seed: **vectors → spin-node graph**
   naive Gibbs, unlike per-bit-independent ops (bind #3 = 100%) and shallow memory
   ops (#1–2). Fixes to try next: **annealing** (β schedule), **carry-chain-aware
   blocking**, or a **carry-lookahead** encoding (shorter dependency depth).
-- next attempts: anneal/blocked adder (fix #4); a **composed** pipeline (bind then
-  retrieve); then wire a solid (clean) pattern — bind/unbind or memory — into
-  `codegen_thrml`.
+- **#4b adder diagnosis (2026-06-13).** Added `best-of-S` and a `min-energy`
+  decode to `adder_demo.py`. **Key finding: best-of-S = 1.000** (4- and 6-bit) —
+  the correct sum is among the drawn samples in EVERY trial, so it is a
+  *concentration/decode* problem, NOT *reachability*; the substrate does reach the
+  answer. BUT a `min-energy` decode (rank samples by the adder Hamiltonian, return
+  the lowest) did **worse** than modal: 0.75 vs 0.85 (4-bit), 0.50 vs 0.60
+  (6-bit). Since the energy formula matches the factors built, this means the
+  arithmetically-correct assignment is a heavily-sampled low-energy state but NOT
+  the strict global min — the classic **Ising/QUBO penalty-weighting** problem
+  (uniform J lets spurious states sit at/below the answer). Also: concentration
+  degrades with width (modal 0.85 @4-bit → 0.60 @6-bit). NOT claiming min-energy
+  as a fix.
+- next attempts: **penalty-weighted adder** — boost the constraint weights (or add
+  the missing penalty terms) so the correct sum is the STRICT global min, then
+  min-energy decode should hit ~1.0; a **composed** pipeline (bind then retrieve);
+  then wire a CLEAN pattern (bind/unbind or memory) into `codegen_thrml`.
 
 ## Emma's encoding steer (2026-06-13)
 
