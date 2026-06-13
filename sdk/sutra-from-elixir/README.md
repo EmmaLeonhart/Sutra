@@ -23,10 +23,20 @@ surfaces as `UNSUPPORTED-RECURSION` (never a silent self-call). `case_literal`
 defuzz blend over `n == k` tests (the shared literal-match shape). `case_bind`
 (`classify(6)`) = 60 — a name-binding `case` clause (`x -> x * 10`) binds the
 scrutinee to the name (substituted into the result, the `_MATCH_SUBST` shape) as
-a catch-all base.
+a catch-all base. `multiclause` (`classify(0) + classify(2)`) = 120 —
+**multi-clause `def` heads → one dispatching function**: same-name/arity `def`s
+(`def classify(0)`, `def classify(1)`, `def classify(n)`) are grouped by (name,
+arity) and lowered to a single Sutra function that dispatches via a nested defuzz
+blend (the `case`/`_MATCH` shape lifted to function heads — an integer-literal
+param becomes an `(_ai == k)` test, an identifier param binds that name to `_ai`,
+the last clause is the base). `classify(0)`=100 exercises literal dispatch,
+`classify(2)`=20 the catch-all variable clause (binds `n`→`_a0`, `n * 10`).
+Single-clause bare-param defs still route through the recursion-aware path, so
+the tail/fold transforms are untouched.
 
 Dependency: `tree-sitter-elixir` (`pip install tree-sitter-elixir`).
 
 ## Next
 
-Multi-clause `def` heads (pattern dispatch); maps/structs → axons; pipe operator.
+Maps/structs → axons; pipe operator; guards on clause heads; multi-clause heads
+with recursion (currently `UNSUPPORTED-RECURSION`).
