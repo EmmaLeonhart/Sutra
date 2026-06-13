@@ -68,10 +68,12 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## Next-venue paper polish (UNFROZEN — active)
 
-`paper/paper.md`: ablation table (requires DEFINING + RUNNING the ablations —
-e.g. semantic vs random codebook, dimension sweep, mean-centering on/off —
-measured numbers only, never filled from memory). Le Chat AI-use breakdown →
-A.0 (needs Emma's ground truth).
+`paper/paper.md`: ablation table for the §3.7 weighted-Equals training is DONE
+(2026-06-13, measured: full/prototypes-only/gain-only — prototypes carry the
+separation, the gain is co-adapted not load-bearing;
+`experiments/differentiable_training_ablation.py`). Remaining optional polish:
+a capacity-style ablation (mean-centering on/off, dimension sweep) if wanted —
+measured numbers only, never from memory.
 
 ## 🌐 Merged queue — from the Neural WebAssembly (`WASM/`) repo
 

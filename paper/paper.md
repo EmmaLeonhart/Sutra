@@ -680,6 +680,28 @@ not a tautology).
 | Before (random) |       33.3 ± 5.9 % |          1.000 (init) |
 | After (30 ep)   |      100.0 ± 0.0 % |        1.434 ± 0.004  |
 
+**Ablation: which trained parameter separates the classes?** Running the
+*same* compiled graph with each factor frozen isolates its contribution
+(2 seeds, identical protocol):
+
+| condition                          | After accuracy ($n{=}2$) | Learned $w^{*}$ |
+|------------------------------------|-------------------------:|----------------:|
+| full (gain + prototypes)           |             100.0 ± 0.0 %|  1.434 ± 0.004  |
+| prototypes only ($w{=}1$ frozen)   |             100.0 ± 0.0 %|  1.000 (fixed)  |
+| gain only (prototypes frozen)      |              33.3 ± 5.9 %|  0.421 ± 0.012  |
+
+The prototypes carry the class separation: with the gain frozen at the
+identity they still reach 100%. The scalar gain *alone* cannot separate the
+classes — a single global rescaling of every similarity, applied to fixed
+random prototypes, leaves accuracy at chance (the gain drifts to
+$\approx 0.42$ but never moves the argmax above $1/k$, since the nonlinear
+Kleene connectives still rank the unmoved prototypes the same way). So the
+jointly-trained $w^{*}\!\approx\!1.43$ is a *co-adapted* parameter —
+consistent across seeds (hence not noise) but not the load-bearing factor
+for accuracy on this task. What this experiment establishes is the
+legibility round-trip below, not that the gain is necessary. Reproduction:
+`experiments/differentiable_training_ablation.py`.
+
 **The trained model is legible, recompilable source.** After
 training, $w^{*}$ is written back into a fresh `.su` as a numeric
 *literal* with the `w` parameter removed — the trained model
