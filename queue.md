@@ -13,6 +13,18 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ---
 
+## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
+
+- **`dict<int,int>` storage mechanism — design call (MEASURED 2026-06-13).** The
+  rotation-hashmap cannot back scalar-keyed/valued dicts: rotations are identity on
+  the synthetic axes where numbers live, so storing 3 entries (k0→42, k1→7, k2→99)
+  returns **148 = Σ of all values for EVERY key** (1 entry is exact; finding
+  `2026-06-06-dict-int-keys-broken-blocks-arrays.md`). This gates OCaml arrays +
+  the full ISO-5 machine. Which mechanism should back `dict<int,int>`?
+  (a) per-instance RAM array — exact, the array semantics ISO-5 needs (recommended);
+  (b) semantic-embed values — not exact at array scale (~1/√N SNR);
+  (c) keep UNSUPPORTED, require `dict<vector,vector>` + a distinct array type.
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN (Emma 2026-06-07)** — the live revision target
