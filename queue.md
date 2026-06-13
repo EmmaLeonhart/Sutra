@@ -41,9 +41,9 @@ deleted on completion. Keep the task tool in sync with this file.
   recursion → `while_loop` shipped 2026-06-12, suite 6/6): foldable non-tail
   CPS; `case` → blends; multi-clause `def` heads (pattern dispatch);
   maps/structs → axons. (Erlang proper is a separate later frontend.)
-- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through `recur` →
-  `while_loop` shipped 2026-06-12, suite 12/12): foldable non-tail CPS; maps →
-  axons; destructuring binds.
+- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through foldable
+  non-tail CPS shipped 2026-06-13, suite 14/14): maps → axons; destructuring
+  binds; `loop`/`recur` with an explicit accumulator.
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through foldable
   non-tail CPS shipped 2026-06-13, suite 8/8; laziness out of scope): pattern
   equations → blends, guards, where/let, `data` ADTs → tagged axons.
