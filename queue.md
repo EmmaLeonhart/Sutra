@@ -251,6 +251,21 @@ NTM/attention-on-RAM breadth backlog (trainable-query `.su`; composed-network
 end-to-end training; more parse tasks; multi-head comparison — track closed
 by Emma 2026-06-08, breadth only).
 
+## Future transpiler frontends — backlog (Emma 2026-06-13, bottom of queue)
+
+Added to the bottom of the queue after the core roadmap pass (Scala/F#/Elixir/
+Clojure/Haskell/Rust all have functions + if/match→blend + tail rec→while_loop +
+foldable non-tail→CPS as of 2026-06-13). Lower priority than the thrml track and
+the existing frontends' data-structure tier.
+
+- [ ] **Erlang** — its own frontend (Elixir is done on the BEAM, but Erlang's own
+  syntax/grammar is separate). Model on `sutra-from-ocaml`; reuse the shared
+  shapes (multi-clause function heads with guards map to the dispatch blend).
+- [ ] **Q** — a "Q" language frontend. ⚠️ CONFIRM WHICH Q before starting: most
+  likely **q (kdb+/Kx)**, a functional array language (fits the roadmap); the
+  other candidate is **Q#** (quantum). Emma to disambiguate when this surfaces —
+  do not guess at build time.
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`.
