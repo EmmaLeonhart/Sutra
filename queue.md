@@ -44,10 +44,9 @@ deleted on completion. Keep the task tool in sync with this file.
   recursion → `while_loop` + foldable non-tail CPS (recursion IS iteration in
   Elixir — the load-bearing increment); `case` → blends; multi-clause `def`
   heads; maps/structs → axons. (Erlang proper is a separate later frontend.)
-- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; MVP shipped
-  2026-06-12, suite 6/6 — sogaiu grammar compiled locally per Emma's
-  authorization): `let` bindings; `cond` → nested blends; `recur` →
-  `while_loop` (Clojure's own loop form maps naturally); maps → axons.
+- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through `let` +
+  `cond` shipped 2026-06-12, suite 10/10): `recur` → `while_loop` (Clojure's own
+  loop form maps naturally); maps → axons; destructuring binds.
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; MVP shipped
   2026-06-12, suite 4/4 — signatured equations, curried apply, if/then/else
   blend; laziness explicitly out of scope): recursion transforms, pattern
