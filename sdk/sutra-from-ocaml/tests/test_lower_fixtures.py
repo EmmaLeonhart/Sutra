@@ -164,6 +164,7 @@ _RUNNABLE_FIXTURES = {
     "let_in_expr": 20.0,  # (let x = 5 in x + x) + 10  (let..in in expression position via substitution)
     "modulo": 2.0,  # 17 mod 5  (OCaml mod -> Sutra %)
     "tuple_local": 16.0,  # let p = pair 7 9 in fst p + snd p  (Axon-returning call -> local typed Axon)
+    "array_int_dict": 72.0,  # ordinary straight-line OCaml arrays -> per-instance int-dict; f 3 42 + h 10 20 = 42 + 30
     "bitwise": 1043.0,  # (255 land 12)+((3 lsl 8) lor 7)+(1024 lsr 2)  (land/lor->Bits, lsl/lsr->arith)
     "failwith_sentinel": 0.0,  # failwith "boom" -> 0 (no-runtime-error sentinel)
     # Attention-on-RAM parser (NTM-archetype track; design doc
