@@ -53,9 +53,10 @@ deleted on completion. Keep the task tool in sync with this file.
 - [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through foldable
   non-tail CPS shipped 2026-06-13, suite 14/14): maps → axons; destructuring
   binds; `loop`/`recur` with an explicit accumulator.
-- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through foldable
-  non-tail CPS shipped 2026-06-13, suite 8/8; laziness out of scope): pattern
-  equations → blends, guards, where/let, `data` ADTs → tagged axons.
+- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through pattern
+  equations + guards shipped 2026-06-13, suite 12/12; laziness out of scope):
+  where/let bindings; `data` ADTs → tagged axons; guarded/multi-equation
+  recursion (currently `UNSUPPORTED-RECURSION`); non-integer literal patterns.
 - [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through imperative `while`
   → substrate `while_loop` shipped 2026-06-13, suite 16/16): unbounded
   `loop { … break }` (halt-flag transform); compound assignment (`+=`);

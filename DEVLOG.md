@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-13: sutra-from-haskell — pattern equations + guards → dispatch blends
+
+Two related surfaces, the Elixir multi-clause shape ported to Haskell. (1) **Pattern
+equations:** same-name/arity equations (`classify 0 = 100`, `classify 1 = 200`,
+`classify n = n * 10`) now group by `(name, arity)` into ONE dispatching function via
+`_lower_pattern_equations` (integer-literal pattern → `(_ai == k)` test, variable pattern
+binds name → `_ai` via a new `_SUBST` consulted in `variable` lowering, last equation =
+base). (2) **Guards:** a guarded equation (`classify n | n == 0 = … | otherwise = …`)
+lowers its `match`/`guards` clauses to the same nested blend (`_lower_guards`), guards as
+the tests, `otherwise` as the base; params stay real Sutra params so guards reference them
+directly. `_lower_decls` does the grouping; single-equation groups still route through the
+recursion-aware `_lower_equation`, so the tail/fold transforms are untouched. Fixtures
+`pattern_eq` and `guards` (both `classify 0 + classify 2`): substrate-verified = 120 each
+(100 literal/guard dispatch + 20 catch-all bind/`n * 10`). Haskell suite 12/12. Guarded
+and multi-equation recursion stay `UNSUPPORTED-RECURSION`; where/let + `data` ADTs next.
+
 ## 2026-06-13: sutra-from-elixir — multi-clause `def` heads → dispatch function
 
 Same-name/arity `def` heads now group into ONE dispatching Sutra function instead of

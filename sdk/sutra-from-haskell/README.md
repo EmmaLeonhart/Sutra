@@ -19,13 +19,28 @@ else f a…` → a declared `while_loop`, the OCaml/Scala shape), `nontail_fact`
 trampoline, the OCaml CPS port; param-dependent base cases rejected). **Laziness
 is not modeled** — Sutra is strict, and the MVP
 scope (total arithmetic programs) is insensitive to evaluation order; programs
-relying on laziness are out of scope, stated plainly. Pattern equations, guards,
-`where`/`let`, and recursion surface as `UNSUPPORTED-*` markers (recursion until
-the tail/CPS transforms are ported — never a silent self-call).
+relying on laziness are out of scope, stated plainly.
+
+As of 2026-06-13: **pattern equations + guards → dispatch blends.** Same-name/
+arity equations (`classify 0 = 100`, `classify 1 = 200`, `classify n = n * 10`)
+group by (name, arity) into ONE dispatching function — an integer-literal
+pattern becomes an `(_ai == k)` test, a variable pattern binds that name to the
+canonical arg `_ai` (`_SUBST`), the last equation is the base (the Elixir multi-
+clause shape ported). A **guarded** equation (`classify n | n == 0 = … | n == 1
+= … | otherwise = …`) lowers its `match`/`guards` clauses to the same nested
+blend, guards as the tests and `otherwise` as the base; its params are real
+Sutra params, so guards reference them directly. Substrate-verified: `pattern_eq`
+= 120 (`classify 0 + classify 2`, literal dispatch + catch-all bind),
+`guards` = 120 (same via guard conditions). Single-equation functions still route
+through the recursion-aware path, so the tail/fold transforms are untouched.
+
+`where`/`let` bindings, `data` ADTs, and multi-equation/guarded **recursion**
+surface as `UNSUPPORTED-*` markers (recursion until the relevant transforms are
+ported — never a silent self-call).
 
 Dependency: `tree-sitter-haskell` (`pip install tree-sitter-haskell`).
 
 ## Next
 
-Pattern equations (multi-clause dispatch → blends); guards; `where`/`let`
-bindings; `data` ADTs → tagged axons (the OCaml variant pattern).
+`where`/`let` bindings; `data` ADTs → tagged axons (the OCaml variant pattern);
+guarded/multi-equation recursion; non-integer literal patterns.
