@@ -43,7 +43,27 @@ every wrong output strictly higher → unique minimiser; no `sorry`)
 lean fv-lean/AndGadget.lean        # exit 0, prints the axiom dependencies
 ```
 
-`scripts/check_fv_lean.sh` runs every `.lean` here. CI: `.github/workflows/fv-lean-ci.yml`
+## Mid-size mathlib step (isolated — `mathlib/`)
+
+`mathlib/GibbsMathlib.lean` is a SEPARATE Lake project (`mathlib/lakefile.toml`, pinned
+mathlib `v4.30.0`) for the **convergence** results that genuinely need real analysis —
+kept isolated so the core files above stay no-mathlib + fast. It machine-checks
+(`[propext, Classical.choice, Quot.sound]`, no `sorry`, over the reals):
+`stationary_of_detailedBalance` (reversibility ⟹ stationarity, general finite chain),
+`gibbsKernel_detailedBalance` + `gibbsKernel_stationary` (the gadget's real-`exp` Gibbs
+kernel is reversible → the Gibbs measure is stationary), and `stationary_unique_two_state`
+(2-state Perron–Frobenius stationary uniqueness). With the core-only irreducibility +
+aperiodicity, this is the reversible-chain picture: positive + irreducible + reversible ⟹
+unique stationary = Gibbs. Build it (heavy — `.lake/` gitignored, NOT in CI):
+
+```bash
+cd fv-lean/mathlib && lake exe cache get && lake build GibbsMathlib   # needs mathlib oleans
+```
+
+Remaining (longer-horizon, beyond Emma's mid-size scope): the t→∞ **mixing rate** /
+spectral gap. The core no-mathlib proofs below stay CI-checked.
+
+`scripts/check_fv_lean.sh` runs every top-level `.lean` here (NOT `mathlib/`). CI: `.github/workflows/fv-lean-ci.yml`
 runs the script on GitHub Actions — **path-filtered** to `fv-lean/**` (the toolchain
 install is heavy, so it only fires when a proof / the toolchain pin / the runner
 changes, not on every push), toolchain cached + pinned by `fv-lean/lean-toolchain`
