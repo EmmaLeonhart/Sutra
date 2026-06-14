@@ -202,6 +202,25 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   composed gate where hand-derivation is harder; a hidden-unit (non-fully-visible)
   case.
 
+### Approach D — categorical-node encoding
+
+- **D1. arbitrary unary function as ONE lookup-table factor — WORKS (2026-06-14).**
+  `experiments/thrml/categorical_demo.py`. A Sutra value = one thrml
+  `CategoricalNode` (K states, a uint8) instead of an N-bit spin register. The
+  thing categorical buys: an ARBITRARY unary function `f: x->y` is a SINGLE K x K
+  factor (a lookup table) — clamp x, sample y, get f(x); in the bit-register
+  encoding the same f needs a Boolean circuit. **Measured (K=5, f(x)=(3x+1)%5 =
+  [1,4,2,0,3], a permutation): clamp x -> sample y == f(x) exact = 1.000** vs
+  chance 0.200 (`CategoricalEBMFactor` + `CategoricalGibbsConditional(K)`; positive
+  weight at the valid cells = low energy, sign confirmed by the measurement).
+  **Trade-off (for the H comparison):** categorical is *lookup-table-native* —
+  cleanest for arbitrary unary functions (one factor vs a circuit) — at O(K²)
+  table size and 1 node of K states; the bit-register encoding is
+  *circuit-native* — compositional gates, O(poly log K) nodes, but every op needs
+  a gadget. Pick categorical for small-domain tables/maps, bit-registers for
+  arithmetic/wide values. Next D: a binary categorical op (2-input table) and the
+  spin/dim-cost crossover.
+
 ## Emma's encoding steer (2026-06-13)
 
 - thrml models computation as **individual memory spaces**; the natural atom is
