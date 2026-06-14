@@ -106,21 +106,18 @@ change anything that doesn't work. Locked encoding interpretation: a Sutra value
   into the compiler behind an **additive CLI flag**; MUST NOT modify
   `codegen_pytorch.py` or `--emit`/`--run` (non-destructive); existing suite stays
   green throughout. Sub-steps (barrel top-to-bottom):
-  - [x] **G.0 additive CLI flag — DONE 2026-06-14.** `--emit-thrml` flag +
-    `_emit_thrml` dispatch + new `codegen_thrml.py` (`translate_thrml` /
-    `ThrmlCodegenNotSupported`). Verified non-destructive: `--emit-thrml` prints a
-    clean `thrml-codegen:` diagnostic (exit 2, no silent mislowering); `--run`
-    PyTorch path + smoke test (11/11) unchanged. [remove when G.1 starts]
-  - [ ] **G.1 minimal lowering — one op.** `translate_thrml` lowers the simplest
-    mappable program (a single `bind`, or an `==`/AND-shaped op) to a runnable
-    thrml/JAX program using the cleanest validated approach (sample-and-verify or
-    ground-state). Value→bit-register, op→factor, per the attempt log.
-  - [ ] **G.2 fixture: compile AND sample.** One `.su` fixture compiles via the
-    new flag AND samples on thrml; decoded output vs ground truth (MEASURED,
-    sampling noise documented). Add to a `sutra-compiler` test (skips if JAX
-    absent, like the F#/Clojure grammar tests).
-  - [ ] **G.3 broaden ops.** Extend the lowering to bind/bundle/cleanup +
-    a small composed program, per the validated approaches; measure each.
+  - [x] **G.0–G.2 DONE 2026-06-14.** Additive `--emit-thrml` flag +
+    `codegen_thrml.translate_thrml`; lowers `main(){ return bind/unbind(a,b); }`
+    over `basis_vector` atoms to a self-verifying thrml program (value=16-bit spin
+    register, bind=3-body product factor). `examples/thrml_bind.su` compiles AND
+    samples = **1.000** per-bit match to ground-truth a⊙b. `tests/
+    test_codegen_thrml.py` 3/3 (compile-AND-sample + non-destructive guards: clean
+    diagnostic on unsupported, PyTorch `--run` unaffected). Unsupported constructs
+    raise `ThrmlCodegenNotSupported` (no silent mislowering).
+  - [ ] **G.3 broaden ops.** Extend the lowering beyond one-op bind: multi-statement
+    bodies (let-bindings), `bundle`, `unbind`+cleanup (the kv-query), `==`/AND — per
+    the validated approaches; measure each. (Decode of a non-codebook result and
+    multi-op composition are the open design points.)
 - [ ] **H. COMPARE ALL (the deliverable Emma wants).** After A–G, a head-to-head:
   per-approach **fidelity** (accuracy/gap), **cost** (spins, samples, wall-clock),
   **generality** (which ops/programs each handles), **decode** (verifier vs
