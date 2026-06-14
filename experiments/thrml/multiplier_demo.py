@@ -50,8 +50,12 @@ def and_factors(i1, i2, o, beta):
 
 
 def xor_factor(x, y, z, beta):
-    """z = x ^ y  <=>  prod(sigma_x,sigma_y,sigma_z) = +1 (3-body parity)."""
-    return [SpinEBMFactor([Block([x]), Block([y]), Block([z])], beta * jnp.ones((1,)))]
+    """z = x ^ y. For bits with sigma=2*bit-1, even-#-of-1s over 3 vars means
+    prod(sigma) = -1 (3 spins: even #1s -> odd #0s -> odd # of -1 factors), so the
+    factor weight is NEGATIVE (verified analytically: with this sign the correct
+    assignment is the unique global energy min). A POSITIVE weight here silently
+    encodes XNOR -- the sign bug found 2026-06-14 that broke ground-state decode."""
+    return [SpinEBMFactor([Block([x]), Block([y]), Block([z])], -beta * jnp.ones((1,)))]
 
 
 def eq_factor(p, q, beta):
