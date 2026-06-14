@@ -41,49 +41,34 @@ a reference, MEASURED — never "it ran". No faked results, no weakened tests.
 
 ---
 
-## 1. Warmer/colder self-morphing hero demo (the "a1" GUI training demo)
+## 1. Warmer/colder self-morphing hero demo (the "a1" GUI training demo) — COMPLETE
 
-**The headline GUI training item.** Assembly of parts that already exist —
-runtime-parameter whole-frame rendering (`demos/gui/whole_frame.py`,
-`frame_moving.su`; params are per-call broadcast buffers, no recompile) + a
-batched SPSA optimizer + warmer/colder controls — into one recordable
-interactive demo. No new substrate research. (Emma records it herself once
-built; building is autonomous.)
+**The a1 demo is BUILT (1a→1d, 2026-06-14).** The recordable interactive demo
+exists: a substrate-rendered hero (θ-parameterized glow + ring + background + RGB
+tint + substrate glyph headline) steered by WARMER/COLDER presses through a
+host-side SPSA optimizer. Emma records it herself via `steering_window.py`.
 
-- [ ] **Warmer/colder steering demo.** A substrate-rendered hero (headline glyphs
-  via the 36-glyph renderer + accent glow/ring + a CTA block) whose
-  layout/scale/color/spacing/headline-choice form a parameter vector θ ∈ R^8–16;
-  WARMER / COLDER buttons emit scalar reward (+1 / −1, smoothed); a batched SPSA
-  step updates θ with [-1,1]^d clamping; the hero visibly morphs. Local window
-  first (screen-recordable), optional web wrapper later. Done = a stranger
-  steering it sees directionally-consistent morphing within seconds, with no
-  NaN/blank frames across a 100-press session. Full build spec (5 steps, with the
-  SPSA port source) lives in the private founder hub:
-  `../emmas-gstack/business/gtm/2026-06-13-a1-shortest-path.md` (+ the detailed
-  `business/gtm/a1-implementation-spec.md`). Honest rails: composition is
-  host-side and the optimizer is host-side SPSA over substrate-rendered output —
-  do NOT over-claim "one substrate program" or substrate-native training.
-
-**Build order (decompose as the loop reaches each):**
-
-> **Progress:** 1a, 1b, 1c are COMPLETE.
-> 1a: θ hero render (core + headline selector + colour). 1b: `hero_spsa.HeroSPSA`
-> host-side two-sided SPSA. 1c: `hero_steering.HeroSteering` — headless
-> warmer/colder controller wiring SPSA propose/update to `render_hero_full`
-> (RGB hero + substrate glyph headline); two presses = one SPSA batch; per-frame
-> NaN/blank guard; `steering_window.py` tkinter shell (WARMER/COLDER + W/K keys);
-> in-process hero compile cache for fast repeated renders. Steering verified
-> end-to-end with the substrate in the loop, 4/4 (DEVLOG 2026-06-14). Next
-> actionable: **1d** (the full 100-press soak, headline ON, → the steering numbers
-> the paper §7/P7 are gated on).
-
-- [ ] **1d. 100-press soak + record-ready pass.** Scripted 100-press soak over
-  `HeroSteering` with the headline overlay ON (the full demo frame); assert no
-  NaN/blank frame across the session and a directional-consistency metric (a
-  consistent rater steers the hero monotonically). Emit the measured result
-  (NaN/blank count = 0, directional metric) to `DEVLOG.md` and a reusable
-  `experiments/gui_steering_eval.py` (feeds paper P7). Optional web wrapper
-  deferred.
+> **Build complete — measured:**
+> - 1a `frame_hero.su` + `render_hero`/`render_hero_rgb`/`render_hero_with_headline`
+>   (θ = cx,cy,invs,bright,radius,accent,bg,cr,cg,cb + headline_w; runtime-parameter,
+>   no recompile; oracle-verified ≤1e-6).
+> - 1b `hero_spsa.HeroSPSA` (host-side two-sided SPSA; converges; gradient-sign ok).
+> - 1c `hero_steering.HeroSteering` + `steering_window.py` (two presses = one SPSA
+>   batch; per-frame NaN/blank guard; tkinter WARMER/COLDER + W/K).
+> - 1d `experiments/gui_steering_eval.py` SOAK, **measured 2026-06-14**: 100-press
+>   session = **101/101 clean frames, 0 NaN, 0 blank** (headline off AND on);
+>   directional consistency — a brighter-preferring rater drives `bright`
+>   1.000→1.800 (+0.800, the axis ceiling), a darker-preferring rater 1.000→0.200
+>   (−0.800, the floor); sign flips with the preference. Tests: `test_hero_*` 14/14.
+> - Honest rails held throughout: render is substrate (colour channels + glyph
+>   pixels); composition + SPSA + warmer/colder bookkeeping are host-side; steering
+>   by a (synthetic, in tests) rater — NOT substrate-native training, NOT one
+>   substrate program.
+>
+> These 1d numbers are the data for paper §7 / task **P7** (pull them in there).
+> Remaining demo polish (low priority, NOT blocking the paper): the optional web
+> wrapper (deferred); reward EMA smoothing over last-k presses (currently raw ±1,
+> the faithful two-sided core — flagged, not faked).
 
 ## 2. Paper — substrate-rendered, human-steerable GUI (the a1 paper)
 
