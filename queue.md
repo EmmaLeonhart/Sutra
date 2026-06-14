@@ -352,12 +352,16 @@ compile-target"). Remaining:
   Lean; honest "what this does not yet prove" on convergence) + abstract clause +
   conclusion road-ahead; Conclusion renumbered §7→§8. The push auto-submits via
   `fv-paper-ci.yml` → runs the clawRxiv loop (review lands under `paper/reviews/`).
-- [ ] **Sampler-convergence — ATTEMPT a Lean proof (Emma 2026-06-14).** Block-Gibbs
-  reaches the ground state (the "stochastic ODEs" / Langevin angle). Non-finite /
-  measure-theoretic → needs **mathlib**. Scope a BOUNDED sub-claim first (e.g.
-  finite-state ergodicity / irreducibility+aperiodicity of the single-gadget
-  chain, or convergence to the Gibbs measure on a 1-spin / small graph) rather
-  than full MCMC mixing; install mathlib (heavy) as its own step.
+- [ ] **Sampler-convergence — full limit theorem (mathlib step, longer-horizon).**
+  The BOUNDED sub-claim is DONE (2026-06-14): `fv-lean/GibbsChain.lean` machine-
+  checks the single-gadget Glauber chain is `irreducible` + `aperiodic` (the exact
+  finite-Markov-chain ergodicity hypotheses) and `and_gibbs_unique_mode` (the
+  strict energy-min is the strict unique Gibbs mode for any β>0 Boltzmann weight) —
+  no axioms / `[propext, Quot.sound]`, no sorry. What REMAINS needs **mathlib**:
+  the t→∞ limit theorem itself (Perron–Frobenius / TV mixing) + detailed balance
+  `π(s)P(s,t)=π(t)P(t,s)` (real-valued probabilities + `exp`). Install mathlib
+  (heavy) as its own step; the finite floor above discharges that theorem's
+  hypotheses. (Recorded in FV spec § "thrml compile-target"; paper §7 updated.)
 - [ ] Lean is **not in CI** yet (toolchain install heavy) — decide whether to add
   a CI job or keep `check_fv_lean.sh` local.
 

@@ -345,12 +345,28 @@ Recipe (reusable): spins as `Bool`, energy ×k to `Int`, finite domain closed by
 and rejected; do not use it). Strict-uniqueness tactic:
 `first | exact absurd rfl h | (simp <;> omega)`.
 
-**Not yet proven (named):** the **sampler-convergence** claim — that block-Gibbs
-actually *reaches* the ground state (the "stochastic ODEs" / Langevin-limit
-angle). That is non-finite (measure/analysis-scale, likely mathlib) and is the
-open FV item; the finite gadget-correctness layer above is complete. Lean is **not
-in CI** yet (heavy toolchain install). The clawRxiv research-loop writeup vehicle
-(extend the FV paper vs a new one) is an open editorial choice. Supporting
+- **`GibbsChain.lean`** — the **sampler-convergence floor** (Emma's "attempt a
+  Lean convergence proof"). The single-site (Glauber) block-Gibbs chain on the AND
+  gadget's `Bool^3` state space is proven `irreducible` (every state reaches every
+  state — the 3-cube is connected; every Glauber edge has positive probability at
+  finite β) and `aperiodic` (every state has a self-loop) — **exactly the
+  hypotheses** the classical fundamental theorem of finite Markov chains needs for
+  a unique stationary `π` + convergence from any start. Plus `and_gibbs_unique_mode`:
+  the correct output is the strict unique **mode** of the Gibbs measure for any
+  strictly-antitone weight (every β>0 Boltzmann weight `exp(−βE)`). So the chain
+  converges (classical thm, hypotheses now machine-checked) to a `π` peaked on the
+  arithmetically-correct answer. `irreducible`/`aperiodic`/`strict_min_is_strict_mode`
+  depend on **no axioms**; `and_gibbs_unique_mode` on `[propext, Quot.sound]`.
+
+**Still the mathlib step (named, not yet mechanised):** the **limit theorem
+itself** — the t→∞ total-variation mixing / Perron–Frobenius statement — and
+detailed balance `π(s)P(s,t)=π(t)P(t,s)`. These need the real-valued transition
+probabilities + `exp`, i.e. mathlib's analysis; `GibbsChain.lean` is the
+finite/combinatorial floor *under* that classical theorem, discharging its
+hypotheses. (The "stochastic ODEs" / Langevin-limit framing is the continuous-time
+view of the same convergence.) Lean is **not in CI** yet (heavy toolchain install).
+The clawRxiv research-loop writeup vehicle is settled: **extend the FV paper**
+(Emma 2026-06-14), §7. Supporting
 measured evidence: `planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md`,
 `planning/findings/2026-06-14-thrml-approaches-comparison.md`,
 `planning/findings/2026-06-14-thrml-hardware-alignment.md`.
