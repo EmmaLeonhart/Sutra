@@ -37,8 +37,8 @@ split. We also discharge the kernel-enforced read/write confinement half of
 the contract obligation. We further give a **decision procedure for program equivalence over
 the Kleene-logic fragment**: a checker extracts each expression's polynomial via
 the compiler's own lowering and decides whether two programs compile to the same
-tensor graph by the polynomial identity `expand(p₁ − p₂) = 0`, for arbitrary
-nesting depth. This separates two notions that are usually conflated — compiling
+tensor graph by polynomial identity — exactly, or in poly time (Schwartz–Zippel) —
+for arbitrary depth. This separates two notions that are usually conflated — compiling
 to the same graph versus being logically equivalent — and we exhibit
 distributivity as a clean witness that the former is strictly stronger.
 
@@ -146,10 +146,11 @@ the Kleene connectives (`&&`, `||`, `!`, nested to any depth) we decide
 equivalence outright. A checker (`fv_obligation_checker.py`) extracts each
 expression's polynomial by running the compiler's own inliner pass — not a
 hand-copied formula — and walking the lowered arithmetic into a polynomial, then
-decides whether two programs **compile to the same graph** by the polynomial
-identity `expand(p₁ − p₂) = 0`. This is exact and decidable regardless of nesting
-depth (it is polynomial identity testing, evaluated symbolically). The checker
-also decides the weaker **logical** equivalence — agreement on the {−1, 0, +1}ⁿ
+decides whether two programs **compile to the same graph** by polynomial identity.
+Two routes decide the *same* notion: an *exact* symbolic check `expand(p₁ − p₂) = 0`,
+and a *poly-time* randomized check (Schwartz–Zippel over a finite field) that scales to
+deep nestings the exact route cannot reach — §3 quantifies both and the trade-off. The
+checker also decides the weaker **logical** equivalence — agreement on the {−1, 0, +1}ⁿ
 Kleene grid — and reports both, refusing (rather than guessing) on any term
 outside the polynomial fragment, such as a comparison or a runtime intrinsic.
 
@@ -354,34 +355,47 @@ trusted-base usage envelope. Conflating them would let either layer's
 limitations contaminate the other's claim; keeping them separate is what lets
 each layer's argument be precise.
 
-**Honest cost of the polynomial-identity check (PIT term count) — and why it is
-not a regression over the alternative.** Branch / path enumeration is replaced by
-*monomial* enumeration in the expanded polynomial; that replacement is exact, but
-it is not free. We measured the term count of the expanded polynomial on
-balanced Kleene trees of varying depth and variable pool
-(`experiments/fv_pit_term_count.py`; the same `extract_truth_polynomial`
-pipeline the obligation checker uses, so the measurement is on what the compiler
-emits): depth 1 → **6 terms** (any var pool); depth 2 → **66 / 177 / 312 terms**
-for var pools 2 / 3 / 4 (the depth-2 balanced tree caps at 4 distinct variables);
-depth 3 with 2 variables → **1054 terms** in 56 s of `sympy.expand`. At depth ≥ 3
-and var pool ≥ 3 the expansion exceeded a per-row budget we'd accept for a CI
-gate (~770 MB resident before the run was stopped).
+**Cost of the equivalence check, and a poly-time decision procedure that scales.**
+The *exact* identity check `expand(p_a − p_b) == 0` is expensive, and we name why
+plainly: the Kleene lowering duplicates operands (`a && b` expands to a formula that
+mentions `a` and `b` several times), so the *inlined* arithmetic — and `sympy.expand`
+of it — is exponential in nesting depth, before any cancellation. Measured on the same
+`extract_truth_polynomial` pipeline the checker uses (balanced Kleene trees, var pool 3;
+`experiments/randomized_pit_scaling.py`): depth 1 → **6 monomials**, depth 2 → **312**,
+depth 3 → **infeasible** (`expand` killed after 30 s). This is the wall reviewers
+correctly flagged.
 
-It would be wrong to read this as "PIT fails at depth 3" — the alternative this
-replaces is enumerating execution paths through nested branches, which is also
-exponential in nesting depth (the classic *path explosion* of symbolic
-execution). PIT trades one exponential surface for another. Where it wins is in
-the *constants* (no combinatorial branch fork-out per path; no SMT call per
-predicate) and in the *transparency* (the cost is one number — the monomial
-count — that you can measure and report, rather than a path tree whose true
-size you discover at run time). Equivalence by `reduces_to_same_graph(p, q)` is
-`expand(p − q) == 0` and pays the same wall as the extraction step. So the cost
-surface that PIT actually exposes is "term count grows geometrically in nesting
-depth, with the cost concentrated in `sympy.expand`," and we name that wall in
-the same paragraph as the result — not bury it. The correctness claim (the
-reduction *is* the equivalence procedure for the Kleene fragment) is unchanged;
-what we are sharpening here is the *cost* claim. See
-`planning/findings/2026-05-27-pit-term-count.md` for the full table.
+The wall is not intrinsic to deciding equivalence — only to deciding it by *expansion*.
+We add a **randomized identity test (Schwartz–Zippel)** that decides the same notion in
+polynomial time. Instead of distributing the polynomial, it evaluates the difference
+`p_a − p_b` at random points of a finite field `F_p` (`p = 2^61 − 1`), applying each
+connective's closed-form truth polynomial to its operands' *values* on the *original,
+un-inlined* expression tree — one number per node, **O(tree size) per trial**, no
+duplication, no `expand`. It is sound one-sided: any nonzero evaluation is an **exact
+disproof** with a witness point, and all-zero over `k` trials certifies identity with
+false-positive probability `≤ (deg / (p−1))^k`. Measured on the same trees (32 trials):
+
+| nesting depth | leaves | `expand` (exact) | randomized PIT |
+|--------------:|-------:|:-----------------|---------------:|
+| 3  | 8     | infeasible (> 30 s) | 0.003 s |
+| 6  | 64    | infeasible          | 0.017 s |
+| 8  | 256   | infeasible          | 0.039 s |
+| 10 | 1 024 | infeasible          | 0.152 s |
+| 12 | 4 096 | infeasible          | **0.822 s** |
+
+So the procedure decides at **depth 12 (4 096 leaves) in under a second** what expansion
+cannot do at depth 3, with verdicts agreeing with the exact check wherever the exact check
+still terminates (De Morgan, commutativity, distributivity, and absorption are
+cross-checked in `test_fv_general_checker.py`). The connective formulas the evaluator
+applies are verified against the compiler's own inliner
+(`test_kleene_connective_formulas_match_inliner`), so the randomized check decides the
+*same* polynomial as `reduces_to_same_graph`, not a drift. The honest trade-off: the
+exact check is certain when it terminates; the randomized check trades that for a
+quantified, negligible error (at depth 12 the bound is `(1.7×10⁷ / 2^61)^32 ≈ 10^−360`).
+The degree grows ≈ `4^depth`, so beyond ~depth 30 a larger prime or CRT over several
+primes restores the margin — unnecessary for any realistic nesting. Full data:
+`planning/findings/2026-06-14-randomized-pit-escapes-the-wall.md` (and the original
+expansion-cost table in `planning/findings/2026-05-27-pit-term-count.md`).
 
 **3.4 Range-soundness and termination for unbounded-precision arithmetic
 (digit-array carry propagation).** The three families above cover the
