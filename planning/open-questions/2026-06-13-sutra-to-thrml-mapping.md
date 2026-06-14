@@ -221,6 +221,24 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   arithmetic/wide values. Next D: a binary categorical op (2-input table) and the
   spin/dim-cost crossover.
 
+### Approach E — joint-EBM composition (no host hand-off)
+
+- **E1. joint-EBM kv-query — WORKS at a balanced ratio (2026-06-14).**
+  `experiments/thrml/joint_kv_demo.py`. #5 ran the VSA key-value query in TWO
+  staged sampling runs with a host hand-off (unbind → read u on host → cleanup).
+  E composes both into ONE energy model, single sampling run, **no host readout
+  between stages**: the unbind 3-body factor and the cleanup Hebbian couplings
+  coexist over the same u nodes and COMPETE (unbind = evidence toward the noisy
+  filler; cleanup = prior toward clean codebook attractors). **Measured (N=16,
+  K=2, cleanup/unbind ratio sweep):** 0.000 (ratio 0, raw unbind) → 0.625 (2) →
+  **1.000 (3)** → 0.750 (5) → 0.500 (8). **Non-monotonic with a sweet spot:** at
+  ratio 3 it matches the staged #5 (1.000) in ONE substrate program; too much
+  cleanup snaps u to an attractor ignoring the query. → joint composition removes
+  the host-readout boundary (a purity win) but trades it for **balance sensitivity
+  + a narrow operating window**; staged (#5) is robust 100% but has the readout
+  boundary. Comparison data point for H: **purity (no host hand-off) vs robustness
+  (wide operating margin)**.
+
 ## Emma's encoding steer (2026-06-13)
 
 - thrml models computation as **individual memory spaces**; the natural atom is
