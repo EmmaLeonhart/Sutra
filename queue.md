@@ -300,10 +300,16 @@ the existing frontends' data-structure tier.
   syntax/grammar is separate). Model on `sutra-from-ocaml`; reuse the shared
   shapes (multi-clause function heads with guards map to the dispatch blend).
 
-## Formal verification of thrml gadgets in Lean + clawRxiv loop (Emma 2026-06-14 — PARKED, not immediate)
+## Formal verification of thrml gadgets in Lean + clawRxiv loop (Emma 2026-06-14)
 
-Emma's direction (clarifying her 2026-06-14 queue seed): once the A–H thrml
-approaches are done, take the energy-based gadgets validated in
+**NOT parked — just LAST in the queue, to be done AUTONOMOUSLY after the thrml
+A–H approaches** (Emma 2026-06-14: "the fv and a1 are not parked, they are just
+last in the queue after the other things; they should be automatically done after
+other stuff"). The work-loop reaches it in order and does it like any other item;
+no waiting for Emma. Comes BEFORE the a1 GUI demo below.
+
+Emma's direction (clarifying her 2026-06-14 queue seed): take the energy-based
+gadgets validated in
 `planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md` and **formally
 verify them in Lean** — i.e. prove the things currently shown only by measurement:
 the correct answer is the strict global energy minimum (AND/adder/multiplier
@@ -313,22 +319,20 @@ convergence theory — the continuous-time limit of block-Gibbs / Langevin dynam
 is a stochastic ODE/SDE, the natural frame for a proof that the thermodynamic
 sampler reaches the ground state.
 
-**NOT an immediate-go item** (Emma: "this isn't an immediate go thing, I put it at
-the end for a reason") — keep barreling the thrml A–H approaches first. But it is
-**higher priority than the a1 GUI demo below** (Emma: "this comes before the gui
-thing since I need to be awake for it"). Ties into the existing FV track
-(`planning/sutra-spec/formal-verification.md`, `paper/formal-verification/paper.md`,
-the clawRxiv loop). When it goes active, confirm scope with Emma (which gadgets,
-Lean formalization depth, paper vs spec).
+Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
+`paper/formal-verification/paper.md`, the clawRxiv loop). Scope is settled by
+Emma's clarification above (verify the gadgets in Lean + run the clawRxiv loop);
+just do it when the loop reaches it.
 
-## Demo — warmer/colder self-morphing hero (Emma 2026-06-14, bottom of queue)
+## Demo — warmer/colder self-morphing hero (Emma 2026-06-14, last in queue)
 
-Low-priority capability demo, parked at the bottom so it isn't lost. The build is
-ASSEMBLY of parts that already exist — runtime-parameter whole-frame rendering
-(`demos/gui/whole_frame.py`, `frame_moving.su`; params are per-call broadcast
-buffers, no recompile) + a batched SPSA optimizer + warmer/colder controls — into
-one recordable interactive demo. No new substrate research. Do NOT block other
-tracks on it.
+**NOT parked — just LAST in the queue, done AUTONOMOUSLY after the FV item above**
+(Emma 2026-06-14). The build is ASSEMBLY of parts that already exist —
+runtime-parameter whole-frame rendering (`demos/gui/whole_frame.py`,
+`frame_moving.su`; params are per-call broadcast buffers, no recompile) + a
+batched SPSA optimizer + warmer/colder controls — into one recordable interactive
+demo. No new substrate research. (Emma records it herself once built; building is
+autonomous.)
 
 - [ ] **Warmer/colder steering demo.** A substrate-rendered hero (headline glyphs
   via the 36-glyph renderer + accent glow/ring + a CTA block) whose
