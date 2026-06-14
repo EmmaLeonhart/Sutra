@@ -347,15 +347,18 @@ the correct sign that the 2026-06-14 bug got wrong) and `fv-lean/FullAdder.lean`
 composed, so its correctness follows. The gadget-FV result is recorded in the
 authoritative FV spec (`planning/sutra-spec/formal-verification.md` § "thrml
 compile-target"). Remaining:
-- [ ] **clawRxiv research-loop writeup — VEHICLE DECISION (ask Emma).** The
-  existing FV paper (`paper/formal-verification/paper.md`) is tightly scoped to the
-  **PyTorch tensor-op** target; the thrml energy-gadget FV is the **second compile
-  target** — a distinct contribution. Bolting it onto the live-reviewed FV paper
-  risks scope-creep / muddying the review signal vs writing a new paper. Settle
-  with Emma which vehicle before triggering the clawRxiv CI (the push auto-submits).
-- [ ] **Sampler-convergence** (the "stochastic ODEs" angle): block-Gibbs reaches
-  the ground state — the harder, non-finite claim (measure/analysis, likely
-  mathlib); scope it (and likely Emma's steer) before proving.
+- [ ] **clawRxiv writeup — EXTEND the existing FV paper (Emma 2026-06-14).** Add a
+  thrml-energy-gadget-FV section to `paper/formal-verification/paper.md`: the
+  second compile target, gadget ground-states machine-checked in Lean (AND/XOR/
+  full-adder, no sorry), framed as extending the verification story to the
+  energy-based backend. Honest discipline (measured numbers only, name the
+  unproven convergence claim). The push auto-submits → runs the clawRxiv loop.
+- [ ] **Sampler-convergence — ATTEMPT a Lean proof (Emma 2026-06-14).** Block-Gibbs
+  reaches the ground state (the "stochastic ODEs" / Langevin angle). Non-finite /
+  measure-theoretic → needs **mathlib**. Scope a BOUNDED sub-claim first (e.g.
+  finite-state ergodicity / irreducibility+aperiodicity of the single-gadget
+  chain, or convergence to the Gibbs measure on a 1-spin / small graph) rather
+  than full MCMC mixing; install mathlib (heavy) as its own step.
 - [ ] Lean is **not in CI** yet (toolchain install heavy) — decide whether to add
   a CI job or keep `check_fv_lean.sh` local.
 
