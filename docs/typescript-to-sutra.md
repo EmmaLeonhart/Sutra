@@ -783,6 +783,24 @@ patterns to lean on:
 
 ---
 
+## Other language frontends
+
+TypeScript is the most-developed frontend, but it is no longer the only
+one. Sutra has experimental transpiler frontends — in active development,
+of varying maturity — that lower other source languages onto the same
+`.su` pipeline:
+
+- **OCaml**, **Rust**, **Scala** — the furthest along after TypeScript
+- **Clojure**, **Elixir**, **F#**, **Haskell** — growing fixture suites
+- **C** — the earliest-stage skeleton
+
+Each is fixture-tested (input source → expected `.su` output); none is as
+complete as the TypeScript path yet. The aim is the same in every case: a
+syntax-conversion pass onto Sutra's tensor-op runtime, so existing code in
+these languages can compile to the substrate without a hand rewrite.
+
+---
+
 ## Reference
 
 - Promise-specific design: [Promises](promises.md) page.

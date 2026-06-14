@@ -35,8 +35,8 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 | Path | What's there |
 |---|---|
 | `sdk/sutra-compiler/` | The compiler. `sutra_compiler/` is the Python package; `tests/` is the test suite; `stdlib/` holds the `.su` standard library that gets inlined into user code. |
-| `sdk/sutra-from-ts/` | The TypeScript→Sutra transpiler. The **sole active transpiler** (per `CLAUDE.md`) and Yantra's downstream gate. |
-| `sdk/sutra-from-c/` | Parked C→Sutra skeleton. At the back of the agenda; TypeScript is the only transpiler being built. |
+| `sdk/sutra-from-ts/` | The TypeScript→Sutra transpiler — the most-developed frontend and Yantra's downstream gate (19 fixtures). |
+| `sdk/sutra-from-{rust,clojure,fsharp,haskell,elixir,ocaml,scala,c}/` | Additional language frontends, in active development — fixture-tested lowering passes of varying maturity (OCaml ~45 fixtures and Rust/Scala ~9 the furthest along; C ~2 the earliest). The "TS is the sole transpiler" framing is retired. |
 | `sdk/intellij-sutra/` | IntelliJ plugin (syntax highlighting, completion, external annotator, settings). |
 | `sdk/vscode-sutra/` | VS Code extension (TextMate grammar, snippets). |
 | `examples/` | `.su` programs. The smoke-tested ten plus reference material. `examples/_smoke_test.py` is the end-to-end driver. |
@@ -90,7 +90,7 @@ The full rules are in `CLAUDE.md` §"Workflow Rules". Short version:
 
 - Editing the paper. It is frozen.
 - Reading the website. The website is for humans at `sutra.yantraos.org`; agents read the repo Markdown directly.
-- Implementing Yantra (the Sutra-based OS). That has its own repo at `../Yantra/`. Yantra is downstream of Sutra and downstream of both transpilers — it does not live here.
+- Implementing Yantra (the Sutra-based OS). That has its own repo at `../Yantra/`. Yantra is downstream of Sutra and of the TypeScript transpiler (its GUI gate) — it does not live here.
 
 ## When in doubt
 
