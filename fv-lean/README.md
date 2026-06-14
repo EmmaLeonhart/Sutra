@@ -20,6 +20,21 @@ every wrong output strictly higher → unique minimiser; no `sorry`)
   (sum, carry) is the strict global minimum for all 8 inputs → **addition's
   ground-state decode is exactly correct.** The 2×2 multiplier is these gates
   (AND + XOR) composed, so its correctness follows from the gate proofs.
+- `GibbsChain.lean` — the **single-gadget Gibbs chain reaches the ground state**
+  (the "attempt a Lean convergence proof" item, Emma 2026-06-14). The bounded,
+  mathlib-free floor under a full convergence theorem: the single-site (Glauber)
+  block-Gibbs chain on the AND gadget's `Bool^3` state space is `irreducible`
+  (every state reaches every state — the 3-cube is connected) and `aperiodic`
+  (every state has a self-loop) — **exactly the hypotheses** the classical
+  fundamental theorem of finite Markov chains needs for a unique stationary `π`
+  + convergence from any start. Plus `and_gibbs_unique_mode`: the correct output
+  is the strict unique MODE of the Gibbs measure for any strictly-antitone weight
+  (every β>0 Boltzmann weight). So the chain converges (classical thm, hypotheses
+  now machine-checked) to a `π` peaked on the right answer. NOT mechanised (the
+  mathlib step): the limit theorem itself + detailed balance, which need
+  real-valued probabilities + `exp`. `irreducible`/`aperiodic`/
+  `strict_min_is_strict_mode` depend on **no axioms**; `and_gibbs_unique_mode` on
+  `[propext, Quot.sound]`.
 
 ## Check it
 
@@ -29,5 +44,6 @@ lean fv-lean/AndGadget.lean        # exit 0, prints the axiom dependencies
 ```
 
 `scripts/check_fv_lean.sh` runs every `.lean` here. NOTE: Lean is **not yet in
-CI** (toolchain install is heavy); these are verified locally. Next: the
-3-/4-body XOR/parity and the adder-carry / full-adder ground-state proofs.
+CI** (toolchain install is heavy); these are verified locally. Next (the
+remaining mathlib step): the finite-chain limit theorem + detailed balance for
+`GibbsChain`, which need real-valued transition probabilities + `exp`.

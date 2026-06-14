@@ -68,10 +68,10 @@ is the non-learned trusted base, per published contract; §5 states it precisely
 and §6 positions the work against neural-network verification, SMT for nonlinear
 arithmetic, partial evaluation, and vector-symbolic architectures. Finally, §7
 reports a second result on Sutra's **energy-based** compile target for
-thermodynamic (probabilistic-bit) sampling: Lean-machine-checked proofs that its
-gadgets (AND, XOR, the full adder) have the correct output as the **strict global
-energy minimum** — a ground-state decode is exact — with sampler-*convergence*
-named as open.
+thermodynamic sampling: Lean-machine-checked proofs that its gadgets (AND, XOR,
+the full adder) have the correct output as the **strict global energy minimum** —
+a ground-state decode is exact — with sampler-*convergence* partly proven
+(ergodicity checked, limit theorem open).
 
 ---
 
@@ -831,6 +831,20 @@ sorry-free, depending only on `[propext, Quot.sound]`:
   inputs, so **integer addition's ground-state decode is provably exact**. A
   multiplier is these gates composed, so its correctness follows from theirs.
 
+We also begin on *reachability*. The single-site (Glauber) block-Gibbs chain on
+the AND gadget's $\{-1,+1\}^3$ state space is machine-checked **irreducible**
+(every state reaches every state — the configuration cube is connected, and every
+Glauber move has positive probability at finite $\beta$) and **aperiodic** (every
+state has a self-loop, the conditional resampling a spin to its current value).
+Irreducibility and aperiodicity are *exactly* the hypotheses the classical
+fundamental theorem of finite Markov chains requires for a unique stationary
+distribution $\pi$ and convergence to it from any start. We additionally prove
+that for **any** strictly-antitone weight — and the Boltzmann weight
+$w(E)=e^{-\beta E}$ is strictly antitone for every $\beta>0$ — the strict
+energy-minimiser is the strict unique **mode** of $\pi$. So the finite chain
+converges (classical theorem, hypotheses now mechanised) to a stationary
+distribution whose unique mode is the arithmetically-correct answer.
+
 Each proof is a finite case analysis discharged by `omega` after a Boolean split
 (integer `decide` does not reduce in the kernel here). These same gadgets were
 independently *measured* to compute correctly at ~100% on the real sampler, and
@@ -838,14 +852,18 @@ the AND gadget was even *re-learned* from data by contrastive divergence,
 recovering the hand-derived couplings — so measurement, learning, and proof agree
 on the same energy landscape.
 
-**What this does not yet prove — stated plainly.** Ground-state *correctness* (the
-minimum is the right answer) is not ground-state *reachability* (that block-Gibbs
-sampling actually finds it). The latter is the convergence question — the
-continuous-time limit of the sampler is a Langevin stochastic differential
-equation, and a formal convergence proof is measure-theoretic, outside the finite
-fragment proven here, and the open item for this target. We claim the gadget
-energies are *correct*, machine-checked; we do not yet claim the sampler provably
-*converges*. (Proofs: `fv-lean/`; the measured exploration and the host/sampled
+**What this does not yet prove — stated plainly.** We have machine-checked the
+gadget energies are *correct* and the finite chain's ergodicity hypotheses
+(irreducible, aperiodic) plus the Gibbs **mode**. What remains is the **limit
+theorem itself** — the $t\to\infty$ total-variation mixing / Perron–Frobenius
+statement — together with detailed balance $\pi(s)P(s,t)=\pi(t)P(t,s)$. These need
+the real-valued transition probabilities and $e^{-\beta E}$, i.e. the analytic
+(continuous, measure-theoretic) layer — the Langevin stochastic-differential-
+equation limit of block-Gibbs — which is outside the finite, `mathlib`-free
+fragment proven here and is the open item for this target. So: the gadgets are
+*correct* and the chain is *ergodic with the right mode*, both machine-checked; the
+remaining link to full *convergence* is a cited classical theorem we have not yet
+mechanised. (Proofs: `fv-lean/`; the measured exploration and the host/sampled
 hardware mapping: the companion findings.)
 
 ## 8. Conclusion
@@ -865,9 +883,11 @@ discharged obligations are the contribution; extending the equivalence decision
 procedure beyond the Kleene fragment, and building the general checker that
 discharges an arbitrary reduced-graph obligation, are the road ahead. On Sutra's
 second, energy-based compile target the picture is complementary (§7): the
-gadgets' ground-states are machine-checked correct, and proving the sampler
-provably *converges* to them — the Langevin / stochastic-differential-equation
-limit of block-Gibbs — is the road ahead there.
+gadgets' ground-states are machine-checked correct, the single-gadget Gibbs chain
+is machine-checked ergodic (irreducible, aperiodic) with its stationary mode the
+correct answer, and the remaining link — the $t\to\infty$ limit theorem, the
+Langevin / stochastic-differential-equation limit of block-Gibbs — is the road
+ahead there.
 
 ---
 

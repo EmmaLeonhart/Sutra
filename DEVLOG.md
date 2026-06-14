@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-06-14: FV-in-Lean — single-gadget Gibbs chain convergence floor (the "stochastic ODEs" item)
+
+Discharged the BOUNDED sub-claim of Emma's "attempt a Lean convergence proof" item, in
+Lean 4 core (no mathlib), `fv-lean/GibbsChain.lean` — runner picks it up, full suite 4/4
+passes (`scripts/check_fv_lean.sh`). Models the single-site (Glauber) block-Gibbs chain on
+the AND gadget's `Bool^3` state space: a step changes at most one coordinate (`Step` = agree
+on ≥2 of 3 coords; self-loops included). Machine-checked: `irreducible` (every state reaches
+every state — the 3-cube is connected; path flips differing coords one at a time) and
+`aperiodic` (every state has a self-loop) — **exactly the hypotheses** the classical
+fundamental theorem of finite Markov chains needs for a unique stationary π + convergence
+from any start. Plus `strict_min_is_strict_mode` + `and_gibbs_unique_mode`: for any
+strictly-antitone weight (every β>0 Boltzmann weight `exp(−βE)` qualifies), the strict
+energy-min is the strict unique MODE of the Gibbs measure — so the chain converges (classical
+thm, hypotheses now mechanised) to a π peaked on the arithmetically-correct answer.
+`irreducible`/`aperiodic`/`strict_min_is_strict_mode` depend on **no axioms**;
+`and_gibbs_unique_mode` on `[propext, Quot.sound]`; no `sorry`. Honestly named as the
+remaining mathlib step (NOT mechanised here): the t→∞ limit theorem itself (Perron–Frobenius
+/ TV mixing) + detailed balance, which need real-valued probabilities + `exp`. Updated the FV
+spec § "thrml compile-target" (the GibbsChain bullet + "still the mathlib step"), `fv-lean/
+README.md`, the queue item (bounded part done; mathlib limit-theorem residual is longer-
+horizon), and `paper/formal-verification/paper.md` §7 (new reachability paragraph; the "what
+this does not yet prove" paragraph now says the ergodicity hypotheses + Gibbs mode are
+checked and only the limit theorem is open; abstract clause "partly proven (ergodicity
+checked, limit theorem open)" trimmed to keep the abstract ≤5000 chars; conclusion sentence
+updated). The push triggers `fv-paper-ci.yml` → clawRxiv loop.
+
 ## 2026-06-14: FV paper extended with the thrml-gadget verification (clawRxiv loop)
 
 Per Emma's blocker-sweep decision (extend the existing FV paper, not a new one), added
