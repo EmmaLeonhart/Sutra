@@ -239,6 +239,24 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   boundary. Comparison data point for H: **purity (no host hand-off) vs robustness
   (wide operating margin)**.
 
+### Approach F — denser / structured codes
+
+- **F1. orthogonal (Hadamard) codes — ~4x capacity gain, with an honest caveat
+  (2026-06-14).** `experiments/thrml/structured_codes_demo.py`. #2 measured the
+  random-code Hopfield wall (~0.14*N). F replaces random +/-1 patterns with rows
+  of a Hadamard matrix (orthogonal -> zero Hebbian crosstalk). **Measured (N=16,
+  clamped-cue retrieval, inferred-half accuracy vs M stored):** random falls off
+  at M=4 (0.84), Hadamard stays **1.000 through M=8** -- clean capacity jumps from
+  ~2 to ~8 (about 4x, ~N/2). **Caveat (measured, kept):** Hadamard then DEGRADES
+  (M=12 -> 0.81, M=16 -> 0.50, worse than random) because a COMPLETE orthogonal
+  set makes the Hebbian sum_mu xi xi^T off-diagonal exactly zero (couplings vanish
+  at M=N). So structured codes are a real capacity lever but the plain Hebbian
+  rule degenerates near M=N. **Connection to approach C:** a *learned* coupling
+  rule (pseudo-inverse / Storkey, or trained via `estimate_kl_grad`) would push
+  past the Hebbian degeneracy -- F (encoding) and C (learning the couplings)
+  compound. H data point: **encoding alone buys ~4x capacity; a learned rule buys
+  more.**
+
 ## Emma's encoding steer (2026-06-13)
 
 - thrml models computation as **individual memory spaces**; the natural atom is
