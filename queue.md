@@ -66,21 +66,24 @@ built; building is autonomous.)
 
 **Build order (decompose as the loop reaches each):**
 
-> **Progress:** 1a (θ hero render) and 1b (SPSA optimizer) are COMPLETE.
-> 1a: render core + headline-glyph selector + colour; θ axes = HERO_THETA_AXES
-> (cx,cy,invs,bright,radius,accent,bg,cr,cg,cb) + headline_w; runtime-parameter.
-> 1b: `hero_spsa.HeroSPSA` — host-side two-sided SPSA (ported from the hub's
-> `spsa_dense`; propose/update; normalized θ∈[-1,1]^D affine-mapped to render
-> ranges via HERO_SPSA_AXES); convergence + gradient-sign verified, 4/4
-> (DEVLOG 2026-06-14). Next actionable: **1c** (wire it into the live window).
+> **Progress:** 1a, 1b, 1c are COMPLETE.
+> 1a: θ hero render (core + headline selector + colour). 1b: `hero_spsa.HeroSPSA`
+> host-side two-sided SPSA. 1c: `hero_steering.HeroSteering` — headless
+> warmer/colder controller wiring SPSA propose/update to `render_hero_full`
+> (RGB hero + substrate glyph headline); two presses = one SPSA batch; per-frame
+> NaN/blank guard; `steering_window.py` tkinter shell (WARMER/COLDER + W/K keys);
+> in-process hero compile cache for fast repeated renders. Steering verified
+> end-to-end with the substrate in the loop, 4/4 (DEVLOG 2026-06-14). Next
+> actionable: **1d** (the full 100-press soak, headline ON, → the steering numbers
+> the paper §7/P7 are gated on).
 
-- [ ] **1c. Warmer/colder controls + window loop.** Wire WARMER/COLDER buttons
-  (reward +1/−1, smoothed) into the live window (`live_demo.py`/`window.py` event
-  loop) so a press triggers an SPSA step and the hero re-renders. No NaN/blank
-  frames.
-- [ ] **1d. 100-press soak + record-ready pass.** Run a scripted 100-press soak;
-  assert no NaN/blank frame and directionally-consistent morphing. Note the
-  measured result in `DEVLOG.md`. Optional web wrapper deferred.
+- [ ] **1d. 100-press soak + record-ready pass.** Scripted 100-press soak over
+  `HeroSteering` with the headline overlay ON (the full demo frame); assert no
+  NaN/blank frame across the session and a directional-consistency metric (a
+  consistent rater steers the hero monotonically). Emit the measured result
+  (NaN/blank count = 0, directional metric) to `DEVLOG.md` and a reusable
+  `experiments/gui_steering_eval.py` (feeds paper P7). Optional web wrapper
+  deferred.
 
 ## 2. Paper — substrate-rendered, human-steerable GUI (the a1 paper)
 

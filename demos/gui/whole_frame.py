@@ -405,12 +405,26 @@ def render_quad(size: int = 64, radius: float = 0.5, block: int = 8):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+_HERO_MOD = None
+
+
+def _hero_module():
+    """Compile frame_hero.su ONCE and cache the module in-process. The steering
+    loop (item 1c) and the soak (1d) render hundreds of frames; recompiling each
+    time would dominate the wall clock, so the compiled module is reused."""
+    global _HERO_MOD
+    if _HERO_MOD is None:
+        from sutra_compiler import compile_su
+        _HERO_MOD = compile_su(DEMO_GUI / "frame_hero.su",
+                               llm_model="unused-no-basis-vectors",
+                               runtime_dim=8, verbose=False)
+    return _HERO_MOD
+
+
 def _compile_hero():
-    """Compile frame_hero.su -> (hero, _VSA). The θ-parameterized hero render
-    core for the warmer/colder a1 steering demo (queue item 1a)."""
-    from sutra_compiler import compile_su
-    mod = compile_su(DEMO_GUI / "frame_hero.su",
-                     llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
+    """Return (hero, _VSA). The θ-parameterized hero render core for the
+    warmer/colder a1 steering demo (queue item 1a)."""
+    mod = _hero_module()
     return mod.hero, mod._VSA
 
 
@@ -474,9 +488,7 @@ def render_hero_rgb(size: int = 64, theta: dict | None = None):
     import numpy as np
     import torch
 
-    from sutra_compiler import compile_su
-    mod = compile_su(DEMO_GUI / "frame_hero.su",
-                     llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
+    mod = _hero_module()
     hero_channel, vsa = mod.hero_channel, mod._VSA
     dt, dev = vsa.dtype, vsa.device
 
@@ -567,6 +579,25 @@ def render_headline_banner(headline: str):
     return banner
 
 
+def _banner_placement(banner, size: int, band: tuple):
+    """Yield (frame_row, frame_col, banner_row, banner_col) for each frame cell the
+    banner maps onto: the banner is centred horizontally in the top `band`, scaled
+    nearest-neighbour keeping glyph aspect. Host-side placement geometry, shared by
+    the field overlay and the RGB overlay."""
+    hb, wb = banner.shape
+    if hb == 0 or wb == 0:
+        return
+    r0, r1 = int(band[0] * size), int(band[1] * size)
+    rows = max(1, r1 - r0)
+    cols = max(1, min(size, int(rows * wb / hb)))
+    c0 = (size - cols) // 2
+    for j in range(rows):
+        by = min(hb - 1, int(j * hb / rows))
+        for i in range(cols):
+            bx = min(wb - 1, int(i * wb / cols))
+            yield r0 + j, c0 + i, by, bx
+
+
 def render_hero_with_headline(size: int = 64, theta: dict | None = None,
                               band: tuple = (0.08, 0.30)):
     """The θ-parameterized hero field (render_hero) with the selected headline
@@ -576,27 +607,33 @@ def render_hero_with_headline(size: int = 64, theta: dict | None = None,
     Host-side composition (named, per the a1 spec): the argmax headline choice and
     nearest-neighbour placement of the banner into the frame band. Lit banner cells
     are painted at full brightness over the hero field."""
-    import numpy as np
-
     field = render_hero(size, theta)
     headline = select_headline(theta)
     banner = render_headline_banner(headline)            # (5, 5*n) binary, substrate
-    hb, wb = banner.shape
-    if hb == 0 or wb == 0:
-        return field, headline
-
-    r0, r1 = int(band[0] * size), int(band[1] * size)
-    rows = max(1, r1 - r0)
-    # centre the banner horizontally, keep glyph aspect (width scaled to rows*wb/hb)
-    cols = max(1, min(size, int(rows * wb / hb)))
-    c0 = (size - cols) // 2
-    for j in range(rows):
-        by = min(hb - 1, int(j * hb / rows))
-        for i in range(cols):
-            bx = min(wb - 1, int(i * wb / cols))
-            if banner[by, bx] > 0.5:                     # lit glyph cell
-                field[r0 + j, c0 + i] = 1.0              # host paints the overlay
+    for fr, fc, by, bx in _banner_placement(banner, size, band):
+        if banner[by, bx] > 0.5:                         # lit glyph cell
+            field[fr, fc] = 1.0                          # host paints the overlay
     return field, headline
+
+
+def render_hero_full(size: int = 64, theta: dict | None = None,
+                     band: tuple = (0.08, 0.30)):
+    """The full demo frame: the θ-driven RGB hero (render_hero_rgb) with the
+    selected headline banner overlaid white into the top band. Returns
+    (rgb_image (size,size,3), headline).
+
+    Substrate: the three colour channels (hero_channel) AND every glyph pixel.
+    Host-side composition (named): the RGB stack, the argmax headline choice, and
+    the banner placement. This is what the live steering window paints (item 1c)."""
+    import numpy as np
+
+    img = render_hero_rgb(size, theta)                   # (size,size,3) substrate channels
+    headline = select_headline(theta)
+    banner = render_headline_banner(headline)
+    for fr, fc, by, bx in _banner_placement(banner, size, band):
+        if banner[by, bx] > 0.5:
+            img[fr, fc, :] = 1.0                          # white headline over all channels
+    return img, headline
 
 
 def main() -> None:
