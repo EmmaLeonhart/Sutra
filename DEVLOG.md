@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-14: Clojure frontend — `case` → nested equality defuzz-blend (suite 18/18)
+
+Added `(case E c1 r1 … [default])` lowering to `sdk/sutra-from-clojure` — the `cond`
+shape with an implicit `(= E ci)` test per clause, folded into a nested defuzz blend
+with the trailing lone arg as the default (E lowered once + reused; numbers, so
+side-effect-free). Literal number/bool test constants (multi-constant test lists
+`(c1 c2)` deferred → clean `UNSUPPORTED-EXPR`, never a mislowering). Fixture
+`case_dispatch` (`(case x 1 10 2 20 3 30 99)`; `classify(2)=20` matched-clause +
+`classify(7)=99` default) compiles AND RUNS on the substrate = **119.0** (the
+compile-AND-run bar, not compile-only). Full Clojure suite 18/18. Reuses the exact
+`==`-in-blend mechanism `if`/`cond`/`tail_rec` already verify. Updated the Clojure
+README (supported constructs + Next) and the queue increment line.
+
 ## 2026-06-14: FV-in-Lean — single-gadget Gibbs chain convergence floor (the "stochastic ODEs" item)
 
 Discharged the BOUNDED sub-claim of Emma's "attempt a Lean convergence proof" item, in
