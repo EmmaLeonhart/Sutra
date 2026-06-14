@@ -320,6 +320,8 @@ tracks on it.
   substrate-rendered output — do not over-claim "one substrate program" or
   substrate-native training.
 
+
+* start doing formal verification work using the Extropic
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`.
