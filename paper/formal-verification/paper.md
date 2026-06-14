@@ -71,7 +71,7 @@ turns from software to **hardware** formal verification, on Sutra's
 **energy-based** thermodynamic compile target: Lean-machine-checked proofs that
 its gadgets have the correct output as the **strict global energy minimum** — a
 ground-state decode is exact — with sampler-*convergence* largely proven
-(unique stationary measure checked; mixing rate open).
+(stationary measure unique; rate open).
 
 ---
 
