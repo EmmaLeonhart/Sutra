@@ -34,13 +34,23 @@ Sutra params, so guards reference them directly. Substrate-verified: `pattern_eq
 `guards` = 120 (same via guard conditions). Single-equation functions still route
 through the recursion-aware path, so the tail/fold transforms are untouched.
 
-`where`/`let` bindings, `data` ADTs, and multi-equation/guarded **recursion**
-surface as `UNSUPPORTED-*` markers (recursion until the relevant transforms are
-ported — never a silent self-call).
+As of 2026-06-14: **`where` clauses and `let … in` → substitution.** Both surface
+as a `local_binds` group of `bind`s; each binding's value is lowered (with the
+earlier binds active) and substituted for its name (the OCaml `let..in` / Clojure
+`let` shape, via `_SUBST`; numbers, so re-evaluation is side-effect-free). `where`
+binds wrap the whole equation and are cleaned up so they do not leak to sibling
+declarations; they reference params by their source names directly. Substrate-
+verified: `where_block` = 31 (`f x = y + z where y = x+1; z = x*2`; `f 10`),
+`let_block` = 18 (`g x = let a = x+1; b = a*2 in a + b`; `g 5` — `b` sees `a`).
+Mutually-recursive / forward bindings are a later item.
+
+`data` ADTs and multi-equation/guarded **recursion** surface as `UNSUPPORTED-*`
+markers (recursion until the relevant transforms are ported — never a silent
+self-call).
 
 Dependency: `tree-sitter-haskell` (`pip install tree-sitter-haskell`).
 
 ## Next
 
-`where`/`let` bindings; `data` ADTs → tagged axons (the OCaml variant pattern);
-guarded/multi-equation recursion; non-integer literal patterns.
+`data` ADTs → tagged axons (the OCaml variant pattern); guarded/multi-equation
+recursion; non-integer literal patterns; mutually-recursive `where`/`let` bindings.

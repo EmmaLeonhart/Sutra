@@ -120,6 +120,19 @@ def _lower_expr(node, src: bytes) -> str:
             return "/* UNSUPPORTED-EXPR: non-variable application head */"
         arg_srcs = [_lower_expr(a, src) for a in args]
         return f"{_text(head, src)}({', '.join(arg_srcs)})"
+    if t == "let_in":
+        # `let <binds> in <body>` — substitute the binds into the body (the
+        # `local_binds` shape shared with `where`).
+        lb = next((c for c in node.named_children if c.type == "local_binds"), None)
+        body = next((c for c in node.named_children if c.type != "local_binds"), None)
+        if lb is None or body is None:
+            return "/* UNSUPPORTED-EXPR: malformed let-in */"
+        bound = _apply_local_binds(lb, src)
+        try:
+            return _lower_expr(body, src)
+        finally:
+            for nm in bound:
+                _SUBST.pop(nm, None)
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
@@ -285,6 +298,26 @@ def _match_body(decl, src: bytes):
         return None
     m = matches[0]
     return m.named_children[-1] if m.named_children else None
+
+
+def _apply_local_binds(local_binds, src: bytes) -> list[str]:
+    """Add each `bind` in a `local_binds` node (a `where` clause or `let` group) to
+    `_SUBST` as name → its parenthesised lowered value, processed in order so a
+    later binding sees the earlier ones (the OCaml `let..in` / Clojure `let` shape;
+    numbers, so re-evaluating a substituted value is side-effect-free). Mutually-
+    recursive / forward where-bindings are a later item. Returns the bound names
+    (for cleanup by the caller)."""
+    bound: list[str] = []
+    for b in local_binds.named_children:
+        if b.type != "bind":
+            continue
+        name_node = next((c for c in b.named_children if c.type == "variable"), None)
+        val = _match_body(b, src)  # the bind's `match` (= expr) body
+        if name_node is None or val is None:
+            continue
+        _SUBST[_text(name_node, src)] = f"({_lower_expr(val, src)})"
+        bound.append(_text(name_node, src))
+    return bound
 
 
 def _resolve_types(name: str, arity: int):
@@ -453,42 +486,51 @@ def _lower_equation(decl, src: bytes) -> str:
                         f"({p.type}) — pattern equations are a later item\n")
             params.append(_text(p, src))
     ptypes, ret = _resolve_types(name, len(params))
-    # Guarded equation: one or more `match` clauses each with a `guards` child.
-    matches = [c for c in kids if c.type == "match"]
-    guarded = len(matches) > 1 or (
-        len(matches) == 1 and any(c.type == "guards" for c in matches[0].named_children))
-    if guarded:
-        gbody = _lower_guards(matches, src)
-        if gbody is None:
-            return f"// UNSUPPORTED-DECL: '{name}' has a guard shape not yet lowerable\n"
-        if any(_contains_self_call(m.named_children[-1], name, src)
-               for m in matches if m.named_children):
-            return (f"// UNSUPPORTED-RECURSION: '{name}' guarded equation with "
-                    f"recursion (later item)\n")
+    # `where` clause: apply its local binds (substitutions) around the whole
+    # equation, then clean them up so they do not leak to sibling declarations.
+    # The binds reference params by their source names, which the plain path keeps.
+    where_lb = next((c for c in kids if c.type == "local_binds"), None)
+    where_bound = _apply_local_binds(where_lb, src) if where_lb is not None else []
+    try:
+        # Guarded equation: one or more `match` clauses each with a `guards` child.
+        matches = [c for c in kids if c.type == "match"]
+        guarded = len(matches) > 1 or (
+            len(matches) == 1 and any(c.type == "guards" for c in matches[0].named_children))
+        if guarded:
+            gbody = _lower_guards(matches, src)
+            if gbody is None:
+                return f"// UNSUPPORTED-DECL: '{name}' has a guard shape not yet lowerable\n"
+            if any(_contains_self_call(m.named_children[-1], name, src)
+                   for m in matches if m.named_children):
+                return (f"// UNSUPPORTED-RECURSION: '{name}' guarded equation with "
+                        f"recursion (later item)\n")
+            params_src = ", ".join(f"{ty} {nm}" for ty, nm in zip(ptypes, params))
+            return (f"function {ret} {name}({params_src}) {{\n"
+                    f"    return {gbody};\n"
+                    f"}}\n")
+        body = _match_body(decl, src)
+        if body is None:
+            return f"// UNSUPPORTED-DECL: '{name}' has no single plain `= expr` body\n"
+        typed_params = list(zip(params, ptypes))
+        if body.type == "conditional" and params:
+            rec = _try_lower_tail_recursive(name, typed_params, ret, body, src)
+            if rec is not None:
+                return rec
+            fold = _try_lower_foldable_nontail(name, typed_params, ret, body, src)
+            if fold is not None:
+                return fold
+        if _contains_self_call(body, name, src):
+            # Recursion outside the supported tail/foldable shapes — a plain
+            # self-call would not terminate through the fuzzy-if blend. Surface it.
+            return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
+                    f"tail-accumulator or foldable non-tail shape\n")
         params_src = ", ".join(f"{ty} {nm}" for ty, nm in zip(ptypes, params))
         return (f"function {ret} {name}({params_src}) {{\n"
-                f"    return {gbody};\n"
+                f"    return {_lower_expr(body, src)};\n"
                 f"}}\n")
-    body = _match_body(decl, src)
-    if body is None:
-        return f"// UNSUPPORTED-DECL: '{name}' has no single plain `= expr` body\n"
-    typed_params = list(zip(params, ptypes))
-    if body.type == "conditional" and params:
-        rec = _try_lower_tail_recursive(name, typed_params, ret, body, src)
-        if rec is not None:
-            return rec
-        fold = _try_lower_foldable_nontail(name, typed_params, ret, body, src)
-        if fold is not None:
-            return fold
-    if _contains_self_call(body, name, src):
-        # Recursion outside the supported tail/foldable shapes — a plain
-        # self-call would not terminate through the fuzzy-if blend. Surface it.
-        return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
-                f"tail-accumulator or foldable non-tail shape\n")
-    params_src = ", ".join(f"{ty} {nm}" for ty, nm in zip(ptypes, params))
-    return (f"function {ret} {name}({params_src}) {{\n"
-            f"    return {_lower_expr(body, src)};\n"
-            f"}}\n")
+    finally:
+        for nm in where_bound:
+            _SUBST.pop(nm, None)
 
 
 def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
