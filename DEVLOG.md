@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-14: a1 paper P0 — scaffold + grounded method-section drafts (gui-training)
+
+Created `paper/gui-steering/paper.md` (third Sutra paper, this branch): "Painting
+and Steering on a Frozen-Embedding Substrate". Full abstract + 11-section outline,
+with FIRST DRAFTS for the parts grounded in shipped 1a/1b code — §1 intro/
+contributions, §2 whole-frame substrate rendering + the broadcast-buffer
+no-recompile mechanism, §3 substrate glyph rendering, §4 the θ hero (axes, colour
+channels, headline argmax), §5 host-side SPSA steering (method + the gain
+schedule), §6 render-fidelity (prose; exact per-mode maxima deferred to the P6
+script), §8 "What we are not claiming" (composition host-side; optimizer host-side
+SPSA not substrate-native training; reward is a human button; fidelity is
+oracle-agreement). §7 steering results are GATED on the 1c/1d demo and explicitly
+marked "awaiting measurement" — no fabricated soak numbers. §9/§10/§11 are stubs
+pointing at their tasks (P10 related-work, P11 reproducibility). `reviews/` dir
+created. No `.post_id` and no CI yet, so pushing this path does NOT submit to
+clawRxiv (that's task P12). Integrity rails held: measured numbers only, no
+"honest/genuinely" buzzwords, URLs reserved for Reproducibility.
+
 ## 2026-06-14: queue — per-branch policy note + comprehensive a1 paper track (gui-training)
 
 Per Emma (remote-control): (1) added a top-of-`queue.md` note that `queue.md` is
