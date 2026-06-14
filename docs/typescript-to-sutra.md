@@ -727,7 +727,7 @@ underneath. Use type annotations whenever possible.
 | `try { await ... } catch` | ✅ | Falls out of try/catch + await landing |
 | `Promise.all`, `Promise.race` | ❌ | First-class fns shipped, but combinator stdlib not written |
 | Async generators | ❌ | |
-| `import` / `export` | ❌ | No Sutra module system yet |
+| `import` / `export` | ⚠️ | Named ES-module imports work (inlined at compile time, 2026-05-10); `import * as ns`, `require()`, and tree-shaking are not in the MVP |
 
 Legend: ✅ works · ⚠️ partial · ❌ not yet
 
