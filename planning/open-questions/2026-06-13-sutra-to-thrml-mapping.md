@@ -84,9 +84,29 @@ anything that doesn't work. Direction seed: **vectors → spin-node graph**
   IS the value of composing the ops; N=16 gives the cleanup comfortable capacity
   margin (K=2 < 0.14·16). → composing the clean ops (unbind #3 + cleanup #1) runs
   a complete Sutra program on the thermodynamic substrate.
-- next attempts: **penalty-weighted adder** — make the correct sum the STRICT
-  global min (the #4b gap); then wire a CLEAN pattern (the kv-query, or bind/
-  cleanup) into `codegen_thrml` behind the additive `--target thrml` flag.
+- **#4c addition RESOLVED — WORKS at 100% via sample-and-verify (2026-06-13).**
+  Two findings. (a) The carry/parity **weight-ratio hypothesis is REFUTED**:
+  min-energy stays ~0.75–0.79 across jcar∈{1,2,3,5} — the correct sum is genuinely
+  NOT the strict global min of the naive soft-Ising adder (it has spurious ground
+  states; reweighting doesn't fix it). (b) But best-of-S=1.0 means the unique
+  *constraint-satisfying* assignment is ALWAYS sampled, so the right decode is
+  **sample-and-verify**: keep only samples satisfying the adder relations (s=a⊕b⊕c
+  AND c_out=MAJ — the program, not the answer) and return one. **Measured:**
+  verify = **1.000 at 4-bit AND 6-bit** (vs modal 0.75/0.58, min-energy
+  0.79/0.54). → **integer addition runs on thrml at 100%.** Lesson: deterministic
+  compute on a sampler = the substrate concentrates mass near valid solutions +
+  a cheap verifier selects — NOT requiring the answer to be the strict energy min
+  of a hand-built soft encoding. This is the paradigm-correct way to use
+  probabilistic/thermodynamic hardware, and it generalizes the per-op decodes.
+
+**Scorecard:** memory ✓ (#1), retrieval ✓ (#2), bind/unbind ✓ (#3), addition ✓
+(#4, via sample-and-verify), composed kv-query program ✓ (#5). The full
+mapping — values as bit-registers, ops as factors, results by sample(+verify) —
+runs real Sutra computation on the thrml substrate.
+
+- next attempts: wire a CLEAN pattern (kv-query, bind/cleanup, or the
+  verify-decoded adder) into `codegen_thrml` behind the additive `--target thrml`
+  flag; broaden op coverage (compare/select, multi-step programs).
 
 ## Emma's encoding steer (2026-06-13)
 

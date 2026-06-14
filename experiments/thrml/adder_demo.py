@@ -33,18 +33,19 @@ from thrml.models import SpinEBMFactor, SpinGibbsConditional
 _SD = {SpinNode: jax.ShapeDtypeStruct((), jnp.bool_)}
 
 
-def build_program(n, beta, J):
+def build_program(n, beta, jpar, jcar):
     a = [SpinNode() for _ in range(n)]
     b = [SpinNode() for _ in range(n)]
     s = [SpinNode() for _ in range(n)]
     c = [SpinNode() for _ in range(n + 1)]   # carries c_0..c_n
     cin, cout = c[:n], c[1:]                  # carry into / out of each bit
-    w = beta * J * jnp.ones((n,))
+    wp = beta * jpar * jnp.ones((n,))
+    wc = beta * jcar * jnp.ones((n,))
     factors = [
-        SpinEBMFactor([Block(a), Block(b), Block(cin), Block(s)], w),  # parity
-        SpinEBMFactor([Block(cout), Block(a)], w),                     # carry: c_out~a
-        SpinEBMFactor([Block(cout), Block(b)], w),                     # carry: c_out~b
-        SpinEBMFactor([Block(cout), Block(cin)], w),                   # carry: c_out~c_in
+        SpinEBMFactor([Block(a), Block(b), Block(cin), Block(s)], wp),  # parity
+        SpinEBMFactor([Block(cout), Block(a)], wc),                     # carry: c_out~a
+        SpinEBMFactor([Block(cout), Block(b)], wc),                     # carry: c_out~b
+        SpinEBMFactor([Block(cout), Block(cin)], wc),                   # carry: c_out~c_in
     ]
     free_nodes = s + c[1:]                    # sum bits + internal carries (c_1..c_n)
     clamped_nodes = a + b + [c[0]]            # inputs + carry-in 0
@@ -55,13 +56,14 @@ def build_program(n, beta, J):
     return prog, free_nodes, s, c
 
 
-def run(n, beta, trials, seed):
-    prog, free_nodes, s_nodes, c_nodes = build_program(n, beta, 1.0)
+def run(n, beta, trials, seed, jpar=1.0, jcar=1.0):
+    prog, free_nodes, s_nodes, c_nodes = build_program(n, beta, jpar, jcar)
     schedule = SamplingSchedule(n_warmup=400, n_samples=200, steps_per_sample=6)
     key = jax.random.key(seed)
     exact = 0
     best = 0
     emin = 0
+    verify = 0
     for t in range(trials):
         key, ka, kb, kinit, ksamp = jax.random.split(key, 5)
         av = jax.random.randint(ka, (n,), 0, 2)   # bits
@@ -93,32 +95,44 @@ def run(n, beta, trials, seed):
         scin, scout = sc[:, :n], sc[:, 1:]               # (S, n)
         e_par = (sa * sb * scin * ss).sum(axis=1)        # parity term per sample
         e_car = (scout * (sa + sb + scin)).sum(axis=1)   # carry term per sample
-        energy = -(e_par + e_car)                        # (S,) lower = better
+        energy = -(jpar * e_par + jcar * e_car)          # (S,) lower = better
         got_e = int(ints[int(jnp.argmin(energy))])
+
+        # Sample-and-verify decode: keep only samples that satisfy the adder
+        # RELATIONS (the program, not the answer) -- parity s=a^b^c and carry
+        # c_out=MAJ -- and return one. The correct sum is the unique satisfier.
+        ok_par = jnp.all(sa * sb * scin * ss == 1, axis=1)
+        ok_car = jnp.all(scout == jnp.sign(sa + sb + scin), axis=1)
+        ok = ok_par & ok_car                             # (S,)
+        got_v = int(ints[int(jnp.argmax(ok))]) if bool(jnp.any(ok)) else got_e
 
         vals, counts = jnp.unique(ints, return_counts=True)
         got = int(vals[int(jnp.argmax(counts))])
         exact += int(got == truth)                  # modal decode
         best += int(bool(jnp.any(ints == truth)))   # did ANY sample hit it?
         emin += int(got_e == truth)                 # min-energy decode
-    return exact / trials, best / trials, emin / trials
+        verify += int(got_v == truth)               # sample-and-verify decode
+    return exact / trials, best / trials, emin / trials, verify / trials
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=4)
-    ap.add_argument("--beta", type=float, default=None)
+    ap.add_argument("--beta", type=float, default=2.0)
     ap.add_argument("--trials", type=int, default=40)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--jcarry", type=float, default=None,
+                    help="single carry/parity weight ratio; if unset, sweep")
     args = ap.parse_args()
-    betas = [args.beta] if args.beta is not None else [2.0, 4.0, 6.0, 8.0]
+    ratios = [args.jcarry] if args.jcarry is not None else [1.0, 2.0, 3.0, 5.0]
     chance = 1.0 / (2 ** (args.n + 1))
-    print(f"thrml ripple-carry adder: N={args.n}-bit, {args.trials} random (a,b) pairs, "
-          f"backend={jax.default_backend()}")
-    print(f"{'beta':>5} {'modal':>8} {'min-energy':>11} {'best-of-S':>10} {'chance':>9}")
-    for b in betas:
-        acc, best, emin = run(args.n, b, args.trials, args.seed)
-        print(f"{b:>5.1f} {acc:>8.3f} {emin:>11.3f} {best:>10.3f} {chance:>9.4f}")
+    print(f"thrml ripple-carry adder: N={args.n}-bit, beta={args.beta}, "
+          f"{args.trials} random (a,b) pairs, backend={jax.default_backend()}")
+    print(f"{'jcar':>5} {'modal':>8} {'min-en':>8} {'verify':>8} {'best-of-S':>10} {'chance':>9}")
+    for jc in ratios:
+        acc, best, emin, ver = run(args.n, args.beta, args.trials, args.seed,
+                                   jpar=1.0, jcar=jc)
+        print(f"{jc:>5.1f} {acc:>8.3f} {emin:>8.3f} {ver:>8.3f} {best:>10.3f} {chance:>9.4f}")
 
 
 if __name__ == "__main__":
