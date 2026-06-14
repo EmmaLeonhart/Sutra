@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-14: a1 item 1a — headline-glyph selector for the θ hero (gui-training)
+
+Added the discrete "copy" axis to the warmer/colder hero: a headline chosen from
+a preset set (`HERO_HEADLINES`) by a HOST-SIDE argmax over θ['headline_w'], with
+the glyph PIXELS rendered on the substrate. `whole_frame.py`: `select_headline()`
+(host argmax), `render_headline_banner()` (rasterizes a headline by rendering each
+glyph via demos/font `render_glyph` = font_bound_antipodal.su on the substrate;
+cached per headline so the per-frame path stays cheap), and
+`render_hero_with_headline()` (composites the substrate banner into a top band of
+the substrate hero field; host-side placement, named).
+
+Verified MEASURED (3 tests, whole-frame suite 12→15): the banner is EXACTLY the
+per-glyph substrate fields concatenated (cell-for-cell `array_equal`, no host font
+table) — `test_headline_banner_is_exactly_the_substrate_glyphs`; selection is a
+host argmax that picks the right preset per weight vector
+(`test_headline_selection_is_host_argmax_over_theta`); the composite overlays lit
+(==1.0) glyph cells into the band while leaving the region below untouched
+(== plain hero render) — `test_hero_with_headline_overlays_banner_in_band`. Honest
+rails: glyph pixels + hero field are substrate; the which-headline argmax and the
+banner placement are host-side composition (a1: the compositor is host-side — no
+"one substrate program" claim). Remaining 1a: colour channels.
+
 ## 2026-06-14: `gui-training` branch — autonomous GUI loop + a1 hero render core (item 1a)
 
 Set up a dedicated **`gui-training`** branch with its own autonomous work-loop, so

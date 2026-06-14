@@ -55,14 +55,14 @@ built; building is autonomous.)
   do NOT over-claim "one substrate program" or substrate-native training.
 
 **Build order (decompose as the loop reaches each):**
-- [ ] **1a-rest. Headline-glyph selector + colour for the θ hero.** The render
-  CORE is done (`frame_hero.su` + `render_hero()`; θ = cx,cy,invs,bright,radius,
-  accent,bg; oracle-verified to 1e-6, θ-morph verified; DEVLOG 2026-06-14).
-  Remaining: add the discrete **headline-glyph selector** (3–5 preset UPPERCASE
-  headlines via the 36-glyph renderer in `demos/font/`; θ carries a mixture
-  weight, render the argmax) and **colour channels** (per-channel brightness, the
-  `frame_rgb.su` precedent) into the θ vector. Keep runtime-parameter (no
-  recompile); verify each new axis against a reference (MEASURED).
+- [ ] **1a-colour. Colour channels for the θ hero.** Render core + headline-glyph
+  selector are DONE (`frame_hero.su`/`render_hero()`; `render_hero_with_headline()`
+  + `select_headline()` argmax over θ['headline_w'] + substrate-glyph banner; all
+  oracle/equality-verified; DEVLOG 2026-06-14). Remaining: add **colour channels**
+  to the θ hero (per-channel brightness/hue, the `frame_rgb.su` precedent — 3
+  whole-frame substrate fields stacked) so θ also drives colour. Keep
+  runtime-parameter (no recompile); verify each colour axis against a reference
+  (MEASURED). Then 1a is complete → 1b (SPSA).
 - [ ] **1b. Batched SPSA optimizer (host-side).** Port the SPSA step from the
   a1 spec: two-sided perturbation, scalar reward in, θ-update out, [-1,1]^d clamp.
   Unit-test the update direction on a synthetic reward (gradient sign correct).

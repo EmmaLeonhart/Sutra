@@ -289,6 +289,65 @@ def test_hero_theta_render_matches_oracle_and_morphs() -> None:
     assert float(bold[c, c]) > float(dim[c, c]) + 1e-3
 
 
+def test_headline_banner_is_exactly_the_substrate_glyphs() -> None:
+    """render_headline_banner rasterizes a headline by rendering each glyph ON THE
+    SUBSTRATE (render_glyph). The banner is EXACTLY the per-glyph substrate fields
+    concatenated — verified cell-for-cell (no host font table sneaks in). Uses a
+    2-char headline to bound substrate calls."""
+    import numpy as np
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    font = _load("gui_font_demo", str(pathlib.Path(__file__).resolve().parent.parent
+                                      / "font" / "font_demo.py"))
+    banner = whole.render_headline_banner("SU")
+    ref = np.concatenate([font.render_glyph(float(ord("S"))),
+                          font.render_glyph(float(ord("U")))], axis=1)
+    assert banner.shape == (5, 10)
+    assert np.array_equal(banner, ref), "banner is not the substrate glyph fields"
+    assert banner.sum() > 0                       # something actually lit
+
+
+def test_headline_selection_is_host_argmax_over_theta() -> None:
+    """select_headline is a host-side argmax over θ['headline_w'] (the discrete copy
+    axis). Different weight vectors pick different presets; empty → the first."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    n = len(whole.HERO_HEADLINES)
+    assert whole.select_headline(None) == whole.HERO_HEADLINES[0]
+    assert whole.select_headline({}) == whole.HERO_HEADLINES[0]
+    for pick in range(n):
+        w = [0.0] * n
+        w[pick] = 1.0
+        assert whole.select_headline({"headline_w": w}) == whole.HERO_HEADLINES[pick]
+
+
+def test_hero_with_headline_overlays_banner_in_band() -> None:
+    """render_hero_with_headline composites the substrate banner into a top band of
+    the substrate hero field. The chosen headline matches the argmax; the band
+    contains lit (==1.0) overlay cells; and a region OUTSIDE the band is untouched
+    (still equals the plain hero render there). Composition is host-side (named)."""
+    import numpy as np
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size = 48
+    # pick HERO_HEADLINES[1] via weights; use a short-circuitable band
+    n = len(whole.HERO_HEADLINES)
+    w = [0.0] * n
+    w[1] = 1.0
+    theta = {**whole.HERO_THETA_DEFAULT, "headline_w": w, "accent": 0.0}
+    band = (0.08, 0.30)
+    field, headline = whole.render_hero_with_headline(size, theta, band=band)
+    assert headline == whole.HERO_HEADLINES[1]
+    assert field.shape == (size, size)
+
+    r0, r1 = int(band[0] * size), int(band[1] * size)
+    band_region = field[r0:r1, :]
+    assert float(band_region.max()) >= 1.0 - 1e-9        # lit overlay cells present
+    assert int((np.abs(band_region - 1.0) < 1e-9).sum()) > 5  # a real glyph, not one stray cell
+
+    # below the band, the frame is the untouched substrate hero (overlay didn't bleed)
+    plain = whole.render_hero(size, theta)
+    below = slice(int(0.6 * size), size)
+    assert np.allclose(field[below, :], plain[below, :], atol=1e-9)
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""

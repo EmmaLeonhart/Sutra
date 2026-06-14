@@ -461,6 +461,96 @@ def render_hero(size: int = 64, theta: dict | None = None):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+# --- Headline-glyph selector (a1 item 1a, discrete "copy" axis) ----------------
+#
+# The hero's headline is chosen from a small preset set by an argmax over θ's
+# per-headline mixture weights (HOST-SIDE selection — the discrete copy axis; the
+# SPSA optimizer nudges the weights, the host renders the winner). The glyph
+# PIXELS are substrate output (render_glyph / font_bound_antipodal.su); only the
+# which-headline choice and the banner placement are host-side composition (a1
+# spec: the compositor is host-side — do not claim "one substrate program").
+
+# Preset UPPERCASE headlines (A-Z / 0-9 only — the 36-glyph renderer's alphabet).
+HERO_HEADLINES = ("SUTRA", "LEARN", "STEER", "WARMER")
+
+_BANNER_CACHE: dict = {}
+
+
+def _render_glyph(code: float):
+    """Render one 5x5 glyph on the substrate via demos/font's render_glyph
+    (font_bound_antipodal.su). Imported lazily so the gui module doesn't pull the
+    font compile unless a headline is actually rasterized."""
+    import pathlib as _pl
+    import sys as _sys
+    font_dir = _pl.Path(__file__).resolve().parent.parent / "font"
+    if str(font_dir) not in _sys.path:
+        _sys.path.insert(0, str(font_dir))
+    import font_demo
+    return font_demo.render_glyph(code)
+
+
+def select_headline(theta: dict | None = None) -> str:
+    """HOST-SIDE argmax over θ['headline_w'] (one weight per HERO_HEADLINES entry)
+    → the headline string to render. The discrete copy axis of the a1 demo. With
+    no weights, returns the first headline."""
+    if not theta:
+        return HERO_HEADLINES[0]
+    w = theta.get("headline_w")
+    if not w:
+        return HERO_HEADLINES[0]
+    n = len(HERO_HEADLINES)
+    return HERO_HEADLINES[max(range(n),
+                              key=lambda i: w[i] if i < len(w) else float("-inf"))]
+
+
+def render_headline_banner(headline: str):
+    """Rasterize `headline` into a binary banner field of shape (5, 5*len) by
+    rendering each glyph ON THE SUBSTRATE (render_glyph). Cached per headline — the
+    banner only changes when the discrete argmax headline changes, not per frame,
+    so the per-frame render path stays cheap."""
+    import numpy as np
+
+    if headline in _BANNER_CACHE:
+        return _BANNER_CACHE[headline]
+    cols = [_render_glyph(float(ord(ch))) for ch in headline]
+    banner = (np.concatenate(cols, axis=1) if cols
+              else np.zeros((5, 0), dtype=np.float64))
+    _BANNER_CACHE[headline] = banner
+    return banner
+
+
+def render_hero_with_headline(size: int = 64, theta: dict | None = None,
+                              band: tuple = (0.08, 0.30)):
+    """The θ-parameterized hero field (render_hero) with the selected headline
+    banner overlaid into a horizontal band near the top. Returns (field, headline).
+
+    Substrate: the hero field (frame_hero.su) AND every glyph pixel (render_glyph).
+    Host-side composition (named, per the a1 spec): the argmax headline choice and
+    nearest-neighbour placement of the banner into the frame band. Lit banner cells
+    are painted at full brightness over the hero field."""
+    import numpy as np
+
+    field = render_hero(size, theta)
+    headline = select_headline(theta)
+    banner = render_headline_banner(headline)            # (5, 5*n) binary, substrate
+    hb, wb = banner.shape
+    if hb == 0 or wb == 0:
+        return field, headline
+
+    r0, r1 = int(band[0] * size), int(band[1] * size)
+    rows = max(1, r1 - r0)
+    # centre the banner horizontally, keep glyph aspect (width scaled to rows*wb/hb)
+    cols = max(1, min(size, int(rows * wb / hb)))
+    c0 = (size - cols) // 2
+    for j in range(rows):
+        by = min(hb - 1, int(j * hb / rows))
+        for i in range(cols):
+            bx = min(wb - 1, int(i * wb / cols))
+            if banner[by, bx] > 0.5:                     # lit glyph cell
+                field[r0 + j, c0 + i] = 1.0              # host paints the overlay
+    return field, headline
+
+
 def main() -> None:
     import argparse
 
