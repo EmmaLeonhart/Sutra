@@ -366,18 +366,20 @@ compile-target"). Remaining:
   Lean; honest "what this does not yet prove" on convergence) + abstract clause +
   conclusion road-ahead; Conclusion renumbered §7→§8. The push auto-submits via
   `fv-paper-ci.yml` → runs the clawRxiv loop (review lands under `paper/reviews/`).
-- [ ] **Sampler-convergence — MID-SIZE mathlib step (Emma 2026-06-14 blocker-sweep).**
-  The BOUNDED floor is DONE: `fv-lean/GibbsChain.lean` machine-checks the single-
-  gadget Glauber chain is `irreducible` + `aperiodic` (no axioms) + `and_gibbs_
-  unique_mode` (`[propext, Quot.sound]`), no sorry, CI-green. Emma's call: go to a
-  **mid-size mathlib step**, NOT the full t→∞ TV-mixing theorem. Scope: install
-  mathlib (as its own step — `lake` project + `lake exe cache get` for prebuilt
-  oleans, pin a mathlib commit compatible with Lean v4.30.0) and prove **detailed
-  balance** `π(s)P(s,t)=π(t)P(t,s)` for the gadget Gibbs kernel + **finite-chain
-  stationary uniqueness** (Perron–Frobenius on the gadget) — short of full mixing.
-  This needs the real-valued transition probabilities + `exp` (why it needs
-  mathlib). Set up the mathlib project under `fv-lean/` (separate Lake target so the
-  core-only files keep their no-mathlib CI path).
+- [ ] **Sampler-convergence — full t→∞ mixing RATE (longer-horizon; beyond Emma's
+  mid-size scope).** The mid-size mathlib step is DONE (2026-06-14):
+  `fv-lean/mathlib/GibbsMathlib.lean` (isolated Lake project, mathlib v4.30.0)
+  machine-checks `stationary_of_detailedBalance` (reversibility ⟹ stationarity,
+  general finite chain), `gibbsKernel_detailedBalance` + `gibbsKernel_stationary`
+  (the gadget's real-`exp` Gibbs kernel is reversible → the Gibbs measure is
+  stationary), and `stationary_unique_two_state` (2-state Perron–Frobenius
+  uniqueness) — all `[propext, Classical.choice, Quot.sound]`, no sorry, `lake build`
+  green. Combined with the core-only irreducibility/aperiodicity, this is the
+  reversible-chain picture: positive + irreducible + reversible finite chain ⟹
+  unique stationary = Gibbs. What REMAINS (Emma capped the ask at mid-size, so this
+  is not requested): the t→∞ **mixing rate** / spectral-gap (full TV-mixing). Only
+  pick up if Emma re-greenlights. Mathlib file is local-verified (heavy toolchain,
+  not in CI — `fv-lean/mathlib/.lake` gitignored).
 
 Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
 `paper/formal-verification/paper.md`, the clawRxiv loop). Scope is settled by

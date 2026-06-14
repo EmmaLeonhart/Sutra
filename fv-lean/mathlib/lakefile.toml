@@ -1,0 +1,17 @@
+name = "gibbsMathlib"
+defaultTargets = ["GibbsMathlib"]
+
+# Mid-size mathlib step for the Sutra->thrml Gibbs-chain convergence proof
+# (Emma 2026-06-14): detailed balance + finite-chain stationary uniqueness
+# (Perron-Frobenius on the gadget), short of full TV-mixing. ISOLATED from the
+# core-only fv-lean/*.lean files (which keep their no-mathlib, fast CI path) --
+# this is its own Lake project so only this target pulls the heavy mathlib dep.
+# mathlib release tag v4.30.0 pins Lean v4.30.0, matching fv-lean/lean-toolchain.
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.30.0"
+
+[[lean_lib]]
+name = "GibbsMathlib"
