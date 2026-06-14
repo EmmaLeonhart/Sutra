@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-14: Haskell frontend — `where` clauses + `let … in` (suite 16/16)
+
+Added local-binding support to `sdk/sutra-from-haskell`. Both `where` and `let … in`
+surface as a `local_binds` group of `bind`s (`variable` + `match`); new shared helper
+`_apply_local_binds` lowers each binding's value (with earlier binds active) and
+substitutes it for the name via `_SUBST` (the OCaml `let..in` / Clojure `let` shape;
+numbers → side-effect-free). `let_in` handled in `_lower_expr`; `where` applied around
+the whole equation in `_lower_equation` (wrapped in try/finally so the binds are
+cleaned up and never leak to sibling declarations). Fixtures (compile-AND-run on the
+substrate): `where_block` = **31.0** (`f x = y + z where y = x+1; z = x*2`; `f 10` =
+11+20), `let_block` = **18.0** (`g x = let a = x+1; b = a*2 in a + b`; `g 5` = 6+12,
+verifying `b` sees the earlier `a`). Full Haskell suite 16/16. Mutually-recursive /
+forward bindings are a documented later item. README + queue updated.
+
 ## 2026-06-14: Elixir frontend — `when` guards on clause heads (suite 16/16)
 
 Added `when`-guard support to `sdk/sutra-from-elixir`. A guarded head parses as a
