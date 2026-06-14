@@ -242,6 +242,53 @@ def test_quad_layout_composes_four_widgets() -> None:
     assert worst < 1e-6, f"quad vs quadrant-selected host max error {worst} >= 1e-6"
 
 
+def _hero_oracle(size, th):
+    """Host reference for frame_hero.su: bg + bright*glow + accent*ring, with
+    glow = 1 - invs*((x-cx)^2 + (y-cy)^2) and ring = 1 - (x^2+y^2 - radius)^2."""
+    out = [[0.0] * size for _ in range(size)]
+    for j in range(size):
+        y = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            x = 2.0 * i / (size - 1) - 1.0
+            glow = 1.0 - th["invs"] * ((x - th["cx"]) ** 2 + (y - th["cy"]) ** 2)
+            ring = 1.0 - (x * x + y * y - th["radius"]) ** 2
+            out[j][i] = th["bg"] + th["bright"] * glow + th["accent"] * ring
+    return out
+
+
+def test_hero_theta_render_matches_oracle_and_morphs() -> None:
+    """frame_hero.su renders a θ-parameterized hero in ONE substrate op (queue item
+    1a). Guards (1) the substrate frame matches the host oracle to 1e-6 for a
+    non-default θ, and (2) θ DRIVES the picture — moving cx slides the glow's bright
+    column, and raising `bright` raises the centre — all via call args, NO recompile
+    (the same compiled `hero` is reused; the a1 runtime-parameter property)."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size = 16
+
+    th = {"cx": 0.3, "cy": -0.2, "invs": 1.5, "bright": 0.8,
+          "radius": 0.4, "accent": 0.5, "bg": 0.1}
+    got = whole.render_hero(size, th)
+    ref = _hero_oracle(size, th)
+    worst = max(abs(float(got[j][i]) - ref[j][i])
+                for j in range(size) for i in range(size))
+    assert worst < 1e-6, f"hero vs oracle max error {worst} >= 1e-6"
+
+    # θ drives the picture: the glow's brightest column tracks cx (layout axis).
+    base = dict(whole.HERO_THETA_DEFAULT)
+    base["accent"] = 0.0          # isolate the glow so argmax is the glow centre
+    left = whole.render_hero(size, {**base, "cx": -0.5})
+    right = whole.render_hero(size, {**base, "cx": 0.5})
+    col_left = 2.0 * (int(left.argmax()) % size) / (size - 1) - 1.0
+    col_right = 2.0 * (int(right.argmax()) % size) / (size - 1) - 1.0
+    assert col_right > col_left, (col_left, col_right)
+
+    # brightness axis: raising `bright` raises the centre pixel value.
+    dim = whole.render_hero(size, {**base, "bright": 0.5})
+    bold = whole.render_hero(size, {**base, "bright": 1.5})
+    c = size // 2
+    assert float(bold[c, c]) > float(dim[c, c]) + 1e-3
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""
