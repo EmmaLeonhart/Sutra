@@ -122,9 +122,19 @@ change anything that doesn't work. Locked encoding interpretation: a Sutra value
   (F) + trainable couplings (C) for associative-memory capacity; staged
   composition by default, joint-EBM (E) only for readout-purity. Optional
   follow-up: a human-facing `docs/` page (the capability is website-worthy).
-- [ ] **Hardware-alignment notes** — how the chosen approach (A/B on bit-registers)
-  maps onto Extropic TSU semantics; what stays host (compositor, verifier) vs
-  sampled. Last thrml item before the queue rolls into FV-in-Lean.
+- [x] **Hardware-alignment notes — DONE 2026-06-14.**
+  `planning/findings/2026-06-14-thrml-hardware-alignment.md`. Grounded in the
+  Extropic TSU paper (vendored): chip = sparse, locally-connected, **pairwise**
+  p-bit grid sampling via two-color block Gibbs; **host programs weights + reads
+  the result** (matches our host-side verifier/decode/compositor). Non-obvious
+  finding: our **AND + carry gadgets are already pairwise → TSU-native**;
+  bind/XOR/parity (3-/4-body) need a local auxiliary-spin reduction; dense Hopfield
+  memory (all-to-all) is the LEAST chip-aligned (a prototyping-layer strength).
+  Refined recommendation: keep graphs sparse + 2-body for the chip; the
+  gate-circuit + sample-and-verify path is the most TSU-aligned compute path.
+
+**⟹ The Sutra→thrml track (A–H + codegen + hardware notes) is COMPLETE.** Next
+queue item is the FV-in-Lean section below, then the a1 demo.
 
 HARD RAILS: every op runs on the (sampling) substrate; no faked results; RUN +
 MEASURE every attempt (gap vs baseline, never asserted); read thrml's ACTUAL API
