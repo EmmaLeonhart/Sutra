@@ -296,6 +296,30 @@ the existing frontends' data-structure tier.
   syntax/grammar is separate). Model on `sutra-from-ocaml`; reuse the shared
   shapes (multi-clause function heads with guards map to the dispatch blend).
 
+## Demo — warmer/colder self-morphing hero (Emma 2026-06-14, bottom of queue)
+
+Low-priority capability demo, parked at the bottom so it isn't lost. The build is
+ASSEMBLY of parts that already exist — runtime-parameter whole-frame rendering
+(`demos/gui/whole_frame.py`, `frame_moving.su`; params are per-call broadcast
+buffers, no recompile) + a batched SPSA optimizer + warmer/colder controls — into
+one recordable interactive demo. No new substrate research. Do NOT block other
+tracks on it.
+
+- [ ] **Warmer/colder steering demo.** A substrate-rendered hero (headline glyphs
+  via the 36-glyph renderer + accent glow/ring + a CTA block) whose
+  layout/scale/color/spacing/headline-choice form a parameter vector θ ∈ R^8–16;
+  WARMER / COLDER buttons emit scalar reward (+1 / −1, smoothed); a batched SPSA
+  step updates θ with [-1,1]^d clamping; the hero visibly morphs. Local window
+  first (screen-recordable), optional web wrapper later. Done = a stranger
+  steering it sees directionally-consistent morphing within seconds, with no
+  NaN/blank frames across a 100-press session. Full build spec (5 steps, ~4–5
+  days, with the SPSA port source) lives in the private founder hub:
+  `../emmas-gstack/business/gtm/2026-06-13-a1-shortest-path.md` (+ the detailed
+  `business/gtm/a1-implementation-spec.md`). Honest rails for the artifact:
+  composition is host-side and the optimizer is host-side SPSA over
+  substrate-rendered output — do not over-claim "one substrate program" or
+  substrate-native training.
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`.
