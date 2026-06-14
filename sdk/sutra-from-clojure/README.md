@@ -27,9 +27,13 @@ head is a call; `(let [n1 v1 n2 v2 …] body)` lowers via sequential substitutio
 (each value lowered with the earlier binds active, the OCaml `let..in` shape —
 numbers only, so re-evaluating a substituted value is side-effect-free); `(cond
 t1 r1 … :else d)` → a nested defuzz blend (`:else` or the final clause is the
-base). Dynamically-typed values lower as `number`. Substrate-verified:
+base); `(case E c1 r1 … [default])` → a nested *equality* defuzz blend (the
+`cond` shape with an implicit `(= E ci)` test per clause; a trailing lone arg is
+the default, literal number/bool constants only — multi-constant test lists are
+a later item). Dynamically-typed values lower as `number`. Substrate-verified:
 `add_main` = 16, `if_classify` = 100, `nary_sum` = 16, `let_block` = 17,
-`cond_grade` = 150, `tail_rec` = 15 (`(defn f [p…] (if COND BASE (recur a…)))`
+`cond_grade` = 150, `case_dispatch` = 119 (`(case x 1 10 2 20 3 30 99)`;
+matched-clause + default), `tail_rec` = 15 (`(defn f [p…] (if COND BASE (recur a…)))`
 → a declared `while_loop`; both `recur` and a named self-call are accepted, the
 OCaml/Scala/F#/Rust/Haskell shape), `nontail_fact` = 120 (foldable non-tail
 recursion `(OP LEAF (f REC))` → an accumulator `while_loop` trampoline, the OCaml
@@ -49,4 +53,5 @@ and other non-tail recursion surface as `UNSUPPORTED-*` (never a silent self-cal
 
 ## Next
 
-Maps → axons; destructuring binds; `case`; multi-arity `defn`.
+Maps → axons; destructuring binds; multi-arity `defn`; `case` multi-constant
+test lists `(c1 c2)`.
