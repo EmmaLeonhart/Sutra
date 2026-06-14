@@ -56,14 +56,14 @@ built; building is autonomous.)
 
 **Build order (decompose as the loop reaches each):**
 
-> **Progress:** 1a (θ-parameterized hero render) is COMPLETE — render core +
-> headline-glyph selector + colour channels; whole-frame suite 16/16; θ axes =
-> HERO_THETA_AXES (cx,cy,invs,bright,radius,accent,bg,cr,cg,cb) + headline_w;
-> runtime-parameter, no recompile (DEVLOG 2026-06-14). Next actionable: **1b**.
+> **Progress:** 1a (θ hero render) and 1b (SPSA optimizer) are COMPLETE.
+> 1a: render core + headline-glyph selector + colour; θ axes = HERO_THETA_AXES
+> (cx,cy,invs,bright,radius,accent,bg,cr,cg,cb) + headline_w; runtime-parameter.
+> 1b: `hero_spsa.HeroSPSA` — host-side two-sided SPSA (ported from the hub's
+> `spsa_dense`; propose/update; normalized θ∈[-1,1]^D affine-mapped to render
+> ranges via HERO_SPSA_AXES); convergence + gradient-sign verified, 4/4
+> (DEVLOG 2026-06-14). Next actionable: **1c** (wire it into the live window).
 
-- [ ] **1b. Batched SPSA optimizer (host-side).** Port the SPSA step from the
-  a1 spec: two-sided perturbation, scalar reward in, θ-update out, [-1,1]^d clamp.
-  Unit-test the update direction on a synthetic reward (gradient sign correct).
 - [ ] **1c. Warmer/colder controls + window loop.** Wire WARMER/COLDER buttons
   (reward +1/−1, smoothed) into the live window (`live_demo.py`/`window.py` event
   loop) so a press triggers an SPSA step and the hero re-renders. No NaN/blank

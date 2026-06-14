@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-06-14: a1 item 1b — host-side batched SPSA optimizer (gui-training)
+
+Ported the SPSA optimizer that steers the hero. `demos/gui/hero_spsa.py`:
+`HeroSPSA`, a host-side two-sided SPSA over the hero θ, math verbatim from the
+private hub's validated `spsa_dense` — Rademacher perturbation, gains
+`ck=c0/(j+1)^0.101` and `ak=a0/(j+1+10)^0.602`, `ghat=(r+ − r−)/(2·ck)·delta`,
+clamp to [-1,1]^D. Split into `propose()` (returns the two perturbed render-θ
+dicts to score) and `update(r_plus, r_minus)` (one SPSA step) for the interactive
+warmer/colder flow. SPSA optimizes a normalized θ∈[-1,1]^D (neutral start 0); each
+continuous render axis maps from [-1,1] by an affine `center+half_range*norm`
+(`HERO_SPSA_AXES`, e.g. invs∈[0.1,2.5], bright∈[0.2,1.8]) so SPSA stays in its box
+while the renderer sees its ranges; headline weights pass straight through to the
+argmax.
+
+Verified MEASURED (4/4, host-only — no substrate, so no torch needed): reward
+`-||θ−target||²` → final/start distance < 0.25 over 5 seeds (converges to the
+maximizer); a monotonic-in-`bright` reward drives `bright` up ≥0.3 while a
+signal-free axis stays near neutral (gradient SIGN correct); θ stays in the box
+under a hard push and the batch counter advances 1/update; update-before-propose
+raises. Honest rail: this is host-side SPSA over substrate-rendered output, NOT
+substrate-native training — the a1 spec's explicit framing. The proposed θ dicts
+carry exactly the axes render_hero/render_hero_rgb/select_headline consume;
+substrate wiring is item 1c. Next: 1c (warmer/colder buttons + live window).
+
 ## 2026-06-14: a1 item 1a COMPLETE — colour channels for the θ hero (gui-training)
 
 Added the colour axis, completing item 1a. `frame_hero.su` gains `hero_channel`:
