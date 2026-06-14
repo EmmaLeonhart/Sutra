@@ -286,6 +286,9 @@ def shell(title: str, inner: str, mermaid: bool = False, math: bool = False,
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/identity.css">
+  <!-- Celestial/glow layer — site-specific, loaded AFTER identity.css.
+       Yantra + Sutra only; does not touch the shared identity. -->
+  <link rel="stylesheet" href="/celestial.css">
   <style>{PAGE_CSS}</style>
 </head>
 <body>
@@ -633,7 +636,7 @@ def main() -> int:
     print("wrote index.html  ->  /")
 
     web = repo / "web"
-    for name in ("identity.css", "CNAME"):
+    for name in ("identity.css", "celestial.css", "CNAME"):
         shutil.copyfile(web / name, out / name)
         print(f"copied {name}")
 

@@ -235,7 +235,6 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | `vector_from_floats(values)` | substrate vector from float list | n/a (compile-time, used by `vector_literal`) |
 | `matrix_from_rows(rows)` | substrate 2-D tensor from row tensors (stack) | n/a (compile-time, used by `matrix_literal`) |
 | `load_matrix(path)` | frozen substrate matrix read from a CSV file (cached by path) | n/a — the file-backed weight store; the loaded matrix's *consumers* train |
-| `real(v)` / `imag(v)` | substrate-pure real/imag-axis read → 0-d tensor (free-function form, distinct from the host-float `.real()` monitoring accessor) | n/a (axis read) |
 
 ### Rotation internals
 
@@ -393,12 +392,17 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | `eq_synthetic(a, b)` | equality on the synthetic block | vision |
 | `neq_synthetic(a, b)` | inverse | vision |
 
-### Accessors (monitoring/debug only)
+### Introspection accessors — being removed (no readout by design)
 
-| Method | Description | Training |
-|---|---|---|
-| `component(v, i)`, `semantic(v, i)`, `synthetic(v, i)` | axis read | n/a |
-| `real(v)`, `imag(v)`, `truth(v)` | named-axis read | n/a |
+Sutra has **no way to read a value off the substrate** — by design there is no
+logging, monitoring, or debugging readout. The former accessors `component()`,
+`semantic()`, `synthetic()`, `real()`, `imag()`, `truth()` (and `norm`)
+compiled to a host read (`float(v[...].item())`), which ran the rest of the
+computation on the CPU and **detached the autograd graph** — so any program
+that touched them was neither substrate-pure nor end-to-end differentiable.
+They are being removed from the parser, codegen, and runtime (decided
+2026-06-07). A substrate program is verified substrate-to-substrate, not by
+reading values out.
 
 ### Axons
 

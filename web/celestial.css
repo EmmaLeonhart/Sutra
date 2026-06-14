@@ -1,0 +1,158 @@
+/* =====================================================================
+   celestial.css — site-specific CELESTIAL / GLOW layer (Sutra)
+   Mirror of Yantra's site/celestial.css — Yantra + Sutra share this look,
+   kept in sync. Linked AFTER /identity.css. It AUGMENTS the shared identity, never
+   replaces it: the palette, buttons, toggle and base type still come
+   from identity.css. This file adds atmosphere — a deeper space field,
+   a cool nebula bloom, a faint twinkling starfield, fine grain, and
+   bloom on the accent type + controls.
+
+   Cooler than Extropic's warm plasma: periwinkle → cyan → violet.
+   All heavy effects are scoped to html[data-theme="dark"] so the light
+   theme stays calm and readable. Honours prefers-reduced-motion.
+   Do NOT move these rules into identity.css — that file is shared with
+   emmaleonhart.com and the sister sites; the celestial look is for
+   Yantra + Sutra only.
+   ===================================================================== */
+
+:root {
+  --celest-peri:   #8b9bff;
+  --celest-cyan:   #79e6ff;
+  --celest-violet: #b98cff;
+  --celest-glow:        rgba(139, 155, 255, 0.42);
+  --celest-glow-soft:   rgba(139, 155, 255, 0.20);
+  --celest-cyan-glow:   rgba(121, 230, 255, 0.20);
+  --celest-violet-glow: rgba(185, 140, 255, 0.20);
+}
+
+/* ---- Deep-space field: layered nebula gradients behind everything --- */
+html[data-theme="dark"] body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(820px 560px at 50% 2%,  rgba(150,168,255,0.16), transparent 64%),  /* bright hero core */
+    radial-gradient(1500px 980px at 50% -14%, rgba(139,155,255,0.22), transparent 60%), /* big central bloom */
+    radial-gradient(1100px 800px at 88%  10%, rgba(185,140,255,0.15),  transparent 60%),
+    radial-gradient(1000px 900px at  6%  90%, rgba(121,230,255,0.11),  transparent 60%),
+    radial-gradient(820px  720px at 74%  86%, rgba(139,155,255,0.10),  transparent 60%);
+  background-attachment: fixed;
+}
+/* A strong glowing bloom sitting right behind the hero headline. */
+html[data-theme="dark"] .hero { position: relative; }
+html[data-theme="dark"] .hero::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  left: -18%; right: -18%; top: -8%; height: 560px;
+  background:
+    radial-gradient(60% 70% at 38% 42%, rgba(150,168,255,0.30), transparent 70%),
+    radial-gradient(55% 60% at 72% 38%, rgba(185,140,255,0.20), transparent 72%);
+  filter: blur(36px);
+  animation: celest-breathe 12s ease-in-out infinite;
+}
+@keyframes celest-breathe {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.04); }
+}
+
+/* ---- Twinkling starfield (pure CSS, tiled) -------------------------- */
+/* Two star layers at different scales/opacities give parallax depth.
+   body::before is unused by identity.css, so we own it here. */
+html[data-theme="dark"] body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1.4px 1.4px at 24px 32px,  rgba(255,255,255,0.95), transparent),
+    radial-gradient(1.1px 1.1px at 132px 88px, rgba(200,222,255,0.80), transparent),
+    radial-gradient(1px   1px   at 76px 168px, rgba(255,255,255,0.70), transparent),
+    radial-gradient(1.6px 1.6px at 188px 44px, rgba(190,210,255,0.85), transparent),
+    radial-gradient(1px   1px   at 248px 132px,rgba(255,255,255,0.60), transparent);
+  background-size: 280px 280px;
+  background-repeat: repeat;
+  opacity: 0.55;
+  animation: celest-twinkle 7s ease-in-out infinite;
+}
+/* a second, finer, slower-drifting layer for density */
+html[data-theme="dark"] body::after {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(0.9px 0.9px at 60px 60px,   rgba(255,255,255,0.55), transparent),
+    radial-gradient(0.9px 0.9px at 200px 150px, rgba(180,205,255,0.50), transparent),
+    radial-gradient(1.1px 1.1px at 320px 240px, rgba(255,255,255,0.45), transparent);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+  opacity: 0.4;
+  animation: celest-twinkle 11s ease-in-out infinite reverse;
+}
+@keyframes celest-twinkle {
+  0%, 100% { opacity: 0.30; }
+  50%      { opacity: 0.62; }
+}
+
+/* ---- Cool + intensify the identity aurora --------------------------- */
+/* identity.css gives .aurora::before a periwinkle blob and .aurora::after
+   a WARM (#d4a76a) blob. Recolour the warm one to a cool nebula and add
+   a third deep glow, so the whole field reads celestial, not amber. */
+html[data-theme="dark"] .aurora::before {
+  background: radial-gradient(circle, var(--celest-glow) 0%, transparent 70%);
+  opacity: 0.6; filter: blur(96px);
+}
+html[data-theme="dark"] .aurora::after {
+  background: radial-gradient(circle, var(--celest-violet-glow) 0%, transparent 70%);
+  opacity: 0.55; filter: blur(100px);
+}
+/* a third, slow cyan nebula low on the page for depth */
+html[data-theme="dark"] .aurora {
+  background:
+    radial-gradient(620px 520px at 18% 78%, var(--celest-cyan-glow) 0%, transparent 70%);
+}
+
+/* ---- Fine grain overlay (atmosphere, kills banding) ----------------- */
+/* Root pseudo-element so it spans the whole page, behind content
+   (z-index:0; main/content sit at z-index:2). identity.css doesn't use it. */
+html[data-theme="dark"]::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.04; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- Bloom on the accent type + controls (dark theme) -------------- */
+/* h1 in identity is gradient-clipped text; drop-shadow glows its shape. */
+html[data-theme="dark"] h1 {
+  filter: drop-shadow(0 0 30px rgba(139,155,255,0.34))
+          drop-shadow(0 0 64px rgba(185,140,255,0.16));
+}
+html[data-theme="dark"] .eyebrow {
+  box-shadow: 0 0 26px -6px var(--celest-glow), inset 0 0 0 1px var(--celest-glow-soft);
+}
+html[data-theme="dark"] .btn-primary,
+html[data-theme="dark"] .links a.primary {
+  box-shadow: 0 8px 30px -10px var(--celest-glow), 0 0 40px -18px var(--celest-violet-glow);
+}
+html[data-theme="dark"] .btn-primary:hover,
+html[data-theme="dark"] .links a.primary:hover {
+  box-shadow: 0 10px 38px -8px var(--celest-glow), 0 0 56px -14px var(--celest-violet-glow);
+}
+html[data-theme="dark"] .topbar .cta-link:hover,
+html[data-theme="dark"] .links a:hover,
+html[data-theme="dark"] .gh:hover {
+  box-shadow: 0 0 26px -8px var(--celest-glow);
+}
+
+/* ---- Celestial section dividers ------------------------------------ */
+/* Replace identity's flat 1px border with a glowing gradient hairline. */
+html[data-theme="dark"] main section {
+  border-bottom-color: transparent;
+  border-image: linear-gradient(90deg, transparent 4%, var(--celest-glow-soft) 50%, transparent 96%) 1;
+}
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] footer {
+  border-image: linear-gradient(90deg, transparent, var(--celest-glow-soft), transparent) 1;
+}
+
+/* ---- The pulsing eyebrow dot, recoloured to a cool star ------------- */
+html[data-theme="dark"] .eyebrow::before {
+  box-shadow: 0 0 14px var(--celest-glow), 0 0 26px var(--celest-cyan-glow);
+}
+
+/* ---- Reduced motion: hold everything still ------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="dark"] body::before,
+  html[data-theme="dark"] body::after { animation: none; }
+}
