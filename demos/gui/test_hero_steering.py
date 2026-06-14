@@ -79,6 +79,40 @@ def test_brightness_preference_steers_the_hero_brighter() -> None:
     assert final_bright > start_bright + 0.3, (start_bright, final_bright)
 
 
+def _load_eval():
+    repo = pathlib.Path(__file__).resolve().parent.parent.parent
+    return _load("gui_steering_eval", repo / "experiments" / "gui_steering_eval.py")
+
+
+def test_soak_no_nan_blank_and_directional_both_signs() -> None:
+    """The 1d soak property: a 100-press session renders 0 NaN / 0 blank frames,
+    and a CONSISTENT rater steers monotonically in the rewarded direction — a
+    brighter-preferring rater raises brightness, a darker-preferring one lowers it
+    (the sign flips with the preference). Headline overlay off for test speed; the
+    full-frame path is covered separately below."""
+    ev = _load_eval()
+    up = ev.run_soak(presses=100, size=24, seed=0, headline=False, prefer="brighter")
+    assert up["frames_rendered"] == 101
+    assert up["nan_count"] == 0 and up["blank_count"] == 0
+    assert up["bright_delta"] > 0.3, up
+
+    down = ev.run_soak(presses=100, size=24, seed=0, headline=False, prefer="darker")
+    assert down["nan_count"] == 0 and down["blank_count"] == 0
+    assert down["bright_delta"] < -0.3, down
+    # opposite preferences move brightness opposite ways (directional consistency)
+    assert up["bright_delta"] > down["bright_delta"]
+
+
+def test_soak_full_demo_frame_stays_clean() -> None:
+    """A shorter soak on the FULL demo frame (RGB hero + substrate glyph headline)
+    renders 0 NaN / 0 blank — the recordable demo path holds under repeated
+    pressing (the full 100-press headline-on run lives in the eval script)."""
+    ev = _load_eval()
+    m = ev.run_soak(presses=20, size=24, seed=1, headline=True, prefer="brighter")
+    assert m["frames_rendered"] == 21
+    assert m["nan_count"] == 0 and m["blank_count"] == 0
+
+
 def test_full_frame_with_headline_renders_clean() -> None:
     """One frame on the FULL path (RGB hero + substrate glyph headline overlay)
     renders finite and non-blank, and reports a headline from the preset set —
