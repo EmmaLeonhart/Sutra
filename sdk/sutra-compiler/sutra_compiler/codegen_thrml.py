@@ -2,23 +2,25 @@
 
 A SECOND, opt-in backend selected by `--emit-thrml` (queue.md approach G). It
 lowers a validated Sutra subset to a thrml/JAX **energy-based-sampling** program:
-values → spin/categorical registers, operations → factors, results recovered by
-sampling (+ verify / ground-state decode). The canonical PyTorch backend
-(`codegen_pytorch.py`) and the `--emit`/`--run` path are UNTOUCHED by this file —
-this is purely additive (non-destructive constraint, queue.md §thrml).
+values → spin registers, operations → factors, results recovered by sampling. The
+canonical PyTorch backend (`codegen_pytorch.py`) and the `--emit`/`--run` path are
+UNTOUCHED by this file — purely additive (non-destructive constraint, queue.md
+§thrml).
 
-The validated op→factor mappings this backend draws on are measured in
-`planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md` and the runnable
-demos under `experiments/thrml/` (bind = 3-body factor, AND = derived gadget,
-adder = sample-and-verify, etc.).
+The op→factor mappings are measured in `planning/open-questions/2026-06-13-sutra-
+to-thrml-mapping.md` and the demos under `experiments/thrml/`.
 
-Status: **G.0 — the additive entry point is wired** (`--emit-thrml` dispatches
-here, the PyTorch path is unaffected). **G.1 — the op→factor lowering — is the
-next step.** Until a construct is supported, `translate_thrml` raises
-`ThrmlCodegenNotSupported` with a precise message so nothing mislowers silently
-(the integrity rule: surface the gap, never fake a result).
+Status: **G.0** the additive entry point is wired; **G.1 (here)** lowers the
+simplest validated program — `main()` returning a single `bind`/`unbind` of two
+`basis_vector` atoms — to a self-verifying thrml program (value = N-bit spin
+register, bind = the 3-body product factor `a_i·b_i·u_i = +1`). Anything outside
+that shape raises `ThrmlCodegenNotSupported` with a precise reason (integrity:
+surface the gap, never mislower silently). G.2 wires a compile-AND-sample test;
+G.3 broadens op coverage.
 """
 from __future__ import annotations
+
+from . import ast_nodes as ast
 
 
 class ThrmlCodegenNotSupported(Exception):
@@ -27,17 +29,98 @@ class ThrmlCodegenNotSupported(Exception):
     `thrml-codegen:` diagnostic and exits non-zero (no silent mislowering)."""
 
 
-def translate_thrml(module) -> str:
-    """Lower a parsed Sutra `module` to a thrml/JAX program string.
+def _basis_atoms(module) -> dict:
+    """Top-level `vector NAME = basis_vector("...");` declarations → {name: index}."""
+    atoms: dict = {}
+    for item in module.items:
+        if (isinstance(item, ast.VarDecl) and item.initializer is not None
+                and isinstance(item.initializer, ast.Call)
+                and isinstance(item.initializer.callee, ast.Identifier)
+                and item.initializer.callee.name == "basis_vector"):
+            atoms[item.name] = len(atoms)
+    return atoms
 
-    G.0: the entry point exists and is wired additively; the lowering itself is
-    G.1 (see queue.md). Raising here — rather than emitting a half-correct
-    program — keeps the substrate-honesty rule: surface the gap explicitly.
-    """
-    raise ThrmlCodegenNotSupported(
-        "lowering not yet implemented (approach G.1). The additive --emit-thrml "
-        "entry point is wired and the PyTorch backend is untouched; the next step "
-        "is the op->factor lowering for the validated subset (bind / AND / "
-        "sample-and-verify). See planning/open-questions/"
-        "2026-06-13-sutra-to-thrml-mapping.md and experiments/thrml/."
-    )
+
+def translate_thrml(module, *, dim: int = 16, seed: int = 0) -> str:
+    """Lower a parsed Sutra `module` to a thrml/JAX program string (G.1 subset)."""
+    atoms = _basis_atoms(module)
+    main_fn = next((it for it in module.items
+                    if isinstance(it, ast.FunctionDecl) and it.name == "main"), None)
+    if main_fn is None:
+        raise ThrmlCodegenNotSupported("no `main` function to lower")
+    stmts = main_fn.body.statements
+    if len(stmts) != 1 or not isinstance(stmts[0], ast.ReturnStmt) \
+            or stmts[0].value is None:
+        raise ThrmlCodegenNotSupported(
+            "G.1 lowers only `main()` whose body is a single `return <op>(...)` "
+            "(the minimal subset); richer programs are G.3")
+    expr = stmts[0].value
+    if not (isinstance(expr, ast.Call) and isinstance(expr.callee, ast.Identifier)):
+        raise ThrmlCodegenNotSupported("the returned expression must be a call")
+    op = expr.callee.name
+    if op not in ("bind", "unbind"):
+        raise ThrmlCodegenNotSupported(
+            f"G.1 supports `bind`/`unbind` only (the 3-body factor); got {op!r}")
+    if len(expr.args) != 2 or not all(isinstance(a, ast.Identifier) for a in expr.args):
+        raise ThrmlCodegenNotSupported(f"{op} expects two named-atom arguments")
+    a_name, b_name = expr.args[0].name, expr.args[1].name
+    for nm in (a_name, b_name):
+        if nm not in atoms:
+            raise ThrmlCodegenNotSupported(
+                f"{nm!r} is not a top-level `basis_vector` atom (G.1 limit)")
+    return _emit_bind(list(atoms), a_name, b_name, op, dim, seed)
+
+
+def _emit_bind(atom_names, a_name, b_name, op, dim, seed) -> str:
+    """Emit a self-verifying thrml program: encode the atoms as N-bit spin
+    registers, build the 3-body bind factor `a_i b_i u_i = +1`, clamp a,b, sample
+    u, and report the per-bit match of the sampled result to the ground-truth
+    a⊙b. (bind and unbind are the same element-wise product in the bit-register
+    paradigm: unbind(bind(r,v),r)=v.)"""
+    return f'''"""Generated by sutra-from-thrml codegen (approach G.1). Lowers
+`{op}({a_name}, {b_name})` to an energy-based thrml program: values = {dim}-bit
+spin registers, {op} = the 3-body product factor a_i*b_i*u_i = +1, result by
+block-Gibbs sampling. Self-verifies against the ground-truth a (x) b."""
+import jax
+import jax.numpy as jnp
+from thrml import SpinNode, Block, SamplingSchedule, sample_states
+from thrml.block_sampling import BlockGibbsSpec
+from thrml.factor import FactorSamplingProgram
+from thrml.models import SpinEBMFactor, SpinGibbsConditional
+
+_N = {dim}
+_SD = {{SpinNode: jax.ShapeDtypeStruct((), jnp.bool_)}}
+_BETA = 6.0
+_key = jax.random.key({seed})
+
+# Compile-time codebook: one deterministic random +/-1 register per atom.
+_atoms = {atom_names!r}
+_codebook = {{}}
+for _i, _nm in enumerate(_atoms):
+    _codebook[_nm] = 2 * jax.random.bernoulli(
+        jax.random.fold_in(_key, _i), 0.5, (_N,)).astype(jnp.int32) - 1
+
+a = _codebook[{a_name!r}]
+b = _codebook[{b_name!r}]
+
+a_nodes = [SpinNode() for _ in range(_N)]
+b_nodes = [SpinNode() for _ in range(_N)]
+u_nodes = [SpinNode() for _ in range(_N)]
+factor = SpinEBMFactor([Block(a_nodes), Block(b_nodes), Block(u_nodes)],
+                       _BETA * jnp.ones((_N,)))
+spec = BlockGibbsSpec([Block([n]) for n in u_nodes], [Block(a_nodes + b_nodes)], _SD)
+prog = FactorSamplingProgram(spec, [SpinGibbsConditional() for _ in u_nodes],
+                             [factor], [])
+clamp = jnp.concatenate([(a == 1), (b == 1)]).astype(bool)
+init = [jax.random.bernoulli(jax.random.fold_in(_key, 1000 + _i), 0.5, (1,))
+        for _i in range(_N)]
+sched = SamplingSchedule(n_warmup=80, n_samples=120, steps_per_sample=2)
+samp = sample_states(jax.random.key({seed} + 1), prog, sched, init, [clamp],
+                     [Block(u_nodes)])
+u = (jnp.mean(jnp.asarray(samp[0]).astype(jnp.float32), axis=0) > 0.5)
+u_pm1 = 2 * u.astype(jnp.int32) - 1
+truth = a * b   # bind = element-wise product of the bit-registers
+acc = float(jnp.mean((u_pm1 == truth).astype(jnp.float32)))
+print(f"thrml {op}({a_name}, {b_name}): sampled u matches ground-truth a(x)b "
+      f"per-bit = {{acc:.3f}} (N={{_N}})")
+'''

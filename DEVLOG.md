@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-14: Sutra → thrml codegen G.1–G.2 — `bind` compiles AND samples (1.000)
+
+The thrml backend now lowers a real Sutra program end-to-end. `codegen_thrml.translate_thrml`
+walks the AST: `main(){ return bind/unbind(a, b); }` over top-level `basis_vector` atoms
+lowers to a self-verifying thrml/JAX program — each atom a deterministic 16-bit spin
+register, `bind` the 3-body product factor `a_i·b_i·u_i=+1`, the result by block-Gibbs
+sampling. `examples/thrml_bind.su`: emitted program RUNS and the sampled `u` matches
+ground-truth `a⊙b` per-bit = **1.000**. New `tests/test_codegen_thrml.py` (3/3): the
+compile-AND-sample check (skips without jax/thrml) plus two non-destructive guards — an
+unsupported construct gives a clean `thrml-codegen:` diagnostic (exit 2, no traceback, no
+mislowering), and the PyTorch `--run` path still compiles the same `.su`. So one `.su`
+now compiles on BOTH backends. Anything outside the one-op-bind subset raises
+`ThrmlCodegenNotSupported` with a precise reason. Next: G.3 broaden ops (bundle, unbind+
+cleanup, multi-statement bodies), then H (compare all).
+
 ## 2026-06-14: Sutra → thrml exploration approaches A–F done; codegen G.0 wired
 
 Barrelled the A–H approach set (Emma 2026-06-14: implement each distinct system, then
