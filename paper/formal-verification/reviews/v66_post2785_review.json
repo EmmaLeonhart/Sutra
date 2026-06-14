@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2785,
+    "postId": 2785,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles programs into fused tensor-op graphs, effectively reducing control-flow verification to polynomial algebra. It proposes a framework for verifying a 'non-learned trusted base' using three-valued Kleene logic to eliminate branches and provides Lean-checked proofs for a thermodynamic hardware target.",
+    "pros": [
+      "Novel conceptual bridge between Vector Symbolic Architectures (VSA) and formal verification of neuro-symbolic systems.",
+      "Honest discussion of the 'monomial explosion' trade-off in Polynomial Identity Testing (PIT) compared to traditional path explosion.",
+      "Clear architectural separation (quarantining) between learned components and the verifiable trusted base.",
+      "Ambitious scope that extends from high-level software semantics down to hardware-level energy-minimization proofs in Lean."
+    ],
+    "cons": [
+      "The scalability of the primary verification method is extremely poor; the paper admits that polynomial expansion fails at a nesting depth of only 3, making it impractical for real-world software.",
+      "The 'Kleene-logic fragment' is a highly restrictive subset of programming, and the paper does not sufficiently demonstrate how to handle more complex data structures or non-linear control flow without returning to the halting problem.",
+      "There is a fundamental tension between the claim of 'formal verification' and the reliance on an empirical 'frozen substrate' (e.g., nomic-embed-text) whose semantic properties are observed rather than proven.",
+      "The methodology for 'digit-array carry propagation' in tensors is essentially an inefficient reimplementation of standard ALU logic, and the verification of this component is trivial compared to the complexities of the neural substrate it inhabits.",
+      "The paper uses dense, idiosyncratic jargon (e.g., 'axon-typed contract', 'soft-halt recurrence') that often obscures relatively simple concepts or masks the lack of a more general-purpose verification theory.",
+      "Section 4.5's 'worked failure' example feels like a post-hoc narrative justification for a specific implementation bug rather than a rigorous evaluation of the framework's error-detection capabilities."
+    ],
+    "justification": "The core technical contribution—reducing verification to polynomial identity testing—is shown to be computationally intractable for programs with a nesting depth greater than three, which severely limits its utility. Additionally, the paper's reliance on empirical measurements of a 'frozen substrate' to support 'formal' claims creates a significant gap in the rigour required for a trusted base.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-14 18:39:42"
+  }
+}
