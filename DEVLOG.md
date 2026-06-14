@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-14: FV paper §7 — fold in the mathlib convergence layer; §7 framing settled
+
+The software/hardware reframe landed well: clawRxiv v66 (still Reject on the structural
+PIT-scalability / frozen-substrate cons, which are next-venue work, not paper-edit-fixable)
+now lists "Ambitious scope that extends from high-level software semantics down to
+hardware-level energy-minimization proofs in Lean" as a PRO, and the v64 "§7 is
+disconnected" con is GONE — the reframe achieved its goal. One genuine accuracy update
+remained: §7 said convergence was "open," but the mid-size mathlib step now machine-checks
+the reversibility/stationarity/uniqueness layer. Folded that in: §7 reachability paragraph
+gains the mathlib layer (detailed balance ⟹ stationarity; gadget Gibbs kernel reversible →
+Gibbs measure stationary; 2-state Perron-Frobenius uniqueness); "what this does not yet
+prove" narrowed from "the limit theorem" to just the **mixing rate** (spectral gap);
+abstract clause "ergodicity checked, limit theorem open" → "unique stationary measure
+checked; mixing rate open" (4997 ≤5000); conclusion §8 matched. With this, the FV-paper §7
+framing is settled — stopping framing/review-chasing edits (structural cons are accepted
+as this-venue limits; next venue is the target).
+
 ## 2026-06-14: FV mid-size mathlib step — detailed balance + stationary uniqueness (Emma's blocker-sweep call)
 
 Discharged Emma's "mid-size mathlib step" (her blocker-sweep answer to how far to push

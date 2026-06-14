@@ -193,20 +193,6 @@ negative results, not hidden.
   every frontend; consider a `transpilers-ci.yml` running all `sutra-from-*` suites
   (scope decision — not auto-started).
 
-## FV paper §7 — bridge the framework TO thrml (Emma 2026-06-14 blocker-sweep)
-
-`paper/formal-verification/paper.md` is the live FV paper (paper/neurips/ frozen;
-this one is not). clawRxiv v64 (Reject) credited the §7 Lean gadget proofs but
-called §7 "disconnected / trivial 3-var gates." Emma's call: **tighten the
-connection, but bridge the OTHER material TO thrml — "thrml is the more important
-part."** So reframe so the energy-based / thrml compile target reads as central,
-not bolted-on: add a bridge connecting the PIT-reduction / tensor-op verification
-framework to the thrml energy-gadget verification, positioning thrml as the more
-important direction (honestly — no overclaim; thrml is the additive backend, the
-gadgets are 3-var, the convergence floor is finite). NOT a wholesale thesis
-rewrite in one tick; a real bridge + emphasis shift. Push triggers fv-paper-ci →
-clawRxiv loop (real content change, legitimate resubmit).
-
 ## Next-venue paper polish (UNFROZEN — active)
 
 `paper/paper.md`: ablation table for the §3.7 weighted-Equals training is DONE
