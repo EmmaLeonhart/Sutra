@@ -43,6 +43,8 @@ from sutra_compiler.fv_obligation_checker import (  # noqa: E402
     kleene_equivalent,
     range_sound_by_composition,
     reduces_to_same_graph,
+    reduces_to_same_graph_randomized,
+    structural_degree_bound,
 )
 
 
@@ -64,6 +66,87 @@ def test_reduces_to_same_graph_for_polynomial_identities() -> None:
     # Not a vacuous True: clearly different expressions are not the same graph.
     assert not reduces_to_same_graph("a && b", "a || b", ["a", "b"])
     assert not reduces_to_same_graph("a", "!a", ["a"])
+
+
+def test_randomized_pit_agrees_with_exact_identity() -> None:
+    """Randomized PIT (Schwartz-Zippel) decides the SAME notion as the exact
+    `reduces_to_same_graph` — verified to AGREE on identities (De Morgan,
+    commutativity, double negation → same graph) and non-identities (distributivity,
+    absorption, plainly different → not the same graph)."""
+    same = [("!!a", "a", ["a"]), ("a && b", "b && a", ["a", "b"]),
+            ("!(a && b)", "!a || !b", ["a", "b"]), ("!(a || b)", "!a && !b", ["a", "b"])]
+    diff = [("(a && b) || (a && c)", "a && (b || c)", ["a", "b", "c"]),  # distributivity
+            ("a || (a && b)", "a", ["a", "b"]),  # absorption (off-grid)
+            ("a && b", "a || b", ["a", "b"]), ("a", "!a", ["a"])]
+    for ea, eb, vs in same:
+        ident, info = reduces_to_same_graph_randomized(ea, eb, vs)
+        assert ident is True, f"{ea} vs {eb}: randomized said not-identical"
+        assert reduces_to_same_graph(ea, eb, vs) is True  # exact agrees
+        assert info["false_positive_bound"] < 1e-9  # negligible one-sided error
+    for ea, eb, vs in diff:
+        ident, info = reduces_to_same_graph_randomized(ea, eb, vs)
+        assert ident is False, f"{ea} vs {eb}: randomized missed the difference"
+        assert reduces_to_same_graph(ea, eb, vs) is False  # exact agrees
+        assert "witness" in info  # a disproof carries an exact witness point
+
+
+def test_randomized_pit_disproof_witness_is_exact() -> None:
+    """A `False` verdict is EXACT (one-sided soundness): the returned witness point
+    actually makes the two polynomials differ — re-evaluate it to confirm."""
+    ident, info = reduces_to_same_graph_randomized("a && b", "a || b", ["a", "b"])
+    assert ident is False and "witness" in info
+    pa, sa = extract_truth_polynomial("a && b", ["a", "b"], expand=False)
+    pb, sb = extract_truth_polynomial("a || b", ["a", "b"], expand=False)
+    env = {sa["a"]: info["witness"]["a"], sa["b"]: info["witness"]["b"]}
+    assert (pa - pb).subs(env) != 0  # the witness is a genuine disproof
+
+
+def test_randomized_pit_scales_without_expansion() -> None:
+    """Randomized PIT certifies a NON-trivial nested identity WITHOUT expanding it.
+    A nested De Morgan pair is the same graph but is NOT structurally identical to
+    sympy (unlike commutativity/associativity, which sympy normalises for free), so
+    proving it the exact way genuinely requires `expand`; randomized PIT proves it by
+    random evaluation instead. The structural degree bound is therefore positive,
+    and the one-sided error is negligible."""
+    a = "!((a && b) || (c && d))"
+    b = "(!a || !b) && (!c || !d)"  # De Morgan, twice
+    vs = ["a", "b", "c", "d"]
+    ident, info = reduces_to_same_graph_randomized(a, b, vs, trials=24)
+    assert ident is True
+    assert reduces_to_same_graph(a, b, vs) is True  # exact agrees (after expansion)
+    assert info["degree_bound"] >= 2  # genuinely nested — not an auto-cancelled 0
+    assert info["false_positive_bound"] < 1e-6
+
+
+def test_kleene_connective_formulas_match_inliner() -> None:
+    """Integrity guard: the randomized evaluator applies HARD-CODED truth-axis
+    formulas for `!`/`&&`/`||` to operand values (the key to scaling). Those formulas
+    MUST equal what the compiler's own inliner emits, or the randomized check would
+    decide a different polynomial than `reduces_to_same_graph`. Re-derive each single
+    connective via the inliner and confirm the formula evaluates identically at a
+    grid of points — over the field, via `_eval_kleene_ast`."""
+    from sutra_compiler.fv_obligation_checker import (
+        _PIT_PRIME, _eval_kleene_ast, _parse_expr_to_ast)
+    p, inv2 = _PIT_PRIME, pow(2, -1, _PIT_PRIME)
+    for expr, vs in [("!a", ["a"]), ("a && b", ["a", "b"]), ("a || b", ["a", "b"])]:
+        poly, syms = extract_truth_polynomial(expr, vs)  # the inliner's polynomial
+        tree = _parse_expr_to_ast(expr, vs)
+        for point in itertools.product(range(1, 6), repeat=len(vs)):
+            env = dict(zip(vs, point))
+            inliner_val = int(poly.subs({syms[v]: env[v] for v in vs})) % p
+            formula_val = _eval_kleene_ast(tree, env, p, inv2)
+            assert formula_val == inliner_val, f"{expr} formula drifted at {env}"
+
+
+def test_structural_degree_bound_is_an_upper_bound() -> None:
+    """The structural degree bound never under-estimates the true (expanded) degree."""
+    for expr, vs in [("a && b", ["a", "b"]), ("(a && b) || !c", ["a", "b", "c"]),
+                     ("a && (b && (c && d))", ["a", "b", "c", "d"])]:
+        unexp, _ = extract_truth_polynomial(expr, vs, expand=False)
+        exp, _ = extract_truth_polynomial(expr, vs, expand=True)
+        true_deg = sympy.Poly(exp, *sorted(exp.free_symbols, key=str)).total_degree() \
+            if exp.free_symbols else 0
+        assert structural_degree_bound(unexp) >= true_deg
 
 
 def test_distributivity_is_grid_equivalent_but_not_the_same_graph() -> None:
