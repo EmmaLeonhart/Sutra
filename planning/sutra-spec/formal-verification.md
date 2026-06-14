@@ -314,8 +314,50 @@ returns; these are the substantive items (and a human venue is the real target).
    polynomial directly from the emitted graph (not the inliner restatement) and
    discharge an arbitrary reduced-graph obligation — the part still not built.
 
+## thrml compile-target — energy-gadget ground-states (machine-checked in Lean, 2026-06-14)
+
+A SECOND FV result, on the **second compile target**. The rest of this doc (and
+the FV paper) verifies the **PyTorch tensor-op** graph. The additive
+`--emit-thrml` backend (queue.md approach G) lowers Sutra ops to an **energy-based
+model** sampled on Extropic's thermodynamic substrate — values as spin registers,
+ops as factors, results recovered by sampling/decode. Its correctness rests on a
+different claim: that each gadget's **arithmetically-correct output is the strict
+global minimum** of the gadget energy (so a ground-state / min-energy decode is
+exact). The thrml exploration *measured* this (≈100%); we now **prove** it.
+
+Machine-checked in Lean 4 (core only, no mathlib), under `fv-lean/`, run by
+`scripts/check_fv_lean.sh`; every theorem depends only on `[propext, Quot.sound]`
+— **no `sorry`** (`#print axioms` checked):
+
+- **`AndGadget.lean`** — the derived AND Ising gadget (biases a:+¼ b:+¼ z:−½;
+  couplings ab:−¼ az:+½ bz:+½). `_min` + `_strict`: `a AND b` is the unique energy
+  minimiser. (Measured 100% in approach A2; re-learned from data in C.)
+- **`XorGadget.lean`** — the 3-body XOR/parity gadget `E = σx σy σz` (negative
+  weight). Pins the **correct sign** — formally excluding the XNOR sign bug that
+  was found+fixed empirically the same day.
+- **`FullAdder.lean`** — sum = `a⊕b⊕cin` (4-body parity factor) + carry =
+  `MAJ(a,b,cin)` (pairwise factor). The correct `(sum,carry)` is the strict global
+  minimum for all 8 inputs → **addition's ground-state decode is provably exact.**
+  The 2×2 multiplier is these gates composed, so its correctness follows.
+
+Recipe (reusable): spins as `Bool`, energy ×k to `Int`, finite domain closed by
+`omega` after case-splitting (`decide` gets stuck on `Int` in the kernel — tried
+and rejected; do not use it). Strict-uniqueness tactic:
+`first | exact absurd rfl h | (simp <;> omega)`.
+
+**Not yet proven (named):** the **sampler-convergence** claim — that block-Gibbs
+actually *reaches* the ground state (the "stochastic ODEs" / Langevin-limit
+angle). That is non-finite (measure/analysis-scale, likely mathlib) and is the
+open FV item; the finite gadget-correctness layer above is complete. Lean is **not
+in CI** yet (heavy toolchain install). The clawRxiv research-loop writeup vehicle
+(extend the FV paper vs a new one) is an open editorial choice. Supporting
+measured evidence: `planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md`,
+`planning/findings/2026-06-14-thrml-approaches-comparison.md`,
+`planning/findings/2026-06-14-thrml-hardware-alignment.md`.
+
 ## Cross-references
 
+- `fv-lean/` — the Lean proofs of the thrml energy-gadget ground-states (above).
 - `planning/exploratory/tnf-vs-constant-folding-explanation.md` — compiled-graph
   ontology (the "compiled graph is the semantics, not a constant fold" argument;
   filename predates dropping the "TNF" term).

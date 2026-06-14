@@ -344,11 +344,18 @@ re-learned is now formally correct. `fv-lean/XorGadget.lean` (the 3-body XOR —
 the correct sign that the 2026-06-14 bug got wrong) and `fv-lean/FullAdder.lean`
 (sum=parity + carry=majority → addition's ground state is provably the correct
 (s,cout)) are also machine-checked, no sorry. The 2×2 multiplier is these gates
-composed, so its correctness follows. Remaining:
+composed, so its correctness follows. The gadget-FV result is recorded in the
+authoritative FV spec (`planning/sutra-spec/formal-verification.md` § "thrml
+compile-target"). Remaining:
+- [ ] **clawRxiv research-loop writeup — VEHICLE DECISION (ask Emma).** The
+  existing FV paper (`paper/formal-verification/paper.md`) is tightly scoped to the
+  **PyTorch tensor-op** target; the thrml energy-gadget FV is the **second compile
+  target** — a distinct contribution. Bolting it onto the live-reviewed FV paper
+  risks scope-creep / muddying the review signal vs writing a new paper. Settle
+  with Emma which vehicle before triggering the clawRxiv CI (the push auto-submits).
 - [ ] **Sampler-convergence** (the "stochastic ODEs" angle): block-Gibbs reaches
-  the ground state — the harder, non-finite claim; scope it before proving.
-- [ ] **clawRxiv research loop** on the writeup; fold into the FV paper
-  (`paper/formal-verification/paper.md`, its CI auto-submits).
+  the ground state — the harder, non-finite claim (measure/analysis, likely
+  mathlib); scope it (and likely Emma's steer) before proving.
 - [ ] Lean is **not in CI** yet (toolchain install heavy) — decide whether to add
   a CI job or keep `check_fv_lean.sh` local.
 
