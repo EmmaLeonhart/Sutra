@@ -322,6 +322,7 @@ tracks on it.
 
 
 * start doing formal verification work using the Extropic. run research loop for formal verification using lean and the autonomous clawrxiv research loop
+stochastic odes i think
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`.
