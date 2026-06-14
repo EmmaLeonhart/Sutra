@@ -37,6 +37,7 @@ _RUNNABLE = {
     "tail_rec": 15.0,  # (defn sumTo [acc n] (if (= n 0) acc (recur (+ acc n) (- n 1)))); (sumTo 0 5)
     "nontail_fact": 120.0,  # (defn fact [n] (if (= n 0) 1 (* n (fact (- n 1))))); (fact 5)  (CPS fold)
     "loop_recur": 15.0,  # (loop [acc 0 i 0] (if (< i n) (recur (+ acc i) (+ i 1)) acc)); sumLoop(6)
+    "case_dispatch": 119.0,  # (case x 1 10 2 20 3 30 99); (classify 2)=20 + (classify 7)=99 default
 }
 
 

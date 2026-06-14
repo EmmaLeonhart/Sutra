@@ -388,6 +388,33 @@ def _lower_expr(node, src: bytes) -> str:
             for test, res in reversed(parsed[:-1]):
                 expr = res if test is None else _blend(test, res, expr)
             return expr
+        if head == "case":
+            # (case E c1 r1 c2 r2 … [default]) — dispatch E against literal
+            # constants; lowers to a nested equality defuzz-blend (the `cond`
+            # shape with an implicit (= E ci) test per clause). A trailing lone
+            # arg is the default (Clojure throws on no match; we use it as the
+            # base, or 0 if absent). E is lowered once and reused per clause —
+            # MVP value domain is numbers, so re-evaluation is side-effect-free.
+            # Multi-constant test lists `(c1 c2)` are a later item.
+            if len(args) < 3:
+                return "/* UNSUPPORTED-EXPR: malformed case */"
+            e_src = f"({_lower_expr(args[0], src)})"
+            clauses = args[1:]
+            has_default = (len(clauses) % 2 == 1)
+            default_src = _lower_expr(clauses[-1], src) if has_default else "0"
+            pair_clauses = clauses[:-1] if has_default else clauses
+            parsed = []
+            for i in range(0, len(pair_clauses), 2):
+                const_node, res_node = pair_clauses[i], pair_clauses[i + 1]
+                if const_node.type not in ("num_lit", "bool_lit"):
+                    return ("/* UNSUPPORTED-EXPR: case test constant "
+                            "(number/bool literals only — lists/symbols later) */")
+                test = f"({e_src} == {_lower_expr(const_node, src)})"
+                parsed.append((test, _lower_expr(res_node, src)))
+            expr = default_src
+            for test, res in reversed(parsed):
+                expr = _blend(test, res, expr)
+            return expr
         sop = _OP_MAP.get(head)
         if sop is not None:
             if len(args) < 2:
