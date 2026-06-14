@@ -55,14 +55,12 @@ built; building is autonomous.)
   do NOT over-claim "one substrate program" or substrate-native training.
 
 **Build order (decompose as the loop reaches each):**
-- [ ] **1a-colour. Colour channels for the θ hero.** Render core + headline-glyph
-  selector are DONE (`frame_hero.su`/`render_hero()`; `render_hero_with_headline()`
-  + `select_headline()` argmax over θ['headline_w'] + substrate-glyph banner; all
-  oracle/equality-verified; DEVLOG 2026-06-14). Remaining: add **colour channels**
-  to the θ hero (per-channel brightness/hue, the `frame_rgb.su` precedent — 3
-  whole-frame substrate fields stacked) so θ also drives colour. Keep
-  runtime-parameter (no recompile); verify each colour axis against a reference
-  (MEASURED). Then 1a is complete → 1b (SPSA).
+
+> **Progress:** 1a (θ-parameterized hero render) is COMPLETE — render core +
+> headline-glyph selector + colour channels; whole-frame suite 16/16; θ axes =
+> HERO_THETA_AXES (cx,cy,invs,bright,radius,accent,bg,cr,cg,cb) + headline_w;
+> runtime-parameter, no recompile (DEVLOG 2026-06-14). Next actionable: **1b**.
+
 - [ ] **1b. Batched SPSA optimizer (host-side).** Port the SPSA step from the
   a1 spec: two-sided perturbation, scalar reward in, θ-update out, [-1,1]^d clamp.
   Unit-test the update direction on a synthetic reward (gradient sign correct).

@@ -289,6 +289,36 @@ def test_hero_theta_render_matches_oracle_and_morphs() -> None:
     assert float(bold[c, c]) > float(dim[c, c]) + 1e-3
 
 
+def test_hero_rgb_channels_match_tinted_oracle_and_drive_colour() -> None:
+    """frame_hero.su's `hero_channel` renders the θ hero tinted per channel in ONE
+    substrate op each; render_hero_rgb stacks R,G,B. Guards (1) each channel ==
+    host oracle (mono hero × tint) to 1e-6, and (2) θ DRIVES colour — a pure-red
+    tint (cr=1, cg=cb=0) lights R while zeroing G and B — all via call args, no
+    recompile."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size = 16
+
+    th = {"cx": 0.2, "cy": -0.1, "invs": 1.3, "bright": 0.9, "radius": 0.4,
+          "accent": 0.4, "bg": 0.1, "cr": 0.8, "cg": 0.5, "cb": 0.3}
+    img = whole.render_hero_rgb(size, th)
+    assert img.shape == (size, size, 3)
+    mono = _hero_oracle(size, th)               # bg + bright*glow + accent*ring
+    tints = (th["cr"], th["cg"], th["cb"])
+    worst = 0.0
+    for j in range(size):
+        for i in range(size):
+            for c in range(3):
+                worst = max(worst, abs(float(img[j, i, c]) - mono[j][i] * tints[c]))
+    assert worst < 1e-6, f"hero_rgb channel vs tinted oracle max error {worst} >= 1e-6"
+
+    # θ drives colour: a pure-red tint lights R, zeroes G and B.
+    base = dict(whole.HERO_THETA_DEFAULT)
+    red = whole.render_hero_rgb(size, {**base, "cr": 1.0, "cg": 0.0, "cb": 0.0})
+    assert float(abs(red[:, :, 1]).max()) < 1e-6   # G channel zeroed by tint
+    assert float(abs(red[:, :, 2]).max()) < 1e-6   # B channel zeroed by tint
+    assert float(red[:, :, 0].max()) > 0.5         # R channel carries the hero
+
+
 def test_headline_banner_is_exactly_the_substrate_glyphs() -> None:
     """render_headline_banner rasterizes a headline by rendering each glyph ON THE
     SUBSTRATE (render_glyph). The banner is EXACTLY the per-glyph substrate fields
