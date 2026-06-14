@@ -362,8 +362,6 @@ compile-target"). Remaining:
   `π(s)P(s,t)=π(t)P(t,s)` (real-valued probabilities + `exp`). Install mathlib
   (heavy) as its own step; the finite floor above discharges that theorem's
   hypotheses. (Recorded in FV spec § "thrml compile-target"; paper §7 updated.)
-- [ ] Lean is **not in CI** yet (toolchain install heavy) — decide whether to add
-  a CI job or keep `check_fv_lean.sh` local.
 
 Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
 `paper/formal-verification/paper.md`, the clawRxiv loop). Scope is settled by
