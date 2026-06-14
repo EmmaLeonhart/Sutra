@@ -186,6 +186,22 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   own — the marginal-mode-carry bug — but B2 shows annealing was never needed once
   the gadget signs are right and β is warm enough to mix.)
 
+### Approach C — trainable couplings (the constrain-train link)
+
+- **C1. LEARNED the AND gate from data — WORKS (2026-06-14).**
+  `experiments/thrml/train_and_demo.py`. A2 hand-DERIVED the AND gadget; this
+  LEARNS it. A 3-spin fully-visible Ising (a,b,z) trained by contrastive
+  divergence (`thrml.estimate_kl_grad`, 120 steps, lr 0.2) on the 4 valid AND
+  triples, NO hand-set weights. **Measured: post-training z=a&b exact = 1.000**
+  (untrained ~0.5). And the learned couplings **rediscovered the A2 gadget
+  structure** (up to a ~2.8x scale): biases a/b/z = +0.70/+0.69/-1.47 (gadget
+  +0.25/+0.25/-0.5), weights ab/az/bz = -0.70/+1.41/+1.44 (gadget -0.25/+0.5/+0.5)
+  — **every sign matches**. Training independently converged to the analytic
+  gadget. This is the **constrain-train link**: Sutra ops can be LEARNED on thrml,
+  not just hand-built — the bridge to "every operation trainable." Next C: learn a
+  composed gate where hand-derivation is harder; a hidden-unit (non-fully-visible)
+  case.
+
 ## Emma's encoding steer (2026-06-13)
 
 - thrml models computation as **individual memory spaces**; the natural atom is
