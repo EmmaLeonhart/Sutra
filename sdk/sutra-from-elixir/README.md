@@ -42,9 +42,14 @@ fires the clause only when pattern + guard hold. Substrate-verified: `guard_clau
 grade(20)` = 100+50+0). A guard on the last clause is treated as the base (its test
 is dropped), matching the existing last-clause-is-base rule.
 
+**Pipe operator `|>`**: `x |> f(a, b)` ≡ `f(x, a, b)` — the left value is inserted as
+the right call's first argument; `x |> f` ≡ `f(x)`. Chains nest left-to-right
+(`5 |> add(3) |> double()` → `double(add(5, 3))`). Substrate-verified: `pipe_chain`
+= 16.
+
 Dependency: `tree-sitter-elixir` (`pip install tree-sitter-elixir`).
 
 ## Next
 
-Maps/structs → axons; pipe operator; multi-clause heads with recursion (currently
+Maps/structs → axons; multi-clause heads with recursion (currently
 `UNSUPPORTED-RECURSION`); non-comparison guards (`is_integer`, `and`/`or` chains).
