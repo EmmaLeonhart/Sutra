@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-14: FV-in-Lean — XOR + full-adder ground-state machine-checked
+
+Extended the FV-in-Lean proofs to two more gadgets, same recipe (spins as Bool, energy to
+Int, `omega` after case-split), both `[propext]`/`[propext, Quot.sound]` only — no `sorry`.
+`fv-lean/XorGadget.lean`: the 3-body XOR/parity gadget `E = σx σy σz` (negative weight) has
+`z = x⊕y` as its strict global minimum — this PINS the correct sign, formally ruling out the
+XNOR sign bug found+fixed earlier today. `fv-lean/FullAdder.lean`: the 1-bit full adder
+(sum = a⊕b⊕cin via the 4-body parity factor, carry = MAJ(a,b,cin) via the pairwise factor)
+has the correct (sum, carry) as the strict global minimum for all 8 inputs → **addition's
+ground-state decode is provably exact**, not just measured. The 2×2 multiplier is these
+gates (AND + XOR) composed, so its correctness follows from the gate proofs. `scripts/
+check_fv_lean.sh` now checks 3 files clean. Found a reusable tactic for the strict claims:
+`first | exact absurd rfl h | (simp <;> omega)`. Remaining FV: the sampler-convergence
+("stochastic ODEs") claim and the clawRxiv loop on the writeup.
+
 ## 2026-06-14: FV-in-Lean started — AND-gadget ground-state machine-checked
 
 First piece of the FV-in-Lean queue item (Emma: verify the thrml gadgets in Lean). Installed
