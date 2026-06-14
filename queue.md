@@ -24,8 +24,34 @@ deleted on completion. Keep the task tool in sync with this file.
 - **NEVER use `Math.mod`** (Emma 2026-06-12 — worst-implemented function; measured
   vector-collapse/NaN, finding `2026-06-12-rotation-mod-vector-collapse-…`). For
   wrap/periodic behavior use complex rotation (`demos/gui/live_frame.su`).
+- **a1 warmer/colder GUI demo MOVED to a separate branch (Emma 2026-06-14 21:06).**
+  Stripped from main's queue; do NOT re-add it here. It lives on its own branch.
 
-## 🔥 NEXT MAJOR TRACK — Sutra → thrml (Extropic): submodule + compilation target (Emma 2026-06-13)
+## 🔥 ACTIVE DIRECTIVE (Emma 2026-06-14 21:06) — Erlang → integrate → FV Strong Accept
+
+Barrel through these phases in order; the work-loop self-paces. No stopping to ask
+(Emma: "barrel through … until you've gotten a strong acceptance").
+
+- **Phase 1 — Erlang frontend + transpiler backlog.** Implement `sutra-from-erlang`
+  NOW (its own grammar; build the DLL like `sutra-from-clojure/build_grammar.py`
+  since no PyPI wheel). Then drain the active transpiler increments (F#/Elixir/
+  Clojure/Haskell/Rust data-structure tier + remaining shapes). Each substrate-
+  verified (compile AND run vs ground truth).
+- **Phase 2 — Integrate into the architecture + paper.** Reflect Erlang + all the
+  new frontends/increments in the architecture docs (`CLAUDE.md`, `AGENTS.md`,
+  `planning/sutra-spec/`, the transpiler READMEs as needed) AND the main Sutra paper
+  (`paper/paper.md`) — the multi-language → Sutra story is a real capability the
+  paper should carry. Measured/accurate, no overclaim.
+- **Phase 3 — FV-paper research loop → Strong Accept.** Continue the clawRxiv loop
+  on `paper/formal-verification/paper.md`: **respond to the critiques substantively**
+  (the structural cons — PIT scalability at depth 3, frozen-substrate empirical-vs-
+  formal tension — need real answers: experiments, scope tightening, new sections),
+  **expand with more content** until a **Strong Accept**. This SUPERSEDES the earlier
+  "stop chasing reviews" stance — Emma wants the paper actively driven to acceptance.
+- **Fill-in — full mathlib mixing rate.** When nothing above is immediately
+  actionable, do the full t→∞ mixing-rate proof (see the FV section below).
+
+## ✅ COMPLETE — Sutra → thrml (Extropic): submodule + compilation target (Emma 2026-06-13)
 
 Emma's direction (2026-06-13): vendor Extropic's **`thrml`**
 (<https://github.com/extropic-ai/thrml>) as a git submodule and make it a Sutra
@@ -306,24 +332,25 @@ NTM/attention-on-RAM breadth backlog (trainable-query `.su`; composed-network
 end-to-end training; more parse tasks; multi-head comparison — track closed
 by Emma 2026-06-08, breadth only).
 
-## Future transpiler frontends — backlog (Emma 2026-06-13, bottom of queue)
+## Erlang frontend — PHASE 1 ACTIVE (Emma 2026-06-14 21:06: "implement erlang right now")
 
-Added to the bottom of the queue after the core roadmap pass (Scala/F#/Elixir/
-Clojure/Haskell/Rust all have functions + if/match→blend + tail rec→while_loop +
-foldable non-tail→CPS as of 2026-06-13). Lower priority than the thrml track and
-the existing frontends' data-structure tier.
-
-- [ ] **Erlang** — its own frontend (Elixir is done on the BEAM, but Erlang's own
-  syntax/grammar is separate). Model on `sutra-from-ocaml`; reuse the shared
-  shapes (multi-clause function heads with guards map to the dispatch blend).
+- [ ] **Erlang** (`sdk/sutra-from-erlang/`) — its own frontend (Elixir is on the BEAM,
+  but Erlang's own syntax/grammar is separate). No PyPI tree-sitter wheel → build the
+  grammar DLL like `sutra-from-clojure/build_grammar.py` (clone tree-sitter-erlang,
+  compile parser.c [+ scanner.c] with MSVC into `_grammar/erlang.dll`, load via
+  ctypes; `_grammar/` gitignored, tests skip if missing). Model lowering on
+  `sutra-from-ocaml`/`sutra-from-elixir`: `f(0) -> 1; f(N) -> N * f(N-1).` multi-clause
+  heads (separated by `;`, terminated by `.`) → the dispatch blend; `when` guards →
+  test; `if`/`case` → blend; tail rec → `while_loop`; foldable non-tail → CPS. Each
+  fixture substrate-verified (compile AND run vs ground truth).
 
 ## Formal verification of thrml gadgets in Lean + clawRxiv loop (Emma 2026-06-14)
 
-**NOT parked — just LAST in the queue, to be done AUTONOMOUSLY after the thrml
-A–H approaches** (Emma 2026-06-14: "the fv and a1 are not parked, they are just
-last in the queue after the other things; they should be automatically done after
-other stuff"). The work-loop reaches it in order and does it like any other item;
-no waiting for Emma. Comes BEFORE the a1 GUI demo below.
+Per the ACTIVE DIRECTIVE at the top: the FV-paper research loop (respond to
+critiques + expand toward a Strong Accept) is **Phase 3**, after Erlang + the
+transpiler backlog (Phase 1) and the architecture/paper integration (Phase 2). The
+gadget Lean proofs + mid-size mathlib are done; what remains here is the clawRxiv
+loop toward Strong Accept (Phase 3) and the full mixing-rate mathlib (fill-in).
 
 Emma's direction (clarifying her 2026-06-14 queue seed): take the energy-based
 gadgets validated in
@@ -353,50 +380,26 @@ compile-target"). Remaining:
   Lean; honest "what this does not yet prove" on convergence) + abstract clause +
   conclusion road-ahead; Conclusion renumbered §7→§8. The push auto-submits via
   `fv-paper-ci.yml` → runs the clawRxiv loop (review lands under `paper/reviews/`).
-- [ ] **Sampler-convergence — full t→∞ mixing RATE (longer-horizon; beyond Emma's
-  mid-size scope).** The mid-size mathlib step is DONE (2026-06-14):
-  `fv-lean/mathlib/GibbsMathlib.lean` (isolated Lake project, mathlib v4.30.0)
-  machine-checks `stationary_of_detailedBalance` (reversibility ⟹ stationarity,
-  general finite chain), `gibbsKernel_detailedBalance` + `gibbsKernel_stationary`
-  (the gadget's real-`exp` Gibbs kernel is reversible → the Gibbs measure is
-  stationary), and `stationary_unique_two_state` (2-state Perron–Frobenius
-  uniqueness) — all `[propext, Classical.choice, Quot.sound]`, no sorry, `lake build`
-  green. Combined with the core-only irreducibility/aperiodicity, this is the
-  reversible-chain picture: positive + irreducible + reversible finite chain ⟹
-  unique stationary = Gibbs. What REMAINS (Emma capped the ask at mid-size, so this
-  is not requested): the t→∞ **mixing rate** / spectral-gap (full TV-mixing). Only
-  pick up if Emma re-greenlights. Mathlib file is local-verified (heavy toolchain,
-  not in CI — `fv-lean/mathlib/.lake` gitignored).
+- [ ] **Sampler-convergence — full t→∞ mixing RATE (GREENLIT by Emma 2026-06-14 21:06
+  as fill-in work — "do the full mathlib" when nothing else is pending).** The
+  mid-size step is DONE: `fv-lean/mathlib/GibbsMathlib.lean` (isolated Lake project,
+  mathlib v4.30.0) machine-checks `stationary_of_detailedBalance` (reversibility ⟹
+  stationarity, general finite chain), `gibbsKernel_detailedBalance` +
+  `gibbsKernel_stationary` (the gadget's real-`exp` Gibbs kernel is reversible → the
+  Gibbs measure is stationary), and `stationary_unique_two_state` (2-state
+  Perron–Frobenius uniqueness) — all `[propext, Classical.choice, Quot.sound]`, no
+  sorry, `lake build` green. Combined with the core-only irreducibility/aperiodicity:
+  positive + irreducible + reversible finite chain ⟹ unique stationary = Gibbs. NOW
+  DO: the t→∞ **mixing rate** / spectral-gap (full TV-mixing convergence) in the same
+  `fv-lean/mathlib/` project — the spectral gap of the reversible kernel / contraction
+  to the Gibbs measure. Mathlib has finite-Markov / spectral infrastructure; scope to
+  the gadget chain. Fill-in priority: do when the Erlang + integration + FV-loop work
+  below has no immediately-actionable item. Local-verified (heavy toolchain, not CI).
 
 Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
 `paper/formal-verification/paper.md`, the clawRxiv loop). Scope is settled by
 Emma's clarification above (verify the gadgets in Lean + run the clawRxiv loop);
 just do it when the loop reaches it.
-
-## Demo — warmer/colder self-morphing hero (Emma 2026-06-14, last in queue)
-
-**NOT parked — just LAST in the queue, done AUTONOMOUSLY after the FV item above**
-(Emma 2026-06-14). The build is ASSEMBLY of parts that already exist —
-runtime-parameter whole-frame rendering (`demos/gui/whole_frame.py`,
-`frame_moving.su`; params are per-call broadcast buffers, no recompile) + a
-batched SPSA optimizer + warmer/colder controls — into one recordable interactive
-demo. No new substrate research. (Emma records it herself once built; building is
-autonomous.)
-
-- [ ] **Warmer/colder steering demo.** A substrate-rendered hero (headline glyphs
-  via the 36-glyph renderer + accent glow/ring + a CTA block) whose
-  layout/scale/color/spacing/headline-choice form a parameter vector θ ∈ R^8–16;
-  WARMER / COLDER buttons emit scalar reward (+1 / −1, smoothed); a batched SPSA
-  step updates θ with [-1,1]^d clamping; the hero visibly morphs. Local window
-  first (screen-recordable), optional web wrapper later. Done = a stranger
-  steering it sees directionally-consistent morphing within seconds, with no
-  NaN/blank frames across a 100-press session. Full build spec (5 steps, ~4–5
-  days, with the SPSA port source) lives in the private founder hub:
-  `../emmas-gstack/business/gtm/2026-06-13-a1-shortest-path.md` (+ the detailed
-  `business/gtm/a1-implementation-spec.md`). Honest rails for the artifact:
-  composition is host-side and the optimizer is host-side SPSA over
-  substrate-rendered output — do not over-claim "one substrate program" or
-  substrate-native training.
 
 ## Pointers
 
