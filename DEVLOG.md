@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-14: FV-in-Lean started — AND-gadget ground-state machine-checked
+
+First piece of the FV-in-Lean queue item (Emma: verify the thrml gadgets in Lean). Installed
+Lean 4.30.0 via elan (core only, no mathlib). `fv-lean/AndGadget.lean` PROVES what approach
+A2 only measured (100%) and approach C re-learned: the derived AND Ising gadget has the
+arithmetically-correct output `z = a AND b` as its STRICT global energy minimum —
+`and_gadget_min` (correct output attains the minimum for every input) + `and_gadget_strict`
+(every wrong output strictly higher → unique minimiser). Both depend only on
+`[propext, Quot.sound]`, NO `sorry` (`#print axioms` checked). Recipe: spins as Bool, energy
+×4 to Int, 8 configs closed by `omega` after case-splitting (`decide` gets stuck on Int in
+the kernel — used and rejected). `scripts/check_fv_lean.sh` runs the proofs and fails on any
+error/sorry. Lean is NOT in CI yet (toolchain install is heavy) — local check for now.
+Remaining FV work: XOR/parity + full-adder + multiplier ground-state proofs (same recipe),
+the sampler-convergence ("stochastic ODEs") claim, and the clawRxiv loop on the writeup.
+
 ## 2026-06-14: Sutra → thrml — hardware-alignment notes; the A–H track is COMPLETE
 
 Wrote `planning/findings/2026-06-14-thrml-hardware-alignment.md`, grounded in the Extropic
