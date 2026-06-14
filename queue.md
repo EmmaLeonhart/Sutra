@@ -411,15 +411,69 @@ neural-VM direction (the same shape as the already-built Neural WebAssembly mach
 the `WASM/` subtree, which is the WASM leg): build a substrate program that interprets
 each VM's bytecode, so any language compiling to that bytecode runs on Sutra.
 
-The four legs:
+**Update (Emma 2026-06-14 21:26): CPython folds into WASM** (CPython-direct is a trap;
+Python rides Pyodide/Wasm Python through the existing WASM frontend — see the dedicated
+leg below). So the effective legs are **WASM (+ Python via Pyodide), JS, JVM**.
+
+The legs:
 - **WASM** — already underway: the substrate WASM machine (`WASM/`, Turing-complete,
   21 opcodes, ISO-5; see the merged WASM queue section above). This is the proof the
   approach works; the others generalize it.
 - **JS** — a JavaScript engine/bytecode target. (Distinct from the existing
   `sutra-from-ts` *transpiler*, which lowers TS source to Sutra — this would be a JS
   VM, the imperative-runtime route.) Weirdest of the four; scope TBD.
-- **CPython bytecode** — a CPython VM (interpret CPython bytecode on the substrate).
+- **CPython bytecode — TRAP; do NOT implement directly (Emma 2026-06-14 21:26).** A
+  standalone CPython VM is a dead end: nobody writes pure CPython bytecode, real
+  Python immediately reaches for C extensions, so a bare VM breaks on ~90% of code.
+  The correct route is **Pyodide/Wasm Python** → the existing WASM frontend (see the
+  dedicated leg below). So Python is folded into the WASM leg, not its own VM.
 - **JVM bytecode** — a JVM (interpret JVM bytecode on the substrate).
+
+### Python via Pyodide/Wasm — the correct route (Emma 2026-06-14 21:26)
+
+Emma's decision (chatbot info recorded verbatim for grounding — verify before relying):
+
+> Exactly right — CPython without its ecosystem is basically useless. Nobody writes
+> pure CPython bytecode, everything immediately reaches for extensions. It's a trap
+> because you'd implement the VM and then discover 90% of real Python code immediately
+> breaks on missing C extensions.
+>
+> **Wasm Python (Pyodide essentially) is the correct approach** because:
+> - CPython itself compiled to Wasm
+> - NumPy, SciPy, pandas etc. compiled to Wasm
+> - The whole thing is self-contained and portable
+> - You get the actual ecosystem not just the interpreter
+>
+> So the path would be:
+>
+>     Python source
+>         ↓
+>     Pyodide/Wasm Python runtime (self-contained)
+>         ↓
+>     Sutra via your existing Wasm frontend
+>         ↓
+>     Thermodynamic hardware
+>
+> And since you already have Wasm working, Python basically comes for free if someone
+> has already done the Pyodide-style compilation work — which they have, it's open
+> source.
+>
+> The interesting research question then becomes what happens to **stochastic Python** —
+> like if NumPy random draws from the thermodynamic substrate's natural entropy rather
+> than a PRNG, you get genuinely physical randomness essentially for free, which closes
+> the loop back to your randomness unification problem.
+>
+> That's actually a really clean story for a paper or pitch — "we ran Python's ML
+> ecosystem on thermodynamic hardware and replaced synthetic randomness with physical
+> entropy."
+
+So: **no direct CPython VM**; Python rides the WASM leg via Pyodide. The standout
+research angle to chase once the WASM/thrml path is solid: **physical-entropy NumPy** —
+wire NumPy's random draws to the thermodynamic substrate's native sampling entropy
+(not a PRNG), giving genuinely physical randomness for free and unifying Sutra's
+randomness story. The pitch: Python's ML ecosystem on thermodynamic hardware with
+synthetic randomness replaced by physical entropy. (Ties to the thrml track: the
+sampler IS an entropy source.)
 
 Licensing / specs (info a chatbot gave Emma, recorded verbatim for grounding — verify
 before relying):
