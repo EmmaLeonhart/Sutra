@@ -345,18 +345,29 @@ def _lower_expr(node, src: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
+def _guard_split(head, src: bytes):
+    """A guarded clause head is `call(...) when guard` — a `binary_operator` whose
+    operator token is `when`, left operand the call/identifier head, right operand
+    the guard expression. Return (inner_head, guard_node); else (head, None)."""
+    if head.type == "binary_operator" and len(head.named_children) == 2:
+        left, right = head.named_children[0], head.named_children[1]
+        if src[left.end_byte:right.start_byte].decode("utf-8").strip() == "when":
+            return left, right
+    return head, None
+
+
 def _def_head(def_call, src: bytes):
     """Decompose `call(def, arguments(head [, keywords(do: expr)]) [, do_block])`
-    into (name, [param_pattern_nodes], body_expr_node) or None. `head` is either
-    `call(name, arguments(patterns…))` or a bare `identifier` (zero-arg, no
-    parens). Param patterns are returned as raw nodes (literal or identifier) so
-    the multi-clause dispatcher can inspect them; `_def_parts` is the bare-param
-    view for the single-clause path."""
+    into (name, [param_pattern_nodes], body_expr_node, guard_node_or_None) or None.
+    `head` is either `call(name, arguments(patterns…))`, a bare `identifier`
+    (zero-arg), or a `when`-guarded form of either. Param patterns are returned as
+    raw nodes so the multi-clause dispatcher can inspect them; `_def_parts` is the
+    bare-param view for the single-clause path (which rejects guards)."""
     kids = def_call.named_children
     args = next((c for c in kids if c.type == "arguments"), None)
     if args is None or not args.named_children:
         return None
-    head = args.named_children[0]
+    head, guard = _guard_split(args.named_children[0], src)
     param_nodes: list = []
     if head.type == "call":
         name_node = head.named_children[0] if head.named_children else None
@@ -385,7 +396,7 @@ def _def_head(def_call, src: bytes):
                 body = stmts[-1]  # multi-statement bodies (bindings) are later items
     if body is None:
         return None
-    return name, param_nodes, body
+    return name, param_nodes, body, guard
 
 
 def _def_parts(def_call, src: bytes):
@@ -394,7 +405,9 @@ def _def_parts(def_call, src: bytes):
     head = _def_head(def_call, src)
     if head is None:
         return None
-    name, param_nodes, body = head
+    name, param_nodes, body, guard = head
+    if guard is not None:
+        return None  # guarded clause → routes through the clause dispatcher
     params: list[str] = []
     for p in param_nodes:
         if p.type != "identifier":
@@ -409,17 +422,19 @@ def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
     lifted to function heads). Each clause's params are matched positionally:
     an integer-literal pattern becomes an `(_ai == k)` test; an identifier
     pattern binds that name to `_ai` (the `_SUBST` shape) and contributes no
-    test. A clause with no literal patterns is a catch-all; the LAST clause is
-    the base (Elixir's first-match-wins, lifted to the blend). `clauses` is a
-    list of (param_pattern_nodes, body_node)."""
+    test. A clause with no literal patterns and no guard is a catch-all; the LAST
+    clause is the base (Elixir's first-match-wins, lifted to the blend). A `when`
+    GUARD lowers to a test ANDed with the clause's pattern tests (the guard
+    references the params, which are bound to `_ai` while it is lowered). `clauses`
+    is a list of (param_pattern_nodes, body_node, guard_node_or_None)."""
     arity = len(clauses[0][0])
-    for _pn, body in clauses:
+    for _pn, body, _gd in clauses:
         if _contains_self_call(body, name, src):
             return (f"// UNSUPPORTED-RECURSION: '{name}' multi-clause dispatch with "
                     f"recursion (later item)\n")
     argnames = [f"_a{i}" for i in range(arity)]
     parsed = []  # (test_src_or_None, result_src)
-    for param_nodes, body in clauses:
+    for param_nodes, body, guard in clauses:
         if len(param_nodes) != arity:
             return f"// UNSUPPORTED-DEF: '{name}' clause arity mismatch\n"
         tests: list[str] = []
@@ -438,11 +453,14 @@ def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
             _SUBST[nm] = sub
         try:
             res_src = _lower_expr(body, src)
+            guard_src = _lower_expr(guard, src) if guard is not None else None
         finally:
             for nm, _sub in binds:
                 _SUBST.pop(nm, None)
-        if "UNSUPPORTED" in res_src:
+        if "UNSUPPORTED" in res_src or (guard_src and "UNSUPPORTED" in guard_src):
             return f"// UNSUPPORTED-DEF: '{name}' clause body not lowerable\n"
+        if guard_src is not None:
+            tests.append(f"({guard_src})")
         test = " && ".join(tests) if tests else None
         parsed.append((test, res_src))
     expr = parsed[-1][1]  # last clause = base
@@ -467,21 +485,22 @@ def _lower_defs(def_calls, src: bytes) -> list:
         if head is None:
             out.append(_lower_def(dc, src))  # surfaces UNSUPPORTED-DEF
             continue
-        name, param_nodes, body = head
+        name, param_nodes, body, guard = head
         key = (name, len(param_nodes))
         if key not in groups:
             groups[key] = []
             order.append(key)
-        groups[key].append((dc, param_nodes, body))
+        groups[key].append((dc, param_nodes, body, guard))
     for key in order:
         members = groups[key]
         bare_single = (len(members) == 1
+                       and members[0][3] is None  # no guard
                        and all(p.type == "identifier" for p in members[0][1]))
         if bare_single:
             out.append(_lower_def(members[0][0], src))
         else:
             out.append(_lower_def_clauses(
-                key[0], [(pn, bd) for _dc, pn, bd in members], src))
+                key[0], [(pn, bd, gd) for _dc, pn, bd, gd in members], src))
     return out
 
 

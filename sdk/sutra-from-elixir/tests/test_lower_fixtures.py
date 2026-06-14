@@ -28,6 +28,7 @@ _RUNNABLE = {
     "case_literal": 200.0,  # case n do 1 -> 100; 2 -> 200; _ -> 300 end; classify(2)  (nested blend)
     "case_bind": 60.0,  # case n do 0 -> 100; x -> x * 10 end; classify(6)  (name-binding pattern)
     "multiclause": 120.0,  # def classify(0)/( 1)/(n) heads -> dispatch fn; classify(0)+classify(2) = 100+20
+    "guard_clause": 150.0,  # def grade(n) when n>90/when n>50/(_n) -> guarded dispatch; grade(95)+grade(70)+grade(20) = 100+50+0
 }
 
 
