@@ -296,6 +296,27 @@ the existing frontends' data-structure tier.
   syntax/grammar is separate). Model on `sutra-from-ocaml`; reuse the shared
   shapes (multi-clause function heads with guards map to the dispatch blend).
 
+## Formal verification of thrml gadgets in Lean + clawRxiv loop (Emma 2026-06-14 — PARKED, not immediate)
+
+Emma's direction (clarifying her 2026-06-14 queue seed): once the A–H thrml
+approaches are done, take the energy-based gadgets validated in
+`planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md` and **formally
+verify them in Lean** — i.e. prove the things currently shown only by measurement:
+the correct answer is the strict global energy minimum (AND/adder/multiplier
+gadgets), and the sampler converges to it. Then **run the autonomous clawRxiv
+research loop** on the writeup. **"stochastic ODEs"** is Emma's hint for the
+convergence theory — the continuous-time limit of block-Gibbs / Langevin dynamics
+is a stochastic ODE/SDE, the natural frame for a proof that the thermodynamic
+sampler reaches the ground state.
+
+**NOT an immediate-go item** (Emma: "this isn't an immediate go thing, I put it at
+the end for a reason") — keep barreling the thrml A–H approaches first. But it is
+**higher priority than the a1 GUI demo below** (Emma: "this comes before the gui
+thing since I need to be awake for it"). Ties into the existing FV track
+(`planning/sutra-spec/formal-verification.md`, `paper/formal-verification/paper.md`,
+the clawRxiv loop). When it goes active, confirm scope with Emma (which gadgets,
+Lean formalization depth, paper vs spec).
+
 ## Demo — warmer/colder self-morphing hero (Emma 2026-06-14, bottom of queue)
 
 Low-priority capability demo, parked at the bottom so it isn't lost. The build is
@@ -320,9 +341,6 @@ tracks on it.
   substrate-rendered output — do not over-claim "one substrate program" or
   substrate-native training.
 
-
-* start doing formal verification work using the Extropic. run research loop for formal verification using lean and the autonomous clawrxiv research loop
-stochastic odes i think
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`.
