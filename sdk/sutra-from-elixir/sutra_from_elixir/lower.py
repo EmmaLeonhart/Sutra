@@ -47,6 +47,23 @@ def _blend(test_src: str, then_src: str, else_src: str) -> str:
     return f"(((1 + {w}) * ({then_src})) + ((1 - {w}) * ({else_src}))) / 2"
 
 
+def _lower_pipe(left, right, src: bytes) -> str:
+    """Lower `left |> right`: insert the lowered `left` as the FIRST argument of the
+    `right` call (`x |> f(a)` → `f(x, a)`; `x |> f` → `f(x)`)."""
+    piped = _lower_expr(left, src)
+    if right.type == "identifier":
+        return f"{_text(right, src)}({piped})"
+    if right.type == "call":
+        name = _call_kw(right, src)
+        if name is None:
+            return "/* UNSUPPORTED-PIPE: non-identifier call target */"
+        args = next((c for c in right.named_children if c.type == "arguments"), None)
+        rest = [_lower_expr(a, src)
+                for a in (args.named_children if args is not None else [])]
+        return f"{name}({', '.join([piped] + rest)})"
+    return "/* UNSUPPORTED-PIPE: target is not a call */"
+
+
 def _call_kw(node, src: bytes) -> Optional[str]:
     """The keyword identifier of a `call` node (`def`, `defmodule`, `if`, …),
     or None when the call is an ordinary function application."""
@@ -269,6 +286,10 @@ def _lower_expr(node, src: bytes) -> str:
         right = node.child_by_field_name("right")
         if op is None or left is None or right is None:
             return "/* UNSUPPORTED-EXPR: malformed binary_operator */"
+        if _text(op, src) == "|>":
+            # Pipe: `x |> f(a, b)` ≡ `f(x, a, b)` — insert the left value as the
+            # right call's FIRST argument. Nested pipes recurse via `left`.
+            return _lower_pipe(left, right, src)
         sop = _OP_MAP.get(_text(op, src))
         if sop is None:
             return f"/* UNSUPPORTED-OP: {_text(op, src)} */"
