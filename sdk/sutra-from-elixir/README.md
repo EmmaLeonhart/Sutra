@@ -34,9 +34,17 @@ the last clause is the base). `classify(0)`=100 exercises literal dispatch,
 Single-clause bare-param defs still route through the recursion-aware path, so
 the tail/fold transforms are untouched.
 
+**`when` guards on clause heads**: a guarded head (`def grade(n) when n > 90, do:
+…`) lowers its guard to a test ANDed with the clause's pattern tests (the guard
+references the params, bound to `_ai` while it is lowered), so the dispatch blend
+fires the clause only when pattern + guard hold. Substrate-verified: `guard_clause`
+= 150 (`grade(n) when n>90 → 100`, `when n>50 → 50`, `_n → 0`; `grade(95)+grade(70)+
+grade(20)` = 100+50+0). A guard on the last clause is treated as the base (its test
+is dropped), matching the existing last-clause-is-base rule.
+
 Dependency: `tree-sitter-elixir` (`pip install tree-sitter-elixir`).
 
 ## Next
 
-Maps/structs → axons; pipe operator; guards on clause heads; multi-clause heads
-with recursion (currently `UNSUPPORTED-RECURSION`).
+Maps/structs → axons; pipe operator; multi-clause heads with recursion (currently
+`UNSUPPORTED-RECURSION`); non-comparison guards (`is_integer`, `and`/`or` chains).
