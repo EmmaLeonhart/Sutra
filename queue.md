@@ -101,23 +101,18 @@ change anything that doesn't work. Locked encoding interpretation: a Sutra value
 - [ ] **F. Denser / structured codes.** Push associative-memory capacity beyond
   the measured ~0.14·N Hopfield wall with structured codes (block/ECC-style);
   measure the capacity gain vs random ±1 registers.
-- [ ] **G. codegen_thrml backend** (multi-step; `codegen_pytorch.py` is ~3.1k
-  lines, so a parallel general codegen is decomposed). Wire a validated approach
-  into the compiler behind an **additive CLI flag**; MUST NOT modify
-  `codegen_pytorch.py` or `--emit`/`--run` (non-destructive); existing suite stays
-  green throughout. Sub-steps (barrel top-to-bottom):
-  - [x] **G.0–G.2 DONE 2026-06-14.** Additive `--emit-thrml` flag +
-    `codegen_thrml.translate_thrml`; lowers `main(){ return bind/unbind(a,b); }`
-    over `basis_vector` atoms to a self-verifying thrml program (value=16-bit spin
-    register, bind=3-body product factor). `examples/thrml_bind.su` compiles AND
-    samples = **1.000** per-bit match to ground-truth a⊙b. `tests/
-    test_codegen_thrml.py` 3/3 (compile-AND-sample + non-destructive guards: clean
-    diagnostic on unsupported, PyTorch `--run` unaffected). Unsupported constructs
-    raise `ThrmlCodegenNotSupported` (no silent mislowering).
-  - [ ] **G.3 broaden ops.** Extend the lowering beyond one-op bind: multi-statement
-    bodies (let-bindings), `bundle`, `unbind`+cleanup (the kv-query), `==`/AND — per
-    the validated approaches; measure each. (Decode of a non-codebook result and
-    multi-op composition are the open design points.)
+- [x] **G. codegen_thrml backend — DONE through op-graphs (2026-06-14).** Additive
+  `--emit-thrml` flag + `codegen_thrml.translate_thrml` (non-destructive:
+  `codegen_pytorch.py` / `--emit` / `--run` untouched, guarded by tests). Lowers a
+  `main` body of `vector tmp = bind/unbind(x,y);` intermediates + `return …` over
+  `basis_vector` atoms to a self-verifying thrml program: value = 16-bit spin
+  register, bind/unbind = the 3-body product factor, atoms clamped,
+  intermediates+result sampled jointly. `examples/thrml_bind.su` (1 op) and
+  `thrml_roundtrip.su` (`unbind(bind(a,b),a)=b`, 2 factors) compile AND sample =
+  **1.000** per-bit. `tests/test_codegen_thrml.py` 4/4. Unsupported constructs raise
+  `ThrmlCodegenNotSupported` (no silent mislowering). Future extension (not
+  blocking H): `bundle` + `unbind`+cleanup (the kv-query) need a codebook-cleanup
+  decode; `==`/AND need the gadget lowering — open design points, deferred.
 - [ ] **H. COMPARE ALL (the deliverable Emma wants).** After A–G, a head-to-head:
   per-approach **fidelity** (accuracy/gap), **cost** (spins, samples, wall-clock),
   **generality** (which ops/programs each handles), **decode** (verifier vs
