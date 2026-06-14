@@ -358,12 +358,28 @@ and rejected; do not use it). Strict-uniqueness tactic:
   arithmetically-correct answer. `irreducible`/`aperiodic`/`strict_min_is_strict_mode`
   depend on **no axioms**; `and_gibbs_unique_mode` on `[propext, Quot.sound]`.
 
-**Still the mathlib step (named, not yet mechanised):** the **limit theorem
-itself** — the t→∞ total-variation mixing / Perron–Frobenius statement — and
-detailed balance `π(s)P(s,t)=π(t)P(t,s)`. These need the real-valued transition
-probabilities + `exp`, i.e. mathlib's analysis; `GibbsChain.lean` is the
-finite/combinatorial floor *under* that classical theorem, discharging its
-hypotheses. (The "stochastic ODEs" / Langevin-limit framing is the continuous-time
+- **`mathlib/GibbsMathlib.lean`** — the **mid-size mathlib step** (Emma 2026-06-14:
+  detailed balance + finite-chain stationary uniqueness, short of full mixing). An
+  ISOLATED Lake project (mathlib v4.30.0; keeps the core-only files on their
+  no-mathlib path) machine-checks, over the reals: `stationary_of_detailedBalance`
+  (general — reversibility ⟹ stationarity for any finite row-stochastic kernel),
+  `gibbsKernel_detailedBalance` + `gibbsKernel_stationary` (the gadget's Gibbs
+  kernel with real Boltzmann weights `exp(−βE)` is reversible w.r.t. the Gibbs
+  measure → that measure is stationary), and `stationary_unique_two_state` (2-state
+  Perron–Frobenius stationary uniqueness — the case the clamped-decode chain
+  inhabits). All `[propext, Classical.choice, Quot.sound]`, no `sorry`, `lake build`
+  green (local; heavy toolchain, not in CI — `.lake` gitignored). Combined with the
+  core-only irreducibility/aperiodicity: a positive + irreducible + reversible
+  finite chain has a unique stationary distribution = the Gibbs measure.
+
+**Still the mathlib step (named, not yet mechanised):** only the **t→∞ mixing
+rate** — the total-variation / spectral-gap statement (how *fast* the chain
+reaches the now-proven unique stationary Gibbs measure). Emma capped the ask at the
+mid-size step above, so the mixing rate is longer-horizon / not requested. The
+reversibility + stationarity + uniqueness layer (the *that-it-converges* content,
+short of the rate) is now machine-checked; `GibbsChain.lean` + `GibbsMathlib.lean`
+together discharge the classical theorem's hypotheses and its stationary-limit
+object. (The "stochastic ODEs" / Langevin-limit framing is the continuous-time
 view of the same convergence.) Lean **is** CI-checked: `.github/workflows/fv-lean-ci.yml`
 runs `scripts/check_fv_lean.sh` on GitHub Actions, **path-filtered** to `fv-lean/**`
 (the toolchain install is heavy → only fires when a proof / the pin / the runner

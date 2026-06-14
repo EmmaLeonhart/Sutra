@@ -1,5 +1,35 @@
 # Development Log
 
+## 2026-06-14: FV mid-size mathlib step — detailed balance + stationary uniqueness (Emma's blocker-sweep call)
+
+Discharged Emma's "mid-size mathlib step" (her blocker-sweep answer to how far to push
+the convergence proof): detailed balance + finite-chain stationary uniqueness, short of
+full t→∞ mixing. Set up an ISOLATED Lake project `fv-lean/mathlib/` (pinned mathlib
+v4.30.0 = Lean v4.30.0; `.lake/` gitignored) so the core no-mathlib files keep their fast
+CI path. `fv-lean/mathlib/GibbsMathlib.lean` machine-checks, over the reals (`lake build`
+green, all `[propext, Classical.choice, Quot.sound]`, no `sorry`):
+- `stationary_of_detailedBalance` — GENERAL: for any finite row-stochastic kernel,
+  reversibility (detailed balance) w.r.t. π ⟹ π is stationary.
+- `gibbsKernel_detailedBalance` + `gibbsKernel_stationary` — the clamped AND-decode Gibbs
+  kernel with real Boltzmann weights `exp(-βE)` satisfies detailed balance w.r.t. the
+  Gibbs measure, hence that measure is stationary.
+- `stationary_unique_two_state` — 2-state Perron-Frobenius stationary uniqueness (the case
+  the clamped-decode chain inhabits): two stationary measures with equal mass coincide
+  when `0 < P false→true`, `0 ≤ P true→false`.
+With the core-only irreducibility + aperiodicity (GibbsChain.lean), this is the reversible-
+chain convergence picture: positive + irreducible + reversible finite chain ⟹ unique
+stationary = Gibbs. Remaining (longer-horizon, BEYOND Emma's mid-size cap, not requested):
+the t→∞ mixing RATE / spectral gap.
+
+Install/build notes (Windows): lakefile needs `git`+`rev` not a `version` range; `lake exe
+cache get` hit a transient error-32 (Defender) rename failure that cleared on retry (8443
+oleans, ~110s); first `import Mathlib` build ~10 min then warm rebuilds ~20s. Lean-API
+fixes against the compiler: `Fintype.sum_bool` is `f true + f false` (made part-3 proofs
+order-robust via `linear_combination`); `div_add_div_same` → `← add_div`; detailed-balance
+closes by `ring` (field handles `/Z`). Updated FV spec, fv-lean/README, queue (mid-size
+done; mixing-rate residual longer-horizon). Paper §7 citation of this result lands as its
+own commit/clawRxiv cycle.
+
 ## 2026-06-14: FV paper §7 reframed — software FV vs HARDWARE FV (Emma's framing)
 
 Emma's framing (mid-tick): "the first formal verification part is **software** formal
