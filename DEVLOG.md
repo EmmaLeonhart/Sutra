@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-06-14: `gui-training` branch — autonomous GUI loop + a1 hero render core (item 1a)
+
+Set up a dedicated **`gui-training`** branch with its own autonomous work-loop, so
+GUI training work runs in parallel with the formal-verification work continuing on
+`main` (Emma, remote-control). Stripped `queue.md` on this branch to GUI-only (the
+warmer/colder "a1" self-morphing hero demo + the deferred learned-decoder and
+Yantra-GUI extensions); all non-GUI tracks (thrml, FV, transpilers, WASM, corpus,
+paper) stay on `main`. Three session-local crons run the branch: work-loop (:03),
+auto-flush (:15), status-report (:42) — each branch-guarded to `gui-training`,
+never touching `main`.
+
+First work increment — **item 1a render core**: `demos/gui/frame_hero.su`, a
+θ-parameterized hero composed whole-frame in ONE substrate op. A single parameter
+vector θ (cx, cy, invs, bright, radius, accent, bg) drives glow + ring + background
+via elementwise `hadamard`/add; every θ component arrives as a per-pixel broadcast
+buffer, so changing θ never recompiles (the load-bearing a1 fact — the optimizer
+just changes call args). Host bridge `render_hero()` + shared `HERO_THETA_AXES` /
+`HERO_THETA_DEFAULT` in `whole_frame.py`. Verified MEASURED, not "ran":
+`test_hero_theta_render_matches_oracle_and_morphs` — substrate frame == host oracle
+to 1e-6 for a non-default θ, and θ drives the picture (cx slides the bright column;
+`bright` raises the centre). Full whole-frame suite 12/12. Honest rail: composition
+is host-side (named so); the SPSA optimizer (item 1b) is host-side over
+substrate-rendered output — no "one substrate program" claim. Remaining 1a: the
+discrete headline-glyph selector + colour channels.
+
 ## 2026-06-14: FV paper extended with the thrml-gadget verification (clawRxiv loop)
 
 Per Emma's blocker-sweep decision (extend the existing FV paper, not a new one), added

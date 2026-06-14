@@ -405,6 +405,62 @@ def render_quad(size: int = 64, radius: float = 0.5, block: int = 8):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+def _compile_hero():
+    """Compile frame_hero.su -> (hero, _VSA). The θ-parameterized hero render
+    core for the warmer/colder a1 steering demo (queue item 1a)."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_hero.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
+    return mod.hero, mod._VSA
+
+
+# θ axis order — the single source of truth the host compositor and the SPSA
+# optimizer (item 1b) share. Each value is broadcast to every pixel as a buffer;
+# changing θ never recompiles (a1 spec: runtime parameters, no recompile).
+HERO_THETA_AXES = ("cx", "cy", "invs", "bright", "radius", "accent", "bg")
+
+# A neutral, on-screen default θ: centred glow, unit scale/brightness, a faint
+# ring accent, mid background. The SPSA loop perturbs around a θ like this.
+HERO_THETA_DEFAULT = {
+    "cx": 0.0, "cy": 0.0, "invs": 1.0, "bright": 1.0,
+    "radius": 0.5, "accent": 0.25, "bg": 0.0,
+}
+
+
+def render_hero(size: int = 64, theta: dict | None = None):
+    """Return a (size, size) hero field driven by the parameter vector `theta`,
+    computed in ONE substrate op (frame_hero.su's `hero`). `theta` maps each axis
+    in HERO_THETA_AXES to a scalar; missing axes fall back to HERO_THETA_DEFAULT.
+    The scalars become per-pixel broadcast buffers — so the optimizer morphs the
+    hero by changing these call arguments, with no recompile."""
+    import torch
+
+    hero, vsa = _compile_hero()
+    dt, dev = vsa.dtype, vsa.device
+    th = dict(HERO_THETA_DEFAULT)
+    if theta:
+        th.update(theta)
+    xs, ys = [], []
+    for j in range(size):              # row -> y
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):          # col -> x
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    n2 = size * size
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(n2, dtype=dt, device=dev)
+
+    def bcast(name):
+        return torch.full((n2,), float(th[name]), dtype=dt, device=dev)
+
+    buf = hero(X, Y, ones, bcast("cx"), bcast("cy"), bcast("invs"),
+               bcast("bright"), bcast("radius"), bcast("accent"), bcast("bg"))
+    buf = buf.real if buf.is_complex() else buf
+    return buf.reshape(size, size).detach().to("cpu").numpy()
+
+
 def main() -> None:
     import argparse
 
