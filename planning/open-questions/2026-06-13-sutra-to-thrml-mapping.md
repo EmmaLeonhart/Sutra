@@ -121,8 +121,18 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   (clamp s,a→b) exact **0.917** (= verify-found: when the inverse solution is
   sampled it is ALWAYS correct; the 8% gap is reachability in 200 draws, closed by
   more samples / annealing), vs chance 0.0625. → sample-and-verify generalizes and
-  gives bidirectional compute for free. Next A demos: equality/compare, select/mux,
-  small multiply.
+  gives bidirectional compute for free.
+- **A2. AND gate — WORKS, completes a UNIVERSAL gate set (2026-06-14).**
+  `experiments/thrml/logic_gates_demo.py`. AND is the one logic primitive that is
+  NOT a clean spin product; derived its Ising gadget from the standard QUBO AND
+  penalty `P = ab - 2(a+b)z + 3z` → biases (a:+¼, b:+¼, z:−½) + couplings
+  (ab:−¼, az:+½, bz:+½) (as SpinEBMFactor weights = −coeff). **Measured (8-bit
+  element-wise, β=3): z=a&b exact = 1.000** vs 0.5 chance — the derivation is
+  empirically verified (a wrong coefficient would have dropped it). With **AND +
+  XOR(parity) + the adder**, thrml now has a **universal logic basis**: any
+  Boolean circuit compiles to factors and runs via sample-and-verify. → approach A
+  is established as a GENERAL compilation method, not a per-op trick. Next A:
+  compose the gates into a small multiplier / comparator.
 
 ## Emma's encoding steer (2026-06-13)
 
