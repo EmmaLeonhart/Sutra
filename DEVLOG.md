@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-14: Elixir frontend — pipe operator `|>` (suite 18/18)
+
+Added the pipe operator to `sdk/sutra-from-elixir`. `|>` parses as a `binary_operator`;
+new `_lower_pipe` special-cases it before the `_OP_MAP` lookup: `x |> f(a, b)` inserts
+the lowered left value as the right call's FIRST argument → `f(x, a, b)` (`x |> f` →
+`f(x)`). Chains nest left-to-right via recursion on the left operand. Fixture
+`pipe_chain` (`5 |> add(3) |> double()` → `double(add(5, 3))`) compiles AND runs on the
+substrate = **16.0**. Full Elixir suite 18/18. README + queue updated (pipe done; Erlang
+noted as now its own shipped frontend).
+
 ## 2026-06-14: Erlang frontend — new `sutra-from-erlang` transpiler (suite 12/12)
 
 Implemented the Erlang → Sutra frontend (Emma 2026-06-14 21:06 "implement erlang right
