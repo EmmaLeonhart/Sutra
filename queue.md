@@ -171,10 +171,10 @@ negative results, not hidden.
 - [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through `case` →
   nested equality blend shipped 2026-06-14, suite 18/18): maps → axons;
   destructuring binds; multi-arity `defn`; `case` multi-constant test lists.
-- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through pattern
-  equations + guards shipped 2026-06-13, suite 12/12; laziness out of scope):
-  where/let bindings; `data` ADTs → tagged axons; guarded/multi-equation
-  recursion (currently `UNSUPPORTED-RECURSION`); non-integer literal patterns.
+- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through `where`/`let`
+  bindings shipped 2026-06-14, suite 16/16; laziness out of scope): `data` ADTs →
+  tagged axons; guarded/multi-equation recursion (currently `UNSUPPORTED-RECURSION`);
+  non-integer literal patterns; mutually-recursive/forward `where`/`let` bindings.
 - [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through compound assignment
   shipped 2026-06-13, suite 18/18): unbounded `loop { … break }` (halt-flag
   transform); nested/non-tail `match`; field-init shorthand / `..base`. (Loop
