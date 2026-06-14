@@ -43,7 +43,10 @@ every wrong output strictly higher → unique minimiser; no `sorry`)
 lean fv-lean/AndGadget.lean        # exit 0, prints the axiom dependencies
 ```
 
-`scripts/check_fv_lean.sh` runs every `.lean` here. NOTE: Lean is **not yet in
-CI** (toolchain install is heavy); these are verified locally. Next (the
-remaining mathlib step): the finite-chain limit theorem + detailed balance for
-`GibbsChain`, which need real-valued transition probabilities + `exp`.
+`scripts/check_fv_lean.sh` runs every `.lean` here. CI: `.github/workflows/fv-lean-ci.yml`
+runs the script on GitHub Actions — **path-filtered** to `fv-lean/**` (the toolchain
+install is heavy, so it only fires when a proof / the toolchain pin / the runner
+changes, not on every push), toolchain cached + pinned by `fv-lean/lean-toolchain`
+(`leanprover/lean4:v4.30.0`). Next (the remaining mathlib step): the finite-chain
+limit theorem + detailed balance for `GibbsChain`, which need real-valued transition
+probabilities + `exp`.

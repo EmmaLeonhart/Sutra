@@ -1,0 +1,68 @@
+name: FV-in-Lean — check the thrml-gadget proofs
+
+# Machine-checks the Lean 4 proofs under fv-lean/ (the energy-gadget
+# ground-states + the single-gadget Gibbs-chain convergence floor). These
+# back the §7 thrml claims in paper/formal-verification/paper.md and the
+# "thrml compile-target" section of planning/sutra-spec/formal-verification.md.
+#
+# PATH-FILTERED on purpose (queue.md FV decision, 2026-06-14): the Lean
+# toolchain install is heavy, so this does NOT run on every push — only when
+# a proof, the toolchain pin, the runner, or this workflow changes. That
+# makes the proofs CI-ENFORCED (CLAUDE.md HARD RAIL: "verify CI green, not
+# just local") without taxing unrelated pushes. Core Lean only, no mathlib
+# (matches scripts/check_fv_lean.sh + fv-lean/lean-toolchain).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fv-lean/**'
+      - 'scripts/check_fv_lean.sh'
+      - '.github/workflows/fv-lean-ci.yml'
+  pull_request:
+    paths:
+      - 'fv-lean/**'
+      - 'scripts/check_fv_lean.sh'
+      - '.github/workflows/fv-lean-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: fv-lean-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  check:
+    name: lean fv-lean/*.lean (no sorry / no error)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cache the elan toolchain (the heavy part) keyed on the pinned
+      # version, so only the first run on a given Lean version pays the
+      # download. ~/.elan holds the toolchain; the lean-toolchain file is
+      # the cache key source of truth.
+      - name: Cache elan/Lean toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: elan-${{ runner.os }}-${{ hashFiles('fv-lean/lean-toolchain') }}
+
+      - name: Install elan + the pinned Lean toolchain
+        run: |
+          set -euxo pipefail
+          if [ ! -x "$HOME/.elan/bin/lean" ]; then
+            curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+              | sh -s -- -y --default-toolchain "$(cat fv-lean/lean-toolchain)"
+          fi
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Show Lean version
+        run: lean --version
+
+      - name: Check every fv-lean/*.lean (fails on error / sorry)
+        run: bash scripts/check_fv_lean.sh
