@@ -131,8 +131,23 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   empirically verified (a wrong coefficient would have dropped it). With **AND +
   XOR(parity) + the adder**, thrml now has a **universal logic basis**: any
   Boolean circuit compiles to factors and runs via sample-and-verify. → approach A
-  is established as a GENERAL compilation method, not a per-op trick. Next A:
-  compose the gates into a small multiplier / comparator.
+  is established as a GENERAL compilation method, not a per-op trick.
+- **A3. 2×2 multiplier (composed circuit) — WORKS at warm β (2026-06-14).**
+  `experiments/thrml/multiplier_demo.py`. Composes the gate primitives into a real
+  arithmetic circuit: 4 AND gates → 2 half-adders (XOR=parity + AND), 10 free
+  spins. The proof that ARBITRARY Boolean circuits compile to thrml factors.
+  **Measured (all 16 a,b pairs):** sample-and-verify (best-of-S) = **1.000 at
+  β=1.5**, but only **0.25 at β=3**. → **temperature trade-off**: cold β freezes
+  the deeper circuit in local minima; WARM β mixes so the unique gate-satisfying
+  assignment is always sampled (modal-exact=0 because the warm distribution is
+  spread — exactly what the verifier resolves). **Lesson: deeper composed circuits
+  need warmer sampling + verify, not colder** — the opposite of the shallow ops.
+  (Energy-based bonus, noted not measured: clamp the PRODUCT, sample the inputs =
+  integer factoring on the same graph.) → approach A scales to composed circuits.
+- next A (optional): a verify-decode in the multiplier (vs the best-of-S proxy);
+  then approaches B–H. **Approach A verdict so far: sample-and-verify is a general
+  method** (universal gates + arbitrary circuits), with a measured cost — deeper
+  circuits trade modal-decode reliability for warm-β mixing + a verifier.
 
 ## Emma's encoding steer (2026-06-13)
 
