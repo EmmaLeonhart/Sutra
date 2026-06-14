@@ -1,5 +1,34 @@
 # Development Log
 
+## 2026-06-14: a1 item 1d — steering soak; the a1 demo (1a–1d) is COMPLETE (gui-training)
+
+Built the soak evaluation and measured the demo's two required properties.
+`experiments/gui_steering_eval.py` runs a scripted warmer/colder soak over
+`HeroSteering` with a consistent synthetic rater and reports NaN/blank frame counts
+plus a directional metric.
+
+**Measured (100-press soak, 2026-06-14):** 101/101 clean frames — **0 NaN, 0 blank**
+— both with the headline overlay OFF and ON (the full RGB+glyph demo frame). The
+per-frame substrate render survives a full session. **Directional consistency:** a
+brighter-preferring rater drives `bright` 1.000 → 1.800 (+0.800, the axis ceiling);
+a darker-preferring rater drives it 1.000 → 0.200 (−0.800, the floor) — the steer
+direction flips with the preference. The running-best-brightness vs batch-index
+Pearson correlation is ±0.446: moderate because the parameter saturates at the
+clamp partway through then plateaus (it reaches the rewarded extreme rather than
+ramping linearly) — reported as measured, not massaged.
+
+Tests (`demos/gui/test_hero_steering.py` 4→6; full demos/gui suite 39→41):
+`test_soak_no_nan_blank_and_directional_both_signs` (100 presses, 0 NaN/0 blank,
+brighter→up >0.3, darker→down <−0.3, opposite signs) and
+`test_soak_full_demo_frame_stays_clean` (the RGB+headline frame, 0 NaN/0 blank).
+
+**The a1 demo is complete (1a θ render, 1b SPSA, 1c steering+window, 1d soak).**
+Honest rails held: render is substrate (colour channels + glyph pixels); the
+optimizer + composition + warmer/colder bookkeeping are host-side; steering by a
+rater, not substrate-native training. The 1d numbers are the data for paper §7/P7.
+Remaining (non-blocking): optional web wrapper; reward EMA smoothing (currently
+raw ±1 two-sided — flagged, not faked).
+
 ## 2026-06-14: a1 item 1c — warmer/colder steering controller + live window (gui-training)
 
 Wired the warmer/colder loop. `demos/gui/hero_steering.py`: `HeroSteering`, a
