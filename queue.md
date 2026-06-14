@@ -104,13 +104,21 @@ claiming" discipline; no "honest/genuinely" buzzwords; replication/URLs only in 
 Reproducibility section. Results that depend on the demo (P7/P8) are GATED on 1c/1d
 producing the numbers — draft the method sections first, fill results when measured.
 
-**Setup**
-- [ ] **P0. Scaffold `paper/gui-steering/`.** Create `paper.md` + `reviews/` +
-  `.post_id` chain, modeled on `paper/formal-verification/`. Title + abstract
-  skeleton + section outline (the §list below). Add a one-line pointer from
-  `paper/` context if appropriate. No clawRxiv submission yet (that's P12).
+> **Progress (2026-06-14):** P0 DONE — `paper/gui-steering/paper.md` scaffolded
+> with full abstract + section outline, and FIRST DRAFTS written for the sections
+> grounded in shipped 1a/1b code: §1 intro, §2 whole-frame rendering, §3 glyph
+> rendering, §4 the θ hero, §5 SPSA method, §6 render-fidelity (prose; exact maxima
+> pending the P6 script), §8 "what we are not claiming". §7 steering results are
+> GATED on 1c/1d and marked so (no fabricated numbers). Remaining below: finalize +
+> the experiment scripts (P6/P7), figures (P8), related-work verification (P10),
+> reproducibility commands (P11), CI (P12), cross-check (P13), website (P14). No
+> clawRxiv submission yet (no gui-paper-ci.yml until P12 — this branch's pushes
+> don't auto-submit).
 
-**Method sections (draftable NOW from the 1a/1b code + existing measured tests)**
+**Method sections — FIRST DRAFTS in paper.md; finalize + ground each**
+- [ ] **P1. §Introduction / motivation.** Why a substrate-rendered UI; the
+  fuzzy-by-default framing (geometry as computation); the demo as the artifact;
+  contributions list. Tie to Sutra's vision (`planning/sutra-spec/vision.md`).
 - [ ] **P1. §Introduction / motivation.** Why a substrate-rendered UI; the
   fuzzy-by-default framing (geometry as computation); the demo as the artifact;
   contributions list. Tie to Sutra's vision (`planning/sutra-spec/vision.md`).
