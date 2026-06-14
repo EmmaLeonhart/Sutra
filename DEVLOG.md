@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-06-14: Erlang frontend — new `sutra-from-erlang` transpiler (suite 12/12)
+
+Implemented the Erlang → Sutra frontend (Emma 2026-06-14 21:06 "implement erlang right
+now"; Phase 1). No PyPI tree-sitter wheel → `build_grammar.py` clones the WhatsApp
+tree-sitter-erlang grammar and compiles `parser.c` + `scanner.c` into
+`_grammar/erlang.dll` (MSVC, via a temp `.bat` to dodge cmd.exe's quote-stripping on
+the spaced vcvars path), loaded by ctypes (the `sutra-from-clojure` pattern). Key
+grammar finding: the WhatsApp grammar emits **one `fun_decl` per clause** (NOT grouped),
+so the driver groups clauses by (name, arity) like the Elixir frontend. Lowering (modeled
+on Elixir/OCaml): functions/calls/binary-ops; `if`/`case` → defuzz blend; multi-clause
+heads with literal/var patterns + `when` guards → dispatch blend; single-clause `if`-based
+tail recursion → `while_loop`; foldable non-tail recursion → CPS accumulator. All 6
+fixtures compile AND run on the substrate: add_main=16, if_classify=100, tail_rec=15,
+nontail_fact=120, guard_dispatch=150, case_dispatch=119 (suite 12/12). Multi-clause
+recursion (Erlang's other idiom) + maps/records are documented later items. This is the
+8th actively-developed source language (9th counting parked C).
+
+## 2026-06-14: queue — long-horizon VM/bytecode targets (JS+WASM+CPython+JVM) recorded
+
+Per Emma 2026-06-14 21:17, added a verbose long-horizon section at the end of `queue.md`:
+JS + WASM + CPython + JVM as bytecode/VM targets for maximum imperative functionality (the
+neural-VM direction, generalizing the built `WASM/` machine). Recorded her pasted chatbot
+info verbatim (CPython = PSF/open; JVM spec public + OpenJDK GPLv2+Classpath; JVM spec is
+the most useful artifact; search for verified specs before implementing from scratch).
+Not active work — long-horizon planning.
+
 ## 2026-06-14: Haskell frontend — `where` clauses + `let … in` (suite 16/16)
 
 Added local-binding support to `sdk/sutra-from-haskell`. Both `where` and `let … in`
