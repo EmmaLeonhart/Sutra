@@ -131,8 +131,43 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   empirically verified (a wrong coefficient would have dropped it). With **AND +
   XOR(parity) + the adder**, thrml now has a **universal logic basis**: any
   Boolean circuit compiles to factors and runs via sample-and-verify. → approach A
-  is established as a GENERAL compilation method, not a per-op trick. Next A:
-  compose the gates into a small multiplier / comparator.
+  is established as a GENERAL compilation method, not a per-op trick.
+- **A3. 2×2 multiplier (composed circuit) — WORKS at warm β (2026-06-14).**
+  `experiments/thrml/multiplier_demo.py`. Composes the gate primitives into a real
+  arithmetic circuit: 4 AND gates → 2 half-adders (XOR=parity + AND), 10 free
+  spins. The proof that ARBITRARY Boolean circuits compile to thrml factors.
+  **Measured (all 16 a,b pairs):** sample-and-verify (best-of-S) = **1.000 at
+  β=1.5**, but only **0.25 at β=3**. → **temperature trade-off**: cold β freezes
+  the deeper circuit in local minima; WARM β mixes so the unique gate-satisfying
+  assignment is always sampled (modal-exact=0 because the warm distribution is
+  spread — exactly what the verifier resolves). **Lesson: deeper composed circuits
+  need warmer sampling + verify, not colder** — the opposite of the shallow ops.
+  (Energy-based bonus, noted not measured: clamp the PRODUCT, sample the inputs =
+  integer factoring on the same graph.) → approach A scales to composed circuits.
+- next A (optional): a verify-decode in the multiplier (vs the best-of-S proxy).
+  **Approach A verdict: sample-and-verify is a general method** (universal gates +
+  arbitrary circuits), with a measured cost — deeper circuits trade modal-decode
+  reliability for warm-β mixing + a verifier.
+
+### Approach B — ground-state encoding + annealing
+
+- **B1. staged annealing of the multiplier — FAILS as implemented (2026-06-14).**
+  `experiments/thrml/anneal_demo.py`. The multiplier's gate-based factors make the
+  correct product the strict global min, so ground-state decode *should* work; I
+  tried a 2-stage anneal (β 1.5→4.0) carrying state between rounds. **Measured:**
+  annealed modal-exact **0.000** vs fixed β=4.0 **0.062** (both ≈ chance 0.0625) —
+  no improvement. **Diagnosis (real bug, kept):** I carried the per-node MARGINAL
+  MODE of the warm round as the cold init, but the marginal mode of a spread
+  distribution is not a coherent state in the answer's basin → the cold round
+  freezes from near-random. Proper annealing needs a within-chain β schedule
+  (thrml's `SamplingSchedule` doesn't expose per-step β) or carrying a single
+  low-energy coherent state.
+- next B: **min-energy decode over a warm run** of the proper-gadget multiplier
+  (the answer is the strict global min there — contrast the adder #4c where
+  min-energy failed because the soft encoding had spurious minima). That is the
+  clean test of whether proper-gadget ground-state computing beats sample-and-
+  verify. **So far for composed circuits: approach A (sample-and-verify) works,
+  naive approach B (staged annealing) does not.**
 
 ## Emma's encoding steer (2026-06-13)
 
