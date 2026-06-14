@@ -108,6 +108,22 @@ runs real Sutra computation on the thrml substrate.
   verify-decoded adder) into `codegen_thrml` behind the additive `--target thrml`
   flag; broaden op coverage (compare/select, multi-step programs).
 
+## Approaches A–H (Emma 2026-06-14: implement each, then compare)
+
+The first-cut used hand-built factors + per-op decode. Now implement each distinct
+*system* and compare head-to-head (queue.md thrml track A–H).
+
+- **A. Sample-and-verify (general method) — demo A1 WORKS (2026-06-13/14).**
+  `experiments/thrml/bidir_arith_demo.py`. **Bidirectional arithmetic on ONE
+  energy model** — the energy-based property the feed-forward PyTorch path cannot
+  do: the SAME adder factor graph runs forward and backward by changing the clamp.
+  **Measured (4-bit, 24 trials, β=2):** ADD (clamp a,b→s) exact **1.000**; SUB
+  (clamp s,a→b) exact **0.917** (= verify-found: when the inverse solution is
+  sampled it is ALWAYS correct; the 8% gap is reachability in 200 draws, closed by
+  more samples / annealing), vs chance 0.0625. → sample-and-verify generalizes and
+  gives bidirectional compute for free. Next A demos: equality/compare, select/mux,
+  small multiply.
+
 ## Emma's encoding steer (2026-06-13)
 
 - thrml models computation as **individual memory spaces**; the natural atom is
