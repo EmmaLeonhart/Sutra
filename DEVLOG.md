@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-14: FV paper — randomized PIT answers the #1 reviewer con (clawRxiv loop, Phase 2)
+
+Substantive response to the recurring clawRxiv con (v64–v67: PIT term explosion at depth
+3 → "impractical"). Implemented randomized PIT (Schwartz–Zippel over F_p, commit e556455c)
+and rewrote the paper's PIT-cost paragraph (§3) from "trades one exponential for another"
+(a concession) to a measured poly-time decision procedure that escapes the wall: exact
+`expand` is infeasible at depth 3, randomized decides depth 12 (4096 leaves) in 0.82 s,
+verdicts agreeing with the exact check where feasible. Updated the abstract ("by
+polynomial identity — exactly, or in poly time (Schwartz–Zippel) — for arbitrary depth";
+4994 ≤5000) and the earlier §2 decision-procedure mention. Paper table + finding numbers
+are the committed `experiments/randomized_pit_scaling.py` output (reproducible). The push
+runs `fv-paper-ci.yml` → the next clawRxiv review; read it side-by-side with v67 to see
+whether the scalability con moved.
+
 ## 2026-06-14: Elixir frontend — pipe operator `|>` (suite 18/18)
 
 Added the pipe operator to `sdk/sutra-from-elixir`. `|>` parses as a `binary_operator`;
