@@ -144,10 +144,30 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   need warmer sampling + verify, not colder** — the opposite of the shallow ops.
   (Energy-based bonus, noted not measured: clamp the PRODUCT, sample the inputs =
   integer factoring on the same graph.) → approach A scales to composed circuits.
-- next A (optional): a verify-decode in the multiplier (vs the best-of-S proxy);
-  then approaches B–H. **Approach A verdict so far: sample-and-verify is a general
-  method** (universal gates + arbitrary circuits), with a measured cost — deeper
-  circuits trade modal-decode reliability for warm-β mixing + a verifier.
+- next A (optional): a verify-decode in the multiplier (vs the best-of-S proxy).
+  **Approach A verdict: sample-and-verify is a general method** (universal gates +
+  arbitrary circuits), with a measured cost — deeper circuits trade modal-decode
+  reliability for warm-β mixing + a verifier.
+
+### Approach B — ground-state encoding + annealing
+
+- **B1. staged annealing of the multiplier — FAILS as implemented (2026-06-14).**
+  `experiments/thrml/anneal_demo.py`. The multiplier's gate-based factors make the
+  correct product the strict global min, so ground-state decode *should* work; I
+  tried a 2-stage anneal (β 1.5→4.0) carrying state between rounds. **Measured:**
+  annealed modal-exact **0.000** vs fixed β=4.0 **0.062** (both ≈ chance 0.0625) —
+  no improvement. **Diagnosis (real bug, kept):** I carried the per-node MARGINAL
+  MODE of the warm round as the cold init, but the marginal mode of a spread
+  distribution is not a coherent state in the answer's basin → the cold round
+  freezes from near-random. Proper annealing needs a within-chain β schedule
+  (thrml's `SamplingSchedule` doesn't expose per-step β) or carrying a single
+  low-energy coherent state.
+- next B: **min-energy decode over a warm run** of the proper-gadget multiplier
+  (the answer is the strict global min there — contrast the adder #4c where
+  min-energy failed because the soft encoding had spurious minima). That is the
+  clean test of whether proper-gadget ground-state computing beats sample-and-
+  verify. **So far for composed circuits: approach A (sample-and-verify) works,
+  naive approach B (staged annealing) does not.**
 
 ## Emma's encoding steer (2026-06-13)
 
