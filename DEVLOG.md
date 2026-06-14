@@ -1,5 +1,34 @@
 # Development Log
 
+## 2026-06-14: FV paper §7 reframed — software FV vs HARDWARE FV (Emma's framing)
+
+Emma's framing (mid-tick): "the first formal verification part is **software** formal
+verification, and the second is **hardware** formal verification — we could do this on
+other hardware, but we're doing it on the hardware we're working on right now." This is
+the real bridge the reviewer wanted (v64 called §7 "disconnected"): the paper's two FV
+parts are two halves of ONE story, not main-result + bolt-on. Implemented exactly:
+- §7 retitled "The energy-based compile target…" → **"Hardware formal verification: the
+  thermodynamic compile target."**
+- §7 opening rewritten: §1–6 is *software* FV (verify the compiled program independent of
+  its machine); §7 is *hardware* FV (verify the computation is correct on the physical
+  substrate that executes it — the answer is the configuration the hardware settles into,
+  the ground state). The §3 reduction is what makes both halves one story; it is
+  hardware-portable in principle ("the same energy-gadget obligations would certify any
+  sampler minimizing the same energy") but instantiated on the specific thermodynamic
+  hardware we're building toward — correctness "at the level of the physics, not only the
+  software."
+- Abstract: "§7 reports a second result…" → "§7 turns from software to **hardware** formal
+  verification, on Sutra's energy-based thermodynamic compile target…" (4983 ≤5000).
+- Conclusion §8: framed §1–6 as software FV and §7 as the complementary hardware-FV half,
+  hardware-portable-but-instantiated, "the more consequential direction this work opens."
+Honest (no overclaim). Supersedes the weaker "target-agnostic reduction" bridge from the
+prior tick. Push triggers fv-paper-ci → clawRxiv loop.
+
+Also (separate, in progress): set up an ISOLATED Lake+mathlib project under fv-lean/mathlib/
+for the mid-size convergence step (detailed balance + Perron-Frobenius stationary
+uniqueness) — Emma's blocker-sweep call. Not yet committed pending a verified `import
+Mathlib` build (lakefile needs git+rev, not a `version` range — that was the first error).
+
 ## 2026-06-14: FV paper §7 — bridge the framework TO thrml (Emma blocker-sweep call)
 
 Acting on Emma's blocker-sweep answer ("tighten the connection, but bridge the other
