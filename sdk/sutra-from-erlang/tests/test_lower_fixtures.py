@@ -1,0 +1,72 @@
+"""Erlang→Sutra fixture tests. Modeled on the Clojure/Elixir frontend harnesses:
+each fixture is lowered, compiled through the Sutra compiler, and (for runnable
+fixtures with a callable `main`) RUN on the real substrate with the result compared
+to ground truth — the compile-AND-run bar, not compile-only.
+
+The grammar DLL is machine-local (built by build_grammar.py; no PyPI wheel exists);
+the whole suite skips with a loud reason when it is absent."""
+from __future__ import annotations
+
+import pathlib
+import subprocess
+import sys
+
+import pytest
+
+HERE = pathlib.Path(__file__).resolve().parent
+_PKG = HERE.parent
+if str(_PKG) not in sys.path:
+    sys.path.insert(0, str(_PKG))
+from sutra_from_erlang.lower import grammar_available, lower  # noqa: E402
+
+pytestmark = pytest.mark.skipif(
+    not grammar_available(),
+    reason="Erlang grammar DLL not built — run sdk/sutra-from-erlang/build_grammar.py (needs MSVC)",
+)
+
+FIXTURE_DIR = HERE / "fixtures"
+_REPO = HERE.parents[2]
+
+# Fixtures with a callable `main` and a known substrate result.
+_RUNNABLE = {
+    "add_main": 16.0,  # add(A, B) -> A + B; main() -> add(7, 9)
+    "if_classify": 100.0,  # classify(N) -> if N > 0 -> 100; true -> 200 end; classify(5)
+    "tail_rec": 15.0,  # sum_to(Acc, N) -> if N == 0 -> Acc; true -> sum_to(Acc+N, N-1) end; sum_to(0, 5)
+    "nontail_fact": 120.0,  # fac(N) -> if N == 0 -> 1; true -> N * fac(N-1) end; fac(5)  (CPS fold)
+    "guard_dispatch": 150.0,  # grade(N) when N>90/when N>50/(_N) -> guarded dispatch; 95+70+20 = 100+50+0
+    "case_dispatch": 119.0,  # pick(X) -> case X of 1 -> 10; 2 -> 20; _ -> 99 end; pick(2)+pick(7) = 20+99
+}
+
+
+def _cases():
+    if not FIXTURE_DIR.exists():
+        return []
+    return [(d.name, d) for d in sorted(FIXTURE_DIR.iterdir())
+            if d.is_dir() and (d / "input.erl").exists()]
+
+
+@pytest.mark.parametrize("name,fix", _cases(), ids=[c[0] for c in _cases()])
+def test_lowers_without_unsupported(name, fix):
+    src = (fix / "input.erl").read_text(encoding="utf-8")
+    out = lower(src)
+    assert "UNSUPPORTED" not in out, f"{name} lowered with UNSUPPORTED:\n{out}"
+
+
+@pytest.mark.parametrize("name,expected",
+                         sorted(_RUNNABLE.items()), ids=sorted(_RUNNABLE))
+def test_runs_on_substrate(name, expected, tmp_path):
+    pytest.importorskip("torch", reason="substrate run needs torch")
+    fix = FIXTURE_DIR / name / "input.erl"
+    su = lower(fix.read_text(encoding="utf-8"))
+    su_path = tmp_path / f"{name}.su"
+    su_path.write_text(su, encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
+        capture_output=True, text=True, cwd=str(_REPO),
+    )
+    out = (proc.stdout + proc.stderr).strip()
+    assert proc.returncode == 0, out
+    import re
+    m = re.search(r"tensor\(\s*(-?\d+\.?\d*)", out) or re.search(r"(-?\d+\.?\d*)\s*$", out)
+    assert m, f"no numeric result in: {out}"
+    assert abs(float(m.group(1)) - expected) < 0.5, f"{name}: got {out}, want {expected}"

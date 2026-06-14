@@ -332,17 +332,17 @@ NTM/attention-on-RAM breadth backlog (trainable-query `.su`; composed-network
 end-to-end training; more parse tasks; multi-head comparison — track closed
 by Emma 2026-06-08, breadth only).
 
-## Erlang frontend — PHASE 1 ACTIVE (Emma 2026-06-14 21:06: "implement erlang right now")
+## Erlang frontend — next increments (MVP shipped 2026-06-14, suite 12/12)
 
-- [ ] **Erlang** (`sdk/sutra-from-erlang/`) — its own frontend (Elixir is on the BEAM,
-  but Erlang's own syntax/grammar is separate). No PyPI tree-sitter wheel → build the
-  grammar DLL like `sutra-from-clojure/build_grammar.py` (clone tree-sitter-erlang,
-  compile parser.c [+ scanner.c] with MSVC into `_grammar/erlang.dll`, load via
-  ctypes; `_grammar/` gitignored, tests skip if missing). Model lowering on
-  `sutra-from-ocaml`/`sutra-from-elixir`: `f(0) -> 1; f(N) -> N * f(N-1).` multi-clause
-  heads (separated by `;`, terminated by `.`) → the dispatch blend; `when` guards →
-  test; `if`/`case` → blend; tail rec → `while_loop`; foldable non-tail → CPS. Each
-  fixture substrate-verified (compile AND run vs ground truth).
+`sdk/sutra-from-erlang/` is built: grammar DLL via `build_grammar.py` (WhatsApp
+tree-sitter-erlang, parser.c+scanner.c → `_grammar/erlang.dll`); lowering covers
+functions/calls/binary-ops, `if`/`case` → blend, multi-clause heads + `when` guards →
+dispatch blend, `if`-based tail rec → `while_loop`, foldable non-tail → CPS. Remaining:
+
+- [ ] **Erlang increments**: multi-clause recursion (the idiomatic `f(0) -> …; f(N) ->
+  … f(N-1).` base-case-pattern + recursive clause — currently `UNSUPPORTED-RECURSION`,
+  shared with Elixir); maps/records/tuples → axons; list comprehensions; `div`/`rem`
+  via complex rotation (not `Math.mod`).
 
 ## Formal verification of thrml gadgets in Lean + clawRxiv loop (Emma 2026-06-14)
 
@@ -400,6 +400,63 @@ Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
 `paper/formal-verification/paper.md`, the clawRxiv loop). Scope is settled by
 Emma's clarification above (verify the gadgets in Lean + run the clawRxiv loop);
 just do it when the loop reaches it.
+
+## Long-horizon — VM/bytecode targets for maximum imperative functionality (Emma 2026-06-14 21:17)
+
+**Very end of the queue — a comprehensive long-horizon plan, not active work.**
+
+Emma's framing: implementing **JS + WASM + CPython + JVM** as bytecode/VM targets in
+Sutra would, taken together, be the best comprehensive route to **maximum imperative
+functionality** in Sutra — "even though all of it is a bit weird." This is the
+neural-VM direction (the same shape as the already-built Neural WebAssembly machine in
+the `WASM/` subtree, which is the WASM leg): build a substrate program that interprets
+each VM's bytecode, so any language compiling to that bytecode runs on Sutra.
+
+The four legs:
+- **WASM** — already underway: the substrate WASM machine (`WASM/`, Turing-complete,
+  21 opcodes, ISO-5; see the merged WASM queue section above). This is the proof the
+  approach works; the others generalize it.
+- **JS** — a JavaScript engine/bytecode target. (Distinct from the existing
+  `sutra-from-ts` *transpiler*, which lowers TS source to Sutra — this would be a JS
+  VM, the imperative-runtime route.) Weirdest of the four; scope TBD.
+- **CPython bytecode** — a CPython VM (interpret CPython bytecode on the substrate).
+- **JVM bytecode** — a JVM (interpret JVM bytecode on the substrate).
+
+Licensing / specs (info a chatbot gave Emma, recorded verbatim for grounding — verify
+before relying):
+
+> Yes, both are open source:
+>
+> **CPython** — Python Software Foundation License (PSF), essentially BSD-style
+> permissive. The full source is on GitHub. So the bytecode spec, the VM
+> implementation, everything is available to study.
+>
+> **JVM** — more complicated:
+> - The spec itself is openly documented (the Java Virtual Machine Specification is a
+>   public document)
+> - OpenJDK is the open source reference implementation, GPL v2 with Classpath Exception
+> - Oracle's JDK is proprietary but OpenJDK is what most people use now
+>
+> For your purposes the JVM spec is actually the most useful artifact — it's a formal
+> document describing the bytecode instruction set, type verifier, class file format
+> etc. People have built alternative JVM implementations (GraalVM, Azul) from it.
+>
+> The practical question is whether anyone has done formal verification work on either
+> that you could build on the way you did with Wasm. My guess:
+> - **JVM** — probably some academic work, it's been around long enough and is
+>   important enough
+> - **CPython bytecode** — less likely, it's less formally specified and changes
+>   between Python versions
+>
+> Worth searching before committing to implementing either from scratch.
+
+**First step when this is picked up:** search for existing *verified* specs / formal
+semantics for the JVM bytecode and CPython bytecode (as was leveraged for WASM) before
+implementing either from scratch — a verified spec to build on changes the cost
+dramatically. The JVM spec (formal bytecode instruction set + type verifier + class
+file format) is the most useful single artifact; CPython is less formally specified and
+drifts across versions, so pin a CPython version. Licenses (PSF for CPython, JVM spec
+public + OpenJDK GPLv2+Classpath) are permissive enough to study and build on.
 
 ## Pointers
 
