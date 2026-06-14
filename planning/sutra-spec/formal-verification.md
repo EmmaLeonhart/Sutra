@@ -364,9 +364,11 @@ detailed balance `π(s)P(s,t)=π(t)P(t,s)`. These need the real-valued transitio
 probabilities + `exp`, i.e. mathlib's analysis; `GibbsChain.lean` is the
 finite/combinatorial floor *under* that classical theorem, discharging its
 hypotheses. (The "stochastic ODEs" / Langevin-limit framing is the continuous-time
-view of the same convergence.) Lean is **not in CI** yet (heavy toolchain install).
-The clawRxiv research-loop writeup vehicle is settled: **extend the FV paper**
-(Emma 2026-06-14), §7. Supporting
+view of the same convergence.) Lean **is** CI-checked: `.github/workflows/fv-lean-ci.yml`
+runs `scripts/check_fv_lean.sh` on GitHub Actions, **path-filtered** to `fv-lean/**`
+(the toolchain install is heavy → only fires when a proof / the pin / the runner
+changes), toolchain pinned by `fv-lean/lean-toolchain`. The clawRxiv research-loop
+writeup vehicle is settled: **extend the FV paper** (Emma 2026-06-14), §7. Supporting
 measured evidence: `planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md`,
 `planning/findings/2026-06-14-thrml-approaches-comparison.md`,
 `planning/findings/2026-06-14-thrml-hardware-alignment.md`.
