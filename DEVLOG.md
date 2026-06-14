@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-06-14: Sutra → thrml — hardware-alignment notes; the A–H track is COMPLETE
+
+Wrote `planning/findings/2026-06-14-thrml-hardware-alignment.md`, grounded in the Extropic
+TSU architecture paper vendored in the thrml submodule. The chip is a sparse,
+locally-connected, **pairwise** grid of p-bits that samples via two-color block Gibbs; the
+**host programs the weights and reads the result** — which matches exactly the host/sampled
+split our approaches use (chip samples; host does weight-setup, verifier, decode,
+compositor). Non-obvious finding: the **AND gadget and the adder carry are already
+pairwise + biases → TSU-native**, while bind/XOR/parity (3-/4-body factors) need a local
+auxiliary-spin reduction, and the dense all-to-all Hopfield memory is the LEAST
+chip-aligned (a prototyping-layer strength, not the chip's). This refines the H
+recommendation for real deployment: keep the emitted graph sparse + 2-body, prefer the
+gate-circuit + sample-and-verify path. Deferred (named): a 3-/4-body → 2-body
+auxiliary-spin reduction pass in codegen_thrml.
+
+With this, the whole **Sutra → thrml track is complete** — six validated approaches (A–F),
+a non-destructive compiler backend (G, `--emit-thrml`, compiles AND samples), the
+head-to-head comparison + standardization call (H), and hardware-alignment notes. From a
+cold start it established, measured on real thrml, that Sutra computation — memory,
+bind/unbind, arithmetic, composed programs, and a `.su`→thrml compile path — runs on
+Extropic's thermodynamic sampler. The queue now rolls into the FV-in-Lean item (formally
+proving the ground-state claims) and the a1 demo.
+
 ## 2026-06-14: Sutra → thrml — approach H (compare all) done; recommendation set
 
 Wrote the head-to-head comparison of the A–G approaches (Emma's deliverable):
