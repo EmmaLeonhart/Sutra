@@ -395,6 +395,34 @@ def _run_emit(path: str, *, runtime_dim: int, runtime_seed: int,
     return 0
 
 
+def _emit_thrml(path: str) -> int:
+    """ADDITIVE experimental backend (approach G). Validate + parse the .su, then
+    lower it to a thrml/JAX energy-based-sampling program via `codegen_thrml`.
+    Entirely separate from the PyTorch path; on an unsupported construct it prints
+    a clear `thrml-codegen:` diagnostic and exits 2 (no silent mislowering)."""
+    if not os.path.exists(path):
+        print(f"{path}: error: file not found", file=sys.stderr)
+        return 1
+    bag = validate_file(path)
+    if bag.errors:
+        for d in bag:
+            print(d.format(), file=sys.stderr)
+        return 1
+    with open(path, encoding="utf-8") as fp:
+        src = fp.read()
+    lexer = Lexer(src, file=path)
+    parser = Parser(lexer.tokenize(), file=path, diagnostics=lexer.diagnostics)
+    module = parser.parse_module()
+    from .codegen_thrml import translate_thrml, ThrmlCodegenNotSupported
+    try:
+        out = translate_thrml(module)
+    except ThrmlCodegenNotSupported as exc:
+        print(f"thrml-codegen: {exc}", file=sys.stderr)
+        return 2
+    sys.stdout.write(out)
+    return 0
+
+
 def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="sutrac",
@@ -438,6 +466,18 @@ def main(argv: List[str] | None = None) -> int:
             "Compile and execute the first input file (PyTorch backend) in "
             "one step. Captures and prints whatever the generated module "
             "prints. Requires torch to be importable."
+        ),
+    )
+    parser.add_argument(
+        "--emit-thrml",
+        action="store_true",
+        help=(
+            "ADDITIVE, EXPERIMENTAL alternative backend. Compile the first input "
+            "file to a thrml/JAX energy-based-sampling program and print it to "
+            "stdout. The default PyTorch path (--emit/--run) is untouched; this is "
+            "the Extropic thermodynamic-sampling compile target (queue.md approach "
+            "G). Requires jax + the thrml submodule. Lowering coverage is the "
+            "validated subset only — see codegen_thrml.py."
         ),
     )
     parser.add_argument(
@@ -494,6 +534,13 @@ def main(argv: List[str] | None = None) -> int:
             return 2
         from .review import review_file
         return review_file(args.paths[0])
+    if args.emit_thrml:
+        # Additive experimental backend — entirely separate from the PyTorch
+        # path below, which is untouched (approach G, non-destructive).
+        if len(args.paths) != 1:
+            print("--emit-thrml takes exactly one .su source file", file=sys.stderr)
+            return 2
+        return _emit_thrml(args.paths[0])
     if args.emit or args.run or args.run_viz:
         if len(args.paths) != 1:
             print(

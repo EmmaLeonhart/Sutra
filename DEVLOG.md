@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-14: Sutra → thrml exploration approaches A–F done; codegen G.0 wired
+
+Barrelled the A–H approach set (Emma 2026-06-14: implement each distinct system, then
+compare). All measured on real thrml, logged in `planning/open-questions/2026-06-13-
+sutra-to-thrml-mapping.md`: **A** sample-and-verify (general method — bidirectional
+arithmetic; AND gate completing a universal gate set; 2×2 multiplier circuit at warm β),
+**B** ground-state min-energy decode (found+fixed a real XOR sign bug; then 1.000), **C**
+trainable couplings (LEARNED the AND gate by CD, rediscovering the analytic gadget signs
+— the constrain-train link), **D** categorical-node lookup-table factor (arbitrary unary
+fn at 1.000), **E** joint-EBM composition (kv-query in one model, no host hand-off, 1.000
+at a balanced ratio, non-monotonic), **F** structured Hadamard codes (~4× associative
+capacity, with the M→N Hebbian-degeneracy caveat).
+
+**Codegen approach G started — G.0 additive CLI flag (non-destructive).** New
+`--emit-thrml` flag + `_emit_thrml` dispatch + a new `codegen_thrml.py`
+(`translate_thrml` / `ThrmlCodegenNotSupported`). The PyTorch backend
+(`codegen_pytorch.py`, `--emit`/`--run`) is untouched — verified: `--run` still prints
+`hello world`, smoke test 11/11, and `--emit-thrml` surfaces a clean `thrml-codegen:`
+diagnostic (exit 2) rather than mislowering. G.1 (the op→factor lowering) is next.
+(Also: clarified per Emma that the FV-in-Lean and a1 GUI items are not parked — just last
+in the queue, done autonomously after the thrml approaches.)
+
 ## 2026-06-13: Sutra → thrml — exploration loop attempts #1–#3 (memory + bind both WORK)
 
 Emma reframed the thrml track as an exploration loop: try approaches until Sutra

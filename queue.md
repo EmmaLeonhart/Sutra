@@ -106,10 +106,11 @@ change anything that doesn't work. Locked encoding interpretation: a Sutra value
   into the compiler behind an **additive CLI flag**; MUST NOT modify
   `codegen_pytorch.py` or `--emit`/`--run` (non-destructive); existing suite stays
   green throughout. Sub-steps (barrel top-to-bottom):
-  - [ ] **G.0 additive CLI flag.** Add `--emit-thrml` / `--run-thrml` (or
-    `--target thrml`, default pytorch) dispatching to a new `_compile_to_thrml` →
-    `translate_thrml(module, …)` in a NEW `codegen_thrml.py`. PyTorch path
-    untouched; a guard test confirms `--emit`/`--run` are byte-identical to before.
+  - [x] **G.0 additive CLI flag — DONE 2026-06-14.** `--emit-thrml` flag +
+    `_emit_thrml` dispatch + new `codegen_thrml.py` (`translate_thrml` /
+    `ThrmlCodegenNotSupported`). Verified non-destructive: `--emit-thrml` prints a
+    clean `thrml-codegen:` diagnostic (exit 2, no silent mislowering); `--run`
+    PyTorch path + smoke test (11/11) unchanged. [remove when G.1 starts]
   - [ ] **G.1 minimal lowering — one op.** `translate_thrml` lowers the simplest
     mappable program (a single `bind`, or an `==`/AND-shaped op) to a runnable
     thrml/JAX program using the cleanest validated approach (sample-and-verify or
