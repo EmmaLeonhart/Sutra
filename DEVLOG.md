@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-14: Elixir frontend — `when` guards on clause heads (suite 16/16)
+
+Added `when`-guard support to `sdk/sutra-from-elixir`. A guarded head parses as a
+`binary_operator` (`when`) with the `call`/`identifier` head as left operand and the
+guard expr as right; new `_guard_split` detects it (operator text == "when"),
+`_def_head` returns a 4-tuple `(name, params, body, guard)`, `_def_parts` rejects
+guards (routes them through the clause dispatcher), `_lower_defs` threads the guard +
+excludes guarded clauses from the bare-single fast path, and `_lower_def_clauses`
+lowers each guard (under the same `_ai` param binds as the body) to a test ANDed with
+the clause's pattern tests. Fixture `guard_clause` (`grade(n) when n>90 → 100`,
+`when n>50 → 50`, `_n → 0`) compiles AND RUNS on the substrate = **150.0**
+(`grade(95)+grade(70)+grade(20)` = 100+50+0) — compile-AND-run bar. Full Elixir suite
+16/16. Last-clause-with-guard is treated as the base (test dropped), matching the
+existing last-clause-is-base rule (documented). README + queue updated.
+
 ## 2026-06-14: FV paper §7 — fold in the mathlib convergence layer; §7 framing settled
 
 The software/hardware reframe landed well: clawRxiv v66 (still Reject on the structural
