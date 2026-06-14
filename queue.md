@@ -101,12 +101,25 @@ change anything that doesn't work. Locked encoding interpretation: a Sutra value
 - [ ] **F. Denser / structured codes.** Push associative-memory capacity beyond
   the measured ~0.14·N Hopfield wall with structured codes (block/ECC-style);
   measure the capacity gain vs random ±1 registers.
-- [ ] **G. codegen_thrml backend.** Wire the best-validated approach into the
-  compiler: a NEW `codegen_thrml.py` mirroring `codegen_pytorch.py`, selected by
-  an **additive CLI flag** (`--target thrml` / `--emit-thrml` / `--run-thrml`;
-  default stays PyTorch). MUST NOT modify `codegen_pytorch.py` or `--emit`/`--run`
-  (non-destructive constraint above). One `.su` fixture compiles AND samples on
-  thrml, decoded vs ground truth (measured); existing suite stays green.
+- [ ] **G. codegen_thrml backend** (multi-step; `codegen_pytorch.py` is ~3.1k
+  lines, so a parallel general codegen is decomposed). Wire a validated approach
+  into the compiler behind an **additive CLI flag**; MUST NOT modify
+  `codegen_pytorch.py` or `--emit`/`--run` (non-destructive); existing suite stays
+  green throughout. Sub-steps (barrel top-to-bottom):
+  - [ ] **G.0 additive CLI flag.** Add `--emit-thrml` / `--run-thrml` (or
+    `--target thrml`, default pytorch) dispatching to a new `_compile_to_thrml` →
+    `translate_thrml(module, …)` in a NEW `codegen_thrml.py`. PyTorch path
+    untouched; a guard test confirms `--emit`/`--run` are byte-identical to before.
+  - [ ] **G.1 minimal lowering — one op.** `translate_thrml` lowers the simplest
+    mappable program (a single `bind`, or an `==`/AND-shaped op) to a runnable
+    thrml/JAX program using the cleanest validated approach (sample-and-verify or
+    ground-state). Value→bit-register, op→factor, per the attempt log.
+  - [ ] **G.2 fixture: compile AND sample.** One `.su` fixture compiles via the
+    new flag AND samples on thrml; decoded output vs ground truth (MEASURED,
+    sampling noise documented). Add to a `sutra-compiler` test (skips if JAX
+    absent, like the F#/Clojure grammar tests).
+  - [ ] **G.3 broaden ops.** Extend the lowering to bind/bundle/cleanup +
+    a small composed program, per the validated approaches; measure each.
 - [ ] **H. COMPARE ALL (the deliverable Emma wants).** After A–G, a head-to-head:
   per-approach **fidelity** (accuracy/gap), **cost** (spins, samples, wall-clock),
   **generality** (which ops/programs each handles), **decode** (verifier vs
