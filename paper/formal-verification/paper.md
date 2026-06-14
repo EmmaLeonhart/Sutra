@@ -70,8 +70,8 @@ arithmetic, partial evaluation, and vector-symbolic architectures. Finally, §7
 turns from software to **hardware** formal verification, on Sutra's
 **energy-based** thermodynamic compile target: Lean-machine-checked proofs that
 its gadgets have the correct output as the **strict global energy minimum** — a
-ground-state decode is exact — with sampler-*convergence* partly proven
-(ergodicity checked, limit theorem open).
+ground-state decode is exact — with sampler-*convergence* largely proven
+(unique stationary measure checked; mixing rate open).
 
 ---
 
@@ -859,6 +859,16 @@ energy-minimiser is the strict unique **mode** of $\pi$. So the finite chain
 converges (classical theorem, hypotheses now mechanised) to a stationary
 distribution whose unique mode is the arithmetically-correct answer.
 
+A second, `mathlib`-backed layer pins the stationary object itself, over the reals.
+We machine-check (i) a general lemma that reversibility (detailed balance
+$\pi(s)P(s,t)=\pi(t)P(t,s)$) of any finite row-stochastic kernel implies $\pi$ is
+stationary; (ii) that the gadget's Gibbs kernel with the *real* Boltzmann weights
+$e^{-\beta E}$ is reversible with respect to the Gibbs measure, so that measure is
+stationary; and (iii) two-state Perron–Frobenius **uniqueness** of the stationary
+distribution. With the irreducibility/aperiodicity above, this is the full
+reversible-chain picture: a positive, irreducible, reversible finite chain has a
+*unique* stationary distribution, and it is the Gibbs measure.
+
 Each proof is a finite case analysis discharged by `omega` after a Boolean split
 (integer `decide` does not reduce in the kernel here). These same gadgets were
 independently *measured* to compute correctly at ~100% on the real sampler, and
@@ -867,18 +877,17 @@ recovering the hand-derived couplings — so measurement, learning, and proof ag
 on the same energy landscape.
 
 **What this does not yet prove — stated plainly.** We have machine-checked the
-gadget energies are *correct* and the finite chain's ergodicity hypotheses
-(irreducible, aperiodic) plus the Gibbs **mode**. What remains is the **limit
-theorem itself** — the $t\to\infty$ total-variation mixing / Perron–Frobenius
-statement — together with detailed balance $\pi(s)P(s,t)=\pi(t)P(t,s)$. These need
-the real-valued transition probabilities and $e^{-\beta E}$, i.e. the analytic
-(continuous, measure-theoretic) layer — the Langevin stochastic-differential-
-equation limit of block-Gibbs — which is outside the finite, `mathlib`-free
-fragment proven here and is the open item for this target. So: the gadgets are
-*correct* and the chain is *ergodic with the right mode*, both machine-checked; the
-remaining link to full *convergence* is a cited classical theorem we have not yet
-mechanised. (Proofs: `fv-lean/`; the measured exploration and the host/sampled
-hardware mapping: the companion findings.)
+gadget energies are *correct*; the finite chain's ergodicity hypotheses (irreducible,
+aperiodic) and Gibbs **mode**; and — over the reals with `mathlib` — detailed
+balance, stationarity of the Gibbs measure, and its uniqueness. What remains is the
+**mixing rate**: *how fast* the chain reaches that now-proven unique stationary
+measure — the $t\to\infty$ total-variation / spectral-gap statement, the Langevin
+stochastic-differential-equation limit of block-Gibbs. So: the gadgets are
+*correct*, the chain is *ergodic with the right unique stationary Gibbs measure*, all
+machine-checked; the remaining link is the *rate* of convergence, which we do not yet
+mechanise. (Proofs: `fv-lean/` — core, no `mathlib` — and `fv-lean/mathlib/` for the
+reversibility/stationarity/uniqueness layer; the measured exploration and the
+host/sampled hardware mapping: the companion findings.)
 
 ## 8. Conclusion
 
@@ -902,11 +911,11 @@ complementary half, **hardware** formal verification: on Sutra's energy-based
 target the obligation collapses to a finite **ground-state** question about the
 *physical* energy landscape of thermodynamic, probabilistic-bit hardware, where the
 substrate physically realizes Sutra's fuzzy-by-default premise. There the gadgets'
-ground-states are already machine-checked correct, the single-gadget Gibbs chain is
-machine-checked ergodic (irreducible, aperiodic) with its stationary mode the
-correct answer, and the remaining link — the $t\to\infty$ limit theorem, the
-Langevin / stochastic-differential-equation limit of block-Gibbs — is the road
-ahead there. The verification is hardware-portable in principle, but we instantiate
+ground-states are already machine-checked correct, and the single-gadget Gibbs chain
+is machine-checked ergodic (irreducible, aperiodic) with a unique stationary Gibbs
+measure (reversibility, stationarity, and uniqueness verified over the reals in
+`mathlib`); the remaining link — the convergence *rate*, the $t\to\infty$
+spectral-gap / Langevin limit of block-Gibbs — is the road ahead there. The verification is hardware-portable in principle, but we instantiate
 it on the specific thermodynamic hardware we are building toward; carrying the §3
 framework fully onto that hardware is, in our view, the more consequential direction
 this work opens — correctness established at the level of the physics, not only the
