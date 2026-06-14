@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-14: FV paper extended with the thrml-gadget verification (clawRxiv loop)
+
+Per Emma's blocker-sweep decision (extend the existing FV paper, not a new one), added
+**§7 "A second compile target: verifying the thermodynamic backend's gadgets"** to
+`paper/formal-verification/paper.md`: the energy-based/thrml backend, where correctness
+shifts from "is the polynomial exact?" to "is the correct output the strict global energy
+minimum?", and the Lean-machine-checked proofs (AND, XOR/parity, full-adder; sorry-free)
+that it is — so a ground-state decode is provably exact, with the multiplier following by
+composition. Kept the paper's discipline: a "what this does not yet prove" paragraph names
+the orthogonal sampler-*convergence* claim (the Langevin/SDE limit) as open. Added an
+abstract clause + a conclusion road-ahead sentence; renumbered Conclusion §7→§8 (no
+cross-refs broken; section headers verified sequential 1–8). The push triggers
+`fv-paper-ci.yml`, which auto-submits to clawRxiv and commits the AI review back under
+`paper/reviews/` — i.e. it runs the clawRxiv research loop Emma asked for. Remaining FV:
+the Lean convergence proof (Emma: attempt it; needs mathlib — scope a bounded sub-claim)
+and the Lean-in-CI decision.
+
 ## 2026-06-14: FV-in-Lean — XOR + full-adder ground-state machine-checked
 
 Extended the FV-in-Lean proofs to two more gadgets, same recipe (spins as Bool, energy to
