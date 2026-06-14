@@ -27,29 +27,39 @@ deleted on completion. Keep the task tool in sync with this file.
 - **a1 warmer/colder GUI demo MOVED to a separate branch (Emma 2026-06-14 21:06).**
   Stripped from main's queue; do NOT re-add it here. It lives on its own branch.
 
-## 🔥 ACTIVE DIRECTIVE (Emma 2026-06-14 21:06) — Erlang → integrate → FV Strong Accept
+## 🔥 ACTIVE DIRECTIVE (Emma 2026-06-14 21:06, RE-ORDERED 22:05) — Erlang → FV ACCEPT → rest → FV-expand → ACCEPT
 
-Barrel through these phases in order; the work-loop self-paces. No stopping to ask
-(Emma: "barrel through … until you've gotten a strong acceptance").
+Barrel through these phases IN THIS ORDER (Emma's 22:05 correction — the FV clawRxiv
+loop comes RIGHT AFTER Erlang, BEFORE the rest of the transpiler backlog). No stopping
+to ask ("barrel through … until you've gotten a strong acceptance").
 
-- **Phase 1 — Erlang frontend + transpiler backlog.** Implement `sutra-from-erlang`
-  NOW (its own grammar; build the DLL like `sutra-from-clojure/build_grammar.py`
-  since no PyPI wheel). Then drain the active transpiler increments (F#/Elixir/
-  Clojure/Haskell/Rust data-structure tier + remaining shapes). Each substrate-
-  verified (compile AND run vs ground truth).
-- **Phase 2 — Integrate into the architecture + paper.** Reflect Erlang + all the
-  new frontends/increments in the architecture docs (`CLAUDE.md`, `AGENTS.md`,
-  `planning/sutra-spec/`, the transpiler READMEs as needed) AND the main Sutra paper
-  (`paper/paper.md`) — the multi-language → Sutra story is a real capability the
-  paper should carry. Measured/accurate, no overclaim.
-- **Phase 3 — FV-paper research loop → Strong Accept.** Continue the clawRxiv loop
-  on `paper/formal-verification/paper.md`: **respond to the critiques substantively**
-  (the structural cons — PIT scalability at depth 3, frozen-substrate empirical-vs-
-  formal tension — need real answers: experiments, scope tightening, new sections),
-  **expand with more content** until a **Strong Accept**. This SUPERSEDES the earlier
-  "stop chasing reviews" stance — Emma wants the paper actively driven to acceptance.
-- **Fill-in — full mathlib mixing rate.** When nothing above is immediately
-  actionable, do the full t→∞ mixing-rate proof (see the FV section below).
+- **Phase 1 — Erlang frontend. ✅ DONE 2026-06-14** (`sutra-from-erlang`, suite 12/12).
+- **Phase 2 — FV-paper clawRxiv loop → ACCEPT (ACTIVE NOW).** Ping-pong with the
+  clawRxiv bot on `paper/formal-verification/paper.md` until it ACCEPTS. **Respond to
+  the critiques SUBSTANTIVELY** (real answers, not wordsmithing — supersedes the
+  earlier "stop chasing reviews" stance). The recurring #1 con across v64–v67 is **PIT
+  term explosion (>1000 terms at depth 3 → "impractical")**: the textbook fix is
+  **randomized PIT (Schwartz–Zippel)** — test identity by evaluation at random points,
+  poly-time, no expansion → scales past depth 3. Implement + MEASURE it scaling, report
+  real numbers. Other recurring cons to answer: trusted-base scope (tighten/clarify),
+  Lean-gadget "triviality" (composition argument), grid-exactness "just a unit test"
+  (reframe as a checked property), frozen-substrate trust, composition-assumes-perfect-
+  execution (the measured substrate-exactness numbers answer this). Each push runs
+  `fv-paper-ci.yml` → a new review; read it side-by-side with the prior, track which
+  cons moved, iterate until ACCEPT.
+- **Phase 3 — the rest of the transpiler backlog + integration.** AFTER the FV paper is
+  accepted: drain the active transpiler increments (F#/Elixir/Clojure/Haskell/Rust
+  data-structure tier + remaining shapes), then integrate Erlang + all the frontends
+  into the architecture docs (`CLAUDE.md`, `AGENTS.md`, `planning/sutra-spec/`, READMEs)
+  AND the main Sutra paper (`paper/paper.md`) — measured/accurate, no overclaim.
+- **Phase 4 — expand the FV paper to all of them + clawRxiv loop AGAIN → ACCEPT.** Once
+  the other things are implemented, expand `paper/formal-verification/paper.md` to cover
+  them (the broader multi-frontend / verification story) and run the ping-pong loop
+  again until another ACCEPT.
+- **Fill-in — full mathlib mixing rate.** When nothing above is immediately actionable,
+  do the full t→∞ mixing-rate proof (see the FV section below). (Long-horizon items
+  like the JS/JVM/Pyodide-Python VM targets are reached by the loop eventually — Emma
+  2026-06-14 22:05 — not "never.")
 
 ## ✅ COMPLETE — Sutra → thrml (Extropic): submodule + compilation target (Emma 2026-06-13)
 
