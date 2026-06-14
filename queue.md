@@ -193,6 +193,20 @@ negative results, not hidden.
   every frontend; consider a `transpilers-ci.yml` running all `sutra-from-*` suites
   (scope decision — not auto-started).
 
+## FV paper §7 — bridge the framework TO thrml (Emma 2026-06-14 blocker-sweep)
+
+`paper/formal-verification/paper.md` is the live FV paper (paper/neurips/ frozen;
+this one is not). clawRxiv v64 (Reject) credited the §7 Lean gadget proofs but
+called §7 "disconnected / trivial 3-var gates." Emma's call: **tighten the
+connection, but bridge the OTHER material TO thrml — "thrml is the more important
+part."** So reframe so the energy-based / thrml compile target reads as central,
+not bolted-on: add a bridge connecting the PIT-reduction / tensor-op verification
+framework to the thrml energy-gadget verification, positioning thrml as the more
+important direction (honestly — no overclaim; thrml is the additive backend, the
+gadgets are 3-var, the convergence floor is finite). NOT a wholesale thesis
+rewrite in one tick; a real bridge + emphasis shift. Push triggers fv-paper-ci →
+clawRxiv loop (real content change, legitimate resubmit).
+
 ## Next-venue paper polish (UNFROZEN — active)
 
 `paper/paper.md`: ablation table for the §3.7 weighted-Equals training is DONE
@@ -352,16 +366,18 @@ compile-target"). Remaining:
   Lean; honest "what this does not yet prove" on convergence) + abstract clause +
   conclusion road-ahead; Conclusion renumbered §7→§8. The push auto-submits via
   `fv-paper-ci.yml` → runs the clawRxiv loop (review lands under `paper/reviews/`).
-- [ ] **Sampler-convergence — full limit theorem (mathlib step, longer-horizon).**
-  The BOUNDED sub-claim is DONE (2026-06-14): `fv-lean/GibbsChain.lean` machine-
-  checks the single-gadget Glauber chain is `irreducible` + `aperiodic` (the exact
-  finite-Markov-chain ergodicity hypotheses) and `and_gibbs_unique_mode` (the
-  strict energy-min is the strict unique Gibbs mode for any β>0 Boltzmann weight) —
-  no axioms / `[propext, Quot.sound]`, no sorry. What REMAINS needs **mathlib**:
-  the t→∞ limit theorem itself (Perron–Frobenius / TV mixing) + detailed balance
-  `π(s)P(s,t)=π(t)P(t,s)` (real-valued probabilities + `exp`). Install mathlib
-  (heavy) as its own step; the finite floor above discharges that theorem's
-  hypotheses. (Recorded in FV spec § "thrml compile-target"; paper §7 updated.)
+- [ ] **Sampler-convergence — MID-SIZE mathlib step (Emma 2026-06-14 blocker-sweep).**
+  The BOUNDED floor is DONE: `fv-lean/GibbsChain.lean` machine-checks the single-
+  gadget Glauber chain is `irreducible` + `aperiodic` (no axioms) + `and_gibbs_
+  unique_mode` (`[propext, Quot.sound]`), no sorry, CI-green. Emma's call: go to a
+  **mid-size mathlib step**, NOT the full t→∞ TV-mixing theorem. Scope: install
+  mathlib (as its own step — `lake` project + `lake exe cache get` for prebuilt
+  oleans, pin a mathlib commit compatible with Lean v4.30.0) and prove **detailed
+  balance** `π(s)P(s,t)=π(t)P(t,s)` for the gadget Gibbs kernel + **finite-chain
+  stationary uniqueness** (Perron–Frobenius on the gadget) — short of full mixing.
+  This needs the real-valued transition probabilities + `exp` (why it needs
+  mathlib). Set up the mathlib project under `fv-lean/` (separate Lake target so the
+  core-only files keep their no-mathlib CI path).
 
 Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
 `paper/formal-verification/paper.md`, the clawRxiv loop). Scope is settled by

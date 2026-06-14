@@ -799,21 +799,35 @@ encoding of branches as a verification lever is, to our knowledge, new.
 DO-178C, the avionics software-assurance standard, adapted so the artefact under
 review is the compiler's tensor-graph output rather than imperative source.
 
-## 7. A second compile target: verifying the thermodynamic backend's gadgets
+## 7. The energy-based compile target: verifying the thermodynamic backend
 
-The verification story above is for the **PyTorch tensor-op** compile target,
-where correctness means *the emitted polynomial agrees with the spec*. Sutra also
-compiles, through a second additive backend, to an **energy-based model** for
-sampling on a thermodynamic substrate — the kind of probabilistic-bit hardware
-Extropic is building (a sparse, locally-connected grid of p-bits that performs
-block-Gibbs sampling, with the host programming the weights and reading the
-result). On that target a Sutra value is a register of spins, an operation is a
-*factor* (a local energy term), and the result is recovered not by evaluating a
-polynomial but by **sampling toward the energy minimum**. The correctness question
-changes shape with the target: it is no longer "is the polynomial exact?" but
+The reduction at the heart of this paper — turn verification into algebra over a
+small, fixed set of obligations on the *compiled graph* (§3) — is not a property of
+the tensor-op target. It is a property of **compiling computation to a fixed
+mathematical object whose obligations are finite or closed-form**, and as such it
+is portable across compile targets. The target where it pays off most is not the
+deterministic tensor engine but the **energy-based one**: there the obligation
+collapses to its simplest possible form — a finite ground-state question — and the
+hardware is a more direct realization of Sutra's fuzzy-by-default premise, a
+physical sampler whose stationary law *is* the computation rather than a
+deterministic engine simulating uncertainty. We regard this energy-based target as
+the more important direction for verifiable Sutra; this section reports the first
+verification result on it, and the framework of §3 is what carries over to make
+that result cheap.
+
+Concretely: alongside the tensor-op backend (where correctness means *the emitted
+polynomial agrees with the spec*), Sutra compiles — through an additive, non-
+destructive backend — to an **energy-based model** for sampling on a thermodynamic
+substrate, the kind of probabilistic-bit hardware Extropic is building (a sparse,
+locally-connected grid of p-bits that performs block-Gibbs sampling, with the host
+programming the weights and reading the result). On that target a Sutra value is a
+register of spins, an operation is a *factor* (a local energy term), and the result
+is recovered not by evaluating a polynomial but by **sampling toward the energy
+minimum**. The correctness question takes the same shape the §3 framework prescribes
+— a finite, mechanically-checkable obligation per gadget — but now reads
 **"is the arithmetically-correct output the global minimum of the gadget's
-energy?"** — because a ground-state / lowest-energy decode is exact precisely when
-it is.
+energy?"** rather than "is the polynomial exact?", because a ground-state /
+lowest-energy decode is exact precisely when it is.
 
 This is a finite question for each gadget (the spins range over $\{-1,+1\}$), and
 finite questions are exactly where machine-checked proof is cheapest. We give Lean
@@ -881,13 +895,18 @@ computed exactly is borne out by measured substrate exactness, including bit-exa
 arithmetic dispatch through the compiled substrate. The reduction, framework, and
 discharged obligations are the contribution; extending the equivalence decision
 procedure beyond the Kleene fragment, and building the general checker that
-discharges an arbitrary reduced-graph obligation, are the road ahead. On Sutra's
-second, energy-based compile target the picture is complementary (§7): the
-gadgets' ground-states are machine-checked correct, the single-gadget Gibbs chain
-is machine-checked ergodic (irreducible, aperiodic) with its stationary mode the
-correct answer, and the remaining link — the $t\to\infty$ limit theorem, the
-Langevin / stochastic-differential-equation limit of block-Gibbs — is the road
-ahead there.
+discharges an arbitrary reduced-graph obligation, are the road ahead. But the same
+reduction is target-agnostic, and we see its most important application on Sutra's
+**energy-based compile target** (§7) — the thermodynamic, probabilistic-bit
+hardware direction, where the obligation collapses to a finite ground-state
+question and the substrate physically realizes Sutra's fuzzy-by-default premise.
+There the gadgets' ground-states are already machine-checked correct, the
+single-gadget Gibbs chain is machine-checked ergodic (irreducible, aperiodic) with
+its stationary mode the correct answer, and the remaining link — the
+$t\to\infty$ limit theorem, the Langevin / stochastic-differential-equation limit
+of block-Gibbs — is the road ahead there. Carrying the §3 framework fully onto the
+energy-based target is, in our view, the more consequential direction this work
+opens.
 
 ---
 

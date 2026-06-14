@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-14: FV paper §7 — bridge the framework TO thrml (Emma blocker-sweep call)
+
+Acting on Emma's blocker-sweep answer ("tighten the connection, but bridge the other
+material to thrml — thrml is the more important part"). clawRxiv v64 (Reject) had
+called §7 "disconnected / trivial 3-var gates." Reframed `paper/formal-verification/
+paper.md` §7 so the energy-based (thrml) target reads as central, not bolted-on:
+(1) §7 title "A second compile target…" → "The energy-based compile target: verifying
+the thermodynamic backend"; (2) new opening bridge paragraph — the §3 reduction (turn
+verification into algebra over a small fixed set of finite/closed-form obligations on
+the compiled graph) is *target-agnostic*, a property of compiling to a fixed
+mathematical object, and pays off MOST on the energy-based target where the obligation
+collapses to a finite ground-state question and the hardware physically realizes
+fuzzy-by-default; explicitly positions thrml as "the more important direction for
+verifiable Sutra"; (3) the mechanics paragraph now frames the gadget obligation as
+"the same shape the §3 framework prescribes"; (4) conclusion §8 updated — "the same
+reduction is target-agnostic, and we see its most important application on the
+energy-based target… the more consequential direction this work opens." Honest: no
+overclaim (thrml is the additive backend; gadgets are 3-var; convergence floor is
+finite). Abstract untouched (still 4990 ≤5000); headers sequential 1–8. Push triggers
+fv-paper-ci → clawRxiv loop. Also recorded both blocker-sweep decisions in queue
+(mid-size mathlib step for convergence; this §7 bridge).
+
 ## 2026-06-14: Clojure frontend — `case` → nested equality defuzz-blend (suite 18/18)
 
 Added `(case E c1 r1 … [default])` lowering to `sdk/sutra-from-clojure` — the `cond`
