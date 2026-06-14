@@ -280,8 +280,7 @@ forms with two purposes:
   recurrence over a fixed-width state vector. Termination obligation applies,
   discharges as described below, and the trusted base is composed exclusively
   of this form.
-- **`recur(...)`** (non-halting; introduced as part of Sutra's `recur` /
-  non-halting-loop primitive, `planning/sutra-spec/non-halting-loop.md`,
+- **`recur(...)`** (non-halting; Sutra's explicit non-halting-loop primitive,
   shipped in this work's reference implementation): an *explicitly non-halting*
   loop, used for UI tick-loops, event-driven recurrences carrying substrate
   state across iterations, and other cases where the program *should* run
@@ -394,8 +393,7 @@ exact check is certain when it terminates; the randomized check trades that for 
 quantified, negligible error (at depth 12 the bound is `(1.7×10⁷ / 2^61)^32 ≈ 10^−360`).
 The degree grows ≈ `4^depth`, so beyond ~depth 30 a larger prime or CRT over several
 primes restores the margin — unnecessary for any realistic nesting. Full data:
-`planning/findings/2026-06-14-randomized-pit-escapes-the-wall.md` (and the original
-expansion-cost table in `planning/findings/2026-05-27-pit-term-count.md`).
+a companion finding in the repository (with the original expansion-cost table).
 
 **3.4 Range-soundness and termination for unbounded-precision arithmetic
 (digit-array carry propagation).** The three families above cover the
@@ -437,9 +435,8 @@ signal. End-to-end the shipped intrinsic is bit-exact on the worked cases
 
 What §3.4 does *not* yet cover: signed digit arrays (v1 is unsigned), and
 expressing these bounds in the §3.2 polynomial-Kleene style rather than as a
-step-indexed induction (a wiring task, not a new result). Obligations and proofs
-in full: `planning/findings/2026-05-28-digit-array-add-fv-obligations.md`; spec:
-`planning/sutra-spec/arbitrary-precision.md`.
+step-indexed induction (a wiring task, not a new result). The obligations, proofs,
+and arbitrary-precision spec are given in full in the repository.
 
 ## 4. Faithfulness: the reduction is computed exactly
 
@@ -449,10 +446,7 @@ substrate, and it is worth being precise about why.
 
 **The substrate operations are formally-defined VSA operations with algebraic
 laws.** Bind, unbind, and bundle — the primitives the compiled graph is built
-from — are vector-symbolic-architecture operations, not ad-hoc tensor code. A
-recent category-theoretic foundation defines VSA binding and bundling as right Kan
-extensions of the external tensor product, which reduce to the element-wise
-operations implementations use (Shaw, Furlong, Anderson & Orchard 2025, arXiv:2501.05368); the
+from — are vector-symbolic-architecture operations, not ad-hoc tensor code. The
 holographic-reduced-representation algebra (Plate 1995) gives their laws — binding
 is **invertible** (`unbind(R, bind(R, x)) = x`) and bundling is a **linear
 superposition** whose decodable capacity grows with dimension (Frady, Kleyko &
@@ -499,15 +493,22 @@ Beyond text, the same protocol gives 100% through *k* = 8 on the ESM-2 protein
 model, where Hadamard is similarly collapsed at modest widths — the property
 is substrate-independent within the dense-encoder family.
 
-For verification what matters is narrower than maximum capacity: the
-bundle/bind/unbind primitives the compiled graph is built from recover their
-inputs exactly at the small, fixed widths the trusted base actually uses (a
-kernel role's axon carries a handful of named slots, not hundreds). The
-trusted-base widths are typically ≪ 8, and the curve shows the primitives
-work accurately at order-of-magnitude more capacity than that requirement.
-(`experiments/rotation_binding_capacity_llm.py`, 10 trials per *k*; full
-table including signal cosines and the Hadamard comparison in
-`planning/findings/2026-05-27-bundle-decoding-capacity-curve.md`.)
+The capacity curve's roll-off at large *k* does **not** undercut the verification
+claim, because the two concern different objects. Bundling capacity is a property of
+VSA *associative memory* — how many items survive superposition — and that lossy,
+graceful-degradation regime is **not part of the trusted base** and is **not what the
+obligations verify**; the verified object is the compiled arithmetic/control graph,
+whose exactness (§4.3) is bit-level integer dispatch, independent of how many items a
+bundle could hold. What verification needs from bundling is narrower than maximum
+capacity: the bundle/bind/unbind primitives the compiled graph is built from recover
+their inputs exactly at the small, fixed widths the trusted base actually uses (a
+kernel role's axon carries a handful of named slots, not hundreds). The trusted-base
+widths are typically ≪ 8, and the curve shows the primitives work accurately at
+order-of-magnitude more capacity than that requirement — so the measured roll-off is
+headroom reported honestly, not a crack in the exactness it is sometimes misread as
+contradicting.
+(10 trials per *k*; the full table including signal cosines and the Hadamard
+comparison is a companion finding in the repository.)
 
 **4.2 Reversibility.** A single bind+unbind cycle returns the input at the
 floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵`
@@ -572,8 +573,8 @@ which is what the reduction's premise requires.
 sufficient.** A natural way to claim a Sutra program "runs on the substrate" is
 to confirm every operation dispatches to a substrate primitive — no host scalar
 branch, no `float()` extraction inside an op, no Python control flow on a
-substrate value. The leak catalogue in this work's repository (`Audit.md`)
-enumerates these dispatch-level breaches and which sites have been closed.
+substrate value. The repository's leak catalogue enumerates these dispatch-level
+breaches and which sites have been closed.
 Dispatch-level cleanliness is necessary, but it is not sufficient for the
 faithfulness claim §4 needs — three further measurements separate "every op
 dispatched correctly" from "the substrate carries the signal the claim asserts,"
@@ -681,7 +682,7 @@ boundary is for*: an entry boundary lifts a host literal into a substrate
 tensor; an output edge collapses a substrate value to a host scalar for
 monitoring. Both are documented host↔substrate edges by design. What lives
 *inside* an operation's definition between those edges should stay on the
-substrate. The leak is now documented in `Audit.md` as entry #9; the user-
+substrate. The leak is now recorded in the leak catalogue; the user-
 program sweep continues at zero leaks across the 67-program corpus; the
 runtime-prelude sweep also returns zero leaks after the `eq()` / `eq_synthetic`
 fix. A per-op differentiability unit test is an additional layer that can
@@ -798,12 +799,11 @@ divergence is what you do with the resulting polynomial.
 
 **Vector-symbolic architectures.** The substrate primitives are VSA/HRR
 operations — binding, bundling, cleanup (Plate 1995; Gayler 2003; Kanerva 2009) —
-and they have a formal foundation we rely on rather than reinvent: a
-category-theoretic account derives binding/bundling as right Kan extensions of the
-external tensor product (Shaw, Furlong, Anderson & Orchard 2025, arXiv:2501.05368), and the capacity
-of bundling — how many superposed items decode correctly as a function of
-dimension — is characterised in the VSA literature (Frady, Kleyko & Sommer 2018;
-Kleyko, Rachkovskij, Osipov & Rahimi 2023). Our use of this is in §4: the
+and they have a formal foundation we rely on rather than reinvent: the
+holographic-reduced-representation algebra (Plate 1995) gives binding and bundling
+their laws, and the capacity of bundling — how many superposed items decode
+correctly as a function of dimension — is characterised in the VSA literature
+(Frady, Kleyko & Sommer 2018; Kleyko, Rachkovskij, Osipov & Rahimi 2023). Our use of this is in §4: the
 obligations are algebra over operations with formal laws, and the measured result
 this work rests on is that *rotation* binding stays exact through bundle widths
 where the standard Hadamard binding collapses. The three-valued Kleene polynomial
@@ -937,6 +937,7 @@ software.
 
 ---
 
-*Companion spec (obligations stated for implementation):
-`planning/sutra-spec/formal-verification.md`. Substrate empirics and protocols:
-`paper/paper.md`. Downstream OS verification surface: Yantra `paper/paper.md` §4.*
+*Reproducibility. The compiler, the obligation checker, the Lean 4 proofs, and the
+scripts that produce every measured number reported here are in the project
+repository; each result is regenerated by a named test or experiment, and the
+substrate-leak sweep and proof checks run under continuous integration.*

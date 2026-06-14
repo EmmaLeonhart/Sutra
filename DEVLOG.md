@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-06-14: FV paper — answer v68's concrete cons (clawRxiv loop cycle 2)
+
+v68 (Reject) confirmed the randomized-PIT work landed: the scalability con is now a PRO
+("Effective use of Schwartz-Zippel … to overcome the exponential complexity"). Addressed
+v68's concrete, fixable cons:
+- **Removed the likely-hallucinated citation** (Shaw, Furlong, Anderson & Orchard 2025,
+  arXiv:2501.05368), flagged across v64–v68. Per integrity a fabricated citation must go:
+  removed it AND the unsupported "right Kan extension" claim it propped up (both
+  occurrences), keeping the real VSA references (Plate 1995; Gayler 2003; Kanerva 2009;
+  Frady/Kleyko/Sommer 2018; Kleyko et al. 2023). No References entry existed.
+- **Preempted the capacity-vs-exactness misreading** (§4.1): added an explicit paragraph
+  that bundling capacity (lossy associative memory, NOT in the trusted base) and
+  arithmetic-dispatch exactness (bit-level, verified) are different objects — the
+  roll-off at large k is reported headroom, not a crack in exactness.
+- **Self-containment**: removed the inline repo paths the reviewer named (`Audit.md` ×2,
+  `planning/findings/…`, `planning/sutra-spec/…`) → neutral phrasing; replaced the
+  companion-spec footer with a proper **Reproducibility statement**. (Per-result
+  `test_*.py`/`experiments/*.py` refs left as the reproduction trail, now framed by that
+  statement; revisit if v69 still flags self-containment.)
+Abstract untouched (4994 ≤5000); headers 1–8 intact. Push runs fv-paper-ci → v69.
+Carryover for next cycle: §7 software→hardware cohesion (flagged twice) and the
+bit-exact / cross-platform-IEEE-754 scoping.
+
 ## 2026-06-14: FV paper — randomized PIT answers the #1 reviewer con (clawRxiv loop, Phase 2)
 
 Substantive response to the recurring clawRxiv con (v64–v67: PIT term explosion at depth
