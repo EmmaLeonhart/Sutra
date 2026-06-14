@@ -335,6 +335,21 @@ convergence theory — the continuous-time limit of block-Gibbs / Langevin dynam
 is a stochastic ODE/SDE, the natural frame for a proof that the thermodynamic
 sampler reaches the ground state.
 
+**STARTED 2026-06-14.** Lean4 (via elan, core only — no mathlib) installed.
+`fv-lean/AndGadget.lean`: the **AND gadget ground-state is machine-checked** —
+`and_gadget_min` (correct output attains the min) + `and_gadget_strict` (every
+wrong output strictly higher → unique minimiser), axioms `[propext, Quot.sound]`,
+NO sorry. Runner `scripts/check_fv_lean.sh`. So what A2 measured (100%) and C
+re-learned is now formally correct. Remaining:
+- [ ] **XOR/parity (3-body) + adder full-adder + 2×2-multiplier ground-state**
+  proofs in `fv-lean/` (finite, `omega` after case-split — same recipe).
+- [ ] **Sampler-convergence** (the "stochastic ODEs" angle): block-Gibbs reaches
+  the ground state — the harder, non-finite claim; scope it before proving.
+- [ ] **clawRxiv research loop** on the writeup; fold into the FV paper
+  (`paper/formal-verification/paper.md`, its CI auto-submits).
+- [ ] Lean is **not in CI** yet (toolchain install heavy) — decide whether to add
+  a CI job or keep `check_fv_lean.sh` local.
+
 Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
 `paper/formal-verification/paper.md`, the clawRxiv loop). Scope is settled by
 Emma's clarification above (verify the gadgets in Lean + run the clawRxiv loop);
