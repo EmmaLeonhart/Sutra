@@ -39,14 +39,15 @@ Measured (same script, 32 trials):
 
 | depth | leaves | randomized time | degree bound | verdict |
 |------:|-------:|----------------:|-------------:|:--------|
-| 4 | 16 | 0.002 s | 256 | correct |
-| 6 | 64 | 0.008 s | 4 096 | correct |
-| 8 | 256 | 0.033 s | 65 536 | correct |
-| 10 | 1 024 | 0.124 s | 1 048 576 | correct |
-| 12 | 4 096 | **0.605 s** | 16 777 216 | correct |
+| 4 | 16 | 0.004 s | 256 | correct |
+| 6 | 64 | 0.017 s | 4 096 | correct |
+| 8 | 256 | 0.039 s | 65 536 | correct |
+| 10 | 1 024 | 0.152 s | 1 048 576 | correct |
+| 12 | 4 096 | **0.822 s** | 16 777 216 | correct |
 
-So the procedure decides at **depth 12 (4096 leaves) in 0.6 s** what `expand` cannot do
-at **depth 3**. Verdicts agree with the exact check wherever the exact check is still
+So the procedure decides at **depth 12 (4096 leaves) in under a second** what `expand`
+cannot do at **depth 3**. Verdicts agree with the exact check wherever the exact check is
+still
 feasible (the unit tests cross-check De Morgan / commutativity / distributivity /
 absorption; `test_fv_general_checker.py`).
 
