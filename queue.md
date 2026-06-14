@@ -340,9 +340,11 @@ sampler reaches the ground state.
 `and_gadget_min` (correct output attains the min) + `and_gadget_strict` (every
 wrong output strictly higher → unique minimiser), axioms `[propext, Quot.sound]`,
 NO sorry. Runner `scripts/check_fv_lean.sh`. So what A2 measured (100%) and C
-re-learned is now formally correct. Remaining:
-- [ ] **XOR/parity (3-body) + adder full-adder + 2×2-multiplier ground-state**
-  proofs in `fv-lean/` (finite, `omega` after case-split — same recipe).
+re-learned is now formally correct. `fv-lean/XorGadget.lean` (the 3-body XOR — pins
+the correct sign that the 2026-06-14 bug got wrong) and `fv-lean/FullAdder.lean`
+(sum=parity + carry=majority → addition's ground state is provably the correct
+(s,cout)) are also machine-checked, no sorry. The 2×2 multiplier is these gates
+composed, so its correctness follows. Remaining:
 - [ ] **Sampler-convergence** (the "stochastic ODEs" angle): block-Gibbs reaches
   the ground state — the harder, non-finite claim; scope it before proving.
 - [ ] **clawRxiv research loop** on the writeup; fold into the FV paper
