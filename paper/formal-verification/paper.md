@@ -67,12 +67,11 @@ the equality surface — both reported in §4.5 with measured numbers. The scope
 is the non-learned trusted base, per published contract; §5 states it precisely
 and §6 positions the work against neural-network verification, SMT for nonlinear
 arithmetic, partial evaluation, and vector-symbolic architectures. Finally, §7
-reports a second result on Sutra's other compile target — an **energy-based
-backend** for thermodynamic (probabilistic-bit) sampling: Lean-machine-checked
-proofs that the backend's logic and arithmetic gadgets (AND, XOR/parity, the full
-adder) have their arithmetically-correct output as the **strict global energy
-minimum**, so a ground-state decode is exact; the orthogonal sampler-*convergence*
-claim is named as the open item.
+reports a second result on Sutra's **energy-based** compile target for
+thermodynamic (probabilistic-bit) sampling: Lean-machine-checked proofs that its
+gadgets (AND, XOR, the full adder) have the correct output as the **strict global
+energy minimum** — a ground-state decode is exact — with sampler-*convergence*
+named as open.
 
 ---
 
