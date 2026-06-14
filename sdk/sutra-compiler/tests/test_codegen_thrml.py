@@ -52,12 +52,14 @@ def test_pytorch_path_unaffected_by_thrml_backend():
     assert proc.returncode == 0, (proc.stdout, proc.stderr)
 
 
-def test_emit_thrml_bind_compiles_and_samples(tmp_path):
-    """G.1/G.2: `bind(a,b)` lowers to a thrml program that SAMPLES on the substrate
-    and matches ground truth a(x)b (measured)."""
+@pytest.mark.parametrize("fixture", ["thrml_bind.su", "thrml_roundtrip.su"])
+def test_emit_thrml_compiles_and_samples(tmp_path, fixture):
+    """G.1–G.3: bind / bind→unbind op-graphs lower to a thrml program that SAMPLES
+    on the substrate and matches ground truth (measured). thrml_roundtrip.su is
+    the canonical VSA identity unbind(bind(a,b),a)=b (a 2-factor program)."""
     pytest.importorskip("jax", reason="thrml backend needs jax")
     pytest.importorskip("thrml", reason="thrml backend needs the thrml package")
-    proc = _emit_thrml(_FIX)
+    proc = _emit_thrml(_REPO / "examples" / fixture)
     assert proc.returncode == 0, (proc.stdout, proc.stderr)
     prog = tmp_path / "emitted.py"
     prog.write_text(proc.stdout, encoding="utf-8")
