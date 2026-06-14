@@ -6,6 +6,16 @@ worked on right now and what is next. Finished work lives in `git log`,
 delete it in the same commit as the work and append a dated entry to
 `DEVLOG.md` (CLAUDE.md §Workflow Rules). Never leave `[x]` / "DONE" behind.
 
+> **`queue.md` is PER-BRANCH and is EXPECTED to differ between branches (Emma
+> 2026-06-14).** Different branches pursue different tasks, so each branch carries
+> its own queue. This is by design, NOT drift or a merge mistake: do not "reconcile"
+> one branch's queue against another, and do not treat a queue that omits another
+> branch's tracks as incomplete. When a branch is created for a focused effort, its
+> queue is stripped to that effort (here: GUI). The canonical full agenda still
+> lives in `todo.md`; `queue.md` is the active slice for *this* branch. A merge to
+> `main` carries the branch's completed work (code + DEVLOG), not its transient
+> queue items. **This branch = GUI / the a1 demo + its paper** (below).
+
 ---
 
 ## ⚠️ Branch discipline — read first (Emma 2026-06-14)
@@ -72,7 +82,94 @@ built; building is autonomous.)
   assert no NaN/blank frame and directionally-consistent morphing. Note the
   measured result in `DEVLOG.md`. Optional web wrapper deferred.
 
-## 2. GUI extensions (deferred, autonomous — todo.md §"GUI")
+## 2. Paper — substrate-rendered, human-steerable GUI (the a1 paper)
+
+**Emma 2026-06-14: make the paper comprehensive; this is its own paper for this
+branch.** A dedicated write-up of the GUI/a1 work: whole-frame rendering executed
+entirely on the frozen-LLM semantic substrate, runtime-parameter (no-recompile)
+parameterization, substrate text/glyph rendering, and **host-side SPSA steering of
+substrate-rendered output by a human warmer/colder signal**. Lives on THIS branch
+at `paper/gui-steering/` (a third Sutra paper alongside `paper/paper.md` and
+`paper/formal-verification/paper.md` on main — see the per-branch note up top).
+
+Working frame (refine in P1): *the render is substrate; the composition and the
+optimizer are host-side, and we say so.* The paper's value is the honest
+substrate/host accounting + the measured render fidelity + the steering result —
+not an overclaim. Ground truth it must not contradict: `planning/sutra-spec/*.md`,
+`docs/gui.md`, the frozen `paper/neurips/` (do NOT touch), and `paper/paper.md`.
+
+INTEGRITY RAILS for every paper item: cite ONLY measured numbers (oracle deltas,
+SPSA convergence, soak counts) — never from memory; mirror the §"What we are not
+claiming" discipline; no "honest/genuinely" buzzwords; replication/URLs only in the
+Reproducibility section. Results that depend on the demo (P7/P8) are GATED on 1c/1d
+producing the numbers — draft the method sections first, fill results when measured.
+
+**Setup**
+- [ ] **P0. Scaffold `paper/gui-steering/`.** Create `paper.md` + `reviews/` +
+  `.post_id` chain, modeled on `paper/formal-verification/`. Title + abstract
+  skeleton + section outline (the §list below). Add a one-line pointer from
+  `paper/` context if appropriate. No clawRxiv submission yet (that's P12).
+
+**Method sections (draftable NOW from the 1a/1b code + existing measured tests)**
+- [ ] **P1. §Introduction / motivation.** Why a substrate-rendered UI; the
+  fuzzy-by-default framing (geometry as computation); the demo as the artifact;
+  contributions list. Tie to Sutra's vision (`planning/sutra-spec/vision.md`).
+- [ ] **P2. §Whole-frame substrate rendering.** The one-op render model
+  (`frame_whole.su` / `frame_hero.su`): the substrate returns the frame as one
+  buffer vector; host is I/O. The **broadcast-buffer runtime-parameter mechanism**
+  (θ changes are call args, no recompile) — the load-bearing fact. Cite the
+  measured oracle deltas (≤1e-6) that already exist.
+- [ ] **P3. §Substrate text / glyph rendering.** The antipodal bound-vector font
+  (`font_bound_antipodal.su`, 36/36 pixel-exact, measured); the banner as exactly
+  the concatenated substrate glyph fields; host-side placement named.
+- [ ] **P4. §The θ-parameterized hero.** Axis set (cx,cy,invs,bright,radius,accent,
+  bg,cr,cg,cb + headline_w); colour as 3 stacked substrate channels (`hero_channel`);
+  headline as a host argmax over a θ-mixture. Measured oracle agreement.
+- [ ] **P5. §Host-side preference steering (SPSA).** The `HeroSPSA` optimizer:
+  two-sided perturbation, gain schedule, the warmer/colder reward model, batched
+  updates. The host/substrate boundary made explicit (optimizer host-side over
+  substrate-rendered output). Method now; convergence numbers from P7.
+
+**Results (P6 now; P7/P8 GATED on 1c/1d measured outputs)**
+- [ ] **P6. §Render-fidelity results.** Table: oracle max-error per render mode
+  (whole / moving / ring / rgb / layout / quad / hero / hero_rgb / glyph banner) —
+  all measured by the existing `demos/gui/` tests (~1e-6). Reproducible by a small
+  `experiments/gui_render_fidelity.py` that emits the table.
+- [ ] **P7. §Steering results (GATED on 1d).** SPSA convergence curve (synthetic
+  reward, multi-seed — already measured for the optimizer) AND the live-demo soak:
+  100-press session NaN/blank-frame count (target 0) + directional-consistency
+  metric. Cite only what 1d measures. Script: `experiments/gui_steering_eval.py`.
+- [ ] **P8. Figures (P8a now / P8b GATED).** P8a: rendered hero (mono + RGB),
+  glyph banner, four-quadrant layout — from a reproducible figure script. P8b:
+  SPSA convergence plot + before/after steering frames (after 1d). Figure script
+  under `experiments/` (committed); output PNGs are build artifacts.
+
+**Framing / rigor / infra**
+- [ ] **P9. §What we are not claiming.** Composition is host-side; the optimizer is
+  host-side SPSA (NOT substrate-native training); the reward is a human button, not
+  real traffic; no "one substrate program." Mirror the FV paper's discipline.
+- [ ] **P10. §Related work.** VSA/holographic rendering, frozen-embedding
+  computation, SPSA, human-preference optimization. Verify each cited claim against
+  the source; re-download reference PDFs per session (gitignored cache), never
+  commit them (CLAUDE.md §Reference PDFs).
+- [ ] **P11. §Reproducibility.** Exact commands: the `demos/gui/` scripts + tests +
+  the P6/P7 experiment scripts. URLs only here.
+- [ ] **P12. clawRxiv CI workflow — `gui-paper-ci.yml`.** Model on
+  `fv-paper-ci.yml` (own `.post_id` supersedes chain, auto-submit + commit the AI
+  review back under `paper/gui-steering/reviews/`). DECIDE the trigger branch
+  (gui-training vs on-merge-to-main) — note this in the item. Outward-facing: the
+  first push creates a real clawRxiv post; keep the integrity rails. (If unsure
+  about enabling auto-submit, surface via AskUserQuestion before wiring the push
+  trigger.)
+- [ ] **P13. Cross-check (no contradiction).** Verify the GUI paper does not
+  contradict `paper/paper.md`, the FROZEN `paper/neurips/` (do NOT edit it —
+  surface any conflict to Emma), or `planning/sutra-spec/*.md`. Fix the GUI paper,
+  not the others.
+- [ ] **P14. Website page (optional, human-facing).** A `docs/` page for the demo
+  per the audiences split (humans read the site; agents read the repo MD). Keep it
+  free of repo-internal scratchpad references. Built by `scripts/build_site.py`.
+
+## 3. GUI extensions (deferred, autonomous — todo.md §"GUI")
 
 - [ ] **Learned decoder / arbitrary-image generation — EMMA-GATED.** A trained
   nonlinear decoder from a latent to an arbitrary frame (constrain-train "every op
@@ -105,5 +202,8 @@ Per the autonomous-loop skill lifecycle. Not consumed between fires.
 - a1 build spec (private): `../emmas-gstack/business/gtm/2026-06-13-a1-shortest-path.md`,
   `business/gtm/a1-implementation-spec.md`.
 - Findings (dated): `planning/findings/`. Devlog: `DEVLOG.md`.
-- ⚠️ Non-GUI tracks (thrml / FV / transpiler / WASM / corpus / paper) live on
-  `main`, NOT here.
+- Paper for THIS branch: `paper/gui-steering/` (the a1 / substrate-steering paper,
+  §2 above). The OTHER papers — `paper/paper.md`, `paper/neurips/` (frozen),
+  `paper/formal-verification/paper.md` — are main's, NOT this branch's.
+- ⚠️ Non-GUI *tracks* (thrml / FV / transpiler / WASM / corpus / paper-polish on
+  the main paper) live on `main`, NOT here.

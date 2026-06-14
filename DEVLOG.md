@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-14: queue — per-branch policy note + comprehensive a1 paper track (gui-training)
+
+Per Emma (remote-control): (1) added a top-of-`queue.md` note that `queue.md` is
+PER-BRANCH and is expected to differ between branches — different branches pursue
+different tasks, so a stripped queue is by design, not drift, and is not to be
+"reconciled" against another branch; the full agenda lives in `todo.md`, the queue
+is the active slice for the branch, and a merge carries completed work (code +
+DEVLOG), not transient queue items. (2) Populated a comprehensive **paper track
+(§2)** for the GUI/a1 work — a dedicated paper at `paper/gui-steering/` (a third
+Sutra paper, on this branch) covering whole-frame substrate rendering, the
+runtime-parameter (no-recompile) mechanism, substrate glyph rendering, and
+host-side SPSA steering of substrate-rendered output. Tasks P0 (scaffold) → P14
+(website), with method sections (P1–P5) + render-fidelity results (P6) draftable
+now and steering results (P7/P8) GATED on the 1c/1d demo measurements; integrity
+rails attached (measured numbers only; §"what we are not claiming"; clawRxiv CI as
+its own item). GUI-extensions section renumbered 2→3. No code change; queue + this
+note only.
+
 ## 2026-06-14: a1 item 1b — host-side batched SPSA optimizer (gui-training)
 
 Ported the SPSA optimizer that steers the hero. `demos/gui/hero_spsa.py`:
