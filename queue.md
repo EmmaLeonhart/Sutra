@@ -55,10 +55,14 @@ built; building is autonomous.)
   do NOT over-claim "one substrate program" or substrate-native training.
 
 **Build order (decompose as the loop reaches each):**
-- [ ] **1a. θ-parameterized hero render.** Extend the whole-frame renderer so a
-  single θ vector (layout/scale/color/spacing + a headline selector) drives one
-  composed hero frame via the existing per-call broadcast-buffer path. Verify the
-  frame against a reference for a fixed θ (MEASURED), no recompile per frame.
+- [ ] **1a-rest. Headline-glyph selector + colour for the θ hero.** The render
+  CORE is done (`frame_hero.su` + `render_hero()`; θ = cx,cy,invs,bright,radius,
+  accent,bg; oracle-verified to 1e-6, θ-morph verified; DEVLOG 2026-06-14).
+  Remaining: add the discrete **headline-glyph selector** (3–5 preset UPPERCASE
+  headlines via the 36-glyph renderer in `demos/font/`; θ carries a mixture
+  weight, render the argmax) and **colour channels** (per-channel brightness, the
+  `frame_rgb.su` precedent) into the θ vector. Keep runtime-parameter (no
+  recompile); verify each new axis against a reference (MEASURED).
 - [ ] **1b. Batched SPSA optimizer (host-side).** Port the SPSA step from the
   a1 spec: two-sided perturbation, scalar reward in, θ-update out, [-1,1]^d clamp.
   Unit-test the update direction on a synthetic reward (gradient sign correct).
