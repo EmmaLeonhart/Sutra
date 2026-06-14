@@ -162,12 +162,29 @@ The first-cut used hand-built factors + per-op decode. Now implement each distin
   freezes from near-random. Proper annealing needs a within-chain β schedule
   (thrml's `SamplingSchedule` doesn't expose per-step β) or carrying a single
   low-energy coherent state.
-- next B: **min-energy decode over a warm run** of the proper-gadget multiplier
-  (the answer is the strict global min there — contrast the adder #4c where
-  min-energy failed because the soft encoding had spurious minima). That is the
-  clean test of whether proper-gadget ground-state computing beats sample-and-
-  verify. **So far for composed circuits: approach A (sample-and-verify) works,
-  naive approach B (staged annealing) does not.**
+- **B2. min-energy ground-state decode — WORKS after fixing a real sign bug it
+  exposed (2026-06-14).** `experiments/thrml/groundstate_demo.py`. min-energy
+  decode first gave **0.000** (best-of-S=1.0) — too clean to be "spurious minima."
+  Analytic enumeration of all 2¹⁰ free configs proved the correct assignment was
+  NOT the global min (energy −4.5 vs a spurious −8.5 all-ones state). **Root
+  cause: the bit-level 3-body XOR factor had the WRONG SIGN.** For bits with
+  σ=2·bit−1, `z=x⊕y` (even #1s over 3 vars) corresponds to **∏σ = −1**, needing a
+  NEGATIVE weight; I'd used positive, which silently encodes XNOR. (The 4-body
+  adder parity is even-vars → ∏σ=+1 → positive is correct there, so the adder was
+  fine; only the 3-var XOR was flipped.) **Fixed** (`multiplier_demo.xor_factor`
+  → negative weight; analytic check: correct assignment is now the unique global
+  min for all 16 pairs). **Re-measured: min-energy 1.000, modal 1.000, best-of-S
+  1.000.** → **approach B (ground-state computing) WORKS with proper-signed
+  gadgets** — decodes by min-energy AND modal, NO verifier. Also CORRECTS A3's
+  multiplier (it had the wrong-signed XOR; sample-and-verify masked it).
+- **Sharp A-vs-B lesson (for the H comparison):** sample-and-verify (A) is ROBUST
+  to a wrong-signed energy landscape — the answer stays reachable, so the verifier
+  recovers it, which is exactly how the XOR sign bug hid through A3. Ground-state
+  decode (B) REQUIRES correct gadget signs (it surfaced the bug) but then needs no
+  verifier — a cleaner decode. Both now work on the multiplier; they trade
+  robustness vs decode-simplicity. (Note: B1 staged annealing still fails on its
+  own — the marginal-mode-carry bug — but B2 shows annealing was never needed once
+  the gadget signs are right and β is warm enough to mix.)
 
 ## Emma's encoding steer (2026-06-13)
 
