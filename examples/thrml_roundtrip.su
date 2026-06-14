@@ -1,0 +1,9 @@
+// bind/unbind round-trip for the thrml backend (approach G.3): the canonical VSA
+// identity unbind(bind(a, b), a) = b, compiled to a 2-factor energy program.
+vector a = basis_vector("a");
+vector b = basis_vector("b");
+
+function vector main() {
+    vector bound = bind(a, b);
+    return unbind(bound, a);
+}

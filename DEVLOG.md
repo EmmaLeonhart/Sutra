@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-14: Sutra → thrml codegen G.3 — bind/unbind op-graphs (round-trip 1.000)
+
+Generalized `codegen_thrml.translate_thrml` from one-op bind to a small bind/unbind
+OP-GRAPH: a `main` body of `vector tmp = bind/unbind(x, y);` intermediates plus a final
+`return …` over `basis_vector` atoms. Each value is a 16-bit spin register; every
+bind/unbind is the 3-body product factor `in1_i·in2_i·out_i=+1`; atoms are clamped and
+all intermediates+result are sampled jointly; the emitted program self-verifies against
+the host-computed element-wise-product ground truth. New `examples/thrml_roundtrip.su`
+(the canonical VSA identity `unbind(bind(a,b),a)=b`, a 2-factor program): compiles AND
+samples = **1.000** per-bit; single-op `thrml_bind.su` still 1.000. `test_codegen_thrml.py`
+now 4/4 (compile-AND-sample parametrized over both fixtures + the two non-destructive
+guards). Daily 2026-06-14 substrate-honesty audit reviewed clean and discharged. Approach
+G is done through op-graphs; `bundle`/`unbind`+cleanup (needs a codebook decode) and
+`==`/AND gadgets are deferred, non-blocking for H (compare all).
+
 ## 2026-06-14: Sutra → thrml codegen G.1–G.2 — `bind` compiles AND samples (1.000)
 
 The thrml backend now lowers a real Sutra program end-to-end. `codegen_thrml.translate_thrml`
