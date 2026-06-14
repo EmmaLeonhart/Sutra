@@ -347,12 +347,11 @@ the correct sign that the 2026-06-14 bug got wrong) and `fv-lean/FullAdder.lean`
 composed, so its correctness follows. The gadget-FV result is recorded in the
 authoritative FV spec (`planning/sutra-spec/formal-verification.md` § "thrml
 compile-target"). Remaining:
-- [ ] **clawRxiv writeup — EXTEND the existing FV paper (Emma 2026-06-14).** Add a
-  thrml-energy-gadget-FV section to `paper/formal-verification/paper.md`: the
-  second compile target, gadget ground-states machine-checked in Lean (AND/XOR/
-  full-adder, no sorry), framed as extending the verification story to the
-  energy-based backend. Honest discipline (measured numbers only, name the
-  unproven convergence claim). The push auto-submits → runs the clawRxiv loop.
+- [x] **clawRxiv writeup — DONE 2026-06-14.** Added §7 "A second compile target"
+  to `paper/formal-verification/paper.md` (gadget ground-states machine-checked in
+  Lean; honest "what this does not yet prove" on convergence) + abstract clause +
+  conclusion road-ahead; Conclusion renumbered §7→§8. The push auto-submits via
+  `fv-paper-ci.yml` → runs the clawRxiv loop (review lands under `paper/reviews/`).
 - [ ] **Sampler-convergence — ATTEMPT a Lean proof (Emma 2026-06-14).** Block-Gibbs
   reaches the ground state (the "stochastic ODEs" / Langevin angle). Non-finite /
   measure-theoretic → needs **mathlib**. Scope a BOUNDED sub-claim first (e.g.
