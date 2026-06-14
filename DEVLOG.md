@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-14: a1 item 1a COMPLETE — colour channels for the θ hero (gui-training)
+
+Added the colour axis, completing item 1a. `frame_hero.su` gains `hero_channel`:
+the same composed hero (glow + ring + bg) tinted by a per-channel weight, in ONE
+substrate op (the tint multiply is elementwise `hadamard` on the substrate — no
+host colour arithmetic). `render_hero_rgb()` in `whole_frame.py` calls it three
+times with θ's (cr, cg, cb) tints → R, G, B as three whole-frame substrate fields,
+then stacks them (display assembly, the frame_rgb precedent). θ gains cr/cg/cb
+axes (default warm-white 1.0/0.85/0.6); HERO_THETA_AXES updated.
+
+Verified MEASURED (whole-frame suite 15→16): each channel == host oracle (mono
+hero × tint) to 1e-6, and θ drives colour — a pure-red tint (cr=1, cg=cb=0) lights
+R while zeroing G and B — `test_hero_rgb_channels_match_tinted_oracle_and_drive_colour`.
+Runtime-parameter (tints are broadcast buffers, no recompile). Honest rail: the
+channel fields are substrate; only the 3-channel stack is host display assembly.
+
+**Item 1a (θ-parameterized hero render) is now COMPLETE**: render core + headline
+selector + colour. θ = (cx, cy, invs, bright, radius, accent, bg, cr, cg, cb) +
+headline_w. Next in the a1 build order: 1b (host-side batched SPSA optimizer).
+
 ## 2026-06-14: a1 item 1a — headline-glyph selector for the θ hero (gui-training)
 
 Added the discrete "copy" axis to the warmer/colder hero: a headline chosen from

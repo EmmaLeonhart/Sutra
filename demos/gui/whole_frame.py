@@ -417,13 +417,16 @@ def _compile_hero():
 # θ axis order — the single source of truth the host compositor and the SPSA
 # optimizer (item 1b) share. Each value is broadcast to every pixel as a buffer;
 # changing θ never recompiles (a1 spec: runtime parameters, no recompile).
-HERO_THETA_AXES = ("cx", "cy", "invs", "bright", "radius", "accent", "bg")
+HERO_THETA_AXES = ("cx", "cy", "invs", "bright", "radius", "accent", "bg",
+                   "cr", "cg", "cb")
 
 # A neutral, on-screen default θ: centred glow, unit scale/brightness, a faint
-# ring accent, mid background. The SPSA loop perturbs around a θ like this.
+# ring accent, mid background, warm-white tint (cr,cg,cb). The SPSA loop perturbs
+# around a θ like this.
 HERO_THETA_DEFAULT = {
     "cx": 0.0, "cy": 0.0, "invs": 1.0, "bright": 1.0,
     "radius": 0.5, "accent": 0.25, "bg": 0.0,
+    "cr": 1.0, "cg": 0.85, "cb": 0.6,
 }
 
 
@@ -459,6 +462,51 @@ def render_hero(size: int = 64, theta: dict | None = None):
                bcast("bright"), bcast("radius"), bcast("accent"), bcast("bg"))
     buf = buf.real if buf.is_complex() else buf
     return buf.reshape(size, size).detach().to("cpu").numpy()
+
+
+def render_hero_rgb(size: int = 64, theta: dict | None = None):
+    """Return a (size, size, 3) COLOUR hero driven by θ, computed as THREE
+    whole-frame substrate ops (frame_hero.su's `hero_channel`): R, G, B are the
+    same composed hero tinted on the substrate by θ's (cr, cg, cb) weights. The
+    host stacks the three substrate-computed channels (display assembly, the
+    frame_rgb precedent) — no host colour arithmetic touches the field. θ changing
+    needs no recompile (the tints are broadcast buffers)."""
+    import numpy as np
+    import torch
+
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "frame_hero.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
+    hero_channel, vsa = mod.hero_channel, mod._VSA
+    dt, dev = vsa.dtype, vsa.device
+
+    th = dict(HERO_THETA_DEFAULT)
+    if theta:
+        th.update(theta)
+    xs, ys = [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    n2 = size * size
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(n2, dtype=dt, device=dev)
+
+    def bcast(val):
+        return torch.full((n2,), float(val), dtype=dt, device=dev)
+
+    base = (X, Y, ones, bcast(th["cx"]), bcast(th["cy"]), bcast(th["invs"]),
+            bcast(th["bright"]), bcast(th["radius"]), bcast(th["accent"]), bcast(th["bg"]))
+
+    def chan(tint_name):
+        buf = hero_channel(*base, bcast(th[tint_name]))   # ONE substrate op -> channel
+        buf = buf.real if buf.is_complex() else buf
+        return buf.reshape(size, size).detach().to("cpu").numpy()
+
+    return np.stack([chan("cr"), chan("cg"), chan("cb")], axis=-1)
 
 
 # --- Headline-glyph selector (a1 item 1a, discrete "copy" axis) ----------------
