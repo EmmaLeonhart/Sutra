@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-06-14: a1 item 1c — warmer/colder steering controller + live window (gui-training)
+
+Wired the warmer/colder loop. `demos/gui/hero_steering.py`: `HeroSteering`, a
+HEADLESS controller tying `HeroSPSA` (host-side) to the substrate hero render.
+Two-sided SPSA maps to two presses — the controller shows the +perturbation
+(first press scores r₊), then the −perturbation (second press scores r₋), then
+runs one `update(r₊, r₋)` and begins the next batch; reward +1 warmer / −1 colder.
+Each `frame()` guards against NaN/blank pixels (raises rather than painting
+garbage). `render_hero_full()` (new, in `whole_frame.py`) is the full demo frame:
+the θ-driven RGB hero with the substrate glyph headline overlaid (banner placement
+factored into a shared `_banner_placement` helper). Added an in-process compiled-
+hero cache (`_hero_module`) so the soak's hundreds of renders don't recompile.
+`steering_window.py`: a thin tkinter shell (WARMER/COLDER buttons + W/K keys) over
+the controller — I/O only, untested by design (no CI display).
+
+Verified MEASURED (`test_hero_steering.py`, 4/4; full demos/gui suite 35→39): two
+presses complete exactly one SPSA batch (counters advance 1 per 2 presses, phase
+alternates); no NaN/blank frame across a 40-press session; a brightness-preference
+rater steers the optimizer's best θ brightness UP from neutral by >0.3 — end-to-end
+directional morphing WITH the substrate render in the loop (not just the optimizer
+in isolation); the full RGB+headline frame renders finite/non-blank with a preset
+headline. Honest rails: the render is substrate (colour channels + glyph pixels);
+the optimizer and warmer/colder bookkeeping are host-side; steering by a present
+rater, not substrate-native training, not real-traffic learning. Next: 1d (full
+100-press soak with the headline on → the measured numbers paper §7/P7 are gated on).
+
 ## 2026-06-14: a1 paper P0 — scaffold + grounded method-section drafts (gui-training)
 
 Created `paper/gui-steering/paper.md` (third Sutra paper, this branch): "Painting
