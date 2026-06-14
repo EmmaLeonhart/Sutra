@@ -113,14 +113,18 @@ change anything that doesn't work. Locked encoding interpretation: a Sutra value
   `ThrmlCodegenNotSupported` (no silent mislowering). Future extension (not
   blocking H): `bundle` + `unbind`+cleanup (the kv-query) need a codebook-cleanup
   decode; `==`/AND need the gadget lowering — open design points, deferred.
-- [ ] **H. COMPARE ALL (the deliverable Emma wants).** After A–G, a head-to-head:
-  per-approach **fidelity** (accuracy/gap), **cost** (spins, samples, wall-clock),
-  **generality** (which ops/programs each handles), **decode** (verifier vs
-  ground-state vs learned), and **codegen-fit** (how cleanly each lowers from
-  `.su`). Recommend the approach(es) to standardize on. Write it up as a finding +
-  a `docs/` page if it's website-worthy.
-- [ ] **Hardware-alignment notes** — how the chosen approach maps onto Extropic
-  TSU semantics; what stays host vs sampled.
+- [x] **H. COMPARE ALL — DONE 2026-06-14.** Head-to-head of A–G (measured table +
+  cross-cutting trade-offs + recommendation) in
+  `planning/findings/2026-06-14-thrml-approaches-comparison.md`. Standardize on:
+  bit-registers + sample-and-verify (A) as the default lowering (general, robust,
+  what G targets); ground-state decode (B) as the verifier-free fast path for
+  sign-correct gadgets; categorical (D) for small-domain maps; structured codes
+  (F) + trainable couplings (C) for associative-memory capacity; staged
+  composition by default, joint-EBM (E) only for readout-purity. Optional
+  follow-up: a human-facing `docs/` page (the capability is website-worthy).
+- [ ] **Hardware-alignment notes** — how the chosen approach (A/B on bit-registers)
+  maps onto Extropic TSU semantics; what stays host (compositor, verifier) vs
+  sampled. Last thrml item before the queue rolls into FV-in-Lean.
 
 HARD RAILS: every op runs on the (sampling) substrate; no faked results; RUN +
 MEASURE every attempt (gap vs baseline, never asserted); read thrml's ACTUAL API

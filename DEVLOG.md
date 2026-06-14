@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-14: Sutra → thrml — approach H (compare all) done; recommendation set
+
+Wrote the head-to-head comparison of the A–G approaches (Emma's deliverable):
+`planning/findings/2026-06-14-thrml-approaches-comparison.md` — a measured table
+(every number from the attempt log, on real thrml), the cross-cutting trade-offs
+(verifier vs ground-state vs learned decode; cold-vs-warm β; staged-vs-joint
+composition; bit-register-vs-categorical encoding; hand-built-vs-learned couplings),
+and a concrete "what to standardize on": **bit-registers + sample-and-verify (A) as
+the default lowering** (general, robust, what codegen G targets), ground-state
+decode (B) as the verifier-free fast path for sign-correct gadgets, categorical (D)
+for small-domain maps, structured codes (F) + trainable couplings (C) for
+associative-memory capacity, staged composition by default with joint-EBM (E)
+reserved for readout-purity. So the whole thrml track A–H is complete: six
+validated approaches, a working non-destructive codegen, and a standardization
+call. Remaining thrml item: hardware-alignment notes; then the queue rolls into the
+FV-in-Lean item (formally proving the B-style ground-state claims this doc measured)
+and the a1 demo.
+
 ## 2026-06-14: Sutra → thrml codegen G.3 — bind/unbind op-graphs (round-trip 1.000)
 
 Generalized `codegen_thrml.translate_thrml` from one-op bind to a small bind/unbind
