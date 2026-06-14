@@ -62,24 +62,58 @@ change anything that doesn't work. Locked encoding interpretation: a Sutra value
 - [x] **0. Vendor + study — DONE 2026-06-13.** `external/thrml` submodule pinned
   `db629a0`; API studied + README example RUN on JAX-CPU. Facts:
   `planning/findings/2026-06-13-thrml-api-study.md`. JAX/equinox backend-only.
-- [x] **1. First attempt: associative memory — WORKS 2026-06-13.**
-  `experiments/thrml/assoc_memory_demo.py`. value=N-bit register; bundle=Hebbian
-  couplings; cleanup=block-Gibbs. MEASURED (N=16,M=3): β=6 → **96.8%** of samples
-  recover a stored value vs **0.0%** baseline (gap 0.968). Sutra's bundle/cleanup
-  genuinely computes on thrml.
-- [ ] **Keep iterating (the loop).** Next attempts, each RUN + MEASURED: retrieval
-  from a **clamped partial cue**; **bind/unbind**; **arithmetic-as-energy**
-  (add/compare on bit-registers); robustness sweeps (N, M capacity). Log each in
-  the attempt log; failed approaches recorded as negative results, then try
-  another. Goal: find the approach(es) under which real Sutra programs run on the
-  sampler.
-- [ ] **Then wire it into `codegen_thrml.py`** once a working pattern is solid: a
-  NEW file mirroring `codegen_pytorch.py`, selected by an **additive CLI flag**
-  (`--target thrml` / `--emit-thrml` / `--run-thrml`; default stays PyTorch).
-  Must NOT modify `codegen_pytorch.py` or `--emit`/`--run` (non-destructive
-  constraint above). One `.su` fixture compiles AND samples on thrml, decoded vs
-  ground truth (measured); existing suite stays green.
-- [ ] **Hardware-alignment notes** — how the working approach maps onto Extropic
+- [x] **1–5 first-cut attempts — ALL WORK (2026-06-13).** Full measured log in
+  `planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md`: associative
+  memory (96.8% vs 0%), clamped retrieval (99.2% vs 50%), bind/unbind (100% via
+  3-body factor), addition (100% via sample-and-verify, after refuting min-energy
+  & weight-ratio), composed kv-query program (100% vs 0% raw). Value=bit-register,
+  ops=factors, results-by-sample(+verify) — the mapping runs real Sutra compute.
+
+### thrml — APPROACHES TO TRY (Emma 2026-06-14): implement each, then compare
+
+> The first-cut used hand-built factors + per-op decode. Emma wants the *distinct
+> systems* I suggested each implemented and MEASURED, then compared head-to-head.
+> Each is its own attempt (RUN + measured + logged in the attempt log). Barrel
+> through them top to bottom.
+
+- [ ] **A. Sample-and-verify as the general method.** Generalize the validated
+  #4c pattern beyond addition: encode 2–3 more ops as constraint factors
+  (equality/compare, select/mux, small multiply) → sample → verify → select.
+  Establish "constraint-program → sample-and-verify" as a general compilation
+  strategy; measure fidelity + samples needed per op.
+- [ ] **B. Ground-state encoding + annealing.** The contrast to A: design proper
+  penalty gadgets (e.g. full-adder with an auxiliary spin) so the answer is the
+  STRICT global min, and reach it with an annealing β-schedule (staged sampling)
+  — target ~100% with a plain modal/min-energy decode, NO verifier. Compare cost
+  + fidelity vs A.
+- [ ] **C. Trainable couplings (the constrain-train link).** Instead of
+  hand-deriving factor weights, LEARN them with thrml's `IsingTrainingSpec` /
+  `estimate_kl_grad` (KL-gradient moment matching) so the model reproduces a
+  target op's I/O distribution. Ties thrml to Sutra's constrain-train vision;
+  measure learned-vs-handbuilt fidelity.
+- [ ] **D. Categorical-node encoding.** Represent a Sutra value as a thrml
+  `CategoricalNode` (k-state) instead of an N-bit spin register; redo a couple of
+  ops; compare fidelity, spin/dim cost, and which ops are cleaner.
+- [ ] **E. Joint-EBM composition.** Compose a multi-op program (the kv-query, or
+  bind→cleanup) as ONE energy model with competing factors + a single sampling
+  run, vs the staged host-handoff of #5; compare fidelity + whether it removes the
+  readout boundary.
+- [ ] **F. Denser / structured codes.** Push associative-memory capacity beyond
+  the measured ~0.14·N Hopfield wall with structured codes (block/ECC-style);
+  measure the capacity gain vs random ±1 registers.
+- [ ] **G. codegen_thrml backend.** Wire the best-validated approach into the
+  compiler: a NEW `codegen_thrml.py` mirroring `codegen_pytorch.py`, selected by
+  an **additive CLI flag** (`--target thrml` / `--emit-thrml` / `--run-thrml`;
+  default stays PyTorch). MUST NOT modify `codegen_pytorch.py` or `--emit`/`--run`
+  (non-destructive constraint above). One `.su` fixture compiles AND samples on
+  thrml, decoded vs ground truth (measured); existing suite stays green.
+- [ ] **H. COMPARE ALL (the deliverable Emma wants).** After A–G, a head-to-head:
+  per-approach **fidelity** (accuracy/gap), **cost** (spins, samples, wall-clock),
+  **generality** (which ops/programs each handles), **decode** (verifier vs
+  ground-state vs learned), and **codegen-fit** (how cleanly each lowers from
+  `.su`). Recommend the approach(es) to standardize on. Write it up as a finding +
+  a `docs/` page if it's website-worthy.
+- [ ] **Hardware-alignment notes** — how the chosen approach maps onto Extropic
   TSU semantics; what stays host vs sampled.
 
 HARD RAILS: every op runs on the (sampling) substrate; no faked results; RUN +
