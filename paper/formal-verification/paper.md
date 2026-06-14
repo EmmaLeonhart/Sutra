@@ -66,7 +66,13 @@ provides live evidence that the substrate now carries autograd cleanly across
 the equality surface — both reported in §4.5 with measured numbers. The scope
 is the non-learned trusted base, per published contract; §5 states it precisely
 and §6 positions the work against neural-network verification, SMT for nonlinear
-arithmetic, partial evaluation, and vector-symbolic architectures.
+arithmetic, partial evaluation, and vector-symbolic architectures. Finally, §7
+reports a second result on Sutra's other compile target — an **energy-based
+backend** for thermodynamic (probabilistic-bit) sampling: Lean-machine-checked
+proofs that the backend's logic and arithmetic gadgets (AND, XOR/parity, the full
+adder) have their arithmetically-correct output as the **strict global energy
+minimum**, so a ground-state decode is exact; the orthogonal sampler-*convergence*
+claim is named as the open item.
 
 ---
 
@@ -794,7 +800,56 @@ encoding of branches as a verification lever is, to our knowledge, new.
 DO-178C, the avionics software-assurance standard, adapted so the artefact under
 review is the compiler's tensor-graph output rather than imperative source.
 
-## 7. Conclusion
+## 7. A second compile target: verifying the thermodynamic backend's gadgets
+
+The verification story above is for the **PyTorch tensor-op** compile target,
+where correctness means *the emitted polynomial agrees with the spec*. Sutra also
+compiles, through a second additive backend, to an **energy-based model** for
+sampling on a thermodynamic substrate — the kind of probabilistic-bit hardware
+Extropic is building (a sparse, locally-connected grid of p-bits that performs
+block-Gibbs sampling, with the host programming the weights and reading the
+result). On that target a Sutra value is a register of spins, an operation is a
+*factor* (a local energy term), and the result is recovered not by evaluating a
+polynomial but by **sampling toward the energy minimum**. The correctness question
+changes shape with the target: it is no longer "is the polynomial exact?" but
+**"is the arithmetically-correct output the global minimum of the gadget's
+energy?"** — because a ground-state / lowest-energy decode is exact precisely when
+it is.
+
+This is a finite question for each gadget (the spins range over $\{-1,+1\}$), and
+finite questions are exactly where machine-checked proof is cheapest. We give Lean
+4 proofs (core only, no `mathlib`) that the energy-based gadgets the backend emits
+have their correct output as the **strict global energy minimum** — every theorem
+sorry-free, depending only on `[propext, Quot.sound]`:
+
+- the derived **AND** gadget (biases and pairwise couplings) — its output `a ∧ b`
+  is the unique energy minimiser;
+- the 3-body **XOR/parity** gadget — `x ⊕ y` is the unique minimiser, which pins
+  the *sign* of the factor (the opposite sign silently encodes XNOR — a bug we hit
+  empirically and the proof now excludes);
+- the 1-bit **full adder** — sum `a ⊕ b ⊕ cin` (a 4-body parity factor) and carry
+  `MAJ(a,b,cin)` (a pairwise factor) are jointly the strict minimiser for all
+  inputs, so **integer addition's ground-state decode is provably exact**. A
+  multiplier is these gates composed, so its correctness follows from theirs.
+
+Each proof is a finite case analysis discharged by `omega` after a Boolean split
+(integer `decide` does not reduce in the kernel here). These same gadgets were
+independently *measured* to compute correctly at ~100% on the real sampler, and
+the AND gadget was even *re-learned* from data by contrastive divergence,
+recovering the hand-derived couplings — so measurement, learning, and proof agree
+on the same energy landscape.
+
+**What this does not yet prove — stated plainly.** Ground-state *correctness* (the
+minimum is the right answer) is not ground-state *reachability* (that block-Gibbs
+sampling actually finds it). The latter is the convergence question — the
+continuous-time limit of the sampler is a Langevin stochastic differential
+equation, and a formal convergence proof is measure-theoretic, outside the finite
+fragment proven here, and the open item for this target. We claim the gadget
+energies are *correct*, machine-checked; we do not yet claim the sampler provably
+*converges*. (Proofs: `fv-lean/`; the measured exploration and the host/sampled
+hardware mapping: the companion findings.)
+
+## 8. Conclusion
 
 Compiling the non-learned trusted base to a tensor-op graph turns formal
 verification from imperative-path enumeration into algebra over a small fixed set
@@ -809,7 +864,11 @@ computed exactly is borne out by measured substrate exactness, including bit-exa
 arithmetic dispatch through the compiled substrate. The reduction, framework, and
 discharged obligations are the contribution; extending the equivalence decision
 procedure beyond the Kleene fragment, and building the general checker that
-discharges an arbitrary reduced-graph obligation, are the road ahead.
+discharges an arbitrary reduced-graph obligation, are the road ahead. On Sutra's
+second, energy-based compile target the picture is complementary (§7): the
+gadgets' ground-states are machine-checked correct, and proving the sampler
+provably *converges* to them — the Langevin / stochastic-differential-equation
+limit of block-Gibbs — is the road ahead there.
 
 ---
 
