@@ -321,7 +321,7 @@ tracks on it.
   substrate-native training.
 
 
-* start doing formal verification work using the Extropic
+* start doing formal verification work using the Extropic. run research loop for formal verification using lean and the autonomous clawrxiv research loop
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`.
