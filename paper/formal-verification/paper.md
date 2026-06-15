@@ -882,22 +882,21 @@ sorry-free, depending only on `[propext, Quot.sound]`:
   inputs, so **integer addition's ground-state decode is provably exact**. A
   multiplier is these gates composed, so its correctness follows from theirs.
 
-**How the gadget proofs compose to a circuit.** A complete arithmetic circuit is
-gadgets *wired together* — one gadget's output spin is another's input — and on the
-energy-based target wiring is **addition of energies**: the circuit's energy is the
-sum of its gadget energies over the shared spin register. Composition of the
-ground-state proofs is then a sum-of-minimized-terms argument. Each gadget's `_strict`
-theorem says its energy is *uniquely* minimized exactly when its local output is the
-correct function of its inputs; summing, the total energy is uniquely minimized exactly
-when *every* gadget is simultaneously at its correct local output, and for a
-consistently-wired circuit that joint assignment is the globally-correct output. So a
-circuit assembled only from verified gadgets inherits a correct strict global minimum
-from its parts, with no monolithic re-proof — the 2×2 multiplier (AND + XOR + adder) is
-the worked instance. What is machine-checked today is each gadget's strict minimum and
-that instance; the *general* composition lemma — that a sum of strictly-minimized
-penalty terms over a shared register is itself strictly minimized at the consistent
-joint assignment — is the methodology stated here and the natural next Lean obligation,
-not yet discharged in full generality.
+**How the gadget proofs compose to a circuit — machine-checked in general.** A complete
+arithmetic circuit is gadgets *wired together* — one gadget's output spin is another's
+input — and on the energy-based target wiring is **addition of energies**: the circuit's
+energy is the sum of its gadget energies over the shared spin register. Composition of
+the ground-state proofs is a sum-of-minimized-terms argument, and we prove it *in
+general* (`Composition.lean`, core Lean, no `sorry`): for any finite list of penalty
+terms over a shared state, if a state `s₀` minimizes every term and every other state
+makes at least one term strictly larger at `s₀`, then `s₀` is the **strict** global
+minimum of the sum (`strict_global_min_of_terms`). Each gadget's `_strict` theorem
+supplies exactly these two hypotheses — its energy is uniquely minimized at its correct
+local output — so a circuit assembled only from verified gadgets inherits a correct
+strict global minimum from its parts, **for any number of gadgets, with no monolithic
+re-proof**. This converts the composition methodology from an informal argument into a
+machine-checked theorem; the 2×2 multiplier (AND + XOR + adder) is the worked gate
+instance, and the general lemma certifies the pattern at any size.
 
 We also begin on *reachability*. The single-site (Glauber) block-Gibbs chain on
 the AND gadget's $\{-1,+1\}^3$ state space is machine-checked **irreducible**
