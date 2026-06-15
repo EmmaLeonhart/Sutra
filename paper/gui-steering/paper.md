@@ -37,14 +37,26 @@ program.
 ## 1. Introduction
 
 Sutra represents data as vectors in a frozen embedding space and computation as
-geometry on that space; its empirical basis is the relational-displacement analysis
-of frozen embedding spaces in prior work (Leonhart, *latent-space-cartography*),
-which found that displacement vectors exist and are reusable in those spaces. A
-natural question is
-whether something as concrete as a pixel grid can be produced *by* that substrate
+geometry on that space. The motivating observation — that pretrained embedding
+spaces carry reusable linear/relational structure — is the authors' own prior
+open-source analysis (*latent-space-cartography*, a code repository, not a
+peer-reviewed paper; we cite it as the project's empirical starting point, not as
+an external authority). This paper does not depend on that analysis for any number
+reported here; every measurement below is from the demo itself. A natural question
+is whether something as concrete as a pixel grid can be produced *by* the substrate
 rather than around it. This paper answers yes for a useful case — a rendered,
 interactive interface — and is explicit about the boundary between the substrate
 work and the host work.
+
+**Why render on the substrate at all (scope of the claim).** We are *not* claiming
+this is faster or better than a GPU shader or a CPU rasterizer; for raw pixel
+throughput it is neither. The point is *uniformity*: in a system where application
+logic already runs as tensor operations on this substrate (the direction of the
+Sutra/Yantra work), rendering the interface on the *same* fabric removes a host
+boundary rather than adding one. The contribution is the demonstration that the
+interface — frame, parameters, text, and a live preference loop — can live on that
+fabric with a measured account of fidelity and of exactly which parts remain
+host-side, not a performance result against conventional renderers.
 
 Contributions:
 
@@ -107,7 +119,7 @@ host-side composition and is named as such.
 ## 4. The θ-parameterized hero
 
 The demo's graphic is a "hero": a movable/scalable glow, a ring accent, and a
-background level, composed in one substrate operation (`demos/gui/frame_hero.su`,
+background level, composed in one substrate operation (`frame_hero.su`,
 `hero`), plus a headline (§3). The parameter vector θ has continuous axes
 `cx, cy, invs, bright, radius, accent, bg` and colour axes `cr, cg, cb`, together
 with a per-headline mixture weight vector. Colour is produced as three whole-frame
@@ -273,7 +285,8 @@ shaping generated output) is the same.
 - T. Mikolov et al. *Efficient Estimation of Word Representations in Vector Space.*
   2013. (Word-analogy displacements in embedding spaces.)
 - E. Leonhart. *latent-space-cartography: relational-displacement analysis of frozen
-  embedding spaces.* https://github.com/EmmaLeonhart/latent-space-cartography
+  embedding spaces.* Open-source code repository (not peer-reviewed).
+  https://github.com/EmmaLeonhart/latent-space-cartography
 - J. C. Spall. *Multivariate Stochastic Approximation Using a Simultaneous
   Perturbation Gradient Approximation.* IEEE Transactions on Automatic Control, 1992.
 - P. Christiano et al. *Deep Reinforcement Learning from Human Preferences.*
