@@ -34,19 +34,29 @@ loop comes RIGHT AFTER Erlang, BEFORE the rest of the transpiler backlog). No st
 to ask ("barrel through … until you've gotten a strong acceptance").
 
 - **Phase 1 — Erlang frontend. ✅ DONE 2026-06-14** (`sutra-from-erlang`, suite 12/12).
-- **Phase 2 — FV-paper clawRxiv loop → ACCEPT (ACTIVE NOW).** Ping-pong with the
-  clawRxiv bot on `paper/formal-verification/paper.md` until it ACCEPTS. **Respond to
-  the critiques SUBSTANTIVELY** (real answers, not wordsmithing — supersedes the
-  earlier "stop chasing reviews" stance). The recurring #1 con across v64–v67 is **PIT
-  term explosion (>1000 terms at depth 3 → "impractical")**: the textbook fix is
-  **randomized PIT (Schwartz–Zippel)** — test identity by evaluation at random points,
-  poly-time, no expansion → scales past depth 3. Implement + MEASURE it scaling, report
-  real numbers. Other recurring cons to answer: trusted-base scope (tighten/clarify),
-  Lean-gadget "triviality" (composition argument), grid-exactness "just a unit test"
-  (reframe as a checked property), frozen-substrate trust, composition-assumes-perfect-
-  execution (the measured substrate-exactness numbers answer this). Each push runs
-  `fv-paper-ci.yml` → a new review; read it side-by-side with the prior, track which
-  cons moved, iterate until ACCEPT.
+- **Phase 2 — FV-paper → SUBSTANTIVE SCOPE WORK (Emma 2026-06-14 blocker-sweep decision).**
+  The clawRxiv ping-pong ran 4 cycles (v64–v71): all FIXABLE cons resolved (hallucinated
+  citation, capacity-vs-exactness, self-containment, tone, termination/bit-exact framing,
+  Lean-composition roadmap) and randomized-PIT scalability became a credited PRO. Rating
+  oscillated Reject↔Weak-Reject — the REMAINING cons are fundamental/philosophical (Kleene
+  fragment too narrow; small-scale demos; frozen-substrate trust; bit-exact "brittleness")
+  and won't flip by prose edits. Emma's call: **attack the fundamentals with REAL WORK, not
+  more framing cycles.** Two concrete substantive moves:
+  1. **Prove the GENERAL Lean gadget-composition lemma** (`fv-lean/`): the sum of
+     strictly-minimized penalty terms over a shared spin register is itself strictly
+     minimized at the consistent joint assignment → a circuit of verified gadgets has its
+     correct output as the strict global energy minimum, machine-checked in general (not
+     just the 2×2-multiplier instance). Converts §7's stated roadmap into a theorem;
+     directly answers the "micro-proofs don't compose" con. Then a multi-gate worked
+     instance (e.g. a 2-bit or wider adder/multiplier) checked via the lemma.
+  2. **Verify a LARGER program end-to-end** through the framework to answer "demos too
+     small / fragment too narrow": push the FV obligation checker / composition past the
+     11-expression calc — a non-trivial composed Kleene/arithmetic program with the
+     obligations discharged + measured.
+  Update the paper with whatever lands (the general lemma as a machine-checked result; the
+  larger verified program). Keep the clawRxiv loop running on real-content pushes, but the
+  driver is now the substantive work, not the review cadence. (These also de-couple from
+  the bot: the general composition lemma strengthens the FV work regardless of the rating.)
 - **Phase 3 — the rest of the transpiler backlog + integration.** AFTER the FV paper is
   accepted: drain the active transpiler increments (F#/Elixir/Clojure/Haskell/Rust
   data-structure tier + remaining shapes), then integrate Erlang + all the frontends
