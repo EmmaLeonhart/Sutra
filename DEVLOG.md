@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-14: a1 paper P8 — figures from the substrate paths (gui-training)
+
+`experiments/gui_figures.py` renders the paper's figures from the same substrate
+code paths the demo uses (every pixel substrate; host only clamps to [0,1] and
+writes the PNG): the θ hero (mono + RGB), a substrate glyph banner ('SUTRA'), the
+four-quadrant layout, and a before/after steering pair. The before/after is
+measured, not just visual — mean frame brightness rises 71→146 (of 255) across a
+120-press brighter-preferring session, the morph the rater drove. Six PNGs land in
+`paper/gui-steering/figures/`, which is git-ignored — build artifacts, regenerated
+not committed (only the generator script is committed). Paper §7 gains a Figures
+paragraph; §10 lists the generation command. Pillow `mode=` deprecation cleaned up.
+P6/P7/P8 (the paper's results + figures) are done; remaining paper work: P1–P5
+finalize, P9 (drafted), P10 related-work (source-verify), P12 clawRxiv CI
+(decision-gated), P13 cross-check, P14 website.
+
 ## 2026-06-14: a1 paper P6+P7 — render-fidelity table + steering results, measured (gui-training)
 
 Filled the paper's results sections with measured numbers. `experiments/gui_render_fidelity.py`

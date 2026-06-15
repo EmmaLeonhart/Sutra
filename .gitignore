@@ -163,3 +163,6 @@ experiments/_rerun_paper.sh
 experiments/_r_*.txt
 experiments/_rerun2.sh
 experiments/_rerun3.sh
+
+# a1 GUI paper figures — build artifacts, regenerate via experiments/gui_figures.py
+paper/gui-steering/figures/

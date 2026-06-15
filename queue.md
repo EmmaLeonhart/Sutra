@@ -126,17 +126,14 @@ producing the numbers — draft the method sections first, fill results when mea
   updates. The host/substrate boundary made explicit (optimizer host-side over
   substrate-rendered output). Method now; convergence numbers from P7.
 
-**Results**
-> **P6, P7 DONE (2026-06-14).** §6 render-fidelity table filled from
-> `experiments/gui_render_fidelity.py` (max ≤4.0e-7 across modes; glyph banner
-> exact 0). §7 steering results filled from `experiments/gui_steering_eval.py`
+**Results — P6, P7, P8 DONE (2026-06-14)**
+> §6 render-fidelity table from `experiments/gui_render_fidelity.py` (max ≤4.0e-7;
+> glyph banner exact 0). §7 steering results from `experiments/gui_steering_eval.py`
 > (100-press soak: 0 NaN/0 blank; brighter→1.8, darker→0.2; trend corr ±0.446) +
-> the optimizer convergence. Reproducibility command list (§10) also filled.
-
-- [ ] **P8. Figures.** Rendered hero (mono + RGB), glyph banner, four-quadrant
-  layout, and a before/after steering pair — from a reproducible figure script
-  under `experiments/` (committed); output PNGs are build artifacts (not committed).
-  Embed/reference them in the paper.
+> optimizer convergence. P8 figures from `experiments/gui_figures.py` (hero
+> mono/RGB, glyph banner, quad layout, before/after steering pair — before/after
+> mean brightness 71→146/255, measured); PNGs git-ignored build artifacts;
+> referenced in paper §7/§10. Reproducibility (§10) lists all commands.
 
 **Framing / rigor / infra**
 - [ ] **P9. §What we are not claiming.** Composition is host-side; the optimizer is
