@@ -104,27 +104,14 @@ producing the numbers — draft the method sections first, fill results when mea
 > don't auto-submit).
 
 **Method sections — FIRST DRAFTS in paper.md; finalize + ground each**
-- [ ] **P1. §Introduction / motivation.** Why a substrate-rendered UI; the
-  fuzzy-by-default framing (geometry as computation); the demo as the artifact;
-  contributions list. Tie to Sutra's vision (`planning/sutra-spec/vision.md`).
-- [ ] **P1. §Introduction / motivation.** Why a substrate-rendered UI; the
-  fuzzy-by-default framing (geometry as computation); the demo as the artifact;
-  contributions list. Tie to Sutra's vision (`planning/sutra-spec/vision.md`).
-- [ ] **P2. §Whole-frame substrate rendering.** The one-op render model
-  (`frame_whole.su` / `frame_hero.su`): the substrate returns the frame as one
-  buffer vector; host is I/O. The **broadcast-buffer runtime-parameter mechanism**
-  (θ changes are call args, no recompile) — the load-bearing fact. Cite the
-  measured oracle deltas (≤1e-6) that already exist.
-- [ ] **P3. §Substrate text / glyph rendering.** The antipodal bound-vector font
-  (`font_bound_antipodal.su`, 36/36 pixel-exact, measured); the banner as exactly
-  the concatenated substrate glyph fields; host-side placement named.
-- [ ] **P4. §The θ-parameterized hero.** Axis set (cx,cy,invs,bright,radius,accent,
-  bg,cr,cg,cb + headline_w); colour as 3 stacked substrate channels (`hero_channel`);
-  headline as a host argmax over a θ-mixture. Measured oracle agreement.
-- [ ] **P5. §Host-side preference steering (SPSA).** The `HeroSPSA` optimizer:
-  two-sided perturbation, gain schedule, the warmer/colder reward model, batched
-  updates. The host/substrate boundary made explicit (optimizer host-side over
-  substrate-rendered output). Method now; convergence numbers from P7.
+> **P1–P5 DONE (2026-06-14).** Method sections finalized + grounded in
+> `paper/gui-steering/paper.md`: §1 intro (ties to vision.md / frozen-embedding
+> substrate), §2 whole-frame rendering + the broadcast-buffer no-recompile
+> mechanism, §3 substrate glyph rendering, §4 the θ hero, §5 host-side SPSA. Fixed
+> two accuracy issues on finalize: the stale "awaits the live demo" line (§7 is now
+> measured) and a paper-vs-code discrepancy in §5 — the draft said reward is
+> "smoothed over recent presses" but the code uses raw ±1 (the two-sided estimate
+> already averages a ± pair); §5 now matches the implementation.
 
 **Results — P6, P7, P8 DONE (2026-06-14)**
 > §6 render-fidelity table from `experiments/gui_render_fidelity.py` (max ≤4.0e-7;

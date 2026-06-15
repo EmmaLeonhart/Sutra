@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-14: a1 paper P1–P5 — method sections finalized + two accuracy fixes (gui-training)
+
+Finalized the paper's method sections (§1–§5 of `paper/gui-steering/paper.md`)
+against the spec and the shipped code. Two corrections on review, both integrity-
+relevant: (1) the §1 line "We separate what is measured now from what awaits the
+live demo (§7)" was stale — the demo is built and §7 is measured — now reads that
+both §6 and §7 are measured; (2) **a paper-vs-code discrepancy**: §5 claimed the
+warmer/colder reward is "smoothed over recent presses," but the implementation
+(`hero_steering.py`) uses raw ±1 per shown frame — I had flagged smoothing as not
+built. Resolved per CLAUDE.md (fix the artifact to match the code, don't ship a
+claim the code doesn't support): §5 now says one rating per frame, no cross-press
+smoothing, noting the two-sided estimate already averages a ± pair. §1's grounding
+in vision.md / the frozen-embedding substrate was already in place; §5's gain
+schedule already matches `hero_spsa.py`. Paper method sections + results + figures
+(P1–P8) are now done; remaining: P9 (drafted), P10 related-work (source-verify),
+P12 clawRxiv CI (decision-gated), P13 cross-check, P14 website.
+
 ## 2026-06-14: a1 paper P8 — figures from the substrate paths (gui-training)
 
 `experiments/gui_figures.py` renders the paper's figures from the same substrate
