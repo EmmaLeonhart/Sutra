@@ -44,8 +44,20 @@ strict `<` / `>`, not `<=` / `>=`:** at exact equality the substrate comparison
 defuzzes false, so a `<=` bound drops the boundary iteration (measured: `<` →
 15, `<=` → 10; finding `2026-06-13-while-loop-le-boundary-equality-defuzz`). The
 OCaml reference frontend writes all its `while` fixtures with `<` for the same
-reason. Rust's unbounded `loop { … break }` (needs a halt-flag transform) is a
-later item.
+reason.
+
+As of 2026-06-15: **unbounded `loop { if COND { break; } BODY }` → substrate
+`while_loop`** on the continue condition `!COND`. The single-leading-break shape
+is the supported one — `loop { if C { break; } REST }` is exactly `while !C {
+REST }`, so it reuses the `while` lowering with the halt-guard hoisted out and
+negated (`_negate_cond`: a comparison inverts via its negated operator, e.g. `i
+>= n` → `i < n`; otherwise `!(…)`). A `break` anywhere other than the leading
+guard stays out of shape (falls through to the unsupported path). Substrate-
+verified: `loop_break` = 15 (`loop { if i >= n { break; } acc = acc + i; i = i +
+1 } acc`, `sum_to(6)` = 0+1+…+5). Because the negated halt condition becomes the
+loop's strict comparison, the `<`/`<=` boundary-equality caveat above applies to
+the *break* condition: write `if i >= n { break; }` (negates to strict `i < n`),
+not `if i > n` (would negate to `<=` and overshoot).
 
 Compound assignment (`x += rhs`, `-=`, `*=`, `/=`, `%=`) is supported in `while`
 bodies and at statement scope — it desugars to `x = (x op rhs)` (substrate-
