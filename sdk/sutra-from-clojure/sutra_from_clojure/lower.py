@@ -82,9 +82,20 @@ def _kwd_name(kwd_lit, src: bytes) -> Optional[str]:
     return _text(nm, src) if nm is not None else None
 
 
+def _map_key_name(node, src: bytes) -> Optional[str]:
+    """The axon-field name for a map key: a `kwd_lit` (`:x` → `x`) or a `str_lit`
+    (`"x"` → `x`). Other key shapes (numbers, symbols) are a later item → None."""
+    if node.type == "kwd_lit":
+        return _kwd_name(node, src)
+    if node.type == "str_lit":
+        return _text(node, src).strip().strip('"')
+    return None
+
+
 def _map_fields(node, src: bytes):
-    """If `node` is a Clojure `{:x a :y b}` map literal with keyword keys, return
-    [(field, value_node), …]; else None. Non-keyword keys are a later item."""
+    """If `node` is a Clojure `{:x a "y" b}` map literal with keyword/string keys,
+    return [(field, value_node), …]; else None. Non-keyword/string keys (numbers,
+    symbols) are a later item."""
     if node.type != "map_lit":
         return None
     kids = node.named_children
@@ -93,11 +104,9 @@ def _map_fields(node, src: bytes):
     fields = []
     for i in range(0, len(kids), 2):
         key_node, val_node = kids[i], kids[i + 1]
-        if key_node.type != "kwd_lit":
-            return None  # non-keyword key — later item
-        key = _kwd_name(key_node, src)
+        key = _map_key_name(key_node, src)
         if key is None:
-            return None
+            return None  # non-keyword/string key — later item
         fields.append((key, val_node))
     return fields if fields else None
 
@@ -120,14 +129,21 @@ def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
 
 
 def _kwd_accessed_params(body, params: set, src: bytes) -> set:
-    """Param names read via keyword access `(:k p)` — these are maps, so they
-    type as `Axon` rather than the default `number`."""
+    """Param names read via keyword access `(:k p)` or `(get p :k)` — these are
+    maps, so they type as `Axon` rather than the default `number`."""
     found: set = set()
 
     def walk(n):
         if n.type == "list_lit":
             kids = n.named_children
+            # `(:k p)` — keyword in head position
             if (len(kids) == 2 and kids[0].type == "kwd_lit"
+                    and kids[1].type == "sym_lit"
+                    and _text(kids[1], src) in params):
+                found.add(_text(kids[1], src))
+            # `(get p :k)` — get with a map-param first argument
+            elif (len(kids) == 3 and kids[0].type == "sym_lit"
+                    and _text(kids[0], src) == "get"
                     and kids[1].type == "sym_lit"
                     and _text(kids[1], src) in params):
                 found.add(_text(kids[1], src))
@@ -508,6 +524,12 @@ def _lower_expr(node, src: bytes) -> str:
             for test, res in reversed(parsed):
                 expr = _blend(test, res, expr)
             return expr
+        if head == "get" and len(args) == 2:
+            # `(get m :k)` / `(get m "k")` — map field read, the function-call
+            # form of the `(:k m)` accessor; both lower to `realvec(m.item("k"))`.
+            key = _map_key_name(args[1], src)
+            if key is not None:
+                return f'realvec({_lower_expr(args[0], src)}.item("{key}"))'
         sop = _OP_MAP.get(head)
         if sop is not None:
             if len(args) < 2:
