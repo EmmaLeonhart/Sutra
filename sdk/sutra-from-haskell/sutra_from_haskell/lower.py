@@ -39,6 +39,16 @@ _OP_MAP = {
 # signature name → flattened arrow-chain type texts ([param…, return]).
 _SIGNATURES: dict[str, list[str]] = {}
 
+# `data` ADTs -> tagged axons (the OCaml/Rust variant pattern). The prepass fills
+# `_VARIANTS[constructor] = (type_name, tag, arity)` and `_DATATYPES` (the ADT type
+# names, which map to `Axon`). A construction `Lit 7` is statement-shaped (axon
+# build), so it is HOISTED to a prelude temp via `_ARG_HOIST[node.id]`, the
+# Rust/Elixir/Clojure mechanism. `_AH_COUNTER` numbers temps per body.
+_VARIANTS: dict[str, tuple] = {}
+_DATATYPES: set = set()
+_ARG_HOIST: dict[int, str] = {}
+_AH_COUNTER = [0]
+
 # Pattern-equation variable bindings: a clause's variable pattern maps its name
 # to the canonical arg slot `_ai` while lowering that clause's body (the OCaml
 # `_MATCH_SUBST` / Elixir / Rust shape).
@@ -65,7 +75,161 @@ def _flatten_arrow(type_node, src: bytes) -> list[str]:
 
 
 def _map_type(hs_type: Optional[str]) -> str:
+    if hs_type and hs_type in _DATATYPES:
+        return "Axon"  # an ADT value is carried by a tagged axon
     return _TYPE_MAP.get(hs_type, _DEFAULT_TYPE) if hs_type else _DEFAULT_TYPE
+
+
+def _register_data_types(decls, src: bytes) -> None:
+    """Prepass: register `data T = C1 a | C2 b c | …` constructors as variants
+    (`_VARIANTS[Ci] = (T, tag, arity)`) and `T` as an ADT type (`_DATATYPES`).
+    Arity = the number of field-type children after the constructor name."""
+    for child in decls.named_children:
+        if child.type != "data_type":
+            continue
+        name_node = next((c for c in child.named_children if c.type == "name"), None)
+        ctors = next((c for c in child.named_children
+                      if c.type == "data_constructors"), None)
+        if name_node is None or ctors is None:
+            continue
+        tname = _text(name_node, src)
+        _DATATYPES.add(tname)
+        tag = 0
+        for dc in ctors.named_children:
+            if dc.type != "data_constructor":
+                continue
+            prefix = next((c for c in dc.named_children if c.type == "prefix"), None)
+            target = prefix if prefix is not None else dc
+            cnode = next((c for c in target.named_children
+                          if c.type == "constructor"), None)
+            if cnode is None:
+                continue
+            arity = sum(1 for c in target.named_children if c.type != "constructor")
+            _VARIANTS[_text(cnode, src)] = (tname, tag, arity)
+            tag += 1
+
+
+def _construction(node, src: bytes):
+    """If `node` builds an ADT value — `apply (constructor C) arg…` or a bare
+    nullary `constructor C` — return (variant, [arg_nodes]); else None."""
+    if node.type == "constructor" and _text(node, src) in _VARIANTS:
+        return _text(node, src), []
+    if node.type == "apply":
+        head, args = _flatten_apply(node, src)
+        if head.type == "constructor" and _text(head, src) in _VARIANTS:
+            return _text(head, src), args
+    return None
+
+
+def _emit_construction(variant: str, args, src: bytes, var: str, indent: str) -> str:
+    """Tagged-axon construction statements for `variant arg…` bound to `var`
+    (the Rust `_emit_enum_construction` shape). Stores `_tag` + `_val0`/`_val1`/…"""
+    _tname, tag, _arity = _VARIANTS[variant]
+    stmts = f'{indent}Axon {var};\n{indent}{var}.add("_tag", {tag});\n'
+    for i, a in enumerate(args):
+        stmts += f'{indent}{var}.add("_val{i}", {_lower_expr(a, src)});\n'
+    return stmts
+
+
+def _hoist_constructions(node, src: bytes, indent: str = "    ") -> str:
+    """Post-order walk: hoist EVERY ADT VALUE construction to a prelude `Axon
+    _ahN; …` group and register `node.id → _ahN` in `_ARG_HOIST` (inner before
+    outer). The Rust `_hoist_enum_constructions` shape. Skips `case`-alternative
+    PATTERNS (a `Lit n` there is a match pattern, not a value) and the head
+    `constructor` of an `apply` (it is part of the application, not a nullary
+    value). Returns the prelude string."""
+    ctor = _construction(node, src)
+    if ctor is not None:
+        variant, args = ctor
+        prelude = ""
+        for a in args:  # recurse into ARGS only — not the head constructor
+            prelude += _hoist_constructions(a, src, indent)
+        tmp = f"_ah{_AH_COUNTER[0]}"
+        _AH_COUNTER[0] += 1
+        prelude += _emit_construction(variant, args, src, tmp, indent)
+        _ARG_HOIST[node.id] = tmp
+        return prelude
+    if node.type == "case":
+        # Recurse into the scrutinee and the alternative BODIES, never the
+        # alternative patterns (which are constructor-shaped but not values).
+        prelude = ""
+        kids = node.named_children
+        if kids:
+            prelude += _hoist_constructions(kids[0], src, indent)  # scrutinee
+        alts = next((c for c in kids if c.type == "alternatives"), None)
+        if alts is not None:
+            for alt in alts.named_children:
+                if alt.type != "alternative":
+                    continue
+                for m in alt.named_children:
+                    if m.type == "match":  # the arm body, not the pattern
+                        prelude += _hoist_constructions(m, src, indent)
+        return prelude
+    prelude = ""
+    for child in node.named_children:
+        prelude += _hoist_constructions(child, src, indent)
+    return prelude
+
+
+def _lower_case_stmts(node, src: bytes, indent: str = "    "):
+    """`case scrut of (C x) -> r; …` → (binding statements, result expr), the Rust
+    `_lower_match_stmts` shape. Binds `int _vtag = realvec(scrut.item("_tag"))` and
+    `int _val{i} = realvec(scrut.item("_val{i}"))` to clean number-vector LOCALS,
+    then a nested defuzz blend tests `_vtag == tag`; constructor-payload names
+    substitute to the `_val{i}` locals. Last constructor arm is the base; a bare
+    `variable`/`_` pattern is also a base. Returns (stmts, expr) or (None, marker)."""
+    kids = node.named_children
+    if not kids or kids[0].type != "variable":
+        return None, "/* UNSUPPORTED-CASE: non-variable scrutinee (later item) */"
+    scrut_src = _text(kids[0], src)
+    alts_node = next((c for c in kids if c.type == "alternatives"), None)
+    if alts_node is None:
+        return None, "/* UNSUPPORTED-CASE: no alternatives */"
+    parsed = []
+    max_arity = 0
+    for alt in alts_node.named_children:
+        if alt.type != "alternative":
+            continue
+        pat = alt.named_children[0]
+        body_m = next((c for c in alt.named_children if c.type == "match"), None)
+        if body_m is None or not body_m.named_children:
+            return None, "/* UNSUPPORTED-CASE: malformed alternative */"
+        res = body_m.named_children[-1]
+        binds: list[tuple[str, str]] = []
+        if pat.type == "apply":
+            head, pargs = _flatten_apply(pat, src)
+            if head.type != "constructor" or _text(head, src) not in _VARIANTS:
+                return None, "/* UNSUPPORTED-CASE: non-variant constructor pattern */"
+            tag = _VARIANTS[_text(head, src)][1]
+            max_arity = max(max_arity, len(pargs))
+            for i, p in enumerate(pargs):
+                if p.type != "variable":
+                    return None, "/* UNSUPPORTED-CASE: non-variable payload pattern */"
+                binds.append((_text(p, src), f"_val{i}"))
+            test = f"(_vtag == {tag})"
+        elif pat.type == "constructor" and _text(pat, src) in _VARIANTS:
+            test = f"(_vtag == {_VARIANTS[_text(pat, src)][1]})"
+        elif pat.type == "variable":  # `_` or a catch-all name — the base
+            test = None
+        else:
+            return None, f"/* UNSUPPORTED-CASE: pattern {pat.type} */"
+        for nm, sub in binds:
+            _SUBST[nm] = sub
+        try:
+            res_src = _lower_expr(res, src)
+        finally:
+            for nm, _sub in binds:
+                _SUBST.pop(nm, None)
+        parsed.append((test, res_src))
+    if not parsed:
+        return None, "/* UNSUPPORTED-CASE: no arms */"
+    stmts = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
+    for i in range(max_arity):
+        stmts += f'{indent}int _val{i} = realvec({scrut_src}.item("_val{i}"));\n'
+    expr = parsed[-1][1]  # last arm = base (exhaustive ADT match)
+    for test, res in reversed(parsed[:-1]):
+        expr = res if test is None else _blend(test, res, expr)
+    return stmts, expr
 
 
 def _flatten_apply(node, src: bytes):
@@ -85,7 +249,12 @@ def _contains_self_call(node, name: str, src: bytes) -> bool:
 
 
 def _lower_expr(node, src: bytes) -> str:
+    if _ARG_HOIST and node.id in _ARG_HOIST:
+        return _ARG_HOIST[node.id]  # a hoisted ADT construction — emit its temp
     t = node.type
+    if t == "constructor" and _text(node, src) in _VARIANTS:
+        # A construction reaching here was not hoisted — surface the gap.
+        return "/* UNSUPPORTED-CONSTRUCTION: ADT value outside a hoistable position */"
     if t == "literal":
         inner = node.named_children[0] if node.named_children else None
         return _text(inner if inner is not None else node, src)
@@ -525,8 +694,26 @@ def _lower_equation(decl, src: bytes) -> str:
             return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
                     f"tail-accumulator or foldable non-tail shape\n")
         params_src = ", ".join(f"{ty} {nm}" for ty, nm in zip(ptypes, params))
+        # ADTs -> tagged axons: hoist any constructions in the body to prelude
+        # temps, then lower. A `case` body lowers to binding statements + a nested
+        # blend (the Rust match-at-tail shape).
+        _ARG_HOIST.clear()
+        prelude = _hoist_constructions(body, src)
+        if body.type == "case":
+            case_stmts, case_expr = _lower_case_stmts(body, src)
+            if case_stmts is None:
+                _ARG_HOIST.clear()
+                return f"// UNSUPPORTED-DECL: '{name}' {case_expr}\n"
+            _ARG_HOIST.clear()
+            return (f"function {ret} {name}({params_src}) {{\n"
+                    f"{prelude}{case_stmts}"
+                    f"    return {case_expr};\n"
+                    f"}}\n")
+        body_src = _lower_expr(body, src)
+        _ARG_HOIST.clear()
         return (f"function {ret} {name}({params_src}) {{\n"
-                f"    return {_lower_expr(body, src)};\n"
+                f"{prelude}"
+                f"    return {body_src};\n"
                 f"}}\n")
     finally:
         for nm in where_bound:
@@ -546,9 +733,15 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     root = tree.root_node
     decls = next((c for c in root.named_children if c.type == "declarations"), root)
 
-    # Prepass: signatures supply the types for their equations.
+    # Prepass: signatures supply the types for their equations; `data` decls
+    # register their constructors as tagged-axon variants.
     _SIGNATURES.clear()
     _SUBST.clear()
+    _VARIANTS.clear()
+    _DATATYPES.clear()
+    _ARG_HOIST.clear()
+    _AH_COUNTER[0] = 0
+    _register_data_types(decls, src)
     for child in decls.named_children:
         if child.type == "signature" and len(child.named_children) == 2:
             var, ty = child.named_children
