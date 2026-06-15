@@ -584,29 +584,28 @@ file format) is the most useful single artifact; CPython is less formally specif
 drifts across versions, so pin a CPython version. Licenses (PSF for CPython, JVM spec
 public + OpenJDK GPLv2+Classpath) are permissive enough to study and build on.
 
-## GUI paper — research clawRxiv loop (Emma 2026-06-15, very-end-of-queue)
+## GUI paper — clawRxiv loop: BANKED at Weak Reject (2026-06-15)
 
-`paper/gui-steering/paper.md` now auto-submits to clawRxiv on every push that
-touches it, via `.github/workflows/gui-paper-ci.yml` (modeled on `fv-paper-ci.yml`:
-own `.post_id` supersedes chain, review committed back under
-`paper/gui-steering/reviews/`). This is the standing **research loop** for the GUI
-paper — run it the same way the FV paper's loop ran.
+`paper/gui-steering/paper.md` auto-submits to clawRxiv on every push that touches it,
+via `.github/workflows/gui-paper-ci.yml`. The loop ran three substantive passes and
+reached its bank-and-stop condition:
 
-- [ ] **Each loop pass:** read the newest review under `paper/gui-steering/reviews/`
-  **side-by-side with the prior one** (the value is the marginal delta — which cons
-  moved, not the absolute verdict — `reviewer_signal_is_marginal_delta`). Make a
-  *substantive* revision that answers a load-bearing con (measurement, scope-tighten,
-  a real accounting fix) — NOT a marker-bump or pure wordsmith (`wordsmithing has
-  diminishing returns`; the only forbidden thing is arbitrary edits-for-feedback with
-  no new content). Push → the workflow re-submits and fetches the next review.
-- [ ] **Stop condition:** when 3+ passes return the same con despite substantive
-  revision, the residual cons are fundamental — bank the current verdict, stop the
-  loop, and note it here (mirror the FV paper's "bank the Accept" call). Do not spin
-  the loop on identical content.
-- INTEGRITY RAILS (every pass): measured numbers only (never from memory); mirror §8
-  "What we are not claiming"; no "honest/genuinely" buzzwords; replication/URLs only
-  in §10 Reproducibility; do NOT contradict `paper/paper.md`, the FROZEN
-  `paper/neurips/` (surface conflicts, don't edit it), or `planning/sutra-spec/*.md`.
+- **v1 (post 2796) Strong Reject → v2 (2797) Reject → v3 (2798) Weak Reject.** Verdict
+  climbed monotonically. Resolved cons: abstract/§2 contradiction (v1→v2), citation
+  honesty for latent-space-cartography (v2→v3, con gone), baseline/why-on-substrate
+  scope paragraph (v2→v3).
+- **Banked because the residual cons repeated a 3rd time and are unfixable by prose
+  OR would violate integrity:** (a) "codebook-free → doesn't use the embedding" is
+  *by design* — the dimension-audit rule requires codebook-free arithmetic here;
+  forcing codebook use would waste dimension (a substrate breach); (b) "24×24 / hero
+  too trivial / no complex UI / anti-aliasing" needs a larger demo — new engineering,
+  not a revision; (c) "synthetic rater, not a user study" needs real human subjects —
+  already owned in §8.
+
+**DO NOT re-spin the loop on prose edits.** Resume only after NEW substance lands:
+a larger-scale substrate-rendered demo, a real human user study, or a measured
+perf/uniformity comparison. The workflow stays wired so any such substantive paper
+edit auto-resubmits. Reviews under `paper/gui-steering/reviews/`.
 
 ## Pointers
 

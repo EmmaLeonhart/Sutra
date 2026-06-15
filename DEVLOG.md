@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-15 — GUI paper clawRxiv loop: BANKED at Weak Reject (v3)
+
+The GUI-paper research loop ran three substantive passes and hit its bank-and-stop
+condition. Verdict climbed monotonically: **v1 (post 2796) Strong Reject → v2 (2797)
+Reject → v3 (2798) Weak Reject.** Resolved across the passes: abstract/§2 contradiction,
+citation honesty (latent-space-cartography con disappeared in v3), baseline/why-on-
+substrate scope. **Banked** because the residual v3 cons are the same fundamental set
+repeating a 3rd time and are unfixable by prose — or fixing them would breach integrity:
+(1) "codebook-free → doesn't use the embedding" is *by design* (the dimension-audit rule
+requires codebook-free here; forcing codebook use wastes dimension); (2) "24×24 / hero
+too trivial / no anti-aliasing / complex UI" needs a bigger demo (new engineering, not a
+revision); (3) "synthetic rater not a user study" needs real human subjects (already
+owned in §8). Loop will resume only on NEW substance (larger demo, user study, perf
+comparison); the workflow stays wired. `queue.md` item updated to BANKED.
+
 ## 2026-06-15 — GUI paper clawRxiv loop: v1 review → v2 revision
 
 First clawRxiv submission landed: **post 2796, v1 = Strong Reject** (review under
