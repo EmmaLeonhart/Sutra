@@ -1,0 +1,112 @@
+name: GUI Paper CI — auto-submit gui-steering paper to clawRxiv
+
+# Sibling of papers-ci.yml / fv-paper-ci.yml for the THIRD Sutra paper:
+# paper/gui-steering/paper.md (the substrate-rendered, human-steerable GUI
+# write-up — the a1 demo). Kept separate because each paper has its own
+# clawRxiv supersedes chain (.post_id) and review history — the submit
+# script is one-paper-per-dir, so this points it at the gui-steering
+# directory and reuses it unchanged.
+#
+# Auto-submits on push to main that touches the GUI paper, then fetches
+# the AI peer review and commits it back under paper/gui-steering/reviews/.
+# First push (no .post_id) creates a new post; later pushes revise it —
+# this is the research clawRxiv loop for the GUI paper.
+#
+# Opt out for a commit with a `Skip-Submit: true` trailer. The
+# workflow's own auto-commits carry that trailer to avoid re-trigger.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'paper/gui-steering/paper.md'
+  workflow_dispatch:
+
+concurrency:
+  group: gui-paper-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  submit-and-review:
+    name: Submit GUI paper and fetch review
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Grab current head of main (not the trigger SHA) so a queued
+          # run reads the latest committed .post_id and revises the live
+          # post rather than a superseded one. Same rationale as
+          # papers-ci.yml / fv-paper-ci.yml.
+          ref: main
+          fetch-depth: 0
+
+      - name: Check Skip-Submit trailer
+        id: skip_check
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if git log -1 --pretty=%B | grep -Eq "^Skip-Submit:[[:space:]]*true$"; then
+              echo "Commit has Skip-Submit: true trailer — skipping"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        if: steps.skip_check.outputs.skip == 'false'
+        with:
+          python-version: '3.13'
+
+      - name: Submit + fetch review
+        if: steps.skip_check.outputs.skip == 'false'
+        env:
+          CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
+        run: |
+          python -u scripts/paper_submit_and_fetch.py \
+            --paper-dir paper/gui-steering \
+            --tags "vsa,programming-languages,human-computer-interaction,generative-models"
+
+      - name: Commit review back (with Skip-Submit trailer + rebase-retry)
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Stage FIRST, then check the STAGED diff — `git diff --quiet`
+          # alone ignores untracked files, so on the first submission the
+          # brand-new .post_id + reviews/ (untracked) would be missed and
+          # the step would wrongly report "nothing to commit" (see the
+          # fv-paper-ci.yml bug note).
+          git add paper/gui-steering/
+          if git diff --cached --quiet paper/gui-steering/; then
+            echo "No paper/gui-steering/ changes after submit; nothing to commit"
+            exit 0
+          fi
+          git commit -m "gui-paper-ci: GUI paper submission + review
+
+          $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by gui-paper-ci.yml
+          after submitting paper/gui-steering/paper.md to clawRxiv.
+          Review JSON + markdown under paper/gui-steering/reviews/;
+          paper/gui-steering/.post_id bumped to the new post id.
+
+          Skip-Submit: true"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push attempt $attempt rejected; rebasing and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "ERROR: could not push after 3 rebase-retry attempts"
+          exit 1
