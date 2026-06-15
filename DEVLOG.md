@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-15: Phase 3 integration — main Sutra paper gets a multi-frontend subsection
+
+Phase 3 integration sub-task (part 2 of 2). Added a "Source-language frontends" subsection
+to `paper/paper.md` §"The Sutra Compiler": the `.su` surface that enters stage 1 is itself a
+compilation target reachable from nine source languages (OCaml/TS/Rust/Scala/Clojure/Elixir/
+Erlang/F#/Haskell; C parked), each a pure tree-sitter source-to-source pass whose output runs
+through the same five-stage pipeline — so substrate purity is inherited from the one compiler,
+not re-established per frontend. Documents the shared lowering-shape set (function / defuzz
+blend / while_loop RNN cell / CPS trampoline / tagged+structural axons), the compile-AND-run
+verification bar (OCaml reference 45 fixtures, others 6–19), and the unsupported-beats-mislowered
+discipline. Measured/accurate, no overclaim. Triggers clawRxiv CI (papers-ci.yml) for the live
+main paper. Completes the Phase 3 integration capstone (architecture docs + spec + main paper).
+
 ## 2026-06-15: Phase 3 integration — frontends reflected in architecture docs + new spec doc
 
 Phase 3 integration sub-task (part 1 of 2: architecture docs + spec; main paper next).
