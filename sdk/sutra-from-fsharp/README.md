@@ -32,7 +32,12 @@ binds the scrutinee to the name via the `_MATCH_SUBST` substitution shared with
 the Elixir/Rust/Haskell frontends). **Type-annotated parameters** (`(x: int)`,
 `(k: float)`, `(b: bool)`, `string`, `unit`) lower to the mapped Sutra type (the
 OCaml `_map_type` set; `double` → `float`); untyped params still default to int.
-Substrate-verified: `add_main` = 16, `if_classify` =
+**Return-type annotations** (`let f (…) : R = …`) are also supported: the
+return-annotated form parses as a `value_declaration_left` whose curried-type
+nesting is walked structurally (every `paren_pattern` is one param; the
+`simple_type` inside a param-and-return `typed_pattern` is `R`), and `R` is
+threaded into the emitted signature. Substrate-verified: `add_main` = 16,
+`if_classify` =
 100, `paren_sum` = 26, `match_literal` = 200, `match_bind` = 160
 (`| 0 -> 100 | x -> x * 10`; `(classify 0) + (classify 6)` = 100 + 60, literal
 dispatch + the bound catch-all), `tail_rec` = 15 (tail-recursive
@@ -48,8 +53,6 @@ surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms are ported.
 
 ## Next
 
-Return-type annotations (the `let f (…) : T = …` form wraps the whole left side
-in a `value_declaration_left`/`paren_pattern` tree — a separate grammar path);
-variant/record `match` patterns; records/DUs → axons (the OCaml record/variant
-pattern); modules. (Parameter type annotations shipped 2026-06-15; literal +
-name-binding `match` patterns shipped 2026-06-13.)
+Variant/record `match` patterns; records/DUs → axons (the OCaml record/variant
+pattern); modules. (Parameter + return type annotations shipped 2026-06-15;
+literal + name-binding `match` patterns shipped 2026-06-13.)

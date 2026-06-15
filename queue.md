@@ -209,12 +209,11 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through parameter type
-  annotations shipped 2026-06-15, suite 16/16): return-type annotations (`let f
-  (…) : T = …` uses a separate `value_declaration_left`/`paren_pattern` grammar
-  path); variant/record `match` patterns; records/DUs → axons (needs the infra in
-  the dedicated item below). Measured grammar quirk: parenthesize call operands
-  under infix. [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
+- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through return-type
+  annotations shipped 2026-06-15, suite 18/18): variant/record `match` patterns;
+  records/DUs → axons (needs the infra in the dedicated item below). Measured
+  grammar quirk: parenthesize call operands under infix. [Scala's named roadmap
+  set is COMPLETE 2026-06-12, 18/18.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through atom-key maps →
   axons shipped 2026-06-15, suite 20/20): structs (`%Struct{…}`/`defstruct`) → axons;
   the `%{"k" => v}` arrow-map form; maps in multi-clause/recursive bodies; multi-clause
