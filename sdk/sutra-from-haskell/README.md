@@ -44,13 +44,27 @@ verified: `where_block` = 31 (`f x = y + z where y = x+1; z = x*2`; `f 10`),
 `let_block` = 18 (`g x = let a = x+1; b = a*2 in a + b`; `g 5` — `b` sees `a`).
 Mutually-recursive / forward bindings are a later item.
 
-`data` ADTs and multi-equation/guarded **recursion** surface as `UNSUPPORTED-*`
-markers (recursion until the relevant transforms are ported — never a silent
-self-call).
+**`data` ADTs → tagged axons** (the OCaml/Rust variant pattern). A `data T = C1 a
+| C2 b | …` prepass registers each constructor as a variant `(T, tag, arity)` and
+`T` as an ADT type (which maps to `Axon` in signatures). A value construction `C
+arg…` is statement-shaped (axon build), so it is hoisted to a prelude temp `Axon
+_ahN; _ahN.add("_tag", tag); _ahN.add("_val0", arg); …` (the `_ARG_HOIST` node-id
+mechanism). A `case scrut of (C x) -> r; …` at the function tail binds `int _vtag =
+realvec(scrut.item("_tag"))` and `int _val{i} = realvec(scrut.item("_val{i}"))` to
+clean number-vector locals, then a nested defuzz blend tests `_vtag == tag`;
+payload names substitute to the `_val{i}` locals (the last constructor arm, or a
+bare-variable/`_` pattern, is the base). Substrate-verified: `data_adt` = 2
+(`data Expr = Lit Int | Neg Int`; `evalE` via `case`; `evalE (Lit 7) + evalE (Neg
+5)` = 7 + (−5)). Non-variable case scrutinees, nested payload patterns, and `case`
+in non-tail expression position are later items.
+
+Multi-equation/guarded **recursion** surfaces as `UNSUPPORTED-*` markers (until
+the relevant transforms are ported — never a silent self-call).
 
 Dependency: `tree-sitter-haskell` (`pip install tree-sitter-haskell`).
 
 ## Next
 
-`data` ADTs → tagged axons (the OCaml variant pattern); guarded/multi-equation
-recursion; non-integer literal patterns; mutually-recursive `where`/`let` bindings.
+Guarded/multi-equation recursion; non-integer literal patterns; mutually-recursive
+`where`/`let` bindings; nested/non-variable `case` patterns. (`data` ADTs → tagged
+axons shipped 2026-06-15.)

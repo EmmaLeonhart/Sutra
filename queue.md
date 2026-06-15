@@ -234,10 +234,11 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
   maps → axons shipped 2026-06-15, suite 22/22): non-keyword map keys + `(get m :k)`
   access; maps in recursive bodies; destructuring binds; multi-arity `defn`; `case`
   symbol/keyword test members (currently number/bool literals only).
-- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through `where`/`let`
-  bindings shipped 2026-06-14, suite 16/16; laziness out of scope): `data` ADTs →
-  tagged axons; guarded/multi-equation recursion (currently `UNSUPPORTED-RECURSION`);
-  non-integer literal patterns; mutually-recursive/forward `where`/`let` bindings.
+- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through `data` ADTs →
+  tagged axons shipped 2026-06-15, suite 18/18; laziness out of scope): guarded/multi-
+  equation recursion (currently `UNSUPPORTED-RECURSION`); non-integer literal patterns;
+  mutually-recursive/forward `where`/`let` bindings; nested/non-variable `case` patterns
+  + `case` in non-tail expression position.
 - [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through struct field-init
   shorthand `S { x, y }` shipped 2026-06-15, suite 22/22): nested/non-tail `match`;
   `..base` struct spread; statement-bearing if-arms. (Loop bounds need strict `<`/`>`

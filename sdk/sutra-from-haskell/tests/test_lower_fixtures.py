@@ -29,6 +29,7 @@ _RUNNABLE = {
     "guards": 120.0,  # classify n | n==0 | n==1 | otherwise -> guard blend; classify 0 + classify 2
     "where_block": 31.0,  # f x = y + z where y = x+1; z = x*2; main = f 10 = 11+20
     "let_block": 18.0,  # g x = let a = x+1; b = a*2 in a + b; main = g 5 = 6+12 (sequential bind)
+    "data_adt": 2.0,  # data Expr = Lit Int | Neg Int; evalE via case; evalE(Lit 7)+evalE(Neg 5) = 7+(-5)  (ADT -> tagged axon)
 }
 
 
