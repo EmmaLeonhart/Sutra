@@ -18,7 +18,13 @@ prepass; the enum name maps to `Axon` in param/return types; construction
 `match` on an enum param binds `_vtag`/`_val{i}` to clean number-vector locals
 first — the inline repeated `realvec(...)` reads do not project crisply,
 measured 3.5 vs 2 — then blends by tag with the payload names substituted, the
-last arm the exhaustive base). Substrate-verified: `add_main` = 16,
+last arm the exhaustive base). A `match` may appear **nested in a larger
+expression** (e.g. `100 + match e { … }`), not only as the function tail: the
+nested match is hoisted to collision-free binding locals (`_vtag_hN`/`_val_hN_i`)
+emitted before the statement, and its blend expr is substituted at the use site
+(the `_ARG_HOIST` mechanism, shared with construction hoisting). Substrate-
+verified: `nested_match` = 202 (`evalE e = 100 + match e { Lit n => n, Neg n => 0
+- n }`; `evalE(Lit 7)` = 107 + `evalE(Neg 5)` = 95). Substrate-verified: `add_main` = 16,
 `if_classify` = 100, `let_block` = 17, `enum_match` = 2 (`eval(Expr::Lit 7) +
 eval(Expr::Neg 5)`, with a `Pair(a, b)` multi-arg arm), `tail_rec` = 15
 (tail-recursive `fn f(p…) { if COND { BASE } else { f(a…) } }` → a declared
@@ -76,6 +82,7 @@ Dependency: `tree-sitter-rust` (`pip install tree-sitter-rust`).
 
 ## Next
 
-Statement-bearing if-arms; nested / non-tail `match`; nullary-variant values;
-struct `..base` spread. (Unbounded `loop { … break }` shipped 2026-06-15; struct
-field-init shorthand shipped 2026-06-15.)
+Statement-bearing if-arms; nullary-variant values; struct `..base` spread; nested
+match inside a function-tail match arm. (Unbounded `loop { … break }`, struct
+field-init shorthand, and nested/non-tail `match` in expression position all
+shipped 2026-06-15.)

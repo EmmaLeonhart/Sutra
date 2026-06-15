@@ -156,10 +156,12 @@ def _emit_enum_construction(variant: str, args, src: bytes, var: str,
 
 
 def _hoist_enum_constructions(body, src: bytes, indent: str = "    "):
-    """Post-order walk: hoist EVERY enum construction to a prelude
-    `Axon _ahN; …` group and register `node.id → _ahN` in `_ARG_HOIST` so
-    `_lower_expr` emits the temp at the use site (inner constructions resolve
-    before outer ones). Returns (prelude, added_ids) or None."""
+    """Post-order walk: hoist EVERY enum/struct construction (to a prelude `Axon
+    _ahN; …` group) AND every NESTED variant `match` (to its `_vtag_hN`/`_val_hN_i`
+    binding statements + the blend expr) and register `node.id → temp/expr` in
+    `_ARG_HOIST` so `_lower_expr` emits it at the use site (inner resolve before
+    outer). This is what lets a `match` appear inside a larger expression rather
+    than only as the function tail. Returns (prelude, added_ids) or None."""
     prelude: list[str] = []
     added: list[int] = []
 
@@ -183,6 +185,16 @@ def _hoist_enum_constructions(body, src: bytes, indent: str = "    "):
             prelude.append(_emit_struct_construction(fields, src, tmp, indent))
             _ARG_HOIST[n.id] = tmp
             added.append(n.id)
+            return
+        if n.type == "match_expression":
+            k = _HOIST_N[0]
+            _HOIST_N[0] += 1
+            m_stmts, m_expr = _lower_match_stmts(
+                n, src, indent, tagv=f"_vtag_h{k}", valv=f"_val_h{k}_")
+            if m_stmts is not None:
+                prelude.append(m_stmts)
+                _ARG_HOIST[n.id] = m_expr
+                added.append(n.id)
 
     walk(body)
     if not added:
@@ -723,16 +735,18 @@ def _lower_expr(node, src: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
-def _lower_match_stmts(node, src: bytes, indent: str = "    "):
+def _lower_match_stmts(node, src: bytes, indent: str = "    ",
+                       tagv: str = "_vtag", valv: str = "_val"):
     """`match scrut { E::V(x) => r, … }` → (binding statements, result expr),
-    the OCaml variant-match shape. Binds `int _vtag = realvec(scrut.item("_tag"))`
-    and `int _val{i} = realvec(scrut.item("_val{i}"))` (i over the max arity) to
+    the OCaml variant-match shape. Binds `int {tagv} = realvec(scrut.item("_tag"))`
+    and `int {valv}{i} = realvec(scrut.item("_val{i}"))` (i over the max arity) to
     clean number-vector LOCALS first — the inline repeated `realvec(...)` reads
     do not project crisply (measured: inline gave 3.5, bound locals give 2.0).
-    Then a nested defuzz blend tests `_vtag == tag`; payload names substitute to
-    the `_val{i}` locals. Last arm = base (exhaustive enum match); a trailing
-    `_` is also a base. Returns (stmts, expr) or (None, marker) on UNSUPPORTED.
-    Numeric payloads only."""
+    Then a nested defuzz blend tests `{tagv} == tag`; payload names substitute to
+    the `{valv}{i}` locals. Last arm = base (exhaustive enum match); a trailing
+    `_` is also a base. `tagv`/`valv` are parameterized so a NESTED (hoisted) match
+    gets collision-free binding locals (`_vtag_h0`, `_val_h0_0`, …). Returns
+    (stmts, expr) or (None, marker) on UNSUPPORTED. Numeric payloads only."""
     kids = node.named_children
     scrut = kids[0]
     if scrut.type != "identifier":
@@ -765,10 +779,10 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    "):
             payload = [c for c in inner.named_children if c.type == "identifier"]
             max_arity = max(max_arity, len(payload))
             for i, p in enumerate(payload):
-                binds.append((_text(p, src), f"_val{i}"))
-            test = f"(_vtag == {tag})"
+                binds.append((_text(p, src), f"{valv}{i}"))
+            test = f"({tagv} == {tag})"
         elif inner.type == "identifier" and _text(inner, src) in _VARIANTS:
-            test = f"(_vtag == {_VARIANTS[_text(inner, src)][1]})"
+            test = f"({tagv} == {_VARIANTS[_text(inner, src)][1]})"
         elif inner.type in ("wildcard_pattern", "identifier"):
             test = None  # `_` (or a catch-all binding) — the base
         else:
@@ -783,9 +797,9 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    "):
         parsed.append((test, res_src))
     if not parsed:
         return None, "/* UNSUPPORTED-MATCH: no arms */"
-    stmts = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
+    stmts = f'{indent}int {tagv} = realvec({scrut_src}.item("_tag"));\n'
     for i in range(max_arity):
-        stmts += f'{indent}int _val{i} = realvec({scrut_src}.item("_val{i}"));\n'
+        stmts += f'{indent}int {valv}{i} = realvec({scrut_src}.item("_val{i}"));\n'
     expr = parsed[-1][1]  # last arm = base (exhaustive)
     for test, res in reversed(parsed[:-1]):
         expr = res if test is None else _blend(test, res, expr)
