@@ -230,9 +230,9 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
   needed for brace construction in argument position) OR let-bound-only
   construction (needs (b)). Field access `p.x` is a dotted `long_identifier`, not
   a `field_expression`. Build (b)+the hoist next, then records are straightforward.
-- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through numeric
-  `case` multi-constant test lists `(c1 c2 …)` → OR-of-equality shipped 2026-06-15,
-  suite 20/20): maps → axons; destructuring binds; multi-arity `defn`; `case`
+- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through keyword-key
+  maps → axons shipped 2026-06-15, suite 22/22): non-keyword map keys + `(get m :k)`
+  access; maps in recursive bodies; destructuring binds; multi-arity `defn`; `case`
   symbol/keyword test members (currently number/bool literals only).
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through `where`/`let`
   bindings shipped 2026-06-14, suite 16/16; laziness out of scope): `data` ADTs →
