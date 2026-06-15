@@ -294,13 +294,21 @@ Naming both forms explicitly addresses the natural worry that "Sutra bans
 unbounded loops" is a sidestep: the language design **separates** the cases
 rather than collapsing them, so the absence of an unbounded `while` in the
 trusted-base fragment is a meaningful scope claim, not a missing feature.
-With this split, what §3.3 covers is bounded recurrences specifically — the
-language does not *pose* the halting problem for the trusted base, and the
-remaining content is the *convergence* check (does the halt signal actually
-fire, monotonically, before the bound, or does the loop run to the bound?).
-That is a real, useful property for a trusted base — a kernel role must not
-hang — but it is **not** functional correctness, which is a separate obligation
-(§3.1, discharged for the Kleene fragment) and not subsumed by termination.
+With this split, what §3.3 covers is bounded recurrences specifically. **We do
+not claim a novel attack on the halting problem, and the by-construction nature is
+the point, not a hidden circularity**: by *excluding* the undecidable case
+(unbounded `while`) from the trusted-base fragment — and reporting, rather than
+silently accepting, any program that uses the non-halting `recur` — we are left
+with a fragment on which a *decidable* obligation remains. That obligation is not
+vacuous: for each bounded soft-halt loop one must still check that the halt signal
+is **monotone** and **crosses its threshold within the bound** (rather than the
+loop running to the bound every time), which is a real mechanical check on the
+emitted recurrence, not an assumption. The contribution here is the clean
+*separation* that turns the trusted base's loops into a checkable fragment, plus
+that convergence check — not a claim to decide termination of arbitrary programs.
+It is a real, useful property for a trusted base — a kernel role must not hang —
+but it is **not** functional correctness, which is a separate obligation (§3.1,
+discharged for the Kleene fragment) and not subsumed by termination.
 
 This is discharged structurally and observably. Structurally the emitted loop is
 `for _t in range(max_iters)` (bounded by construction) with
@@ -562,9 +570,16 @@ So these are not tolerance-band results and the measured |err| of 0.0
 reproduces across runs and across hardware revisions within the IEEE-754
 envelope. The honest scope: this is exactness *for integer-valued computation
 in the exact range on IEEE-754 hardware*, not a claim that arbitrary float
-pipelines are bit-portable. This is the §3.1 contract property in miniature:
-the compiled graph computes exactly what the source denotes, end-to-end on the
-substrate.
+pipelines are bit-portable. In particular, the soft-halt's `sigmoid` — a
+transcendental, and indeed *not* bit-portable across hardware or library
+versions — is deliberately **outside** this claim: the termination obligation
+(§3.3) needs only that the halt signal is monotone and *eventually crosses* its
+threshold, an inequality/monotonicity property that is robust to the sigmoid's
+exact bits, not a bit-identity of the sigmoid. Bit-exactness is claimed for the
+*integer arithmetic dispatch*; termination rests on *monotone thresholding*; the
+two are separate properties and neither leans on a transcendental being
+bit-portable. This is the §3.1 contract property in miniature: the compiled graph
+computes exactly what the source denotes, end-to-end on the substrate.
 
 These are existence results for exactness on the substrates and programs measured,
 which is what the reduction's premise requires.
@@ -632,10 +647,18 @@ honest at the program level.
 
 **4.5 Coverage of the dispatch-level check itself: a worked failure.** §4.4
 argues dispatch-level cleanliness is necessary; this subsection reports a
-concrete leak the dispatch sweep silently missed, and how it surfaced. The
-repository ships an automated leak sweep (`experiments/substrate_leak_sweep.py`,
-wired as a CI gate) that re-emits every user `.su` program in the test corpus
-to Python and greps the emitted module for the banned patterns —
+concrete leak the dispatch sweep silently missed, and how it surfaced. To be
+explicit about its status: the leak sweep is an **engineering defense-in-depth
+guard, not a formal method**, and it is deliberately *syntactic* — and this
+subsection's contribution is precisely to show that a syntactic check is
+*necessary but not sufficient*. There is no tension with the formal results: the
+formal claims are §3's obligations (Kleene-polynomial range-soundness, the
+termination convergence check, the equivalence decision procedure); the sweep is a
+separate, lighter-weight CI guard against a *different* failure class
+(substrate-purity breaches), and we report its blind spot honestly rather than
+present grep as a proof. The repository ships this automated leak sweep (wired as
+a CI gate) that re-emits every user `.su` program in the test corpus to Python and
+greps the emitted module for the banned patterns —
 `float(...)`/`.item()` on a substrate tensor, host `for`/`if` on a scalar,
 libm calls on values pulled off the substrate. The sweep runs across 67 user
 programs and asserts zero operator leaks. It returns green.
