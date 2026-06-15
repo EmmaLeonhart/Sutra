@@ -346,8 +346,12 @@ Machine-checked in Lean 4 (core only, no mathlib), under `fv-lean/`, run by
   of the sum. Each gadget's `_strict` theorem supplies the hypotheses → a circuit of
   verified gadgets has its correct output as the strict global energy minimum, for any
   number of gadgets, with no monolithic re-proof. Machine-checked in general (core Lean,
-  `[propext, Quot.sound]`, no sorry), with a concrete two-term instantiation. Turns the
-  §7 composition methodology from an argument into a theorem.
+  `[propext, Quot.sound]`, no sorry). The composed terms are the gadgets' **proper
+  penalties** — each raw energy shifted by its own strict minimum (the AND gadget's raw
+  min is not a constant, the Ising chaining subtlety), so it is 0 when satisfied. Includes
+  a concrete **two-gate** worked circuit `and3_circuit_strict_min` (a 3-input AND = two AND
+  gadgets on a shared spin) verified via the general lemma. Turns the §7 composition
+  methodology from an argument into a theorem, with a circuit larger than a single gadget.
 
 Recipe (reusable): spins as `Bool`, energy ×k to `Int`, finite domain closed by
 `omega` after case-splitting (`decide` gets stuck on `Int` in the kernel — tried

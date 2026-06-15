@@ -895,8 +895,16 @@ supplies exactly these two hypotheses — its energy is uniquely minimized at it
 local output — so a circuit assembled only from verified gadgets inherits a correct
 strict global minimum from its parts, **for any number of gadgets, with no monolithic
 re-proof**. This converts the composition methodology from an informal argument into a
-machine-checked theorem; the 2×2 multiplier (AND + XOR + adder) is the worked gate
-instance, and the general lemma certifies the pattern at any size.
+machine-checked theorem. One subtlety the proof makes precise: a gadget's *raw* energy is
+not a constant-zero-at-correct quantity (its minimum value varies with the inputs), so the
+terms that compose are the gadgets' **proper penalties** — each raw energy shifted by its
+own strict minimum, so it is `0` when the gadget is satisfied and `> 0` otherwise. We
+machine-check the lemma applied to a concrete *two-gate* circuit — a 3-input AND built from
+two AND gadgets wired on a shared spin (`and3_circuit_strict_min`) — whose correct output
+is the strict global energy minimum for every input, discharged from the two gadget
+penalties via the general lemma rather than a re-proof of the composite. The 2×2 multiplier
+(AND + XOR + adder) is the larger worked gate instance, and the general lemma certifies the
+pattern at any size.
 
 We also begin on *reachability*. The single-site (Glauber) block-Gibbs chain on
 the AND gadget's $\{-1,+1\}^3$ state space is machine-checked **irreducible**
