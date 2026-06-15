@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-14: FV — worked two-gate composed circuit verified via the composition lemma (Emma's substantive move 2)
+
+Emma's substantive move (2): verify a circuit larger than a single gadget via the
+composition lemma. Added `and3_circuit_strict_min` to `fv-lean/Composition.lean` — a
+3-input AND (`z = (a∧b)∧c`) built from two AND gadgets wired on a shared spin `w`, whose
+correct output is the **strict global energy minimum** for every input, discharged from
+the two gadgets via the general `strict_global_min_of_terms` (NOT a monolithic re-proof).
+`[propext, Quot.sound]`, no sorry; fv-lean suite 5/5.
+
+Real subtlety surfaced and fixed (the known Ising chaining issue): a gadget's RAW energy is
+not constant-0-at-correct (the AND gadget's min is e.g. −3, and varies with inputs), so
+naive energy summation does NOT compose. The composing terms must be **proper penalties** —
+each raw energy shifted by its own strict minimum (`andE − andE_min`), 0 when satisfied and
+>0 otherwise. With that, the composition lemma applies cleanly. (My first attempt assumed
+min=0 and was wrong; the type-checker caught it — an integrity win, no faked proof.)
+
+Updated paper §7 (proper-penalty note + the two-gate worked instance), fv-lean/README, FV
+spec. Abstract 4994 ≤5000. Triggers fv-lean-ci (proofs) + fv-paper-ci (→ next review).
+
 ## 2026-06-14: FV — general gadget-composition lemma machine-checked (Emma's substantive-work call)
 
 Per Emma's blocker-sweep decision (substantive scope work, not more framing cycles), proved
