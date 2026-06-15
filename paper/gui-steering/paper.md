@@ -19,10 +19,10 @@ vector θ supplied as per-call broadcast buffers, so changing θ changes the pic
 with no recompilation. We then steer the rendered output by human preference: a
 warmer/colder button supplies a scalar reward, and a host-side Simultaneous
 Perturbation Stochastic Approximation (SPSA) optimizer adjusts θ. We report the
-render fidelity (the one-operation frame matches a per-pixel host oracle within the
-regression threshold the test suite enforces) and the optimizer's convergence on a
-synthetic reward; the live human-in-the-loop soak is reported separately once
-measured. Throughout we keep an explicit account of which work runs on the
+render fidelity (the one-operation frame matches a per-pixel host oracle to within
+~4×10⁻⁷) and the steering soak (a 100-press session renders with zero NaN/blank
+frames, and a consistent rater moves the parameter monotonically in the rewarded
+direction). Throughout we keep an explicit account of which work runs on the
 substrate (the render) and which is host-side (the composition and the optimizer),
 and we do not claim substrate-native training or a single end-to-end substrate
 program.
@@ -71,6 +71,14 @@ scale — each a scalar broadcast to every pixel. Because these are *arguments*,
 constants compiled into the program, the same compiled operation renders any θ; no
 recompilation occurs when θ changes. This is the load-bearing fact for §5: the
 optimizer perturbs θ thousands of times and pays the compile cost once.
+
+**A note on dimension.** These coordinate fields use only elementwise arithmetic on
+broadcast buffers — no codebook lookups — so the program compiles at a small
+`runtime_dim` (8) rather than the embedding model's full width. The substrate work
+is the tensor arithmetic itself, not a detour through unused semantic axes; the
+pixels are not claimed to live in the full embedding subspace. The one place the
+pretrained-embedding-derived codebook is used is the glyph font (§3), which
+compiles at the dimension that representation needs.
 
 ## 3. Substrate text / glyph rendering
 
