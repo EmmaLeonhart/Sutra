@@ -238,11 +238,12 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
   equation recursion (currently `UNSUPPORTED-RECURSION`); non-integer literal patterns;
   mutually-recursive/forward `where`/`let` bindings; nested/non-variable `case` patterns
   + `case` in non-tail expression position.
-- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through struct field-init
-  shorthand `S { x, y }` shipped 2026-06-15, suite 22/22): nested/non-tail `match`;
-  `..base` struct spread; statement-bearing if-arms. (Loop bounds need strict `<`/`>`
-  — `<=` drops the boundary iteration, finding `2026-06-13-while-loop-le-boundary-equality-defuzz`;
-  same caveat applies to the negated *break* condition, so write `if i >= n { break; }`.)
+- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through nested/non-tail `match`
+  in expression position shipped 2026-06-15, suite 24/24): `..base` struct spread;
+  statement-bearing if-arms; nullary-variant values; nested match inside a tail-match arm.
+  (Loop bounds need strict `<`/`>` — `<=` drops the boundary iteration, finding
+  `2026-06-13-while-loop-le-boundary-equality-defuzz`; same caveat applies to the negated
+  *break* condition, so write `if i >= n { break; }`.)
 - [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
 - [ ] **OCaml arrays — RAM device for the 10MB linear memory.** `Bytes.make` and
   loop-carried arrays use the global RAM list, which doesn't scale to 10MB. A
