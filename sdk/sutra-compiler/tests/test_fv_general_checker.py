@@ -143,6 +143,27 @@ def test_decision_procedure_covers_integer_arithmetic() -> None:
                                  ["a", "b", "c"]) is False
 
 
+def test_verifies_arithmetic_optimization_equivalence() -> None:
+    """A real-world use of the (now arithmetic-capable) decision procedure: verifying
+    that a *compiler optimization* preserves program semantics. Horner's method, constant
+    folding, and reassociation all produce the SAME graph as the naive form (so the
+    optimization is sound); a sign-bug 'optimization' produces a DIFFERENT graph (so it is
+    caught). Both the exact and the scalable randomized checks agree on each."""
+    sound_optimizations = [
+        # Horner's method vs naive degree-3 polynomial evaluation
+        ("a*x*x*x + b*x*x + c*x + d", "((a*x + b)*x + c)*x + d", list("abcdx")),
+        ("(x + 0) * 1", "x", ["x"]),               # identity folding
+        ("2*x + 3*x", "5*x", ["x"]),               # reassociation / coefficient merge
+    ]
+    for naive, optimized, vs in sound_optimizations:
+        assert reduces_to_same_graph(naive, optimized, vs) is True, f"{naive} -> {optimized}"
+        assert reduces_to_same_graph_randomized(naive, optimized, vs)[0] is True
+    # An INCORRECT optimization (a sign bug) is caught by both routes — exactly.
+    buggy = ("a*x*x + b*x + c", "a*x*x - b*x + c", list("abcx"))
+    assert reduces_to_same_graph(*buggy) is False
+    assert reduces_to_same_graph_randomized(*buggy)[0] is False
+
+
 def test_kleene_connective_formulas_match_inliner() -> None:
     """Integrity guard: the randomized evaluator applies HARD-CODED truth-axis
     formulas for `!`/`&&`/`||` to operand values (the key to scaling). Those formulas

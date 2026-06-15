@@ -167,7 +167,12 @@ which side of that line any given pair falls on. The *arithmetic* side of the fr
 sharpens the picture: arithmetic distributivity `(a + b)·c = a·c + b·c` **is** a
 same-graph identity (the two compile to the *same* polynomial), the exact mirror image
 of Kleene distributivity, which is not. The same checker decides both — Boolean and
-integer-arithmetic equivalence — by the one polynomial-identity test.
+integer-arithmetic equivalence — by the one polynomial-identity test. This has a direct
+use beyond the trusted base's own logic: **verifying that a compiler optimization
+preserves semantics.** Horner's method `a·x³ + b·x² + c·x + d` and `((a·x + b)·x + c)·x + d`
+compile to the *same* graph (the rewrite is sound); constant folding and reassociation
+likewise; and an incorrect rewrite — a sign flip `a·x² + b·x + c` vs `a·x² − b·x + c` — is
+caught as a *different* graph. The decision procedure is the same; only the inputs change.
 
 ## 3. The obligation framework
 
