@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-15: F# frontend — parameter type annotations (Phase 3)
+
+Phase 3 transpiler-backlog increment. F# type-annotated parameters (`let add (a:
+int) (b: int) = …`) now lower to the mapped Sutra type instead of returning
+`UNSUPPORTED-LET`. New `_FSHARP_TYPE_TO_SUTRA` map + `_map_fsharp_type` (the OCaml
+`_map_type` primitive set: int/float/bool→bool, string→String, unit→void, plus
+`double`→float); `_lower_defn` extracts `(x: T)` from `typed_pattern` argument
+patterns (`identifier_pattern` + `simple_type`) and carries per-param types into
+the emitted signature. Untyped params still default to int. Substrate-verified
+fixture `typed_params` = 17 (`let add (a: int) (b: int) = a + b; add 8 9`); F#
+suite 16/16 (compile-AND-run). Return-type annotations (`let f (…) : T = …`) use
+a separate `value_declaration_left`/`paren_pattern` grammar path — kept as a
+later item; this also unblocks part of the records/DUs→axons infrastructure.
+
 ## 2026-06-15: Rust frontend — unbounded `loop { … break }` → substrate `while_loop` (Phase 3)
 
 Phase 3 transpiler-backlog increment. Rust's unbounded `loop { if COND { break; } BODY }`

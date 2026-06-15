@@ -31,6 +31,25 @@ _HERE = pathlib.Path(__file__).resolve().parent
 _DLL = _HERE.parent / "_grammar" / "fsharp.dll"
 _DEFAULT_TYPE = "int"
 
+# F# primitive type name → Sutra type (the OCaml `_OCAML_TYPE_TO_SUTRA` set;
+# F# shares the same primitive names). Unknown types fall back to the default.
+_FSHARP_TYPE_TO_SUTRA = {
+    "int": "int",
+    "float": "float",
+    "double": "float",
+    "bool": "bool",
+    "string": "String",
+    "unit": "void",
+}
+
+
+def _map_fsharp_type(simple_type_node, src: bytes) -> str:
+    """A `simple_type` (`long_identifier`-wrapped type name) → Sutra type."""
+    if simple_type_node is None:
+        return _DEFAULT_TYPE
+    text = _text(simple_type_node, src).strip()
+    return _FSHARP_TYPE_TO_SUTRA.get(text, _DEFAULT_TYPE)
+
 # F# infix operator → Sutra operator (expression position: `=` compares).
 _OP_MAP = {
     "+": "+", "-": "-", "*": "*", "/": "/",
@@ -354,11 +373,25 @@ def _lower_defn(defn, src: bytes) -> str:
         return "// UNSUPPORTED-LET: no name\n"
     name = _text(name_node, src)
     params: list[str] = []
+    param_ty: dict[str, str] = {}
     arg_pats = next((c for c in lk if c.type == "argument_patterns"), None)
     if arg_pats is not None:
         for p in arg_pats.named_children:
             if p.type == "long_identifier" and p.named_children:
                 params.append(_text(p.named_children[0], src))
+            elif p.type == "typed_pattern":
+                # `(x: int)` — a parameter with a type annotation. The pattern is
+                # `[identifier_pattern, simple_type]`; map the annotated type.
+                ident_pat = next((c for c in p.named_children
+                                  if c.type == "identifier_pattern"), None)
+                simple_ty = next((c for c in p.named_children
+                                  if c.type == "simple_type"), None)
+                if ident_pat is None or not ident_pat.named_children:
+                    return (f"// UNSUPPORTED-LET: '{name}' typed parameter is not "
+                            f"a simple identifier — later item\n")
+                pname = _text(ident_pat.named_children[0], src)
+                params.append(pname)
+                param_ty[pname] = _map_fsharp_type(simple_ty, src)
             elif p.type == "const" and p.named_children \
                     and p.named_children[0].type == "unit":
                 continue  # `()` — the zero-arg marker
@@ -377,7 +410,8 @@ def _lower_defn(defn, src: bytes) -> str:
         # self-call would not terminate through the fuzzy-if blend. Surface it.
         return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
                 f"tail-accumulator or foldable non-tail shape\n")
-    params_src = ", ".join(f"{_DEFAULT_TYPE} {p}" for p in params)
+    params_src = ", ".join(
+        f"{param_ty.get(p, _DEFAULT_TYPE)} {p}" for p in params)
     return (f"function {_DEFAULT_TYPE} {name}({params_src}) {{\n"
             f"    return {_lower_expr(body, src)};\n"
             f"}}\n")
