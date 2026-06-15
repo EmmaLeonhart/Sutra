@@ -47,9 +47,21 @@ the right call's first argument; `x |> f` ≡ `f(x)`. Chains nest left-to-right
 (`5 |> add(3) |> double()` → `double(add(5, 3))`). Substrate-verified: `pipe_chain`
 = 16.
 
+**Maps → axons** (the Rust-struct / OCaml-record pattern): a map literal `%{x: a, y:
+b}` (atom-key shorthand) cannot lower inline — axon construction is statement-shaped
+— so it is hoisted to a prelude temp `Axon _ahN; _ahN.add("x", a); …` and the temp
+name fills the position where the map appeared (the `_ARG_HOIST` node-id mechanism).
+Field read `p.x` (a zero-arg `call` wrapping a `dot`) lowers to
+`realvec(p.item("x"))`, and a param read via dot-access types as `Axon` rather than
+the default `number`. Substrate-verified: `map_axon` = 13 (`def sum2(p), do: p.x +
+p.y`; `sum2(%{x: 5, y: 8})`). The `%{"k" => v}` arrow form, non-atom keys, and maps
+in multi-clause/recursive bodies are later items.
+
 Dependency: `tree-sitter-elixir` (`pip install tree-sitter-elixir`).
 
 ## Next
 
-Maps/structs → axons; multi-clause heads with recursion (currently
-`UNSUPPORTED-RECURSION`); non-comparison guards (`is_integer`, `and`/`or` chains).
+Structs (`%Struct{…}`/`defstruct`) → axons; the `%{"k" => v}` arrow-map form;
+multi-clause heads with recursion (currently `UNSUPPORTED-RECURSION`); non-comparison
+guards (`is_integer`; `and`/`or` chains already lower via `_OP_MAP`). (Atom-key maps →
+axons shipped 2026-06-15.)
