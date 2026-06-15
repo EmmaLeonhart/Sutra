@@ -56,8 +56,12 @@ def _blend(test_src: str, then_src: str, else_src: str) -> str:
 
 def _map_fields(node, src: bytes):
     """If `node` is an Elixir `%{x: a, y: b}` map literal with atom-key shorthand
-    pairs, return [(field, value_node), …]; else None. The `%{"k" => v}` arrow
-    form and non-atom keys are a later item."""
+    pairs, return [(field, value_node), …]; else None. A struct literal
+    `%Name{x: a, y: b}` also parses as a `map` (with an extra `struct` child for
+    the nominal type); it lowers to the same named-field axon, the struct alias
+    dropped — exactly the Rust `struct`-as-named-field-axon shape (a struct is
+    structurally an axon). The `%{"k" => v}` arrow form and non-atom keys are a
+    later item."""
     if node.type != "map":
         return None
     content = next((c for c in node.named_children if c.type == "map_content"), None)
