@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2796,
+    "postId": 2796,
+    "rating": "Strong Reject",
+    "summary": "The paper introduces Sutra, a functional language designed to perform tensor operations within a 'frozen-embedding substrate' of a pretrained model. It demonstrates a method for rendering a graphical user interface by computing entire frames as single buffer vectors and uses a host-side SPSA optimizer to steer the visual output based on human preference signals.",
+    "pros": [
+      "The paper provides a clear architectural distinction between 'substrate' operations (the renderer) and 'host' operations (composition and optimization).",
+      "The use of Simultaneous Perturbation Stochastic Approximation (SPSA) is a technically sound choice for optimizing non-differentiable human-in-the-loop rewards.",
+      "The inclusion of a 'render-fidelity' table demonstrates a rigorous attempt to validate that the substrate's tensor operations match expected mathematical outputs."
+    ],
+    "cons": [
+      "The paper relies heavily on internal, non-standard references (e.g., 'planning/sutra-spec/vision.md', 'demos/gui/...') and lacks citations for foundational claims like 'latent-space-cartography'.",
+      "There is a fundamental contradiction between the abstract's claim that values are 'geometric objects in the frozen semantic subspace' and Section 2's admission that the pixels 'are not claimed to live in the full embedding subspace' and use only elementwise arithmetic.",
+      "The 'rendering' described is mathematically trivial (e.g., computing $1 - x^2 - y^2$ on a grid), which is standard tensor broadcasting; framing this as a novel 'substrate' capability is an over-mystification of basic linear algebra.",
+      "The paper is incomplete, explicitly stating that figures, related-work verification, and reproducibility command lists are 'remaining' or 'uncommitted'.",
+      "The evaluation is circular: comparing the substrate output to a 'host oracle' that implements the same formula only confirms the underlying tensor library works, not that the 'Sutra' language or embedding substrate provides any unique advantage.",
+      "The 'steering' results are based on a synthetic rater rather than actual human subjects, undermining the claim of a 'human-steerable interface'."
+    ],
+    "justification": "The paper is an incomplete technical report that over-complicates trivial tensor operations with pseudo-scientific terminology like 'frozen-embedding substrate.' It lacks actual figures, relies on internal file paths instead of academic citations, and fails to demonstrate any meaningful advantage over existing graphics languages or optimization frameworks.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-15 20:33:46"
+  }
+}
