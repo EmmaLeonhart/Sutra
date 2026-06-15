@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-15: a1 paper P9 + P13 — cross-check fixes, "what we are not claiming" confirmed (gui-training)
+
+P13 cross-check of paper/gui-steering/paper.md vs the spec + frozen papers (commit
+3101ba73): fixed a stale abstract line (the soak is measured now) and added a
+dimension-audit note in section 2 — the hero fields use codebook-free runtime_dim=8
+arithmetic, NOT the full embedding subspace; only the glyph font uses the codebook.
+Overclaim scan clean: "substrate-native training" / "one substrate program" appear
+only in disclaimers. P9 confirmed: section 8 "What we are not claiming" is present
+and complete (composition host-side; optimizer host-side SPSA, not substrate-native;
+reward is a human button; no one-substrate-program). No contradiction with the
+frozen neurips / main paper (separate paper, does not restate their claims).
+Remaining paper work: P10 related-work (source-verify, gated), P12 clawRxiv CI
+(outward-facing, gated), P14 website page.
+
+# Development Log
+
 ## 2026-06-14: a1 paper P1–P5 — method sections finalized + two accuracy fixes (gui-training)
 
 Finalized the paper's method sections (§1–§5 of `paper/gui-steering/paper.md`)
