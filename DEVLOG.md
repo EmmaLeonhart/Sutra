@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-15: Phase 3 integration — frontends reflected in architecture docs + new spec doc
+
+Phase 3 integration sub-task (part 1 of 2: architecture docs + spec; main paper next).
+Brought the multi-frontend reality (now 9 active + C parked, Erlang shipped) into the
+canonical agent-facing surfaces: AGENTS.md frontend row now lists all ten with accurate
+2026-06-15 fixture counts (OCaml 45 ref, TS 19, Rust 10, Scala/Clojure/Elixir 9,
+Fsharp/Haskell 8, Erlang 6, C 2 parked) and states the compile-AND-run bar + the shared
+lowering shapes; CLAUDE.md cross-repo "Sutra owns" list expanded from `{ts,c}` to the full
+`{ts,ocaml,rust,scala,clojure,elixir,erlang,fsharp,haskell,c}` set. New canonical spec doc
+`planning/sutra-spec/transpiler-frontends.md` — the cross-frontend contract: what "transpiles
+to Sutra" means (source→`.su` pass, substrate-purity inherited from the one compiler), the
+shared lowering-shape table (function/blend/while_loop/CPS-trampoline/axon), the strict-`<`
+boundary caveat, per-frontend maturity, and the "unsupported beats faked" discipline. Grounded
+strictly in tested code, not invented design.
+
 ## 2026-06-15: F# frontend — parameter type annotations (Phase 3)
 
 Phase 3 transpiler-backlog increment. F# type-annotated parameters (`let add (a:

@@ -103,9 +103,11 @@ Sutra commit messages mentioning Yantra are the workflow operating as designed.
 **Division of responsibility:**
 - **Yantra** — kernel orchestration (`kernel/`, axon router, storage tiers,
   capability checks, FS bridge, GUI/browser stack, Yantra paper).
-- **Sutra (this repo)** — the language itself. `sdk/sutra-compiler/`,
-  `sdk/sutra-from-ts/`, `sdk/sutra-from-c/`, lowering passes, axon spec,
-  multi-process runtime, runtime ABI.
+- **Sutra (this repo)** — the language itself. `sdk/sutra-compiler/`, the
+  language frontends `sdk/sutra-from-{ts,ocaml,rust,scala,clojure,elixir,erlang,fsharp,haskell,c}/`
+  (each a fixture-tested, substrate-verified lowering pass; OCaml is the reference,
+  TS is Yantra's gate, C is parked), lowering passes, axon spec, multi-process
+  runtime, runtime ABI.
 
 **Rules that bind regardless of who's driving the change** — when a Yantra-driven
 session edits Sutra source, the rules in this file still apply: integrity /
