@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-14: FV paper — answer v70's addressable cons (clawRxiv loop cycle 4)
+
+**v70 moved the rating up: Reject → Weak Reject.** v69→v70 also resolved the §4.5
+leak-sweep con. Addressed v70's two addressable cons:
+- **Jargon / promotional tone**: removed the "honest/honestly" defensive-register buzzwords
+  (6 sites → neutral: "the trade-off", "the scope is precise", "reported headroom", "keeps
+  the inputs faithful / claim sound", "report its blind spot", "substrate-purity audit").
+  Aligns with the standing no-"honest/genuinely" discipline. (Did NOT rename core technical
+  terms like "axon-typed contract"/"soft-halt recurrence" — those are defined concepts, not
+  renamed for one reviewer.)
+- **Lean-proof composition roadmap** (§7): added a "How the gadget proofs compose to a
+  circuit" paragraph — wiring = addition of energies; each gadget's `_strict` uniqueness
+  sums so the total energy is uniquely minimized at the consistent joint (globally-correct)
+  assignment; a circuit of verified gadgets inherits a correct strict global minimum with no
+  monolithic re-proof (2×2 multiplier = worked instance). Honest about scope: per-gadget
+  minima + the instance are machine-checked; the general composition lemma is named as the
+  next Lean obligation, not yet discharged.
+Abstract 4994 ≤5000; headers 1–8 intact. Push runs fv-paper-ci → v71. Remaining cons are
+the fundamental ones (frozen-substrate trust, Kleene-fragment scope, termination-as-tautology,
+bit-exact rigor) — if the rating stalls on these, the substantive next move is experiments
+expanding scope, not framing.
+
 ## 2026-06-14: FV paper — answer v69's framing cons (clawRxiv loop cycle 3)
 
 v69 (Reject) resolved FOUR of v68's cons (hallucinated citation, capacity-vs-exactness,

@@ -396,7 +396,7 @@ still terminates (De Morgan, commutativity, distributivity, and absorption are
 cross-checked in `test_fv_general_checker.py`). The connective formulas the evaluator
 applies are verified against the compiler's own inliner
 (`test_kleene_connective_formulas_match_inliner`), so the randomized check decides the
-*same* polynomial as `reduces_to_same_graph`, not a drift. The honest trade-off: the
+*same* polynomial as `reduces_to_same_graph`, not a drift. The trade-off: the
 exact check is certain when it terminates; the randomized check trades that for a
 quantified, negligible error (at depth 12 the bound is `(1.7×10⁷ / 2^61)^32 ≈ 10^−360`).
 The degree grows ≈ `4^depth`, so beyond ~depth 30 a larger prime or CRT over several
@@ -513,7 +513,7 @@ their inputs exactly at the small, fixed widths the trusted base actually uses (
 kernel role's axon carries a handful of named slots, not hundreds). The trusted-base
 widths are typically ≪ 8, and the curve shows the primitives work accurately at
 order-of-magnitude more capacity than that requirement — so the measured roll-off is
-headroom reported honestly, not a crack in the exactness it is sometimes misread as
+reported headroom, not a crack in the exactness it is sometimes misread as
 contradicting.
 (10 trials per *k*; the full table including signal cosines and the Hadamard
 comparison is a companion finding in the repository.)
@@ -568,7 +568,7 @@ dispatch it explicitly:
 
 So these are not tolerance-band results and the measured |err| of 0.0
 reproduces across runs and across hardware revisions within the IEEE-754
-envelope. The honest scope: this is exactness *for integer-valued computation
+envelope. The scope is precise: this is exactness *for integer-valued computation
 in the exact range on IEEE-754 hardware*, not a claim that arbitrary float
 pipelines are bit-portable. In particular, the soft-halt's `sigmoid` — a
 transcendental, and indeed *not* bit-portable across hardware or library
@@ -594,7 +594,7 @@ Dispatch-level cleanliness is necessary, but it is not sufficient for the
 faithfulness claim §4 needs — three further measurements separate "every op
 dispatched correctly" from "the substrate carries the signal the claim asserts,"
 and we name them here because conflating the two has been the silent failure
-mode caught in a substrate-honesty audit of downstream Sutra programs.
+mode caught in a substrate-purity audit of downstream Sutra programs.
 
 - **Dimension audit.** A program can dispatch every op to the substrate but at
   a runtime dimension that encodes nothing — paying substrate cost for unused
@@ -641,9 +641,9 @@ name the three checks here because they apply across the trusted base — not
 only to the substrate primitives — and the silent failure mode is treating
 dispatch-level cleanliness as if it were the full claim. The composition with
 §3 is structural: dispatch-level cleanliness keeps the obligation-checker
-inputs honest (the polynomial extracted from the lowered graph is the one the
+inputs faithful (the polynomial extracted from the lowered graph is the one the
 substrate executes); the three measurements keep the §4 faithfulness claim
-honest at the program level.
+sound at the program level.
 
 **4.5 Coverage of the dispatch-level check itself: a worked failure.** §4.4
 argues dispatch-level cleanliness is necessary; this subsection reports a
@@ -655,7 +655,7 @@ subsection's contribution is precisely to show that a syntactic check is
 formal claims are §3's obligations (Kleene-polynomial range-soundness, the
 termination convergence check, the equivalence decision procedure); the sweep is a
 separate, lighter-weight CI guard against a *different* failure class
-(substrate-purity breaches), and we report its blind spot honestly rather than
+(substrate-purity breaches), and we report its blind spot rather than
 present grep as a proof. The repository ships this automated leak sweep (wired as
 a CI gate) that re-emits every user `.su` program in the test corpus to Python and
 greps the emitted module for the banned patterns —
@@ -881,6 +881,23 @@ sorry-free, depending only on `[propext, Quot.sound]`:
   `MAJ(a,b,cin)` (a pairwise factor) are jointly the strict minimiser for all
   inputs, so **integer addition's ground-state decode is provably exact**. A
   multiplier is these gates composed, so its correctness follows from theirs.
+
+**How the gadget proofs compose to a circuit.** A complete arithmetic circuit is
+gadgets *wired together* — one gadget's output spin is another's input — and on the
+energy-based target wiring is **addition of energies**: the circuit's energy is the
+sum of its gadget energies over the shared spin register. Composition of the
+ground-state proofs is then a sum-of-minimized-terms argument. Each gadget's `_strict`
+theorem says its energy is *uniquely* minimized exactly when its local output is the
+correct function of its inputs; summing, the total energy is uniquely minimized exactly
+when *every* gadget is simultaneously at its correct local output, and for a
+consistently-wired circuit that joint assignment is the globally-correct output. So a
+circuit assembled only from verified gadgets inherits a correct strict global minimum
+from its parts, with no monolithic re-proof — the 2×2 multiplier (AND + XOR + adder) is
+the worked instance. What is machine-checked today is each gadget's strict minimum and
+that instance; the *general* composition lemma — that a sum of strictly-minimized
+penalty terms over a shared register is itself strictly minimized at the consistent
+joint assignment — is the methodology stated here and the natural next Lean obligation,
+not yet discharged in full generality.
 
 We also begin on *reachability*. The single-site (Glauber) block-Gibbs chain on
 the AND gadget's $\{-1,+1\}^3$ state space is machine-checked **irreducible**
