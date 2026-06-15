@@ -27,9 +27,12 @@ every wrong output strictly higher → unique minimiser; no `sorry`)
   minimum of the sum (`strict_global_min_of_terms`). Each gadget's `_strict` theorem
   supplies those hypotheses, so a circuit of verified gadgets has its correct output as the
   strict global energy minimum — for any number of gadgets, no monolithic re-proof. Core
-  Lean (`List.sum` + `omega`); `[propext, Quot.sound]`, no `sorry`; with a concrete
-  two-term instantiation. Answers the reviewer con "no methodology for how the micro-proofs
-  compose."
+  Lean (`List.sum` + `omega`); `[propext, Quot.sound]`, no `sorry`. The composed terms are
+  the gadgets' **proper penalties** (each raw energy shifted by its own strict minimum, so
+  it is 0 when satisfied — the AND gadget's raw min is not a constant, the known Ising
+  chaining subtlety). Includes a concrete **two-gate** worked circuit `and3_circuit_strict_min`
+  (a 3-input AND = two AND gadgets on a shared spin) verified via the general lemma. Answers
+  the reviewer con "no methodology for how the micro-proofs compose to a full program."
 - `GibbsChain.lean` — the **single-gadget Gibbs chain reaches the ground state**
   (the "attempt a Lean convergence proof" item, Emma 2026-06-14). The bounded,
   mathlib-free floor under a full convergence theorem: the single-site (Glauber)

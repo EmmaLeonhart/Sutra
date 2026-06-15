@@ -20,8 +20,6 @@ mathlib): `List.sum` over the penalty terms, integer arithmetic closed by `omega
 
 set_option linter.unusedSimpArgs false
 
-namespace Composition
-
 /-- The total energy at state `s` of a circuit given as a list of penalty terms
     (each term is one gadget's energy as a function of the global state). -/
 def sumAt {S : Type} (ts : List (S → Int)) (s : S) : Int :=
@@ -100,7 +98,75 @@ theorem two_term_circuit_strict_min :
       · exact ⟨p2, List.mem_cons_of_mem _ (List.mem_cons_self ..), by simp [p2, h2]⟩
       · exact absurd (by cases s; simp_all) hs
 
+/-! ## A real composed circuit: a 3-input AND from two AND gadgets
+
+`z = (a ∧ b) ∧ c` is two 2-input AND gadgets wired on a shared intermediate spin `w`:
+gadget 1 computes `w = a ∧ b`, gadget 2 computes `z = w ∧ c`. The circuit energy is the
+sum of the two AND-gadget energies (the same `andE` the `AndGadget.lean` proof uses,
+×4-to-integers). We prove the arithmetically-correct output `(w, z) = (a∧b, a∧b∧c)` is
+the **strict global energy minimum** — for every input `(a, b, c)` — and we get it from
+the general lemma above applied to the two gadget energies, NOT by re-proving the whole
+two-gate circuit monolithically. This is the methodology of §7 worked on a circuit
+larger than a single gadget. -/
+
+/-- Spin value of a bool. -/
+def sp : Bool → Int | true => 1 | false => -1
+
+/-- The AND-gadget energy ×4 (matching `AndGadget.lean`): minimized iff `out = x ∧ y`. -/
+def andE (x y out : Bool) : Int :=
+  -sp x - sp y + 2 * sp out + sp x * sp y - 2 * sp x * sp out - 2 * sp y * sp out
+
+-- The AND gadget's minimum energy is NOT a constant 0 (it varies with `x,y`), so naive
+-- gadget-energy summation does not compose — gadgets must be **proper penalties**:
+-- shifted so the value is 0 at the satisfied assignment and > 0 otherwise. We use the
+-- gadget's strict minimum to do the shift.
+theorem andE_min (x y out : Bool) : andE x y (x && y) ≤ andE x y out := by
+  cases x <;> cases y <;> cases out <;> simp [andE, sp]
+theorem andE_strict (x y out : Bool) (h : out ≠ (x && y)) :
+    andE x y (x && y) < andE x y out := by
+  cases x <;> cases y <;> cases out <;> simp_all [andE, sp]
+
+/-- Circuit state: the two free spins `(w, z)` (inputs `a b c` are parameters/clamped). -/
+abbrev Wire := Bool × Bool
+/-- Gadget 1 as a PROPER PENALTY of the free state: `andE a b w` shifted to 0 at `w = a∧b`,
+    `> 0` otherwise (≥ 0 everywhere). -/
+def g1 (a b : Bool) : Wire → Int := fun s => andE a b s.1 - andE a b (a && b)
+/-- Gadget 2 as a proper penalty: `andE w c z` shifted to 0 at `z = w∧c`, `> 0` otherwise. -/
+def g2 (c : Bool) : Wire → Int := fun s => andE s.1 c s.2 - andE s.1 c (s.1 && c)
+
+/-- The 3-input AND circuit's correct output is the STRICT global energy minimum, for
+    every input — discharged from the two gadget penalties via `strict_global_min_of_terms`,
+    NOT by re-proving the two-gate circuit monolithically. -/
+theorem and3_circuit_strict_min (a b c : Bool) :
+    ∀ s : Wire, s ≠ (a && b, (a && b) && c) →
+      sumAt [g1 a b, g2 c] (a && b, (a && b) && c) < sumAt [g1 a b, g2 c] s := by
+  refine strict_global_min_of_terms [g1 a b, g2 c] (a && b, (a && b) && c) ?_ ?_
+  · -- hmin: each penalty is 0 at the correct joint assignment and ≥ 0 everywhere.
+    intro t ht s
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+    rcases ht with rfl | rfl
+    · show andE a b (a && b) - andE a b (a && b) ≤ andE a b s.1 - andE a b (a && b)
+      have := andE_min a b s.1; omega
+    · show andE (a && b) c ((a && b) && c) - andE (a && b) c ((a && b) && c)
+          ≤ andE s.1 c s.2 - andE s.1 c (s.1 && c)
+      have := andE_min s.1 c s.2; omega
+  · -- hstrict: any wrong joint assignment makes penalty 1 or penalty 2 strictly positive.
+    intro s hs
+    by_cases hw : s.1 = (a && b)
+    · -- wire correct ⇒ the output spin is wrong ⇒ gadget 2's penalty is strict.
+      have hz : s.2 ≠ ((a && b) && c) := fun hz => hs (by cases s; simp_all)
+      have hz' : s.2 ≠ (s.1 && c) := by rw [hw]; exact hz
+      have hstr := andE_strict s.1 c s.2 hz'
+      refine ⟨g2 c, List.mem_cons_of_mem _ (List.mem_cons_self ..), ?_⟩
+      show andE (a && b) c ((a && b) && c) - andE (a && b) c ((a && b) && c)
+          < andE s.1 c s.2 - andE s.1 c (s.1 && c)
+      omega
+    · -- wire wrong ⇒ gadget 1's penalty is strict.
+      have hstr := andE_strict a b s.1 hw
+      refine ⟨g1 a b, List.mem_cons_self .., ?_⟩
+      show andE a b (a && b) - andE a b (a && b) < andE a b s.1 - andE a b (a && b)
+      omega
+
 #print axioms strict_global_min_of_terms
 #print axioms two_term_circuit_strict_min
-
-end Composition
+#print axioms and3_circuit_strict_min
