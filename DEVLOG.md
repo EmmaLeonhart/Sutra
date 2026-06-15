@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-15: Clojure frontend — `case` multi-constant test lists (Phase 3)
+
+Phase 3 transpiler-backlog increment. A Clojure `case` clause test may now be a
+multi-constant LIST `(c1 c2 …)` (a `list_lit` of number/bool literals), matching
+when the scrutinee equals any member — Clojure's list-test semantics, lowered to an
+OR of `(E == ci)` tests folded into the existing nested-equality defuzz blend. Single
+constants unchanged; non-literal list members surface as UNSUPPORTED. Substrate-
+verified fixture `case_multilist` = 300 (`(case x (1 3 5) 100 (2 4) 200 999)`;
+`(classify 3)` + `(classify 4)` = 100 + 200); Clojure suite 20/20 compile-AND-run.
+Also trimmed two stale queue items: F# infra prereq (a) typed-param extraction (shipped
+`1be5b175`); Clojure "multi-constant test lists later item" note.
+
 ## 2026-06-15: Phase 3 integration — main Sutra paper gets a multi-frontend subsection
 
 Phase 3 integration sub-task (part 2 of 2). Added a "Source-language frontends" subsection

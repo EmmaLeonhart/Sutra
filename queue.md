@@ -216,17 +216,19 @@ negative results, not hidden.
   with recursion (currently `UNSUPPORTED-RECURSION`); non-comparison guards
   (`is_integer`, `and`/`or` chains). (Erlang is now its own frontend, shipped.)
 - [ ] **F# records/DUs → axons — needs F# infrastructure first.** Records port
-  the OCaml pattern conceptually, but F# lacks the prerequisites: (a) typed-param
-  extraction (`(p: Point)` is a `typed_pattern`, the current param loop only
-  handles bare/unit); (b) let-SEQUENCE function bodies (a `let a = … ; expr` body
-  is nested `declaration_expression`s; `_lower_expr` currently takes only the
-  first child); (c) a construction hoist (F# has none — needed for brace
-  construction in argument position) OR let-bound-only construction (needs (b)).
-  Field access `p.x` is a dotted `long_identifier`, not a `field_expression`.
-  Build (a)+(b)+the hoist first, then records are straightforward.
-- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through `case` →
-  nested equality blend shipped 2026-06-14, suite 18/18): maps → axons;
-  destructuring binds; multi-arity `defn`; `case` multi-constant test lists.
+  the OCaml pattern conceptually. Prereq (a) typed-param extraction (`(p: Point)`
+  `typed_pattern`) SHIPPED 2026-06-15 (handles primitive types; record-type names
+  still map to default — extend `_map_fsharp_type` to recognize record types →
+  `Axon` once records exist). Still missing: (b) let-SEQUENCE function bodies (a
+  `let a = … ; expr` body is nested `declaration_expression`s; `_lower_expr`
+  currently takes only the first child); (c) a construction hoist (F# has none —
+  needed for brace construction in argument position) OR let-bound-only
+  construction (needs (b)). Field access `p.x` is a dotted `long_identifier`, not
+  a `field_expression`. Build (b)+the hoist next, then records are straightforward.
+- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through numeric
+  `case` multi-constant test lists `(c1 c2 …)` → OR-of-equality shipped 2026-06-15,
+  suite 20/20): maps → axons; destructuring binds; multi-arity `defn`; `case`
+  symbol/keyword test members (currently number/bool literals only).
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through `where`/`let`
   bindings shipped 2026-06-14, suite 16/16; laziness out of scope): `data` ADTs →
   tagged axons; guarded/multi-equation recursion (currently `UNSUPPORTED-RECURSION`);
