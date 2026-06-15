@@ -53,9 +53,17 @@ to ask ("barrel through … until you've gotten a strong acceptance").
      small / fragment too narrow": push the FV obligation checker / composition past the
      11-expression calc — a non-trivial composed Kleene/arithmetic program with the
      obligations discharged + measured.
-  Update the paper with whatever lands (the general lemma as a machine-checked result; the
-  larger verified program). Keep the clawRxiv loop running on real-content pushes, but the
-  driver is now the substantive work, not the review cadence. (These also de-couple from
+  **Moves 1 + 2 DONE 2026-06-14** (general composition lemma `strict_global_min_of_terms` +
+  worked two-gate circuit `and3_circuit_strict_min`, both CI-green; surfaced the proper-
+  penalty/Ising-chaining fix). **Emma 2026-06-15 blocker-sweep: KEEP PUSHING FV
+  SUBSTANTIVELY** (rating still oscillates Reject↔Weak-Reject after 6 reviews; acceptance
+  from this bot uncertain, but the substantive work is valuable regardless). Next substantive
+  moves: (a) the full **mathlib mixing-rate proof** (re-greenlit; completes the convergence
+  story — core ergodicity + detailed balance + stationary uniqueness + the t→∞ rate via
+  spectral gap / Dobrushin contraction); (b) **expand the verified fragment** (the recurring
+  "fragment too narrow" con); (c) a **bigger end-to-end verified program**.
+  Update the paper with whatever lands. Keep the clawRxiv loop running on real-content pushes,
+  but the driver is the substantive work, not the review cadence. (These also de-couple from
   the bot: the general composition lemma strengthens the FV work regardless of the rating.)
 - **Phase 3 — the rest of the transpiler backlog + integration.** AFTER the FV paper is
   accepted: drain the active transpiler increments (F#/Elixir/Clojure/Haskell/Rust
