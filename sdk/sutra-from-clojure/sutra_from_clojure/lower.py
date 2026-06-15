@@ -39,6 +39,13 @@ _OP_MAP = {
 # shape. Sequential: each value is lowered with the EARLIER binds already active.
 _SUBST: dict[str, str] = {}
 
+# Maps -> axons (the Rust-struct / OCaml-record / Elixir-map pattern). A `{:x a
+# :y b}` literal cannot lower inline (axon construction is statement-shaped), so
+# it is HOISTED to a prelude temp and `_ARG_HOIST[node.id]` carries the temp name
+# to the position where the map appeared. `_AH_COUNTER` numbers temps per body.
+_ARG_HOIST: dict[int, str] = {}
+_AH_COUNTER = [0]
+
 
 def grammar_available() -> bool:
     return _DLL.exists()
@@ -67,6 +74,68 @@ def _head_symbol(list_lit, src: bytes) -> Optional[str]:
     if kids and kids[0].type == "sym_lit":
         return _text(kids[0], src)
     return None
+
+
+def _kwd_name(kwd_lit, src: bytes) -> Optional[str]:
+    """The clean key of a `kwd_lit` (`:x` → `x`), read from its `kwd_name` child."""
+    nm = next((c for c in kwd_lit.named_children if c.type == "kwd_name"), None)
+    return _text(nm, src) if nm is not None else None
+
+
+def _map_fields(node, src: bytes):
+    """If `node` is a Clojure `{:x a :y b}` map literal with keyword keys, return
+    [(field, value_node), …]; else None. Non-keyword keys are a later item."""
+    if node.type != "map_lit":
+        return None
+    kids = node.named_children
+    if len(kids) % 2 != 0 or not kids:
+        return None
+    fields = []
+    for i in range(0, len(kids), 2):
+        key_node, val_node = kids[i], kids[i + 1]
+        if key_node.type != "kwd_lit":
+            return None  # non-keyword key — later item
+        key = _kwd_name(key_node, src)
+        if key is None:
+            return None
+        fields.append((key, val_node))
+    return fields if fields else None
+
+
+def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
+    """Post-order walk: hoist EVERY map literal to a prelude `Axon _ahN; …` group
+    and register `node.id → _ahN` in `_ARG_HOIST`. Mirrors the Elixir/Rust shape."""
+    prelude = ""
+    for child in node.named_children:
+        prelude += _hoist_maps(child, src, indent)
+    fields = _map_fields(node, src)
+    if fields is not None:
+        tmp = f"_ah{_AH_COUNTER[0]}"
+        _AH_COUNTER[0] += 1
+        prelude += f"{indent}Axon {tmp};\n"
+        for field, val in fields:
+            prelude += f'{indent}{tmp}.add("{field}", {_lower_expr(val, src)});\n'
+        _ARG_HOIST[node.id] = tmp
+    return prelude
+
+
+def _kwd_accessed_params(body, params: set, src: bytes) -> set:
+    """Param names read via keyword access `(:k p)` — these are maps, so they
+    type as `Axon` rather than the default `number`."""
+    found: set = set()
+
+    def walk(n):
+        if n.type == "list_lit":
+            kids = n.named_children
+            if (len(kids) == 2 and kids[0].type == "kwd_lit"
+                    and kids[1].type == "sym_lit"
+                    and _text(kids[1], src) in params):
+                found.add(_text(kids[1], src))
+        for c in n.named_children:
+            walk(c)
+
+    walk(body)
+    return found
 
 
 def _contains_self_call(node, name: str, src: bytes) -> bool:
@@ -326,7 +395,12 @@ def _try_lower_loop_form(name: str, params: list, body, src: bytes):
 
 
 def _lower_expr(node, src: bytes) -> str:
+    if _ARG_HOIST and node.id in _ARG_HOIST:
+        return _ARG_HOIST[node.id]  # a hoisted map literal — emit its temp name
     t = node.type
+    if t == "map_lit":
+        # A map literal reaching here was not hoisted — surface the gap.
+        return "/* UNSUPPORTED-CONSTRUCTION: map value outside a hoistable position */"
     if t == "num_lit":
         return _text(node, src)
     if t == "sym_lit":
@@ -338,6 +412,13 @@ def _lower_expr(node, src: bytes) -> str:
         kids = node.named_children
         head = _head_symbol(node, src)
         if head is None:
+            # `(:key m)` — a keyword in head position is an accessor: get :key
+            # from the map m, projected to a clean number-vector (the Rust/Elixir
+            # field-read shape).
+            if (len(kids) == 2 and kids[0].type == "kwd_lit"):
+                key = _kwd_name(kids[0], src)
+                if key is not None:
+                    return f'realvec({_lower_expr(kids[1], src)}.item("{key}"))'
             return "/* UNSUPPORTED-EXPR: non-symbol list head */"
         args = kids[1:]
         if head == "if":
@@ -476,9 +557,18 @@ def _lower_defn(list_lit, src: bytes) -> str:
         # plain self-call would not terminate through the fuzzy-if blend.
         return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
                 f"tail-accumulator or foldable non-tail shape\n")
-    params_src = ", ".join(f"{_TYPE} {p}" for p in params)
+    # Maps -> axons: hoist any `{:k v}` literals to prelude temps, and type any
+    # keyword-accessed param as `Axon` (it is a map, not a number).
+    _ARG_HOIST.clear()
+    prelude = _hoist_maps(body, src)
+    axon_params = _kwd_accessed_params(body, set(params), src)
+    params_src = ", ".join(
+        f"{'Axon' if p in axon_params else _TYPE} {p}" for p in params)
+    body_src = _lower_expr(body, src)
+    _ARG_HOIST.clear()
     return (f"function {_TYPE} {name}({params_src}) {{\n"
-            f"    return {_lower_expr(body, src)};\n"
+            f"{prelude}"
+            f"    return {body_src};\n"
             f"}}\n")
 
 
@@ -495,6 +585,8 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     src = source.encode("utf-8")
     tree = parser.parse(src)
     _SUBST.clear()
+    _ARG_HOIST.clear()
+    _AH_COUNTER[0] = 0
 
     out = ["// Generated by sutra-from-clojure. See sdk/sutra-from-clojure/README.md.\n"]
     for child in tree.root_node.named_children:

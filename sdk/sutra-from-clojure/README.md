@@ -54,8 +54,18 @@ drops the boundary iteration on the substrate (finding `2026-06-13-while-loop-le
 boundary-equality-defuzz`). Destructuring binds, `(loop …)` with a non-`if` body,
 and other non-tail recursion surface as `UNSUPPORTED-*` (never a silent self-call).
 
+As of 2026-06-15: **maps → axons** (the Rust-struct / OCaml-record / Elixir-map
+pattern). A map literal `{:x a :y b}` (keyword keys) cannot lower inline — axon
+construction is statement-shaped — so it is hoisted to a prelude temp `Axon _ahN;
+_ahN.add("x", a); …` and the temp name fills the position where the map appeared
+(the `_ARG_HOIST` node-id mechanism). Keyword access `(:x p)` (a keyword in head
+position) lowers to `realvec(p.item("x"))`, and a param read via `(:k p)` types as
+`Axon` rather than the default `number`. Substrate-verified: `map_axon` = 13
+(`(defn sum2 [p] (+ (:x p) (:y p)))`; `(sum2 {:x 5 :y 8})`). Non-keyword keys,
+`(get m :k)` access, and maps in recursive bodies are later items.
+
 ## Next
 
-Maps → axons; destructuring binds; multi-arity `defn`; `case` symbol/keyword
-test members (currently number/bool literals only). (Numeric multi-constant test
-lists shipped 2026-06-15.)
+Non-keyword map keys + `(get m :k)` access; destructuring binds; multi-arity
+`defn`; `case` symbol/keyword test members (currently number/bool literals only).
+(Numeric multi-constant test lists + keyword-key maps → axons shipped 2026-06-15.)
