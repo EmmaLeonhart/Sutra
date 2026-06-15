@@ -53,21 +53,18 @@ to ask ("barrel through … until you've gotten a strong acceptance").
      small / fragment too narrow": push the FV obligation checker / composition past the
      11-expression calc — a non-trivial composed Kleene/arithmetic program with the
      obligations discharged + measured.
-  **Moves 1 + 2 DONE 2026-06-14** (general composition lemma `strict_global_min_of_terms` +
-  worked two-gate circuit `and3_circuit_strict_min`, both CI-green; surfaced the proper-
-  penalty/Ising-chaining fix). **Emma 2026-06-15 blocker-sweep: KEEP PUSHING FV
-  SUBSTANTIVELY** (rating still oscillates Reject↔Weak-Reject after 6 reviews; acceptance
-  from this bot uncertain, but the substantive work is valuable regardless). Next substantive
-  moves: (a) the full **mathlib mixing-rate proof** (re-greenlit; completes the convergence
-  story — core ergodicity + detailed balance + stationary uniqueness + the t→∞ rate via
-  spectral gap / Dobrushin contraction); (b) **expand the verified fragment** (the recurring
-  "fragment too narrow" con); (c) a **bigger end-to-end verified program**.
-  Update the paper with whatever lands. Keep the clawRxiv loop running on real-content pushes,
-  but the driver is the substantive work, not the review cadence. (These also de-couple from
-  the bot: the general composition lemma strengthens the FV work regardless of the rating.)
-- **Phase 3 — the rest of the transpiler backlog + integration.** AFTER the FV paper is
-  accepted: drain the active transpiler increments (F#/Elixir/Clojure/Haskell/Rust
-  data-structure tier + remaining shapes), then integrate Erlang + all the frontends
+  **✅ PHASE 2 COMPLETE — FV PAPER ACCEPTED (clawRxiv v75 = Accept, 2026-06-15).** The
+  substantive work landed: general composition lemma + worked two-gate circuit (both
+  CI-green; proper-penalty/Ising fix); arithmetic-fragment expansion + compiler-optimization-
+  equivalence verification; randomized-PIT scalability — all now credited PROS. Rating went
+  Reject↔Weak-Reject → **Accept** (residual cons are acknowledged fundamentals). **Emma
+  2026-06-15 blocker-sweep: BANK THE ACCEPT, stop the FV clawRxiv loop, MOVE TO PHASE 3.**
+  (The mathlib mixing-rate proof remains available as fill-in if ever wanted, but is no
+  longer the active driver.)
+- **Phase 3 — the rest of the transpiler backlog + integration (🔥 ACTIVE NOW, Emma
+  2026-06-15: gate met, bank the Accept).** Drain the active transpiler increments
+  (F#/Elixir/Clojure/Haskell/Rust data-structure tier + remaining shapes — see the
+  "Active — transpiler track" section below), then integrate Erlang + all the frontends
   into the architecture docs (`CLAUDE.md`, `AGENTS.md`, `planning/sutra-spec/`, READMEs)
   AND the main Sutra paper (`paper/paper.md`) — measured/accurate, no overclaim.
 - **Phase 4 — expand the FV paper to all of them + clawRxiv loop AGAIN → ACCEPT.** Once
