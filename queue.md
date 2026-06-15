@@ -26,18 +26,6 @@ deleted on completion. Keep the task tool in sync with this file.
   wrap/periodic behavior use complex rotation (`demos/gui/live_frame.su`).
 - **a1 warmer/colder GUI demo MOVED to a separate branch (Emma 2026-06-14 21:06).**
   Stripped from main's queue; do NOT re-add it here. It lives on its own branch.
-- **⚠️ compiler-ci RED (pre-existing, surfaced 2026-06-15).** `test_transcendentals.py`
-  `TestComplexArgumentCosine/Sine::test_{ccos,csin}_vs_cmath` (20 subtest failures): the
-  `.su` they compile is `Math.ccos(complex_number(a,b)).real()/.imag()`, but `.real()`/
-  `.imag()` were REMOVED from the language in the 2026-06-07 substrate-purity overhaul
-  (`CodegenNotSupported`). Pre-existing (compiler-ci only triggers on `sdk/sutra-compiler/**`,
-  hadn't run recently; the `ba622886` FV-fragment push surfaced it). **Fix (next work-loop
-  tick):** the `.su` should return the complex vector (no `.real()`/`.imag()`) and the TEST
-  reads the real/imag component HOST-side at the test boundary (a sanctioned readout, like the
-  FV tests' `float(vsa.truth_axis(...))`) — find the runtime real/imag-component accessor
-  (`realvec`/synthetic-axis index per the complex-number encoding). If no clean substrate-pure
-  readout exists for complex components, `xfail` with a precise reason tied to the no-readout
-  open question — do NOT re-add `.real()`/`.imag()`.
 
 ## 🔥 ACTIVE DIRECTIVE (Emma 2026-06-14 21:06, RE-ORDERED 22:05) — Erlang → FV ACCEPT → rest → FV-expand → ACCEPT
 
