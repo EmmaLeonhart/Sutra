@@ -67,6 +67,9 @@ to ask ("barrel through … until you've gotten a strong acceptance").
   "Active — transpiler track" section below), then integrate Erlang + all the frontends
   into the architecture docs (`CLAUDE.md`, `AGENTS.md`, `planning/sutra-spec/`, READMEs)
   AND the main Sutra paper (`paper/paper.md`) — measured/accurate, no overclaim.
+  Integration progress: architecture docs (AGENTS.md, CLAUDE.md) + new spec doc
+  `planning/sutra-spec/transpiler-frontends.md` DONE 2026-06-15; **main paper
+  `paper/paper.md` multi-frontend paragraph still TODO** (triggers clawRxiv CI).
 - **Phase 4 — expand the FV paper to all of them + clawRxiv loop AGAIN → ACCEPT.** Once
   the other things are implemented, expand `paper/formal-verification/paper.md` to cover
   them (the broader multi-frontend / verification story) and run the ping-pong loop
