@@ -171,6 +171,14 @@ The steering signal here is a synthetic rater standing in for the human button; 
 loop, render, and optimizer are exactly those a person drives in the window
 (`demos/gui/steering_window.py`).
 
+**Figures.** `experiments/gui_figures.py` renders the paper's figures from these
+same substrate paths: the θ hero (mono and RGB), a substrate glyph banner, the
+four-quadrant layout, and a before/after steering pair (the hero at the neutral
+start vs after a 120-press brighter-preferring session). The before/after pair is
+quantitative as well as visual — mean frame brightness rises from 71 to 146 (of
+255) across the session, the morph the rater drove. The PNGs are build artifacts
+(regenerated, not committed).
+
 ## 8. What we are not claiming
 
 - **The composition is host-side.** Assembling glyphs into a banner, placing the
@@ -202,6 +210,7 @@ tables come from:
 ```
 python experiments/gui_render_fidelity.py --size 24      # §6 render-fidelity table
 python experiments/gui_steering_eval.py --presses 100    # §7 steering soak
+python experiments/gui_figures.py --size 96              # §7 figures (PNGs, uncommitted)
 python demos/gui/steering_window.py                      # the live warmer/colder window
 ```
 
