@@ -43,20 +43,9 @@ substrate-RNNs; the optimizer/compositor host-side parts are named host-side (no
 substrate program" overclaim); verify rendered frames against a reference, MEASURED —
 never "it ran". No faked results, no weakened tests.
 
-**a1 demo (1a–1d) COMPLETE; paper P0–P9, P13 DONE.** Remaining paper/infra items:
+**a1 demo (1a–1d) COMPLETE; paper P0–P11, P13 DONE; P12 WIRED (clawRxiv loop live —
+Emma greenlit 2026-06-15).** Remaining paper/infra item:
 
-- [ ] **P10. §Related work.** VSA/holographic rendering, frozen-embedding computation,
-  SPSA, human-preference optimization. Verify each cited claim against the source;
-  re-download reference PDFs per session (gitignored cache), never commit them
-  (CLAUDE.md §Reference PDFs).
-- [ ] **P11. §Reproducibility.** Exact commands: the `demos/gui/` scripts + tests + the
-  P6/P7 experiment scripts. URLs only here.
-- [ ] **P12. clawRxiv CI workflow — `gui-paper-ci.yml` — EMMA-GATED (outward-facing).**
-  Model on `fv-paper-ci.yml` (own `.post_id` supersedes chain, auto-submit + commit the
-  AI review back under `paper/gui-steering/reviews/`). Now that `gui-training` is merged,
-  the trigger branch is **`main`** (push to `paper/gui-steering/paper.md`). The first push
-  creates a real clawRxiv post — **surface via AskUserQuestion before wiring the
-  auto-submit trigger.**
 - [ ] **P14. Website page (optional, human-facing).** A `docs/` page for the demo per the
   audiences split (humans read the site; agents read the repo MD). Keep it free of
   repo-internal scratchpad references. Built by `scripts/build_site.py`.
@@ -594,6 +583,30 @@ dramatically. The JVM spec (formal bytecode instruction set + type verifier + cl
 file format) is the most useful single artifact; CPython is less formally specified and
 drifts across versions, so pin a CPython version. Licenses (PSF for CPython, JVM spec
 public + OpenJDK GPLv2+Classpath) are permissive enough to study and build on.
+
+## GUI paper — research clawRxiv loop (Emma 2026-06-15, very-end-of-queue)
+
+`paper/gui-steering/paper.md` now auto-submits to clawRxiv on every push that
+touches it, via `.github/workflows/gui-paper-ci.yml` (modeled on `fv-paper-ci.yml`:
+own `.post_id` supersedes chain, review committed back under
+`paper/gui-steering/reviews/`). This is the standing **research loop** for the GUI
+paper — run it the same way the FV paper's loop ran.
+
+- [ ] **Each loop pass:** read the newest review under `paper/gui-steering/reviews/`
+  **side-by-side with the prior one** (the value is the marginal delta — which cons
+  moved, not the absolute verdict — `reviewer_signal_is_marginal_delta`). Make a
+  *substantive* revision that answers a load-bearing con (measurement, scope-tighten,
+  a real accounting fix) — NOT a marker-bump or pure wordsmith (`wordsmithing has
+  diminishing returns`; the only forbidden thing is arbitrary edits-for-feedback with
+  no new content). Push → the workflow re-submits and fetches the next review.
+- [ ] **Stop condition:** when 3+ passes return the same con despite substantive
+  revision, the residual cons are fundamental — bank the current verdict, stop the
+  loop, and note it here (mirror the FV paper's "bank the Accept" call). Do not spin
+  the loop on identical content.
+- INTEGRITY RAILS (every pass): measured numbers only (never from memory); mirror §8
+  "What we are not claiming"; no "honest/genuinely" buzzwords; replication/URLs only
+  in §10 Reproducibility; do NOT contradict `paper/paper.md`, the FROZEN
+  `paper/neurips/` (surface conflicts, don't edit it), or `planning/sutra-spec/*.md`.
 
 ## Pointers
 
