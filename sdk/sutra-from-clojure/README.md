@@ -29,11 +29,14 @@ numbers only, so re-evaluating a substituted value is side-effect-free); `(cond
 t1 r1 … :else d)` → a nested defuzz blend (`:else` or the final clause is the
 base); `(case E c1 r1 … [default])` → a nested *equality* defuzz blend (the
 `cond` shape with an implicit `(= E ci)` test per clause; a trailing lone arg is
-the default, literal number/bool constants only — multi-constant test lists are
-a later item). Dynamically-typed values lower as `number`. Substrate-verified:
-`add_main` = 16, `if_classify` = 100, `nary_sum` = 16, `let_block` = 17,
-`cond_grade` = 150, `case_dispatch` = 119 (`(case x 1 10 2 20 3 30 99)`;
-matched-clause + default), `tail_rec` = 15 (`(defn f [p…] (if COND BASE (recur a…)))`
+the default, literal number/bool constants). A clause test may also be a
+**multi-constant list** `(c1 c2 …)`, which matches when `E` equals any member —
+lowered to an OR of `(E == ci)` tests (Clojure's list-test semantics). Members
+must be number/bool literals. Dynamically-typed values lower as `number`.
+Substrate-verified: `add_main` = 16, `if_classify` = 100, `nary_sum` = 16,
+`let_block` = 17, `cond_grade` = 150, `case_dispatch` = 119 (`(case x 1 10 2 20 3
+30 99)`; matched-clause + default), `case_multilist` = 300 (`(case x (1 3 5) 100
+(2 4) 200 999)`; `(classify 3)` + `(classify 4)` = 100 + 200, list-test OR), `tail_rec` = 15 (`(defn f [p…] (if COND BASE (recur a…)))`
 → a declared `while_loop`; both `recur` and a named self-call are accepted, the
 OCaml/Scala/F#/Rust/Haskell shape), `nontail_fact` = 120 (foldable non-tail
 recursion `(OP LEAF (f REC))` → an accumulator `while_loop` trampoline, the OCaml
@@ -53,5 +56,6 @@ and other non-tail recursion surface as `UNSUPPORTED-*` (never a silent self-cal
 
 ## Next
 
-Maps → axons; destructuring binds; multi-arity `defn`; `case` multi-constant
-test lists `(c1 c2)`.
+Maps → axons; destructuring binds; multi-arity `defn`; `case` symbol/keyword
+test members (currently number/bool literals only). (Numeric multi-constant test
+lists shipped 2026-06-15.)
