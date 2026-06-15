@@ -360,44 +360,130 @@ def _lower_expr(node, src: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
-def _lower_defn(defn, src: bytes) -> str:
-    """A `function_or_value_defn`: [function_declaration_left, body_expr]."""
-    kids = defn.named_children
-    left = next((c for c in kids if c.type == "function_declaration_left"), None)
-    if left is None or len(kids) < 2:
-        return "// UNSUPPORTED-LET: not a function definition shape\n"
-    body = kids[-1]
-    lk = left.named_children
-    name_node = next((c for c in lk if c.type == "identifier"), None)
-    if name_node is None:
-        return "// UNSUPPORTED-LET: no name\n"
-    name = _text(name_node, src)
+def _typed_paren_param(paren, src: bytes):
+    """A `paren_pattern` wrapping `(x: T)` → (name, sutra_type) or None. Shape:
+    `paren_pattern → typed_pattern → [identifier_pattern, simple_type]`."""
+    tp = next((c for c in paren.named_children if c.type == "typed_pattern"), None)
+    if tp is None:
+        return None
+    ident_pat = next((c for c in tp.named_children
+                      if c.type == "identifier_pattern"), None)
+    simple_ty = next((c for c in tp.named_children if c.type == "simple_type"), None)
+    if ident_pat is None or not ident_pat.named_children:
+        return None
+    return _text(ident_pat.named_children[0], src), _map_fsharp_type(simple_ty, src)
+
+
+def _extract_value_decl_left(left, src: bytes):
+    """The return-type-annotated form `let f (a: T) … : R = …` parses as a
+    `value_declaration_left`. The curried-type grammar nests the params + return
+    annotation differently per arity, so this walks the subtree structurally:
+    every `paren_pattern` (in document order) is one `(x: T)` param, and the
+    return type is the `simple_type` inside a `typed_pattern` that also has a
+    `paren_pattern` child (the param-and-return wrapper) — or, for a bare value
+    `let x : R = …`, a direct `simple_type` child. Returns
+    (name, params, param_ty, ret_type) or None if outside this shape."""
+    kids = left.named_children
+    idp = kids[0] if kids and kids[0].type == "identifier_pattern" else None
+    if idp is None:
+        return None
+    loi = next((c for c in idp.named_children
+                if c.type == "long_identifier_or_op"), None)
+    if loi is None:
+        return None
+    name = _text(loi, src)
+
+    parens: list = []
+
+    def collect_parens(n):
+        for c in n.named_children:
+            if c.type == "paren_pattern":
+                parens.append(c)        # a param — do NOT recurse into it (its
+                                        # inner typed_pattern is the PARAM type)
+            else:
+                collect_parens(c)
+
+    collect_parens(left)
     params: list[str] = []
     param_ty: dict[str, str] = {}
-    arg_pats = next((c for c in lk if c.type == "argument_patterns"), None)
-    if arg_pats is not None:
-        for p in arg_pats.named_children:
-            if p.type == "long_identifier" and p.named_children:
-                params.append(_text(p.named_children[0], src))
-            elif p.type == "typed_pattern":
-                # `(x: int)` — a parameter with a type annotation. The pattern is
-                # `[identifier_pattern, simple_type]`; map the annotated type.
-                ident_pat = next((c for c in p.named_children
-                                  if c.type == "identifier_pattern"), None)
-                simple_ty = next((c for c in p.named_children
-                                  if c.type == "simple_type"), None)
-                if ident_pat is None or not ident_pat.named_children:
-                    return (f"// UNSUPPORTED-LET: '{name}' typed parameter is not "
-                            f"a simple identifier — later item\n")
-                pname = _text(ident_pat.named_children[0], src)
-                params.append(pname)
-                param_ty[pname] = _map_fsharp_type(simple_ty, src)
-            elif p.type == "const" and p.named_children \
-                    and p.named_children[0].type == "unit":
-                continue  # `()` — the zero-arg marker
-            else:
-                return (f"// UNSUPPORTED-LET: '{name}' has a pattern parameter "
-                        f"({p.type}) — later item\n")
+    for pp in parens:
+        r = _typed_paren_param(pp, src)
+        if r is None:
+            return None
+        params.append(r[0])
+        param_ty[r[0]] = r[1]
+
+    ret = [_DEFAULT_TYPE]
+
+    def find_ret(n):
+        if n.type == "typed_pattern" and any(
+                c.type == "paren_pattern" for c in n.named_children):
+            sty = next((c for c in n.named_children
+                        if c.type == "simple_type"), None)
+            if sty is not None:
+                ret[0] = _map_fsharp_type(sty, src)  # the param-and-return wrapper
+        for c in n.named_children:
+            find_ret(c)
+
+    find_ret(left)
+    if not params:                      # bare value: `let x : R = …`
+        sty = (next((c for c in idp.named_children
+                     if c.type == "simple_type"), None)
+               or next((c for c in kids if c.type == "simple_type"), None))
+        if sty is not None:
+            ret[0] = _map_fsharp_type(sty, src)
+    return name, params, param_ty, ret[0]
+
+
+def _lower_defn(defn, src: bytes) -> str:
+    """A `function_or_value_defn`: a `function_declaration_left` (untyped/typed
+    params, default `int` return) or a `value_declaration_left` (return-type
+    annotated `let f (…) : R = …`), then the body expr."""
+    kids = defn.named_children
+    body = kids[-1] if len(kids) >= 2 else None
+    name: str = ""
+    params: list[str] = []
+    param_ty: dict[str, str] = {}
+    ret = _DEFAULT_TYPE
+    fdl = next((c for c in kids if c.type == "function_declaration_left"), None)
+    vdl = next((c for c in kids if c.type == "value_declaration_left"), None)
+    if fdl is not None and body is not None:
+        lk = fdl.named_children
+        name_node = next((c for c in lk if c.type == "identifier"), None)
+        if name_node is None:
+            return "// UNSUPPORTED-LET: no name\n"
+        name = _text(name_node, src)
+        arg_pats = next((c for c in lk if c.type == "argument_patterns"), None)
+        if arg_pats is not None:
+            for p in arg_pats.named_children:
+                if p.type == "long_identifier" and p.named_children:
+                    params.append(_text(p.named_children[0], src))
+                elif p.type == "typed_pattern":
+                    # `(x: int)` — a parameter with a type annotation. The pattern
+                    # is `[identifier_pattern, simple_type]`; map the annotated type.
+                    ident_pat = next((c for c in p.named_children
+                                      if c.type == "identifier_pattern"), None)
+                    simple_ty = next((c for c in p.named_children
+                                      if c.type == "simple_type"), None)
+                    if ident_pat is None or not ident_pat.named_children:
+                        return (f"// UNSUPPORTED-LET: '{name}' typed parameter is "
+                                f"not a simple identifier — later item\n")
+                    pname = _text(ident_pat.named_children[0], src)
+                    params.append(pname)
+                    param_ty[pname] = _map_fsharp_type(simple_ty, src)
+                elif p.type == "const" and p.named_children \
+                        and p.named_children[0].type == "unit":
+                    continue  # `()` — the zero-arg marker
+                else:
+                    return (f"// UNSUPPORTED-LET: '{name}' has a pattern parameter "
+                            f"({p.type}) — later item\n")
+    elif vdl is not None and body is not None:
+        extracted = _extract_value_decl_left(vdl, src)
+        if extracted is None:
+            return "// UNSUPPORTED-LET: return-annotated form not lowerable\n"
+        name, params, param_ty, ret = extracted
+    else:
+        return "// UNSUPPORTED-LET: not a function definition shape\n"
     if body.type == "if_expression" and params:
         tail = _try_lower_tail_recursive(name, params, body, src)
         if tail is not None:
@@ -412,7 +498,7 @@ def _lower_defn(defn, src: bytes) -> str:
                 f"tail-accumulator or foldable non-tail shape\n")
     params_src = ", ".join(
         f"{param_ty.get(p, _DEFAULT_TYPE)} {p}" for p in params)
-    return (f"function {_DEFAULT_TYPE} {name}({params_src}) {{\n"
+    return (f"function {ret} {name}({params_src}) {{\n"
             f"    return {_lower_expr(body, src)};\n"
             f"}}\n")
 
