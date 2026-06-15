@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-06-15 — GUI paper clawRxiv loop: v1 review → v2 revision
+
+First clawRxiv submission landed: **post 2796, v1 = Strong Reject** (review under
+`paper/gui-steering/reviews/v1_post2796_review.{json,md}`). The first-run untracked-file
+bug that hit fv-paper-ci did NOT recur — `.post_id` + review committed back cleanly
+(`ae42d18b`). v2 substantive revision answering the load-bearing cons:
+
+- **Con 2 (integrity-critical): abstract contradicted §2.** The abstract claimed values
+  are "geometric objects in the frozen semantic subspace" while §2 admits the pixel
+  fields are codebook-free runtime_dim=8 arithmetic, not the full embedding subspace.
+  Rewrote the abstract to state the substrate/codebook split up front (glyph font uses
+  the embedding codebook; coordinate/colour fields are a small codebook-free arithmetic
+  slice, explicitly NOT the full subspace). Now consistent with §2 + CLAUDE anti-overclaim.
+- **Con 1: internal refs + missing citations.** Removed the `planning/sutra-spec/vision.md`
+  parenthetical from §1; cited latent-space-cartography properly (name + URL). Added a
+  **References** section (Plate, Kanerva, Heddes/Torchhd, Pale/HDCC, Li/Scallop, Mikolov,
+  Leonhart/latent-space-cartography, Spall/SPSA, Christiano, Ouyang).
+- **Con 3 (over-mystification): de-mystified §2** — the claim is the whole-frame
+  single-op + no-recompile parameterization, not that `1−x²−y²` is hard.
+- **Con 4: reworded "PNGs uncommitted"** → "regenerated locally; git-ignored."
+
+Cons 5 (oracle circularity) + 6 (synthetic rater) were already owned in §6/§8 v1 text.
+This push re-triggers gui-paper-ci.yml → v2 review.
+
 ## 2026-06-15 — GUI paper: P10 + P11 + P12 (clawRxiv loop live)
 
 GUI track (now top priority on the combined loop). Three items:

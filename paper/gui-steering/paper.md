@@ -8,9 +8,16 @@ paper cites only measured numbers.
 
 ## Abstract
 
-Sutra is a purely functional language whose values are geometric objects in the
-frozen semantic subspace of a pretrained embedding model, and whose operations are
-tensor operations on that substrate. We use it to render a graphical interface:
+Sutra is a purely functional language whose values are geometric objects in a
+vector substrate and whose operations are tensor operations on that substrate;
+the substrate's axes can be the meaningful directions of a pretrained embedding
+(used here for glyph fonts), or, where a task needs no semantic codebook, a small
+codebook-free arithmetic slice of the same machinery (used here for the pixel
+fields). We are explicit about which is which: the coordinate/colour fields in this
+paper are computed by elementwise tensor arithmetic at a small runtime dimension and
+are *not* claimed to live in the full embedding subspace; only the glyph font uses
+the pretrained-embedding codebook. We use this substrate to render a graphical
+interface:
 the whole image is computed by a single substrate operation that returns the frame
 as one buffer vector, with the host acting only as I/O (it builds coordinate
 buffers and paints the returned pixels). On top of this we build a parameterized
@@ -30,7 +37,10 @@ program.
 ## 1. Introduction
 
 Sutra represents data as vectors in a frozen embedding space and computation as
-geometry on that space (`planning/sutra-spec/vision.md`). A natural question is
+geometry on that space; its empirical basis is the relational-displacement analysis
+of frozen embedding spaces in prior work (Leonhart, *latent-space-cartography*),
+which found that displacement vectors exist and are reusable in those spaces. A
+natural question is
 whether something as concrete as a pixel grid can be produced *by* that substrate
 rather than around it. This paper answers yes for a useful case — a rendered,
 interactive interface — and is explicit about the boundary between the substrate
@@ -63,7 +73,10 @@ For example, the base field `1 − x² − y²` is computed elementwise over the
 grid by the `hadamard` (elementwise/buffer) product in a single operation
 (`demos/gui/frame_whole.su`). The host reshapes the returned buffer to N×N and
 paints it. This is the same host-is-I/O split as a per-pixel renderer, but one
-substrate operation replaces N² calls.
+substrate operation replaces N² calls. The per-pixel arithmetic is deliberately
+elementary — the claim is not that `1 − x² − y²` is hard, but that the *entire
+frame* is produced by one parameterized operation that runs on the substrate, which
+is what makes the no-recompile steering in §5 possible.
 
 **Runtime parameters as broadcast buffers.** A movable, scalable variant supplies
 additional length-(N·N) buffers — e.g. a glow centre `(cx, cy)` and an inverse
@@ -245,6 +258,29 @@ single live rater, a raw ±1 preference, and updates to a handful of runtime ren
 parameters rather than to model weights — but the shape (a human preference signal
 shaping generated output) is the same.
 
+### References
+
+- T. A. Plate. *Holographic Reduced Representations.* IEEE Transactions on Neural
+  Networks, 1995.
+- P. Kanerva. *Hyperdimensional Computing: An Introduction to Computing in
+  Distributed Representation with High-Dimensional Random Vectors.* Cognitive
+  Computation, 2009.
+- M. Heddes et al. *Torchhd: An Open Source Python Library to Support Research on
+  Hyperdimensional Computing and Vector Symbolic Architectures.* JMLR 24, 2023.
+- J. M. Pale et al. *HDCC: A Hyperdimensional Computing Compiler for Classification
+  on Embedded Systems and High-Performance Computing.* 2023.
+- Z. Li et al. *Scallop: A Language for Neurosymbolic Programming.* PLDI, 2023.
+- T. Mikolov et al. *Efficient Estimation of Word Representations in Vector Space.*
+  2013. (Word-analogy displacements in embedding spaces.)
+- E. Leonhart. *latent-space-cartography: relational-displacement analysis of frozen
+  embedding spaces.* https://github.com/EmmaLeonhart/latent-space-cartography
+- J. C. Spall. *Multivariate Stochastic Approximation Using a Simultaneous
+  Perturbation Gradient Approximation.* IEEE Transactions on Automatic Control, 1992.
+- P. Christiano et al. *Deep Reinforcement Learning from Human Preferences.*
+  NeurIPS, 2017.
+- L. Ouyang et al. *Training Language Models to Follow Instructions with Human
+  Feedback.* NeurIPS, 2022.
+
 ## 10. Reproducibility
 
 The renderer, optimizer, and steering loop are in `demos/gui/` (`frame_*.su`,
@@ -256,7 +292,7 @@ tables come from:
 ```
 python experiments/gui_render_fidelity.py --size 24      # §6 render-fidelity table
 python experiments/gui_steering_eval.py --presses 100    # §7 steering soak
-python experiments/gui_figures.py --size 96              # §7 figures (PNGs, uncommitted)
+python experiments/gui_figures.py --size 96              # §7 figures (PNGs regenerated locally; git-ignored)
 python demos/gui/steering_window.py                      # the live warmer/colder window
 ```
 
