@@ -29,8 +29,10 @@ defuzz blend; `match` (`| 1 -> … | _ -> …`, and **name-binding** `| x -> …
 a nested defuzz blend over `scrut == k` tests (the OCaml/Scala shape; last rule
 the base — a `_` wildcard, the final literal, or an identifier pattern that
 binds the scrutinee to the name via the `_MATCH_SUBST` substitution shared with
-the Elixir/Rust/Haskell frontends). Untyped
-params default to int. Substrate-verified: `add_main` = 16, `if_classify` =
+the Elixir/Rust/Haskell frontends). **Type-annotated parameters** (`(x: int)`,
+`(k: float)`, `(b: bool)`, `string`, `unit`) lower to the mapped Sutra type (the
+OCaml `_map_type` set; `double` → `float`); untyped params still default to int.
+Substrate-verified: `add_main` = 16, `if_classify` =
 100, `paren_sum` = 26, `match_literal` = 200, `match_bind` = 160
 (`| 0 -> 100 | x -> x * 10`; `(classify 0) + (classify 6)` = 100 + 60, literal
 dispatch + the bound catch-all), `tail_rec` = 15 (tail-recursive
@@ -46,6 +48,8 @@ surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms are ported.
 
 ## Next
 
-Type annotations; variant/record `match` patterns; records/DUs → axons (the
-OCaml record/variant pattern); modules. (Literal + name-binding `match` patterns
-shipped 2026-06-13.)
+Return-type annotations (the `let f (…) : T = …` form wraps the whole left side
+in a `value_declaration_left`/`paren_pattern` tree — a separate grammar path);
+variant/record `match` patterns; records/DUs → axons (the OCaml record/variant
+pattern); modules. (Parameter type annotations shipped 2026-06-15; literal +
+name-binding `match` patterns shipped 2026-06-13.)
