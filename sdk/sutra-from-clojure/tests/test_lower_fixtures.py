@@ -38,6 +38,7 @@ _RUNNABLE = {
     "nontail_fact": 120.0,  # (defn fact [n] (if (= n 0) 1 (* n (fact (- n 1))))); (fact 5)  (CPS fold)
     "loop_recur": 15.0,  # (loop [acc 0 i 0] (if (< i n) (recur (+ acc i) (+ i 1)) acc)); sumLoop(6)
     "case_dispatch": 119.0,  # (case x 1 10 2 20 3 30 99); (classify 2)=20 + (classify 7)=99 default
+    "case_multilist": 300.0,  # (case x (1 3 5) 100 (2 4) 200 999); (classify 3)=100 + (classify 4)=200  (multi-constant test lists -> OR)
 }
 
 
