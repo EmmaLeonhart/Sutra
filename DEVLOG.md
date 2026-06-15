@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-15: Rust frontend — struct field-init shorthand (Phase 3)
+
+Phase 3 transpiler-backlog increment. Rust struct construction now accepts field-init
+shorthand `S { x, y }` as sugar for `S { x: x, y: y }` — `_struct_construction` handles
+`shorthand_field_initializer` nodes (field name = the in-scope identifier, reused as the
+value) alongside explicit `field_initializer`s. `..base` spread stays a later item.
+Substrate-verified fixture `struct_shorthand` = 13 (`let x=5; let y=8; sum2(Point { x, y })`,
+field-axon construction → `realvec(p.item(...))` access); Rust suite 22/22 compile-AND-run.
+
 ## 2026-06-15: Clojure frontend — `case` multi-constant test lists (Phase 3)
 
 Phase 3 transpiler-backlog increment. A Clojure `case` clause test may now be a
