@@ -118,6 +118,31 @@ def test_randomized_pit_scales_without_expansion() -> None:
     assert info["false_positive_bound"] < 1e-6
 
 
+def test_decision_procedure_covers_integer_arithmetic() -> None:
+    """The decision procedure is not limited to AND/OR/NOT: it decides equivalence over
+    the whole POLYNOMIAL fragment, including integer `+`/`-`/`*` arithmetic. A clean
+    contrast with the Kleene case: arithmetic distributivity IS a same-graph identity
+    (the polynomials are equal), whereas Kleene distributivity is NOT (it is only
+    grid-equivalent). Both the exact and the scalable randomized checks agree."""
+    arithmetic_same = [
+        ("(a + b) * c", "a * c + b * c", ["a", "b", "c"]),     # distributivity (arithmetic)
+        ("(a + b) * (a + b)", "a*a + 2*a*b + b*b", ["a", "b"]),  # square expansion
+        ("a * b", "b * a", ["a", "b"]),                          # commutativity
+        ("(a && b) + c", "c + (b && a)", ["a", "b", "c"]),       # mixed Kleene + arithmetic
+    ]
+    for ea, eb, vs in arithmetic_same:
+        assert reduces_to_same_graph(ea, eb, vs) is True, f"{ea} vs {eb}"
+        ident, _ = reduces_to_same_graph_randomized(ea, eb, vs)
+        assert ident is True, f"randomized: {ea} vs {eb}"
+    # Non-identities are caught (exactly) by both routes.
+    assert reduces_to_same_graph("a + b", "a - b", ["a", "b"]) is False
+    assert reduces_to_same_graph_randomized("a + b", "a - b", ["a", "b"])[0] is False
+    # Arithmetic distributivity is same-graph; Kleene distributivity is NOT (only logical).
+    assert reduces_to_same_graph("(a + b) * c", "a*c + b*c", ["a", "b", "c"]) is True
+    assert reduces_to_same_graph("(a && b) || (a && c)", "a && (b || c)",
+                                 ["a", "b", "c"]) is False
+
+
 def test_kleene_connective_formulas_match_inliner() -> None:
     """Integrity guard: the randomized evaluator applies HARD-CODED truth-axis
     formulas for `!`/`&&`/`||` to operand values (the key to scaling). Those formulas

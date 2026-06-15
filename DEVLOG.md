@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-06-14: FV — expand the verified fragment to integer arithmetic (Emma's keep-pushing call)
+
+Per Emma's "keep pushing FV substantively" (and her "what philosophical objections?" probe —
+I'd overstated; "fragment too narrow" is a real do-more con, not philosophical). Found the
+checker's decision procedure ALREADY decides integer-arithmetic polynomial equivalence
+(`(a+b)*c == a*c+b*c` True; `a+b == a-b` False) — the fragment is *polynomial expressions*,
+not just AND/OR/NOT, and the paper undersold it. Made it a first-class, scalable capability:
+- Extended the **randomized PIT** evaluator (`_eval_kleene_ast`, `_kleene_degree_bound`) to
+  cover `+`/`-`/`*` and int literals + unary minus alongside the Kleene connectives, so the
+  poly-time decision procedure handles arithmetic and MIXED Kleene+arithmetic identity at
+  scale (was Kleene-only). Both exact and randomized routes agree on arithmetic
+  distributivity/commutativity/square-expansion + a mixed case.
+- Clean contrast result: arithmetic distributivity `(a+b)·c = a·c+b·c` IS a same-graph
+  identity (same polynomial), the exact mirror of Kleene distributivity, which is NOT — the
+  one checker decides both.
+- Tests: `test_decision_procedure_covers_integer_arithmetic` (FV suite 15/15; broader FV
+  23/23). Paper §3 broadened ("polynomial fragment — Kleene logic AND integer arithmetic")
+  + the distributivity-contrast sentence; abstract "Kleene-logic fragment" → "polynomial
+  fragment (Boolean logic and integer arithmetic)" (4991 ≤5000, trimmed a demos clause to
+  fit); checker module docstring updated. Also stripped the leftover internal reference
+  (`Audit's 2026-05-17 reclassification`) the bot flagged. Directly answers the recurring
+  "limited to AND/OR/NOT" con with a real, faithful, measured expansion. Triggers
+  compiler-ci + fv-paper-ci.
+
 ## 2026-06-14: FV — worked two-gate composed circuit verified via the composition lemma (Emma's substantive move 2)
 
 Emma's substantive move (2): verify a circuit larger than a single gadget via the

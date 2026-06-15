@@ -2,9 +2,13 @@
 
 `fv_poly_bound.py` discharges the branch-range obligation for the three
 *primitive* Kleene connectives. This module generalises it: it takes an
-ARBITRARY Sutra expression built from the Kleene connectives `&&`, `||`, `!`
-(and direct `logical_and`/`logical_or`/`logical_not` calls), nested to any
-depth, and discharges obligations on it — without a hand-copied polynomial.
+ARBITRARY Sutra expression over the **polynomial fragment** — the Kleene
+connectives `&&`, `||`, `!` (and direct `logical_and`/`logical_or`/`logical_not`
+calls) AND integer arithmetic `+`, `-`, `*`, freely mixed and nested to any
+depth — and discharges obligations on it without a hand-copied polynomial.
+(Arithmetic equivalence is decided by the same polynomial-identity test:
+`(a+b)*c` and `a*c + b*c` reduce to the same graph, the arithmetic mirror of
+Kleene distributivity, which does not.)
 
 How it stays faithful to what the compiler actually emits
 ---------------------------------------------------------
@@ -204,42 +208,65 @@ def _parse_expr_to_ast(expr_src: str, var_names: list[str]):
 
 
 def _eval_kleene_ast(node, env: dict, p: int, inv2: int) -> int:
-    """Evaluate the truth-axis polynomial of a Kleene expression at point ``env``
-    (name → int) in F_p, by applying each connective's formula to its children's
-    values — O(tree size), no inliner duplication, no sympy."""
+    """Evaluate the polynomial of a Kleene-logic *or* integer-arithmetic expression at
+    point ``env`` (name → int) in F_p — by applying each Kleene connective's truth-axis
+    formula, and ``+``/``-``/``*`` directly, to its children's values. O(tree size), no
+    inliner duplication, no sympy. The arithmetic operators extend the randomized check
+    beyond the Boolean connectives to integer-polynomial identity (e.g. distributivity,
+    which is a same-graph identity for arithmetic though not for Kleene)."""
     cn = type(node).__name__
     if cn == "Parenthesized":
         return _eval_kleene_ast(node.inner, env, p, inv2)
     if cn == "Identifier":
         return env[node.name] % p
-    if cn == "UnaryOp" and node.op == "!":
-        return (-_eval_kleene_ast(node.operand, env, p, inv2)) % p
-    if cn == "BinaryOp" and node.op in ("&&", "||"):
+    if cn == "IntLiteral":
+        return int(node.value) % p
+    if cn == "UnaryOp" and node.op in ("!", "-"):
+        return (-_eval_kleene_ast(node.operand, env, p, inv2)) % p  # !a = -a; unary minus
+    if cn == "BinaryOp":
         a = _eval_kleene_ast(node.left, env, p, inv2)
         b = _eval_kleene_ast(node.right, env, p, inv2)
-        a2, b2, ab = a * a % p, b * b % p, a * b % p
-        if node.op == "&&":
-            return (a2 * b2 - a2 + ab + a - b2 + b) * inv2 % p
-        return (-a2 * b2 + a2 - ab + a + b2 + b) * inv2 % p
+        op = node.op
+        if op == "+":
+            return (a + b) % p
+        if op == "-":
+            return (a - b) % p
+        if op == "*":
+            return (a * b) % p
+        if op in ("&&", "||"):
+            a2, b2, ab = a * a % p, b * b % p, a * b % p
+            if op == "&&":
+                return (a2 * b2 - a2 + ab + a - b2 + b) * inv2 % p
+            return (-a2 * b2 + a2 - ab + a + b2 + b) * inv2 % p
     raise NonPolynomialResidual(
-        f"node {cn!r} (op={getattr(node, 'op', None)!r}) is outside the Kleene "
-        f"fragment the randomized check evaluates (&&, ||, !)")
+        f"node {cn!r} (op={getattr(node, 'op', None)!r}) is outside the polynomial "
+        f"fragment the randomized check evaluates (&&, ||, !, +, -, *)")
 
 
 def _kleene_degree_bound(node) -> int:
-    """Total-degree upper bound of a Kleene expression's truth polynomial: a leaf is
-    degree 1, `!` preserves it, and `&&`/`||` reach degree 2·deg(a)+2·deg(b) (the
-    a^2 b^2 term). Used for the Schwartz–Zippel false-positive bound."""
+    """Total-degree upper bound of a Kleene-logic / integer-arithmetic expression's
+    polynomial: a leaf is degree 1, a constant 0, `!`/unary-`-` preserve degree,
+    `+`/`-` take the max, `*` adds, and `&&`/`||` reach 2·deg(a)+2·deg(b) (the a^2 b^2
+    term). Used for the Schwartz–Zippel false-positive bound."""
     cn = type(node).__name__
     if cn == "Parenthesized":
         return _kleene_degree_bound(node.inner)
     if cn == "Identifier":
         return 1
-    if cn == "UnaryOp" and node.op == "!":
+    if cn == "IntLiteral":
+        return 0
+    if cn == "UnaryOp" and node.op in ("!", "-"):
         return _kleene_degree_bound(node.operand)
-    if cn == "BinaryOp" and node.op in ("&&", "||"):
-        return 2 * _kleene_degree_bound(node.left) + 2 * _kleene_degree_bound(node.right)
-    raise NonPolynomialResidual(f"node {cn!r} is outside the Kleene fragment")
+    if cn == "BinaryOp":
+        left = _kleene_degree_bound(node.left)
+        right = _kleene_degree_bound(node.right)
+        if node.op in ("+", "-"):
+            return max(left, right)
+        if node.op == "*":
+            return left + right
+        if node.op in ("&&", "||"):
+            return 2 * left + 2 * right
+    raise NonPolynomialResidual(f"node {cn!r} is outside the polynomial fragment")
 
 
 _RANGE_SOUND_BINOPS = frozenset({"&&", "||"})

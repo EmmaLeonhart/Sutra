@@ -35,7 +35,8 @@ explicitly non-halting form for UI tick-loops and event-driven recurrences,
 declared outside the trusted-base scope by construction); §3.3 names the
 split. We also discharge the kernel-enforced read/write confinement half of
 the contract obligation. We further give a **decision procedure for program equivalence over
-the Kleene-logic fragment**: a checker extracts each expression's polynomial via
+the polynomial fragment** (Boolean logic and integer arithmetic): a checker
+extracts each expression's polynomial via
 the compiler's own lowering and decides whether two programs compile to the same
 tensor graph by polynomial identity — exactly, or in poly time (Schwartz–Zippel) —
 for arbitrary depth. This separates two notions that are usually conflated — compiling
@@ -47,10 +48,9 @@ exactly, which we establish with measured results restated in full here (§4):
 rotation binding decodes bundles at 100% accuracy through width *k* = 8 on four
 frozen embedding substrates where the Hadamard baseline has collapsed to 2.5–7.5%,
 with a bind/unbind round-trip of 1.5 × 10⁻¹⁵; and Sutra's compiled arithmetic —
-operator selection included — runs exactly on the substrate (the kernel-free
-`demos/calc` evaluates 11/11 expressions exactly against a rational oracle and
-refuses the inexact; `demos/echo` round-trips strings bit-exact at runtime
-dimension 16).
+operator selection included — runs exactly on the substrate
+(`demos/calc` evaluates 11/11 expressions exactly against a rational oracle;
+`demos/echo` round-trips strings bit-exact at runtime dimension 16).
 §4.5 reports a worked example of why dispatch-level cleanliness is necessary
 but not sufficient: a runtime-prelude substrate leak in the `eq()` runtime
 method (`float(cos.item())` inside the operation severed autograd and was the
@@ -141,18 +141,20 @@ The verification-relevant consequence: equivalence checking moves onto the
 compiled graph as **algebraic comparison**, not a traversal of possible
 executions.
 
-**A decision procedure for the Kleene-logic fragment.** For programs built from
-the Kleene connectives (`&&`, `||`, `!`, nested to any depth) we decide
-equivalence outright. A checker (`fv_obligation_checker.py`) extracts each
-expression's polynomial by running the compiler's own inliner pass — not a
-hand-copied formula — and walking the lowered arithmetic into a polynomial, then
-decides whether two programs **compile to the same graph** by polynomial identity.
-Two routes decide the *same* notion: an *exact* symbolic check `expand(p₁ − p₂) = 0`,
-and a *poly-time* randomized check (Schwartz–Zippel over a finite field) that scales to
-deep nestings the exact route cannot reach — §3 quantifies both and the trade-off. The
-checker also decides the weaker **logical** equivalence — agreement on the {−1, 0, +1}ⁿ
-Kleene grid — and reports both, refusing (rather than guessing) on any term
-outside the polynomial fragment, such as a comparison or a runtime intrinsic.
+**A decision procedure for the polynomial fragment — Kleene logic *and* integer
+arithmetic.** The fragment is not limited to the Boolean connectives. For programs built
+from the Kleene connectives (`&&`, `||`, `!`) *and* integer arithmetic (`+`, `-`, `*`),
+nested to any depth and freely mixed, we decide equivalence outright. A checker
+(`fv_obligation_checker.py`) extracts each expression's polynomial by running the
+compiler's own inliner pass — not a hand-copied formula — and walking the lowered
+arithmetic into a polynomial, then decides whether two programs **compile to the same
+graph** by polynomial identity. Two routes decide the *same* notion: an *exact* symbolic
+check `expand(p₁ − p₂) = 0`, and a *poly-time* randomized check (Schwartz–Zippel over a
+finite field) that scales to deep nestings the exact route cannot reach — §3 quantifies
+both and the trade-off. The checker also decides the weaker **logical** equivalence —
+agreement on the {−1, 0, +1}ⁿ Kleene grid — and reports both, refusing (rather than
+guessing) on any term outside the polynomial fragment, such as a comparison or a runtime
+intrinsic.
 
 These two notions are not the same, and separating them is a result in its own
 right. De Morgan, commutativity, and double negation compile to *identical*
@@ -161,7 +163,11 @@ polynomials — same graph. **Distributivity does not:** `a ∧ (b ∨ c)` and
 but compile to *different* polynomials off-grid. So "compiles to the same graph"
 is strictly stronger than "logically equivalent"; the graph comparison decides a
 well-defined sublattice of logical equivalences, and the checker decides exactly
-which side of that line any given pair falls on.
+which side of that line any given pair falls on. The *arithmetic* side of the fragment
+sharpens the picture: arithmetic distributivity `(a + b)·c = a·c + b·c` **is** a
+same-graph identity (the two compile to the *same* polynomial), the exact mirror image
+of Kleene distributivity, which is not. The same checker decides both — Boolean and
+integer-arithmetic equivalence — by the one polynomial-identity test.
 
 ## 3. The obligation framework
 
@@ -430,8 +436,7 @@ any positive integer radix (the shipped path uses `r = 10`).
 
 *Termination (structural, not measured).* The runtime is
 `for _step in range(n)` where `n` is the digit-array width — a *structural*
-shape parameter (Audit's 2026-05-17 reclassification), not a data-dependent
-value. The body has no `break`/`continue`/early-exit and is a finite
+shape parameter, not a data-dependent value. The body has no `break`/`continue`/early-exit and is a finite
 composition of tensor ops, so the loop runs exactly `n` iterations
 (`O(N²)` element-wise work; the queued Hillis–Steele form would be `O(N log N)`)
 and cannot fail to halt on any input. The loop count depends only on the width,
