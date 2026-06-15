@@ -54,14 +54,18 @@ name fills the position where the map appeared (the `_ARG_HOIST` node-id mechani
 Field read `p.x` (a zero-arg `call` wrapping a `dot`) lowers to
 `realvec(p.item("x"))`, and a param read via dot-access types as `Axon` rather than
 the default `number`. Substrate-verified: `map_axon` = 13 (`def sum2(p), do: p.x +
-p.y`; `sum2(%{x: 5, y: 8})`). The `%{"k" => v}` arrow form, non-atom keys, and maps
-in multi-clause/recursive bodies are later items.
+p.y`; `sum2(%{x: 5, y: 8})`). A **struct literal `%Name{x: a, y: b}`** also parses as
+a `map` (with an extra `struct` child for the nominal type) and lowers to the same
+named-field axon — the alias is dropped, since a struct is structurally an axon (the
+Rust `struct`-as-axon shape). Substrate-verified: `struct_axon` = 13 (`sum2(%Point{x:
+6, y: 7})`). The `%{"k" => v}` arrow form, non-atom keys, and maps in
+multi-clause/recursive bodies are later items.
 
 Dependency: `tree-sitter-elixir` (`pip install tree-sitter-elixir`).
 
 ## Next
 
-Structs (`%Struct{…}`/`defstruct`) → axons; the `%{"k" => v}` arrow-map form;
-multi-clause heads with recursion (currently `UNSUPPORTED-RECURSION`); non-comparison
-guards (`is_integer`; `and`/`or` chains already lower via `_OP_MAP`). (Atom-key maps →
-axons shipped 2026-06-15.)
+The `%{"k" => v}` arrow-map form + non-atom keys; maps/structs in multi-clause/recursive
+bodies; multi-clause heads with recursion (currently `UNSUPPORTED-RECURSION`);
+`is_integer`-style type-test guards (`and`/`or` chains already lower via `_OP_MAP`).
+(Atom-key maps + struct literals → axons shipped 2026-06-15.)
