@@ -59,13 +59,17 @@ pattern). A map literal `{:x a :y b}` (keyword keys) cannot lower inline — axo
 construction is statement-shaped — so it is hoisted to a prelude temp `Axon _ahN;
 _ahN.add("x", a); …` and the temp name fills the position where the map appeared
 (the `_ARG_HOIST` node-id mechanism). Keyword access `(:x p)` (a keyword in head
-position) lowers to `realvec(p.item("x"))`, and a param read via `(:k p)` types as
-`Axon` rather than the default `number`. Substrate-verified: `map_axon` = 13
-(`(defn sum2 [p] (+ (:x p) (:y p)))`; `(sum2 {:x 5 :y 8})`). Non-keyword keys,
-`(get m :k)` access, and maps in recursive bodies are later items.
+position) lowers to `realvec(p.item("x"))`, and a param read via `(:k p)` or
+`(get p :k)` types as `Axon` rather than the default `number`. Map keys may be
+keywords (`:x`) or **strings** (`"x"`), both yielding the field name `x`; the
+function-call accessor **`(get m :k)` / `(get m "k")`** lowers the same as `(:k m)`.
+Substrate-verified: `map_axon` = 13 (`(+ (:x p) (:y p))`; `(sum2 {:x 5 :y 8})`),
+`map_get` = 13 (`(+ (get p :x) (get p :y))`; `(sum2 {"x" 6 "y" 7})`). Numeric/symbol
+map keys and maps in recursive bodies are later items.
 
 ## Next
 
-Non-keyword map keys + `(get m :k)` access; destructuring binds; multi-arity
-`defn`; `case` symbol/keyword test members (currently number/bool literals only).
-(Numeric multi-constant test lists + keyword-key maps → axons shipped 2026-06-15.)
+Numeric/symbol map keys; destructuring binds; multi-arity `defn`; `case`
+symbol/keyword test members (currently number/bool literals only); maps in
+recursive bodies. (Multi-constant test lists, keyword/string-key maps → axons, and
+`(get m :k)` access shipped 2026-06-15.)
