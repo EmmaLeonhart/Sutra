@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-14: a1 paper P6+P7 — render-fidelity table + steering results, measured (gui-training)
+
+Filled the paper's results sections with measured numbers. `experiments/gui_render_fidelity.py`
+(P6) measures the max |substrate − host oracle| per render mode at 24×24: whole
+1.1e-7, moving 2.4e-7, ring 1.9e-7, diag 4.2e-8, layout 1.9e-7, rgb 1.9e-7, θ hero
+4.0e-7, θ hero rgb 3.6e-7, glyph banner EXACT 0 — overall max 4.0e-7 (float32
+rounding, not a modelling gap). `paper/gui-steering/paper.md` §6 now carries this
+table. §7 filled from the 1d soak (`experiments/gui_steering_eval.py`): 100-press
+session 0 NaN/0 blank (headline off and on); brighter rater → bright 1.0→1.8,
+darker → 1.0→0.2; trend corr ±0.446 (moderate due to clamp saturation, stated as
+such) + the optimizer convergence (final/start dist <0.25 over 5 seeds). §10
+reproducibility filled with the exact commands; the top status line updated (demo
+built, §6/§7 grounded; remaining: figures §8, related-work §9, command polish).
+Integrity held: every number measured, none from memory; the moderate correlation
+explained rather than hidden. Next paper work: P8 figures, then P9–P14.
+
 ## 2026-06-14: a1 item 1d — steering soak; the a1 demo (1a–1d) is COMPLETE (gui-training)
 
 Built the soak evaluation and measured the demo's two required properties.

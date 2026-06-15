@@ -126,19 +126,17 @@ producing the numbers — draft the method sections first, fill results when mea
   updates. The host/substrate boundary made explicit (optimizer host-side over
   substrate-rendered output). Method now; convergence numbers from P7.
 
-**Results (P6 now; P7/P8 GATED on 1c/1d measured outputs)**
-- [ ] **P6. §Render-fidelity results.** Table: oracle max-error per render mode
-  (whole / moving / ring / rgb / layout / quad / hero / hero_rgb / glyph banner) —
-  all measured by the existing `demos/gui/` tests (~1e-6). Reproducible by a small
-  `experiments/gui_render_fidelity.py` that emits the table.
-- [ ] **P7. §Steering results (GATED on 1d).** SPSA convergence curve (synthetic
-  reward, multi-seed — already measured for the optimizer) AND the live-demo soak:
-  100-press session NaN/blank-frame count (target 0) + directional-consistency
-  metric. Cite only what 1d measures. Script: `experiments/gui_steering_eval.py`.
-- [ ] **P8. Figures (P8a now / P8b GATED).** P8a: rendered hero (mono + RGB),
-  glyph banner, four-quadrant layout — from a reproducible figure script. P8b:
-  SPSA convergence plot + before/after steering frames (after 1d). Figure script
-  under `experiments/` (committed); output PNGs are build artifacts.
+**Results**
+> **P6, P7 DONE (2026-06-14).** §6 render-fidelity table filled from
+> `experiments/gui_render_fidelity.py` (max ≤4.0e-7 across modes; glyph banner
+> exact 0). §7 steering results filled from `experiments/gui_steering_eval.py`
+> (100-press soak: 0 NaN/0 blank; brighter→1.8, darker→0.2; trend corr ±0.446) +
+> the optimizer convergence. Reproducibility command list (§10) also filled.
+
+- [ ] **P8. Figures.** Rendered hero (mono + RGB), glyph banner, four-quadrant
+  layout, and a before/after steering pair — from a reproducible figure script
+  under `experiments/` (committed); output PNGs are build artifacts (not committed).
+  Embed/reference them in the paper.
 
 **Framing / rigor / infra**
 - [ ] **P9. §What we are not claiming.** Composition is host-side; the optimizer is
