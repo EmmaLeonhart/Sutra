@@ -20,6 +20,16 @@ every wrong output strictly higher → unique minimiser; no `sorry`)
   (sum, carry) is the strict global minimum for all 8 inputs → **addition's
   ground-state decode is exactly correct.** The 2×2 multiplier is these gates
   (AND + XOR) composed, so its correctness follows from the gate proofs.
+- `Composition.lean` — the **general gadget-composition lemma**: a circuit is gadgets
+  wired together, and on the energy-based target wiring is *addition of energies*. For any
+  finite list of penalty terms over a shared state, if `s₀` minimizes every term and every
+  other state makes some term strictly larger at `s₀`, then `s₀` is the **strict** global
+  minimum of the sum (`strict_global_min_of_terms`). Each gadget's `_strict` theorem
+  supplies those hypotheses, so a circuit of verified gadgets has its correct output as the
+  strict global energy minimum — for any number of gadgets, no monolithic re-proof. Core
+  Lean (`List.sum` + `omega`); `[propext, Quot.sound]`, no `sorry`; with a concrete
+  two-term instantiation. Answers the reviewer con "no methodology for how the micro-proofs
+  compose."
 - `GibbsChain.lean` — the **single-gadget Gibbs chain reaches the ground state**
   (the "attempt a Lean convergence proof" item, Emma 2026-06-14). The bounded,
   mathlib-free floor under a full convergence theorem: the single-site (Glauber)

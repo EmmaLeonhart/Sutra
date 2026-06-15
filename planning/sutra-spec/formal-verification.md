@@ -339,6 +339,15 @@ Machine-checked in Lean 4 (core only, no mathlib), under `fv-lean/`, run by
   `MAJ(a,b,cin)` (pairwise factor). The correct `(sum,carry)` is the strict global
   minimum for all 8 inputs → **addition's ground-state decode is provably exact.**
   The 2×2 multiplier is these gates composed, so its correctness follows.
+- **`Composition.lean`** — the **general gadget-composition lemma**
+  (`strict_global_min_of_terms`): wiring = addition of energies, so for any finite list
+  of penalty terms over a shared state, if `s₀` minimizes every term and every other
+  state makes some term strictly larger at `s₀`, then `s₀` is the strict global minimum
+  of the sum. Each gadget's `_strict` theorem supplies the hypotheses → a circuit of
+  verified gadgets has its correct output as the strict global energy minimum, for any
+  number of gadgets, with no monolithic re-proof. Machine-checked in general (core Lean,
+  `[propext, Quot.sound]`, no sorry), with a concrete two-term instantiation. Turns the
+  §7 composition methodology from an argument into a theorem.
 
 Recipe (reusable): spins as `Bool`, energy ×k to `Int`, finite domain closed by
 `omega` after case-splitting (`decide` gets stuck on `Int` in the kernel — tried

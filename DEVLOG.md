@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-14: FV — general gadget-composition lemma machine-checked (Emma's substantive-work call)
+
+Per Emma's blocker-sweep decision (substantive scope work, not more framing cycles), proved
+the GENERAL gadget-composition lemma in Lean. `fv-lean/Composition.lean` (core Lean, no
+mathlib; `[propext, Quot.sound]`, no `sorry`; full fv-lean suite 5/5):
+`strict_global_min_of_terms` — for any finite list of penalty terms over a shared state, if
+`s₀` minimizes every term and every other state makes at least one term strictly larger at
+`s₀`, then `s₀` is the STRICT global minimum of the sum. Proof via `sum_le`/`sum_lt`
+(structural list recursion, integer steps by `omega`). Each gadget's `_strict` theorem
+(AndGadget/XorGadget/FullAdder) supplies exactly these hypotheses, so a circuit of verified
+gadgets has its correct output as the strict global energy minimum — for ANY number of
+gadgets, no monolithic re-proof. Includes a concrete two-term instantiation
+(`two_term_circuit_strict_min`). This converts §7's composition *methodology* (an informal
+argument last cycle) into a machine-checked theorem — directly answering v70's "no
+methodology for how the micro-proofs compose to a full program" con. Updated paper §7
+(now "machine-checked in general"), fv-lean/README, FV spec. Abstract 4994 ≤5000. Pushes
+run fv-lean-ci (proofs) + fv-paper-ci (→ v72).
+
 ## 2026-06-14: FV paper — answer v70's addressable cons (clawRxiv loop cycle 4)
 
 **v70 moved the rating up: Reject → Weak Reject.** v69→v70 also resolved the §4.5
