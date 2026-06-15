@@ -1,0 +1,60 @@
+// frame_hero.su — a θ-PARAMETERIZED hero frame, rendered whole-frame in ONE
+// substrate op. This is the render core of the warmer/colder "a1" steering demo
+// (queue item 1a): a single parameter vector θ drives the composed hero, and
+// because every θ component arrives as a per-pixel broadcast BUFFER, changing θ
+// never recompiles — the optimizer just changes call arguments (the load-bearing
+// fact from the a1 spec: runtime parameters, no recompile).
+//
+// The hero composes two whole-frame fields plus a background level:
+//   glow = ones - invs * ((x - cx)^2 + (y - cy)^2)     // movable, scalable blob
+//   ring = ones - ((x^2 + y^2) - radius)^2             // accent ring at |p|^2 = radius
+//   hero = bg + bright*glow + accent*ring
+//
+// θ axes (each a length-(N*N) broadcast buffer the host builds from a scalar):
+//   cx, cy   — glow centre (layout)
+//   invs     — inverse scale of the glow (spread; larger = tighter blob)
+//   bright   — glow brightness
+//   radius   — ring radius (accent placement)
+//   accent   — ring brightness (accent weight)
+//   bg       — background level
+// All composition is elementwise buffer arithmetic (hadamard + add) → one
+// substrate pass over every pixel. Host reshapes the returned buffer and paints.
+function vector hero(vector x, vector y, vector ones,
+                     vector cx, vector cy, vector invs,
+                     vector bright, vector radius, vector accent, vector bg) {
+    vector dx = x - cx;
+    vector dy = y - cy;
+    vector r2 = hadamard(dx, dx) + hadamard(dy, dy);
+    vector glow = ones - hadamard(invs, r2);
+    vector rr = hadamard(x, x) + hadamard(y, y) - radius;
+    vector ring = ones - hadamard(rr, rr);
+    return bg + hadamard(bright, glow) + hadamard(accent, ring);
+}
+
+// hero_channel — the composed hero (identical to `hero`) tinted by a per-channel
+// weight `tint`, all in ONE substrate op. The colour axis of the a1 demo: the host
+// calls this three times (tint = θ's cr / cg / cb) to get R, G, B as three
+// whole-frame substrate fields, then stacks them (display assembly, the frame_rgb
+// precedent). The tint multiply is elementwise on the substrate (hadamard), so no
+// host colour arithmetic touches the field.
+function vector hero_channel(vector x, vector y, vector ones,
+                             vector cx, vector cy, vector invs,
+                             vector bright, vector radius, vector accent, vector bg,
+                             vector tint) {
+    vector dx = x - cx;
+    vector dy = y - cy;
+    vector r2 = hadamard(dx, dx) + hadamard(dy, dy);
+    vector glow = ones - hadamard(invs, r2);
+    vector rr = hadamard(x, x) + hadamard(y, y) - radius;
+    vector ring = ones - hadamard(rr, rr);
+    vector mono = bg + hadamard(bright, glow) + hadamard(accent, ring);
+    return hadamard(mono, tint);
+}
+
+// Self-contained sanity entry: θ = centred glow, unit scale/brightness, no accent,
+// no background → centre pixel = 0 + 1*(1 - 0) + 0*ring = 1.
+function vector main() {
+    return hero(make_real(0.0), make_real(0.0), make_real(1.0),
+                make_real(0.0), make_real(0.0), make_real(1.0),
+                make_real(1.0), make_real(0.5), make_real(0.0), make_real(0.0));
+}
