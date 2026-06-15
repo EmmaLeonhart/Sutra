@@ -845,6 +845,40 @@ and stage 5 is the runtime forward pass; Figure~\ref{fig:compile-pipeline} diagr
 \label{fig:compile-pipeline}
 \end{figure}
 
+### Source-language frontends
+
+The `.su` surface syntax that enters stage 1 is itself a compilation
+target. Nine source-language frontends — OCaml, TypeScript, Rust,
+Scala, Clojure, Elixir, Erlang, F#, and Haskell (a C frontend exists
+but is parked) — each lower their source to `.su` text, which then
+runs through the same five-stage pipeline unchanged. Each frontend is
+a pure tree-sitter-based source-to-source pass that never touches the
+substrate directly; substrate purity is therefore inherited from the
+single compiler rather than re-established per frontend. If a frontend
+emits valid Sutra, the result is a substrate-pure tensor-op graph,
+because the compiler is the only stage that lowers to tensors.
+
+The frontends agree on a small shared set of lowering shapes:
+functions map to `function` declarations; conditionals, pattern
+`match`, and guards lower to the soft-mux defuzz blend (no host
+control flow); tail-recursive accumulators become declared
+`while_loop` RNN cells (a self-calling function would not terminate
+through the fuzzy-`if` blend, so the recursion is reified as a loop);
+foldable non-tail recursion becomes a continuation-passing accumulator
+trampoline carried by the same loop construct; and algebraic data —
+variants, records, tuples, structs — maps to the tagged and structural
+axons used for bundled records. A new frontend is mostly the work of
+recognizing each source language's spelling of these shapes.
+
+These are fixture-tested lowering passes of varying maturity (OCaml is
+the reference at 45 fixtures; the others range from 6 to 19), not
+production compilers, and each fixture is compiled **and run** on the
+substrate with its output compared to the source language's own
+ground-truth result — a lowering that parses but computes the wrong
+value is a failure, not a pass. Recursion outside the two supported
+shapes, and source constructs with no clean substrate meaning, are
+surfaced as unsupported rather than mis-lowered.
+
 ### Substrate-purity invariants
 
 Three invariants the compiler enforces: (1) every primitive runs
