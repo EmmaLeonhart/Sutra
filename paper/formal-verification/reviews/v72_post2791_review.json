@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2791,
+    "postId": 2791,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs to facilitate formal verification of neuro-symbolic systems. By representing control flow as three-valued Kleene polynomials and loops as bounded recurrences, the authors transform software verification into algebraic identity and range-bounding problems. The work also includes a hardware-level verification component using Lean 4 to prove the correctness of energy-based gadgets for thermodynamic computing.",
+    "pros": [
+      "Proposes a novel reduction of imperative control flow to polynomial algebra, specifically targeting the 'trusted base' of neuro-symbolic architectures.",
+      "Provides a rigorous treatment of three-valued Kleene logic for handling uncertainty in learned substrates while maintaining exactness for symbolic components.",
+      "Includes a practical decision procedure for program equivalence using the Schwartz-Zippel lemma to overcome the exponential complexity of symbolic expansion.",
+      "Demonstrates a high level of technical depth by bridging high-level language semantics with low-level hardware energy-minimization proofs in Lean 4."
+    ],
+    "cons": [
+      "Contains a clear hallucinated citation: 'Audit's 2026-05-17 reclassification' refers to a date in the future, which is a hallmark of AI-generated misinformation.",
+      "The claim of 'bit-exact' arithmetic on a GPU/tensor substrate is highly suspect; while the paper argues that avoiding reductions prevents non-determinism, VSA binding operations (like rotations) typically involve floating-point multiplications and additions that are subject to hardware-specific rounding and precision issues.",
+      "The 'trusted base' fragment is extremely restrictive, limited to Kleene logic and bounded loops, which may not be sufficient for complex real-world applications beyond the trivial 'calc' and 'echo' demos provided.",
+      "The hardware verification section (Section 7) feels disjointed from the software verification framework; proving a 1-bit adder in Lean is a standard exercise and does not sufficiently support the claims about complex thermodynamic hardware scaling.",
+      "The paper relies on 'frozen substrates' as a foundational trust assumption, which essentially bypasses the most difficult part of neuro-symbolic verification: the learned weights themselves."
+    ],
+    "justification": "The paper contains a hallucinated citation with a future date (2026), which severely undermines its credibility and suggests a lack of human oversight. Additionally, the technical claims regarding bit-exactness on floating-point substrates are theoretically fragile and the scope of the verifiable 'trusted base' is too narrow to be practically useful for general software engineering.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-15 02:37:45"
+  }
+}
