@@ -98,14 +98,23 @@ def _struct_construction(node, src: bytes):
         return None
     fields = []
     for fi in flist.named_children:
-        if fi.type != "field_initializer":
-            return None  # shorthand / base (`..rest`) inits are a later item
-        fid = next((c for c in fi.named_children
-                    if c.type == "field_identifier"), None)
-        val = fi.named_children[-1]
-        if fid is None:
-            return None
-        fields.append((_text(fid, src), val))
+        if fi.type == "field_initializer":
+            fid = next((c for c in fi.named_children
+                        if c.type == "field_identifier"), None)
+            val = fi.named_children[-1]
+            if fid is None:
+                return None
+            fields.append((_text(fid, src), val))
+        elif fi.type == "shorthand_field_initializer":
+            # `S { x }` ≡ `S { x: x }` — the field name and the in-scope value
+            # are the same identifier; reuse that identifier node as the value.
+            ident = next((c for c in fi.named_children
+                          if c.type == "identifier"), None)
+            if ident is None:
+                return None
+            fields.append((_text(ident, src), ident))
+        else:
+            return None  # base (`..rest`) inits are a later item
     return _text(tid, src), fields
 
 

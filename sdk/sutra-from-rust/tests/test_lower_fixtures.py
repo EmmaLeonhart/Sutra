@@ -31,6 +31,7 @@ _RUNNABLE = {
     "while_sum": 15.0,  # let mut acc/i; while i < n { i+=1; acc+=i }; sum_to(5)=15  (while -> substrate loop)
     "while_compound": 15.0,  # same via compound assignment: i += 1; acc += i  (op= desugars to x = x op rhs)
     "loop_break": 15.0,  # loop { if i >= n { break; } acc += i; i += 1 }; sum_to(6)=0+..+5=15  (unbounded loop+break -> while !cond)
+    "struct_shorthand": 13.0,  # let x=5; let y=8; sum2(Point { x, y })  (field-init shorthand -> S { x: x, y: y })
 }
 
 
