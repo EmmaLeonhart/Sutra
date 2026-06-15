@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-15: Rust frontend — unbounded `loop { … break }` → substrate `while_loop` (Phase 3)
+
+Phase 3 transpiler-backlog increment. Rust's unbounded `loop { if COND { break; } BODY }`
+now lowers to a substrate `while_loop` on the continue condition `!COND`. The single-leading-
+break shape is exactly `while !COND { BODY }`, so it reuses the `_lower_while_rust` machinery
+with the halt-guard hoisted out and negated via `_negate_cond` (a comparison inverts to its
+negated operator — `i >= n` → `i < n`; otherwise `!(…)`). A `break` anywhere other than the
+leading guard falls through to the unsupported path (`_contains_break` check). New helpers
+`_loop_break_guard` / `_contains_break` / `_lower_loop_rust` in `sdk/sutra-from-rust/.../lower.py`;
+`loop_expression` wired into `_try_lower_imperative`'s gate + dispatch. Substrate-verified
+fixture `loop_break` = 15 (`loop { if i >= n { break; } acc = acc + i; i = i + 1 } acc`,
+`sum_to(6)` = 0+1+…+5); full Rust suite 20/20 (compile-AND-run). Boundary caveat: the negated
+break condition becomes the loop's strict comparison, so write `if i >= n { break; }` (negates
+to strict `i < n`), not `if i > n`. README updated.
+
 ## 2026-06-15: FV — optimization-equivalence verification (a real-world use of the arithmetic fragment)
 
 Per Emma's "keep pushing FV substantively" — the "bigger / real-world program" move,

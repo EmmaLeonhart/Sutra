@@ -30,6 +30,7 @@ _RUNNABLE = {
     "struct_axon": 12.0,  # struct Point -> axon; getx(a{7,9})=7 + sum2(Point{2,3})=5
     "while_sum": 15.0,  # let mut acc/i; while i < n { i+=1; acc+=i }; sum_to(5)=15  (while -> substrate loop)
     "while_compound": 15.0,  # same via compound assignment: i += 1; acc += i  (op= desugars to x = x op rhs)
+    "loop_break": 15.0,  # loop { if i >= n { break; } acc += i; i += 1 }; sum_to(6)=0+..+5=15  (unbounded loop+break -> while !cond)
 }
 
 

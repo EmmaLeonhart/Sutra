@@ -464,6 +464,89 @@ def _lower_while_rust(node, src: bytes, scope_ty: dict, mutable: set, idx: int):
     return loop_decl, call
 
 
+def _loop_break_guard(body, src: bytes):
+    """If `body` (a loop's `block`) opens with `if COND { break; }`, return
+    (break_cond_node, [remaining body statements]); else None. Only the single
+    leading-break shape is in scope (`loop { if C { break; } REST }` ≡
+    `while !C { REST }`) — a `break` anywhere else stays out of shape."""
+    stmts = list(body.named_children)
+    if not stmts or stmts[0].type != "expression_statement" or not stmts[0].named_children:
+        return None
+    head = stmts[0].named_children[0]
+    if head.type != "if_expression":
+        return None
+    kids = head.named_children
+    if len(kids) < 2:
+        return None
+    cond = kids[0]
+    cons = next((c for c in kids if c.type == "block"), None)
+    # No `else` arm, and the consequence is exactly one bare `break;`.
+    if any(c.type == "else_clause" for c in kids) or cons is None:
+        return None
+    cstmts = cons.named_children
+    if (len(cstmts) != 1 or cstmts[0].type != "expression_statement"
+            or not cstmts[0].named_children
+            or cstmts[0].named_children[0].type != "break_expression"):
+        return None
+    # A `break` surviving in the remaining body would be unsupported.
+    rest = stmts[1:]
+    if any(_contains_break(s) for s in rest):
+        return None
+    return cond, rest
+
+
+def _contains_break(node) -> bool:
+    if node.type == "break_expression":
+        return True
+    return any(_contains_break(c) for c in node.named_children)
+
+
+def _lower_loop_rust(node, src: bytes, scope_ty: dict, mutable: set, idx: int):
+    """Lower a Rust `loop { if COND { break; } BODY }` to a Sutra `while_loop`
+    on the continue condition `!COND` — the `_lower_while_rust` shape with the
+    halt-guard hoisted out of the body. Returns (loop_decl, call_block) or None
+    if outside the single-leading-break shape."""
+    body = next((c for c in node.named_children if c.type == "block"), None)
+    if body is None:
+        return None
+    guard = _loop_break_guard(body, src)
+    if guard is None:
+        return None
+    break_cond, rest = guard
+    cont_src = _negate_cond(break_cond, src)
+    if "UNSUPPORTED" in cont_src:
+        return None
+    in_scope = set(scope_ty)
+    used_cond = _collect_used_names(break_cond, src, in_scope)
+    used_body = []
+    for st in rest:
+        for v in _collect_used_names(st, src, in_scope):
+            if v not in used_body:
+                used_body.append(v)
+    state = used_cond + [v for v in used_body if v not in used_cond]
+    if not state:
+        return None
+    body_lines = ""
+    for st in rest:
+        if st.type != "expression_statement" or not st.named_children:
+            return None
+        line = _lower_assign(st.named_children[0], src, mutable)
+        if line is None:
+            return None
+        body_lines += f"    {line};\n"
+    loop_name = f"_loop{idx}"
+    state_decls = ", ".join(f"{scope_ty[v]} {v} = 0" for v in state)
+    loop_decl = (f"while_loop {loop_name}({cont_src}, {state_decls}) {{\n"
+                 f"{body_lines}}}\n")
+    slot_lines = "".join(f"    slot {scope_ty[v]} _{v}_r = {v};\n" for v in state)
+    slot_args = ", ".join(f"_{v}_r" for v in state)
+    writeback = "".join(f"    {v} = _{v}_r;\n" for v in state if v in mutable)
+    call = (f"{slot_lines}"
+            f"    loop {loop_name}({cont_src}, {slot_args});\n"
+            f"{writeback}")
+    return loop_decl, call
+
+
 def _try_lower_imperative(name: str, params, ret: str, block, src: bytes):
     """Lower an imperative `fn` body — leading `let [mut]` bindings, `while`
     loops (-> hoisted Sutra `while_loop`), top-level `lhs = rhs;` reassignments,
@@ -471,11 +554,11 @@ def _try_lower_imperative(name: str, params, ret: str, block, src: bytes):
     (so the recursion/expression paths still own the functional shapes). Returns
     loop decls + the function source, or None if any part is out of shape."""
     children = list(block.named_children)
-    has_while = any(
+    has_loop = any(
         c.type == "expression_statement" and c.named_children
-        and c.named_children[0].type == "while_expression"
+        and c.named_children[0].type in ("while_expression", "loop_expression")
         for c in children)
-    if not has_while:
+    if not has_loop:
         return None
     if not children or children[-1].type in ("let_declaration", "expression_statement"):
         return None  # needs a bare tail value expression
@@ -504,8 +587,11 @@ def _try_lower_imperative(name: str, params, ret: str, block, src: bytes):
                 mutable.add(nm)
         elif c.type == "expression_statement" and c.named_children:
             inner = c.named_children[0]
-            if inner.type == "while_expression":
-                res = _lower_while_rust(inner, src, scope_ty, mutable, idx)
+            if inner.type in ("while_expression", "loop_expression"):
+                if inner.type == "while_expression":
+                    res = _lower_while_rust(inner, src, scope_ty, mutable, idx)
+                else:
+                    res = _lower_loop_rust(inner, src, scope_ty, mutable, idx)
                 if res is None:
                     return None
                 decl, call = res
