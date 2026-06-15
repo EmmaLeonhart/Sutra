@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-15: fix pre-existing compiler-ci RED — test_transcendentals removed-accessor breakage
+
+`test_transcendentals.py` ccos/csin-vs-cmath (20 subtest failures) compiled `.su` using
+`Math.ccos(...).real()/.imag()` — the `.real()`/`.imag()` METHOD accessors removed in the
+2026-06-07 substrate-purity overhaul (they did `.item()`, severing autograd). Pre-existing
+(compiler-ci only triggers on `sdk/sutra-compiler/**`, hadn't run since the removal; the
+`ba622886` FV push surfaced it — not caused by it). Fixed by switching to the substrate-pure
+`real(...)`/`imag(...)` FREE functions (`_VSA._re`/`_im` — dot with the axis one-hot, 0-d
+tensor, no host readout), the same extractors the passing exp/sin/cos tests already use.
+Verified: `test_transcendentals.py` 8 passed, 46 subtests passed (compile + run + compare to
+`cmath` within tolerance — measured, not faked). Respects the no-readout rule (did NOT
+re-add `.real()`/`.imag()`). Removed the queue RED item. Triggers compiler-ci (should now
+be green).
+
 ## 2026-06-14: FV — expand the verified fragment to integer arithmetic (Emma's keep-pushing call)
 
 Per Emma's "keep pushing FV substantively" (and her "what philosophical objections?" probe —

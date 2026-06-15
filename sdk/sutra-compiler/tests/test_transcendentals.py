@@ -229,9 +229,13 @@ class TestComplexArgumentCosine(unittest.TestCase):
     _TOL = 2e-2
 
     def _run_part(self, a: float, b: float, part: str) -> float:
+        # `.real()`/`.imag()` method accessors were removed (2026-06-07 substrate-
+        # purity overhaul — they did `.item()`, severing autograd). The substrate-pure
+        # free functions `real(...)`/`imag(...)` (`_VSA._re`/`_im`, dot with the axis
+        # one-hot, no host readout) are the replacement.
         src = (
             f"function scalar f() {{ return "
-            f"Math.ccos(complex_number({a!r}, {b!r})).{part}(); }}\n"
+            f"{part}(Math.ccos(complex_number({a!r}, {b!r}))); }}\n"
         )
         return _compile_and_run(torch_translate, src, "f")
 
@@ -277,9 +281,11 @@ class TestComplexArgumentSine(unittest.TestCase):
     _TOL = 2e-2
 
     def _run_part(self, a: float, b: float, part: str) -> float:
+        # See TestComplexArgumentCosine._run_part: `real(...)`/`imag(...)` free
+        # functions replace the removed `.real()`/`.imag()` method accessors.
         src = (
             f"function scalar f() {{ return "
-            f"Math.csin(complex_number({a!r}, {b!r})).{part}(); }}\n"
+            f"{part}(Math.csin(complex_number({a!r}, {b!r}))); }}\n"
         )
         return _compile_and_run(torch_translate, src, "f")
 
