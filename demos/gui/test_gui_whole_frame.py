@@ -242,6 +242,142 @@ def test_quad_layout_composes_four_widgets() -> None:
     assert worst < 1e-6, f"quad vs quadrant-selected host max error {worst} >= 1e-6"
 
 
+def _hero_oracle(size, th):
+    """Host reference for frame_hero.su: bg + bright*glow + accent*ring, with
+    glow = 1 - invs*((x-cx)^2 + (y-cy)^2) and ring = 1 - (x^2+y^2 - radius)^2."""
+    out = [[0.0] * size for _ in range(size)]
+    for j in range(size):
+        y = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            x = 2.0 * i / (size - 1) - 1.0
+            glow = 1.0 - th["invs"] * ((x - th["cx"]) ** 2 + (y - th["cy"]) ** 2)
+            ring = 1.0 - (x * x + y * y - th["radius"]) ** 2
+            out[j][i] = th["bg"] + th["bright"] * glow + th["accent"] * ring
+    return out
+
+
+def test_hero_theta_render_matches_oracle_and_morphs() -> None:
+    """frame_hero.su renders a θ-parameterized hero in ONE substrate op (queue item
+    1a). Guards (1) the substrate frame matches the host oracle to 1e-6 for a
+    non-default θ, and (2) θ DRIVES the picture — moving cx slides the glow's bright
+    column, and raising `bright` raises the centre — all via call args, NO recompile
+    (the same compiled `hero` is reused; the a1 runtime-parameter property)."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size = 16
+
+    th = {"cx": 0.3, "cy": -0.2, "invs": 1.5, "bright": 0.8,
+          "radius": 0.4, "accent": 0.5, "bg": 0.1}
+    got = whole.render_hero(size, th)
+    ref = _hero_oracle(size, th)
+    worst = max(abs(float(got[j][i]) - ref[j][i])
+                for j in range(size) for i in range(size))
+    assert worst < 1e-6, f"hero vs oracle max error {worst} >= 1e-6"
+
+    # θ drives the picture: the glow's brightest column tracks cx (layout axis).
+    base = dict(whole.HERO_THETA_DEFAULT)
+    base["accent"] = 0.0          # isolate the glow so argmax is the glow centre
+    left = whole.render_hero(size, {**base, "cx": -0.5})
+    right = whole.render_hero(size, {**base, "cx": 0.5})
+    col_left = 2.0 * (int(left.argmax()) % size) / (size - 1) - 1.0
+    col_right = 2.0 * (int(right.argmax()) % size) / (size - 1) - 1.0
+    assert col_right > col_left, (col_left, col_right)
+
+    # brightness axis: raising `bright` raises the centre pixel value.
+    dim = whole.render_hero(size, {**base, "bright": 0.5})
+    bold = whole.render_hero(size, {**base, "bright": 1.5})
+    c = size // 2
+    assert float(bold[c, c]) > float(dim[c, c]) + 1e-3
+
+
+def test_hero_rgb_channels_match_tinted_oracle_and_drive_colour() -> None:
+    """frame_hero.su's `hero_channel` renders the θ hero tinted per channel in ONE
+    substrate op each; render_hero_rgb stacks R,G,B. Guards (1) each channel ==
+    host oracle (mono hero × tint) to 1e-6, and (2) θ DRIVES colour — a pure-red
+    tint (cr=1, cg=cb=0) lights R while zeroing G and B — all via call args, no
+    recompile."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size = 16
+
+    th = {"cx": 0.2, "cy": -0.1, "invs": 1.3, "bright": 0.9, "radius": 0.4,
+          "accent": 0.4, "bg": 0.1, "cr": 0.8, "cg": 0.5, "cb": 0.3}
+    img = whole.render_hero_rgb(size, th)
+    assert img.shape == (size, size, 3)
+    mono = _hero_oracle(size, th)               # bg + bright*glow + accent*ring
+    tints = (th["cr"], th["cg"], th["cb"])
+    worst = 0.0
+    for j in range(size):
+        for i in range(size):
+            for c in range(3):
+                worst = max(worst, abs(float(img[j, i, c]) - mono[j][i] * tints[c]))
+    assert worst < 1e-6, f"hero_rgb channel vs tinted oracle max error {worst} >= 1e-6"
+
+    # θ drives colour: a pure-red tint lights R, zeroes G and B.
+    base = dict(whole.HERO_THETA_DEFAULT)
+    red = whole.render_hero_rgb(size, {**base, "cr": 1.0, "cg": 0.0, "cb": 0.0})
+    assert float(abs(red[:, :, 1]).max()) < 1e-6   # G channel zeroed by tint
+    assert float(abs(red[:, :, 2]).max()) < 1e-6   # B channel zeroed by tint
+    assert float(red[:, :, 0].max()) > 0.5         # R channel carries the hero
+
+
+def test_headline_banner_is_exactly_the_substrate_glyphs() -> None:
+    """render_headline_banner rasterizes a headline by rendering each glyph ON THE
+    SUBSTRATE (render_glyph). The banner is EXACTLY the per-glyph substrate fields
+    concatenated — verified cell-for-cell (no host font table sneaks in). Uses a
+    2-char headline to bound substrate calls."""
+    import numpy as np
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    font = _load("gui_font_demo", str(pathlib.Path(__file__).resolve().parent.parent
+                                      / "font" / "font_demo.py"))
+    banner = whole.render_headline_banner("SU")
+    ref = np.concatenate([font.render_glyph(float(ord("S"))),
+                          font.render_glyph(float(ord("U")))], axis=1)
+    assert banner.shape == (5, 10)
+    assert np.array_equal(banner, ref), "banner is not the substrate glyph fields"
+    assert banner.sum() > 0                       # something actually lit
+
+
+def test_headline_selection_is_host_argmax_over_theta() -> None:
+    """select_headline is a host-side argmax over θ['headline_w'] (the discrete copy
+    axis). Different weight vectors pick different presets; empty → the first."""
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    n = len(whole.HERO_HEADLINES)
+    assert whole.select_headline(None) == whole.HERO_HEADLINES[0]
+    assert whole.select_headline({}) == whole.HERO_HEADLINES[0]
+    for pick in range(n):
+        w = [0.0] * n
+        w[pick] = 1.0
+        assert whole.select_headline({"headline_w": w}) == whole.HERO_HEADLINES[pick]
+
+
+def test_hero_with_headline_overlays_banner_in_band() -> None:
+    """render_hero_with_headline composites the substrate banner into a top band of
+    the substrate hero field. The chosen headline matches the argmax; the band
+    contains lit (==1.0) overlay cells; and a region OUTSIDE the band is untouched
+    (still equals the plain hero render there). Composition is host-side (named)."""
+    import numpy as np
+    whole = _load("gui_whole_frame", "whole_frame.py")
+    size = 48
+    # pick HERO_HEADLINES[1] via weights; use a short-circuitable band
+    n = len(whole.HERO_HEADLINES)
+    w = [0.0] * n
+    w[1] = 1.0
+    theta = {**whole.HERO_THETA_DEFAULT, "headline_w": w, "accent": 0.0}
+    band = (0.08, 0.30)
+    field, headline = whole.render_hero_with_headline(size, theta, band=band)
+    assert headline == whole.HERO_HEADLINES[1]
+    assert field.shape == (size, size)
+
+    r0, r1 = int(band[0] * size), int(band[1] * size)
+    band_region = field[r0:r1, :]
+    assert float(band_region.max()) >= 1.0 - 1e-9        # lit overlay cells present
+    assert int((np.abs(band_region - 1.0) < 1e-9).sum()) > 5  # a real glyph, not one stray cell
+
+    # below the band, the frame is the untouched substrate hero (overlay didn't bleed)
+    plain = whole.render_hero(size, theta)
+    below = slice(int(0.6 * size), size)
+    assert np.allclose(field[below, :], plain[below, :], atol=1e-9)
+
+
 def test_hadamard_is_elementwise_on_the_substrate() -> None:
     """The new primitive: hadamard squares a buffer elementwise (unlike `*`,
     which is the single-number complex product)."""
