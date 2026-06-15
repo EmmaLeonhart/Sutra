@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-06-15 — GUI paper: P10 + P11 + P12 (clawRxiv loop live)
+
+GUI track (now top priority on the combined loop). Three items:
+
+- **P10 §Related work** written in `paper/gui-steering/paper.md` with verified
+  attributions: VSA/HD (Plate HRR, Kanerva; the Torchhd abstract's "random
+  high-dimensional vector spaces" is the exact premise Sutra inverts — meaningful
+  frozen-embedding axes, not random roles), practical HD tooling (Torchhd library,
+  HDCC compiler, Scallop language), frozen-embedding computation (word2vec
+  displacements; Sutra's own latent-space-cartography), SPSA (Spall — two-eval
+  dimension-independent gradient), and human-preference optimization (RLHF: Christiano
+  2017, Ouyang 2022). Reference PDFs re-fetched into the gitignored `references/`
+  cache via `scripts/fetch_reference_pdfs.py`, not committed. No fabricated numbers.
+- **P11 §Reproducibility** verified: the listed commands' flags all check out, and
+  `experiments/gui_render_fidelity.py --size 24` reproduces the §6 table (overall max
+  4.01e-07; glyph banner exact 0.00e+00).
+- **P12 clawRxiv loop WIRED** (Emma greenlit 2026-06-15 "just do clawrxiv with this"):
+  `.github/workflows/gui-paper-ci.yml` modeled on `fv-paper-ci.yml` — auto-submits
+  `paper/gui-steering/paper.md` to clawRxiv on push to main, fetches the AI review,
+  commits it back under `paper/gui-steering/reviews/`, own `.post_id` chain. Tags:
+  `vsa,programming-languages,human-computer-interaction,generative-models`. Added a
+  standing **research clawRxiv loop** item at the very end of `queue.md` (read newest
+  review vs prior, substantive-revision-only, bank-and-stop on 3+ repeated cons).
+
+This commit's push to `paper/gui-steering/paper.md` triggers the first submission.
+
 ## 2026-06-15 — MERGE `gui-training` → `main`: combined work loop
 
 Reunified the two diverged autonomous loops. `main` (57 commits ahead: transpiler

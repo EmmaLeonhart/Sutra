@@ -203,10 +203,47 @@ quantitative as well as visual — mean frame brightness rises from 71 to 146 (o
 
 ## 9. Related work
 
-*To be written (task P10), with each cited claim verified against its source.*
-Threads: holographic/VSA-style rendering and binding; computation in frozen
-embedding spaces; SPSA and zeroth-order optimization; human-preference
-optimization of generative output.
+**Vector-symbolic architectures and hyperdimensional computing.** The
+bind/bundle/unbind algebra Sutra uses for glyph fonts and composite frames comes
+from the VSA / hyperdimensional-computing (HD) tradition — Plate's Holographic
+Reduced Representations (binding by circular convolution) and Kanerva's
+hyperdimensional computing. As the Torchhd library (Heddes et al., JMLR 2023)
+states the framework, HD/VSA computes "with distributed representations by
+exploiting properties of *random* high-dimensional vector spaces." Sutra inverts
+that premise: its axes are the *meaningful* directions of a frozen pretrained
+embedding, not random roles, and a rendered frame is a deterministic geometric
+function of those axes rather than a similarity search over random codes. Practical
+HD/VSA tooling — the Torchhd library and the HDCC compiler (Pale et al. 2023) — and
+the closest neuro-symbolic *language*, Scallop (Li et al. 2023, Datalog-like with
+PyTorch integration), target classification and reasoning workloads; rendering an
+interactive pixel interface on the substrate is, to our knowledge, not a use case
+they pursue.
+
+**Computation in frozen embedding spaces.** That pretrained embedding spaces carry
+linear/geometric structure usable for computation is long-observed (the word-analogy
+displacements of word2vec-style models). Sutra's own empirical foundation is the
+relational-displacement analysis of frozen embedding spaces in
+*latent-space-cartography*, which showed displacement vectors exist in those spaces.
+This paper extends "compute in the frozen space" from analogy and retrieval to
+*rendering*: producing a full pixel buffer as one operation on the substrate.
+
+**Zeroth-order / SPSA optimization.** The steering loop's optimizer is Spall's
+Simultaneous Perturbation Stochastic Approximation (SPSA), which estimates a gradient
+from two objective evaluations using a single random perturbation, at a cost
+independent of the parameter dimension. We use SPSA precisely because the reward is a
+human button press, not a differentiable loss — gradients through the rater do not
+exist, so a zeroth-order estimate over θ is the available signal. SPSA here is a
+host-side optimizer over the substrate's runtime parameters, not a substrate
+operation (§8).
+
+**Optimizing generative output from human preferences.** Steering output by a
+warmer/colder signal is a minimal instance of learning from human preference
+comparisons, the pattern behind reinforcement learning from human feedback (Christiano
+et al. 2017; Ouyang et al. 2022). Those systems fit a learned reward model over many
+pairwise judgements and update model weights; our setting is deliberately smaller — a
+single live rater, a raw ±1 preference, and updates to a handful of runtime render
+parameters rather than to model weights — but the shape (a human preference signal
+shaping generated output) is the same.
 
 ## 10. Reproducibility
 
