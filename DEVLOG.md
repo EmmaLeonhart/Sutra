@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-15: FV — optimization-equivalence verification (a real-world use of the arithmetic fragment)
+
+Per Emma's "keep pushing FV substantively" — the "bigger / real-world program" move,
+building on the arithmetic-fragment expansion. Because arithmetic equivalence reduces to the
+same polynomial-identity test, the checker verifies that a COMPILER OPTIMIZATION preserves
+semantics. Measured (`test_verifies_arithmetic_optimization_equivalence`, exact ⟺ randomized
+agree): Horner's method `a·x³+b·x²+c·x+d` ≡ `((a·x+b)·x+c)·x+d` (sound), identity folding
+`(x+0)·1 ≡ x`, reassociation `2·x+3·x ≡ 5·x` — all same-graph; a sign-bug "optimization"
+`a·x²+b·x+c` vs `a·x²−b·x+c` is caught as a different graph. The decision procedure is
+unchanged; only the inputs differ. Directly answers the "demos too small / not real-world"
+con — semantics-preserving compiler-rewrite checking is exactly a trusted-base property, and
+it is the same poly-time (Schwartz–Zippel) test. Added paper §3 paragraph, a finding
+(`planning/findings/2026-06-15-arithmetic-fragment-and-optimization-equivalence.md`), test
+(FV general 16/16). Triggers compiler-ci + fv-paper-ci.
+
 ## 2026-06-15: fix pre-existing compiler-ci RED — test_transcendentals removed-accessor breakage
 
 `test_transcendentals.py` ccos/csin-vs-cmath (20 subtest failures) compiled `.su` using
