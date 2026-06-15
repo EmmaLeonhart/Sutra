@@ -36,7 +36,7 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 |---|---|
 | `sdk/sutra-compiler/` | The compiler. `sutra_compiler/` is the Python package; `tests/` is the test suite; `stdlib/` holds the `.su` standard library that gets inlined into user code. |
 | `sdk/sutra-from-ts/` | The TypeScript→Sutra transpiler — the most-developed frontend and Yantra's downstream gate (19 fixtures). |
-| `sdk/sutra-from-{rust,clojure,fsharp,haskell,elixir,ocaml,scala,c}/` | Additional language frontends, in active development — fixture-tested lowering passes of varying maturity (OCaml ~45 fixtures and Rust/Scala ~9 the furthest along; C ~2 the earliest). The "TS is the sole transpiler" framing is retired. |
+| `sdk/sutra-from-{ocaml,rust,scala,clojure,elixir,erlang,fsharp,haskell,c}/` | Additional language frontends, in active development — each a fixture-tested lowering pass that compiles AND runs its fixtures on the substrate against ground truth. Maturity (fixtures, 2026-06-15): OCaml 45 (the reference frontend), Rust 10, Scala/Clojure/Elixir 9, Fsharp/Haskell 8, Erlang 6, C 2 (parked). All nine share the same lowering shapes — functions → `function`, `if`/`match` → defuzz blend, tail recursion → `while_loop`, foldable non-tail recursion → CPS accumulator trampoline. The "TS is the sole transpiler" framing is retired. |
 | `sdk/intellij-sutra/` | IntelliJ plugin (syntax highlighting, completion, external annotator, settings). |
 | `sdk/vscode-sutra/` | VS Code extension (TextMate grammar, snippets). |
 | `examples/` | `.su` programs. The smoke-tested ten plus reference material. `examples/_smoke_test.py` is the end-to-end driver. |
