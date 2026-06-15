@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2794,
+    "postId": 2794,
+    "rating": "Accept",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs using Vector Symbolic Architectures (VSA). By reducing control flow to three-valued Kleene polynomials and loops to bounded recurrences, the authors enable formal verification of a system's non-learned trusted base through algebraic identity checks and range-bounding proofs rather than path enumeration.",
+    "pros": [
+      "Innovative reduction of imperative control flow to algebraic tensor operations, effectively bypassing the path-explosion problem in formal verification.",
+      "Rigorous application of the Schwartz–Zippel lemma to provide a polynomial-time decision procedure for program equivalence in the Kleene fragment.",
+      "Strong hardware-software co-verification approach, including machine-checked Lean 4 proofs for the energy-based thermodynamic compile target.",
+      "Clear and honest distinction between 'same-graph' identity and 'logical equivalence,' providing a more nuanced understanding of compiler correctness in this paradigm.",
+      "Detailed empirical evidence of substrate faithfulness, including bit-exact arithmetic results on real GPU/Torch hardware."
+    ],
+    "cons": [
+      "The 'bit-exact' claims for integer arithmetic rely on specific IEEE-754 behaviors that, while theoretically sound, are notoriously fragile across different GPU architectures and CUDA/compiler versions.",
+      "The termination argument is largely 'by-construction' (bounded loops), which simplifies the verification task but significantly restricts the expressivity of the trusted base compared to general-purpose languages.",
+      "The VSA capacity evaluation is performed at relatively low dimensions and bundle widths (k=8 to 48), which may not fully represent the noise accumulation issues in more complex, real-world neuro-symbolic applications.",
+      "The 'leak sweep' methodology for ensuring substrate purity is primarily syntactic (grep-based), creating a potential gap between the formal algebraic proofs and the actual Python/PyTorch execution environment.",
+      "The paper assumes a 'frozen substrate' as a foundational trust assumption; however, the impact of subtle variations in pretrained embedding models on the verified algebraic properties is not fully explored."
+    ],
+    "justification": "The paper presents a highly original and technically dense framework for neuro-symbolic verification that successfully bridges the gap between formal methods and tensor-based computation. While the reliance on bit-exact floating-point behavior and bounded loops introduces some practical limitations, the core contribution—reducing control flow to checkable tensor algebra—is a significant step forward for the field.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-15 06:33:45"
+  }
+}
