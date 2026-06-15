@@ -51,8 +51,8 @@ Contributions:
 4. **Human-steerable output.** A warmer/colder reward drives a host-side SPSA
    optimizer over θ, morphing the substrate-rendered hero (§5).
 
-We separate what is measured now (§6) from what awaits the live demo (§7), and we
-state what we are *not* claiming (§8).
+The render fidelity (§6) and the steering soak (§7) are both measured on the built
+demo; §8 states what we are *not* claiming.
 
 ## 2. Whole-frame substrate rendering
 
@@ -99,7 +99,8 @@ pixels are substrate (§3).
 ## 5. Host-side preference steering (SPSA)
 
 We steer the rendered hero by human preference. A warmer press is reward +1, a
-colder press −1 (smoothed over recent presses). A host-side SPSA optimizer
+colder press −1 — one rating per shown frame (we do not smooth across presses; the
+two-sided estimate already averages a ± pair). A host-side SPSA optimizer
 (`demos/gui/hero_spsa.py`, `HeroSPSA`) adjusts θ. SPSA estimates a gradient from
 two evaluations per step using a single random perturbation, which suits a setting
 where each "evaluation" is a human rating of a rendered frame. Per batch it draws a
