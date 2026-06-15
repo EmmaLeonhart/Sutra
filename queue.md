@@ -122,6 +122,8 @@ producing the numbers — draft the method sections first, fill results when mea
 > mean brightness 71→146/255, measured); PNGs git-ignored build artifacts;
 > referenced in paper §7/§10. Reproducibility (§10) lists all commands.
 
+> **P9 + P13 DONE (2026-06-15).** P13 cross-check landed (commit 3101ba73): abstract stale-line fix + dimension-audit note (hero fields are codebook-free runtime_dim=8, not the full embedding subspace). P9: section 8 "What we are not claiming" confirmed present + complete. Overclaim scan clean. Remaining below: **P10** (gated - related-work source-verify), **P12** (gated - clawRxiv submit decision), **P14** (website page).
+
 **Framing / rigor / infra**
 - [ ] **P9. §What we are not claiming.** Composition is host-side; the optimizer is
   host-side SPSA (NOT substrate-native training); the reward is a human button, not
