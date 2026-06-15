@@ -30,6 +30,10 @@ param-dependent base cases are rejected, not mis-evaluated), `struct_axon` = 12
 prepass; the struct name maps to `Axon`; `S { x: a, y: b }` constructs a
 named-field axon — directly into a `let`, or hoisted to a temp in argument
 position; field access `p.x` → `realvec(p.item("x"))`; numeric fields only).
+**Field-init shorthand** `S { x, y }` is accepted as sugar for `S { x: x, y: y }`
+(the in-scope local of the same name fills the field; substrate-verified
+`struct_shorthand` = 13, `sum2(Point { x, y })` at `x=5, y=8`); `..base` spread
+remains a later item.
 
 As of 2026-06-13: **imperative `while` loops → substrate `while_loop`** (the
 OCaml `_lower_while` shape). A `fn` body of leading `let [mut]` bindings, one or
@@ -72,6 +76,6 @@ Dependency: `tree-sitter-rust` (`pip install tree-sitter-rust`).
 
 ## Next
 
-`loop { … break }` → substrate loops (halt-flag transform); statement-bearing
-if-arms; nested / non-tail `match`; nullary-variant values; struct field-init
-shorthand / `..base`.
+Statement-bearing if-arms; nested / non-tail `match`; nullary-variant values;
+struct `..base` spread. (Unbounded `loop { … break }` shipped 2026-06-15; struct
+field-init shorthand shipped 2026-06-15.)
