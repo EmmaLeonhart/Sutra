@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-06-15 — MERGE `gui-training` → `main`: combined work loop
+
+Reunified the two diverged autonomous loops. `main` (57 commits ahead: transpiler
+frontends F#/Elixir/Clojure/Haskell/Rust/Erlang + FV-paper Accept + thrml + paper
+integration) and `gui-training` (15 commits ahead: the a1 warmer/colder substrate-steering
+demo 1a–1d + its paper `paper/gui-steering/`) shared merge-base `872468b5`. Only two files
+truly conflicted — `DEVLOG.md` and `queue.md` — everything else (all `demos/gui/*`,
+`experiments/gui_*.py`, `paper/gui-steering/*`, `.gitignore`) auto-merged disjoint.
+
+- **DEVLOG.md**: union of both branches' append-only entries (distinct topics, same day).
+- **queue.md**: rebuilt cleanly — main's queue is the base for the combined loop, with the
+  remaining GUI track (P10 related-work, P11 reproducibility, P12 clawRxiv CI **Emma-gated**,
+  P14 website page + the deferred learned-decoder / Yantra-GUI extensions) folded in as a
+  **TOP-PRIORITY** section ahead of the ACTIVE DIRECTIVE phases (Emma 2026-06-15: GUI first).
+  The obsolete per-branch "`gui-training` never touches main" discipline is retired; P12's
+  trigger branch resolves to `main`.
+
+Verified the merged tree on the substrate: `demos/gui/test_hero_spsa.py`,
+`test_hero_steering.py`, `test_gui_whole_frame.py` — **26 passed** (163s, CPU). The GUI
+demo's substrate render + host-side SPSA steering survive the merge intact.
+
 ## 2026-06-15 — daily audit: clean (end-to-end, including semantic await tests)
 
 73 .su compiled, 18 skipped, 0 user-program leaks + 0 runtime-prelude leaks (`experiments/substrate_leak_sweep.py`); `scripts/check_promise_await_fit_to_spec.py` returns `EXIT=0` with `[2/2] regression tests  PASS (4/4 expected)`. Same shape as 06-13/06-14: after installing `pytest`, `numpy`, `torch` (CPU), the `ollama` Python pkg, and the Ollama daemon binary (`apt-get install zstd && bash <(curl -fsSL https://ollama.com/install.sh)` then `ollama serve` + `ollama pull nomic-embed-text`), the 2 semantic-preservation tests (`test_await_semantics_preserved_{torch,numpy}`) DID run and PASS to 3 places against the fixture's expected 3.0; end-to-end promise/await verification is CLEAN, not partial. The compiled count ticked up 71 → 73 since 06-14, reflecting the Phase-3 frontend fixtures landed today (Clojure `case` multi-list, F# typed params, Rust unbounded `loop{...break}` → substrate `while_loop`, Rust struct field-init shorthand) plus the FV / FV-in-Lean / paper churn — none of those land in `codegen_pytorch.py` (single commit `7d54c17` covers the whole file at HEAD). `await_value` body at `codegen_pytorch.py:935–966` is still the spec-compliant `return self.value(p)` reduction per Audit REAL LEAK #3 (FIXED 2026-05-17) — no `for _ in range(100)` / `if self.isPending` signature anywhere; the prior body is referenced only in the leak-history docstring (lines 952–963, phrased without the literal old signature so the sweep doesn't false-positive). Audit.md REAL LEAK #1–#10 all still FIXED/NOT-A-LEAK at cited codegen sites: #9 (`eq`/`eq_synthetic` scatter) intact at `codegen_pytorch.py:2843` / `:2865` (`out[self.semantic_dim + self.AXIS_TRUTH] = cos` / `= truth` as 0-d tensor scatter, autograd preserved); #10 (`_select_softmax` scores) intact at `codegen_pytorch.py:74` (`_torch.stack([sc.to(...) for sc in scores])` grad-preserving stack with the raw-number `as_tensor` fallback at `:78`); #4 (`_TorchVSA.loop` fixed-T unroll) reconfirmed at `codegen_pytorch.py:2988` (`for _t in range(max_iters)` is structural-index unroll, body is `self._step(state, rotation, target, halted, k, threshold)` — tensors in/out, soft halt via sigmoid, no `.item()`/`float()`/host branch on data). The pre-existing `test_transcendentals` RED that was sitting in the queue 2026-06-14 has since been fixed in `45f1e38` (switched to substrate-pure `real(...)`/`imag(...)` free functions — `_VSA._re`/`_im` dot-with-axis-one-hot, 0-d tensor, no host readout — NOT a re-introduction of the removed `.real()`/`.imag()` METHOD accessors); audit-wise this confirms the 2026-06-07 NO-introspection rule (CLAUDE.md) is still being respected: 0 new `.item()` / `float()` sites added outside the documented Audit.md taxonomy. Spot-checked every `_emit(...float(...))` / `_emit(...item()...)` / `_emit(...for ... in range(...))` hit against Audit.md taxonomy + `experiments/substrate_leak_sweep.py::_PRELUDE_LEAK_EXEMPT_METHODS` — every site is documented BORDERLINE (Promise inspectors lines 894–911, `make_real`/`make_truth`/`make_char` literal entry, `array_from_literal`, `load_matrix` CSV text parse, JS-interop equality/promotion + `_js_str_cmp` per CLAUDE.md carve-out, `_argmax_cosine`/`_vector_map_lookup` terminal index at `:3073`/`:3106`, `string_to_python` substrate→host terminal decode at `:2617`/`:2622`, `defuzzify_trit` structural-iters unroll per Audit #4, `digit_array_add` structural-N loop per Audit #4, `ram_read`/`ram_write` I/O-boundary pointer decode per `_PRELUDE_LEAK_EXEMPT_METHODS` carve-out at `:1925`/`:1940`) or LEGITIMATE (compile-time constants PI/TAU at `:324–325`); no new sites since 2026-06-14. 15 open-question dossiers in `planning/open-questions/` + `sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record, not "resolved-elsewhere drift"); `2026-06-13-sutra-to-thrml-mapping.md` is an active exploration loop (Emma 2026-06-13) and is correctly outside the resolved/stale axis; spec-index strikethroughs (`types §"scalars as results"`, `control-flow §"loop unroll for"`, `binding §"surface syntax"`, `RAM-pointers §"Differentiable / soft addressing"`) unchanged. New `planning/sutra-spec/transpiler-frontends.md` (commit `653668d`, Phase 3 integration) is a cross-frontend contract doc — does not resolve any prior open-question dossier or `sutra-spec/open-questions.md` entry. No code regression detected in any scope.
@@ -556,6 +577,251 @@ this does not yet prove" paragraph now says the ergodicity hypotheses + Gibbs mo
 checked and only the limit theorem is open; abstract clause "partly proven (ergodicity
 checked, limit theorem open)" trimmed to keep the abstract ≤5000 chars; conclusion sentence
 updated). The push triggers `fv-paper-ci.yml` → clawRxiv loop.
+## 2026-06-15: a1 paper P9 + P13 — cross-check fixes, "what we are not claiming" confirmed (gui-training)
+
+P13 cross-check of paper/gui-steering/paper.md vs the spec + frozen papers (commit
+3101ba73): fixed a stale abstract line (the soak is measured now) and added a
+dimension-audit note in section 2 — the hero fields use codebook-free runtime_dim=8
+arithmetic, NOT the full embedding subspace; only the glyph font uses the codebook.
+Overclaim scan clean: "substrate-native training" / "one substrate program" appear
+only in disclaimers. P9 confirmed: section 8 "What we are not claiming" is present
+and complete (composition host-side; optimizer host-side SPSA, not substrate-native;
+reward is a human button; no one-substrate-program). No contradiction with the
+frozen neurips / main paper (separate paper, does not restate their claims).
+Remaining paper work: P10 related-work (source-verify, gated), P12 clawRxiv CI
+(outward-facing, gated), P14 website page.
+
+# Development Log
+
+## 2026-06-14: a1 paper P1–P5 — method sections finalized + two accuracy fixes (gui-training)
+
+Finalized the paper's method sections (§1–§5 of `paper/gui-steering/paper.md`)
+against the spec and the shipped code. Two corrections on review, both integrity-
+relevant: (1) the §1 line "We separate what is measured now from what awaits the
+live demo (§7)" was stale — the demo is built and §7 is measured — now reads that
+both §6 and §7 are measured; (2) **a paper-vs-code discrepancy**: §5 claimed the
+warmer/colder reward is "smoothed over recent presses," but the implementation
+(`hero_steering.py`) uses raw ±1 per shown frame — I had flagged smoothing as not
+built. Resolved per CLAUDE.md (fix the artifact to match the code, don't ship a
+claim the code doesn't support): §5 now says one rating per frame, no cross-press
+smoothing, noting the two-sided estimate already averages a ± pair. §1's grounding
+in vision.md / the frozen-embedding substrate was already in place; §5's gain
+schedule already matches `hero_spsa.py`. Paper method sections + results + figures
+(P1–P8) are now done; remaining: P9 (drafted), P10 related-work (source-verify),
+P12 clawRxiv CI (decision-gated), P13 cross-check, P14 website.
+
+## 2026-06-14: a1 paper P8 — figures from the substrate paths (gui-training)
+
+`experiments/gui_figures.py` renders the paper's figures from the same substrate
+code paths the demo uses (every pixel substrate; host only clamps to [0,1] and
+writes the PNG): the θ hero (mono + RGB), a substrate glyph banner ('SUTRA'), the
+four-quadrant layout, and a before/after steering pair. The before/after is
+measured, not just visual — mean frame brightness rises 71→146 (of 255) across a
+120-press brighter-preferring session, the morph the rater drove. Six PNGs land in
+`paper/gui-steering/figures/`, which is git-ignored — build artifacts, regenerated
+not committed (only the generator script is committed). Paper §7 gains a Figures
+paragraph; §10 lists the generation command. Pillow `mode=` deprecation cleaned up.
+P6/P7/P8 (the paper's results + figures) are done; remaining paper work: P1–P5
+finalize, P9 (drafted), P10 related-work (source-verify), P12 clawRxiv CI
+(decision-gated), P13 cross-check, P14 website.
+
+## 2026-06-14: a1 paper P6+P7 — render-fidelity table + steering results, measured (gui-training)
+
+Filled the paper's results sections with measured numbers. `experiments/gui_render_fidelity.py`
+(P6) measures the max |substrate − host oracle| per render mode at 24×24: whole
+1.1e-7, moving 2.4e-7, ring 1.9e-7, diag 4.2e-8, layout 1.9e-7, rgb 1.9e-7, θ hero
+4.0e-7, θ hero rgb 3.6e-7, glyph banner EXACT 0 — overall max 4.0e-7 (float32
+rounding, not a modelling gap). `paper/gui-steering/paper.md` §6 now carries this
+table. §7 filled from the 1d soak (`experiments/gui_steering_eval.py`): 100-press
+session 0 NaN/0 blank (headline off and on); brighter rater → bright 1.0→1.8,
+darker → 1.0→0.2; trend corr ±0.446 (moderate due to clamp saturation, stated as
+such) + the optimizer convergence (final/start dist <0.25 over 5 seeds). §10
+reproducibility filled with the exact commands; the top status line updated (demo
+built, §6/§7 grounded; remaining: figures §8, related-work §9, command polish).
+Integrity held: every number measured, none from memory; the moderate correlation
+explained rather than hidden. Next paper work: P8 figures, then P9–P14.
+
+## 2026-06-14: a1 item 1d — steering soak; the a1 demo (1a–1d) is COMPLETE (gui-training)
+
+Built the soak evaluation and measured the demo's two required properties.
+`experiments/gui_steering_eval.py` runs a scripted warmer/colder soak over
+`HeroSteering` with a consistent synthetic rater and reports NaN/blank frame counts
+plus a directional metric.
+
+**Measured (100-press soak, 2026-06-14):** 101/101 clean frames — **0 NaN, 0 blank**
+— both with the headline overlay OFF and ON (the full RGB+glyph demo frame). The
+per-frame substrate render survives a full session. **Directional consistency:** a
+brighter-preferring rater drives `bright` 1.000 → 1.800 (+0.800, the axis ceiling);
+a darker-preferring rater drives it 1.000 → 0.200 (−0.800, the floor) — the steer
+direction flips with the preference. The running-best-brightness vs batch-index
+Pearson correlation is ±0.446: moderate because the parameter saturates at the
+clamp partway through then plateaus (it reaches the rewarded extreme rather than
+ramping linearly) — reported as measured, not massaged.
+
+Tests (`demos/gui/test_hero_steering.py` 4→6; full demos/gui suite 39→41):
+`test_soak_no_nan_blank_and_directional_both_signs` (100 presses, 0 NaN/0 blank,
+brighter→up >0.3, darker→down <−0.3, opposite signs) and
+`test_soak_full_demo_frame_stays_clean` (the RGB+headline frame, 0 NaN/0 blank).
+
+**The a1 demo is complete (1a θ render, 1b SPSA, 1c steering+window, 1d soak).**
+Honest rails held: render is substrate (colour channels + glyph pixels); the
+optimizer + composition + warmer/colder bookkeeping are host-side; steering by a
+rater, not substrate-native training. The 1d numbers are the data for paper §7/P7.
+Remaining (non-blocking): optional web wrapper; reward EMA smoothing (currently
+raw ±1 two-sided — flagged, not faked).
+
+## 2026-06-14: a1 item 1c — warmer/colder steering controller + live window (gui-training)
+
+Wired the warmer/colder loop. `demos/gui/hero_steering.py`: `HeroSteering`, a
+HEADLESS controller tying `HeroSPSA` (host-side) to the substrate hero render.
+Two-sided SPSA maps to two presses — the controller shows the +perturbation
+(first press scores r₊), then the −perturbation (second press scores r₋), then
+runs one `update(r₊, r₋)` and begins the next batch; reward +1 warmer / −1 colder.
+Each `frame()` guards against NaN/blank pixels (raises rather than painting
+garbage). `render_hero_full()` (new, in `whole_frame.py`) is the full demo frame:
+the θ-driven RGB hero with the substrate glyph headline overlaid (banner placement
+factored into a shared `_banner_placement` helper). Added an in-process compiled-
+hero cache (`_hero_module`) so the soak's hundreds of renders don't recompile.
+`steering_window.py`: a thin tkinter shell (WARMER/COLDER buttons + W/K keys) over
+the controller — I/O only, untested by design (no CI display).
+
+Verified MEASURED (`test_hero_steering.py`, 4/4; full demos/gui suite 35→39): two
+presses complete exactly one SPSA batch (counters advance 1 per 2 presses, phase
+alternates); no NaN/blank frame across a 40-press session; a brightness-preference
+rater steers the optimizer's best θ brightness UP from neutral by >0.3 — end-to-end
+directional morphing WITH the substrate render in the loop (not just the optimizer
+in isolation); the full RGB+headline frame renders finite/non-blank with a preset
+headline. Honest rails: the render is substrate (colour channels + glyph pixels);
+the optimizer and warmer/colder bookkeeping are host-side; steering by a present
+rater, not substrate-native training, not real-traffic learning. Next: 1d (full
+100-press soak with the headline on → the measured numbers paper §7/P7 are gated on).
+
+## 2026-06-14: a1 paper P0 — scaffold + grounded method-section drafts (gui-training)
+
+Created `paper/gui-steering/paper.md` (third Sutra paper, this branch): "Painting
+and Steering on a Frozen-Embedding Substrate". Full abstract + 11-section outline,
+with FIRST DRAFTS for the parts grounded in shipped 1a/1b code — §1 intro/
+contributions, §2 whole-frame substrate rendering + the broadcast-buffer
+no-recompile mechanism, §3 substrate glyph rendering, §4 the θ hero (axes, colour
+channels, headline argmax), §5 host-side SPSA steering (method + the gain
+schedule), §6 render-fidelity (prose; exact per-mode maxima deferred to the P6
+script), §8 "What we are not claiming" (composition host-side; optimizer host-side
+SPSA not substrate-native training; reward is a human button; fidelity is
+oracle-agreement). §7 steering results are GATED on the 1c/1d demo and explicitly
+marked "awaiting measurement" — no fabricated soak numbers. §9/§10/§11 are stubs
+pointing at their tasks (P10 related-work, P11 reproducibility). `reviews/` dir
+created. No `.post_id` and no CI yet, so pushing this path does NOT submit to
+clawRxiv (that's task P12). Integrity rails held: measured numbers only, no
+"honest/genuinely" buzzwords, URLs reserved for Reproducibility.
+
+## 2026-06-14: queue — per-branch policy note + comprehensive a1 paper track (gui-training)
+
+Per Emma (remote-control): (1) added a top-of-`queue.md` note that `queue.md` is
+PER-BRANCH and is expected to differ between branches — different branches pursue
+different tasks, so a stripped queue is by design, not drift, and is not to be
+"reconciled" against another branch; the full agenda lives in `todo.md`, the queue
+is the active slice for the branch, and a merge carries completed work (code +
+DEVLOG), not transient queue items. (2) Populated a comprehensive **paper track
+(§2)** for the GUI/a1 work — a dedicated paper at `paper/gui-steering/` (a third
+Sutra paper, on this branch) covering whole-frame substrate rendering, the
+runtime-parameter (no-recompile) mechanism, substrate glyph rendering, and
+host-side SPSA steering of substrate-rendered output. Tasks P0 (scaffold) → P14
+(website), with method sections (P1–P5) + render-fidelity results (P6) draftable
+now and steering results (P7/P8) GATED on the 1c/1d demo measurements; integrity
+rails attached (measured numbers only; §"what we are not claiming"; clawRxiv CI as
+its own item). GUI-extensions section renumbered 2→3. No code change; queue + this
+note only.
+
+## 2026-06-14: a1 item 1b — host-side batched SPSA optimizer (gui-training)
+
+Ported the SPSA optimizer that steers the hero. `demos/gui/hero_spsa.py`:
+`HeroSPSA`, a host-side two-sided SPSA over the hero θ, math verbatim from the
+private hub's validated `spsa_dense` — Rademacher perturbation, gains
+`ck=c0/(j+1)^0.101` and `ak=a0/(j+1+10)^0.602`, `ghat=(r+ − r−)/(2·ck)·delta`,
+clamp to [-1,1]^D. Split into `propose()` (returns the two perturbed render-θ
+dicts to score) and `update(r_plus, r_minus)` (one SPSA step) for the interactive
+warmer/colder flow. SPSA optimizes a normalized θ∈[-1,1]^D (neutral start 0); each
+continuous render axis maps from [-1,1] by an affine `center+half_range*norm`
+(`HERO_SPSA_AXES`, e.g. invs∈[0.1,2.5], bright∈[0.2,1.8]) so SPSA stays in its box
+while the renderer sees its ranges; headline weights pass straight through to the
+argmax.
+
+Verified MEASURED (4/4, host-only — no substrate, so no torch needed): reward
+`-||θ−target||²` → final/start distance < 0.25 over 5 seeds (converges to the
+maximizer); a monotonic-in-`bright` reward drives `bright` up ≥0.3 while a
+signal-free axis stays near neutral (gradient SIGN correct); θ stays in the box
+under a hard push and the batch counter advances 1/update; update-before-propose
+raises. Honest rail: this is host-side SPSA over substrate-rendered output, NOT
+substrate-native training — the a1 spec's explicit framing. The proposed θ dicts
+carry exactly the axes render_hero/render_hero_rgb/select_headline consume;
+substrate wiring is item 1c. Next: 1c (warmer/colder buttons + live window).
+
+## 2026-06-14: a1 item 1a COMPLETE — colour channels for the θ hero (gui-training)
+
+Added the colour axis, completing item 1a. `frame_hero.su` gains `hero_channel`:
+the same composed hero (glow + ring + bg) tinted by a per-channel weight, in ONE
+substrate op (the tint multiply is elementwise `hadamard` on the substrate — no
+host colour arithmetic). `render_hero_rgb()` in `whole_frame.py` calls it three
+times with θ's (cr, cg, cb) tints → R, G, B as three whole-frame substrate fields,
+then stacks them (display assembly, the frame_rgb precedent). θ gains cr/cg/cb
+axes (default warm-white 1.0/0.85/0.6); HERO_THETA_AXES updated.
+
+Verified MEASURED (whole-frame suite 15→16): each channel == host oracle (mono
+hero × tint) to 1e-6, and θ drives colour — a pure-red tint (cr=1, cg=cb=0) lights
+R while zeroing G and B — `test_hero_rgb_channels_match_tinted_oracle_and_drive_colour`.
+Runtime-parameter (tints are broadcast buffers, no recompile). Honest rail: the
+channel fields are substrate; only the 3-channel stack is host display assembly.
+
+**Item 1a (θ-parameterized hero render) is now COMPLETE**: render core + headline
+selector + colour. θ = (cx, cy, invs, bright, radius, accent, bg, cr, cg, cb) +
+headline_w. Next in the a1 build order: 1b (host-side batched SPSA optimizer).
+
+## 2026-06-14: a1 item 1a — headline-glyph selector for the θ hero (gui-training)
+
+Added the discrete "copy" axis to the warmer/colder hero: a headline chosen from
+a preset set (`HERO_HEADLINES`) by a HOST-SIDE argmax over θ['headline_w'], with
+the glyph PIXELS rendered on the substrate. `whole_frame.py`: `select_headline()`
+(host argmax), `render_headline_banner()` (rasterizes a headline by rendering each
+glyph via demos/font `render_glyph` = font_bound_antipodal.su on the substrate;
+cached per headline so the per-frame path stays cheap), and
+`render_hero_with_headline()` (composites the substrate banner into a top band of
+the substrate hero field; host-side placement, named).
+
+Verified MEASURED (3 tests, whole-frame suite 12→15): the banner is EXACTLY the
+per-glyph substrate fields concatenated (cell-for-cell `array_equal`, no host font
+table) — `test_headline_banner_is_exactly_the_substrate_glyphs`; selection is a
+host argmax that picks the right preset per weight vector
+(`test_headline_selection_is_host_argmax_over_theta`); the composite overlays lit
+(==1.0) glyph cells into the band while leaving the region below untouched
+(== plain hero render) — `test_hero_with_headline_overlays_banner_in_band`. Honest
+rails: glyph pixels + hero field are substrate; the which-headline argmax and the
+banner placement are host-side composition (a1: the compositor is host-side — no
+"one substrate program" claim). Remaining 1a: colour channels.
+
+## 2026-06-14: `gui-training` branch — autonomous GUI loop + a1 hero render core (item 1a)
+
+Set up a dedicated **`gui-training`** branch with its own autonomous work-loop, so
+GUI training work runs in parallel with the formal-verification work continuing on
+`main` (Emma, remote-control). Stripped `queue.md` on this branch to GUI-only (the
+warmer/colder "a1" self-morphing hero demo + the deferred learned-decoder and
+Yantra-GUI extensions); all non-GUI tracks (thrml, FV, transpilers, WASM, corpus,
+paper) stay on `main`. Three session-local crons run the branch: work-loop (:03),
+auto-flush (:15), status-report (:42) — each branch-guarded to `gui-training`,
+never touching `main`.
+
+First work increment — **item 1a render core**: `demos/gui/frame_hero.su`, a
+θ-parameterized hero composed whole-frame in ONE substrate op. A single parameter
+vector θ (cx, cy, invs, bright, radius, accent, bg) drives glow + ring + background
+via elementwise `hadamard`/add; every θ component arrives as a per-pixel broadcast
+buffer, so changing θ never recompiles (the load-bearing a1 fact — the optimizer
+just changes call args). Host bridge `render_hero()` + shared `HERO_THETA_AXES` /
+`HERO_THETA_DEFAULT` in `whole_frame.py`. Verified MEASURED, not "ran":
+`test_hero_theta_render_matches_oracle_and_morphs` — substrate frame == host oracle
+to 1e-6 for a non-default θ, and θ drives the picture (cx slides the bright column;
+`bright` raises the centre). Full whole-frame suite 12/12. Honest rail: composition
+is host-side (named so); the SPSA optimizer (item 1b) is host-side over
+substrate-rendered output — no "one substrate program" claim. Remaining 1a: the
+discrete headline-glyph selector + colour channels.
 
 ## 2026-06-14: FV paper extended with the thrml-gadget verification (clawRxiv loop)
 

@@ -24,8 +24,53 @@ deleted on completion. Keep the task tool in sync with this file.
 - **NEVER use `Math.mod`** (Emma 2026-06-12 — worst-implemented function; measured
   vector-collapse/NaN, finding `2026-06-12-rotation-mod-vector-collapse-…`). For
   wrap/periodic behavior use complex rotation (`demos/gui/live_frame.su`).
-- **a1 warmer/colder GUI demo MOVED to a separate branch (Emma 2026-06-14 21:06).**
-  Stripped from main's queue; do NOT re-add it here. It lives on its own branch.
+- **`gui-training` MERGED BACK INTO main (2026-06-15) — combined work loop.** The a1
+  warmer/colder GUI demo + its paper (`paper/gui-steering/`) were built on the
+  `gui-training` branch and are now merged here. The branches are reunified into one
+  loop; the old "this branch never touches main" discipline is retired. **GUI work
+  takes priority in this combined loop (Emma 2026-06-15)** — see the GUI track
+  immediately below the ACTIVE DIRECTIVE.
+
+## 🎨 GUI track — TOP PRIORITY (Emma 2026-06-15, merged from `gui-training`)
+
+**GUI work comes FIRST in this combined loop — ahead of the ACTIVE DIRECTIVE phases
+below.** The a1 demo is BUILT and its paper (`paper/gui-steering/paper.md`) is drafted
+through P9/P13; what remains are the items below. Code: `demos/gui/`, experiments:
+`experiments/gui_*.py`, paper: `paper/gui-steering/`.
+
+HARD RAILS (CLAUDE.md §GUI): every pixel renders on the substrate; stateful widgets are
+substrate-RNNs; the optimizer/compositor host-side parts are named host-side (no "one
+substrate program" overclaim); verify rendered frames against a reference, MEASURED —
+never "it ran". No faked results, no weakened tests.
+
+**a1 demo (1a–1d) COMPLETE; paper P0–P9, P13 DONE.** Remaining paper/infra items:
+
+- [ ] **P10. §Related work.** VSA/holographic rendering, frozen-embedding computation,
+  SPSA, human-preference optimization. Verify each cited claim against the source;
+  re-download reference PDFs per session (gitignored cache), never commit them
+  (CLAUDE.md §Reference PDFs).
+- [ ] **P11. §Reproducibility.** Exact commands: the `demos/gui/` scripts + tests + the
+  P6/P7 experiment scripts. URLs only here.
+- [ ] **P12. clawRxiv CI workflow — `gui-paper-ci.yml` — EMMA-GATED (outward-facing).**
+  Model on `fv-paper-ci.yml` (own `.post_id` supersedes chain, auto-submit + commit the
+  AI review back under `paper/gui-steering/reviews/`). Now that `gui-training` is merged,
+  the trigger branch is **`main`** (push to `paper/gui-steering/paper.md`). The first push
+  creates a real clawRxiv post — **surface via AskUserQuestion before wiring the
+  auto-submit trigger.**
+- [ ] **P14. Website page (optional, human-facing).** A `docs/` page for the demo per the
+  audiences split (humans read the site; agents read the repo MD). Keep it free of
+  repo-internal scratchpad references. Built by `scripts/build_site.py`.
+
+### GUI extensions (deferred, autonomous — todo.md §"GUI")
+
+- [ ] **Learned decoder / arbitrary-image generation — EMMA-GATED.** A trained nonlinear
+  decoder from a latent to an arbitrary frame (constrain-train "every op trainable" meets
+  GUI; the analytic whole-frame render is the fixed-weight base case). Ties into the
+  weight→code / constrain-train work. **Pick the approach with Emma before a large
+  build** — surface via AskUserQuestion rather than guessing an architecture. Do NOT
+  start a large build autonomously.
+- [ ] **Yantra GUI integration** — the window living in the orchestrator, per the Yantra
+  OS. Forward goal; design with the Yantra submodule. Lower priority.
 
 ## 🔥 ACTIVE DIRECTIVE (Emma 2026-06-14 21:06, RE-ORDERED 22:05) — Erlang → FV ACCEPT → rest → FV-expand → ACCEPT
 
@@ -553,6 +598,8 @@ public + OpenJDK GPLv2+Classpath) are permissive enough to study and build on.
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`.
+- GUI: demos `demos/gui/`, experiments `experiments/gui_*.py`, paper
+  `paper/gui-steering/`, page `docs/gui.md`. Agenda: `todo.md` §"GUI".
 - Findings (dated): `planning/findings/`. Open design questions:
   `planning/open-questions/`. Devlog: `DEVLOG.md`.
 - Corpus repo: `github.com/EmmaLeonhart/sutra-w2c-corpus` (submodule

@@ -405,6 +405,237 @@ def render_quad(size: int = 64, radius: float = 0.5, block: int = 8):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+_HERO_MOD = None
+
+
+def _hero_module():
+    """Compile frame_hero.su ONCE and cache the module in-process. The steering
+    loop (item 1c) and the soak (1d) render hundreds of frames; recompiling each
+    time would dominate the wall clock, so the compiled module is reused."""
+    global _HERO_MOD
+    if _HERO_MOD is None:
+        from sutra_compiler import compile_su
+        _HERO_MOD = compile_su(DEMO_GUI / "frame_hero.su",
+                               llm_model="unused-no-basis-vectors",
+                               runtime_dim=8, verbose=False)
+    return _HERO_MOD
+
+
+def _compile_hero():
+    """Return (hero, _VSA). The θ-parameterized hero render core for the
+    warmer/colder a1 steering demo (queue item 1a)."""
+    mod = _hero_module()
+    return mod.hero, mod._VSA
+
+
+# θ axis order — the single source of truth the host compositor and the SPSA
+# optimizer (item 1b) share. Each value is broadcast to every pixel as a buffer;
+# changing θ never recompiles (a1 spec: runtime parameters, no recompile).
+HERO_THETA_AXES = ("cx", "cy", "invs", "bright", "radius", "accent", "bg",
+                   "cr", "cg", "cb")
+
+# A neutral, on-screen default θ: centred glow, unit scale/brightness, a faint
+# ring accent, mid background, warm-white tint (cr,cg,cb). The SPSA loop perturbs
+# around a θ like this.
+HERO_THETA_DEFAULT = {
+    "cx": 0.0, "cy": 0.0, "invs": 1.0, "bright": 1.0,
+    "radius": 0.5, "accent": 0.25, "bg": 0.0,
+    "cr": 1.0, "cg": 0.85, "cb": 0.6,
+}
+
+
+def render_hero(size: int = 64, theta: dict | None = None):
+    """Return a (size, size) hero field driven by the parameter vector `theta`,
+    computed in ONE substrate op (frame_hero.su's `hero`). `theta` maps each axis
+    in HERO_THETA_AXES to a scalar; missing axes fall back to HERO_THETA_DEFAULT.
+    The scalars become per-pixel broadcast buffers — so the optimizer morphs the
+    hero by changing these call arguments, with no recompile."""
+    import torch
+
+    hero, vsa = _compile_hero()
+    dt, dev = vsa.dtype, vsa.device
+    th = dict(HERO_THETA_DEFAULT)
+    if theta:
+        th.update(theta)
+    xs, ys = [], []
+    for j in range(size):              # row -> y
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):          # col -> x
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    n2 = size * size
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(n2, dtype=dt, device=dev)
+
+    def bcast(name):
+        return torch.full((n2,), float(th[name]), dtype=dt, device=dev)
+
+    buf = hero(X, Y, ones, bcast("cx"), bcast("cy"), bcast("invs"),
+               bcast("bright"), bcast("radius"), bcast("accent"), bcast("bg"))
+    buf = buf.real if buf.is_complex() else buf
+    return buf.reshape(size, size).detach().to("cpu").numpy()
+
+
+def render_hero_rgb(size: int = 64, theta: dict | None = None):
+    """Return a (size, size, 3) COLOUR hero driven by θ, computed as THREE
+    whole-frame substrate ops (frame_hero.su's `hero_channel`): R, G, B are the
+    same composed hero tinted on the substrate by θ's (cr, cg, cb) weights. The
+    host stacks the three substrate-computed channels (display assembly, the
+    frame_rgb precedent) — no host colour arithmetic touches the field. θ changing
+    needs no recompile (the tints are broadcast buffers)."""
+    import numpy as np
+    import torch
+
+    mod = _hero_module()
+    hero_channel, vsa = mod.hero_channel, mod._VSA
+    dt, dev = vsa.dtype, vsa.device
+
+    th = dict(HERO_THETA_DEFAULT)
+    if theta:
+        th.update(theta)
+    xs, ys = [], []
+    for j in range(size):
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    n2 = size * size
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(n2, dtype=dt, device=dev)
+
+    def bcast(val):
+        return torch.full((n2,), float(val), dtype=dt, device=dev)
+
+    base = (X, Y, ones, bcast(th["cx"]), bcast(th["cy"]), bcast(th["invs"]),
+            bcast(th["bright"]), bcast(th["radius"]), bcast(th["accent"]), bcast(th["bg"]))
+
+    def chan(tint_name):
+        buf = hero_channel(*base, bcast(th[tint_name]))   # ONE substrate op -> channel
+        buf = buf.real if buf.is_complex() else buf
+        return buf.reshape(size, size).detach().to("cpu").numpy()
+
+    return np.stack([chan("cr"), chan("cg"), chan("cb")], axis=-1)
+
+
+# --- Headline-glyph selector (a1 item 1a, discrete "copy" axis) ----------------
+#
+# The hero's headline is chosen from a small preset set by an argmax over θ's
+# per-headline mixture weights (HOST-SIDE selection — the discrete copy axis; the
+# SPSA optimizer nudges the weights, the host renders the winner). The glyph
+# PIXELS are substrate output (render_glyph / font_bound_antipodal.su); only the
+# which-headline choice and the banner placement are host-side composition (a1
+# spec: the compositor is host-side — do not claim "one substrate program").
+
+# Preset UPPERCASE headlines (A-Z / 0-9 only — the 36-glyph renderer's alphabet).
+HERO_HEADLINES = ("SUTRA", "LEARN", "STEER", "WARMER")
+
+_BANNER_CACHE: dict = {}
+
+
+def _render_glyph(code: float):
+    """Render one 5x5 glyph on the substrate via demos/font's render_glyph
+    (font_bound_antipodal.su). Imported lazily so the gui module doesn't pull the
+    font compile unless a headline is actually rasterized."""
+    import pathlib as _pl
+    import sys as _sys
+    font_dir = _pl.Path(__file__).resolve().parent.parent / "font"
+    if str(font_dir) not in _sys.path:
+        _sys.path.insert(0, str(font_dir))
+    import font_demo
+    return font_demo.render_glyph(code)
+
+
+def select_headline(theta: dict | None = None) -> str:
+    """HOST-SIDE argmax over θ['headline_w'] (one weight per HERO_HEADLINES entry)
+    → the headline string to render. The discrete copy axis of the a1 demo. With
+    no weights, returns the first headline."""
+    if not theta:
+        return HERO_HEADLINES[0]
+    w = theta.get("headline_w")
+    if not w:
+        return HERO_HEADLINES[0]
+    n = len(HERO_HEADLINES)
+    return HERO_HEADLINES[max(range(n),
+                              key=lambda i: w[i] if i < len(w) else float("-inf"))]
+
+
+def render_headline_banner(headline: str):
+    """Rasterize `headline` into a binary banner field of shape (5, 5*len) by
+    rendering each glyph ON THE SUBSTRATE (render_glyph). Cached per headline — the
+    banner only changes when the discrete argmax headline changes, not per frame,
+    so the per-frame render path stays cheap."""
+    import numpy as np
+
+    if headline in _BANNER_CACHE:
+        return _BANNER_CACHE[headline]
+    cols = [_render_glyph(float(ord(ch))) for ch in headline]
+    banner = (np.concatenate(cols, axis=1) if cols
+              else np.zeros((5, 0), dtype=np.float64))
+    _BANNER_CACHE[headline] = banner
+    return banner
+
+
+def _banner_placement(banner, size: int, band: tuple):
+    """Yield (frame_row, frame_col, banner_row, banner_col) for each frame cell the
+    banner maps onto: the banner is centred horizontally in the top `band`, scaled
+    nearest-neighbour keeping glyph aspect. Host-side placement geometry, shared by
+    the field overlay and the RGB overlay."""
+    hb, wb = banner.shape
+    if hb == 0 or wb == 0:
+        return
+    r0, r1 = int(band[0] * size), int(band[1] * size)
+    rows = max(1, r1 - r0)
+    cols = max(1, min(size, int(rows * wb / hb)))
+    c0 = (size - cols) // 2
+    for j in range(rows):
+        by = min(hb - 1, int(j * hb / rows))
+        for i in range(cols):
+            bx = min(wb - 1, int(i * wb / cols))
+            yield r0 + j, c0 + i, by, bx
+
+
+def render_hero_with_headline(size: int = 64, theta: dict | None = None,
+                              band: tuple = (0.08, 0.30)):
+    """The θ-parameterized hero field (render_hero) with the selected headline
+    banner overlaid into a horizontal band near the top. Returns (field, headline).
+
+    Substrate: the hero field (frame_hero.su) AND every glyph pixel (render_glyph).
+    Host-side composition (named, per the a1 spec): the argmax headline choice and
+    nearest-neighbour placement of the banner into the frame band. Lit banner cells
+    are painted at full brightness over the hero field."""
+    field = render_hero(size, theta)
+    headline = select_headline(theta)
+    banner = render_headline_banner(headline)            # (5, 5*n) binary, substrate
+    for fr, fc, by, bx in _banner_placement(banner, size, band):
+        if banner[by, bx] > 0.5:                         # lit glyph cell
+            field[fr, fc] = 1.0                          # host paints the overlay
+    return field, headline
+
+
+def render_hero_full(size: int = 64, theta: dict | None = None,
+                     band: tuple = (0.08, 0.30)):
+    """The full demo frame: the θ-driven RGB hero (render_hero_rgb) with the
+    selected headline banner overlaid white into the top band. Returns
+    (rgb_image (size,size,3), headline).
+
+    Substrate: the three colour channels (hero_channel) AND every glyph pixel.
+    Host-side composition (named): the RGB stack, the argmax headline choice, and
+    the banner placement. This is what the live steering window paints (item 1c)."""
+    import numpy as np
+
+    img = render_hero_rgb(size, theta)                   # (size,size,3) substrate channels
+    headline = select_headline(theta)
+    banner = render_headline_banner(headline)
+    for fr, fc, by, bx in _banner_placement(banner, size, band):
+        if banner[by, bx] > 0.5:
+            img[fr, fc, :] = 1.0                          # white headline over all channels
+    return img, headline
+
+
 def main() -> None:
     import argparse
 
