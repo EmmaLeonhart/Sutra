@@ -39,12 +39,80 @@ def _text(node, src: bytes) -> str:
 # scrutinee while lowering that clause's result (the OCaml `_MATCH_SUBST` shape).
 _SUBST: dict[str, str] = {}
 
+# Maps -> axons (the Rust struct / OCaml record pattern). A `%{x: a, y: b}`
+# literal cannot be lowered inline (axon construction is statement-shaped), so it
+# is HOISTED to a prelude temp and `_ARG_HOIST[node.id]` carries the temp name to
+# the position where the map appeared. `_AH_COUNTER` numbers the temps per body.
+_ARG_HOIST: dict[int, str] = {}
+_AH_COUNTER = [0]
+
 
 def _blend(test_src: str, then_src: str, else_src: str) -> str:
     """Sutra strong-defuzz two-way blend (no control flow) — the shared frontend
     shape (OCaml/Scala `_blend`). Arms fully parenthesised."""
     w = f"truth_axis(defuzzy({test_src}))"
     return f"(((1 + {w}) * ({then_src})) + ((1 - {w}) * ({else_src}))) / 2"
+
+
+def _map_fields(node, src: bytes):
+    """If `node` is an Elixir `%{x: a, y: b}` map literal with atom-key shorthand
+    pairs, return [(field, value_node), …]; else None. The `%{"k" => v}` arrow
+    form and non-atom keys are a later item."""
+    if node.type != "map":
+        return None
+    content = next((c for c in node.named_children if c.type == "map_content"), None)
+    if content is None:
+        return None
+    kws = next((c for c in content.named_children if c.type == "keywords"), None)
+    if kws is None:
+        return None
+    fields = []
+    for pair in kws.named_children:
+        if pair.type != "pair" or len(pair.named_children) < 2:
+            return None
+        key_node, val_node = pair.named_children[0], pair.named_children[-1]
+        if key_node.type != "keyword":
+            return None  # `"k" => v` arrow form — later item
+        field = _text(key_node, src).rstrip().rstrip(":")
+        fields.append((field, val_node))
+    return fields if fields else None
+
+
+def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
+    """Post-order walk of a body expression: hoist EVERY map literal to a prelude
+    `Axon _ahN; _ahN.add("f", v); …` group and register `node.id → _ahN` in
+    `_ARG_HOIST` so `_lower_expr` emits the temp name in place. Returns the
+    concatenated prelude statements (possibly empty). Mirrors the Rust
+    `_hoist_enum_constructions` shape."""
+    prelude = ""
+    for child in node.named_children:
+        prelude += _hoist_maps(child, src, indent)
+    fields = _map_fields(node, src)
+    if fields is not None:
+        tmp = f"_ah{_AH_COUNTER[0]}"
+        _AH_COUNTER[0] += 1
+        prelude += f"{indent}Axon {tmp};\n"
+        for field, val in fields:
+            prelude += f'{indent}{tmp}.add("{field}", {_lower_expr(val, src)});\n'
+        _ARG_HOIST[node.id] = tmp
+    return prelude
+
+
+def _dot_accessed_params(body, params: set, src: bytes) -> set:
+    """Param names read via dot-access (`p.x`) anywhere in `body` — these are
+    maps, so they type as `Axon` rather than the default `number`."""
+    found: set = set()
+
+    def walk(n):
+        if n.type == "dot" and n.named_children:
+            obj = n.named_children[0]
+            if obj.type == "identifier" and _text(obj, src) in params:
+                found.add(_text(obj, src))
+        for c in n.named_children:
+            walk(c)
+
+    walk(body)
+    return found
 
 
 def _lower_pipe(left, right, src: bytes) -> str:
@@ -264,7 +332,19 @@ def _try_lower_foldable_nontail(name: str, params, body, src: bytes):
 
 
 def _lower_expr(node, src: bytes) -> str:
+    if _ARG_HOIST and node.id in _ARG_HOIST:
+        return _ARG_HOIST[node.id]  # a hoisted map literal — emit its temp name
     t = node.type
+    if t == "dot":
+        # Map field read `p.x` -> the axon item read, projected to a clean
+        # number-vector (realvec — raw fillers carry crosstalk, the Rust pattern).
+        kids = node.named_children
+        if len(kids) == 2 and kids[1].type == "identifier":
+            return f'realvec({_lower_expr(kids[0], src)}.item("{_text(kids[1], src)}"))'
+        return "/* UNSUPPORTED-EXPR: dot arity */"
+    if t == "map":
+        # A map literal reaching here was not hoisted — surface the gap.
+        return "/* UNSUPPORTED-CONSTRUCTION: map value outside a hoistable position */"
     if t == "integer":
         return _text(node, src).replace("_", "")
     if t == "float":
@@ -295,6 +375,11 @@ def _lower_expr(node, src: bytes) -> str:
             return f"/* UNSUPPORTED-OP: {_text(op, src)} */"
         return f"({_lower_expr(left, src)} {sop} {_lower_expr(right, src)})"
     if t == "call":
+        # Field access `p.x` parses as a zero-arg `call` wrapping a `dot`.
+        dot = next((c for c in node.named_children if c.type == "dot"), None)
+        has_args = any(c.type == "arguments" for c in node.named_children)
+        if dot is not None and not has_args:
+            return _lower_expr(dot, src)
         kw = _call_kw(node, src)
         if kw == "if":
             # call(if, arguments(cond), do_block(then…, else_block(else…)))
@@ -542,9 +627,17 @@ def _lower_def(def_call, src: bytes) -> str:
         # self-calling Sutra function would not terminate through the fuzzy-if
         # blend. Surface the gap rather than mislower.
         return f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the tail-accumulator or foldable non-tail shape\n"
-    params_src = ", ".join(f"{_TYPE} {p}" for p in params)
+    # Maps -> axons: hoist any `%{…}` literals in the body to prelude temps, and
+    # type any dot-accessed param as `Axon` (it is a map, not a number).
+    _ARG_HOIST.clear()
+    prelude = _hoist_maps(body, src)
+    axon_params = _dot_accessed_params(body, set(params), src)
+    params_src = ", ".join(
+        f"{'Axon' if p in axon_params else _TYPE} {p}" for p in params)
     body_src = _lower_expr(body, src)
+    _ARG_HOIST.clear()
     return (f"function {_TYPE} {name}({params_src}) {{\n"
+            f"{prelude}"
             f"    return {body_src};\n"
             f"}}\n")
 
@@ -559,6 +652,8 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     src = source.encode("utf-8")
     tree = parser.parse(src)
     _SUBST.clear()
+    _ARG_HOIST.clear()
+    _AH_COUNTER[0] = 0
 
     out = ["// Generated by sutra-from-elixir. See sdk/sutra-from-elixir/README.md.\n"]
     for child in tree.root_node.named_children:

@@ -211,10 +211,11 @@ negative results, not hidden.
   path); variant/record `match` patterns; records/DUs → axons (needs the infra in
   the dedicated item below). Measured grammar quirk: parenthesize call operands
   under infix. [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
-- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through the pipe operator
-  `|>` shipped 2026-06-14, suite 18/18): maps/structs → axons; multi-clause heads
-  with recursion (currently `UNSUPPORTED-RECURSION`); non-comparison guards
-  (`is_integer`, `and`/`or` chains). (Erlang is now its own frontend, shipped.)
+- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through atom-key maps →
+  axons shipped 2026-06-15, suite 20/20): structs (`%Struct{…}`/`defstruct`) → axons;
+  the `%{"k" => v}` arrow-map form; maps in multi-clause/recursive bodies; multi-clause
+  heads with recursion (currently `UNSUPPORTED-RECURSION`); `is_integer`-style type-test
+  guards (`and`/`or` chains already lower via `_OP_MAP`). (Erlang is its own frontend.)
 - [ ] **F# records/DUs → axons — needs F# infrastructure first.** Records port
   the OCaml pattern conceptually. Prereq (a) typed-param extraction (`(p: Point)`
   `typed_pattern`) SHIPPED 2026-06-15 (handles primitive types; record-type names

@@ -30,6 +30,7 @@ _RUNNABLE = {
     "multiclause": 120.0,  # def classify(0)/( 1)/(n) heads -> dispatch fn; classify(0)+classify(2) = 100+20
     "guard_clause": 150.0,  # def grade(n) when n>90/when n>50/(_n) -> guarded dispatch; grade(95)+grade(70)+grade(20) = 100+50+0
     "pipe_chain": 16.0,  # 5 |> add(3) |> double() -> double(add(5,3)) = double(8) = 16
+    "map_axon": 13.0,  # def sum2(p), do p.x + p.y; sum2(%{x: 5, y: 8})  (map -> axon, dot -> realvec(item))
 }
 
 
