@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-06-14: FV paper — answer v69's framing cons (clawRxiv loop cycle 3)
+
+v69 (Reject) resolved FOUR of v68's cons (hallucinated citation, capacity-vs-exactness,
+§7-cohesion, self-containment all gone; randomized PIT + Lean proofs still credited PROS).
+Addressed v69's three addressable framing cons in `paper/formal-verification/paper.md`:
+- **bit-exact + transcendentals**: clarified the soft-halt `sigmoid` (a transcendental, NOT
+  bit-portable) is deliberately OUTSIDE the bit-exact claim — bit-exactness is for the
+  integer arithmetic dispatch; termination rests on monotone thresholding (an
+  inequality/monotonicity property robust to the sigmoid's exact bits). The two are
+  separate and neither leans on a transcendental being bit-portable.
+- **termination "circularity"**: sharpened §3.3 to explicitly disclaim any halting-problem
+  novelty — by-construction exclusion of unbounded `while` is the point, not hidden
+  circularity; the remaining decidable obligation (monotone halt signal crosses its
+  threshold within the bound) is a real mechanical check, not vacuous.
+- **§4.5 leak-sweep formality**: stated explicitly that the leak sweep is an engineering
+  defense-in-depth CI guard, NOT a formal method, deliberately syntactic — and §4.5's
+  contribution IS showing a syntactic check is necessary-but-not-sufficient. No tension
+  with the formal results (§3's obligations); also dropped the inline script path.
+Abstract untouched (4994 ≤5000); headers 1–8 intact. Push runs fv-paper-ci → v70.
+Carryover (more fundamental, may need experiments/scope statements not framing): frozen-
+substrate trust (embedding distribution/dimensionality vs interpolant stability), Kleene-
+fragment scope (data structures/dynamic memory), same-graph-vs-logical practical implications.
+
 ## 2026-06-14: FV paper — answer v68's concrete cons (clawRxiv loop cycle 2)
 
 v68 (Reject) confirmed the randomized-PIT work landed: the scalability con is now a PRO
