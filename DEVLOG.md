@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-16: GUI rebuild R6 — paper rewritten around the Adam demo; rebuild COMPLETE
+
+Rewrote `paper/gui-steering/paper.md` around the Adam-through-differentiable-substrate
+demo, finishing the GUI rebuild (R1–R6). The central contribution flipped: the old paper
+framed steering as host-side SPSA and §8 literally said "no gradients flow through the
+substrate render" — now FALSE. New framing: the render compiles to differentiable tensor
+ops, so gradients flow through it, and steering is a gradient-based online-RLHF loop
+(pairwise Bradley-Terry reward + Adam ascending R(render(θ)) through the substrate).
+Changes: title ("differentiable … gradient-based human-in-the-loop steering"); abstract
+(Adam/RLHF + gradients-through-render, measured steering bright→1.0/dark→0.0); contribution
+4 (gradient steering); §5 fully rewritten (SPSA→Adam+online reward, SPSA noted as baseline);
+§7 rewritten (measured grad flow: bg ∂=−1.0; directional results + the single-frame
+instability we measured and why we use Bradley-Terry); §8 corrected (gradients DO pass
+through the render; reward head + Adam still host-side); §9 (differentiable-rendering +
+Bradley-Terry/RLHF threads); §10 repro (Adam demo commands); §11; +Bradley-Terry 1952 and
+Adam (Kingma & Ba 2015) refs. Abstract 2269 chars. Gate on the transpiler track LIFTED;
+clawRxiv loop RESUMED (this push triggers the v6 submission of the rewritten paper).
+
 ## 2026-06-16: GUI rebuild R4 — live Adam window + run launcher
 
 `demos/gui/adam_window.py`: tkinter live window on `HeroAdam`. Paints the CURRENT hero
