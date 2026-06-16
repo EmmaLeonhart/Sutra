@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-16: trainable button B5 — JS→Sutra tie-in (button render authored in TS)
+
+`demos/gui/button_spec.ts` expresses the button's quartic-squircle render math in TypeScript;
+`sutra-from-ts` (`ts2su`) lowers it to `demos/gui/button_spec.su`. The concrete "linked to the
+JS stuff" path — the GUI/browser layer is TS/JS, and the same button render the substrate twin
+computes (B1) is authored in TS and lowered to Sutra. Verified end-to-end: transpiles →
+compiles → runs, `main` returns 1.0 (centre channel lit, matching button_frame.su). TDD
+`test_button_spec_ts.py` (2): compile+run the committed `.su` (CI-safe, no ts2su needed on the
+runner) asserting centre = 1.0; plus a regeneration check (skipped if the TS frontend is
+absent) that re-transpiling reproduces the committed `.su`. Honest limitation noted: ts2su
+currently lowers TS `number` → Sutra `int` and `const` locals land as `JavaScriptObject` (type
+not inferred) — it compiles/runs, but the float-fidelity render path stays the hand-written
+button_frame.su; full float lowering is a known TS-frontend follow-on. B4 (live HTML/JS button)
+remains, needs a real browser to smoke. 2/2 on CPU.
+
 ## 2026-06-16: trainable button B3 — ButtonAdam dual-reward controller (Phase 1 complete)
 
 `demos/gui/button_adam.py` — `ButtonAdam`: steers the differentiable substrate button (B1)
