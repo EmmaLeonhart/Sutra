@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-16: Multi-clause recursion in frontends — design doc (next increment de-risked)
+
+Work+flush sprint tick. The data-structure tier is now complete across the 8 applicable
+frontends (elixir/erlang/clojure/rust/fsharp/haskell/ocaml/scala; TS arrays are
+`JavaScriptObject` by carve-out). The next transpiler increment is multi-clause
+pattern-matched recursion (`fac(0)->1; fac(N)->N*fac(N-1)`), currently emitting
+`UNSUPPORTED-RECURSION` in Erlang/Elixir/Haskell. Rather than rush a refactor of the
+*working* recursion transforms during an aggressive sprint tick, wrote
+`planning/exploratory/2026-06-16-multiclause-recursion-frontends.md`: the pattern is
+semantically identical to the existing `if`-form, so the work is clause→conditional
+synthesis feeding the existing `_try_lower_tail_recursive`/`_try_lower_foldable_nontail`
+transforms — but those take the branch condition as an AST node, so they must be refactored
+to take `cond_src`/`neg_src` source strings first (with `tail_rec`/`nontail_fact` fixtures
+re-verified on the substrate before adding the multi-clause path). Full per-frontend
+breakdown + verification plan in the doc. Implementation deferred to a careful session.
+
 ## 2026-06-16: Erlang frontend — records `#name{f=v}` → named-field axons (Phase 3)
 
 Work-loop sprint tick. Erlang records now lower to named-field axons (the Elixir-struct
