@@ -577,6 +577,50 @@ def render_hero_rgb(size: int = 64, theta: dict | None = None):
     return np.stack([chan("cr"), chan("cg"), chan("cb")], axis=-1)
 
 
+def render_hero_rgb_torch(size: int = 64, theta: dict | None = None):
+    """DIFFERENTIABLE colour render: return the (size, size, 3) RGB hero as a TORCH
+    TENSOR that KEEPS its autograd graph — the load-bearing path for RGB Adam steering
+    (queue G1/G2). Unlike `render_hero_rgb` (which `.detach().numpy()`s each channel for
+    display), this keeps gradients flowing to θ THROUGH the compiled Sutra `hero_channel`
+    op, including to the per-channel colour tints `cr/cg/cb`.
+
+    Each channel is the SAME composed mono hero tinted on the substrate by its tint
+    (R←cr, G←cg, B←cb), so geometry axes (cx/cy/invs/bright/radius/accent/bg) carry grad
+    through all three channels and each tint carries grad through only its own channel.
+    `theta` maps each axis in HERO_THETA_AXES to a 0-d torch tensor (typically a
+    `requires_grad=True` parameter) or a Python float; missing axes fall back to
+    HERO_THETA_DEFAULT as grad-free constants. The broadcast is grad-preserving
+    (`val * ones`, NOT `torch.full(..., float(val))` which severs the graph). The returned
+    tensor is `(size, size, 3)`, real-valued, with `grad_fn` set when any θ entry requires
+    grad. No `.detach()` here: this is the differentiable boundary, not the display one."""
+    import torch
+
+    mod = _hero_module()
+    hero_channel, vsa = mod.hero_channel, mod._VSA
+    dt, dev = vsa.dtype, vsa.device
+    th = dict(HERO_THETA_DEFAULT)
+    if theta:
+        th.update(theta)
+    X, Y, ones = hero_grid(size, dt, dev)
+
+    def bcast(name):
+        v = th[name]
+        if isinstance(v, torch.Tensor):
+            # 0-d (or broadcastable) tensor -> grad-preserving per-pixel buffer.
+            return v.to(dtype=dt, device=dev) * ones
+        return torch.full((ones.shape[0],), float(v), dtype=dt, device=dev)
+
+    base = (X, Y, ones, bcast("cx"), bcast("cy"), bcast("invs"),
+            bcast("bright"), bcast("radius"), bcast("accent"), bcast("bg"))
+
+    def chan(tint_name):
+        buf = hero_channel(*base, bcast(tint_name))   # ONE substrate op -> channel
+        buf = buf.real if buf.is_complex() else buf
+        return buf.reshape(size, size)
+
+    return torch.stack([chan("cr"), chan("cg"), chan("cb")], dim=-1)
+
+
 # --- Headline-glyph selector (a1 item 1a, discrete "copy" axis) ----------------
 #
 # The hero's headline is chosen from a small preset set by an argmax over θ's
