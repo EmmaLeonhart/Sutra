@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: GUI paper v7 — add the Sutra language definition (answers v6 con 5)
+
+v6 (post 2801, the rewritten Adam paper) = Reject, but the pros now credit real things
+(substrate/host accounting, the Bradley-Terry choice, fidelity, zero-recompile) — the
+rewrite earned them. v7 answers the most actionable con (#5: "lacks a formal definition or
+syntax for the Sutra language"): added a "The renderer is a Sutra program" block to §2 with
+the verbatim `frame_hero.su` `hero` source and a definition of the surface used (typed
+`function`, `vector` locals, `hadamard`, infix +/−, no control flow/mutation/host-escape),
+each compiling to one PyTorch tensor op → the whole function is one differentiable fused
+sequence (the property §5/§7 rely on); noted the font/§3 is where the pretrained-embedding
+codebook enters (also softens con #6's title tension). Considered con #4 (spatial steering,
+not just brightness) but MEASURED it weak (top-left rater only moved cx to −0.03) — not
+claimed, since it would need real tuning. Abstract unchanged (2269 chars).
+
 ## 2026-06-16: Clojure frontend — numeric map keys `{1 a 2 b}` → axons (Phase 3)
 
 Work-loop tick (non-GUI; GUI gate lifted, v6 paper awaiting its review). Extended
