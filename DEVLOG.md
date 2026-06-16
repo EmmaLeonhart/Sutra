@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-16: F# frontend — DU variants → tagged axons (Phase 3) + substrate finding
+
+Work-loop tick. F# discriminated unions now lower to tagged axons (the Haskell/Rust
+shape). Added: `_union_info` prepass (`type T = A of int | B of int` → `_VARIANTS[name] =
+(tag, arity)`, tags per-DU in declaration order; DU type names → `_RECORD_TYPES` so
+`(s: T)` params type as `Axon`); `_variant_application` (a `Circle 4` application with a
+variant head); let-bound DU construction → `Axon c; c.add("_tag", 0); c.add("_val0", 4);`
+prelude (reuses the record hoist); variant `match` patterns `| Circle r -> …` test the tag
+and bind the payload to `_val0…`. New fixture `union_axon` (`area (Circle 4) = 4*4*3 = 48`);
+suite 22→24, no regressions.
+
+**Substrate finding (planning/findings/2026-06-16-substrate-tag-equality-degenerate-at-
+zero.md):** the FIRST version dispatched on an INLINE `(realvec(s.item("_tag")) == 0)` and
+returned **32 = (48+16)/2** — the 50/50 blend — because substrate equality is degenerate at
+the value **0** (a zero-valued filler read straight from an axon is a degenerate vector for
+cosine equality). Measured the fix: binding the tag to an `int` local first
+(`int _vtag0 = realvec(s.item("_tag")); (_vtag0 == 0)`) is crisp → 48. This is exactly why
+the working Haskell frontend already binds `_vtag` to a local. F# now does the same (emitted
+to the function prelude). Scope to value 0 only; non-zero tags compared inline were fine.
+
 ## 2026-06-16: F# frontend — records → axons (Phase 3)
 
 Work-loop tick, building on the let-sequence work. F# records now lower to named-field
