@@ -75,11 +75,12 @@ class ButtonBridge:
     the owner's A/B preference (one controller step), and tallies real visitor clicks. The
     HTTP handler is a thin shell over these methods; tests drive them directly."""
 
-    def __init__(self, alpha: float = 0.5, size: int = 24, seed: int = 0):
+    def __init__(self, alpha: float = 0.5, size: int = 24, seed: int = 0,
+                 live_ctr: bool = False):
         ba = _load("gui_button_adam", "button_adam.py")
         aud = _load("gui_button_audience", "button_audience.py")
         self._preset = aud.PRESET_COPY
-        self.ctl = ba.ButtonAdam(size=size, seed=seed, alpha=alpha)
+        self.ctl = ba.ButtonAdam(size=size, seed=seed, alpha=alpha, live_ctr=live_ctr)
         self.round = 0
         self.clicks = 0
         self.impressions = 0
@@ -112,10 +113,14 @@ class ButtonBridge:
         return self.state()
 
     def click(self, which: str = "variant") -> dict:
-        """Tally a real visitor click on the current/variant button (observed CTR)."""
+        """Tally a real visitor click on the current/variant button (observed CTR). In live-CTR
+        mode the click also trains the learned CTR reward head (a click is a preference for the
+        clicked button's clickability); the design advances on `prefer` using that head."""
         if which not in ("current", "variant"):
             raise ValueError(f"click 'which' must be current|variant, got {which!r}")
         self.clicks += 1
+        if self.ctl.live_ctr and self.ctl._pending is not None:
+            self.ctl.record_click(prefer_variant=(which == "variant"))
         return {"clicks": self.clicks, "impressions": self.impressions,
                 "ctr_observed": (self.clicks / self.impressions) if self.impressions else 0.0}
 
@@ -169,10 +174,12 @@ def main() -> None:
     ap.add_argument("--alpha", type=float, default=0.5, help="owner-vs-CTR blend (1=owner, 0=CTR)")
     ap.add_argument("--size", type=int, default=24)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--live-ctr", action="store_true",
+                    help="learn the CTR reward from real clicks (B7) instead of the simulated audience")
     args = ap.parse_args()
 
     from http.server import HTTPServer
-    bridge = ButtonBridge(alpha=args.alpha, size=args.size, seed=args.seed)
+    bridge = ButtonBridge(alpha=args.alpha, size=args.size, seed=args.seed, live_ctr=args.live_ctr)
     httpd = HTTPServer(("127.0.0.1", args.port), _make_handler(bridge))
     print(f"trainable-button demo on http://127.0.0.1:{args.port}/  (alpha={args.alpha})")
     try:

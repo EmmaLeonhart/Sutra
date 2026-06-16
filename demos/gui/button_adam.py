@@ -90,7 +90,8 @@ class ButtonAdam:
 
     def __init__(self, size: int = 48, seed: int = 0, alpha: float = 0.5,
                  lr_theta: float = 0.05, lr_reward: float = 0.3,
-                 theta_steps: int = 2, explore: float = 0.12, pool: int = 4):
+                 theta_steps: int = 2, explore: float = 0.12, pool: int = 4,
+                 live_ctr: bool = False):
         import torch
         torch.manual_seed(seed)
         self.wf = _load("gui_whole_frame", "whole_frame.py")
@@ -114,6 +115,12 @@ class ButtonAdam:
         self.copy = 1                                    # start neutral ("Get started")
         self.theta_opt = torch.optim.Adam(list(self.theta.values()), lr=lr_theta)
         self.owner_opt = torch.optim.Adam(list(self.owner.parameters()), lr=lr_reward)
+        # Live mode: the CTR term in the reward is a LEARNED head trained from real click
+        # preferences (record_click), not the simulated audience. Default off (B3 behaviour).
+        self.live_ctr = bool(live_ctr)
+        if self.live_ctr:
+            self.ctr_head = OwnerRewardModel(pool, dtype=self.img_dt, device=self.img_dev)
+            self.ctr_opt = torch.optim.Adam(list(self.ctr_head.parameters()), lr=lr_reward)
         self._gen = torch.Generator(device=self.img_dev).manual_seed(seed + 1)
         self._pending = None
 
@@ -131,8 +138,34 @@ class ButtonAdam:
     def current_copy(self) -> int:
         return int(self.copy)
 
+    def _ctr_term(self, frame, copy):
+        """The CTR reward term: the LEARNED click head in live mode, else the simulated
+        audience (B2). Both differentiable in the frame."""
+        if self.live_ctr:
+            return self.ctr_head(frame)
+        return self.audience.ctr(frame, copy)
+
     def _reward(self, frame, copy):
-        return self.alpha * self.owner(frame) + (1.0 - self.alpha) * self.audience.ctr(frame, copy)
+        return self.alpha * self.owner(frame) + (1.0 - self.alpha) * self._ctr_term(frame, copy)
+
+    def record_click(self, prefer_variant: bool) -> float:
+        """Live mode: train the learned CTR head on a click preference (the visitor clicked the
+        preferred button) via Bradley-Terry. Does NOT consume the pending pair or step the
+        policy — `choose` does the policy step (on the blended reward, which now includes the
+        freshly-trained ctr_head). Returns the BT loss."""
+        import torch
+        import torch.nn.functional as F
+        if not self.live_ctr:
+            raise RuntimeError("record_click requires live_ctr=True")
+        if self._pending is None:
+            raise RuntimeError("record_click() called before propose()")
+        cur_img, var_img = self._pending
+        better, worse = (var_img, cur_img) if prefer_variant else (cur_img, var_img)
+        self.ctr_opt.zero_grad()
+        bt = -F.logsigmoid(self.ctr_head(better) - self.ctr_head(worse))
+        bt.backward()
+        self.ctr_opt.step()
+        return float(bt.detach())
 
     def ctr_now(self) -> float:
         import torch
@@ -201,10 +234,15 @@ class ButtonAdam:
             self.theta_opt.step()
             self._clamp_theta()
 
-        # 3) DISCRETE COPY — argmax of the blended reward over the preset set.
-        with torch.no_grad():
-            frame = self._render()
-            rewards = [float(self._reward(frame, c).detach()) for c in range(self.n_copy)]
-            self.copy = int(max(range(self.n_copy), key=lambda c: rewards[c]))
+        # 3) DISCRETE COPY — argmax of the blended reward over the preset set. Only in sim
+        # mode: the simulated audience scores copy (copy_weight), so the argmax has signal. In
+        # live mode the learned head reads only the frame (copy is not rendered), so there is
+        # no copy signal — copy stays put (copy-from-clicks would need a separate discrete
+        # bandit over click stats; noted follow-on).
+        if not self.live_ctr:
+            with torch.no_grad():
+                frame = self._render()
+                rewards = [float(self._reward(frame, c).detach()) for c in range(self.n_copy)]
+                self.copy = int(max(range(self.n_copy), key=lambda c: rewards[c]))
         self._pending = None
         return float(bt.detach())

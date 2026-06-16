@@ -64,6 +64,20 @@ def test_click_tallies_observed_ctr():
         b.click("nonsense")
 
 
+def test_live_ctr_click_trains_the_learned_head():
+    """In live-CTR mode a visitor click trains the learned CTR head — its weights move."""
+    import torch
+    pytest.importorskip("torch")
+    srv = _server()
+    b = srv.ButtonBridge(alpha=0.0, size=16, seed=0, live_ctr=True)
+    before = b.ctl.ctr_head.head.weight.detach().clone()
+    for which in ("variant", "current", "variant", "variant"):
+        b.state()
+        b.click(which)
+    after = b.ctl.ctr_head.head.weight.detach()
+    assert not torch.allclose(before, after), "clicks did not train the learned CTR head"
+
+
 def test_prefer_advances_round_and_steps_controller():
     """Owner A/B preferences must advance the round AND actually move the controller: an owner
     that consistently prefers the bluer button drives the fill blue up."""

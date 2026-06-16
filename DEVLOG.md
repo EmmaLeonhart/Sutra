@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-16: trainable button B7 — learned CTR reward head (real-click loop closed)
+
+`ButtonAdam(live_ctr=True)` adds a differentiable learned CTR head (`ctr_head`, the same
+pooled-linear shape as the owner head) trained from click PREFERENCES via `record_click` —
+a visitor clicking button A over B is a Bradley-Terry preference for A's clickability. In
+live mode the reward's CTR term uses `ctr_head(frame)` (learned) instead of the simulated
+audience; default mode is unchanged (B3 untouched). Copy argmax is skipped in live mode (the
+frame-only head has no copy signal — copy-from-clicks would need a separate discrete bandit,
+noted). TDD `test_button_ctr_learned.py` (3) + `test_button_server.py` (+1): a synthetic
+clicker whose ground truth IS the B2 audience (used only to label clicks + measure, never read
+by the head) trains the learned head, and with α=0 steering raises the TRUE (B2) CTR — 0.501 →
+0.70–0.93 across seeds 0–3, 0 non-finite; record_click requires live mode; default mode builds
+no learned head; and a live-ctr bridge `/click` moves the head's weights. The bridge wires
+`/click` → `record_click` (+ a `--live-ctr` server flag). **The real-click loop is closed**:
+clicks train a differentiable reward that, ascended through the substrate render, gets more
+clicks. 8/8 (server+ctr) on CPU; B3 regression 3/3. Only B8 (browser smoke) remains.
+
 ## 2026-06-16: trainable button B4 — live HTML/JS button bridge (track complete)
 
 `demos/gui/button_server.py` (`ButtonBridge` + a thin `http.server` wrapper) +

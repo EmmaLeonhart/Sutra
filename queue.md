@@ -95,9 +95,16 @@ from θ, owner A/B → `prefer`, visitor clicks → tallied CTR. Bridge logic CI
 rendering/clicking is the only un-smoked piece (needs a browser — Emma to exercise). B5
 (sutra-from-ts) + B6 (docs/paper) done._
 
-**🎉 Trainable click-button (B1–B6) complete.** Follow-on (not started, optional): wire real
-clicks into a learned CTR reward head (replacing the simulated audience in live mode), and a
-browser smoke of `button_page.html`.
+**🎉 Trainable click-button (B1–B6) complete.**
+
+- [ ] **B8 — browser smoke of `button_page.html` (Emma + browser).** NOT autonomous — needs a
+  real browser. Run `python demos/gui/button_server.py --live-ctr` (or default), click in the
+  page, confirm the buttons restyle, CTR tallies, and (live-ctr) the design tracks clicks.
+
+_B7 (learned CTR reward head) ✅ done: `ButtonAdam(live_ctr=True)` + `record_click` train a
+differentiable click head; α=0 steering raises the true (B2) CTR 0.50 → 0.70–0.93 across
+seeds; bridge `/click` wired. The real-click loop is closed (head learns from clicks, ascended
+to get more clicks). Only B8 (browser smoke) remains — browser-blocked._
 
 ---
 
