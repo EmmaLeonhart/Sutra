@@ -217,9 +217,10 @@ negative results, not hidden.
   construction) + `let (a, b) = t` tuple-pattern destructuring shipped 2026-06-16,
   suite 28/28): nullary DU variants in value position; construction (DU/tuple/record) in
   ARGUMENT position (only let-bound now; needs an arg-hoist walk); record-update
-  `{ r with … }`; RECORD pattern destructuring (`let { x = a } = p`) + nested tuple
-  patterns. Measured grammar quirk: parenthesize call operands under infix. [Scala 20/20 —
-  named roadmap + tuples done 2026-06-16.]
+  `{ r with … }`; nested tuple/record patterns (`let (a, (b, c)) = t`); DU-case pattern
+  `let` destructuring (`let (Circle r) = s`). [`let { x = a } = p` record-pattern
+  destructuring shipped 2026-06-16.] Measured grammar quirk: parenthesize call operands
+  under infix. [Scala 20/20 — named roadmap + tuples done 2026-06-16.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
   positional-key axons + `elem(t, i)` access + `{a, b}` tuple-PATTERN params shipped
   2026-06-16, suite 30/30): map-PATTERN params (`%{x: a}` in a head); multi-statement

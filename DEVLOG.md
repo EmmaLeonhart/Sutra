@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: F# frontend — `let { x = a; y = b } = p` record-pattern destructuring (Phase 3)
+
+Work+report sprint tick (the F# analogue of the Rust struct-pattern increment). `let { x = a;
+y = b } = p` parses as `value_declaration_left → record_pattern → field_pattern[long_identifier
+field, identifier_pattern local]`; a new `_record_pattern_binding` detects it and substitutes
+each bound local to the named axon field read `realvec(p.item("x"))` (the `p.x` projection). The
+value must be a bare name (a record param or a let-bound record temp); a non-identifier value
+surfaces `UNSUPPORTED-LET`. New fixture `record_destructure` (`sum (p: Point) = let { x = a; y =
+b } = p in a + b`, `main` builds `{ x = 5; y = 8 }`) compiles AND runs on the substrate to 13;
+suite 28→30, no regressions.
+
 ## 2026-06-16: Rust frontend — `let Point { x, y } = p` struct-pattern destructuring (Phase 3)
 
 Work+flush sprint tick (extends the Rust tuple-destructure increment to named-field structs).
