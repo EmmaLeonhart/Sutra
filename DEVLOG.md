@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: F# frontend — let-SEQUENCE function bodies (Phase 3; unblocks records)
+
+Work-loop tick. Extended `sdk/sutra-from-fsharp` to lower let-sequence bodies
+(`let f x = let a = x+1 \n let b = a*2 \n a+b`). These parse as nested
+`declaration_expression`s — child[0] a `function_or_value_defn` value binding, child[1]
+the continuation — and the handler previously dropped the continuation (took only
+child[0]). Now it does sequential `_SUBST` substitution (the Clojure/Haskell `let` shape):
+bind `a → (lowered e1)`, lower the continuation, pop; bindings see earlier ones (F# `let`
+is sequential). New `_value_binding` helper extracts (name, value_node) from a
+`value_declaration_left` binding (returns None for nested function defns — a later item).
+New fixture `let_seq` (`f 5 = (5+1)+((5+1)*2) = 18`) compiles AND runs on the substrate to
+18; suite 18→20. This discharges prereq (b) for F# records/DUs → axons (only the
+construction hoist remains before records are straightforward).
+
 ## 2026-06-16: FIX demos-ci RED (red since the merge) — ship the gui glyph-font fixture
 
 Found via the status-report tick: `demos-ci` ("Sutra demos — pytest") had been RED since
