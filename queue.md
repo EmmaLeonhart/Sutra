@@ -218,11 +218,11 @@ negative results, not hidden.
   name — a later item); DU construction in ARGUMENT position (only let-bound now; needs an
   arg-hoist walk); record-update `{ r with … }`. Measured grammar quirk: parenthesize call
   operands under infix. [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
-- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through string + numeric
-  arrow-map keys `%{"k" => v}` / `%{1 => v}` + `m["k"]`/`m[1]` access → axons shipped
-  2026-06-16, suite 26/26): maps/structs in multi-clause/recursive bodies; multi-clause
-  heads with recursion (currently `UNSUPPORTED-RECURSION`); `is_integer`-style type-test
-  guards (`and`/`or` chains already lower via `_OP_MAP`). (Erlang is its own frontend.)
+- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
+  positional-key axons + `elem(t, i)` access shipped 2026-06-16, suite 28/28):
+  maps/structs/tuples in multi-clause/recursive bodies; multi-clause heads with recursion
+  (currently `UNSUPPORTED-RECURSION`); `is_integer`-style type-test guards (`and`/`or`
+  chains already lower via `_OP_MAP`). (Erlang is its own frontend.)
   > **F# RECORDS → axons SHIPPED 2026-06-16.** All prereqs done: (a) typed-param
   > extraction (`(p: Point)`); (b) let-SEQUENCE bodies; (c) a let-bound construction
   > hoist — `_PRELUDE` accumulator emits record `{ x = a }` literals as `Axon q;
