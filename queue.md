@@ -24,41 +24,17 @@ deleted on completion. Keep the task tool in sync with this file.
 - **NEVER use `Math.mod`** (Emma 2026-06-12 — worst-implemented function; measured
   vector-collapse/NaN, finding `2026-06-12-rotation-mod-vector-collapse-…`). For
   wrap/periodic behavior use complex rotation (`demos/gui/live_frame.su`).
-- **`gui-training` MERGED BACK INTO main (2026-06-15) — combined work loop.** The a1
-  warmer/colder GUI demo + its paper (`paper/gui-steering/`) were built on the
-  `gui-training` branch and are now merged here. The branches are reunified into one
-  loop; the old "this branch never touches main" discipline is retired. **GUI work
-  takes priority in this combined loop (Emma 2026-06-15)** — see the GUI track
-  immediately below the ACTIVE DIRECTIVE.
-
-## 🎨 GUI track — Adam-RLHF demo REBUILD COMPLETE (Emma 2026-06-16); gate lifted
-
-> **✅ GUI rebuild R1–R6 DONE 2026-06-16; the ⛔ GATE on the transpiler track is LIFTED.**
-> The demo is now the product showcase Emma wanted: a pixel image rendered entirely by the
-> Sutra substrate, steered in real time by warmer/colder where **Adam backpropagates the
-> preference THROUGH the differentiable Sutra render** (online RLHF, pairwise Bradley-Terry
-> reward) — not the old SPSA black box. Code: `demos/gui/{whole_frame.render_hero_torch,
-> hero_adam.py,adam_window.py,run_adam_gui.bat}`; SPSA kept as baseline. Measured: grad
-> flows through the compiled `hero` op (bg ∂= −1.0; `test_hero_differentiable.py` 3/3);
-> brighter-pref 0.465→1.000, darker 0.465→0.000, flips with preference, 0 non-finite
-> (`test_hero_adam.py` 3/3). Paper rewritten around it (R6). The transpiler/ACTIVE-DIRECTIVE
-> track and the resumed clawRxiv loop are now unblocked.
-
-### GUI extensions (deferred, autonomous — todo.md §"GUI")
-
-- [ ] **Learned decoder / arbitrary-image generation — EMMA-GATED.** A trained nonlinear
-  decoder from a latent to an arbitrary frame (constrain-train "every op trainable" meets
-  GUI; the analytic whole-frame render is the fixed-weight base case). Ties into the
-  weight→code / constrain-train work. **Pick the approach with Emma before a large
-  build** — surface via AskUserQuestion rather than guessing an architecture. Do NOT
-  start a large build autonomously.
-- [ ] **Yantra GUI integration** — the window living in the orchestrator, per the Yantra
-  OS. Forward goal; design with the Yantra submodule. Lower priority.
+- **GUI work is on a SEPARATE branch now (Emma 2026-06-16); GUI is OUT of main's queue.**
+  The Adam-RLHF GUI demo + its paper (`paper/gui-steering/`) stay built/merged on main, but
+  all GUI *agenda* (clawRxiv loop, extensions, paper passes) moved to Emma's own GUI branch
+  and was removed from this queue. On **main**, barrel the transpiler / ACTIVE-DIRECTIVE
+  track. Do NOT re-add GUI items here.
 
 ## 🔥 ACTIVE DIRECTIVE (Emma 2026-06-14 21:06, RE-ORDERED 22:05) — Erlang → FV ACCEPT → rest → FV-expand → ACCEPT
 
-> **GATE LIFTED 2026-06-16** — the GUI rebuild (R1–R6) is complete, so this track is
-> unblocked again. (GUI paper clawRxiv loop also resumed.)
+> **GUI MOVED TO ITS OWN BRANCH (Emma 2026-06-16) — this is now the TOP active work on
+> main.** GUI agenda was removed from this queue; it lives on Emma's separate GUI branch.
+> On main: barrel the transpiler / ACTIVE-DIRECTIVE track below. Do NOT re-add GUI here.
 
 Barrel through these phases IN THIS ORDER (Emma's 22:05 correction — the FV clawRxiv
 loop comes RIGHT AFTER Erlang, BEFORE the rest of the transpiler backlog). No stopping
@@ -584,24 +560,6 @@ dramatically. The JVM spec (formal bytecode instruction set + type verifier + cl
 file format) is the most useful single artifact; CPython is less formally specified and
 drifts across versions, so pin a CPython version. Licenses (PSF for CPython, JVM spec
 public + OpenJDK GPLv2+Classpath) are permissive enough to study and build on.
-
-## GUI paper — research clawRxiv loop (▶ RESUMED 2026-06-16, the rebuild landed)
-
-**RESUMED — the R1–R6 Adam-demo rebuild is done and the paper is rewritten around it (R6),
-so the loop is active again.** Runs continuously — NO bank-and-stop / anti-spam rule; do
-NOT stop on a verdict. The only forbidden move is a content-free / marker-bump edit; every
-pass makes a REAL substantive change (prefer new engineering + measurement).
-
-Progress: v1 (2796) Strong Reject → v2 (2797) Reject → v3 (2798) Weak Reject → v4 (2799)
-Reject → v5 (2800) Reject were the SPSA-era passes; **the v6 rewrite (Adam through the
-differentiable render) supersedes them** — read its review fresh, the contribution changed.
-
-- [ ] **Each loop pass (after resume):** read the newest review under
-  `paper/gui-steering/reviews/` side-by-side with the prior (marginal delta). Make a
-  *substantive* revision (prefer new engineering + measurement). Push → re-submits.
-- INTEGRITY RAILS (every pass): measured numbers only; mirror §8 "What we are not
-  claiming"; no "honest/genuinely" buzzwords; replication/URLs only in §10; do NOT
-  contradict `paper/paper.md`, the FROZEN `paper/neurips/`, or `planning/sutra-spec/*.md`.
 
 ## 📚 Comprehensive Sutra documentation audit + rework (Emma 2026-06-16, very-end-of-queue)
 
