@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: Haskell frontend — tuples `(a, b)` → positional-key axons (Phase 3)
+
+Work-loop sprint tick. Haskell tuples now lower to positional-key axons: `_map_type` maps a
+tuple type text (`(Int, Int)`, from the signature) → `Axon`; a VALUE `tuple` node is hoisted
+in `_hoist_constructions` to `Axon _ah0; _ah0.add("_0", a); …` (reached only in value
+position — the body hoist never sees signature/type tuples, and `case`-alternative tuple
+PATTERNS are already skipped); `fst t`/`snd t` lower to `realvec(t.item("_0"))`/`_1`. Unlike
+F# (let-bound only), the Haskell hoist handles ARG position, so `main = addPair (5, 8)` works
+directly. New fixture `tuple_axon` compiles AND runs on the substrate to 13; suite 20→22, no
+regressions. Tuples/vectors now across **6 frontends**: Elixir, Erlang, Clojure, Rust, F#,
+Haskell.
+
 ## 2026-06-16: F# frontend — tuples `(a, b)` → positional-key axons (Phase 3)
 
 Work+report sprint tick. F# tuples now lower to positional-key axons: `_map_fsharp_type`

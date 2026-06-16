@@ -237,13 +237,12 @@ negative results, not hidden.
   data): symbol map keys (needs a symbol-as-value rep); maps/vectors in recursive bodies;
   destructuring binds (`[a b]`/`{:keys [..]}` in binding position); multi-arity `defn`;
   `case` symbol/keyword test members (needs a keyword-as-value rep).
-- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through integer/float
-  literal `case` patterns + `_`/named catch-all shipped 2026-06-16, suite 20/20;
-  laziness out of scope): guarded/multi-equation recursion (currently
-  `UNSUPPORTED-RECURSION`); mutually-recursive/forward `where`/`let` bindings;
-  nested/non-variable constructor `case` patterns; `case` in non-tail expression
-  position. (Literal-pattern `case` dispatches the scrutinee directly via an equality
-  blend — the Clojure/Elixir shape — and refuses mixed variant+literal patterns.)
+- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through tuples `(a, b)` →
+  positional-key axons (`(Int,Int)` sig → Axon, `fst`/`snd` → `_0`/`_1`, arg-position hoist)
+  shipped 2026-06-16, suite 22/22; laziness out of scope): guarded/multi-equation recursion
+  (currently `UNSUPPORTED-RECURSION`); mutually-recursive/forward `where`/`let` bindings;
+  nested/non-variable constructor `case` patterns; tuple/constructor PATTERN destructuring
+  (`let (a, b) = t`); `case` in non-tail expression position.
 - [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through tuples `(a, b)` →
   positional-key axons + `p.0`/`p.1` access shipped 2026-06-16, suite 28/28): nullary-variant
   values (ambiguous with a plain name — a later item); nested match inside a tail-match arm;
