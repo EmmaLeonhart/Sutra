@@ -47,15 +47,6 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## ACTIVE — GUI: extend the Adam-RLHF demo (color / position / size + A/B UX)
 
-- [ ] **G1 — differentiable RGB render.** Add `render_hero_rgb_torch(size, theta)` to
-  `whole_frame.py`: a 3-channel color render that KEEPS the autograd graph through the
-  `hero_channel` substrate op for ALL axes including `cr/cg/cb` (grad-preserving
-  `val * ones` broadcast, NOT `torch.full(float(val))`). TDD: write
-  `test_hero_rgb_differentiable.py` first — assert θ.grad flows to a color axis (e.g.
-  `cr`) and a geometry axis through the substrate render, finite, non-zero. This is the
-  load-bearing prerequisite for color preference (the existing RGB render is not
-  differentiable). Verify locally AND in CI green.
-
 - [ ] **G2 — RGB / multi-axis Adam controller.** Extend `HeroAdam` (color mode or a
   `HeroAdamRGB`) to steer the differentiable RGB render: θ includes `cr/cg/cb`; the
   reward head consumes per-channel pooled features. TDD `test_hero_adam_rgb.py`: a

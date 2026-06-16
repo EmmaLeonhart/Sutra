@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-16: GUI G1 — differentiable RGB render (`render_hero_rgb_torch`)
+
+The display-only `render_hero_rgb` severed autograd (it broadcasts θ with
+`torch.full(..., float(val))`), so colour preference could not be steered through it.
+Added `render_hero_rgb_torch(size, theta)` to `demos/gui/whole_frame.py`: a (H,W,3) colour
+render that keeps the autograd graph through the compiled `hero_channel` substrate op for
+ALL axes including the per-channel tints `cr/cg/cb` — grad-preserving `val * ones`
+broadcast (the same fix `render_hero_torch` uses), `torch.stack` instead of `np.stack`, no
+`.detach()`. Each channel is the same composed mono hero tinted on the substrate (R←cr,
+G←cg, B←cb), so geometry axes carry grad through all three channels and each tint through
+only its own. TDD: `test_hero_rgb_differentiable.py` (5 tests) written first and confirmed
+red, then green — `grad_fn` set; ∂(red mean)/∂cr ≠ 0; green-channel loss leaks 0 gradient
+into cr (channel independence); ∂(mean)/∂bg == mean(cr,cg,cb) exactly; Adam through the RGB
+render reduces loss. Measured 27/27 green locally (5 new + 22 existing hero/whole-frame),
+no regression. Load-bearing prerequisite for G2 (RGB Adam controller).
+
 ## 2026-06-16: `gui` branch created — dedicated GUI work loop (Emma, remote control)
 
 Split a dedicated `gui` branch off `main` so GUI work is not swallowed by the transpiler /
