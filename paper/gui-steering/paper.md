@@ -1,10 +1,9 @@
-# Painting and Steering on a Frozen-Embedding Substrate: a whole-frame renderer and a human-steerable interface in Sutra
+# Painting and Steering on a Frozen-Embedding Substrate: a differentiable whole-frame renderer and gradient-based human-in-the-loop steering in Sutra
 
-**Status:** working draft (a1 / GUI track, `gui-training` branch). The demo is
-built (1a–1d) and the method sections, render-fidelity table (§6), and steering
-soak (§7) are grounded in shipped code and measured runs. Remaining: figures (§8),
-related-work verification (§9), and the reproducibility command list (§10). This
-paper cites only measured numbers.
+**Status:** working draft (GUI track). The demo is built and the method sections,
+render-fidelity table (§6), no-recompile measurement (§2), and the gradient-steering
+results (§7) are grounded in shipped code and measured runs. This paper cites only
+measured numbers.
 
 ## Abstract
 
@@ -17,22 +16,25 @@ fields). We are explicit about which is which: the coordinate/colour fields in t
 paper are computed by elementwise tensor arithmetic at a small runtime dimension and
 are *not* claimed to live in the full embedding subspace; only the glyph font uses
 the pretrained-embedding codebook. We use this substrate to render a graphical
-interface:
-the whole image is computed by a single substrate operation that returns the frame
-as one buffer vector, with the host acting only as I/O (it builds coordinate
-buffers and paints the returned pixels). On top of this we build a parameterized
-"hero" graphic whose layout, scale, colour, and headline are driven by a parameter
-vector θ supplied as per-call broadcast buffers, so changing θ changes the picture
-with no recompilation. We then steer the rendered output by human preference: a
-warmer/colder button supplies a scalar reward, and a host-side Simultaneous
-Perturbation Stochastic Approximation (SPSA) optimizer adjusts θ. We report the
-render fidelity (the one-operation frame matches a per-pixel host oracle to within
-~4×10⁻⁷) and the steering soak (a 100-press session renders with zero NaN/blank
-frames, and a consistent rater moves the parameter monotonically in the rewarded
-direction). Throughout we keep an explicit account of which work runs on the
-substrate (the render) and which is host-side (the composition and the optimizer),
-and we do not claim substrate-native training or a single end-to-end substrate
-program.
+interface: the whole image is computed by a single substrate operation that returns
+the frame as one buffer vector, with the host acting only as I/O (it builds
+coordinate buffers and paints the returned pixels). On top of this we build a
+parameterized "hero" graphic whose layout, scale, colour, and headline are driven by
+a parameter vector θ supplied as per-call broadcast buffers, so changing θ changes the
+picture with no recompilation. Because the render compiles to differentiable tensor
+operations, **gradients flow through it**: we steer the rendered output by human
+preference with a *gradient-based* loop — each warmer/colder choice trains a small
+differentiable reward model (online RLHF, pairwise Bradley-Terry), and an Adam
+optimizer ascends that reward by backpropagating **through the substrate render** to
+θ. We report the render fidelity (the one-operation frame matches a per-pixel host
+oracle to within ~4×10⁻⁷, holding across a 28× range of grid sizes), the no-recompile
+cost (compile once, then thousands of θ updates at zero recompiles), and the steering
+result (a brighter-preferring rater drives the substrate-rendered brightness to the
+top of its range, a darker-preferring rater to the bottom; the direction flips with
+the preference, with no non-finite frames). Throughout we keep an explicit account of
+which work runs on the substrate (the render — and the gradients now pass through it)
+and which is host-side (the composition, the reward model, and Adam); we do not claim
+a single end-to-end substrate program.
 
 ## 1. Introduction
 
@@ -70,8 +72,11 @@ Contributions:
 3. **Substrate text rendering.** Glyphs are rendered on the substrate via a
    bound-vector font; a headline is the concatenation of substrate glyph fields
    (§3).
-4. **Human-steerable output.** A warmer/colder reward drives a host-side SPSA
-   optimizer over θ, morphing the substrate-rendered hero (§5).
+4. **Gradient steering through the substrate render.** Because the render is
+   differentiable, a warmer/colder preference loop trains a small reward model and an
+   Adam optimizer backpropagates **through the substrate render** to θ, morphing the
+   substrate-rendered hero (§5). Gradients passing through the render — not a
+   zeroth-order black box — is the load-bearing fact; we measure that they do (§7).
 
 The render fidelity (§6) and the steering soak (§7) are both measured on the built
 demo; §8 states what we are *not* claiming.
@@ -138,28 +143,36 @@ channel fields are substrate; only the three-way stack is host display assembly)
 The headline is chosen by a host-side argmax over the mixture weights; the glyph
 pixels are substrate (§3).
 
-## 5. Host-side preference steering (SPSA)
+## 5. Gradient steering through the differentiable render (Adam + online RLHF)
 
-We steer the rendered hero by human preference. A warmer press is reward +1, a
-colder press −1 — one rating per shown frame (we do not smooth across presses; the
-two-sided estimate already averages a ± pair). A host-side SPSA optimizer
-(`demos/gui/hero_spsa.py`, `HeroSPSA`) adjusts θ. SPSA estimates a gradient from
-two evaluations per step using a single random perturbation, which suits a setting
-where each "evaluation" is a human rating of a rendered frame. Per batch it draws a
-Rademacher perturbation `delta ∈ {−1,+1}^D`, forms `θ ± ck·delta`, collects the
-two rewards, and updates
+The render compiles to differentiable tensor operations, so the rendered frame is a
+tensor whose autograd graph reaches θ: a scalar loss on the frame backpropagates
+**through the substrate render** to the parameters. This is what lets us steer with a
+*gradient-based* loop rather than a zeroth-order one, and it is the central object of
+§7. Concretely, with θ supplied as differentiable per-pixel broadcast buffers
+(`val · ones`, not a detached constant), `∂loss/∂θ` is well defined for any scalar
+function of the rendered frame (`whole_frame.render_hero_torch`).
 
-  θ ← clip( θ + ak · (r₊ − r₋)/(2·ck) · delta , −1, 1 ),
+We turn human warmer/colder preferences into that scalar with a small **online
+reward model** trained in the loop (`demos/gui/hero_adam.py`). We use the **pairwise**
+(Bradley-Terry) formulation that reward models are normally trained with — it is
+contrastive by construction and therefore stable in any preference direction, where a
+single-frame thumbs-up/down proved unstable (we measured it inverting the steer
+direction; see §7). Each round:
 
-with the standard gains `ck = c0/(j+1)^0.101` and `ak = a0/(j+1+10)^0.602` (ported
-verbatim from a validated dense-signal SPSA implementation). The optimizer works in
-a normalized box θ ∈ [−1,1]^D and maps each continuous axis to the renderer's range
-by an affine `center + half_range·norm`, so the search stays well-conditioned while
-the renderer sees its own units.
+1. **Propose.** Render the current θ and a perturbed variant θ′ — two frames.
+2. **Prefer.** The person prefers one (warmer = the variant, colder = the current).
+   One step trains a differentiable reward head R (a 4×4 average-pool of the frame
+   then a linear layer) on the comparison: `loss = −log σ(R(preferred) − R(rejected))`.
+3. **Policy.** A few **Adam** steps ascend `R(render(θ))` — backprop runs through the
+   reward head *and* the compiled Sutra render — then θ is clamped into the render's
+   healthy box.
 
-This optimizer is host-side. It runs no substrate operations; it changes the
-arguments that the substrate render consumes. The reward is a human button, not a
-measured outcome from real usage. Both points are restated in §8.
+The render is the substrate; the reward model and both optimizers are host-side and
+named as such (§8). The earlier zeroth-order SPSA optimizer is retained as a baseline
+(`demos/gui/hero_spsa.py`), but the headline loop is gradient-based: Adam updating θ by
+gradients that pass *through* the substrate render is precisely the property a
+frozen-embedding "everything is a tensor op" substrate is supposed to provide.
 
 ## 6. Render-fidelity results
 
@@ -205,48 +218,52 @@ operation at any resolution (`python experiments/gui_render_fidelity.py --size N
 
 ## 7. Steering results
 
-**Optimizer convergence.** On a synthetic concave reward, the continuous θ moves
-from the neutral start to within a small fraction of the reward maximizer over
-multiple seeds (final/start squared-distance < 0.25, averaged over five seeds), and
-the gradient-estimate sign is correct on a monotone axis (`demos/gui/test_hero_spsa.py`).
+**Gradients flow through the substrate render (the load-bearing fact).** With θ
+entries as differentiable parameters and the render not detached, the rendered frame
+is a tensor with an autograd graph (`grad_fn` set), and a scalar loss on it produces
+non-zero `∂loss/∂θ` *through* the compiled Sutra `hero` op. Measured at the neutral θ
+for a "make it brighter" loss (`−mean(frame)`): the background axis gives exactly
+`−1.0` (it shifts every pixel by 1), brightness a strictly negative gradient, and the
+spread/accent axes non-trivial gradients; cx/cy/radius are 0 by the symmetry of a
+centred glow. Ten Adam steps on that loss reduce it monotonically
+(`demos/gui/test_hero_differentiable.py`). This is what distinguishes the loop from a
+black-box optimizer: Adam steers θ by gradients the substrate render actually carries.
 
-**Soak (the steering claim).** We run a scripted 100-press session over the live
-controller with a consistent synthetic rater (`experiments/gui_steering_eval.py`).
-Two results, both measured:
+**Steering by preference (directional consistency).** We drive the online-RLHF loop of
+§5 with a synthetic fixed-preference rater (the live window uses real button presses;
+tests use a scripted rater so the result is deterministic). Over 50 rounds at a 16×16
+grid, across seeds 0–2 (`demos/gui/test_hero_adam.py`):
 
-- *Frame health.* All 101 rendered frames are finite and non-blank — **0 NaN, 0
-  blank** — with the glyph headline overlay both off and on (the full RGB + glyph
-  demo frame). The per-frame substrate render survives a full session.
-- *Directional consistency.* A rater that consistently prefers brighter frames
-  drives the steered brightness from the neutral 1.000 to 1.800 — the top of the
-  axis range (+0.800) — and a rater that consistently prefers darker frames drives
-  it to 0.200, the bottom (−0.800). The steer direction flips with the preference.
-  The Pearson correlation between the running-best brightness and the batch index
-  is ±0.446; it is moderate rather than near-unity because the parameter saturates
-  at the clamp boundary partway through the session and then plateaus — it reaches
-  the rewarded extreme rather than ramping linearly to the end.
+- A rater that **prefers brighter** frames drives the displayed mean brightness from
+  the neutral **0.465 to 1.000** (the top of the displayed range).
+- A rater that **prefers darker** frames drives it from **0.465 to 0.000** (the bottom).
+- The steer direction **flips with the preference**, and **every** proposed and
+  rendered frame is finite (0 NaN/inf) across the session.
 
-The steering signal here is a synthetic rater standing in for the human button; the
-loop, render, and optimizer are exactly those a person drives in the window
-(`demos/gui/steering_window.py`).
+The earlier single-frame thumbs-up/down reward was measured to be unstable — a
+zero-initialised head fed single-class labels learned the wrong sign and drove a
+brighter-preferring rater's image *dark* — which is why §5 uses the pairwise
+Bradley-Terry formulation; the numbers above are with that formulation.
 
-**Figures.** `experiments/gui_figures.py` renders the paper's figures from these
-same substrate paths: the θ hero (mono and RGB), a substrate glyph banner, the
-four-quadrant layout, and a before/after steering pair (the hero at the neutral
-start vs after a 120-press brighter-preferring session). The before/after pair is
-quantitative as well as visual — mean frame brightness rises from 71 to 146 (of
-255) across the session, the morph the rater drove. The PNGs are build artifacts
-(regenerated, not committed).
+**Figures.** `experiments/gui_figures.py` renders figures from these same substrate
+paths: the θ hero (mono and RGB), a substrate glyph banner, the four-quadrant layout,
+and a before/after steering pair (neutral start vs after a steered session). The PNGs
+are build artifacts (regenerated locally; git-ignored).
 
 ## 8. What we are not claiming
 
 - **The composition is host-side.** Assembling glyphs into a banner, placing the
   banner in the frame, and stacking RGB channels are host operations over
   substrate-produced fields. We do not claim a single end-to-end substrate program.
-- **The optimizer is host-side SPSA over substrate-rendered output.** It is not
-  substrate-native training; no gradients flow through the substrate render.
-- **The reward is a human button**, not behaviour from real traffic. The demo
-  shows steerability by a present rater, not learning from usage.
+- **Gradients pass *through* the substrate render, but the reward model and the
+  optimizer are host-side.** Backprop reaches θ through the compiled render (that is
+  the §7 result), and that is what makes the steering gradient-based rather than
+  zeroth-order. But the differentiable reward head and Adam themselves run host-side;
+  we do not claim the *learning* runs on the substrate, only that the render the
+  gradient passes through does.
+- **The reward is a preference signal**, not behaviour from real traffic — a live
+  human's button in the window, a scripted fixed-preference rater in the measured
+  tests. The demo shows steerability by a present rater, not learning from usage.
 - **Render fidelity is agreement with a host oracle**, i.e. the substrate computes
   the intended field; it is not a claim that the field is the "right" graphic in
   any aesthetic sense.
@@ -277,23 +294,29 @@ relational-displacement analysis of frozen embedding spaces in
 This paper extends "compute in the frozen space" from analogy and retrieval to
 *rendering*: producing a full pixel buffer as one operation on the substrate.
 
-**Zeroth-order / SPSA optimization.** The steering loop's optimizer is Spall's
-Simultaneous Perturbation Stochastic Approximation (SPSA), which estimates a gradient
-from two objective evaluations using a single random perturbation, at a cost
-independent of the parameter dimension. We use SPSA precisely because the reward is a
-human button press, not a differentiable loss — gradients through the rater do not
-exist, so a zeroth-order estimate over θ is the available signal. SPSA here is a
-host-side optimizer over the substrate's runtime parameters, not a substrate
-operation (§8).
+**Differentiable rendering.** A rendering function whose output is differentiable in
+its parameters lets gradient methods optimize what is drawn — the principle behind
+differentiable rasterizers and renderers in vision/graphics. Our renderer is
+differentiable for the same structural reason every Sutra operation is a tensor op: the
+frame is a composition of elementwise tensor arithmetic, so `∂frame/∂θ` exists and
+backprop reaches θ through it (§7). The novelty here is not a new differentiable
+rasterizer but that the *substrate* render — a program in a frozen-embedding tensor
+language — is itself the differentiable function the optimizer descends.
 
-**Optimizing generative output from human preferences.** Steering output by a
-warmer/colder signal is a minimal instance of learning from human preference
-comparisons, the pattern behind reinforcement learning from human feedback (Christiano
-et al. 2017; Ouyang et al. 2022). Those systems fit a learned reward model over many
-pairwise judgements and update model weights; our setting is deliberately smaller — a
-single live rater, a raw ±1 preference, and updates to a handful of runtime render
-parameters rather than to model weights — but the shape (a human preference signal
-shaping generated output) is the same.
+**Preference optimization / RLHF, and pairwise reward models.** Steering output by a
+warmer/colder signal is a small instance of learning from human preference comparisons,
+the pattern behind reinforcement learning from human feedback (Christiano et al. 2017;
+Ouyang et al. 2022). We use the **Bradley-Terry** pairwise-comparison model those
+systems train their reward models with (`−log σ(R(better) − R(worse))`); the difference
+from full RLHF is scale and locus — a single live rater, an online reward head over a
+handful of render parameters rather than a frozen reward model over network weights —
+but the shape (a preference signal training a differentiable reward, a gradient
+optimizer ascending it) is the same. The earlier zeroth-order baseline is Spall's
+Simultaneous Perturbation Stochastic Approximation (SPSA), which estimates a gradient
+from two evaluations with one random perturbation at a cost independent of dimension;
+we retain it (`hero_spsa.py`) but the headline loop is gradient-based because, unlike a
+black-box reward, our learned reward composed with the differentiable render *does* have
+a usable gradient w.r.t. θ.
 
 ### References
 
@@ -318,30 +341,37 @@ shaping generated output) is the same.
   NeurIPS, 2017.
 - L. Ouyang et al. *Training Language Models to Follow Instructions with Human
   Feedback.* NeurIPS, 2022.
+- R. A. Bradley and M. E. Terry. *Rank Analysis of Incomplete Block Designs: I. The
+  Method of Paired Comparisons.* Biometrika, 1952. (The pairwise preference model.)
+- D. P. Kingma and J. Ba. *Adam: A Method for Stochastic Optimization.* ICLR, 2015.
 
 ## 10. Reproducibility
 
-The renderer, optimizer, and steering loop are in `demos/gui/` (`frame_*.su`,
-`whole_frame.py`, `hero_spsa.py`, `hero_steering.py`, `steering_window.py`) and
-`demos/font/`; the regression tests are `demos/gui/test_gui_whole_frame.py`,
-`demos/gui/test_hero_spsa.py`, and `demos/gui/test_hero_steering.py`. The §6 and §7
-tables come from:
+The differentiable renderer and the Adam steering loop are in `demos/gui/`
+(`frame_*.su`, `whole_frame.py` — `render_hero_torch` is the differentiable path —
+`hero_adam.py`, `adam_window.py`, `run_adam_gui.bat`), with the SPSA baseline in
+`hero_spsa.py`/`steering_window.py` and the substrate font in `demos/font/`. The
+regression tests are `demos/gui/test_hero_differentiable.py` (gradients through the
+render), `demos/gui/test_hero_adam.py` (the steering directions), and
+`demos/gui/test_gui_whole_frame.py` (render fidelity). The measured numbers come from:
 
 ```
 python experiments/gui_render_fidelity.py --size 24      # §6 render-fidelity table
 python experiments/gui_norecompile_cost.py --frames 200  # §2 no-recompile cost (0 recompiles)
-python experiments/gui_steering_eval.py --presses 100    # §7 steering soak
-python experiments/gui_figures.py --size 96              # §7 figures (PNGs regenerated locally; git-ignored)
-python demos/gui/steering_window.py                      # the live warmer/colder window
+pytest demos/gui/test_hero_differentiable.py             # §7 gradients through the render
+pytest demos/gui/test_hero_adam.py                       # §7 steering directions (bright/dark)
+python demos/gui/adam_window.py                          # the live Adam warmer/colder window
 ```
 
 The full demo and steering suites are run with `pytest demos/gui/`.
 
 ## 11. Conclusion
 
-A frozen-embedding substrate can render an interactive interface a frame at a time
-and, with a host-side preference optimizer over its runtime parameters, can be
-steered by a person in real time. The contribution is as much the bookkeeping as
-the demo: a clear line between the substrate render and the host-side composition
-and optimization, with measured fidelity on one side and an explicitly gated
-steering result on the other.
+A frozen-embedding substrate can render an interactive interface a frame at a time —
+and because the render is a composition of tensor operations, it is *differentiable*,
+so a person can steer it by gradient descent: warmer/colder preferences train a small
+reward model and Adam backpropagates through the substrate render to morph the picture.
+The contribution is as much the bookkeeping as the demo — a clear line between the
+substrate render (which the gradients now pass through) and the host-side composition,
+reward model, and optimizer — backed by measured render fidelity, a measured
+no-recompile cost, and a measured, direction-flipping steering result.
