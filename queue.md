@@ -31,20 +31,51 @@ deleted on completion. Keep the task tool in sync with this file.
   takes priority in this combined loop (Emma 2026-06-15)** — see the GUI track
   immediately below the ACTIVE DIRECTIVE.
 
-## 🎨 GUI track — TOP PRIORITY (Emma 2026-06-15, merged from `gui-training`)
+## 🎨 GUI track — TOP PRIORITY + ⛔ GATE on the transpiler track (Emma 2026-06-16)
 
-**GUI work comes FIRST in this combined loop — ahead of the ACTIVE DIRECTIVE phases
-below.** The a1 demo is BUILT and its paper (`paper/gui-steering/paper.md`) is drafted
-through P9/P13; what remains are the items below. Code: `demos/gui/`, experiments:
-`experiments/gui_*.py`, paper: `paper/gui-steering/`.
+> **⛔ GATE (Emma 2026-06-16):** the GUI demo rebuild (R1–R6 below) is a GATE in front of
+> the ACTIVE DIRECTIVE / transpiler track. Finish the GUI rebuild FIRST; do NOT alternate
+> back to transpiler frontends / thrml / FV until R1–R6 are done. (The GUI rebuild is a
+> finite project, unlike the paused infinite paper loop — so gating on it is bounded.)
+> Order: **GUI rebuild (begin) → transpiler/ACTIVE DIRECTIVE → … → doc audit (end).**
 
-HARD RAILS (CLAUDE.md §GUI): every pixel renders on the substrate; stateful widgets are
-substrate-RNNs; the optimizer/compositor host-side parts are named host-side (no "one
-substrate program" overclaim); verify rendered frames against a reference, MEASURED —
-never "it ran". No faked results, no weakened tests.
+### REBUILD around Adam + differentiable render
 
-**a1 demo (1a–1d) COMPLETE; paper P0–P11, P13 DONE; P12 WIRED (clawRxiv loop live —
-Emma greenlit 2026-06-15).** Remaining paper/infra item:
+**Emma's correction (2026-06-16): the GUI demo went the wrong direction.** The point of
+the GUI demo is an easy-to-understand VISUAL showcase: a pixel image generated entirely
+by Sutra, on which a person does **real-time RL with Adam** to make the GUI look
+different. The current demo instead uses host-side **SPSA** (zeroth-order, black-box)
+over a render that ends in `.detach().numpy()` — so it throws away the autograd graph and
+**cannot** backprop. That undersells Sutra's whole point (the render is differentiable).
+Emma's decisions: **(1) rebuild around Adam backprop through the differentiable Sutra
+render; (2) rebuild the demo FIRST, then resume the paper loop** (the paper should
+describe the real Adam demo, not the SPSA one). Sutra is a **business**, not a research
+project — this demo is a product showcase.
+
+PROVEN 2026-06-16: gradients DO flow through the compiled Sutra render (torch tensor with
+`grad_fn`; `loss.backward()` gives real ∂loss/∂θ: bright −0.24, bg −1.0, invs +0.76,
+accent −0.71 at the neutral θ). The only blocker was `.detach()`. Rebuild plan:
+
+- [ ] **R1. Differentiable render path.** A `render_hero_torch(theta, size)` that keeps
+  the torch tensor with grad — θ as torch params, grad-preserving broadcast
+  (`scalar * ones`, NOT `torch.full(..., float(theta))`), NO `.detach()`. Keep the
+  existing numpy `render_hero` for display/monitoring (terminal boundary). DONE-criterion:
+  a test asserting `buf.grad_fn is not None` and non-zero θ.grad through the substrate.
+- [ ] **R2. Adam steering core (`hero_adam.py`).** θ as `torch.nn.Parameter`s; a
+  `torch.optim.Adam`; `loss.backward()` + `opt.step()` backprop through the substrate
+  render. Replaces `hero_spsa.py` as the headline optimizer.
+- [ ] **R3. Warmer/colder → differentiable reward (online RLHF).** A small differentiable
+  reward shaped by the human presses (e.g. a learnable reward head / target the presses
+  update); Adam ascends `r(render(θ))`. This is the design fork — build the simplest
+  faithful version; confirm the reward mechanism with Emma if it forks materially.
+- [ ] **R4. Live window** on the Adam controller (update/replace `steering_window.py`),
+  plus the run launcher Emma expects (a simple `run` entry — she referenced a `.bat`;
+  none exists in-repo, so add a documented launcher).
+- [ ] **R5. Substrate tests** — gradient flow, loss decreases under Adam, frame health
+  (0 NaN/blank), MEASURED.
+- [ ] **R6. Rewrite the gui-steering paper** around the Adam-through-differentiable-
+  substrate demo (the real contribution: gradients through the substrate render, online
+  preference RL). THEN resume the clawRxiv loop (see the paused loop section below).
 
 - [ ] **P14. Website page (optional, human-facing).** A `docs/` page for the demo per the
   audiences split (humans read the site; agents read the repo MD). Keep it free of
@@ -62,6 +93,9 @@ Emma greenlit 2026-06-15).** Remaining paper/infra item:
   OS. Forward goal; design with the Yantra submodule. Lower priority.
 
 ## 🔥 ACTIVE DIRECTIVE (Emma 2026-06-14 21:06, RE-ORDERED 22:05) — Erlang → FV ACCEPT → rest → FV-expand → ACCEPT
+
+> **⛔ GATED behind the GUI rebuild (Emma 2026-06-16).** Do NOT resume this track until the
+> GUI demo rebuild (R1–R6 in the GUI track above) is complete. The GUI rebuild comes first.
 
 Barrel through these phases IN THIS ORDER (Emma's 22:05 correction — the FV clawRxiv
 loop comes RIGHT AFTER Erlang, BEFORE the rest of the transpiler backlog). No stopping
@@ -587,28 +621,39 @@ file format) is the most useful single artifact; CPython is less formally specif
 drifts across versions, so pin a CPython version. Licenses (PSF for CPython, JVM spec
 public + OpenJDK GPLv2+Classpath) are permissive enough to study and build on.
 
-## GUI paper — research clawRxiv loop (ACTIVE, Emma 2026-06-15 — keep it running)
+## GUI paper — research clawRxiv loop (⏸ PAUSED until the Adam-demo rebuild lands, Emma 2026-06-16)
 
-`paper/gui-steering/paper.md` auto-submits to clawRxiv on every push that touches it,
-via `.github/workflows/gui-paper-ci.yml` (own `.post_id` chain; review committed back
-under `paper/gui-steering/reviews/`). **This loop runs continuously — Emma's explicit
-call. There is NO bank-and-stop / anti-spam rule; do NOT stop it on a verdict.** The
-only forbidden move is a content-free / marker-bump edit. Every pass must make a REAL,
-substantive change — but there is always real work to do (larger-scale demos, new
-measurements, new sections, scaled grids, tightened claims).
+**PAUSED — do NOT push `paper/gui-steering/paper.md` edits until the R1–R6 rebuild above
+is done.** Emma's call (2026-06-16): the paper must describe the REAL Adam-through-
+differentiable-substrate demo, not the SPSA one, so the loop resumes only after R6. The
+workflow stays wired; just don't trigger it until the rebuild is complete.
 
-Progress so far: v1 (2796) Strong Reject → v2 (2797) Reject → v3 (2798) Weak Reject.
+When it RESUMES (after R6): runs continuously — NO bank-and-stop / anti-spam rule; do NOT
+stop on a verdict. The only forbidden move is a content-free / marker-bump edit; every
+pass makes a REAL substantive change.
 
-- [ ] **Each loop pass (the work-loop cron drives this as the top item):** read the
-  newest review under `paper/gui-steering/reviews/` side-by-side with the prior one
-  (marginal delta — which cons moved). Make a *substantive* revision: prefer new
-  engineering + measurement (scale the render to larger grids and report fidelity,
-  add a real result, tighten a claim with data) over prose. Push `paper/gui-steering/
-  paper.md` → the workflow re-submits and fetches the next review. Repeat.
-- INTEGRITY RAILS (every pass): measured numbers only (never from memory); mirror §8
-  "What we are not claiming"; no "honest/genuinely" buzzwords; replication/URLs only
-  in §10 Reproducibility; do NOT contradict `paper/paper.md`, the FROZEN
-  `paper/neurips/` (surface conflicts, don't edit it), or `planning/sutra-spec/*.md`.
+Progress so far (the SPSA-era passes, to be superseded by the rebuilt paper):
+v1 (2796) Strong Reject → v2 (2797) Reject → v3 (2798) Weak Reject → v4 (2799) Reject →
+v5 (2800) Reject.
+
+- [ ] **Each loop pass (after resume):** read the newest review under
+  `paper/gui-steering/reviews/` side-by-side with the prior (marginal delta). Make a
+  *substantive* revision (prefer new engineering + measurement). Push → re-submits.
+- INTEGRITY RAILS (every pass): measured numbers only; mirror §8 "What we are not
+  claiming"; no "honest/genuinely" buzzwords; replication/URLs only in §10; do NOT
+  contradict `paper/paper.md`, the FROZEN `paper/neurips/`, or `planning/sutra-spec/*.md`.
+
+## 📚 Comprehensive Sutra documentation audit + rework (Emma 2026-06-16, very-end-of-queue)
+
+**End-of-queue standing item.** Sutra is a **business**, not a research project — the docs
+should read like a product/business's docs, coherent and current. Do a comprehensive
+audit and rework of ALL Sutra documentation: the website (`docs/`), `README.md`,
+`AGENTS.md`, `CLAUDE.md`, `paper/` framing, the `sdk/*/README.md` set, and
+`planning/sutra-spec/`. Check for: contradictions between surfaces, stale claims, dead
+internal refs on the website (humans-read-the-site rule), the right business framing, and
+gaps where a real capability is undocumented. Plan it into concrete per-surface steps when
+reached; verify against the codebase (grep, don't trust memory). Do NOT start until the
+GUI rebuild + the ACTIVE DIRECTIVE phases ahead of it are clear, unless Emma re-prioritizes.
 
 ## Pointers
 

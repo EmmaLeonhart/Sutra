@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-06-16: GUI demo direction correction — Adam + differentiable render (Emma)
+
+Emma flagged that the GUI demo went the wrong direction. Intended: a product showcase —
+a pixel image generated entirely by Sutra, on which a person does real-time RL with
+**Adam** to morph the GUI. Built instead: host-side **SPSA** (zeroth-order, black-box)
+over a render that ends in `.detach().to("cpu").numpy()` — every render path in
+`whole_frame.py` discards the autograd graph, so the demo structurally CANNOT backprop.
+That undersells Sutra's core point (the render is differentiable / every op trainable).
+The SPSA was not invented — it was ported from Emma's own `analysis/g1_simulation.py`
+`spsa_dense` in the founder hub — but Emma's current call is Adam.
+
+Verified the rebuild is viable: passing θ as torch tensors with `requires_grad`, broadcast
+grad-preserving (`scalar * ones`, not `torch.full(..., float(θ))`), and NOT detaching, the
+compiled Sutra `hero` op returns a torch tensor with `grad_fn`; `loss.backward()` gives
+real ∂loss/∂θ through the substrate render (bright −0.24, bg −1.0, invs +0.76, accent
+−0.71 at neutral θ; cx/cy/radius 0 by symmetry). The only blocker was `.detach()`.
+
+Queue restructured per Emma (2026-06-16): GUI demo REBUILD (R1–R6: differentiable render,
+Adam core, warmer/colder→differentiable reward, live window, substrate tests, paper
+rewrite) is now the TOP item and a ⛔ GATE in front of the transpiler/ACTIVE-DIRECTIVE
+track; the gui-steering clawRxiv loop is PAUSED until the rewrite (R6); a comprehensive
+Sutra-documentation audit+rework is pinned at the very END of the queue (Sutra is a
+business, not a research project). Work-loop cron repointed to the gated rebuild.
+Structural facts confirmed for Emma: the GUI is a SEPARATE paper (`paper/gui-steering/`),
+and `paper/paper.md` was never touched.
+
 ## 2026-06-16: Haskell frontend — integer/float literal `case` patterns (Phase 3)
 
 Work-loop tick (non-GUI; GUI was awaiting its v5 review). Extended
