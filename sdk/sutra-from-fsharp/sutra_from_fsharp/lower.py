@@ -465,6 +465,26 @@ def _lower_expr(node, src: bytes) -> str:
                 finally:
                     for nm in subs:
                         _SUBST.pop(nm, None)
+            rpb = _record_pattern_binding(kids[0], src)
+            if rpb is not None:
+                # `let { x = a; y = b } = p` — destructure a record axon: each bound
+                # local reads the named axon field `realvec(p.item("x"))` (the `p.x`
+                # projection). The value must be a bare name (a record param or a
+                # let-bound record temp).
+                binds, val_node = rpb
+                val_src = _lower_expr(val_node, src)
+                if not val_src.isidentifier():
+                    return ("/* UNSUPPORTED-LET: record-pattern binding value is "
+                            "not a simple name (later item) */")
+                subs = []
+                for field, local in binds:
+                    _SUBST[local] = f'realvec({val_src}.item("{field}"))'
+                    subs.append(local)
+                try:
+                    return _lower_expr(kids[1], src)
+                finally:
+                    for nm in subs:
+                        _SUBST.pop(nm, None)
             vb = _value_binding(kids[0], src)
             if vb is not None:
                 name, val_node = vb
@@ -553,6 +573,35 @@ def _tuple_pattern_binding(fovd, src: bytes):
             return None
         names.append(_text(ip.named_children[0], src).strip())
     return (names, kids[-1]) if names else None
+
+
+def _record_pattern_binding(fovd, src: bytes):
+    """If `fovd` is a record-pattern value binding `let { x = a; y = b } = expr`
+    (`value_declaration_left → record_pattern → field_pattern[long_identifier field,
+    identifier_pattern local]`), return ([(field, local), …], value_node); else None.
+    A field pattern that is not a plain `field = local-name` is a later item (→ None)."""
+    kids = fovd.named_children
+    if not kids or kids[0].type != "value_declaration_left":
+        return None
+    vdl = kids[0]
+    if kids[-1] is vdl:
+        return None  # no value expression
+    rp = next((c for c in vdl.named_children if c.type == "record_pattern"), None)
+    if rp is None:
+        return None
+    binds: list[tuple[str, str]] = []
+    for fp in rp.named_children:
+        if fp.type != "field_pattern":
+            continue
+        field_node = next((c for c in fp.named_children
+                           if c.type == "long_identifier"), None)
+        local_pat = next((c for c in fp.named_children
+                          if c.type == "identifier_pattern"), None)
+        if field_node is None or local_pat is None or not local_pat.named_children:
+            return None
+        binds.append((_text(field_node, src).strip(),
+                      _text(local_pat.named_children[0], src).strip()))
+    return (binds, kids[-1]) if binds else None
 
 
 def _tuple_fields(node, src: bytes):

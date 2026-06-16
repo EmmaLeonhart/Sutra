@@ -43,6 +43,7 @@ _RUNNABLE = {
     "union_axon": 48.0,  # type Shape=Circle of int|Square of int; area via match; main = area (Circle 4) = 4*4*3  (DU -> tagged axon)
     "tuple_axon": 13.0,  # addPair (p: int*int) = (fst p)+(snd p); let t=(5,8) in addPair t  (tuple -> positional-key axon, fst/snd -> _0/_1)
     "tuple_destructure": 13.0,  # addPair (t: int*int) = let (a, b) = t in a + b; main = addPair (5,8)  (let-tuple-pattern -> realvec(item _0/_1))
+    "record_destructure": 13.0,  # sum (p: Point) = let { x = a; y = b } = p in a + b; main = sum {x=5;y=8}  (let-record-pattern -> realvec(item x/y))
 }
 
 
