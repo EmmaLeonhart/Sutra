@@ -69,5 +69,5 @@ def test_adam_step_reduces_loss_through_render():
         loss = -wf.render_hero_torch(16, {"bright": bright, "bg": bg}).mean()
         loss.backward()
         opt.step()
-        losses.append(float(loss))
+        losses.append(float(loss.detach()))
     assert losses[-1] < losses[0] - 1e-3, f"Adam through the render did not reduce loss: {losses}"
