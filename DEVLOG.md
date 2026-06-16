@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-16: trainable button B4 — live HTML/JS button bridge (track complete)
+
+`demos/gui/button_server.py` (`ButtonBridge` + a thin `http.server` wrapper) +
+`button_page.html`: a real browser `<button>` styled from the controller's θ via `/state`
+(θ→CSS: fill/page rgb, px size from inverse half-extents, copy text); the owner's A/B choice
+posts `/prefer` → one ButtonAdam step; a visitor click posts `/click` → tallied as observed
+CTR. `ButtonAdam.propose` now also records the (current, variant) θ pair (`pending_thetas`) so
+the live pair can be styled. TDD `test_button_server.py` (4): θ→style is valid CSS, state
+returns the pair + counters, click tallies CTR (+ rejects bad input), and owner-prefers-bluer
+steers the fill blue up through the bridge (in B3's verified size=24/50-round regime — a
+smaller grid under-trains the head and the relative-blue objective can collapse to black,
+found while testing). 4/4 on CPU. Also smoked the HTTP layer headlessly (GET / + /state, POST
+/click + /prefer all respond correctly). NOT smoked: the in-browser DOM rendering/clicking
+(needs a real browser) — honestly flagged, not claimed. What's wired vs tracked: the OWNER
+channel drives the design (owner_pref + simulated audience); real clicks are tallied/displayed
+as observed CTR — closing the loop on a learned click-reward head is the noted follow-on.
+**Trainable click-button track (B1–B6) complete.**
+
 ## 2026-06-16: trainable button B6 — docs + paper for the click-optimized button
 
 Documented the trainable-button demo, measured numbers only. `docs/gui.md`: new "Training a
