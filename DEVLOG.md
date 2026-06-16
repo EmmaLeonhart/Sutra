@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — `%{x: a, y: b}` map-PATTERN parameters (Phase 3)
+
+Work+report sprint tick (extends Elixir's tuple-pattern-param increment to named-field maps).
+`def sum2(%{x: a, y: b}) do a + b end` now lowers: a `map`-pattern param routes through the
+multi-clause dispatcher, where each atom-key shorthand pair binds its local to the named axon
+field read `realvec(_ai.item("x"))` (the `p.x` projection) and the synthesized arg `_ai` is
+typed `Axon`. Only the atom-key shorthand with identifier locals is in scope; a non-shorthand /
+non-identifier map shape surfaces `UNSUPPORTED-DEF` (later item), never mislowered. New fixture
+`map_param` (`sum2(%{x: a, y: b}) = a+b`, `main = sum2(%{x: 5, y: 8})` — the map ARGUMENT hoists
+to a temp) compiles AND runs on the substrate to 13; suite 30→32, no regressions.
+
 ## 2026-06-16: Erlang frontend — `{A, B}` tuple-PATTERN parameters (Phase 3)
 
 Work+flush sprint tick (the Erlang analogue of the Elixir tuple-pattern-param increment).
