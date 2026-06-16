@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-16: GUI rebuild R2+R3 — Adam steering via online learned reward (RLHF)
+
+`demos/gui/hero_adam.py`: the real-time-RL GUI demo Emma wanted — Adam steering of the
+substrate-rendered hero by a human warmer/colder signal, learning GRADIENT-based THROUGH
+the differentiable Sutra render (R1), not the SPSA black box. R3 reward mechanism (Emma's
+pick): online learned reward model. First built single-frame thumbs-up/down BCE; measured
+it unstable and direction-inverting (a zero-init head + collapsing single-class labels
+learned the wrong sign — bright-preference drove the image dark). Switched to the
+principled RLHF formulation — **pairwise preferences (Bradley-Terry)**: each round proposes
+current θ vs a perturbed variant, the rater prefers one, `loss = −log σ(R(better)−R(worse))`
+trains a tiny differentiable reward head (4×4 avg-pool → linear), then Adam ascends
+`R(render(θ))` through the substrate render. Contrastive-by-construction → stable in both
+directions. Measured (size 16, 50 rounds, seeds 0–2): brighter-preferring rater
+0.465→1.000, darker 0.465→0.000, steer flips with preference; 0 non-finite frames. Reward
++ optimizers are host-side (named so); the render is the substrate. Tests:
+`test_hero_adam.py` 3/3 (both directions + flip, synthetic fixed-preference rater per
+Emma) and `test_hero_differentiable.py` 3/3 (R1/R5: grad_fn, θ.grad through substrate,
+Adam reduces loss). `hero_spsa.py` kept as the SPSA baseline. Remaining: R4 live window +
+launcher, R6 paper rewrite, then resume the (paused) clawRxiv loop.
+
 ## 2026-06-16: GUI rebuild R1 — differentiable render path (Adam-ready)
 
 R1 of the GUI demo rebuild. Added `whole_frame.render_hero_torch(size, theta)` + a shared
