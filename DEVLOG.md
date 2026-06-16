@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: Rust frontend — tuples `(a, b)` → positional-key axons (Phase 3)
+
+Work+flush sprint tick. Rust tuples now lower to positional-key axons: `_map_type` maps a
+`tuple_type` param (`(i64, i64)`) → `Axon` (and the param/return extraction now accepts
+`tuple_type`); the construction `(a, b)` is hoisted in `_hoist_enum_constructions` to
+`Axon _ah0; _ah0.add("_0", a); _ah0.add("_1", b);` (tuple PATTERNS are a different node —
+`tuple_pattern` — so this is value-position only, no ambiguity); the `field_expression`
+handler now reads a numeric index `p.0` as `realvec(p.item("_0"))`. New fixture `tuple_axon`
+(`fst(p: (i64,i64)) = p.0 + p.1; main = fst((5, 8))`) compiles AND runs on the substrate to
+13; suite 26→28, no regressions. Tuples/vectors now landed across Elixir, Erlang, Clojure,
+and Rust.
+
 ## 2026-06-16: Clojure frontend — data vectors `[a b]` → positional-key axons (Phase 3)
 
 Work-loop sprint tick. Clojure data vectors now lower to positional-key axons (the
