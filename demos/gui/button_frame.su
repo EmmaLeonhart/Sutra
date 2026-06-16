@@ -1,0 +1,51 @@
+// button_frame.su — a θ-PARAMETERIZED clickable BUTTON, rendered whole-frame in ONE
+// substrate op per colour channel. The trainable-button demo's render core (queue B1):
+// a single parameter vector θ drives a rounded-rectangle button composited over a page
+// background, and because every θ component arrives as a per-pixel broadcast BUFFER,
+// changing θ never recompiles — the optimizer (B3 ButtonAdam) just changes call arguments.
+//
+// The button shape is a SQUIRCLE (rounded rectangle) field, all elementwise substrate
+// arithmetic (hadamard + add/sub), with NO division (the host passes inverse half-extents
+// inv_w, inv_h as parameters, the same inverse-scale trick frame_hero.su uses for `invs`):
+//
+//   sx = (x - cx) * inv_w                 // normalized x offset from the button centre
+//   sy = (y - cy) * inv_h
+//   inside = ones - (sx^4 + sy^4)         // ~1 at centre, >0 inside the squircle, <0 outside
+//                                         // quartic ⇒ rounded-rectangle (squircle) corners
+//
+// One channel of the rendered frame composites the page colour and the button fill colour
+// by this mask, ALL on the substrate (host only clamps the finished channel to [0,1] for
+// display and stacks the three channels — the frame_rgb / hero_channel precedent):
+//
+//   channel = page*(1 - inside) + fill*inside
+//           = page - page*inside + fill*inside
+//
+// θ axes (each a length-(N·N) broadcast buffer the host builds from a scalar):
+//   cx, cy     — button centre (layout)
+//   inv_w,inv_h— inverse half-width / half-height (size; larger ⇒ smaller button)
+//   page       — page-background colour for this channel
+//   fill       — button-fill colour for this channel
+// The host calls `button_channel` three times (page/fill = θ's per-channel page_*/fill_*
+// weights) to get R, G, B as three whole-frame substrate fields, then stacks them.
+function vector button_channel(vector x, vector y, vector ones,
+                               vector cx, vector cy, vector inv_w, vector inv_h,
+                               vector page, vector fill) {
+    vector dx = x - cx;
+    vector dy = y - cy;
+    vector sx = hadamard(dx, inv_w);
+    vector sy = hadamard(dy, inv_h);
+    vector sx2 = hadamard(sx, sx);
+    vector sy2 = hadamard(sy, sy);
+    vector sx4 = hadamard(sx2, sx2);
+    vector sy4 = hadamard(sy2, sy2);
+    vector inside = ones - (sx4 + sy4);
+    return page - hadamard(page, inside) + hadamard(fill, inside);
+}
+
+// Self-contained sanity entry: a centred unit-ish button, page=0, fill=1 → centre pixel
+// = 0 - 0*1 + 1*1 = 1 (the button is lit at its centre).
+function vector main() {
+    return button_channel(make_real(0.0), make_real(0.0), make_real(1.0),
+                          make_real(0.0), make_real(0.0), make_real(1.0), make_real(1.0),
+                          make_real(0.0), make_real(1.0));
+}
