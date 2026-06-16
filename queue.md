@@ -64,9 +64,10 @@ accent −0.71 at the neutral θ). The only blocker was `.detach()`. Rebuild pla
   > direction flips with preference. `hero_spsa.py` kept as the SPSA baseline.
   > **R5 (substrate tests) also covered**: `test_hero_differentiable.py` (3/3: grad_fn set,
   > θ.grad flows, Adam reduces loss) + `test_hero_adam.py` (3/3: both directions + flip).
-- [ ] **R4. Live window** on the Adam controller (update/replace `steering_window.py` to
-  paint the current/variant pair + WARMER/COLDER → `choose`), plus a documented run
-  launcher (Emma referenced a `.bat`; none exists in-repo — add one).
+  > **R4 DONE 2026-06-16**: `demos/gui/adam_window.py` (tkinter — paints CURRENT + PROPOSED
+  > pair; WARMER prefers the variant, COLDER the current; W/K keys) + `run_adam_gui.bat`
+  > launcher (`%~dp0`-relative; pause-on-exit). Window logic smoke-verified headless
+  > (mainloop needs a display, untested in CI like the SPSA window). Emma runs it herself.
 - [ ] **R6. Rewrite the gui-steering paper** around the Adam-through-differentiable-
   substrate demo (the real contribution: gradients through the substrate render, online
   preference RL via Bradley-Terry). THEN resume the clawRxiv loop (paused section below).
