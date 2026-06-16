@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — numeric arrow-map keys `%{1 => v}` → axons (Phase 3)
+
+Work-loop tick (non-GUI; GUI v7 awaiting review). Mirror of the Clojure numeric-key work:
+generalized Elixir's `_string_key_field` → `_static_key_field` to accept `integer` arrow
+keys (the number's text becomes the axon field name), so `%{1 => 5, 2 => 8}` is the same
+named-field axon as a string/atom map and `m[1]` (`access_call` with an integer key) reads
+it back as `realvec(m.item("1"))`. Renamed the helper at all three call sites (`_map_fields`,
+`_lower_expr` access_call, `_dot_accessed_params`). New fixture `numkey_map_axon`
+(`sum2(%{1 => 5, 2 => 8})`, `p[1] + p[2]`) compiles AND runs on the substrate to 13; suite
+24→26.
+
 ## 2026-06-16: GUI paper v7 — add the Sutra language definition (answers v6 con 5)
 
 v6 (post 2801, the rewritten Adam paper) = Reject, but the pros now credit real things

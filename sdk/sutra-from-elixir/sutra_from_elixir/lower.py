@@ -54,10 +54,13 @@ def _blend(test_src: str, then_src: str, else_src: str) -> str:
     return f"(((1 + {w}) * ({then_src})) + ((1 - {w}) * ({else_src}))) / 2"
 
 
-def _string_key_field(node, src: bytes):
-    """If `node` is a string literal `"k"`, return its content `k` (the field name
-    for the `%{"k" => v}` arrow form). Else None. Only plain (uninterpolated)
-    strings qualify — an interpolated key has no static field name."""
+def _static_key_field(node, src: bytes):
+    """The static axon-field name for an arrow-map key, or None. A plain string `"k"`
+    → `k`; a number `1` → `1` (the number's text, so `%{1 => v}` is the same
+    named-field axon as a string/atom map and `m[1]` reads it back). Interpolated
+    strings and other key shapes have no static field name → None."""
+    if node.type == "integer":
+        return _text(node, src).strip()
     if node.type != "string":
         return None
     parts = node.named_children
@@ -98,14 +101,14 @@ def _map_fields(node, src: bytes):
             fields.append((field, val_node))
         return fields if fields else None
     # Arrow form: `key => value` pairs are `binary_operator` children directly
-    # under `map_content`. Only string keys give a static field name.
+    # under `map_content`. String and numeric keys give a static field name.
     for child in content.named_children:
         if child.type != "binary_operator" or len(child.named_children) < 2:
             return None
         key_node, val_node = child.named_children[0], child.named_children[-1]
-        field = _string_key_field(key_node, src)
+        field = _static_key_field(key_node, src)
         if field is None:
-            return None  # non-string arrow key — unsupported
+            return None  # non-string/non-numeric arrow key — unsupported
         fields.append((field, val_node))
     return fields if fields else None
 
@@ -141,7 +144,7 @@ def _dot_accessed_params(body, params: set, src: bytes) -> set:
         if n.type == "dot" and n.named_children:
             obj = n.named_children[0]
         elif n.type == "access_call" and len(n.named_children) == 2 \
-                and _string_key_field(n.named_children[1], src) is not None:
+                and _static_key_field(n.named_children[1], src) is not None:
             obj = n.named_children[0]
         if obj is not None and obj.type == "identifier" and _text(obj, src) in params:
             found.add(_text(obj, src))
@@ -384,7 +387,7 @@ def _lower_expr(node, src: bytes) -> str:
         # the atom-key `p.x` path (a string-keyed map is the same named-field axon).
         kids = node.named_children
         if len(kids) == 2:
-            field = _string_key_field(kids[1], src)
+            field = _static_key_field(kids[1], src)
             if field is not None:
                 return f'realvec({_lower_expr(kids[0], src)}.item("{field}"))'
         return "/* UNSUPPORTED-EXPR: access_call (non-string key) */"

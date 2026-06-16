@@ -33,6 +33,7 @@ _RUNNABLE = {
     "map_axon": 13.0,  # def sum2(p), do p.x + p.y; sum2(%{x: 5, y: 8})  (map -> axon, dot -> realvec(item))
     "struct_axon": 13.0,  # sum2(%Point{x: 6, y: 7})  (struct literal -> same named-field axon, alias dropped)
     "string_map_axon": 13.0,  # sum2(%{"x" => 5, "y" => 8}); p["x"] + p["y"]  (arrow-form string-key map -> axon, m["k"] -> realvec(item))
+    "numkey_map_axon": 13.0,  # sum2(%{1 => 5, 2 => 8}); p[1] + p[2]  (numeric arrow-key map -> axon field "1"/"2", m[1] -> realvec(item))
 }
 
 
