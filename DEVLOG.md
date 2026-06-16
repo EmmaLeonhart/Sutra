@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: GUI rebuild R1 — differentiable render path (Adam-ready)
+
+R1 of the GUI demo rebuild. Added `whole_frame.render_hero_torch(size, theta)` + a shared
+`hero_grid(size, dt, dev)` helper: the differentiable sibling of `render_hero`. It returns
+the hero frame as a TORCH TENSOR that keeps its autograd graph (no `.detach()`), with θ
+entries as 0-d torch tensors broadcast grad-preservingly (`val * ones`, not
+`torch.full(..., float(val))`). The numpy `render_hero` stays for display (the terminal
+boundary). New substrate test `demos/gui/test_hero_differentiable.py` (3/3): the render is
+a tensor with `grad_fn`; ∂loss/∂θ flows through the compiled Sutra `hero` op (bg grad ==
+−1.0 exactly, bright < 0, ≥3 axes nonzero); and 10 Adam steps through the render reduce a
+brightness loss. This is the load-bearing fact for R2 (Adam can only steer θ via gradients,
+and they pass through the substrate render). Gate: GUI rebuild before the transpiler track.
+
 ## 2026-06-16: GUI demo direction correction — Adam + differentiable render (Emma)
 
 Emma flagged that the GUI demo went the wrong direction. Intended: a product showcase —
