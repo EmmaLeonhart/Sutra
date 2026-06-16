@@ -1,0 +1,34 @@
+// parse_op.su — map an operator character to its op-code ON THE SUBSTRATE.
+//
+// op_code(s) reads the operator char at index 0 of the string s and returns the
+// op-code switch.su expects: '+' -> 0, '-' -> 1, '*' -> 2, '/' -> 3. This removes
+// the host-side CODE[op] dictionary from calc.py — which operation the
+// calculator runs is now decided entirely on the substrate (op_code here selects
+// the code; switch.su then selects the operation from the code).
+//
+// Mechanism (all substrate ops, same select+saturation pattern as switch.su):
+//   - string_char_at(s, 0) gives the operator's codepoint as a real number
+//     ('+' = 43, '-' = 45, '*' = 42, '/' = 47).
+//   - score_op = -1000 * (cp - target)^2 is 0 at a match and <= -1000 otherwise,
+//     so exp(score) underflows to exactly 0 off-match and select is a true
+//     one-hot (no blend) — the matched op-code passes through.
+//   - select returns the one-hot-chosen op-code vector; the host reads it with
+//     real().
+//
+// Scope: the four arithmetic operators. A non-operator char gives the nearest
+// op-code (no refusal here) — the caller (parse stage) is responsible for only
+// passing an operator; a full substrate parser would gate this on "is this an
+// operator char" upstream.
+function vector op_code(string s) {
+    scalar cp = s.string_char_at(0);
+    scalar s_add = 0.0 - 1000.0 * (cp - 43.0) * (cp - 43.0);  // '+'
+    scalar s_sub = 0.0 - 1000.0 * (cp - 45.0) * (cp - 45.0);  // '-'
+    scalar s_mul = 0.0 - 1000.0 * (cp - 42.0) * (cp - 42.0);  // '*'
+    scalar s_div = 0.0 - 1000.0 * (cp - 47.0) * (cp - 47.0);  // '/'
+    return select(
+        [s_add, s_sub, s_mul, s_div],
+        [make_real(0.0), make_real(1.0), make_real(2.0), make_real(3.0)]
+    );
+}
+
+function vector main() { return op_code("+"); }
