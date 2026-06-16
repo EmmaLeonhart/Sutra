@@ -611,6 +611,7 @@ def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
             return (f"// UNSUPPORTED-RECURSION: '{name}' multi-clause dispatch with "
                     f"recursion (later item)\n")
     argnames = [f"_a{i}" for i in range(arity)]
+    axon_args: set = set()  # argnames bound by a tuple PATTERN param (axon-typed)
     parsed = []  # (test_src_or_None, result_src)
     for param_nodes, body, guard in clauses:
         if len(param_nodes) != arity:
@@ -624,6 +625,16 @@ def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
                 nm = _text(p, src)
                 if nm != "_":
                     binds.append((nm, argnames[i]))
+            elif (p.type == "tuple" and p.named_children
+                  and all(e.type == "identifier" for e in p.named_children)):
+                # `{a, b}` tuple-PATTERN param — the arg is a positional-key axon;
+                # each element binds to the field read `realvec(_ai.item("_j"))`
+                # (the same projection `elem(t, j)` uses). Nested / non-identifier
+                # elements are a later item (fall through to UNSUPPORTED below).
+                axon_args.add(argnames[i])
+                for j, e in enumerate(p.named_children):
+                    binds.append((_text(e, src),
+                                  f'realvec({argnames[i]}.item("_{j}"))'))
             else:
                 return (f"// UNSUPPORTED-DEF: '{name}' clause has pattern param "
                         f"{p.type} (later item)\n")
@@ -644,7 +655,8 @@ def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
     expr = parsed[-1][1]  # last clause = base
     for test, res in reversed(parsed[:-1]):
         expr = res if test is None else _blend(test, res, expr)
-    params_src = ", ".join(f"{_TYPE} {a}" for a in argnames)
+    params_src = ", ".join(
+        f"{'Axon' if a in axon_args else _TYPE} {a}" for a in argnames)
     return (f"function {_TYPE} {name}({params_src}) {{\n"
             f"    return {expr};\n"
             f"}}\n")
