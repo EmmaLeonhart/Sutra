@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — tuples `{a, b}` → positional-key axons (Phase 3)
+
+Work-loop tick (first under the aggressive sprint). Elixir tuples now lower to axons with
+positional keys: `_tuple_fields` maps `{a, b}` → `[("_0", a), ("_1", b)]`, `_hoist_maps`
+hoists tuple literals the same as map literals (`Axon _ah0; _ah0.add("_0", 5); …`), and
+`elem(t, i)` (static integer index) lowers to `realvec(t.item("_i"))`; `_dot_accessed_params`
+types an `elem(p, i)`-accessed param as `Axon`. New fixture `tuple_axon`
+(`fst(p)=elem(p,0)+elem(p,1); main=fst({5,8})`) compiles AND runs on the substrate to 13;
+suite 26→28. Mirrors the map/struct axon pattern (a tuple is a positional-key axon).
+
 ## 2026-06-16: queue reorg — GUI moved to its own branch; main barrels the rest
 
 Emma 2026-06-16: GUI is now a focused effort on her own separate GUI branch (it "started
