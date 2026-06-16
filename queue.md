@@ -101,10 +101,10 @@ rendering/clicking is the only un-smoked piece (needs a browser — Emma to exer
   real browser. Run `python demos/gui/button_server.py --live-ctr` (or default), click in the
   page, confirm the buttons restyle, CTR tallies, and (live-ctr) the design tracks clicks.
 
-_B7 (learned CTR reward head) ✅ done: `ButtonAdam(live_ctr=True)` + `record_click` train a
-differentiable click head; α=0 steering raises the true (B2) CTR 0.50 → 0.70–0.93 across
-seeds; bridge `/click` wired. The real-click loop is closed (head learns from clicks, ascended
-to get more clicks). Only B8 (browser smoke) remains — browser-blocked._
+_B7 (learned visual CTR head) ✅ + B9 (click-driven copy bandit) ✅ — the real-click CTR loop
+is FULLY closed: clicks train both the differentiable visual reward (ascended through the
+render) and a UCB bandit over copy (settles on "Buy now"). Only B8 (browser smoke) remains —
+browser-blocked._
 
 ---
 

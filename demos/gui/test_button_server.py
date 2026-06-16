@@ -64,6 +64,23 @@ def test_click_tallies_observed_ctr():
         b.click("nonsense")
 
 
+def test_live_ctr_bridge_drives_copy_bandit():
+    """In live mode each owner-round is a copy-bandit impression: clicks are recorded against
+    the shown copy and the bandit accrues impressions across the presets."""
+    pytest.importorskip("torch")
+    srv = _server()
+    b = srv.ButtonBridge(alpha=0.0, size=16, seed=0, live_ctr=True)
+    for i in range(12):
+        b.state()
+        if i % 2 == 0:                      # click on every other round
+            b.click("variant")
+        b.prefer(prefer_variant=True)       # round boundary: records the copy outcome
+    impr = b.ctl.copy_impressions()
+    assert sum(impr) == 12, f"one impression per owner-round expected, got {impr}"
+    assert sum(b.ctl.copy_click_rates()[c] * impr[c] for c in range(b.ctl.n_copy)) > 0, \
+        "no clicks recorded against any copy"
+
+
 def test_live_ctr_click_trains_the_learned_head():
     """In live-CTR mode a visitor click trains the learned CTR head — its weights move."""
     import torch
