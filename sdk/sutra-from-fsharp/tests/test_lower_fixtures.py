@@ -38,6 +38,7 @@ _RUNNABLE = {
     "nontail_fact": 120.0,  # let rec fact n = if n = 0 then 1 else n * fact (n-1); fact 5  (CPS fold)
     "typed_params": 17.0,  # let add (a: int) (b: int) = a + b; add 8 9  (type-annotated params)
     "return_type": 13.0,  # let add (a: int) (b: int) : int = a + b; add 6 7  (return-type annotation, value_declaration_left path)
+    "let_seq": 18.0,  # let f x = let a = x+1 \n let b = a*2 \n a+b; f 5 = 6+12  (let-sequence body, sequential subst)
 }
 
 
