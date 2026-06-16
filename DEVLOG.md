@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-16: FIX demos-ci RED (red since the merge) — ship the gui glyph-font fixture
+
+Found via the status-report tick: `demos-ci` ("Sutra demos — pytest") had been RED since
+the merge `cc3f868f` (last green `6a75e480`). Root cause: the merge brought
+`demos/gui/test_gui_whole_frame.py::test_headline_banner_is_exactly_the_substrate_glyphs`,
+which renders text via demos/font's `render_glyph` (`font_bound_antipodal.su`, 63
+basis_vector calls → codebook cached at d356, keys `font_bound_antipodal_p_*`). No
+committed fixture covered those keys — the gui fixtures had only d108 (letter keys), and
+the font demo's d356/d484 hold the DIFFERENT non-antipodal `font_bound_p_*` keys — so on CI
+(no ollama) the test fell through to ollama and failed with ConnectionError. (I'd brushed
+the "verify CI green, not just local" rail: individual gui test files passed locally because
+my local ollama served the keys.) Fix: generated `nomic-embed-text-d356.pt` for the
+antipodal keys (ran `render_headline_banner("SU")` with ollama + a fresh XDG_CACHE_HOME,
+captured the cache) and committed it under `demos/gui/fixtures/`; the gui conftest globs
+`nomic-embed-text-d*.pt` so it loads automatically. Verified CI-equivalent: full
+`demos/gui` suite **47/47 passes with ollama UNREACHABLE** (`OLLAMA_HOST=127.0.0.1:1`).
+Updated the conftest docstring (it wrongly claimed the gui demos use no basis_vector).
+
 ## 2026-06-16: Erlang frontend — `#{K => V}` maps → axons + `maps:get` (Phase 3)
 
 Work-loop tick (non-GUI; GUI v7 awaiting review). Ported the Elixir/Clojure map-axon

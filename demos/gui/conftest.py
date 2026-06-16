@@ -4,10 +4,16 @@ Same shape as demos/font/conftest.py: ship a codebook fixture and redirect
 XDG_CACHE_HOME for the session so Sutra's on-disk codebook cache finds it
 without needing a running ollama daemon.
 
-The GUI demos (count.su, frame.su, toggle.su) use only make_real +
-arithmetic + select — no basis_vector calls — so the codebook isn't read
-at runtime. The fixture is here for consistency with font/ and so the
-cache-load path stays quiet.
+Most GUI demos (count.su, frame.su, toggle.su, the θ hero) use only make_real
++ arithmetic + select — no basis_vector calls — so the codebook isn't read at
+runtime; the d108 fixture is here for consistency and to keep the cache-load
+path quiet. The EXCEPTION is the substrate glyph banner
+(test_headline_banner_is_exactly_the_substrate_glyphs), which renders text via
+demos/font's render_glyph (font_bound_antipodal.su, 63 basis_vector calls
+compiling to runtime_dim=256, codebook cached at d356). The
+nomic-embed-text-d356.pt fixture ships those `font_bound_antipodal_p_*` keys so
+that test runs on CI without ollama. (The font demo's own d356 fixture holds the
+DIFFERENT non-antipodal `font_bound_p_*` keys, hence a separate copy here.)
 """
 from __future__ import annotations
 
