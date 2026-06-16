@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Erlang frontend — `{A, B}` tuple-PATTERN parameters (Phase 3)
+
+Work+flush sprint tick (the Erlang analogue of the Elixir tuple-pattern-param increment).
+`fst({A, B}) -> A + B.` now lowers: a `tuple`-pattern param routes through the multi-clause
+dispatcher (it isn't a bare `var`), where each element binds to the positional axon field read
+`realvec(_ai.item("_j"))` (the `element(J+1, T)` projection) and the synthesized arg `_ai` is
+typed `Axon`. Nested / non-var tuple elements fall through to `UNSUPPORTED-DECL` (later item),
+never mislowered. New fixture `tuple_param` (`fst({A,B}) -> A+B`, `main() -> fst({5,8})` — the
+tuple ARGUMENT hoists to a temp) compiles AND runs on the substrate to 13; suite 18→20, no
+regressions.
+
 ## 2026-06-16: Haskell frontend — `let (Wrap a b) = w` constructor-pattern destructuring (Phase 3)
 
 Work-loop sprint tick (extends the Haskell tuple-destructure increment to single-constructor
