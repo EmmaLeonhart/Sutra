@@ -3,7 +3,7 @@ name: Paper PDF — anonymized + named builds
 # Builds two PDFs from paper/paper.tex via the \ifanon switch.
 # Triggered on push to paper/ on main, plus workflow_dispatch.
 # Both PDFs uploaded as workflow artifacts; future extension will
-# also deploy them to the docs site (sutra.yantraos.org).
+# also deploy them to the docs site (sutra.noldor.tech).
 #
 # Per Emma 2026-04-30 (queue sub-items 1d + 1e): single source,
 # four outputs (HTML + named PDF + anonymized PDF + clawRxiv
@@ -140,7 +140,7 @@ jobs:
           # three flat files; pandoc is NOT run on their side, so we
           # ship pandoc's output pre-generated. Three flat files, no
           # nested directory. The Pages workflow also builds this and
-          # publishes it to https://sutra.yantraos.org/sutra-arxiv-source.tar.gz
+          # publishes it to https://sutra.noldor.tech/sutra-arxiv-source.tar.gz
           # (linked from the /arxiv/ page).
           tar -czf ../sutra-arxiv-source.tar.gz \
             paper.tex paper.tex.body neurips_2026.sty

@@ -1,6 +1,6 @@
 # sutra-from-c
 
-Transpile a restricted subset of C source into [Sutra](https://sutra.yantraos.org) (`.su`) source.
+Transpile a restricted subset of C source into [Sutra](https://sutra.noldor.tech) (`.su`) source.
 
 ## Status: skeleton
 
