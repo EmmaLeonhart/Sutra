@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: Scala frontend — tuple construction `(a, b)` → positional-key axons (Phase 3)
+
+Work+flush sprint tick. Scala already lowered tuple ACCESS (`p._1`/`p._2` → `item("_1")`/
+`item("_2")`, 1-based) — only construction was missing. Added: `_hoist_constructions` now
+hoists a `tuple_expression` to `Axon _ah0; _ah0.add("_1", a); _ah0.add("_2", b);` (1-based
+keys matching the `._1` selector convention); `_map_type` maps a `tuple_type` → `Axon`; the
+param/return extraction now accepts `tuple_type` (without this the tuple param stayed `int`
+and `p.item("_1")` dispatched to torch's `.item()` → TypeError — measured, then fixed). New
+fixture `tuple_axon` (`def fst(p: (Int,Int)) = p._1 + p._2; main = fst((5, 8))`) compiles AND
+runs on the substrate to 13; suite 18→20, no regressions. (OCaml already had tuples, so this
+makes 8 frontends with tuple support — only TS remains.)
+
 ## 2026-06-16: Haskell frontend — tuples `(a, b)` → positional-key axons (Phase 3)
 
 Work-loop sprint tick. Haskell tuples now lower to positional-key axons: `_map_type` maps a
