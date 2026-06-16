@@ -244,10 +244,11 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through records → axons
-  `{ x = a; y = b }` + `p.x` access shipped 2026-06-16, suite 22/22): discriminated-union
-  (DU) variants → tagged axons (the Rust/Haskell variant shape); variant/record `match`
-  patterns; record-update `{ r with … }`. Measured grammar quirk: parenthesize call
+- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through DU variants → tagged axons
+  `type T = A of int | B of int` + let-bound construction + variant `match` shipped
+  2026-06-16, suite 24/24): nullary DU variants in value position (ambiguous with a plain
+  name — a later item); DU construction in ARGUMENT position (only let-bound now; needs an
+  arg-hoist walk); record-update `{ r with … }`. Measured grammar quirk: parenthesize call
   operands under infix. [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through string + numeric
   arrow-map keys `%{"k" => v}` / `%{1 => v}` + `m["k"]`/`m[1]` access → axons shipped

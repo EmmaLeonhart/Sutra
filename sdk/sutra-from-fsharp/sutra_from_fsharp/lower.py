@@ -43,9 +43,22 @@ _FSHARP_TYPE_TO_SUTRA = {
 }
 
 
-# Record types declared in the file (`type Point = { … }`). A param/value of a
-# record type lowers as a Sutra `Axon` (named-field, the OCaml/Rust/Elixir pattern).
+# Record + discriminated-union types declared in the file. A param/value of such a
+# type lowers as a Sutra `Axon` (named-field for records; tag+payload for DUs — the
+# OCaml/Rust/Haskell pattern).
 _RECORD_TYPES: set = set()
+
+# Discriminated-union variant cases: `variant name → (tag, arity)`, tags assigned in
+# declaration order per `type T = | A … | B …`. Construction `A x` → a tagged axon
+# (`_tag` + `_val0…`); a `match` pattern `A x` tests `_tag` and binds the payload.
+_VARIANTS: dict = {}
+
+# Per-function counter for unique `_vtag{N}` int-locals — a variant `match` binds the
+# scrutinee's tag to an `int` local in the prelude BEFORE comparing (`int _vtag0 =
+# realvec(s.item("_tag")); … (_vtag0 == k)`). Comparing the tag inline as a raw filler
+# (`realvec(...) == 0`) is NOT crisp at 0 (measured: a 0-tag dispatch returned the 50/50
+# blend, 32 not 48); the int-local round-trip makes it crisp — the working Haskell shape.
+_VTAG_N = [0]
 
 # Per-function construction prelude (record `{ … }` literals are statement-shaped, so
 # they are emitted as `Axon q; q.add(…)` BEFORE the return) and the set of axon-typed
@@ -351,6 +364,19 @@ def _lower_expr(node, src: bytes) -> str:
         rules = next((c for c in kids if c.type == "rules"), None)
         if rules is None:
             return "/* UNSUPPORTED-EXPR: match without rules */"
+        # If any rule is a DU variant pattern, bind the scrutinee's tag to an `int`
+        # local FIRST (crisp equality even at tag 0; see _VTAG_N). Emitted to _PRELUDE.
+        rule_nodes = [r for r in rules.named_children if r.type == "rule"]
+        is_variant_match = any(
+            r.named_children and r.named_children[0].type == "identifier_pattern"
+            and r.named_children[0].named_children
+            and _text(r.named_children[0].named_children[0], src).strip() in _VARIANTS
+            for r in rule_nodes)
+        tagv = None
+        if is_variant_match:
+            tagv = f"_vtag{_VTAG_N[0]}"
+            _VTAG_N[0] += 1
+            _PRELUDE.append(f'    int {tagv} = realvec({scrut_src}.item("_tag"));\n')
         parsed = []
         for rule in rules.named_children:
             if rule.type != "rule":
@@ -364,14 +390,33 @@ def _lower_expr(node, src: bytes) -> str:
                 test = f"({scrut_src} == {_lower_expr(pat, src)})"
                 res_src = _lower_expr(res, src)
             elif pat.type == "identifier_pattern":
-                # `| x -> …`: bind the name to the scrutinee, a catch-all base.
-                nm = _text(pat, src).strip()
-                _SUBST[nm] = f"({scrut_src})"
-                try:
-                    res_src = _lower_expr(res, src)
-                finally:
-                    _SUBST.pop(nm, None)
-                test = None
+                pk = pat.named_children
+                head_name = _text(pk[0], src).strip() if pk else ""
+                if head_name in _VARIANTS:
+                    # `| Circle r -> …`: a DU variant pattern. Test the scrutinee's
+                    # `_tag` (via the crisp int-local); bind payload names to `_val0…`.
+                    tag, _arity = _VARIANTS[head_name]
+                    test = f'({tagv} == {tag})'
+                    payload = [c for c in pk[1:] if c.type == "identifier_pattern"]
+                    binds = [(_text(pp, src).strip(),
+                              f'realvec({scrut_src}.item("_val{i}"))')
+                             for i, pp in enumerate(payload)]
+                    for nm, sub in binds:
+                        _SUBST[nm] = sub
+                    try:
+                        res_src = _lower_expr(res, src)
+                    finally:
+                        for nm, _sub in binds:
+                            _SUBST.pop(nm, None)
+                else:
+                    # `| x -> …`: bind the name to the scrutinee, a catch-all base.
+                    nm = _text(pat, src).strip()
+                    _SUBST[nm] = f"({scrut_src})"
+                    try:
+                        res_src = _lower_expr(res, src)
+                    finally:
+                        _SUBST.pop(nm, None)
+                    test = None
             else:
                 return f"/* UNSUPPORTED-MATCH-PATTERN: {pat.type} */"
             parsed.append((test, res_src))
@@ -401,6 +446,18 @@ def _lower_expr(node, src: bytes) -> str:
                     _PRELUDE.append(f"    Axon {name};\n")
                     for field, fval in rec_fields:
                         _PRELUDE.append(f'    {name}.add("{field}", {_lower_expr(fval, src)});\n')
+                    _AXON_VARS.add(name)
+                    return _lower_expr(kids[1], src)
+                va = _variant_application(val_node, src)
+                if va is not None:
+                    # `let c = Circle 4` — DU construction to a TAGGED axon (`_tag` +
+                    # `_val0…`), the Haskell/Rust variant shape; emitted to the prelude.
+                    vname, vargs = va
+                    tag, _arity = _VARIANTS[vname]
+                    _PRELUDE.append(f"    Axon {name};\n")
+                    _PRELUDE.append(f'    {name}.add("_tag", {tag});\n')
+                    for i, a in enumerate(vargs):
+                        _PRELUDE.append(f'    {name}.add("_val{i}", {_lower_expr(a, src)});\n')
                     _AXON_VARS.add(name)
                     return _lower_expr(kids[1], src)
                 val_src = _lower_expr(val_node, src)
@@ -471,6 +528,57 @@ def _record_type_names(root, src: bytes) -> set:
 
     walk(root)
     return names
+
+
+def _union_info(root, src: bytes):
+    """Scan `union_type_defn`s. Returns (type_names, variants): the DU type names (for
+    `Axon` param typing) and `variant → (tag, arity)` (tags per-DU in declaration
+    order; arity = number of `union_type_field`s)."""
+    type_names: set = set()
+    variants: dict = {}
+
+    def walk(n):
+        if n.type == "union_type_defn":
+            tn = next((c for c in n.named_children if c.type == "type_name"), None)
+            if tn is not None:
+                ti = next((c for c in tn.named_children if c.type == "identifier"), None)
+                if ti is not None:
+                    type_names.add(_text(ti, src).strip())
+            cases = next((c for c in n.named_children
+                          if c.type == "union_type_cases"), None)
+            tag = 0
+            for case in (cases.named_children if cases is not None else []):
+                if case.type != "union_type_case":
+                    continue
+                ci = next((c for c in case.named_children
+                           if c.type == "identifier"), None)
+                if ci is None:
+                    continue
+                fields = next((c for c in case.named_children
+                               if c.type == "union_type_fields"), None)
+                arity = len([c for c in fields.named_children
+                             if c.type == "union_type_field"]) if fields else 0
+                variants[_text(ci, src).strip()] = (tag, arity)
+                tag += 1
+        for c in n.named_children:
+            walk(c)
+
+    walk(root)
+    return type_names, variants
+
+
+def _variant_application(node, src: bytes):
+    """If `node` is a DU construction `Circle 4` (an `application_expression` whose head
+    names a known variant), return (variant_name, [arg_nodes]); else None. A bare
+    nullary variant in value position is a later item (ambiguous with a plain name)."""
+    if node.type != "application_expression":
+        return None
+    head, args = _flatten_apply(node)
+    if head.type in ("identifier", "long_identifier_or_op", "long_identifier"):
+        name = _text(head, src).strip()
+        if name in _VARIANTS:
+            return name, args
+    return None
 
 
 def _typed_paren_param(paren, src: bytes):
@@ -615,6 +723,7 @@ def _lower_defn(defn, src: bytes) -> str:
     # record literals emit construction statements to _PRELUDE before the return.
     _PRELUDE.clear()
     _AXON_VARS.clear()
+    _VTAG_N[0] = 0
     for p in params:
         if param_ty.get(p) == "Axon":
             _AXON_VARS.add(p)
@@ -645,6 +754,10 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     # runtime code themselves (they declare the shape).
     _RECORD_TYPES.clear()
     _RECORD_TYPES.update(_record_type_names(tree.root_node, src))
+    _VARIANTS.clear()
+    _union_type_names, _union_variants = _union_info(tree.root_node, src)
+    _RECORD_TYPES.update(_union_type_names)   # DU type names are also Axon-typed
+    _VARIANTS.update(_union_variants)
 
     out = ["// Generated by sutra-from-fsharp. See sdk/sutra-from-fsharp/README.md.\n"]
     for child in tree.root_node.named_children:
