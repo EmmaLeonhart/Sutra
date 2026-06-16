@@ -58,11 +58,10 @@ all measured, CI-green on CPU. This is the foundation the trainable-button track
 
 ## 🎯 ACTIVE VISION — trainable click-button (owner preference + CTR) — Emma 2026-06-16
 
-> **⛔ DESIGN-GATE: do NOT implement yet — brainstorming HARD-GATE.** Design captured here
-> so it is durable (not chat-only). Two questions still open with Emma before the spec is
-> written: **(1)** Phase 1 (substrate core) before Phase 2 (live browser/JS) — OK?
-> **(2)** preset copy set ("Buy now" / "Get started" / "Learn more") — Emma's words or
-> placeholders? When answered → write the spec doc → writing-plans → execute.
+> **✅ DESIGN APPROVED (Emma "barrel through", 2026-06-16).** Spec:
+> `docs/superpowers/specs/2026-06-16-trainable-click-button-design.md`. Defaults locked:
+> Phase 1 (substrate core) before Phase 2; preset copy ("Buy now"/"Get started"/"Learn more")
+> as placeholders. Now executing Phase 1 (B1→B2→B3) via TDD, CI-green on CPU.
 
 **Vision (Emma):** a clickable, *JS-like* button that we **train** to optimize for *what the
 website owner wants* AND *what gets the biggest CTR*. A demo, linked to the `sutra-from-ts`
