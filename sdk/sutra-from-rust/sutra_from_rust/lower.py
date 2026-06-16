@@ -914,6 +914,49 @@ def _lower_function(item, src: bytes) -> str:
                 stmts += (f'    {_DEFAULT_TYPE} {_text(el, src)} = '
                           f'realvec({val_src}.item("_{i}"));\n')
             continue
+        if ld_kids and ld_kids[0].type == "struct_pattern":
+            # `let Point { x, y } = p;` — destructure a struct axon into named
+            # locals reading the named axon fields via `realvec` (the same
+            # projection `p.x` uses). Shorthand `{ x }` binds the field name; the
+            # renamed form `{ x: a }` binds the inner identifier to field `x`.
+            sp = ld_kids[0]
+            binds: list[tuple[str, str]] = []  # (field, local_name)
+            for fp in sp.named_children:
+                if fp.type != "field_pattern":
+                    continue
+                short = next((c for c in fp.named_children
+                              if c.type == "shorthand_field_identifier"), None)
+                if short is not None:
+                    nm = _text(short, src)
+                    binds.append((nm, nm))
+                    continue
+                fid = next((c for c in fp.named_children
+                            if c.type == "field_identifier"), None)
+                inner = next((c for c in fp.named_children
+                              if c.type == "identifier"), None)
+                if fid is None or inner is None:
+                    return (f"// UNSUPPORTED-FN: '{name}' struct-pattern field is "
+                            f"not a shorthand/renamed identifier (later item)\n")
+                binds.append((_text(fid, src), _text(inner, src)))
+            if not binds:
+                return (f"// UNSUPPORTED-FN: '{name}' struct pattern with no "
+                        f"field bindings (later item)\n")
+            value = ld_kids[-1]
+            deep = _hoist_enum_constructions(value, src, "    ")
+            added = []
+            if deep is not None:
+                pre_src, added = deep
+                stmts += pre_src
+            val_src = _lower_expr(value, src)
+            for nid in added:
+                _ARG_HOIST.pop(nid, None)
+            if "UNSUPPORTED" in val_src:
+                return (f"// UNSUPPORTED-FN: '{name}' struct-pattern let value "
+                        f"out of shape\n")
+            for field, local in binds:
+                stmts += (f'    {_DEFAULT_TYPE} {local} = '
+                          f'realvec({val_src}.item("{field}"));\n')
+            continue
         if len(ld_kids) < 2 or ld_kids[0].type != "identifier":
             return f"// UNSUPPORTED-FN: '{name}' has a pattern let (later item)\n"
         value = ld_kids[-1]
