@@ -168,6 +168,16 @@ def _hoist_constructions(node, src: bytes, indent: str = "    ") -> str:
             prelude += f'{indent}{tmp}.add("_{i}", {_lower_expr(el, src)});\n'
         _ARG_HOIST[node.id] = tmp
         return prelude
+    if node.type == "bind":
+        # A `bind`'s first child is the PATTERN (a `variable` or a `tuple`/
+        # constructor destructure) — NOT a value. Only its `match` body (the
+        # bound value) can carry hoistable constructions; recursing into the
+        # pattern would wrongly hoist a tuple PATTERN `(a, b)` as a value axon.
+        prelude = ""
+        for m in node.named_children:
+            if m.type == "match":
+                prelude += _hoist_constructions(m, src, indent)
+        return prelude
     if node.type == "case":
         # Recurse into the scrutinee and the alternative BODIES, never the
         # alternative patterns (which are constructor-shaped but not values).
@@ -524,6 +534,30 @@ def _apply_local_binds(local_binds, src: bytes) -> list[str]:
     bound: list[str] = []
     for b in local_binds.named_children:
         if b.type != "bind":
+            continue
+        first = b.named_children[0] if b.named_children else None
+        if first is not None and first.type == "tuple":
+            # `(a, b) = t` — tuple-pattern destructure: each element reads the
+            # positional axon field of the bound value via `realvec` (the same
+            # projection `fst`/`snd` use). Only identifier elements are in scope;
+            # a nested pattern (a non-`variable` element) is a later item.
+            elems = first.named_children
+            if any(e.type != "variable" for e in elems):
+                continue
+            val = _match_body(b, src)
+            if val is None:
+                continue
+            val_src = _lower_expr(val, src)
+            # The bound value is a bare name (a variable, or a hoisted tuple temp);
+            # `name.item(...)` is the axon-method form the compiler dispatches —
+            # a parenthesised `(expr).item(...)` falls through to the tensor op,
+            # so only a simple-identifier value is in scope here.
+            if not val_src.isidentifier():
+                continue
+            for i, el in enumerate(elems):
+                nm = _text(el, src)
+                _SUBST[nm] = f'realvec({val_src}.item("_{i}"))'
+                bound.append(nm)
             continue
         name_node = next((c for c in b.named_children if c.type == "variable"), None)
         val = _match_body(b, src)  # the bind's `match` (= expr) body
