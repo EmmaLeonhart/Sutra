@@ -28,7 +28,10 @@ import pathlib
 from typing import Optional
 
 _HERE = pathlib.Path(__file__).resolve().parent
-_DLL = _HERE.parent / "_grammar" / "fsharp.dll"
+import sys as _sys
+# Windows dev builds a `.dll` (MSVC); the Linux CI runner builds a `.so` (gcc).
+_DLL = _HERE.parent / "_grammar" / (
+    "fsharp.dll" if _sys.platform == "win32" else "fsharp.so")
 _DEFAULT_TYPE = "int"
 
 # F# primitive type name → Sutra type (the OCaml `_OCAML_TYPE_TO_SUTRA` set;

@@ -1,0 +1,97 @@
+name: Transpilers — pytest (sutra-from-* frontends)
+
+# CI for the source-language frontends under sdk/sutra-from-* (OCaml, Scala, F#,
+# Elixir, Erlang, Clojure, Haskell, Rust, TypeScript). Each frontend's test
+# harness lowers fixtures AND runs the runnable ones on the real Sutra substrate
+# (the compile-AND-run bar), so this needs torch + the in-repo compiler.
+#
+# Grammars come two ways:
+#   - 6 frontends (rust/haskell/elixir/ocaml/scala/ts) use pip `tree-sitter-*`
+#     wheels — just installed below.
+#   - 3 frontends (fsharp/erlang/clojure) have no wheel; their `lower.py` loads a
+#     compiled tree-sitter library. Locally that's a Windows `.dll` (built by each
+#     frontend's build_grammar.py via MSVC); on this Linux runner we compile the
+#     SAME grammar sources into a `.so` with gcc (the loaders are platform-aware
+#     and pick `.dll` on win32, `.so` elsewhere). `_grammar/` is gitignored, so the
+#     library is always built fresh here.
+#
+# No ollama: the frontend fixtures lower to codebook-free `.su` (arithmetic / axon
+# field ops, small runtime_dim, no basis_vector), so no embedding lookups occur.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sdk/sutra-from-**'
+      - 'sdk/sutra-compiler/**'
+      - '.github/workflows/transpilers-ci.yml'
+  pull_request:
+    paths:
+      - 'sdk/sutra-from-**'
+      - 'sdk/sutra-compiler/**'
+      - '.github/workflows/transpilers-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: transpilers-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  pytest:
+    name: pytest sdk/sutra-from-*
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install compiler + torch + pytest + wheel grammars
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install pytest numpy
+          # CPU-only torch (the runnable fixtures execute on the real substrate).
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e sdk/sutra-compiler
+          # The 6 wheel-based grammars (rust/haskell/elixir/ocaml/scala/ts).
+          pip install \
+            tree-sitter \
+            tree-sitter-rust \
+            tree-sitter-haskell \
+            tree-sitter-elixir \
+            tree-sitter-ocaml \
+            tree-sitter-scala \
+            tree-sitter-typescript
+
+      - name: Build F#/Erlang/Clojure tree-sitter grammars (.so via gcc)
+        run: |
+          set -euo pipefail
+          build() {
+            repo="$1"; subdir="$2"; lib="$3"; outdir="$4"; scanner="$5"
+            tmp="$(mktemp -d)"
+            git clone --depth 1 "$repo" "$tmp/g"
+            src="$tmp/g/$subdir"
+            mkdir -p "$outdir"
+            srcs="$src/parser.c"
+            if [ "$scanner" = "yes" ] && [ -f "$src/scanner.c" ]; then
+              srcs="$srcs $src/scanner.c"
+            fi
+            cc -shared -fPIC -I "$src" $srcs -o "$outdir/$lib.so"
+            echo "built $outdir/$lib.so"
+          }
+          build https://github.com/ionide/tree-sitter-fsharp   fsharp/src fsharp  sdk/sutra-from-fsharp/_grammar  yes
+          build https://github.com/WhatsApp/tree-sitter-erlang src        erlang  sdk/sutra-from-erlang/_grammar  yes
+          build https://github.com/sogaiu/tree-sitter-clojure  src        clojure sdk/sutra-from-clojure/_grammar no
+
+      - name: Run all frontend test suites
+        run: |
+          set -euo pipefail
+          python -m pytest sdk/sutra-from-*/tests/ -q
