@@ -113,6 +113,33 @@ scale-invariant, so an optimiser can satisfy it by collapsing the frame to black
 degenerate win. We score position by a plain bottom-right-minus-top-left mass instead, which
 black cannot game.)
 
+## Training a button to get clicks
+
+The same gradient machinery powers a small product demo: a **clickable button**, rendered
+entirely on the substrate, that is *trained* to optimise two things at once — **what the
+site owner wants** and **what gets the biggest click-through rate**. The button is a
+rounded-rectangle (squircle) field with a fill colour, page background, and a choice of
+*copy* ("Buy now" / "Get started" / "Learn more"); its design is a parameter vector the
+optimiser steers, and the render is differentiable, so Adam backpropagates through it.
+
+Two reward signals are blended, `R = α·owner + (1−α)·CTR`:
+
+- **Owner preference** — the same warmer/colder Bradley-Terry head, learning the owner's
+  taste (say, a blue brand button) from their A/B choices.
+- **CTR** — a *simulated audience* (a deterministic, differentiable click-probability model
+  that rewards a button standing out from the page, a warm call-to-action colour, and
+  punchier copy) for training and tests; **real clicks** in a live browser for the demo.
+
+The `α` knob is the story: it trades the owner's taste against raw clicks. Measured (16–24-px
+grid, across seeds): from a neutral grey start (CTR ≈ 0.50), **pure-CTR steering** drives the
+button warm and high-contrast, raises the simulated CTR to **≈ 0.95**, and auto-picks the
+punchiest copy ("Buy now"); **pure-owner steering** instead drives the button toward the
+owner's blue taste; and intermediate `α` sits between — the owner-driven button is bluer, the
+CTR-driven one clicks better. The button's render math is also authored in TypeScript and
+lowered to Sutra by [`sutra-from-ts`](https://github.com/EmmaLeonhart/Sutra/tree/main/sdk/sutra-from-ts),
+the path for the browser/JS layer. The render is the substrate; the reward head, the audience
+model, and Adam are ordinary host-side code, and we say so.
+
 ## The gallery
 
 | Demo | Source | What you see |
