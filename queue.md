@@ -217,7 +217,8 @@ negative results, not hidden.
   construction) shipped 2026-06-16, suite 26/26): nullary DU variants in value position;
   construction (DU/tuple/record) in ARGUMENT position (only let-bound now; needs an
   arg-hoist walk); record-update `{ r with … }`; tuple/record PATTERN destructuring.
-  Measured grammar quirk: parenthesize call operands under infix. [Scala COMPLETE 18/18.]
+  Measured grammar quirk: parenthesize call operands under infix. [Scala 20/20 — named
+  roadmap + tuples done 2026-06-16.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
   positional-key axons + `elem(t, i)` access shipped 2026-06-16, suite 28/28):
   maps/structs/tuples in multi-clause/recursive bodies; multi-clause heads with recursion

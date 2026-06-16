@@ -66,6 +66,8 @@ def _blend(test_src: str, then_src: str, else_src: str) -> str:
 def _map_type(node, src: bytes) -> str:
     if node is None:
         return _DEFAULT_TYPE
+    if node.type == "tuple_type":      # `(Int, Int)` — a tuple is a positional-key axon
+        return "Axon"
     text = _text(node, src)
     if text in _CASE_CLASSES:
         return "Axon"
@@ -111,6 +113,18 @@ def _hoist_constructions(body, src: bytes, indent: str = "    "):
         if cname is not None:
             tmp = f"_ah{len(added)}"
             prelude.append(_emit_construction(cname, n, src, tmp, indent))
+            _ARG_HOIST[n.id] = tmp
+            added.append(n.id)
+            return
+        if n.type == "tuple_expression" and n.named_children:
+            # `(a, b)` -> a positional-key axon. Scala tuple selectors are 1-based
+            # (`t._1`, `t._2`), and the `._1` access already reads `_1`, so store
+            # `_1`/`_2`/… to match.
+            tmp = f"_ah{len(added)}"
+            stmts = f"{indent}Axon {tmp};\n"
+            for i, el in enumerate(n.named_children, start=1):
+                stmts += f'{indent}{tmp}.add("_{i}", {_lower_expr(el, src)});\n'
+            prelude.append(stmts)
             _ARG_HOIST[n.id] = tmp
             added.append(n.id)
 
@@ -503,10 +517,11 @@ def _lower_function(node, src: bytes, obj_name: str | None = None) -> str:
             if pnode.type != "parameter":
                 continue
             pid = next((c for c in pnode.named_children if c.type == "identifier"), None)
-            ptype = next((c for c in pnode.named_children if c.type == "type_identifier"), None)
+            ptype = next((c for c in pnode.named_children
+                          if c.type in ("type_identifier", "tuple_type")), None)
             if pid is not None:
                 params.append((_text(pid, src), _map_type(ptype, src)))
-    ret_node = next((c for c in kids if c.type == "type_identifier"), None)
+    ret_node = next((c for c in kids if c.type in ("type_identifier", "tuple_type")), None)
     ret = _map_type(ret_node, src)
     body = kids[-1] if kids else None
     if body is None or body.type in ("identifier", "parameters", "type_identifier"):
