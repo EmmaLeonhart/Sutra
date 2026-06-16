@@ -83,8 +83,6 @@ website owner wants* AND *what gets the biggest CTR*. A demo, linked to the `sut
 **Provisional decomposition (NOT yet started — pending the spec):**
 
 _Phase 1 — substrate core (CI-testable, mirrors G1–G5):_
-- [ ] **B2 — simulated audience (CTR) model.** Deterministic host-side function: rendered
-  button → click probability (rewards contrast/legibility/punchy copy). Named simulated.
 - [ ] **B3 — `ButtonAdam` dual-reward controller.** Generalize `HeroAdam`: combined
   `R = α·owner_pref + (1−α)·CTR`, continuous-θ Adam through the twin + discrete-copy argmax.
   TDD: CTR-pref raises CTR, owner-pref moves to owner taste, α knob trades off — measured,

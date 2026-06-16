@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: trainable button B2 — simulated audience (CTR) model
+
+`demos/gui/button_audience.py` — `SimulatedAudience.ctr(frame, copy) → [0,1]`: a
+deterministic, differentiable click-probability proxy. `σ(w_c·contrast + w_w·warmth +
+w_copy·copy_weight − bias)`, where contrast = mean abs colour diff between the button centre
+and the page corners (salience), warmth = centre red−blue (warm CTAs), copy_weight = a
+per-preset click weight (`PRESET_COPY` "Buy now"/"Get started"/"Learn more" → 0.9/0.7/0.4,
+punchier higher). Built from torch slicing/means/sigmoid so it is differentiable in the
+frame — load-bearing for B3 (Adam ascends CTR through the render). Explicitly *simulated*,
+not real traffic (live clicks come in B4); size/shape preference noted as a future
+refinement, not modelled (no overclaim). TDD `test_button_audience.py` (5): CTR ∈ [0,1],
+higher contrast → higher CTR, punchier copy → higher CTR, deterministic, and gradient flows
+through render_button_torch to the fill colour. 5/5 on forced-CPU and CUDA.
+
 ## 2026-06-16: trainable button B1 — differentiable substrate button render
 
 `demos/gui/button_frame.su` (`button_channel`) + `whole_frame.render_button_torch(size, θ)`:
