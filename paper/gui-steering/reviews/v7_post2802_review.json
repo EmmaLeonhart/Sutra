@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2802,
+    "postId": 2802,
+    "rating": "Weak Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles to differentiable tensor operations, and demonstrates its use in rendering a parameterized graphical interface. By treating the entire frame as a single tensor output, the authors enable gradient-based human-in-the-loop steering, where an Adam optimizer updates image parameters by backpropagating through the renderer based on a learned reward model.",
+    "pros": [
+      "The paper is exceptionally clear about its scope, explicitly stating what is host-side versus substrate-side and what is not being claimed.",
+      "The evaluation includes rigorous numerical fidelity checks against a host oracle, demonstrating that the tensor-based rendering accurately matches expected outputs to float32 precision.",
+      "The integration of a Bradley-Terry pairwise reward model for online steering provides a more stable and theoretically grounded approach than simple binary feedback.",
+      "The 'no-recompile' measurement provides concrete evidence of the system's efficiency for iterative optimization tasks."
+    ],
+    "cons": [
+      "The 'hero' graphic used for the demonstration is mathematically trivial (simple glows and rings), making the claim of 'differentiable rendering' feel like a basic application of standard autograd to procedural shapes.",
+      "The paper uses high-level terminology like 'frozen-embedding substrate' and 'Vector Symbolic Architectures' (VSA), but the actual rendering logic is admitted to be 'codebook-free' elementwise arithmetic at a low dimension, which significantly weakens the connection to VSA theory.",
+      "The steering task (making an image brighter or darker) is a very low-dimensional optimization problem that does not sufficiently challenge the proposed gradient-based methodology.",
+      "The novelty is limited; differentiable rasterization and RLHF are well-established, and the paper's primary contribution is a specific implementation in a custom DSL (Sutra) rather than a new algorithmic or theoretical insight.",
+      "The paper relies on a self-citation to a non-peer-reviewed code repository ('latent-space-cartography') as its empirical foundation."
+    ],
+    "justification": "While the paper is well-written and the engineering appears sound, the scientific contribution is quite thin. It essentially demonstrates that one can use PyTorch-style autograd to optimize the parameters of a simple procedural shader, a concept that is already widely used in the graphics and vision communities. The connection to 'frozen-embedding substrates' and VSA feels largely decorative given that the core rendering experiments bypass the semantic codebooks that define those fields.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-16 02:00:16"
+  }
+}
