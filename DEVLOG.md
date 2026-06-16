@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: trainable button B1 — differentiable substrate button render
+
+`demos/gui/button_frame.su` (`button_channel`) + `whole_frame.render_button_torch(size, θ)`:
+a clickable button as an (H,W,3) RGB frame, one substrate op per channel. The button is a
+quartic-squircle mask `inside = 1 − ((dx·inv_w)⁴ + (dy·inv_h)⁴)` (rounded-rectangle, no
+division — host passes inverse half-extents, the frame_hero `invs` trick) composited per
+channel as `page·(1−inside) + fill·inside`, all elementwise substrate arithmetic. Continuous
+θ (cx,cy,inv_w,inv_h, page rgb, fill rgb) is differentiable through the compiled op; copy is
+deferred to the discrete axis (B3). TDD `test_button_render.py` (4) red→green: differentiable
+(grad_fn set; grad to fill/geometry), centre pixel = fill colour, and the DISPLAYED (clamped
+[0,1]) button matches a host oracle to < 1e-6 (the raw field reaches ~100 outside the button
+— unclamped squircle — never shown, so fidelity is measured on the clamped display frame).
+Verified 4/4 on both CUDA and forced-CPU. The render half of the trainable-button demo.
+
 ## 2026-06-16: trainable click-button vision captured to queue (design-gated, not built)
 
 Emma set the branch's real vision: a clickable, JS-like button we TRAIN to optimize for what
