@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Clojure frontend — `first`/`second` vector accessors (Phase 3)
+
+Work+report sprint tick (small, building on the vector work). `(first v)` / `(second v)`
+now lower to `realvec(v.item("_0"))` / `realvec(v.item("_1"))` (the positional axon
+accessors, alongside the existing `(nth v i)`); `_kwd_accessed_params` types a
+`(first v)`/`(second v)`-accessed param as `Axon`. New fixture `vector_first_second` runs
+on the substrate to 13; suite 28→30. (Note: TS tuples are intentionally OUT of scope — TS
+arrays are `JavaScriptObject` by the CLAUDE.md carve-out, not axons; the tuple/data-structure
+tier is complete across the 8 applicable frontends: elixir/erlang/clojure/rust/fsharp/
+haskell/ocaml/scala.)
+
 ## 2026-06-16: Scala frontend — tuple construction `(a, b)` → positional-key axons (Phase 3)
 
 Work+flush sprint tick. Scala already lowered tuple ACCESS (`p._1`/`p._2` → `item("_1")`/
