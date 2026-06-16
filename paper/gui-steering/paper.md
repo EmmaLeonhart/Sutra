@@ -315,6 +315,45 @@ paths: the θ hero (mono and RGB), a substrate glyph banner, the four-quadrant l
 and a before/after steering pair (neutral start vs after a steered session). The PNGs
 are build artifacts (regenerated locally; git-ignored).
 
+### 7.1 Application: a click-optimized button (owner preference + CTR)
+
+The same differentiable-render + gradient-steering loop drives a small product demo: a
+**clickable button**, rendered entirely on the substrate, trained to optimize a *blend* of
+what a site owner wants and what gets clicked. The button is a quartic-squircle (rounded
+rectangle) field with a fill colour over a page background and a discrete choice of preset
+copy ("Buy now" / "Get started" / "Learn more"); the render
+(`demos/gui/whole_frame.render_button_torch`, `button_frame.su`) is differentiable in the
+continuous θ (fill/page colour, inverse size, position), checked against a host oracle on the
+displayed frame to < 1e-6. The controller (`demos/gui/button_adam.py`) ascends a blended
+reward through the substrate render:
+
+  R(θ, copy) = α · owner_pref(frame) + (1 − α) · CTR(frame, copy),
+
+where `owner_pref` is the same pairwise Bradley-Terry head (§5) trained on the owner's
+warmer/colder choices, and `CTR` is a *simulated audience* — a deterministic, differentiable
+click-probability model (`demos/gui/button_audience.py`) rewarding salience (button-vs-page
+contrast), a warm call-to-action colour, and punchier copy. `α ∈ [0,1]` is a tradeoff knob.
+
+Measured (16–24-px grid, synthetic owner preferring a blue brand button, across seeds 0–3):
+from a neutral grey start (relative button "blueness" ≈ 0.00, simulated CTR ≈ 0.50),
+
+- **α = 0 (pure CTR):** drives the button warm and high-contrast, raises the simulated CTR to
+  **≈ 0.95**, and the discrete-copy argmax picks the punchiest copy ("Buy now") — every seed.
+- **α = 1 (pure owner):** drives the button toward the owner's blue taste (blueness 0.00 →
+  **+0.38 … +0.65**).
+- **the α knob trades off:** the owner-driven button is bluer than the CTR-driven one, and the
+  CTR-driven button has the higher CTR — robust across seeds, 0 non-finite frames.
+
+The button's render math is also authored in TypeScript (`demos/gui/button_spec.ts`) and
+lowered to Sutra by the `sutra-from-ts` transpiler (`button_spec.su`), the intended path for
+the browser/JS layer; the transpiled program compiles and runs (its centre pixel lights to
+1.0, matching the hand-written render). Two honest limitations: the transpiler currently
+lowers TS `number` to Sutra `int`, so the *float-fidelity* render stays the hand-written
+`button_frame.su` (float lowering is a known TS-frontend follow-on); and the audience here is
+*simulated* — real click-through is collected only in the live browser, not in these measured
+runs. As elsewhere, the render is the substrate; the reward head, the audience model, and Adam
+are host-side and named so.
+
 ## 8. What we are not claiming
 
 - **The composition is host-side.** Assembling glyphs into a banner, placing the
@@ -433,7 +472,15 @@ pytest demos/gui/test_hero_adam_rgb.py                   # §7 colour steering (
 pytest demos/gui/test_hero_steering_axes.py              # §7 position + size steering
 python demos/gui/adam_window.py                          # the live Adam warmer/colder window
 python demos/gui/adam_window_rgb.py                      # the live colour A/B steering window
+pytest demos/gui/test_button_render.py                   # §7.1 substrate button render fidelity + grad
+pytest demos/gui/test_button_audience.py                 # §7.1 simulated audience (CTR) model
+pytest demos/gui/test_button_adam.py                     # §7.1 owner+CTR dual-reward steering + α knob
+pytest demos/gui/test_button_spec_ts.py                  # §7.1 TS->Sutra button-spec lowering
 ```
+
+The trainable click-button (§7.1) lives in `demos/gui/` (`button_frame.su`,
+`whole_frame.render_button_torch`, `button_audience.py`, `button_adam.py`, `button_spec.ts`
+→ `button_spec.su`).
 
 The full demo and steering suites are run with `pytest demos/gui/`.
 

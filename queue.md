@@ -88,15 +88,16 @@ _The substrate button (B1), simulated audience (B2), and ButtonAdam dual-reward 
 CTR-only → warm high-contrast + "Buy now" (CTR ~0.95); the α knob trades off. CI-verify on
 the gui branch via `gh workflow run demos-ci.yml --ref gui` before relying on it._
 
-_Phase 2 — live browser / JS layer (after Phase 1 green):_
-- [ ] **B4 — live HTML/JS button + click logging.** Real `<button>` styled from θ; clicks →
-  CTR; owner A/B control → owner_pref. Local bridge server (the `counter_substrate_server.py`
-  pattern). I/O layer, untested in CI; smoke manually.
-- [ ] **B6 — docs + paper.** Cover the trainable-button demo, measured.
+_Phase 2 — live browser / JS layer:_
+- [ ] **B4 — live HTML/JS button + click logging (Emma + browser).** Real `<button>` styled
+  from θ; clicks → CTR; owner A/B control → owner_pref. Local bridge server (the
+  `counter_substrate_server.py` pattern). I/O layer, untested in CI — needs a real browser to
+  smoke, so it is build-not-CI-verifiable. Do it deliberately / with Emma at a browser; do NOT
+  claim the live clicking works without running it in a browser.
 
-_B5 (sutra-from-ts button spec) ✅ done: `button_spec.ts` → `button_spec.su` transpiles,
-compiles, and runs (centre = 1.0). B4 (live HTML/JS button) remains — needs a real browser
-to smoke, so it is build-not-CI-verifiable; do it deliberately / with Emma at a browser._
+_B5 (sutra-from-ts button spec) ✅ done. B6 (docs + paper) ✅ done — `docs/gui.md` "Training a
+button to get clicks" + `paper/gui-steering/paper.md` §7.1, measured. Only B4 (live browser)
+remains on the trainable-button track._
 
 ---
 
