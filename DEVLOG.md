@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: trainable button B6 — docs + paper for the click-optimized button
+
+Documented the trainable-button demo, measured numbers only. `docs/gui.md`: new "Training a
+button to get clicks" section — the substrate button trained on `R = α·owner + (1−α)·CTR`,
+the α taste-vs-clicks knob, the simulated-audience-vs-real-clicks split, and the sutra-from-ts
+tie-in. `paper/gui-steering/paper.md`: new §7.1 "Application: a click-optimized button" with
+the measured story (neutral start blueness 0.00 / CTR ≈ 0.50 → α=0 drives CTR ≈ 0.95 + picks
+"Buy now"; α=1 drives blueness +0.38…+0.65; the α knob trades off, robust seeds 0–3), the
+TS→Sutra lowering (centre = 1.0), plus §10 repro entries for the four button suites. Honest
+limitations stated: the audience is *simulated* (real clicks only in the live browser, B4),
+and ts2su lowers number→int so the float render stays button_frame.su. No overclaim: render is
+substrate, reward head + audience + Adam host-side. Only B4 (live browser) remains.
+
 ## 2026-06-16: trainable button B5 — JS→Sutra tie-in (button render authored in TS)
 
 `demos/gui/button_spec.ts` expresses the button's quartic-squircle render math in TypeScript;
