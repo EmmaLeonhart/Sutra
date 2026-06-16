@@ -249,12 +249,11 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
   records/DUs → axons (needs the infra in the dedicated item below). Measured
   grammar quirk: parenthesize call operands under infix. [Scala's named roadmap
   set is COMPLETE 2026-06-12, 18/18.]
-- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through string-key arrow-map
-  `%{"k" => v}` + `m["k"]` access → axons shipped 2026-06-16, suite 24/24): non-string
-  arrow keys (numeric `%{1 => v}` — needs a non-name field scheme); maps/structs in
-  multi-clause/recursive bodies; multi-clause heads with recursion (currently
-  `UNSUPPORTED-RECURSION`); `is_integer`-style type-test guards (`and`/`or` chains already
-  lower via `_OP_MAP`). (Erlang is its own frontend.)
+- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through string + numeric
+  arrow-map keys `%{"k" => v}` / `%{1 => v}` + `m["k"]`/`m[1]` access → axons shipped
+  2026-06-16, suite 26/26): maps/structs in multi-clause/recursive bodies; multi-clause
+  heads with recursion (currently `UNSUPPORTED-RECURSION`); `is_integer`-style type-test
+  guards (`and`/`or` chains already lower via `_OP_MAP`). (Erlang is its own frontend.)
 - [ ] **F# records/DUs → axons — needs F# infrastructure first.** Records port
   the OCaml pattern conceptually. Prereq (a) typed-param extraction (`(p: Point)`
   `typed_pattern`) SHIPPED 2026-06-15 (handles primitive types; record-type names
