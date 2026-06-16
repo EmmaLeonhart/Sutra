@@ -195,6 +195,12 @@ def _kwd_accessed_params(body, params: set, src: bytes) -> set:
                     and kids[1].type == "sym_lit"
                     and _text(kids[1], src) in params):
                 found.add(_text(kids[1], src))
+            # `(first v)` / `(second v)` — vector-param accessors type `v` as Axon
+            elif (len(kids) == 2 and kids[0].type == "sym_lit"
+                    and _text(kids[0], src) in ("first", "second")
+                    and kids[1].type == "sym_lit"
+                    and _text(kids[1], src) in params):
+                found.add(_text(kids[1], src))
         for c in n.named_children:
             walk(c)
 
@@ -583,6 +589,10 @@ def _lower_expr(node, src: bytes) -> str:
             # field `_i` (the tuple/map field-read shape).
             idx = _text(args[1], src).strip()
             return f'realvec({_lower_expr(args[0], src)}.item("_{idx}"))'
+        if head in ("first", "second") and len(args) == 1:
+            # `(first v)` / `(second v)` — the positional axon fields _0 / _1.
+            field = "_0" if head == "first" else "_1"
+            return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
         sop = _OP_MAP.get(head)
         if sop is not None:
             if len(args) < 2:
