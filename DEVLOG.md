@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-16: Haskell frontend — `let (a, b) = t` tuple-pattern destructuring (Phase 3)
+
+Work-loop sprint tick (parallel to the Rust tuple-destructure increment). Haskell
+`let`/`where` binds now destructure a tuple pattern: `let (a, b) = t in …` substitutes each
+element to the positional axon field read `realvec(t.item("_i"))` (the same projection
+`fst`/`snd` use). Two changes: (a) `_apply_local_binds` detects a `bind` whose first child is
+a `tuple` pattern (vs a `variable`) and registers element substitutions; (b)
+`_hoist_constructions` now skips a `bind`'s pattern (recurses only into its `match` value),
+so a tuple PATTERN `(a, b)` is not wrongly hoisted as a value axon. The bound value must be
+a bare identifier (a variable or a hoisted tuple temp) — `name.item(...)` is the axon-method
+form the compiler dispatches; a parenthesised `(expr).item(...)` falls through to the tensor
+op (measured: `TensorBase.item() takes no arguments`), so a complex value is a later item.
+New fixture `tuple_destructure` (`addPair t = let (a,b)=t in a+b`, `main = addPair (5,8)`)
+compiles AND runs on the substrate to 13; suite 22→24, no regressions.
+
 ## 2026-06-16: Rust frontend — `let (a, b) = t` tuple-pattern destructuring (Phase 3)
 
 Work+report sprint tick. Rust `let`-bindings now destructure a tuple pattern into named
