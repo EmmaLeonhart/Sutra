@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: queue reorg — GUI moved to its own branch; main barrels the rest
+
+Emma 2026-06-16: GUI is now a focused effort on her own separate GUI branch (it "started
+working"), so on **main** the work is the transpiler / ACTIVE-DIRECTIVE track, not GUI.
+Reorganized `queue.md`: removed the GUI track + the obsolete GUI-gate from the top, made the
+ACTIVE DIRECTIVE the top active work, and **removed the GUI agenda entirely** (clawRxiv loop
++ extensions) — GUI lives on the GUI branch now, not in main's queue. Updated the Context
+note (do NOT re-add GUI here). The GUI demo code + paper stay built/merged on main; only the
+not-yet-done GUI *agenda* left this queue. Crons made more aggressive for the sprint
+(work-loop + auto-flush + status all advance a bounded increment).
+
 ## 2026-06-16: GUI P14 — website page covers the Adam steering demo (product framing)
 
 `docs/gui.md` predated the Adam-RLHF demo (it covered the basic whole-frame render + the
