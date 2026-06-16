@@ -121,6 +121,11 @@ class ButtonAdam:
         if self.live_ctr:
             self.ctr_head = OwnerRewardModel(pool, dtype=self.img_dt, device=self.img_dev)
             self.ctr_opt = torch.optim.Adam(list(self.ctr_head.parameters()), lr=lr_reward)
+            # Per-copy click-rate bandit (B9): copy is discrete and not in the rendered frame,
+            # so the learned visual head can't pick it; this UCB bandit learns the best copy
+            # from real click outcomes per shown copy.
+            self._copy_impr = [0] * self.n_copy
+            self._copy_clicks = [0] * self.n_copy
         self._gen = torch.Generator(device=self.img_dev).manual_seed(seed + 1)
         self._pending = None
 
@@ -147,6 +152,44 @@ class ButtonAdam:
 
     def _reward(self, frame, copy):
         return self.alpha * self.owner(frame) + (1.0 - self.alpha) * self._ctr_term(frame, copy)
+
+    # --- click-driven copy bandit (B9; live mode only) ---
+    def _require_live(self, what: str):
+        if not self.live_ctr:
+            raise RuntimeError(f"{what} requires live_ctr=True")
+
+    def record_copy_outcome(self, clicked: bool) -> None:
+        """Record whether the currently-shown copy was clicked (a bandit pull on `self.copy`)."""
+        self._require_live("record_copy_outcome")
+        self._copy_impr[self.copy] += 1
+        if clicked:
+            self._copy_clicks[self.copy] += 1
+
+    def select_copy_ucb(self) -> int:
+        """Pick the copy to show next by UCB1 over observed click rates: explore any unseen
+        copy first, else maximize empirical rate + an exploration bonus. Sets and returns
+        `self.copy`."""
+        import math
+        self._require_live("select_copy_ucb")
+        for c in range(self.n_copy):                 # explore unseen arms first
+            if self._copy_impr[c] == 0:
+                self.copy = c
+                return c
+        total = sum(self._copy_impr)
+        def score(c):
+            rate = self._copy_clicks[c] / self._copy_impr[c]
+            return rate + math.sqrt(2.0 * math.log(total) / self._copy_impr[c])
+        self.copy = int(max(range(self.n_copy), key=score))
+        return self.copy
+
+    def copy_impressions(self) -> list:
+        self._require_live("copy_impressions")
+        return list(self._copy_impr)
+
+    def copy_click_rates(self) -> list:
+        self._require_live("copy_click_rates")
+        return [(self._copy_clicks[c] / self._copy_impr[c]) if self._copy_impr[c] else 0.0
+                for c in range(self.n_copy)]
 
     def record_click(self, prefer_variant: bool) -> float:
         """Live mode: train the learned CTR head on a click preference (the visitor clicked the

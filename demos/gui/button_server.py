@@ -84,6 +84,9 @@ class ButtonBridge:
         self.round = 0
         self.clicks = 0
         self.impressions = 0
+        self._round_clicked = False                       # did this owner-round get a click?
+        if live_ctr:
+            self.ctl.select_copy_ucb()                    # bandit picks the first copy to show
         self.ctl.propose()                                # prime the first pair
 
     def _styles(self):
@@ -106,9 +109,16 @@ class ButtonBridge:
         }
 
     def prefer(self, prefer_variant: bool) -> dict:
-        """The owner's A/B choice → one ButtonAdam step, then a fresh proposal."""
+        """The owner's A/B choice → one ButtonAdam step, then a fresh proposal. In live mode an
+        owner-round is also one copy-bandit impression: record whether the shown copy was
+        clicked this round, then let the bandit pick the next copy to show."""
+        if self.ctl.live_ctr:
+            self.ctl.record_copy_outcome(self._round_clicked)
+            self._round_clicked = False
         self.ctl.choose(prefer_variant=bool(prefer_variant))
         self.round += 1
+        if self.ctl.live_ctr:
+            self.ctl.select_copy_ucb()
         self.ctl.propose()
         return self.state()
 
@@ -121,6 +131,7 @@ class ButtonBridge:
         self.clicks += 1
         if self.ctl.live_ctr and self.ctl._pending is not None:
             self.ctl.record_click(prefer_variant=(which == "variant"))
+            self._round_clicked = True                    # the shown copy got a click this round
         return {"clicks": self.clicks, "impressions": self.impressions,
                 "ctr_observed": (self.clicks / self.impressions) if self.impressions else 0.0}
 
