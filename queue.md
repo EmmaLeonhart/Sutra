@@ -268,11 +268,13 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
   maps → axons + `(get m :k)` access shipped 2026-06-15, suite 24/24): numeric/symbol map
   keys; maps in recursive bodies; destructuring binds; multi-arity `defn`; `case`
   symbol/keyword test members (currently number/bool literals only).
-- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through `data` ADTs →
-  tagged axons shipped 2026-06-15, suite 18/18; laziness out of scope): guarded/multi-
-  equation recursion (currently `UNSUPPORTED-RECURSION`); non-integer literal patterns;
-  mutually-recursive/forward `where`/`let` bindings; nested/non-variable `case` patterns
-  + `case` in non-tail expression position.
+- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through integer/float
+  literal `case` patterns + `_`/named catch-all shipped 2026-06-16, suite 20/20;
+  laziness out of scope): guarded/multi-equation recursion (currently
+  `UNSUPPORTED-RECURSION`); mutually-recursive/forward `where`/`let` bindings;
+  nested/non-variable constructor `case` patterns; `case` in non-tail expression
+  position. (Literal-pattern `case` dispatches the scrutinee directly via an equality
+  blend — the Clojure/Elixir shape — and refuses mixed variant+literal patterns.)
 - [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through nested/non-tail `match`
   in expression position shipped 2026-06-15, suite 24/24): `..base` struct spread;
   statement-bearing if-arms; nullary-variant values; nested match inside a tail-match arm.
