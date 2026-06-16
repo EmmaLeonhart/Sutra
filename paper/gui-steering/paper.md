@@ -299,8 +299,12 @@ scoring frames on that one property (`demos/gui/test_hero_steering_axes.py`,
 - **Colour.** On the **differentiable** RGB render (`render_hero_rgb_torch`, where each
   channel is the composed hero tinted on the substrate and the colour tints `cr,cg,cb` are
   differentiable θ axes), a rater preferring a redder frame raises its relative redness from
-  **+0.106 to ≈ +0.50–0.62** while a less-red preference drives it to **−1.0**; the
-  direction flips, with 0 non-finite frames.
+  **+0.11 toward the top of the range (+0.33 … +1.0 across seeds 0–4)** while a less-red
+  preference drives it to **≤ 0 (down to −1.0)**; the direction flips, with 0 non-finite
+  frames. (Colour mode floors the brightness/background boxes so the canvas never collapses
+  to all-black: a tint multiplies its channel, so `tint·0 = 0` — an all-black frame is an
+  absorbing trap where the colour axes become no-ops, which we observed on CPU before adding
+  the floor.)
 
 These reuse the §5 loop unchanged — only the rater's scored property and (for colour) the
 differentiable render path differ — so the steering claim is not specific to brightness: the

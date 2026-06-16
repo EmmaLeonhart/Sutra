@@ -113,7 +113,17 @@ class HeroAdam:
         # Colour mode adds the per-channel tints (cr/cg/cb) as steerable axes and renders
         # the differentiable 3-channel frame; mono mode keeps the original 7 axes.
         self.color = bool(color)
-        self.axes = HERO_ADAM_AXES + (HERO_ADAM_COLOR_AXES if self.color else ())
+        geom = HERO_ADAM_AXES
+        if self.color:
+            # A tint multiplies its channel on the substrate, so `tint · 0 == 0`: an
+            # all-black frame is an absorbing trap for colour steering — the cr/cg/cb axes
+            # become no-ops and the optimizer cannot recover. Keep the canvas non-black by
+            # flooring the brightness/background boxes (centre pixel ≥ ~0.4 > 0) so the
+            # tints always have signal to act on. (Mono mode keeps the full range, incl. the
+            # all-black state the darker-preference test relies on.)
+            floored = {"bright": (1.0, 0.6), "bg": (0.2, 0.2)}  # bright∈[0.4,1.6], bg∈[0.0,0.4]
+            geom = tuple((n, *floored.get(n, (c, h))) for n, c, h in HERO_ADAM_AXES)
+        self.axes = geom + (HERO_ADAM_COLOR_AXES if self.color else ())
         self.theta = {name: torch.nn.Parameter(
             torch.tensor(center, dtype=self.dt, device=self.dev))
             for name, center, _hr in self.axes}
