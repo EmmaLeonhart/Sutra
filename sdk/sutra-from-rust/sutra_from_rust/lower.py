@@ -887,6 +887,33 @@ def _lower_function(item, src: bytes) -> str:
     stmts = ""
     for ld in lets:
         ld_kids = ld.named_children
+        if ld_kids and ld_kids[0].type == "tuple_pattern":
+            # `let (a, b) = t;` — destructure a tuple axon into named locals.
+            # Each element reads the positional axon field (`_0`, `_1`, …) via
+            # `realvec` (the same projection `p.0` uses). Only identifier elements
+            # are in scope (nested patterns are a later item); the value is hoisted
+            # first so `let (a, b) = (5, 8);` works too, binding to a temp axon.
+            tp = ld_kids[0]
+            elems = [c for c in tp.named_children if c.type == "identifier"]
+            if not elems or len(elems) != len(tp.named_children):
+                return (f"// UNSUPPORTED-FN: '{name}' has a non-identifier tuple "
+                        f"pattern element (later item)\n")
+            value = ld_kids[-1]
+            deep = _hoist_enum_constructions(value, src, "    ")
+            added: list = []
+            if deep is not None:
+                pre_src, added = deep
+                stmts += pre_src
+            val_src = _lower_expr(value, src)
+            for nid in added:
+                _ARG_HOIST.pop(nid, None)
+            if "UNSUPPORTED" in val_src:
+                return (f"// UNSUPPORTED-FN: '{name}' tuple-pattern let value "
+                        f"out of shape\n")
+            for i, el in enumerate(elems):
+                stmts += (f'    {_DEFAULT_TYPE} {_text(el, src)} = '
+                          f'realvec({val_src}.item("_{i}"));\n')
+            continue
         if len(ld_kids) < 2 or ld_kids[0].type != "identifier":
             return f"// UNSUPPORTED-FN: '{name}' has a pattern let (later item)\n"
         value = ld_kids[-1]
