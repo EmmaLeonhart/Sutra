@@ -7,7 +7,7 @@ name: Deploy GitHub Pages site
 # scrapped 2026-05-16; the conceptual pages were restored under the
 # new static pipeline 2026-05-17).
 #
-# Live at: https://sutra.yantraos.org
+# Live at: https://sutra.noldor.tech
 # (Custom domain — web/CNAME pins the Pages deploy; build_site.py
 # copies it into the output where GitHub Pages picks it up. DNS is
 # configured by the domain owner outside this repo.)
