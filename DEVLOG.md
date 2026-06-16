@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Rust frontend — `let (a, b) = t` tuple-pattern destructuring (Phase 3)
+
+Work+report sprint tick. Rust `let`-bindings now destructure a tuple pattern into named
+locals: `let (a, b) = t;` lowers each element to the positional axon field read
+`realvec(t.item("_i"))` (the same projection `p.0` already uses). The value is hoisted
+first, so `let (a, b) = (5, 8);` works too (the tuple construction binds to an `_ahN` temp,
+then the elements destructure from it). Only identifier pattern elements are in scope —
+nested tuple patterns and struct patterns are flagged `UNSUPPORTED-FN` (later items), never
+mislowered. New fixture `tuple_destructure` (`add_pair(t){ let (a,b)=t; a+b }`,
+`main = add_pair((5,8))`) compiles AND runs on the substrate to 13; suite 28→30, no
+regressions. Rust data-structure tier now: tuple construction + `.0`/`.1` access + let-tuple
+destructuring; remaining Rust items: struct pattern destructure, nested tuple patterns,
+nullary-variant values, nested match in a tail-match arm.
+
 ## 2026-06-16: Multi-clause recursion in frontends — design doc (next increment de-risked)
 
 Work+flush sprint tick. The data-structure tier is now complete across the 8 applicable
