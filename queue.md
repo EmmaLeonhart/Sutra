@@ -50,12 +50,57 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ---
 
-## ACTIVE — GUI: extend the Adam-RLHF demo (color / position / size + A/B UX)
+## ✅ DONE foundation — Adam-RLHF demo (G1–G5)
 
-_All G-track items (G1–G5) complete. The Adam-RLHF demo now steers brightness, colour,
-position, and size through the differentiable substrate render, with a colour A/B window,
-docs, and paper coverage — all measured. Next GUI horizon items live in `todo.md` §GUI
-(learned decoder is EMMA-GATED; Yantra integration lower priority)._
+_G1–G5 complete: the Adam-RLHF demo steers brightness, colour, position, and size through
+the differentiable substrate render, with a colour A/B window, docs, and paper coverage —
+all measured, CI-green on CPU. This is the foundation the trainable-button track builds on._
+
+## 🎯 ACTIVE VISION — trainable click-button (owner preference + CTR) — Emma 2026-06-16
+
+> **⛔ DESIGN-GATE: do NOT implement yet — brainstorming HARD-GATE.** Design captured here
+> so it is durable (not chat-only). Two questions still open with Emma before the spec is
+> written: **(1)** Phase 1 (substrate core) before Phase 2 (live browser/JS) — OK?
+> **(2)** preset copy set ("Buy now" / "Get started" / "Learn more") — Emma's words or
+> placeholders? When answered → write the spec doc → writing-plans → execute.
+
+**Vision (Emma):** a clickable, *JS-like* button that we **train** to optimize for *what the
+website owner wants* AND *what gets the biggest CTR*. A demo, linked to the `sutra-from-ts`
+(JS) frontend. Builds directly on the Adam-RLHF machinery above.
+
+**Settled design decisions (from Emma, 2026-06-16 brainstorm):**
+- **CTR signal = BOTH** — a deterministic *simulated audience* model drives training/CI;
+  *real clicks* in a live browser drive the demo.
+- **Trainable surface = visual + preset copy** — continuous θ (bg/text colour, width,
+  height, corner-radius, cx/cy) + a *discrete* copy choice (argmax over a preset set), i.e.
+  the hero's continuous-θ + discrete-headline split reused.
+- **Objectives = weighted blend + knob** — `R(θ) = α·owner_pref + (1−α)·CTR`; owner_pref is
+  the existing pairwise Bradley-Terry head (warmer/colder), CTR the click signal; α slider
+  shows the taste-vs-clicks tension.
+- **JS linkage = real HTML/JS button + substrate twin** — live demo is a real `<button>`
+  (real clicks); training/CI uses a *differentiable substrate-rendered twin*; button spec
+  authored in TS → `sdk/sutra-from-ts/`.
+
+**Provisional decomposition (NOT yet started — pending the spec):**
+
+_Phase 1 — substrate core (CI-testable, mirrors G1–G5):_
+- [ ] **B1 — substrate button render.** `button_frame.su` + `render_button_torch(size, θ)`:
+  rounded-rect field + centred substrate glyph copy, differentiable in continuous θ. TDD
+  fidelity vs host oracle + grad-flow test. Floor against the black-collapse trap (learned).
+- [ ] **B2 — simulated audience (CTR) model.** Deterministic host-side function: rendered
+  button → click probability (rewards contrast/legibility/punchy copy). Named simulated.
+- [ ] **B3 — `ButtonAdam` dual-reward controller.** Generalize `HeroAdam`: combined
+  `R = α·owner_pref + (1−α)·CTR`, continuous-θ Adam through the twin + discrete-copy argmax.
+  TDD: CTR-pref raises CTR, owner-pref moves to owner taste, α knob trades off — measured,
+  flips, robust seeds, CPU.
+
+_Phase 2 — live browser / JS layer (after Phase 1 green):_
+- [ ] **B4 — live HTML/JS button + click logging.** Real `<button>` styled from θ; clicks →
+  CTR; owner A/B control → owner_pref. Local bridge server (the `counter_substrate_server.py`
+  pattern). I/O layer, untested in CI; smoke manually.
+- [ ] **B5 — `sutra-from-ts` button spec.** Author the button spec in TS, run through the
+  TS frontend → Sutra program — the concrete JS tie-in.
+- [ ] **B6 — docs + paper.** Cover the trainable-button demo, measured.
 
 ---
 
