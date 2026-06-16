@@ -82,6 +82,8 @@ def _blend(test_src: str, then_src: str, else_src: str) -> str:
 def _map_type(node, src: bytes) -> str:
     if node is None:
         return _DEFAULT_TYPE
+    if node.type == "tuple_type":      # `(i64, i64)` — a tuple is a positional-key axon
+        return "Axon"
     text = _text(node, src)
     if text in _ENUMS or text in _STRUCTS:
         return "Axon"
@@ -200,6 +202,19 @@ def _hoist_enum_constructions(body, src: bytes, indent: str = "    "):
             tmp = f"_ah{_HOIST_N[0]}"
             _HOIST_N[0] += 1
             prelude.append(_emit_struct_construction(_name, fields, base, src, tmp, indent))
+            _ARG_HOIST[n.id] = tmp
+            added.append(n.id)
+            return
+        if n.type == "tuple_expression" and n.named_children:
+            # `(a, b)` -> a positional-key axon (`_0`, `_1`, …); `p.0` reads `_0`.
+            # Tuple PATTERNS are `tuple_pattern`, a different node, so this is
+            # value-position only (no pattern ambiguity).
+            tmp = f"_ah{_HOIST_N[0]}"
+            _HOIST_N[0] += 1
+            stmts = f"{indent}Axon {tmp};\n"
+            for i, el in enumerate(n.named_children):
+                stmts += f'{indent}{tmp}.add("_{i}", {_lower_expr(el, src)});\n'
+            prelude.append(stmts)
             _ARG_HOIST[n.id] = tmp
             added.append(n.id)
             return
@@ -745,6 +760,9 @@ def _lower_expr(node, src: bytes) -> str:
         kids = node.named_children
         if len(kids) == 2 and kids[1].type == "field_identifier":
             return f'realvec({_lower_expr(kids[0], src)}.item("{_text(kids[1], src)}"))'
+        if len(kids) == 2 and kids[1].type == "integer_literal":
+            # tuple index `p.0` -> the positional axon field `_0`.
+            return f'realvec({_lower_expr(kids[0], src)}.item("_{_text(kids[1], src)}"))'
         return "/* UNSUPPORTED-EXPR: field_expression arity */"
     if t == "struct_expression" and _struct_construction(node, src) is not None:
         # A construction reaching here was not hoisted — surface the gap.
@@ -838,12 +856,12 @@ def _lower_function(item, src: bytes) -> str:
                 return f"// UNSUPPORTED-FN: '{name}' has a non-plain parameter ({p.type})\n"
             pid = next((c for c in p.named_children if c.type == "identifier"), None)
             pty = next((c for c in p.named_children
-                        if c.type in ("primitive_type", "type_identifier")), None)
+                        if c.type in ("primitive_type", "type_identifier", "tuple_type")), None)
             if pid is None:
                 return f"// UNSUPPORTED-FN: '{name}' has a pattern parameter\n"
             params.append((_text(pid, src), _map_type(pty, src)))
     ret_node = next((c for c in kids
-                     if c.type in ("primitive_type", "type_identifier")), None)
+                     if c.type in ("primitive_type", "type_identifier", "tuple_type")), None)
     ret = _map_type(ret_node, src)
     block = next((c for c in kids if c.type == "block"), None)
     if block is None:
