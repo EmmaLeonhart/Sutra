@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-16: GUI fix — colour steering black-collapse trap (CPU CI was RED)
+
+CI (`demos-ci`, CPU) was RED while local (CUDA) was green — the exact "local-green ≠
+CI-green" hard rail. `test_hero_adam_rgb.py` colour tests failed on CPU seed 0: the
+redder-preferring run collapsed the frame to all-black (redness 0.106 → 0.000) instead of
+reddening. Root cause is structural, not a flake: a tint multiplies its channel on the
+substrate, so `tint·0 = 0` — once the frame goes all-black, the cr/cg/cb axes become no-ops
+and the optimizer is trapped (at the default explore=0.15 it cannot escape; explore 0.2→0.5,
+0.3→1.0 confirmed it as an absorbing state, not a learning-rate issue). Fix: in colour mode
+only, floor the `bright`/`bg` boxes (`bright∈[0.4,1.6]`, `bg∈[0.0,0.4]`) so the centre pixel
+stays ≥ ~0.4 > 0 and the tints always have a non-black canvas to act on; mono mode keeps its
+full range (incl. the all-black state the darker-preference test needs). Verified across
+seeds 0–4 under forced-CPU (`torch.cuda.is_available → False`): redder → +0.33…+1.0, less-red
+→ ≤0, flips every seed, 0 non-finite; mono + steering + rgb-diff suites all green on CPU.
+Updated the paper's §7 colour numbers to the robust CPU figures. (CI re-dispatched to confirm
+green.)
+
 ## 2026-06-16: GUI G5 — docs + paper cover the multi-axis / colour extension
 
 Documented the multi-axis steering, measured numbers only. `docs/gui.md`: extended the
