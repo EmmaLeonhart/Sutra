@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: GUI rebuild R4 — live Adam window + run launcher
+
+`demos/gui/adam_window.py`: tkinter live window on `HeroAdam`. Paints the CURRENT hero
+(left) and a PROPOSED variant (right), both substrate-rendered; WARMER (W) = prefer the
+variant, COLDER (K) = keep the current. Each press runs one Bradley-Terry reward step +
+Adam policy steps through the substrate render, then draws the next pair so the hero
+visibly morphs. `run_adam_gui.bat` launcher (`%~dp0`-relative so it runs from anywhere;
+pause-on-exit) — the `.bat` Emma expected and that didn't exist before. Window logic
+smoke-verified headless (load module, build controller, propose→choose→propose, _to_uint8
+range 0–255, one WARMER press moved brightness 0.465→0.633); the tkinter mainloop needs a
+display so it is untested in CI, same as the SPSA `steering_window.py`. Remaining GUI
+rebuild item: R6 (rewrite the paper around the Adam demo), then resume the paused clawRxiv
+loop.
+
 ## 2026-06-16: GUI rebuild R2+R3 — Adam steering via online learned reward (RLHF)
 
 `demos/gui/hero_adam.py`: the real-time-RL GUI demo Emma wanted — Adam steering of the
