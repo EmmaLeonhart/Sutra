@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: `gui` branch created — dedicated GUI work loop (Emma, remote control)
+
+Split a dedicated `gui` branch off `main` so GUI work is not swallowed by the transpiler /
+FV / training backlog (Emma's call over remote control). Cleared `queue.md` to a GUI-only
+track: chosen direction is *extending the Adam-RLHF demo* (color / position / size
+preference dimensions, A/B preference UX, more render params exposed to Adam) — the full
+learned-decoder generation stays EMMA-GATED and out of scope here. Decomposed into G1
+(differentiable RGB render — load-bearing: the existing `render_hero_rgb` severs autograd
+via `torch.full(float(val))`), G2 (RGB/multi-axis Adam controller), G3 (position/size
+steering tests), G4 (RGB window UX), G5 (docs + paper). Started the three session-local
+autonomous-loop crons (work-loop :03, auto-flush :15, status-report :42); mirrored the
+queue into the task tool. The non-GUI backlog remains on `main`.
+
 ## 2026-06-16: GUI P14 — website page covers the Adam steering demo (product framing)
 
 `docs/gui.md` predated the Adam-RLHF demo (it covered the basic whole-frame render + the
