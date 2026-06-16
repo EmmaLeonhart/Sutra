@@ -83,6 +83,37 @@ demo; §8 states what we are *not* claiming.
 
 ## 2. Whole-frame substrate rendering
 
+**The renderer is a Sutra program.** Sutra is a purely functional language whose only
+value type in this demo is `vector` (a tensor on the substrate) and whose operations are
+tensor operations; a program is a set of typed functions. The hero renderer is the
+following Sutra source (`demos/gui/frame_hero.su`), reproduced verbatim:
+
+```
+function vector hero(vector x, vector y, vector ones,
+                     vector cx, vector cy, vector invs,
+                     vector bright, vector radius, vector accent, vector bg) {
+    vector dx = x - cx;
+    vector dy = y - cy;
+    vector r2 = hadamard(dx, dx) + hadamard(dy, dy);
+    vector glow = ones - hadamard(invs, r2);
+    vector rr = hadamard(x, x) + hadamard(y, y) - radius;
+    vector ring = ones - hadamard(rr, rr);
+    return bg + hadamard(bright, glow) + hadamard(accent, ring);
+}
+```
+
+The surface is small and total: `function <type> name(params) { … }` declares a function;
+`vector v = expr;` binds a local; `hadamard(a, b)` is the elementwise (Hadamard) product;
+infix `+`/`-` are elementwise add/subtract; there is no control flow, no mutation, and no
+host escape in this program. Each construct compiles to one PyTorch tensor operation
+(`a*b`, `a+b`, `a-b`) over length-(N·N) buffers, so the whole function is one fused
+sequence of tensor ops with no Python-level loop over pixels. Because every operation is a
+differentiable tensor op, the compiled function is differentiable in its `vector`
+arguments end-to-end — the property §5 and §7 use. (The full language has more — `map`/
+`dict` codebooks, `bind`/`unbind`/`bundle`, `loop`, defuzzification — but the renderer uses
+only this fragment; the substrate font in §3 is where the pretrained-embedding codebook
+enters.)
+
 The host builds, at compile time, the coordinate geometry of the grid: for an
 N×N frame it produces length-(N·N) buffers `x`, `y`, and `ones`. The substrate
 program consumes these and returns one length-(N·N) vector that *is* the frame.
