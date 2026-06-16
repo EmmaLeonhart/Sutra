@@ -75,6 +75,8 @@ def _map_fsharp_type(simple_type_node, src: bytes) -> str:
     record type name → `Axon` (a record is structurally a named-field axon)."""
     if simple_type_node is None:
         return _DEFAULT_TYPE
+    if simple_type_node.type == "compound_type":   # `int * int` — a tuple is an axon
+        return "Axon"
     text = _text(simple_type_node, src).strip()
     if text in _RECORD_TYPES:
         return "Axon"
@@ -353,8 +355,13 @@ def _lower_expr(node, src: bytes) -> str:
         head, args = _flatten_apply(node)
         if head.type not in ("identifier", "long_identifier_or_op", "long_identifier"):
             return f"/* UNSUPPORTED-EXPR: application head {head.type} */"
+        hname = _text(head, src).strip()
+        # `fst t` / `snd t` — pair accessors → the positional axon fields _0 / _1.
+        if hname in ("fst", "snd") and len(args) == 1:
+            field = "_0" if hname == "fst" else "_1"
+            return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
         arg_srcs = [_lower_expr(a, src) for a in args]
-        return f"{_text(head, src)}({', '.join(arg_srcs)})"
+        return f"{hname}({', '.join(arg_srcs)})"
     if t == "match_expression":
         # `match scrut with | k1 -> r1 | … | x -> base` → a nested defuzz blend
         # over `scrut == k` tests (the OCaml/Scala literal-match shape). The last
@@ -440,6 +447,14 @@ def _lower_expr(node, src: bytes) -> str:
             vb = _value_binding(kids[0], src)
             if vb is not None:
                 name, val_node = vb
+                tup_fields = _tuple_fields(val_node, src)
+                if tup_fields is not None:
+                    # `let t = (a, b)` — tuple construction to a positional-key axon.
+                    _PRELUDE.append(f"    Axon {name};\n")
+                    for field, fval in tup_fields:
+                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_expr(fval, src)});\n')
+                    _AXON_VARS.add(name)
+                    return _lower_expr(kids[1], src)
                 rec_fields = _record_fields(val_node, src)
                 if rec_fields is not None:
                     # `let q = { x = a; y = b }` — record construction is statement-
@@ -492,6 +507,21 @@ def _value_binding(fovd, src: bytes):
     if ip is None or kids[-1] is kids[0]:
         return None
     return _text(ip, src).strip(), kids[-1]
+
+
+def _tuple_fields(node, src: bytes):
+    """If `node` is a tuple literal `(a, b, …)`, return [("_0", a), ("_1", b), …] — a
+    tuple is a positional-key axon (`fst`/`snd` read `_0`/`_1`). The tuple parses as a
+    `paren_expression` wrapping a `tuple_expression` (the parens ARE the tuple syntax),
+    so unwrap a single paren layer. Else None."""
+    if node.type == "paren_expression" and len(node.named_children) == 1:
+        node = node.named_children[0]
+    if node.type != "tuple_expression":
+        return None
+    elems = node.named_children
+    if not elems:
+        return None
+    return [(f"_{i}", el) for i, el in enumerate(elems)]
 
 
 def _record_fields(node, src: bytes):
@@ -688,7 +718,7 @@ def _lower_defn(defn, src: bytes) -> str:
                     ident_pat = next((c for c in p.named_children
                                       if c.type == "identifier_pattern"), None)
                     simple_ty = next((c for c in p.named_children
-                                      if c.type == "simple_type"), None)
+                                      if c.type in ("simple_type", "compound_type")), None)
                     if ident_pat is None or not ident_pat.named_children:
                         return (f"// UNSUPPORTED-LET: '{name}' typed parameter is "
                                 f"not a simple identifier — later item\n")
