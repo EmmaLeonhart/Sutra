@@ -45,6 +45,33 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ---
 
+## 🔝 TOP PRIORITY — reference-context system (Emma 2026-06-16, 11:45 incorporation)
+
+A cleanvibe-style **reference-context** system: download reference PDFs/pages we base
+research directions on, analyze them for context, but **DO NOT COMMIT them** (copyright —
+they are reference material, not repo content). Use robust download + analyze scripts; keep
+the artifacts gitignored. May add more links / reorganize later. (Emma's note also: the
+work loop comes FIRST — it is already running; this context can wait behind it.)
+
+- [ ] **RC1 — reference-context dir + gitignore.** Create a `reference-context/` directory
+  (or similar) and add it to `.gitignore` so the downloaded PDFs are never committed.
+  Add a short `reference-context/README.md` (this one CAN be committed) listing the
+  sources + the "downloaded for context, not redistributed" rationale.
+- [ ] **RC2 — robust download + analyze script.** A script (e.g.
+  `scripts/fetch_reference.py`) that robustly downloads a list of URLs into
+  `reference-context/` (retries, proper User-Agent, skips existing, handles arXiv
+  `/abs/` → `/pdf/`), and can extract text for analysis. Reuse cleanvibe's
+  download/analyze pattern if one already exists in-repo before writing new.
+- [ ] **RC3 — fetch + analyze the seed references** (download, do not commit):
+  - Schmidhuber FKI-126-90 (revised): `https://people.idsia.ch/~juergen/FKI-126-90_%28revised%29bw_ocr.pdf`
+  - arXiv 1802.08864: `https://arxiv.org/pdf/1802.08864`
+  - arXiv 2604.06425: `https://arxiv.org/abs/2604.06425`
+  - metauto.ai neural computer: `https://metauto.ai/neuralcomputer/`
+  Then write short context notes (what each contributes to our research directions) under
+  `reference-context/` or `planning/` — notes committable, source PDFs not.
+
+---
+
 ## ACTIVE — GUI: extend the Adam-RLHF demo (color / position / size + A/B UX)
 
 - [ ] **G3 — multi-axis steering tests.** Beyond color: synthetic raters for POSITION
