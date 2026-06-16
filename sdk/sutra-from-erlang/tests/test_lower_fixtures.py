@@ -38,6 +38,7 @@ _RUNNABLE = {
     "map_axon": 13.0,  # sum2(P) -> maps:get(1,P) + maps:get(2,P); main() -> sum2(#{1 => 5, 2 => 8})  (map -> axon, maps:get -> realvec(item))
     "tuple_axon": 13.0,  # fst(P)=element(1,P)+element(2,P); main=fst({5,8})  (tuple -> positional-key axon, element 1-based -> _0)
     "record_axon": 13.0,  # -record(point,{x,y}); fst(P)=P#point.x+P#point.y; main=fst(#point{x=5,y=8})  (record -> named-field axon, name dropped)
+    "tuple_param": 13.0,  # fst({A, B}) -> A + B; main() -> fst({5, 8})  (tuple-PATTERN param -> axon, A/B -> realvec(item _0/_1))
 }
 
 
