@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-16: trainable button B3 — ButtonAdam dual-reward controller (Phase 1 complete)
+
+`demos/gui/button_adam.py` — `ButtonAdam`: steers the differentiable substrate button (B1)
+to maximize `R(θ,copy) = α·owner_pref(frame) + (1−α)·CTR(frame,copy)`. owner_pref is a
+pooled-linear Bradley-Terry head trained online from the owner's pairwise warmer/colder
+choices (the hero pattern, `OwnerRewardModel`); CTR is the simulated audience (B2). Adam
+ascends R through the substrate render for the continuous θ (colours/size/position); the
+discrete copy is chosen by argmax of R over the presets each round. α is the tradeoff knob.
+Healthy boxes keep the page light and the button covering the centre-but-not-corners (so the
+audience's contrast stays well-defined); fill spans the full cube. TDD `test_button_adam.py`
+(3): α=0 raises CTR (→~0.95) and picks the punchiest copy ("Buy now"); α=1 drives the button
+toward the synthetic owner's blue taste; the α knob trades off (owner bluer, CTR higher CTR).
+Verified robust across seeds 0–3 on forced-CPU **and** CUDA, 0 non-finite. **Phase 1
+(B1–B3) complete** — the trainable-button core works; Phase 2 (live browser/JS) is next.
+
 ## 2026-06-16: trainable button B2 — simulated audience (CTR) model
 
 `demos/gui/button_audience.py` — `SimulatedAudience.ctr(frame, copy) → [0,1]`: a

@@ -82,11 +82,11 @@ website owner wants* AND *what gets the biggest CTR*. A demo, linked to the `sut
 
 **Provisional decomposition (NOT yet started — pending the spec):**
 
-_Phase 1 — substrate core (CI-testable, mirrors G1–G5):_
-- [ ] **B3 — `ButtonAdam` dual-reward controller.** Generalize `HeroAdam`: combined
-  `R = α·owner_pref + (1−α)·CTR`, continuous-θ Adam through the twin + discrete-copy argmax.
-  TDD: CTR-pref raises CTR, owner-pref moves to owner taste, α knob trades off — measured,
-  flips, robust seeds, CPU.
+_Phase 1 — substrate core (CI-testable, mirrors G1–G5): **✅ COMPLETE (B1–B3).**_
+_The substrate button (B1), simulated audience (B2), and ButtonAdam dual-reward controller
+(B3) are built, tested, and robust across seeds on CPU. Owner-only → owner's blue taste;
+CTR-only → warm high-contrast + "Buy now" (CTR ~0.95); the α knob trades off. CI-verify on
+the gui branch via `gh workflow run demos-ci.yml --ref gui` before relying on it._
 
 _Phase 2 — live browser / JS layer (after Phase 1 green):_
 - [ ] **B4 — live HTML/JS button + click logging.** Real `<button>` styled from θ; clicks →
