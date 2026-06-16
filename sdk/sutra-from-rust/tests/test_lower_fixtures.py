@@ -34,6 +34,7 @@ _RUNNABLE = {
     "struct_shorthand": 13.0,  # let x=5; let y=8; sum2(Point { x, y })  (field-init shorthand -> S { x: x, y: y })
     "nested_match": 202.0,  # evalE e = 100 + match e {Lit n=>n, Neg n=>0-n}; evalE(Lit 7)=107 + evalE(Neg 5)=95  (match in expression position -> hoisted)
     "struct_spread": 17.0,  # let q = Point { x: 9, ..base }; q.x+q.y; base={1,8} -> q={9,8} = 17  (..base functional-update copies y)
+    "tuple_axon": 13.0,  # fst(p: (i64,i64)) = p.0 + p.1; main = fst((5, 8))  (tuple -> positional-key axon, p.0 -> realvec(item _0))
 }
 
 

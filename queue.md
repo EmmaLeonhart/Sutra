@@ -244,9 +244,10 @@ negative results, not hidden.
   nested/non-variable constructor `case` patterns; `case` in non-tail expression
   position. (Literal-pattern `case` dispatches the scrutinee directly via an equality
   blend — the Clojure/Elixir shape — and refuses mixed variant+literal patterns.)
-- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through `..base` struct spread
-  (functional update) shipped 2026-06-16, suite 26/26): nullary-variant values (ambiguous
-  with a plain name — a later item); nested match inside a tail-match arm.
+- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through tuples `(a, b)` →
+  positional-key axons + `p.0`/`p.1` access shipped 2026-06-16, suite 28/28): nullary-variant
+  values (ambiguous with a plain name — a later item); nested match inside a tail-match arm;
+  tuple/struct PATTERN destructuring (`let (a, b) = t`).
   (Loop bounds need strict `<`/`>` — `<=` drops the boundary iteration, finding
   `2026-06-13-while-loop-le-boundary-equality-defuzz`; same caveat applies to the negated
   *break* condition, so write `if i >= n { break; }`.)
