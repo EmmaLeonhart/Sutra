@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-16: Erlang frontend — tuples `{a, b}` → positional-key axons (Phase 3)
+
+Work+report sprint tick. Mirror of the Elixir tuple work for Erlang: `_tuple_fields` maps
+`{a, b}` → `[("_0", a), ("_1", b)]`, `_hoist_maps` hoists tuple literals like maps, and
+`_element_access` recognizes `element(I, T)` — **1-based** in Erlang, so it reads the 0-based
+axon key `_(I-1)` (`element(1, P)` → `_0`); `_maps_get_params` types an `element(I, P)`-accessed
+param as `Axon`. New fixture `tuple_axon` (`fst(P)=element(1,P)+element(2,P); main=fst({5,8})`)
+compiles AND runs on the substrate to 13; suite 14→16.
+
 ## 2026-06-16: Elixir frontend — tuples `{a, b}` → positional-key axons (Phase 3)
 
 Work-loop tick (first under the aggressive sprint). Elixir tuples now lower to axons with
