@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Erlang frontend — `#{K => V}` maps → axons + `maps:get` (Phase 3)
+
+Work-loop tick (non-GUI; GUI v7 awaiting review). Ported the Elixir/Clojure map-axon
+machinery to `sdk/sutra-from-erlang` (previously MVP with no maps). Added `_map_key_name`
+(integer/atom/string keys → field name), `_map_fields` (`map_expr` → `map_field` pairs),
+`_maps_get` (recognizes a `remote` to module `maps` fun `get` with a static key),
+`_hoist_maps` (hoist `#{…}` to a prelude `Axon _ahN; _ahN.add(...)` group, register
+`node.id → temp`), and `_maps_get_params` (type a param read via `maps:get` as `Axon`).
+`_lower_expr` now emits a hoisted map's temp and lowers `maps:get(K, P)` →
+`realvec(P.item("K"))`. Wired into the bare-single function path (the common case);
+maps in dispatch/recursion bodies remain a later item. New fixture `map_axon`
+(`sum2(P) -> maps:get(1,P)+maps:get(2,P)`, `main() -> sum2(#{1 => 5, 2 => 8})`) compiles
+AND runs on the substrate to 13; suite 12→14.
+
 ## 2026-06-16: Elixir frontend — numeric arrow-map keys `%{1 => v}` → axons (Phase 3)
 
 Work-loop tick (non-GUI; GUI v7 awaiting review). Mirror of the Clojure numeric-key work:
