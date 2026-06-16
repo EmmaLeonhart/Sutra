@@ -36,6 +36,7 @@ _RUNNABLE = {
     "struct_spread": 17.0,  # let q = Point { x: 9, ..base }; q.x+q.y; base={1,8} -> q={9,8} = 17  (..base functional-update copies y)
     "tuple_axon": 13.0,  # fst(p: (i64,i64)) = p.0 + p.1; main = fst((5, 8))  (tuple -> positional-key axon, p.0 -> realvec(item _0))
     "tuple_destructure": 13.0,  # add_pair(t) { let (a, b) = t; a + b }; main = add_pair((5, 8))  (let-tuple-pattern -> realvec(item _0/_1))
+    "struct_destructure": 13.0,  # sum(p: Point) { let Point { x, y } = p; x + y }; main = sum(Point{5,8})  (let-struct-pattern -> realvec(item x/y))
 }
 
 

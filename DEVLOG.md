@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Rust frontend — `let Point { x, y } = p` struct-pattern destructuring (Phase 3)
+
+Work+flush sprint tick (extends the Rust tuple-destructure increment to named-field structs).
+`let Point { x, y } = p;` now destructures a struct axon into named locals reading the named
+fields via `realvec(p.item("x"))` (the same projection `p.x` uses). Shorthand `{ x }` binds the
+field name; the renamed form `{ x: a }` binds the inner identifier to field `x`; a non-identifier
+field pattern surfaces `UNSUPPORTED-FN` (later item). The value is hoisted first (so a constructed
+struct value works too). New fixture `struct_destructure` (`sum(p: Point) { let Point { x, y } =
+p; x + y }`, `main` builds `Point { x: 5, y: 8 }`) compiles AND runs on the substrate to 13; suite
+30→32, no regressions.
+
 ## 2026-06-16: Elixir frontend — `{a, b}` tuple-PATTERN parameters (Phase 3)
 
 Work-loop sprint tick (the Elixir analogue of the destructure tier — Elixir has no `let`, so
