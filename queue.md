@@ -56,11 +56,6 @@ PROVEN 2026-06-16: gradients DO flow through the compiled Sutra render (torch te
 `grad_fn`; `loss.backward()` gives real ∂loss/∂θ: bright −0.24, bg −1.0, invs +0.76,
 accent −0.71 at the neutral θ). The only blocker was `.detach()`. Rebuild plan:
 
-- [ ] **R1. Differentiable render path.** A `render_hero_torch(theta, size)` that keeps
-  the torch tensor with grad — θ as torch params, grad-preserving broadcast
-  (`scalar * ones`, NOT `torch.full(..., float(theta))`), NO `.detach()`. Keep the
-  existing numpy `render_hero` for display/monitoring (terminal boundary). DONE-criterion:
-  a test asserting `buf.grad_fn is not None` and non-zero θ.grad through the substrate.
 - [ ] **R2. Adam steering core (`hero_adam.py`).** θ as `torch.nn.Parameter`s; a
   `torch.optim.Adam`; `loss.backward()` + `opt.step()` backprop through the substrate
   render. Replaces `hero_spsa.py` as the headline optimizer.
