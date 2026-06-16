@@ -356,8 +356,45 @@ def _lower_expr(node, src: bytes) -> str:
             expr = res if test is None else _blend(test, res, expr)
         return expr
     if t == "declaration_expression" and node.named_children:
-        return _lower_expr(node.named_children[0], src)
+        kids = node.named_children
+        # let-SEQUENCE body: a value binding `let a = e` followed by a continuation
+        # (`let a = e1 \n let b = e2 \n expr` nests as declaration_expressions). Lower
+        # it by sequential substitution — the same shape as the Clojure/Haskell `let`:
+        # bind `a → (lowered e1)`, lower the continuation, pop. Bindings see earlier
+        # ones (F# `let` is sequential), so process in order.
+        if len(kids) >= 2 and kids[0].type == "function_or_value_defn":
+            vb = _value_binding(kids[0], src)
+            if vb is not None:
+                name, val_node = vb
+                val_src = _lower_expr(val_node, src)
+                prev = _SUBST.get(name)
+                _SUBST[name] = f"({val_src})"
+                try:
+                    cont_src = _lower_expr(kids[1], src)
+                finally:
+                    if prev is None:
+                        _SUBST.pop(name, None)
+                    else:
+                        _SUBST[name] = prev
+                return cont_src
+        # single child (the function-body wrapper) — lower it directly.
+        return _lower_expr(kids[0], src)
     return f"/* UNSUPPORTED-EXPR: {t} */"
+
+
+def _value_binding(fovd, src: bytes):
+    """If `fovd` is a `function_or_value_defn` that is a simple VALUE binding
+    (`let a = expr`, a `value_declaration_left` with a plain identifier pattern),
+    return (name, value_node); else None (a nested function defn or other shape —
+    not a let-bound scalar local, a later item)."""
+    kids = fovd.named_children
+    if not kids or kids[0].type != "value_declaration_left":
+        return None
+    ip = next((c for c in kids[0].named_children
+               if c.type == "identifier_pattern"), None)
+    if ip is None or kids[-1] is kids[0]:
+        return None
+    return _text(ip, src).strip(), kids[-1]
 
 
 def _typed_paren_param(paren, src: bytes):

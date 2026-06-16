@@ -244,11 +244,11 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
 > recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
 > Roadmap: todo.md §"Multi-language transpiler frontends".
 
-- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through return-type
-  annotations shipped 2026-06-15, suite 18/18): variant/record `match` patterns;
-  records/DUs → axons (needs the infra in the dedicated item below). Measured
-  grammar quirk: parenthesize call operands under infix. [Scala's named roadmap
-  set is COMPLETE 2026-06-12, 18/18.]
+- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through let-SEQUENCE bodies
+  `let a = e1 \n let b = e2 \n expr` (sequential substitution) shipped 2026-06-16, suite
+  20/20): variant/record `match` patterns; records/DUs → axons (prereq (b) now done — see
+  the dedicated item below). Measured grammar quirk: parenthesize call operands under
+  infix. [Scala's named roadmap set is COMPLETE 2026-06-12, 18/18.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through string + numeric
   arrow-map keys `%{"k" => v}` / `%{1 => v}` + `m["k"]`/`m[1]` access → axons shipped
   2026-06-16, suite 26/26): maps/structs in multi-clause/recursive bodies; multi-clause
@@ -258,12 +258,12 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
   the OCaml pattern conceptually. Prereq (a) typed-param extraction (`(p: Point)`
   `typed_pattern`) SHIPPED 2026-06-15 (handles primitive types; record-type names
   still map to default — extend `_map_fsharp_type` to recognize record types →
-  `Axon` once records exist). Still missing: (b) let-SEQUENCE function bodies (a
-  `let a = … ; expr` body is nested `declaration_expression`s; `_lower_expr`
-  currently takes only the first child); (c) a construction hoist (F# has none —
-  needed for brace construction in argument position) OR let-bound-only
-  construction (needs (b)). Field access `p.x` is a dotted `long_identifier`, not
-  a `field_expression`. Build (b)+the hoist next, then records are straightforward.
+  `Axon` once records exist). Prereq (b) let-SEQUENCE function bodies SHIPPED
+  2026-06-16 (sequential `_SUBST` substitution in the `declaration_expression`
+  handler; `_value_binding` helper). Still missing: (c) a construction hoist (F# has
+  none — needed for brace construction in argument position) OR let-bound-only
+  construction (now buildable on (b)). Field access `p.x` is a dotted `long_identifier`,
+  not a `field_expression`. Build the hoist next, then records are straightforward.
 - [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through numeric map keys
   `{1 a 2 b}` → axon fields "1"/"2" + `(get m 1)` access shipped 2026-06-16, suite 26/26):
   symbol map keys (needs a symbol-as-value rep); maps in recursive bodies; destructuring
