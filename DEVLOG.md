@@ -27,6 +27,23 @@ claimed as run.
 
 Measured 21/21 green (hero adam 3 + rgb adam 5 + mono diff 3 + rgb diff 5 + steering 5).
 
+## 2026-06-16: reference-context system RC1–RC3 (seed references downloaded + analyzed)
+
+Reused the EXISTING reference system rather than building a parallel one: `references/` is
+already gitignored and `scripts/fetch_reference_pdfs.py` already downloads-fresh-never-commit
+(RC1 intent already satisfied). Enhanced the fetcher (RC2): arXiv `/abs/`→`/pdf/`
+normalization, transient-failure retries (3×, backoff), and non-PDF sources saved as `.html`
+(so web pages work, not just PDFs). Registered + downloaded the 4 seed references (RC3,
+gitignored — verified `git check-ignore`, nothing reached the index): Schmidhuber FKI-126-90
+(6.1 MB), arXiv:1802.08864 (244 KB), arXiv:2604.06425 (26.6 MB), metauto neural-computer page
+(226 KB HTML). Identified each by reading first pages: the four trace one "network as a
+differentiable computer" line — *Making the World Differentiable* (1990) → *One Big Net For
+Everything* (2018) → *Neural Computers* (Meta AI/KAUST + Schmidhuber, 2026) + its project
+essay. Wrote committable analysis in `planning/reference-context.md` (notes only; sources
+stay uncommitted) connecting them to Sutra's substrate-as-computer / differentiable-render
+directions, with the honest contrast that Sutra's ops are compiled/analytic, not learned
+from I/O traces.
+
 ## 2026-06-16: incorporated new_queue_stuff.md — reference-context system (top priority)
 
 The 11:45 one-shot cron (Emma-scheduled) fired and incorporated `new_queue_stuff.md` into
