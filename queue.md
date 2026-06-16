@@ -83,9 +83,6 @@ website owner wants* AND *what gets the biggest CTR*. A demo, linked to the `sut
 **Provisional decomposition (NOT yet started — pending the spec):**
 
 _Phase 1 — substrate core (CI-testable, mirrors G1–G5):_
-- [ ] **B1 — substrate button render.** `button_frame.su` + `render_button_torch(size, θ)`:
-  rounded-rect field + centred substrate glyph copy, differentiable in continuous θ. TDD
-  fidelity vs host oracle + grad-flow test. Floor against the black-collapse trap (learned).
 - [ ] **B2 — simulated audience (CTR) model.** Deterministic host-side function: rendered
   button → click probability (rewards contrast/legibility/punchy copy). Named simulated.
 - [ ] **B3 — `ButtonAdam` dual-reward controller.** Generalize `HeroAdam`: combined

@@ -621,6 +621,73 @@ def render_hero_rgb_torch(size: int = 64, theta: dict | None = None):
     return torch.stack([chan("cr"), chan("cg"), chan("cb")], dim=-1)
 
 
+# --- Trainable click-button render (queue B1) ----------------------------------
+#
+# A clickable BUTTON as an (H, W, 3) colour frame: a quartic-squircle mask
+# (button_frame.su's `button_channel`) composites a page-background colour and a
+# button-fill colour per channel on the substrate. Continuous θ (colours, inverse
+# size, centre) is differentiable through the compiled op — the render half of the
+# trainable-button demo (owner-preference + CTR steering, B2/B3).
+def _compile_button():
+    """Compile button_frame.su and return its `button_channel` op + the _VSA runtime."""
+    from sutra_compiler import compile_su
+    mod = compile_su(DEMO_GUI / "button_frame.su",
+                     llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
+    return mod.button_channel, mod._VSA
+
+
+# θ axis order — the continuous parameters the host compositor and the ButtonAdam
+# optimizer (B3) share. cx,cy = centre; inv_w,inv_h = inverse half-extents (size,
+# larger ⇒ smaller button); pr/pg/pb = page colour; fr/fg/fb = button-fill colour.
+BUTTON_THETA_AXES = ("cx", "cy", "inv_w", "inv_h",
+                     "pr", "pg", "pb", "fr", "fg", "fb")
+
+# A neutral default: a wide, centred blue button on a light page.
+BUTTON_THETA_DEFAULT = {
+    "cx": 0.0, "cy": 0.0, "inv_w": 1.7, "inv_h": 3.5,
+    "pr": 0.95, "pg": 0.95, "pb": 0.95,
+    "fr": 0.20, "fg": 0.45, "fb": 0.90,
+}
+
+
+def render_button_torch(size: int = 64, theta: dict | None = None):
+    """DIFFERENTIABLE button render: return the (size, size, 3) RGB button as a TORCH
+    TENSOR that KEEPS its autograd graph, so a scalar loss on the button backpropagates to
+    the continuous θ THROUGH the compiled Sutra `button_channel` op (the load-bearing fact
+    for the ButtonAdam controller, B3).
+
+    Each channel composites the page colour and the button-fill colour by the squircle mask
+    in ONE substrate op; the host stacks the three channels (display assembly, the
+    hero_channel/frame_rgb precedent). `theta` maps each axis in BUTTON_THETA_AXES to a 0-d
+    torch tensor (typically `requires_grad=True`) or a float; missing axes fall back to
+    BUTTON_THETA_DEFAULT. The broadcast is grad-preserving (`val * ones`, NOT
+    `torch.full(float(val))` which severs the graph). No `.detach()`: this is the
+    differentiable boundary, not the display boundary."""
+    import torch
+
+    button_channel, vsa = _compile_button()
+    dt, dev = vsa.dtype, vsa.device
+    th = dict(BUTTON_THETA_DEFAULT)
+    if theta:
+        th.update(theta)
+    X, Y, ones = hero_grid(size, dt, dev)
+
+    def bcast(name):
+        v = th[name]
+        if isinstance(v, torch.Tensor):
+            return v.to(dtype=dt, device=dev) * ones
+        return torch.full((ones.shape[0],), float(v), dtype=dt, device=dev)
+
+    geom = (X, Y, ones, bcast("cx"), bcast("cy"), bcast("inv_w"), bcast("inv_h"))
+
+    def chan(page_name, fill_name):
+        buf = button_channel(*geom, bcast(page_name), bcast(fill_name))
+        buf = buf.real if buf.is_complex() else buf
+        return buf.reshape(size, size)
+
+    return torch.stack([chan("pr", "fr"), chan("pg", "fg"), chan("pb", "fb")], dim=-1)
+
+
 # --- Headline-glyph selector (a1 item 1a, discrete "copy" axis) ----------------
 #
 # The hero's headline is chosen from a small preset set by an argmax over θ's
