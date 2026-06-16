@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: GUI P14 — website page covers the Adam steering demo (product framing)
+
+`docs/gui.md` predated the Adam-RLHF demo (it covered the basic whole-frame render + the
+live window only). Added a "Steering the picture in real time" section + a gallery row: a
+person presses warmer/colder, a small pairwise (Bradley-Terry) preference model trains on
+the choice, and **Adam backpropagates the preference through the differentiable substrate
+render** so the Sutra-rendered hero morphs toward what they reward — real
+reinforcement-from-preference, not a scripted animation. Product-framed, with the honest
+substrate/host line (render is the substrate; preference model + optimizer are host-side)
+and the measured behaviour (brighter-pref → top of range, darker → bottom, flips with
+preference). Free of repo-internal scratchpad refs (verified); `scripts/build_site.py`
+renders `/gui/` cleanly. Completes the GUI track's last open item (P14).
+
 ## 2026-06-16: daily substrate-honesty audit — CLEAN (cleared 06-16 + stale 06-15 tasks)
 
 Ran the prepended daily audit over this session's substrate-touching commits (GUI Adam-RLHF

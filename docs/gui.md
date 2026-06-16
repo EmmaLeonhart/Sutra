@@ -62,12 +62,39 @@ number rotated a fixed step each tick** — the rotation is inherently periodic,
 centre sweeps back and forth forever, easing at the edges. Per tick the whole 64×64
 frame costs well under a millisecond.
 
+## Steering the picture in real time
+
+Because the frame is a composition of tensor operations, the render is **differentiable**:
+you can change the picture by *gradient descent*. The steering demo puts a person in that
+loop. It paints a Sutra-rendered "hero" — a movable glow, a ring accent, colour, and a
+[`SUTRA` headline rendered glyph-by-glyph on the substrate](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_hero.su) —
+and a second, proposed variant beside it. You press **WARMER** (you like the variant) or
+**COLDER** (keep the current).
+
+```bash
+python demos/gui/adam_window.py      # or double-click demos/gui/run_adam_gui.bat (Windows)
+```
+
+Each press trains a small preference model on your choice (the pairwise Bradley-Terry
+model real preference-learning uses), and an **Adam optimizer backpropagates your
+preference through the substrate render** to the picture's parameters — so the hero morphs
+toward what you reward, live. It is real reinforcement-from-preference, not a scripted
+animation: the gradient genuinely flows through the rendered frame.
+
+We measured the loop end to end. A rater that consistently prefers brighter frames drives
+the displayed brightness from the neutral start to the top of its range; a rater that
+prefers darker frames drives it to the bottom; the direction flips with the preference,
+with no broken frames across a session. The render is the substrate; the preference model
+and the optimizer are ordinary host-side code, and we say so — the point is that the thing
+the gradient passes *through* is a Sutra program.
+
 ## The gallery
 
 | Demo | Source | What you see |
 |---|---|---|
 | Glow | [`frame.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame.su) | A radial glow, one substrate value per pixel. |
 | Live window | [`live_frame.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/live_frame.su) | A real event loop: timer ticks animate, clicks gate, every frame is one substrate call. |
+| Steerable hero | [`frame_hero.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_hero.su) | Press warmer/colder; Adam backpropagates your preference **through the substrate render** and the picture morphs toward what you reward. |
 | Whole-frame glow | [`frame_whole.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_whole.su) | The same glow, the entire frame computed in one substrate op. |
 | Moving glow | [`frame_moving.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/frame_moving.su) | A glow centred at a movable point; sweep it to animate. |
 | Animated glow | [`moving_glow.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/demos/gui/moving_glow.su) | The glow's centre advances **on the substrate** each tick — the animation's state is a recurrent value, not a host variable. |

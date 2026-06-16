@@ -44,10 +44,6 @@ deleted on completion. Keep the task tool in sync with this file.
 > (`test_hero_adam.py` 3/3). Paper rewritten around it (R6). The transpiler/ACTIVE-DIRECTIVE
 > track and the resumed clawRxiv loop are now unblocked.
 
-- [ ] **P14. Website page (optional, human-facing).** A `docs/` page for the demo per the
-  audiences split (humans read the site; agents read the repo MD). Keep it free of
-  repo-internal scratchpad references. Built by `scripts/build_site.py`.
-
 ### GUI extensions (deferred, autonomous — todo.md §"GUI")
 
 - [ ] **Learned decoder / arbitrary-image generation — EMMA-GATED.** A trained nonlinear
