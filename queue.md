@@ -74,17 +74,6 @@ work loop comes FIRST — it is already running; this context can wait behind it
 
 ## ACTIVE — GUI: extend the Adam-RLHF demo (color / position / size + A/B UX)
 
-- [ ] **G3 — multi-axis steering tests.** Beyond color: synthetic raters for POSITION
-  (prefer glow toward a corner → centroid moves the right way) and SIZE/spread (prefer
-  wider glow → `invs` moves), each measured, finite, and flipping with preference.
-  Extend the suite; document which axis each rater exercises.
-
-- [ ] **G4 — RGB window UX.** Update `adam_window.py` (or add `adam_window_rgb.py`) to
-  paint the color A/B pair with clear A / B labels and a caption surfacing the moving
-  axes / current mean color. I/O only — keep it untested in CI per the existing
-  convention (steering logic stays covered headless). Add a `run_adam_rgb_gui.bat` if a
-  new entrypoint. Manually smoke once; do NOT claim the window works without running it.
-
 - [ ] **G5 — docs + paper.** Update `docs/gui.md` and `paper/gui-steering/` to cover the
   multi-axis / color extension — measured numbers only, no overclaim. Lower priority;
   after G1–G4 land green.
