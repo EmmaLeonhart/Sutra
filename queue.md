@@ -56,21 +56,20 @@ PROVEN 2026-06-16: gradients DO flow through the compiled Sutra render (torch te
 `grad_fn`; `loss.backward()` gives real ∂loss/∂θ: bright −0.24, bg −1.0, invs +0.76,
 accent −0.71 at the neutral θ). The only blocker was `.detach()`. Rebuild plan:
 
-- [ ] **R2. Adam steering core (`hero_adam.py`).** θ as `torch.nn.Parameter`s; a
-  `torch.optim.Adam`; `loss.backward()` + `opt.step()` backprop through the substrate
-  render. Replaces `hero_spsa.py` as the headline optimizer.
-- [ ] **R3. Warmer/colder → differentiable reward (online RLHF).** A small differentiable
-  reward shaped by the human presses (e.g. a learnable reward head / target the presses
-  update); Adam ascends `r(render(θ))`. This is the design fork — build the simplest
-  faithful version; confirm the reward mechanism with Emma if it forks materially.
-- [ ] **R4. Live window** on the Adam controller (update/replace `steering_window.py`),
-  plus the run launcher Emma expects (a simple `run` entry — she referenced a `.bat`;
-  none exists in-repo, so add a documented launcher).
-- [ ] **R5. Substrate tests** — gradient flow, loss decreases under Adam, frame health
-  (0 NaN/blank), MEASURED.
+  > **R2 + R3 DONE 2026-06-16** (`hero_adam.py`): online RLHF with PAIRWISE preferences
+  > (Bradley-Terry) chosen after single-frame thumbs-up/down proved unstable. Each press
+  > = prefer current vs a perturbed variant → BT step on a tiny differentiable reward head
+  > → Adam ascends `R(render(θ))` THROUGH the substrate render. Measured (size 16, 50
+  > rounds, seeds 0–2): brighter-preferring rater 0.465→1.000, darker 0.465→0.000,
+  > direction flips with preference. `hero_spsa.py` kept as the SPSA baseline.
+  > **R5 (substrate tests) also covered**: `test_hero_differentiable.py` (3/3: grad_fn set,
+  > θ.grad flows, Adam reduces loss) + `test_hero_adam.py` (3/3: both directions + flip).
+- [ ] **R4. Live window** on the Adam controller (update/replace `steering_window.py` to
+  paint the current/variant pair + WARMER/COLDER → `choose`), plus a documented run
+  launcher (Emma referenced a `.bat`; none exists in-repo — add one).
 - [ ] **R6. Rewrite the gui-steering paper** around the Adam-through-differentiable-
   substrate demo (the real contribution: gradients through the substrate render, online
-  preference RL). THEN resume the clawRxiv loop (see the paused loop section below).
+  preference RL via Bradley-Terry). THEN resume the clawRxiv loop (paused section below).
 
 - [ ] **P14. Website page (optional, human-facing).** A `docs/` page for the demo per the
   audiences split (humans read the site; agents read the repo MD). Keep it free of
