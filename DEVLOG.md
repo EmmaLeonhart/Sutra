@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-16: transpilers-ci.yml — CI for all 9 sutra-from-* frontends (Emma greenlit)
+
+Stood up `.github/workflows/transpilers-ci.yml` after Emma chose (AskUserQuestion) the
+"full CI including F#/Erlang/Clojure" option — the frontend suites had NO CI, so this whole
+session's frontend work was substrate-verified locally but unprotected (and I'd just found a
+real substrate bug in one). The workflow runs all 9 frontend suites (compile-AND-run on the
+substrate) on push/PR to `sdk/sutra-from-**`: pip-installs the 6 wheel grammars
+(rust/haskell/elixir/ocaml/scala/ts) + CPU torch + the in-repo compiler, and gcc-builds the
+3 wheel-less grammars (F#/Erlang/Clojure) into `.so` on the Linux runner from their
+tree-sitter sources (ionide / WhatsApp / sogaiu; parser.c [+ scanner.c]). Made the 3
+loaders **platform-aware**: `_DLL` now picks `<lang>.dll` on win32, `<lang>.so` elsewhere
+(verified Windows still loads the `.dll`). No ollama needed — frontend fixtures lower to
+codebook-free `.su`. Can't test the Linux grammar build locally (on Windows), so this needs
+the live CI run watched + iterated (ABI mismatch is the main risk); verifying green next.
+
 ## 2026-06-16: F# frontend — DU variants → tagged axons (Phase 3) + substrate finding
 
 Work-loop tick. F# discriminated unions now lower to tagged axons (the Haskell/Rust
