@@ -32,6 +32,10 @@ deleted on completion. Keep the task tool in sync with this file.
   rendered frame / gradient against a reference, measured. No overclaiming.
 - **`paper/paper.md` UNFROZEN; `paper/neurips/` permanently FROZEN (do NOT touch).**
 
+## Thing to do
+
+Set up a cron job that will at 11:45 AM incorporate the new_queue_stuff.md content into the current queue and delete that file. That stuff belongs at the front of the queue
+
 ## Existing demo state (the base this track extends)
 
 - `demos/gui/hero_adam.py` — `HeroAdam`: pairwise online-RLHF (Bradley-Terry reward
