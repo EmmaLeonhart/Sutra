@@ -15,8 +15,12 @@ name: Transpilers — pytest (sutra-from-* frontends)
 #     and pick `.dll` on win32, `.so` elsewhere). `_grammar/` is gitignored, so the
 #     library is always built fresh here.
 #
-# No ollama: the frontend fixtures lower to codebook-free `.su` (arithmetic / axon
-# field ops, small runtime_dim, no basis_vector), so no embedding lookups occur.
+# Most frontend fixtures lower to codebook-free `.su` (arithmetic / axon field ops, no
+# basis_vector). A minority (variant/struct/string cases — ~31) DO hit the embedding
+# codebook, so this workflow installs + runs ollama with nomic-embed-text for full
+# coverage (Emma's "full CI" call 2026-06-16), rather than shipping per-frontend codebook
+# fixtures. The first run pulls the model (~270 MB); the pip `ollama` client is also
+# required (the compiler imports it when a basis_vector lookup is needed).
 
 on:
   push:
@@ -57,7 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          pip install pytest numpy
+          pip install pytest numpy ollama
           # CPU-only torch (the runnable fixtures execute on the real substrate).
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -e sdk/sutra-compiler
@@ -94,6 +98,18 @@ jobs:
           build https://github.com/ionide/tree-sitter-fsharp   fsharp/src fsharp  sdk/sutra-from-fsharp/_grammar  yes
           build https://github.com/WhatsApp/tree-sitter-erlang src        erlang  sdk/sutra-from-erlang/_grammar  yes
           build https://github.com/sogaiu/tree-sitter-clojure  src        clojure sdk/sutra-from-clojure/_grammar no
+
+      - name: Install + start ollama, pull nomic-embed-text
+        run: |
+          set -euo pipefail
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve >/tmp/ollama.log 2>&1 &
+          # Wait for the daemon to accept connections (up to ~30s).
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          ollama pull nomic-embed-text
 
       - name: Run all frontend test suites
         run: |
