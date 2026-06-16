@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — `{a, b}` tuple-PATTERN parameters (Phase 3)
+
+Work-loop sprint tick (the Elixir analogue of the destructure tier — Elixir has no `let`, so
+it destructures in the function head). `def add_pair({a, b}) do a + b end` now lowers: a
+`tuple`-pattern param routes through the multi-clause dispatcher (it isn't a bare identifier),
+where each element binds to the positional axon field read `realvec(_ai.item("_j"))` (the
+`elem(t, j)` projection) and the synthesized arg `_ai` is typed `Axon`. Nested / non-identifier
+tuple elements fall through to `UNSUPPORTED-DEF` (later item), never mislowered. New fixture
+`tuple_param` (`add_pair({a,b}) = a+b`, `main = add_pair({5,8})` — the tuple ARGUMENT hoists to
+a temp) compiles AND runs on the substrate to 13; suite 28→30, no regressions. (The `{a, b} = t`
+multi-statement-body form needs do-block sequence lowering — a separate later item.)
+
 ## 2026-06-16: Clojure frontend — `(let [[a b] v] …)` vector destructuring (Phase 3)
 
 Work+report sprint tick (the Lisp analogue of the rust/haskell/fsharp tuple-destructure

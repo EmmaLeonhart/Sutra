@@ -221,10 +221,12 @@ negative results, not hidden.
   patterns. Measured grammar quirk: parenthesize call operands under infix. [Scala 20/20 —
   named roadmap + tuples done 2026-06-16.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
-  positional-key axons + `elem(t, i)` access shipped 2026-06-16, suite 28/28):
-  maps/structs/tuples in multi-clause/recursive bodies; multi-clause heads with recursion
-  (currently `UNSUPPORTED-RECURSION`); `is_integer`-style type-test guards (`and`/`or`
-  chains already lower via `_OP_MAP`). (Erlang is its own frontend.)
+  positional-key axons + `elem(t, i)` access + `{a, b}` tuple-PATTERN params shipped
+  2026-06-16, suite 30/30): map-PATTERN params (`%{x: a}` in a head); multi-statement
+  bodies with `=` destructure (`{a, b} = t` needs do-block sequence lowering, not just the
+  last form); multi-clause heads with recursion (currently `UNSUPPORTED-RECURSION`);
+  `is_integer`-style type-test guards (`and`/`or` chains already lower via `_OP_MAP`).
+  (Erlang is its own frontend.)
   > **F# RECORDS → axons SHIPPED 2026-06-16.** All prereqs done: (a) typed-param
   > extraction (`(p: Point)`); (b) let-SEQUENCE bodies; (c) a let-bound construction
   > hoist — `_PRELUDE` accumulator emits record `{ x = a }` literals as `Axon q;
