@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: Clojure frontend — data vectors `[a b]` → positional-key axons (Phase 3)
+
+Work-loop sprint tick. Clojure data vectors now lower to positional-key axons (the
+tuple shape). The wrinkle vs Elixir/Erlang tuples: `vec_lit` is overloaded — it is also the
+let/loop/defn BINDING vector. Handled with a prepass: `_collect_binding_vecs` marks the
+node ids of `(let […] …)` / `(loop […] …)` binding vectors so `_vec_fields` treats ONLY
+data vectors (value position) as axons; binding vectors are skipped, and a data vector
+*inside* a binding (`(let [w [5 8]] …)`) is still hoisted correctly. `(nth v i)` (static
+index) lowers to `realvec(v.item("_i"))`; `_kwd_accessed_params` types an `(nth v i)`-accessed
+param as `Axon`. New fixture `vector_axon` (`(defn fst [v] (+ (nth v 0) (nth v 1)))` +
+`(let [w [5 8]] (fst w))`, which exercises the binding-vec exclusion) compiles AND runs on
+the substrate to 13; suite 26→28, no regressions.
+
 ## 2026-06-16: Erlang frontend — tuples `{a, b}` → positional-key axons (Phase 3)
 
 Work+report sprint tick. Mirror of the Elixir tuple work for Erlang: `_tuple_fields` maps

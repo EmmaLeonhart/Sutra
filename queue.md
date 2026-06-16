@@ -231,11 +231,12 @@ negative results, not hidden.
   > `record_type_defn`) types `(p: Point)` params as `Axon`. Fixture `record_axon`
   > runs on substrate → 13. NEXT for F#: DU variants → tagged axons (the dedicated
   > "F# next increments" bullet above now covers it).
-- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through numeric map keys
-  `{1 a 2 b}` → axon fields "1"/"2" + `(get m 1)` access shipped 2026-06-16, suite 26/26):
-  symbol map keys (needs a symbol-as-value rep); maps in recursive bodies; destructuring
-  binds; multi-arity `defn`; `case` symbol/keyword test members (needs a keyword-as-value
-  rep — currently number/bool literals only).
+- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through data vectors `[a b]`
+  → positional-key axons + `(nth v i)` access shipped 2026-06-16, suite 28/28; the binding-
+  vec prepass `_collect_binding_vecs` keeps let/loop binding vectors from being hoisted as
+  data): symbol map keys (needs a symbol-as-value rep); maps/vectors in recursive bodies;
+  destructuring binds (`[a b]`/`{:keys [..]}` in binding position); multi-arity `defn`;
+  `case` symbol/keyword test members (needs a keyword-as-value rep).
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through integer/float
   literal `case` patterns + `_`/named catch-all shipped 2026-06-16, suite 20/20;
   laziness out of scope): guarded/multi-equation recursion (currently

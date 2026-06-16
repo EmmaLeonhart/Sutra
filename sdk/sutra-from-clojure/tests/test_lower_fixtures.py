@@ -42,6 +42,7 @@ _RUNNABLE = {
     "map_axon": 13.0,  # (defn sum2 [p] (+ (:x p) (:y p))); (sum2 {:x 5 :y 8})  (map -> axon, (:k m) -> realvec(item))
     "map_get": 13.0,  # (defn sum2 [p] (+ (get p :x) (get p :y))); (sum2 {"x" 6 "y" 7})  ((get m k) access + string-key map)
     "map_numkey": 13.0,  # (defn sum2 [p] (+ (get p 1) (get p 2))); (sum2 {1 5 2 8})  (numeric map keys -> axon field "1"/"2")
+    "vector_axon": 13.0,  # (defn fst [v] (+ (nth v 0) (nth v 1))); (let [w [5 8]] (fst w))  (data vector -> positional-key axon; let binding-vec NOT hoisted as data)
 }
 
 
