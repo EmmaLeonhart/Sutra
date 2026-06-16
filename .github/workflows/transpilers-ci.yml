@@ -70,6 +70,10 @@ jobs:
             tree-sitter-ocaml \
             tree-sitter-scala \
             tree-sitter-typescript
+          # Install each frontend editable so its `sutra_from_*` package imports.
+          # Most test harnesses self-insert sys.path, but ocaml/ts import the package
+          # directly — installing all of them is the uniform, future-proof fix.
+          for d in sdk/sutra-from-*/; do pip install -e "$d" || echo "skip $d"; done
 
       - name: Build F#/Erlang/Clojure tree-sitter grammars (.so via gcc)
         run: |
