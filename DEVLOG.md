@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-16: Haskell frontend — integer/float literal `case` patterns (Phase 3)
+
+Work-loop tick (non-GUI; GUI was awaiting its v5 review). Extended
+`sdk/sutra-from-haskell` `_lower_case_stmts` to handle literal patterns:
+`case n of 0 -> a; 1 -> b; _ -> c` now dispatches the scrutinee DIRECTLY via an
+equality defuzz-blend (`(n == 0)` …) — the Clojure/Elixir `case` shape — instead of the
+variant `_tag` path used for ADT matches. A `literal` pattern sets `test = (scrut ==
+value)` and emits NO `_tag`/`_val` prelude (those are only meaningful for variant
+scrutinees); `wildcard` `_` and a named-variable catch-all are bases (the named one binds
+the scrutinee value, so `m -> m+1` lowers with `m = n`). Mixed variant+literal patterns
+are refused (`UNSUPPORTED-CASE: mixed`) since a scrutinee is either an ADT or a number,
+never both. New fixture `case_literal` (`classify 1 + classify 0 = 200 + 100`) compiles
+AND runs on the substrate to 300; suite 18→20. Note before this: a literal pattern hit
+`UNSUPPORTED-CASE: pattern literal`; `wildcard` `_` was also previously unsupported in a
+case (only named `variable` catch-alls were) — now both work.
+
 ## 2026-06-16: GUI paper v5 — no-recompile property quantified (answers v4 con 3)
 
 Work-loop GUI pass (top-priority item). v4 (post 2799) = Reject; the actionable con was

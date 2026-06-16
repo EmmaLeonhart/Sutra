@@ -187,6 +187,8 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
         return None, "/* UNSUPPORTED-CASE: no alternatives */"
     parsed = []
     max_arity = 0
+    uses_variant = False
+    uses_literal = False
     for alt in alts_node.named_children:
         if alt.type != "alternative":
             continue
@@ -207,10 +209,21 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
                     return None, "/* UNSUPPORTED-CASE: non-variable payload pattern */"
                 binds.append((_text(p, src), f"_val{i}"))
             test = f"(_vtag == {tag})"
+            uses_variant = True
         elif pat.type == "constructor" and _text(pat, src) in _VARIANTS:
             test = f"(_vtag == {_VARIANTS[_text(pat, src)][1]})"
-        elif pat.type == "variable":  # `_` or a catch-all name — the base
+            uses_variant = True
+        elif pat.type == "literal":
+            # Integer/float literal pattern (`case n of 0 -> …`): dispatch the
+            # scrutinee value DIRECTLY — the Clojure/Elixir `case` equality-blend
+            # shape — not via a variant `_tag`. scrut is a plain number here.
+            test = f"({scrut_src} == {_lower_expr(pat, src)})"
+            uses_literal = True
+        elif pat.type in ("variable", "wildcard"):  # `_` or catch-all name — base
             test = None
+            # A named catch-all binds the scrutinee value (`m -> m+1` ⇒ m = scrut).
+            if pat.type == "variable":
+                binds.append((_text(pat, src), scrut_src))
         else:
             return None, f"/* UNSUPPORTED-CASE: pattern {pat.type} */"
         for nm, sub in binds:
@@ -223,10 +236,18 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
         parsed.append((test, res_src))
     if not parsed:
         return None, "/* UNSUPPORTED-CASE: no arms */"
-    stmts = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
-    for i in range(max_arity):
-        stmts += f'{indent}int _val{i} = realvec({scrut_src}.item("_val{i}"));\n'
-    expr = parsed[-1][1]  # last arm = base (exhaustive ADT match)
+    if uses_variant and uses_literal:
+        # A scrutinee is either an ADT or a number, never both — mixing is
+        # ill-typed; surface it rather than emit a half-variant blend.
+        return None, "/* UNSUPPORTED-CASE: mixed variant + literal patterns */"
+    # The `_tag`/`_val` locals are only meaningful for variant scrutinees; a
+    # literal/number case dispatches the scrutinee directly with no prelude.
+    stmts = ""
+    if uses_variant:
+        stmts = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
+        for i in range(max_arity):
+            stmts += f'{indent}int _val{i} = realvec({scrut_src}.item("_val{i}"));\n'
+    expr = parsed[-1][1]  # last arm = base (exhaustive ADT match / catch-all)
     for test, res in reversed(parsed[:-1]):
         expr = res if test is None else _blend(test, res, expr)
     return stmts, expr
