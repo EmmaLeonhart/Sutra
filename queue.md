@@ -31,6 +31,11 @@ deleted on completion. Keep the task tool in sync with this file.
   render; the reward head + optimizers are host-side and named so. Verify the
   rendered frame / gradient against a reference, measured. No overclaiming.
 - **`paper/paper.md` UNFROZEN; `paper/neurips/` permanently FROZEN (do NOT touch).**
+- **CI on this branch: use `gh workflow run demos-ci.yml --ref gui` (workflow_dispatch),
+  then watch the run — do NOT open a PR to main.** `demos-ci`/`compiler-ci` only auto-run on
+  push-to-main or PRs, and a PR from this isolated branch conflicts with main (so it can't
+  even run pull_request CI). gui is kept SEPARATE from main by design — no merging to main.
+  Note also: local-green ≠ CI-green here — CI runs on CPU, local is CUDA; always verify on CI.
 
 ## Existing demo state (the base this track extends)
 
