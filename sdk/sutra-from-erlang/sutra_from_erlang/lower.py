@@ -107,6 +107,34 @@ def _maps_get(node, src: bytes):
     return field, args[1]
 
 
+def _tuple_fields(node, src: bytes):
+    """If `node` is a tuple `{a, b, …}`, return [("_0", a), ("_1", b), …] — a tuple is
+    a positional-key axon (`element(I, T)` reads `_(I-1)`). Else None."""
+    if node.type != "tuple":
+        return None
+    elems = node.named_children
+    if not elems:
+        return None
+    return [(f"_{i}", el) for i, el in enumerate(elems)]
+
+
+def _element_access(node, src: bytes):
+    """If `node` is `element(I, T)` (a `call` to fun `element`, I a 1-based integer
+    literal), return (field_name, tuple_node) with the field translated to the 0-based
+    axon key `_(I-1)`; else None."""
+    if node.type != "call":
+        return None
+    fn = node.named_children[0] if node.named_children else None
+    if fn is None or fn.type != "atom" or _text(fn, src) != "element":
+        return None
+    args_node = next((c for c in node.named_children if c.type == "expr_args"), None)
+    args = list(args_node.named_children) if args_node is not None else []
+    if len(args) != 2 or args[0].type != "integer":
+        return None
+    one_based = int(_text(args[0], src).strip())
+    return f"_{one_based - 1}", args[1]
+
+
 def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
     """Post-order walk: hoist every `map_expr` to a prelude `Axon _ahN; …` group and
     register `node.id → _ahN`. Mirrors the Elixir `_hoist_maps`."""
@@ -114,6 +142,8 @@ def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
     for child in node.named_children:
         prelude += _hoist_maps(child, src, indent)
     fields = _map_fields(node, src)
+    if fields is None:
+        fields = _tuple_fields(node, src)   # tuples lower to positional-key axons
     if fields is not None:
         tmp = f"_ah{_AH[0]}"
         _AH[0] += 1
@@ -132,6 +162,9 @@ def _maps_get_params(body, params: set, src: bytes) -> set:
         mg = _maps_get(n, src)
         if mg is not None and mg[1].type == "var" and _text(mg[1], src) in params:
             found.add(_text(mg[1], src))
+        ea = _element_access(n, src)   # `element(I, P)` tuple read types P as Axon
+        if ea is not None and ea[1].type == "var" and _text(ea[1], src) in params:
+            found.add(_text(ea[1], src))
         for c in n.named_children:
             walk(c)
 
@@ -200,9 +233,14 @@ def _lower_expr(node, src: bytes) -> str:
         # (the Elixir/Clojure `m[k]` shape).
         field, map_node = mg
         return f'realvec({_lower_expr(map_node, src)}.item("{field}"))'
-    if t == "map_expr":
-        # A map literal reaching here was not hoisted — surface the gap.
-        return "/* UNSUPPORTED-CONSTRUCTION: map outside a hoistable position */"
+    ea = _element_access(node, src)
+    if ea is not None:
+        # `element(I, T)` (1-based) → the positional axon field `_(I-1)` read.
+        field, tup_node = ea
+        return f'realvec({_lower_expr(tup_node, src)}.item("{field}"))'
+    if t in ("map_expr", "tuple"):
+        # A map/tuple literal reaching here was not hoisted — surface the gap.
+        return "/* UNSUPPORTED-CONSTRUCTION: map/tuple outside a hoistable position */"
     if t == "integer":
         return _text(node, src)
     if t == "var":

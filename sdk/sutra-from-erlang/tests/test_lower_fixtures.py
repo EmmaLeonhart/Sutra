@@ -36,6 +36,7 @@ _RUNNABLE = {
     "guard_dispatch": 150.0,  # grade(N) when N>90/when N>50/(_N) -> guarded dispatch; 95+70+20 = 100+50+0
     "case_dispatch": 119.0,  # pick(X) -> case X of 1 -> 10; 2 -> 20; _ -> 99 end; pick(2)+pick(7) = 20+99
     "map_axon": 13.0,  # sum2(P) -> maps:get(1,P) + maps:get(2,P); main() -> sum2(#{1 => 5, 2 => 8})  (map -> axon, maps:get -> realvec(item))
+    "tuple_axon": 13.0,  # fst(P)=element(1,P)+element(2,P); main=fst({5,8})  (tuple -> positional-key axon, element 1-based -> _0)
 }
 
 
