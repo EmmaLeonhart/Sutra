@@ -49,6 +49,11 @@ _SUBST: dict[str, str] = {}
 _ARG_HOIST: dict[int, str] = {}
 _AH_COUNTER = [0]
 
+# Node ids of let/loop BINDING vectors in the current body — a `vec_lit` there is
+# structural (the binding form), NOT a data vector, so it must not be hoisted as a
+# positional-key axon. Data vectors `[a b]` (in value position) lower to axons.
+_BINDING_VECS: set = set()
+
 
 def grammar_available() -> bool:
     return _DLL.exists()
@@ -118,13 +123,43 @@ def _map_fields(node, src: bytes):
     return fields if fields else None
 
 
+def _vec_fields(node, src: bytes):
+    """If `node` is a DATA vector `[a b …]` (a `vec_lit` NOT in let/loop binding
+    position), return [("_0", a), ("_1", b), …] — a vector is a positional-key axon
+    (`(nth v i)` reads `_i`). Binding vectors (`_BINDING_VECS`) and empty vectors → None."""
+    if node.type != "vec_lit" or node.id in _BINDING_VECS:
+        return None
+    elems = node.named_children
+    if not elems:
+        return None
+    return [(f"_{i}", el) for i, el in enumerate(elems)]
+
+
+def _collect_binding_vecs(node, src: bytes) -> None:
+    """Populate `_BINDING_VECS` with the node ids of let/loop binding vectors in
+    `node` (the first `vec_lit` arg of a `(let […] …)` / `(loop […] …)` form), so the
+    hoist treats only DATA vectors as positional axons."""
+    if node.type == "list_lit":
+        head = _head_symbol(node, src)
+        if head in ("let", "loop"):
+            args = node.named_children[1:]
+            bvec = next((a for a in args if a.type == "vec_lit"), None)
+            if bvec is not None:
+                _BINDING_VECS.add(bvec.id)
+    for c in node.named_children:
+        _collect_binding_vecs(c, src)
+
+
 def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
-    """Post-order walk: hoist EVERY map literal to a prelude `Axon _ahN; …` group
-    and register `node.id → _ahN` in `_ARG_HOIST`. Mirrors the Elixir/Rust shape."""
+    """Post-order walk: hoist EVERY map OR data-vector literal to a prelude `Axon
+    _ahN; …` group and register `node.id → _ahN` in `_ARG_HOIST`. Mirrors the
+    Elixir/Rust shape."""
     prelude = ""
     for child in node.named_children:
         prelude += _hoist_maps(child, src, indent)
     fields = _map_fields(node, src)
+    if fields is None:
+        fields = _vec_fields(node, src)   # data vectors -> positional-key axons
     if fields is not None:
         tmp = f"_ah{_AH_COUNTER[0]}"
         _AH_COUNTER[0] += 1
@@ -151,6 +186,12 @@ def _kwd_accessed_params(body, params: set, src: bytes) -> set:
             # `(get p :k)` — get with a map-param first argument
             elif (len(kids) == 3 and kids[0].type == "sym_lit"
                     and _text(kids[0], src) == "get"
+                    and kids[1].type == "sym_lit"
+                    and _text(kids[1], src) in params):
+                found.add(_text(kids[1], src))
+            # `(nth v i)` — vector-param positional access types `v` as Axon
+            elif (len(kids) == 3 and kids[0].type == "sym_lit"
+                    and _text(kids[0], src) == "nth"
                     and kids[1].type == "sym_lit"
                     and _text(kids[1], src) in params):
                 found.add(_text(kids[1], src))
@@ -537,6 +578,11 @@ def _lower_expr(node, src: bytes) -> str:
             key = _map_key_name(args[1], src)
             if key is not None:
                 return f'realvec({_lower_expr(args[0], src)}.item("{key}"))'
+        if head == "nth" and len(args) == 2 and args[1].type == "num_lit":
+            # `(nth v i)` — vector read at a static index → the positional axon
+            # field `_i` (the tuple/map field-read shape).
+            idx = _text(args[1], src).strip()
+            return f'realvec({_lower_expr(args[0], src)}.item("_{idx}"))'
         sop = _OP_MAP.get(head)
         if sop is not None:
             if len(args) < 2:
@@ -589,6 +635,8 @@ def _lower_defn(list_lit, src: bytes) -> str:
     # Maps -> axons: hoist any `{:k v}` literals to prelude temps, and type any
     # keyword-accessed param as `Axon` (it is a map, not a number).
     _ARG_HOIST.clear()
+    _BINDING_VECS.clear()
+    _collect_binding_vecs(body, src)   # mark let/loop binding vecs (not data vectors)
     prelude = _hoist_maps(body, src)
     axon_params = _kwd_accessed_params(body, set(params), src)
     params_src = ", ".join(
