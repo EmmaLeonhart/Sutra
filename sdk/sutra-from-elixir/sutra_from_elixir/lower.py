@@ -113,9 +113,20 @@ def _map_fields(node, src: bytes):
     return fields if fields else None
 
 
+def _tuple_fields(node, src: bytes):
+    """If `node` is a tuple literal `{a, b, …}`, return [("_0", a), ("_1", b), …] —
+    a tuple is a positional-key axon (`elem(t, i)` reads `_i`). Else None."""
+    if node.type != "tuple":
+        return None
+    elems = node.named_children
+    if not elems:
+        return None
+    return [(f"_{i}", el) for i, el in enumerate(elems)]
+
+
 def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
-    """Post-order walk of a body expression: hoist EVERY map literal to a prelude
-    `Axon _ahN; _ahN.add("f", v); …` group and register `node.id → _ahN` in
+    """Post-order walk of a body expression: hoist EVERY map OR tuple literal to a
+    prelude `Axon _ahN; _ahN.add("f", v); …` group and register `node.id → _ahN` in
     `_ARG_HOIST` so `_lower_expr` emits the temp name in place. Returns the
     concatenated prelude statements (possibly empty). Mirrors the Rust
     `_hoist_enum_constructions` shape."""
@@ -123,6 +134,8 @@ def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
     for child in node.named_children:
         prelude += _hoist_maps(child, src, indent)
     fields = _map_fields(node, src)
+    if fields is None:
+        fields = _tuple_fields(node, src)  # tuples lower to positional-key axons
     if fields is not None:
         tmp = f"_ah{_AH_COUNTER[0]}"
         _AH_COUNTER[0] += 1
@@ -134,9 +147,9 @@ def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
 
 
 def _dot_accessed_params(body, params: set, src: bytes) -> set:
-    """Param names read as maps anywhere in `body` — via atom-key dot-access
-    (`p.x`) or string-key index-access (`m["k"]`) — these are axons, so they type
-    as `Axon` rather than the default `number`."""
+    """Param names read as maps/tuples anywhere in `body` — via atom-key dot-access
+    (`p.x`), string-key index-access (`m["k"]`), or `elem(t, i)` tuple access — these
+    are axons, so they type as `Axon` rather than the default `number`."""
     found: set = set()
 
     def walk(n):
@@ -146,6 +159,11 @@ def _dot_accessed_params(body, params: set, src: bytes) -> set:
         elif n.type == "access_call" and len(n.named_children) == 2 \
                 and _static_key_field(n.named_children[1], src) is not None:
             obj = n.named_children[0]
+        elif n.type == "call" and _call_kw(n, src) == "elem":
+            args = next((c for c in n.named_children if c.type == "arguments"), None)
+            an = list(args.named_children) if args is not None else []
+            if len(an) == 2 and an[1].type == "integer":
+                obj = an[0]
         if obj is not None and obj.type == "identifier" and _text(obj, src) in params:
             found.add(_text(obj, src))
         for c in n.named_children:
@@ -489,10 +507,15 @@ def _lower_expr(node, src: bytes) -> str:
                 expr = res if test is None else _blend(test, res, expr)
             return expr
         if kw is not None:
-            # Ordinary application `f(a, b)`.
             args = next((c for c in node.named_children if c.type == "arguments"), None)
-            arg_srcs = [_lower_expr(a, src)
-                        for a in (args.named_children if args is not None else [])]
+            arg_nodes = list(args.named_children) if args is not None else []
+            # `elem(t, i)` — tuple read at a STATIC index → the positional axon field
+            # `_i` (the map/struct field-read shape). `i` must be an integer literal.
+            if kw == "elem" and len(arg_nodes) == 2 and arg_nodes[1].type == "integer":
+                idx = _text(arg_nodes[1], src).strip()
+                return f'realvec({_lower_expr(arg_nodes[0], src)}.item("_{idx}"))'
+            # Ordinary application `f(a, b)`.
+            arg_srcs = [_lower_expr(a, src) for a in arg_nodes]
             return f"{kw}({', '.join(arg_srcs)})"
         return f"/* UNSUPPORTED-EXPR: non-identifier call */"
     if t == "block" and node.named_children:
