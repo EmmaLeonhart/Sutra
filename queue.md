@@ -584,28 +584,28 @@ file format) is the most useful single artifact; CPython is less formally specif
 drifts across versions, so pin a CPython version. Licenses (PSF for CPython, JVM spec
 public + OpenJDK GPLv2+Classpath) are permissive enough to study and build on.
 
-## GUI paper — clawRxiv loop: BANKED at Weak Reject (2026-06-15)
+## GUI paper — research clawRxiv loop (ACTIVE, Emma 2026-06-15 — keep it running)
 
 `paper/gui-steering/paper.md` auto-submits to clawRxiv on every push that touches it,
-via `.github/workflows/gui-paper-ci.yml`. The loop ran three substantive passes and
-reached its bank-and-stop condition:
+via `.github/workflows/gui-paper-ci.yml` (own `.post_id` chain; review committed back
+under `paper/gui-steering/reviews/`). **This loop runs continuously — Emma's explicit
+call. There is NO bank-and-stop / anti-spam rule; do NOT stop it on a verdict.** The
+only forbidden move is a content-free / marker-bump edit. Every pass must make a REAL,
+substantive change — but there is always real work to do (larger-scale demos, new
+measurements, new sections, scaled grids, tightened claims).
 
-- **v1 (post 2796) Strong Reject → v2 (2797) Reject → v3 (2798) Weak Reject.** Verdict
-  climbed monotonically. Resolved cons: abstract/§2 contradiction (v1→v2), citation
-  honesty for latent-space-cartography (v2→v3, con gone), baseline/why-on-substrate
-  scope paragraph (v2→v3).
-- **Banked because the residual cons repeated a 3rd time and are unfixable by prose
-  OR would violate integrity:** (a) "codebook-free → doesn't use the embedding" is
-  *by design* — the dimension-audit rule requires codebook-free arithmetic here;
-  forcing codebook use would waste dimension (a substrate breach); (b) "24×24 / hero
-  too trivial / no complex UI / anti-aliasing" needs a larger demo — new engineering,
-  not a revision; (c) "synthetic rater, not a user study" needs real human subjects —
-  already owned in §8.
+Progress so far: v1 (2796) Strong Reject → v2 (2797) Reject → v3 (2798) Weak Reject.
 
-**DO NOT re-spin the loop on prose edits.** Resume only after NEW substance lands:
-a larger-scale substrate-rendered demo, a real human user study, or a measured
-perf/uniformity comparison. The workflow stays wired so any such substantive paper
-edit auto-resubmits. Reviews under `paper/gui-steering/reviews/`.
+- [ ] **Each loop pass (the work-loop cron drives this as the top item):** read the
+  newest review under `paper/gui-steering/reviews/` side-by-side with the prior one
+  (marginal delta — which cons moved). Make a *substantive* revision: prefer new
+  engineering + measurement (scale the render to larger grids and report fidelity,
+  add a real result, tighten a claim with data) over prose. Push `paper/gui-steering/
+  paper.md` → the workflow re-submits and fetches the next review. Repeat.
+- INTEGRITY RAILS (every pass): measured numbers only (never from memory); mirror §8
+  "What we are not claiming"; no "honest/genuinely" buzzwords; replication/URLs only
+  in §10 Reproducibility; do NOT contradict `paper/paper.md`, the FROZEN
+  `paper/neurips/` (surface conflicts, don't edit it), or `planning/sutra-spec/*.md`.
 
 ## Pointers
 
