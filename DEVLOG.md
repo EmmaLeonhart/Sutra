@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-16: trainable button B9 — click-driven copy bandit (CTR loop fully closed)
+
+B7 learned the VISUAL CTR from clicks but left the discrete copy fixed in live mode — yet copy
+("Buy now" vs "Learn more") is the biggest CTR lever (B2 weights it 0.9/0.7/0.4). Added a
+per-copy UCB1 bandit to `ButtonAdam` live mode: `record_copy_outcome(clicked)` tallies the
+shown copy's impressions/clicks, `select_copy_ucb()` picks the next copy (explore unseen first,
+else empirical rate + bonus), with `copy_impressions`/`copy_click_rates` accessors. The bridge
+makes each owner-round one copy impression (record outcome on round boundary, bandit picks the
+next copy). TDD `test_button_copy_bandit.py` (2) + bridge test (+1): a synthetic clicker
+clicking with prob = B2 ctr drives the bandit to explore all copies and concentrate on/select
+"Buy now" — robust across clicker seeds 0–3 (best copy = 0 by both impressions and rate); the
+bandit methods require live mode; the bridge accrues one impression per round. 8/8 (bandit +
+server) on CPU; B3+B7 regression 6/6. **The real-click CTR loop is now fully closed** — clicks
+train both the differentiable visual reward (ascended through the substrate render) and the
+discrete copy choice. Only B8 (browser smoke) remains.
+
 ## 2026-06-16: trainable button B7 — learned CTR reward head (real-click loop closed)
 
 `ButtonAdam(live_ctr=True)` adds a differentiable learned CTR head (`ctr_head`, the same
