@@ -36,6 +36,7 @@ _RUNNABLE = {
     "numkey_map_axon": 13.0,  # sum2(%{1 => 5, 2 => 8}); p[1] + p[2]  (numeric arrow-key map -> axon field "1"/"2", m[1] -> realvec(item))
     "tuple_axon": 13.0,  # fst(p)=elem(p,0)+elem(p,1); main=fst({5,8})  (tuple -> positional-key axon, elem -> realvec(item))
     "tuple_param": 13.0,  # add_pair({a, b}) = a + b; main = add_pair({5, 8})  (tuple-PATTERN param -> axon, a/b -> realvec(item _0/_1))
+    "map_param": 13.0,  # sum2(%{x: a, y: b}) = a + b; main = sum2(%{x: 5, y: 8})  (map-PATTERN param -> axon, a/b -> realvec(item x/y))
 }
 
 

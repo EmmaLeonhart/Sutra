@@ -635,6 +635,34 @@ def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
                 for j, e in enumerate(p.named_children):
                     binds.append((_text(e, src),
                                   f'realvec({argnames[i]}.item("_{j}"))'))
+            elif p.type == "map":
+                # `%{x: a, y: b}` map-PATTERN param — the arg is a named-field axon;
+                # each atom-key shorthand pair binds its local to the field read
+                # `realvec(_ai.item("x"))` (the `p.x` projection). Only the atom-key
+                # shorthand with identifier locals is in scope; a non-shorthand /
+                # non-identifier shape is a later item.
+                content = next((c for c in p.named_children
+                                if c.type == "map_content"), None)
+                kws = next((c for c in content.named_children
+                            if c.type == "keywords"), None) if content else None
+                map_binds: list[tuple[str, str]] = []
+                ok = kws is not None
+                for pair in (kws.named_children if kws is not None else []):
+                    if pair.type != "pair" or len(pair.named_children) < 2:
+                        ok = False
+                        break
+                    key_node, val_node = pair.named_children[0], pair.named_children[-1]
+                    if key_node.type != "keyword" or val_node.type != "identifier":
+                        ok = False
+                        break
+                    field = _text(key_node, src).rstrip().rstrip(":")
+                    map_binds.append((field, _text(val_node, src)))
+                if not ok or not map_binds:
+                    return (f"// UNSUPPORTED-DEF: '{name}' map-pattern param is not "
+                            f"atom-key shorthand with identifier locals (later item)\n")
+                axon_args.add(argnames[i])
+                for field, local in map_binds:
+                    binds.append((local, f'realvec({argnames[i]}.item("{field}"))'))
             else:
                 return (f"// UNSUPPORTED-DEF: '{name}' clause has pattern param "
                         f"{p.type} (later item)\n")
