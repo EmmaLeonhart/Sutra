@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: Haskell frontend — `let (Wrap a b) = w` constructor-pattern destructuring (Phase 3)
+
+Work-loop sprint tick (extends the Haskell tuple-destructure increment to single-constructor
+ADTs). `let (Wrap a b) = w in …` now destructures a tagged axon: the pattern is a `parens`
+wrapping the constructor `apply` spine, so `_apply_local_binds` flattens it, confirms the head
+is a known variant, and substitutes each payload variable to the tagged-axon field read
+`realvec(w.item("_val{i}"))` (the `case`-arm payload-bind shape). Only `variable` payloads are
+in scope; the value must be a bare name. The bind's pattern is already excluded from
+construction-hoisting (the earlier `_hoist_constructions` bind-skip), so the pattern `(Wrap a
+b)` is not mislowered as a value. New fixture `ctor_destructure` (`data Wrap = Wrap Int Int;
+addw w = let (Wrap a b) = w in a + b; main = addw (Wrap 5 8)`) compiles AND runs on the
+substrate to 13; suite 24→26, no regressions.
+
 ## 2026-06-16: F# frontend — `let { x = a; y = b } = p` record-pattern destructuring (Phase 3)
 
 Work+report sprint tick (the F# analogue of the Rust struct-pattern increment). `let { x = a;

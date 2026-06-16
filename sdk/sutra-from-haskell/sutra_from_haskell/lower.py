@@ -559,6 +559,25 @@ def _apply_local_binds(local_binds, src: bytes) -> list[str]:
                 _SUBST[nm] = f'realvec({val_src}.item("_{i}"))'
                 bound.append(nm)
             continue
+        # `(Ctor a b) = w` — single-constructor ADT destructure: each payload
+        # variable reads the tagged-axon field `realvec(w.item("_val{i}"))` (the
+        # `case`-arm payload-bind shape). The pattern is a `parens` wrapping the
+        # constructor `apply` spine; only `variable` payloads are in scope.
+        cpat = first
+        if cpat is not None and cpat.type == "parens" and cpat.named_children:
+            cpat = cpat.named_children[0]
+        if cpat is not None and cpat.type == "apply":
+            chead, pargs = _flatten_apply(cpat, src)
+            if (chead.type == "constructor" and _text(chead, src) in _VARIANTS
+                    and pargs and all(a.type == "variable" for a in pargs)):
+                val = _match_body(b, src)
+                val_src = _lower_expr(val, src) if val is not None else ""
+                if val is not None and val_src.isidentifier():
+                    for i, pv in enumerate(pargs):
+                        nm = _text(pv, src)
+                        _SUBST[nm] = f'realvec({val_src}.item("_val{i}"))'
+                        bound.append(nm)
+                    continue
         name_node = next((c for c in b.named_children if c.type == "variable"), None)
         val = _match_body(b, src)  # the bind's `match` (= expr) body
         if name_node is None or val is None:

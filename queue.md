@@ -245,11 +245,11 @@ negative results, not hidden.
   `defn`; `case` symbol/keyword test members (needs a keyword-as-value rep).
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through tuples `(a, b)` →
   positional-key axons (`(Int,Int)` sig → Axon, `fst`/`snd` → `_0`/`_1`, arg-position hoist)
-  + `let (a, b) = t` tuple-pattern destructuring shipped 2026-06-16, suite 24/24; laziness
-  out of scope): guarded/multi-equation recursion (currently `UNSUPPORTED-RECURSION`);
-  mutually-recursive/forward `where`/`let` bindings; nested/non-variable constructor `case`
-  patterns; CONSTRUCTOR pattern destructuring (`let (Lit n) = e`) + nested tuple patterns;
-  `case` in non-tail expression position.
+  + `let (a, b) = t` tuple-pattern + `let (Wrap a b) = w` single-constructor-pattern
+  destructuring shipped 2026-06-16, suite 26/26; laziness out of scope): guarded/multi-equation
+  recursion (currently `UNSUPPORTED-RECURSION`); mutually-recursive/forward `where`/`let`
+  bindings; nested/non-variable constructor `case` patterns; nested tuple/constructor `let`
+  patterns; `case` in non-tail expression position.
 - [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through tuples `(a, b)` →
   positional-key axons + `p.0`/`p.1` access + `let (a, b) = t` tuple-pattern + `let Point
   { x, y } = p` struct-pattern destructuring shipped 2026-06-16, suite 32/32): nullary-variant
