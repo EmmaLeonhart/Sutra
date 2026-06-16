@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: F# frontend — tuples `(a, b)` → positional-key axons (Phase 3)
+
+Work+report sprint tick. F# tuples now lower to positional-key axons: `_map_fsharp_type`
+maps a `compound_type` param (`int * int`) → `Axon` (param/return extraction now accepts
+`compound_type`); `fst t`/`snd t` applications lower to `realvec(t.item("_0"))`/`_1`;
+let-bound tuple construction (`let t = (5, 8)`) hoists to a positional axon via the existing
+`_PRELUDE` (the F# tuple parses as `paren_expression` wrapping `tuple_expression`, so
+`_tuple_fields` unwraps one paren layer). New fixture `tuple_axon`
+(`addPair (p: int*int) = (fst p)+(snd p)`; `let t=(5,8) in addPair t`) compiles AND runs on
+the substrate to 13; suite 24→26, no regressions. (Hit the known "parenthesize call operands
+under infix" quirk — the fixture uses `(fst p) + (snd p)`.) Tuples/vectors now landed across
+**5 frontends**: Elixir, Erlang, Clojure, Rust, F#.
+
 ## 2026-06-16: Rust frontend — tuples `(a, b)` → positional-key axons (Phase 3)
 
 Work+flush sprint tick. Rust tuples now lower to positional-key axons: `_map_type` maps a
