@@ -250,10 +250,10 @@ negative results, not hidden.
   patterns; CONSTRUCTOR pattern destructuring (`let (Lit n) = e`) + nested tuple patterns;
   `case` in non-tail expression position.
 - [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through tuples `(a, b)` →
-  positional-key axons + `p.0`/`p.1` access + `let (a, b) = t` tuple-pattern destructuring
-  shipped 2026-06-16, suite 30/30): nullary-variant values (ambiguous with a plain name —
-  a later item); nested match inside a tail-match arm; STRUCT pattern destructuring
-  (`let Point { x, y } = p`); nested tuple patterns (`let (a, (b, c)) = t`).
+  positional-key axons + `p.0`/`p.1` access + `let (a, b) = t` tuple-pattern + `let Point
+  { x, y } = p` struct-pattern destructuring shipped 2026-06-16, suite 32/32): nullary-variant
+  values (ambiguous with a plain name — a later item); nested match inside a tail-match arm;
+  nested tuple patterns (`let (a, (b, c)) = t`); enum/`Some(x)`-pattern `let` destructuring.
   (Loop bounds need strict `<`/`>` — `<=` drops the boundary iteration, finding
   `2026-06-13-while-loop-le-boundary-equality-defuzz`; same caveat applies to the negated
   *break* condition, so write `if i >= n { break; }`.)
