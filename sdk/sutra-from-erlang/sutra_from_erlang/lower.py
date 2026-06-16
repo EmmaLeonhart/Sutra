@@ -41,6 +41,99 @@ _OP_MAP = {
 # shared with the Elixir/Clojure/Haskell frontends).
 _SUBST: dict[str, str] = {}
 
+# Maps → axons (the Elixir/Clojure pattern). A `#{K => V}` `map_expr` is
+# statement-shaped (axon construction), so it is HOISTED to a prelude temp and
+# `_ARG_HOIST[node.id]` carries the temp name to the use site. `_AH` numbers temps.
+_ARG_HOIST: dict[int, str] = {}
+_AH = [0]
+
+
+def _map_key_name(node, src: bytes):
+    """The static axon-field name for an Erlang map key: an `integer` (`1` → `1`),
+    an `atom` (`a` → `a`), or a `string` (`"k"` → `k`). Other key shapes (variables,
+    expressions) have no static field name → None."""
+    if node.type == "integer":
+        return _text(node, src).strip()
+    if node.type == "atom":
+        return _text(node, src).strip()
+    if node.type == "string":
+        return _text(node, src).strip().strip('"')
+    return None
+
+
+def _map_fields(node, src: bytes):
+    """If `node` is a `map_expr` (`#{k1 => v1, …}`) whose keys are all static field
+    names, return [(field, value_node), …]; else None. Each `map_field` child holds
+    a key node then a value node. Update syntax (`M#{…}`) and non-static keys → None."""
+    if node.type != "map_expr":
+        return None
+    fields = []
+    for mf in node.named_children:
+        if mf.type != "map_field" or len(mf.named_children) < 2:
+            return None
+        key = _map_key_name(mf.named_children[0], src)
+        if key is None:
+            return None
+        fields.append((key, mf.named_children[-1]))
+    return fields if fields else None
+
+
+def _maps_get(node, src: bytes):
+    """If `node` is `maps:get(Key, Map)` (a `remote` to module `maps`, fun `get`,
+    with a static key), return (field_name, map_node); else None."""
+    if node.type != "remote":
+        return None
+    mod = next((c for c in node.named_children if c.type == "remote_module"), None)
+    call = next((c for c in node.named_children if c.type == "call"), None)
+    if mod is None or call is None:
+        return None
+    mod_atom = next((c for c in mod.named_children if c.type == "atom"), None)
+    if mod_atom is None or _text(mod_atom, src) != "maps":
+        return None
+    fn = call.named_children[0] if call.named_children else None
+    if fn is None or fn.type != "atom" or _text(fn, src) != "get":
+        return None
+    args_node = next((c for c in call.named_children if c.type == "expr_args"), None)
+    args = list(args_node.named_children) if args_node is not None else []
+    if len(args) != 2:
+        return None
+    field = _map_key_name(args[0], src)
+    if field is None:
+        return None
+    return field, args[1]
+
+
+def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
+    """Post-order walk: hoist every `map_expr` to a prelude `Axon _ahN; …` group and
+    register `node.id → _ahN`. Mirrors the Elixir `_hoist_maps`."""
+    prelude = ""
+    for child in node.named_children:
+        prelude += _hoist_maps(child, src, indent)
+    fields = _map_fields(node, src)
+    if fields is not None:
+        tmp = f"_ah{_AH[0]}"
+        _AH[0] += 1
+        prelude += f"{indent}Axon {tmp};\n"
+        for field, val in fields:
+            prelude += f'{indent}{tmp}.add("{field}", {_lower_expr(val, src)});\n'
+        _ARG_HOIST[node.id] = tmp
+    return prelude
+
+
+def _maps_get_params(body, params: set, src: bytes) -> set:
+    """Param names read as maps via `maps:get(K, P)` — these type as `Axon`."""
+    found: set = set()
+
+    def walk(n):
+        mg = _maps_get(n, src)
+        if mg is not None and mg[1].type == "var" and _text(mg[1], src) in params:
+            found.add(_text(mg[1], src))
+        for c in n.named_children:
+            walk(c)
+
+    walk(body)
+    return found
+
 
 def grammar_available() -> bool:
     return _DLL.exists()
@@ -94,7 +187,18 @@ def _call_name_args(node, src: bytes):
 
 
 def _lower_expr(node, src: bytes) -> str:
+    if _ARG_HOIST and node.id in _ARG_HOIST:
+        return _ARG_HOIST[node.id]            # a hoisted map literal — emit its temp
     t = node.type
+    mg = _maps_get(node, src)
+    if mg is not None:
+        # `maps:get(K, P)` → the axon item read, projected to a clean number-vector
+        # (the Elixir/Clojure `m[k]` shape).
+        field, map_node = mg
+        return f'realvec({_lower_expr(map_node, src)}.item("{field}"))'
+    if t == "map_expr":
+        # A map literal reaching here was not hoisted — surface the gap.
+        return "/* UNSUPPORTED-CONSTRUCTION: map outside a hoistable position */"
     if t == "integer":
         return _text(node, src)
     if t == "var":
@@ -427,9 +531,17 @@ def _lower_function(name: str, clauses, src: bytes) -> str:
         if _contains_self_call(body, name, src):
             return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
                     f"tail-accumulator or foldable non-tail shape\n")
-        params_src = ", ".join(f"{_TYPE} {p}" for p in pnames)
-        return (f"function {_TYPE} {name}({params_src}) {{\n"
-                f"    return {_lower_expr(body, src)};\n}}\n")
+        # Maps → axons: hoist any `#{…}` in the body to prelude temps, and type any
+        # param read via `maps:get(K, P)` as `Axon` (it is a map, not a number).
+        _ARG_HOIST.clear()
+        prelude = _hoist_maps(body, src)
+        axon_params = _maps_get_params(body, set(pnames), src)
+        params_src = ", ".join(
+            f"{'Axon' if p in axon_params else _TYPE} {p}" for p in pnames)
+        body_src = (f"function {_TYPE} {name}({params_src}) {{\n"
+                    f"{prelude}    return {_lower_expr(body, src)};\n}}\n")
+        _ARG_HOIST.clear()
+        return body_src
     return _lower_dispatch(name, clauses, src)
 
 
