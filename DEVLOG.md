@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-16: daily substrate-honesty audit — CLEAN (cleared 06-16 + stale 06-15 tasks)
+
+Ran the prepended daily audit over this session's substrate-touching commits (GUI Adam-RLHF
+rebuild + the F#/Clojure/Elixir/Erlang/Haskell/Rust frontend increments) against CLAUDE.md
+§"Subtler substrate breaches". (a) **Dimension:** `frame_hero.su` has 0 `basis_vector` →
+compiles at runtime_dim=8 (tiny, correct); the frontends never hardcode `runtime_dim` (the
+compiler auto-picks from the basis_vector count), so codebook-free fixtures stay small and
+variant/string ones use the codebook dim — no 768-dim-with-zero-basis_vector waste. (b) **No
+false framing:** nothing this session claimed "recurrent"/"RNN"/"substrate-pure"; the Adam
+demo explicitly names the reward model + optimizer as host-side and the
+gradients-through-the-render claim is measured (bg ∂=−1.0; `test_hero_differentiable` 3/3).
+(c) **Classifiers measured:** the Adam Bradley-Terry reward separates fully (bright→1.000 vs
+dark→0.000, `test_hero_adam` 3/3); the F# DU tag dispatch had its tag-0 degeneracy
+*found+fixed* this session with a dated finding (crisp 48 vs degenerate 32). Nothing amiss —
+no finding/fix needed. Cleared both the 06-16 task and a stale 06-15 task a prior session
+left undone.
+
 ## 2026-06-16: Rust frontend — `..base` struct spread (functional update) (Phase 3)
 
 Work-loop tick. Rust `Point { x: 9, ..base }` now lowers: extended the struct registry from
