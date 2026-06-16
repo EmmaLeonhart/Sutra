@@ -444,6 +444,27 @@ def _lower_expr(node, src: bytes) -> str:
         # bind `a → (lowered e1)`, lower the continuation, pop. Bindings see earlier
         # ones (F# `let` is sequential), so process in order.
         if len(kids) >= 2 and kids[0].type == "function_or_value_defn":
+            tpb = _tuple_pattern_binding(kids[0], src)
+            if tpb is not None:
+                # `let (a, b) = t` — destructure a tuple axon into named locals.
+                # Each element substitutes to the positional axon field read
+                # `realvec(t.item("_i"))` (the same projection `fst`/`snd` use). The
+                # value must be a bare name (a param or a let-bound temp); a
+                # parenthesised `(expr).item(...)` falls through to the tensor op.
+                names, val_node = tpb
+                val_src = _lower_expr(val_node, src)
+                if not val_src.isidentifier():
+                    return ("/* UNSUPPORTED-LET: tuple-pattern binding value is "
+                            "not a simple name (later item) */")
+                subs: list[str] = []
+                for i, nm in enumerate(names):
+                    _SUBST[nm] = f'realvec({val_src}.item("_{i}"))'
+                    subs.append(nm)
+                try:
+                    return _lower_expr(kids[1], src)
+                finally:
+                    for nm in subs:
+                        _SUBST.pop(nm, None)
             vb = _value_binding(kids[0], src)
             if vb is not None:
                 name, val_node = vb
@@ -507,6 +528,31 @@ def _value_binding(fovd, src: bytes):
     if ip is None or kids[-1] is kids[0]:
         return None
     return _text(ip, src).strip(), kids[-1]
+
+
+def _tuple_pattern_binding(fovd, src: bytes):
+    """If `fovd` is a tuple-pattern value binding `let (a, b) = expr`
+    (`value_declaration_left → paren_pattern → repeat_pattern` of plain
+    `identifier_pattern`s), return ([name, …], value_node); else None. A nested /
+    non-identifier element is a later item (→ None)."""
+    kids = fovd.named_children
+    if not kids or kids[0].type != "value_declaration_left":
+        return None
+    vdl = kids[0]
+    if kids[-1] is vdl:
+        return None  # no value expression
+    paren = next((c for c in vdl.named_children if c.type == "paren_pattern"), None)
+    if paren is None:
+        return None
+    rep = next((c for c in paren.named_children if c.type == "repeat_pattern"), None)
+    if rep is None:
+        return None
+    names: list[str] = []
+    for ip in rep.named_children:
+        if ip.type != "identifier_pattern" or not ip.named_children:
+            return None
+        names.append(_text(ip.named_children[0], src).strip())
+    return (names, kids[-1]) if names else None
 
 
 def _tuple_fields(node, src: bytes):

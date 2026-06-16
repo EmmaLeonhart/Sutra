@@ -214,11 +214,12 @@ negative results, not hidden.
 
 - [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through tuples `(a, b)` →
   positional-key axons (`int * int` param → Axon, `fst`/`snd` → `_0`/`_1`, let-bound
-  construction) shipped 2026-06-16, suite 26/26): nullary DU variants in value position;
-  construction (DU/tuple/record) in ARGUMENT position (only let-bound now; needs an
-  arg-hoist walk); record-update `{ r with … }`; tuple/record PATTERN destructuring.
-  Measured grammar quirk: parenthesize call operands under infix. [Scala 20/20 — named
-  roadmap + tuples done 2026-06-16.]
+  construction) + `let (a, b) = t` tuple-pattern destructuring shipped 2026-06-16,
+  suite 28/28): nullary DU variants in value position; construction (DU/tuple/record) in
+  ARGUMENT position (only let-bound now; needs an arg-hoist walk); record-update
+  `{ r with … }`; RECORD pattern destructuring (`let { x = a } = p`) + nested tuple
+  patterns. Measured grammar quirk: parenthesize call operands under infix. [Scala 20/20 —
+  named roadmap + tuples done 2026-06-16.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
   positional-key axons + `elem(t, i)` access shipped 2026-06-16, suite 28/28):
   maps/structs/tuples in multi-clause/recursive bodies; multi-clause heads with recursion

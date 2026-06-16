@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: F# frontend — `let (a, b) = t` tuple-pattern destructuring (Phase 3)
+
+Work+flush sprint tick (parallel to the Rust + Haskell tuple-destructure increments,
+completing the let-tuple-pattern shape across all four ML-family/imperative frontends that
+have tuples). F# `let`-sequence bindings now destructure a tuple pattern: `let (a, b) = t`
+parses as `value_declaration_left → paren_pattern → repeat_pattern` of identifier_patterns
+(distinct from the scalar `_value_binding` path), so a new `_tuple_pattern_binding` detects
+it and substitutes each element to the positional axon field read `realvec(t.item("_i"))`
+(the `fst`/`snd` projection). The bound value must be a bare name (a param or a let-bound
+tuple temp); a non-identifier value surfaces `UNSUPPORTED-LET` rather than mislowering the
+`(expr).item(...)` tensor-op form. New fixture `tuple_destructure`
+(`addPair (t: int*int) = let (a,b)=t in a+b`, `main` builds `(5,8)` as a temp then calls)
+compiles AND runs on the substrate to 13; suite 26→28, no regressions.
+
 ## 2026-06-16: Haskell frontend — `let (a, b) = t` tuple-pattern destructuring (Phase 3)
 
 Work-loop sprint tick (parallel to the Rust tuple-destructure increment). Haskell
