@@ -146,6 +146,13 @@ def _collect_binding_vecs(node, src: bytes) -> None:
             bvec = next((a for a in args if a.type == "vec_lit"), None)
             if bvec is not None:
                 _BINDING_VECS.add(bvec.id)
+                # A destructuring PATTERN vector `[a b]` sits at an even (binding)
+                # position inside the binding vector — it is structural, not data,
+                # so mark it too (else `_hoist_maps` would hoist it as an axon).
+                bkids = bvec.named_children
+                for i in range(0, len(bkids) - 1, 2):
+                    if bkids[i].type == "vec_lit":
+                        _BINDING_VECS.add(bkids[i].id)
     for c in node.named_children:
         _collect_binding_vecs(c, src)
 
@@ -509,11 +516,31 @@ def _lower_expr(node, src: bytes) -> str:
                 return "/* UNSUPPORTED-EXPR: odd let binding vector */"
             bound: list[str] = []
             for i in range(0, len(pairs), 2):
-                if pairs[i].type != "sym_lit":
+                pat = pairs[i]
+                if pat.type == "vec_lit":
+                    # `[a b]` vector destructuring: each element substitutes to the
+                    # positional axon field read `realvec(val.item("_j"))` (the same
+                    # projection `(nth v j)` uses). The value must be a bare name (a
+                    # vector param or a hoisted data-vector temp); only plain-symbol
+                    # elements are in scope (nested destructure is a later item).
+                    elems = pat.named_children
+                    val_src = _lower_expr(pairs[i + 1], src)
+                    if (not elems or any(e.type != "sym_lit" for e in elems)
+                            or not val_src.isidentifier()):
+                        for nm in bound:
+                            _SUBST.pop(nm, None)
+                        return ("/* UNSUPPORTED-EXPR: vector destructuring shape "
+                                "(nested pattern / non-name value — later item) */")
+                    for j, e in enumerate(elems):
+                        nm = _text(e, src)
+                        _SUBST[nm] = f'realvec({val_src}.item("_{j}"))'
+                        bound.append(nm)
+                    continue
+                if pat.type != "sym_lit":
                     for nm in bound:
                         _SUBST.pop(nm, None)
                     return "/* UNSUPPORTED-EXPR: non-symbol let binding (destructuring later) */"
-                nm = _text(pairs[i], src)
+                nm = _text(pat, src)
                 val_src = f"({_lower_expr(pairs[i + 1], src)})"
                 _SUBST[nm] = val_src
                 bound.append(nm)

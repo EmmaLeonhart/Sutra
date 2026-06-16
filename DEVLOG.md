@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-16: Clojure frontend — `(let [[a b] v] …)` vector destructuring (Phase 3)
+
+Work+report sprint tick (the Lisp analogue of the rust/haskell/fsharp tuple-destructure
+increments). Clojure `let` now supports vector destructuring binds: `(let [[a b] v] …)`
+substitutes each element to the positional axon field read `realvec(v.item("_j"))` (the same
+projection `(nth v j)` uses). Two changes: (a) `_collect_binding_vecs` now also marks the
+inner destructuring PATTERN vectors (at even/binding positions inside the binding vector) as
+binding-vecs, so `_hoist_maps` does not wrongly hoist a pattern `[a b]` as a data axon; (b)
+the `let` lowering detects a `vec_lit` binding pattern and emits the element substitutions.
+The bound value must be a bare name (a vector param or a hoisted data-vector temp); a nested
+pattern or non-name value surfaces UNSUPPORTED rather than mislowering. New fixture
+`let_destructure` (`(let [[a b] [5 8]] (+ a b))` — the data vector `[5 8]` hoists to a temp,
+the pattern `[a b]` does not) compiles AND runs on the substrate to 13; suite 30→32, no
+regressions.
+
 ## 2026-06-16: F# frontend — `let (a, b) = t` tuple-pattern destructuring (Phase 3)
 
 Work+flush sprint tick (parallel to the Rust + Haskell tuple-destructure increments,

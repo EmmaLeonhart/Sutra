@@ -44,6 +44,7 @@ _RUNNABLE = {
     "map_numkey": 13.0,  # (defn sum2 [p] (+ (get p 1) (get p 2))); (sum2 {1 5 2 8})  (numeric map keys -> axon field "1"/"2")
     "vector_axon": 13.0,  # (defn fst [v] (+ (nth v 0) (nth v 1))); (let [w [5 8]] (fst w))  (data vector -> positional-key axon; let binding-vec NOT hoisted as data)
     "vector_first_second": 13.0,  # (defn fst [v] (+ (first v) (second v))); (let [w [5 8]] (fst w))  (first/second -> _0/_1 vector accessors)
+    "let_destructure": 13.0,  # (let [[a b] [5 8]] (+ a b))  (vector destructuring bind -> realvec(item _0/_1); inner pattern vec NOT hoisted)
 }
 
 
