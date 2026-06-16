@@ -77,6 +77,10 @@ def _flatten_arrow(type_node, src: bytes) -> list[str]:
 def _map_type(hs_type: Optional[str]) -> str:
     if hs_type and hs_type in _DATATYPES:
         return "Axon"  # an ADT value is carried by a tagged axon
+    if hs_type:
+        t = hs_type.strip()
+        if t.startswith("(") and "," in t and t.endswith(")"):
+            return "Axon"  # a tuple type `(Int, Int)` is a positional-key axon
     return _TYPE_MAP.get(hs_type, _DEFAULT_TYPE) if hs_type else _DEFAULT_TYPE
 
 
@@ -147,6 +151,21 @@ def _hoist_constructions(node, src: bytes, indent: str = "    ") -> str:
         tmp = f"_ah{_AH_COUNTER[0]}"
         _AH_COUNTER[0] += 1
         prelude += _emit_construction(variant, args, src, tmp, indent)
+        _ARG_HOIST[node.id] = tmp
+        return prelude
+    if node.type == "tuple" and node.named_children:
+        # A VALUE tuple `(a, b)` -> a positional-key axon (`fst`/`snd` read `_0`/`_1`).
+        # Reached only in value position: the body hoist never sees signature (type)
+        # tuples, and `case`-alternative tuple PATTERNS are skipped above.
+        elems = node.named_children
+        prelude = ""
+        for el in elems:
+            prelude += _hoist_constructions(el, src, indent)
+        tmp = f"_ah{_AH_COUNTER[0]}"
+        _AH_COUNTER[0] += 1
+        prelude += f"{indent}Axon {tmp};\n"
+        for i, el in enumerate(elems):
+            prelude += f'{indent}{tmp}.add("_{i}", {_lower_expr(el, src)});\n'
         _ARG_HOIST[node.id] = tmp
         return prelude
     if node.type == "case":
@@ -308,8 +327,13 @@ def _lower_expr(node, src: bytes) -> str:
         head, args = _flatten_apply(node, src)
         if head.type != "variable":
             return "/* UNSUPPORTED-EXPR: non-variable application head */"
+        hname = _text(head, src).strip()
+        # `fst t` / `snd t` — pair accessors → the positional axon fields _0 / _1.
+        if hname in ("fst", "snd") and len(args) == 1:
+            field = "_0" if hname == "fst" else "_1"
+            return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
         arg_srcs = [_lower_expr(a, src) for a in args]
-        return f"{_text(head, src)}({', '.join(arg_srcs)})"
+        return f"{hname}({', '.join(arg_srcs)})"
     if t == "let_in":
         # `let <binds> in <body>` — substitute the binds into the body (the
         # `local_binds` shape shared with `where`).
