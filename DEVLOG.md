@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: GUI paper v5 — no-recompile property quantified (answers v4 con 3)
+
+Work-loop GUI pass (top-priority item). v4 (post 2799) = Reject; the actionable con was
+#3 "uniformity asserted, not measured." Measured it: new committed, reproducible
+experiment `experiments/gui_norecompile_cost.py` times the one-time hero compile vs
+per-frame render across many DISTINCT θ. Result (64×64): compile-once ~3.6 s, then 200
+distinct-θ renders at mean 1.3 ms/frame with **0 recompiles** (one compiled module id
+across all 200 calls). Added a measured paragraph to §2 (where the no-recompile claim is
+made) + the command to §10 Reproducibility. This is the concrete content of the §1
+"uniformity" argument — a per-call argument change, not a rebuild; host-side one-time
+compile, substrate per-frame render. No throughput claim vs shaders (still explicitly
+disclaimed). Loop continues (no bank).
+
 ## 2026-06-16: Elixir frontend — string-key arrow-map `%{"k" => v}` → axons (Phase 3)
 
 Work-loop tick (non-GUI item, advanced while GUI v4 awaited its review). Extended

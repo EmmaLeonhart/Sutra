@@ -97,6 +97,15 @@ constants compiled into the program, the same compiled operation renders any θ;
 recompilation occurs when θ changes. This is the load-bearing fact for §5: the
 optimizer perturbs θ thousands of times and pays the compile cost once.
 
+We measured this directly (`experiments/gui_norecompile_cost.py`, 64×64): the hero
+program compiles once in ~3.6 s, after which 200 renders at *distinct* θ run at a
+mean **1.3 ms/frame** with **0 recompiles** (the compiled module is identical across
+all 200 calls). This is the concrete content of the "uniformity" claim of §1 — not a
+throughput result against a GPU shader, but the fact that morphing the picture during
+steering is a per-call argument change, not a rebuild. The compile cost is host-side
+and one-time; it amortizes to nothing over a steering session, and the per-frame cost
+is the substrate render itself.
+
 **A note on dimension.** These coordinate fields use only elementwise arithmetic on
 broadcast buffers — no codebook lookups — so the program compiles at a small
 `runtime_dim` (8) rather than the embedding model's full width. The substrate work
@@ -320,6 +329,7 @@ tables come from:
 
 ```
 python experiments/gui_render_fidelity.py --size 24      # §6 render-fidelity table
+python experiments/gui_norecompile_cost.py --frames 200  # §2 no-recompile cost (0 recompiles)
 python experiments/gui_steering_eval.py --presses 100    # §7 steering soak
 python experiments/gui_figures.py --size 96              # §7 figures (PNGs regenerated locally; git-ignored)
 python demos/gui/steering_window.py                      # the live warmer/colder window
