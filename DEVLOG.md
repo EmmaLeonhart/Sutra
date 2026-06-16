@@ -1,5 +1,32 @@
 # Development Log
 
+## 2026-06-16: GUI G3 + G4 — multi-axis steering tests + RGB window UX
+
+**G3** (`demos/gui/test_hero_steering_axes.py`, 5 tests): the controller steers SPATIAL
+preferences beyond brightness/colour. POSITION via a `_corner_bias` measure (bottom-right
+mean − top-left mean): top-left preference drives it negative, bottom-right positive, flips
+with preference. SIZE via intensity-weighted spatial spread: a wider preference raises it,
+flips with preference. All finite, 0 NaN/blank.
+
+A real bug was found and fixed, not papered over: the first POSITION measure used a
+NORMALIZED centroid, which is scale-invariant — so the optimizer reached a degenerate
+all-black frame (centroid 0) that beat any cornered glow, and bottom-right steering
+collapsed to black (cx/cy actually moved to +0.8 but the frame went bg=−0.2/bright=0.2 →
+black). Replaced with the LINEAR quadrant-mass functional `_corner_bias`: black scores 0 and
+loses to any cornered glow, and it is directly representable by the pooled-linear reward
+head. Measured robust across seeds 0–4: top-left → −0.99, bottom-right → +0.99 (vs ±0.05
+threshold), always flips; size wide gain +0.26 every seed, wide > tight always.
+
+**G4** (`demos/gui/adam_window_rgb.py` + `run_adam_rgb_gui.bat`): colour A/B preference
+window over `HeroAdam(color=True)` — two substrate-rendered colour frames (A current / B
+proposed), keys A/B, caption surfacing mean RGB + position (cx,cy) + spread (invs). I/O
+only, untested in CI per the existing convention; steering logic covered headless by G2/G3.
+Verified the module parses, imports, and its display helpers work (`_to_uint8`, `_mean_rgb`);
+the live tkinter window was NOT display-smoked (no display in this environment) — not
+claimed as run.
+
+Measured 21/21 green (hero adam 3 + rgb adam 5 + mono diff 3 + rgb diff 5 + steering 5).
+
 ## 2026-06-16: incorporated new_queue_stuff.md — reference-context system (top priority)
 
 The 11:45 one-shot cron (Emma-scheduled) fired and incorporated `new_queue_stuff.md` into
