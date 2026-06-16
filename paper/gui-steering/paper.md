@@ -178,6 +178,22 @@ table substitutes for the substrate output. (These are the numerical maxima; the
 test suite `demos/gui/test_gui_whole_frame.py` guards each mode at a 10⁻⁶
 threshold.)
 
+**Fidelity holds as the frame scales.** The single-operation render is not a
+small-grid artifact: re-running the same check at larger grids, the worst-case
+error across all modes stays in float32-rounding territory and grows only as the
+slow accumulation expected from more pixels, while the glyph banner remains exact
+at every size.
+
+| Grid | overall max \|substrate − host oracle\| | glyph banner |
+|---|---|---|
+| 24 × 24 | 4.0 × 10⁻⁷ | 0 (exact) |
+| 64 × 64 | 5.2 × 10⁻⁷ | 0 (exact) |
+| 128 × 128 | 7.0 × 10⁻⁷ | 0 (exact) |
+
+Across a 28× increase in pixel count (576 → 16,384) the error rises by under 2×
+and never leaves the rounding floor; the whole-frame substrate render is the same
+operation at any resolution (`python experiments/gui_render_fidelity.py --size N`).
+
 ## 7. Steering results
 
 **Optimizer convergence.** On a synthetic concave reward, the continuous θ moves
