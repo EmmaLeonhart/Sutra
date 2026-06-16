@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: incorporated new_queue_stuff.md — reference-context system (top priority)
+
+The 11:45 one-shot cron (Emma-scheduled) fired and incorporated `new_queue_stuff.md` into
+the front of `queue.md`: a new TOP-PRIORITY "reference-context system" block (RC1 dir +
+gitignore, RC2 robust download/analyze script, RC3 fetch+analyze the seed references —
+Schmidhuber FKI-126-90, arXiv 1802.08864, arXiv 2604.06425, metauto.ai/neuralcomputer).
+The directive: download reference PDFs for research-direction context, analyze them, but
+NEVER commit them (copyright — reference material, not repo content); keep artifacts
+gitignored, notes committable. Mirrored RC1–RC3 into the task tool; deleted
+`new_queue_stuff.md`. Emma's note also confirmed the work loop takes priority and is already
+running (the three session crons + this one-shot). GUI G3–G5 remain queued behind RC1–RC3.
+
 ## 2026-06-16: GUI G2 — RGB / multi-axis Adam controller (`HeroAdam(color=True)`)
 
 Extended `demos/gui/hero_adam.py` with a `color=True` mode that steers the differentiable
