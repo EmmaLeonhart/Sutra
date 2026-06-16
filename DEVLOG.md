@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Clojure frontend — numeric map keys `{1 a 2 b}` → axons (Phase 3)
+
+Work-loop tick (non-GUI; GUI gate lifted, v6 paper awaiting its review). Extended
+`sdk/sutra-from-clojure` `_map_key_name` to accept `num_lit` keys: a numeric map key uses
+the number's text as the axon field name, so `{1 5 2 8}` is the same named-field axon as a
+keyword map (fields "1","2") and `(get m 1)` reads it back as `realvec(m.item("1"))` (the
+get-path already routes through `_map_key_name`). New fixture `map_numkey`
+(`(sum2 {1 5 2 8})`) compiles AND runs on the substrate to 13; suite 24→26. Symbol/keyword
+keys remain unsupported (they need a symbol-/keyword-as-value representation — the same
+prerequisite that blocks keyword `case` members; left as a documented later item).
+
 ## 2026-06-16: GUI rebuild R6 — paper rewritten around the Adam demo; rebuild COMPLETE
 
 Rewrote `paper/gui-steering/paper.md` around the Adam-through-differentiable-substrate

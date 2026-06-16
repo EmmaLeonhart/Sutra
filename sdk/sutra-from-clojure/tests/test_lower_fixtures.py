@@ -41,6 +41,7 @@ _RUNNABLE = {
     "case_multilist": 300.0,  # (case x (1 3 5) 100 (2 4) 200 999); (classify 3)=100 + (classify 4)=200  (multi-constant test lists -> OR)
     "map_axon": 13.0,  # (defn sum2 [p] (+ (:x p) (:y p))); (sum2 {:x 5 :y 8})  (map -> axon, (:k m) -> realvec(item))
     "map_get": 13.0,  # (defn sum2 [p] (+ (get p :x) (get p :y))); (sum2 {"x" 6 "y" 7})  ((get m k) access + string-key map)
+    "map_numkey": 13.0,  # (defn sum2 [p] (+ (get p 1) (get p 2))); (sum2 {1 5 2 8})  (numeric map keys -> axon field "1"/"2")
 }
 
 

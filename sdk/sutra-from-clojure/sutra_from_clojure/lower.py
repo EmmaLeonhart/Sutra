@@ -83,19 +83,23 @@ def _kwd_name(kwd_lit, src: bytes) -> Optional[str]:
 
 
 def _map_key_name(node, src: bytes) -> Optional[str]:
-    """The axon-field name for a map key: a `kwd_lit` (`:x` → `x`) or a `str_lit`
-    (`"x"` → `x`). Other key shapes (numbers, symbols) are a later item → None."""
+    """The axon-field name for a map key: a `kwd_lit` (`:x` → `x`), a `str_lit`
+    (`"x"` → `x`), or a `num_lit` (`1` → `1`, the number's text used as the field
+    name, so `{1 a 2 b}` is the same named-field axon as a keyword map and `(get m 1)`
+    reads it back). Other key shapes (symbols, expressions) are a later item → None."""
     if node.type == "kwd_lit":
         return _kwd_name(node, src)
     if node.type == "str_lit":
         return _text(node, src).strip().strip('"')
+    if node.type == "num_lit":
+        return _text(node, src).strip()
     return None
 
 
 def _map_fields(node, src: bytes):
-    """If `node` is a Clojure `{:x a "y" b}` map literal with keyword/string keys,
-    return [(field, value_node), …]; else None. Non-keyword/string keys (numbers,
-    symbols) are a later item."""
+    """If `node` is a Clojure `{:x a "y" b}` map literal whose keys are all static
+    field names (keyword, string, or number), return [(field, value_node), …]; else
+    None. Symbol/expression keys are a later item."""
     if node.type != "map_lit":
         return None
     kids = node.named_children
