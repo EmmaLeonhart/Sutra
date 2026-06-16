@@ -158,14 +158,22 @@ class ButtonAdam:
                 p.add_(self.explore * torch.randn((), generator=self._gen,
                                                   dtype=self.dt, device=self.img_dev))
                 p.clamp_(lo, hi)
+            var_theta = {k: float(v.detach()) for k, v in self.theta.items()}
             var_img = self._render().detach()
             var_np = var_img.to("cpu").numpy()
             for k, p in self.theta.items():
                 p.copy_(saved[k])
+            cur_theta = {k: float(v.detach()) for k, v in self.theta.items()}
             cur_img = self._render().detach()
             cur_np = cur_img.to("cpu").numpy()
         self._pending = (cur_img, var_img)
+        self._pending_thetas = (cur_theta, var_theta)
         return cur_np, var_np
+
+    def pending_thetas(self):
+        """The (current θ, variant θ) dicts from the last `propose()` — what a live HTML
+        button styles its current / proposed pair from (B4). None before the first propose."""
+        return getattr(self, "_pending_thetas", None)
 
     def choose(self, prefer_variant: bool) -> float:
         """Record the owner's pairwise preference, train the owner head (Bradley-Terry), take
