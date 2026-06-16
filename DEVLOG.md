@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-16: GUI G2 — RGB / multi-axis Adam controller (`HeroAdam(color=True)`)
+
+Extended `demos/gui/hero_adam.py` with a `color=True` mode that steers the differentiable
+RGB render (`render_hero_rgb_torch`, G1): θ gains the per-channel tints cr/cg/cb as
+steerable axes (`HERO_ADAM_COLOR_AXES`, boxes bottoming at 0 = channel off), and
+`HeroRewardModel` gains a `channels` param so `features()` pools each of the 3 channels
+(permute → (1,3,H,W) → adaptive-avg-pool → 3·pool² features). `_render` branches to the RGB
+path under colour mode; mono mode is unchanged. Bradley-Terry reward + Adam policy step are
+generic over the axis set, so no changes were needed there. TDD `test_hero_adam_rgb.py`
+(5 tests) red→green: colour frames are (H,W,3) with cr/cg/cb steerable; a synthetic
+prefer-REDDER rater raises relative redness (r0→r1, Δ>0.03), prefer-less-red lowers it, the
+direction flips with preference, and brightness steering still works in colour mode — all
+with 0 non-finite frames. Measured 16/16 green (mono adam 3 + rgb adam 5 + mono diff 3 +
+rgb diff 5), no regression to the mono path.
+
 ## 2026-06-16: GUI G1 — differentiable RGB render (`render_hero_rgb_torch`)
 
 The display-only `render_hero_rgb` severed autograd (it broadcasts θ with
