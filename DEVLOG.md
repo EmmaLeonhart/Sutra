@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-16: GUI cleanup — last autograd warning in the hero suite
+
+`test_hero_differentiable.py:72` did `float(loss)` on a grad-tracking tensor (the one
+remaining `UserWarning` in the GUI suite); changed to `float(loss.detach())`, matching the
+convention already used in the RGB tests. Verified clean with warnings-as-errors
+(`pytest -W error::UserWarning`, 3/3). Bounded maintenance — the substantive GUI backlog is
+exhausted (the learned decoder is EMMA-gated on architecture; Yantra integration has no
+Yantra submodule in this repo yet), so this is the autonomous hand-back point.
+
 ## 2026-06-16: GUI fix — colour steering black-collapse trap (CPU CI was RED)
 
 CI (`demos-ci`, CPU) was RED while local (CUDA) was green — the exact "local-green ≠
