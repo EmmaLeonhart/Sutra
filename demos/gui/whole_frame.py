@@ -478,6 +478,62 @@ def render_hero(size: int = 64, theta: dict | None = None):
     return buf.reshape(size, size).detach().to("cpu").numpy()
 
 
+def hero_grid(size, dt, dev):
+    """The coordinate geometry the substrate render consumes: flat length-(size*size)
+    `(X, Y, ones)` buffers for an `size x size` grid over [-1, 1]^2. Host-side I/O
+    (compile-time geometry), shared by the numpy and the differentiable render paths."""
+    import torch
+
+    xs, ys = [], []
+    for j in range(size):              # row -> y
+        cy = 2.0 * j / (size - 1) - 1.0
+        for i in range(size):          # col -> x
+            cx = 2.0 * i / (size - 1) - 1.0
+            xs.append(cx)
+            ys.append(cy)
+    n2 = size * size
+    X = torch.tensor(xs, dtype=dt, device=dev)
+    Y = torch.tensor(ys, dtype=dt, device=dev)
+    ones = torch.ones(n2, dtype=dt, device=dev)
+    return X, Y, ones
+
+
+def render_hero_torch(size: int = 64, theta: dict | None = None):
+    """DIFFERENTIABLE hero render: return the (size, size) hero field as a TORCH
+    TENSOR that KEEPS its autograd graph — the load-bearing path for Adam steering
+    (queue R1/R2). Unlike `render_hero` (which `.detach().numpy()`s for display),
+    this keeps gradients flowing to θ THROUGH the compiled Sutra `hero` op.
+
+    `theta` maps each axis in HERO_THETA_AXES to either a 0-d torch tensor (typically
+    a `requires_grad=True` parameter the optimizer updates) or a Python float; missing
+    axes fall back to HERO_THETA_DEFAULT as plain (grad-free) constants. The broadcast
+    to per-pixel buffers is grad-preserving (`val * ones`, NOT `torch.full(..., float(val))`
+    which would sever the graph). The returned tensor is `(size, size)`, real-valued,
+    with `grad_fn` set when any θ entry requires grad — call `.backward()` on a scalar
+    loss of it to get ∂loss/∂θ through the substrate render. No `.detach()` here: this
+    is the differentiable boundary, not the display boundary."""
+    import torch
+
+    hero, vsa = _compile_hero()
+    dt, dev = vsa.dtype, vsa.device
+    th = dict(HERO_THETA_DEFAULT)
+    if theta:
+        th.update(theta)
+    X, Y, ones = hero_grid(size, dt, dev)
+
+    def bcast(name):
+        v = th[name]
+        if isinstance(v, torch.Tensor):
+            # 0-d (or broadcastable) tensor -> grad-preserving per-pixel buffer.
+            return v.to(dtype=dt, device=dev) * ones
+        return torch.full((ones.shape[0],), float(v), dtype=dt, device=dev)
+
+    buf = hero(X, Y, ones, bcast("cx"), bcast("cy"), bcast("invs"),
+               bcast("bright"), bcast("radius"), bcast("accent"), bcast("bg"))
+    buf = buf.real if buf.is_complex() else buf
+    return buf.reshape(size, size)
+
+
 def render_hero_rgb(size: int = 64, theta: dict | None = None):
     """Return a (size, size, 3) COLOUR hero driven by θ, computed as THREE
     whole-frame substrate ops (frame_hero.su's `hero_channel`): R, G, B are the
