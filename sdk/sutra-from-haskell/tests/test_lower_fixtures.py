@@ -31,6 +31,7 @@ _RUNNABLE = {
     "let_block": 18.0,  # g x = let a = x+1; b = a*2 in a + b; main = g 5 = 6+12 (sequential bind)
     "data_adt": 2.0,  # data Expr = Lit Int | Neg Int; evalE via case; evalE(Lit 7)+evalE(Neg 5) = 7+(-5)  (ADT -> tagged axon)
     "case_literal": 300.0,  # classify n = case n of 0->100; 1->200; _->300; classify 1 + classify 0 = 200+100  (literal-pattern case -> equality blend)
+    "tuple_axon": 13.0,  # addPair :: (Int,Int) -> Int; addPair p = fst p + snd p; main = addPair (5, 8)  (tuple -> positional-key axon, fst/snd -> _0/_1)
 }
 
 
