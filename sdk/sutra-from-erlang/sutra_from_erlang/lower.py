@@ -24,7 +24,11 @@ import pathlib
 from typing import Optional
 
 _HERE = pathlib.Path(__file__).resolve().parent
-_DLL = _HERE.parent / "_grammar" / "erlang.dll"
+import sys as _sys
+# Windows dev builds a `.dll` (MSVC); the Linux CI runner builds a `.so` (gcc). Pick
+# whichever this platform produced. Both expose `tree_sitter_erlang` via ctypes.
+_DLL = _HERE.parent / "_grammar" / (
+    "erlang.dll" if _sys.platform == "win32" else "erlang.so")
 _TYPE = "number"
 
 # Erlang operator → Sutra operator. Erlang spells some comparisons differently

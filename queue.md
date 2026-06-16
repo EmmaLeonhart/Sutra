@@ -291,9 +291,14 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type
   lookup is exact when two interfaces share a field name with different types
   (current global map marks collisions non-numeric to stay safe; no fixture needs it).
-- [ ] **Cross-cutting:** extend OCaml's compile-AND-run `_RUNNABLE_FIXTURES` bar to
-  every frontend; consider a `transpilers-ci.yml` running all `sutra-from-*` suites
-  (scope decision — not auto-started).
+  > **`transpilers-ci.yml` SHIPPED 2026-06-16 (Emma greenlit "full CI including
+  > F#/Erlang/Clojure" via AskUserQuestion).** Runs all 9 frontend suites
+  > (compile-AND-run on the substrate) on push/PR to `sdk/sutra-from-**`: pip-installs
+  > the 6 wheel grammars + torch + the compiler, and gcc-builds the F#/Erlang/Clojure
+  > tree-sitter grammars into `.so` on the Linux runner (the loaders are now
+  > platform-aware: `.dll` on win32, `.so` elsewhere). Verify the run goes green and
+  > iterate if a grammar build / ABI mismatch shows up. (The compile-AND-run bar is
+  > already met by each frontend's own harness.)
 
 ## Next-venue paper polish (UNFROZEN — active)
 

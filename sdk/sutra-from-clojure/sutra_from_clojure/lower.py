@@ -24,7 +24,10 @@ import pathlib
 from typing import Optional
 
 _HERE = pathlib.Path(__file__).resolve().parent
-_DLL = _HERE.parent / "_grammar" / "clojure.dll"
+import sys as _sys
+# Windows dev builds a `.dll` (MSVC); the Linux CI runner builds a `.so` (gcc).
+_DLL = _HERE.parent / "_grammar" / (
+    "clojure.dll" if _sys.platform == "win32" else "clojure.so")
 _TYPE = "number"
 
 # Clojure operator symbol → Sutra operator (n-ary heads left-fold).
