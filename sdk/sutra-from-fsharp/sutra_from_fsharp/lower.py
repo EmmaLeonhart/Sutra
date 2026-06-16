@@ -43,11 +43,25 @@ _FSHARP_TYPE_TO_SUTRA = {
 }
 
 
+# Record types declared in the file (`type Point = { … }`). A param/value of a
+# record type lowers as a Sutra `Axon` (named-field, the OCaml/Rust/Elixir pattern).
+_RECORD_TYPES: set = set()
+
+# Per-function construction prelude (record `{ … }` literals are statement-shaped, so
+# they are emitted as `Axon q; q.add(…)` BEFORE the return) and the set of axon-typed
+# names in scope (record params + record-bound locals) for `p.x` field-access dispatch.
+_PRELUDE: list = []
+_AXON_VARS: set = set()
+
+
 def _map_fsharp_type(simple_type_node, src: bytes) -> str:
-    """A `simple_type` (`long_identifier`-wrapped type name) → Sutra type."""
+    """A `simple_type` (`long_identifier`-wrapped type name) → Sutra type. A declared
+    record type name → `Axon` (a record is structurally a named-field axon)."""
     if simple_type_node is None:
         return _DEFAULT_TYPE
     text = _text(simple_type_node, src).strip()
+    if text in _RECORD_TYPES:
+        return "Axon"
     return _FSHARP_TYPE_TO_SUTRA.get(text, _DEFAULT_TYPE)
 
 # F# infix operator → Sutra operator (expression position: `=` compares).
@@ -285,6 +299,18 @@ def _lower_expr(node, src: bytes) -> str:
             return _text(inner, src).rstrip("LlmMfF")
         return f"/* UNSUPPORTED-CONST: {inner.type if inner else 'empty'} */"
     if t in ("identifier", "long_identifier", "long_identifier_or_op"):
+        # Record field access `p.x` is a `long_identifier` with parts [p, x]; when the
+        # head is an axon-typed name in scope, read the field (the Rust/Elixir
+        # realvec(item) shape). A long_identifier_or_op wraps a long_identifier.
+        ln = node
+        if t == "long_identifier_or_op" and node.named_children \
+                and node.named_children[0].type == "long_identifier":
+            ln = node.named_children[0]
+        if ln.type == "long_identifier":
+            idents = [c for c in ln.named_children if c.type == "identifier"]
+            if len(idents) == 2 and _text(idents[0], src) in _AXON_VARS:
+                obj, field = _text(idents[0], src), _text(idents[1], src)
+                return f'realvec({obj}.item("{field}"))'
         return _SUBST.get(_text(node, src), _text(node, src))
     if t == "paren_expression":
         inner = node.named_children[0] if node.named_children else None
@@ -366,6 +392,17 @@ def _lower_expr(node, src: bytes) -> str:
             vb = _value_binding(kids[0], src)
             if vb is not None:
                 name, val_node = vb
+                rec_fields = _record_fields(val_node, src)
+                if rec_fields is not None:
+                    # `let q = { x = a; y = b }` — record construction is statement-
+                    # shaped (axon `add`s), so emit it to the prelude and keep `q` as a
+                    # real axon variable (NOT a substitution). Field access `q.x` then
+                    # dispatches via _AXON_VARS. Sutra/Yantra OS: a record is an axon.
+                    _PRELUDE.append(f"    Axon {name};\n")
+                    for field, fval in rec_fields:
+                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_expr(fval, src)});\n')
+                    _AXON_VARS.add(name)
+                    return _lower_expr(kids[1], src)
                 val_src = _lower_expr(val_node, src)
                 prev = _SUBST.get(name)
                 _SUBST[name] = f"({val_src})"
@@ -395,6 +432,45 @@ def _value_binding(fovd, src: bytes):
     if ip is None or kids[-1] is kids[0]:
         return None
     return _text(ip, src).strip(), kids[-1]
+
+
+def _record_fields(node, src: bytes):
+    """If `node` is a record literal `{ x = a; y = b }` (`brace_expression` →
+    `field_initializers`), return [(field, value_node), …]; else None. Record-update
+    syntax (`{ r with … }`) and computed field names are a later item → None."""
+    if node.type != "brace_expression":
+        return None
+    fis = next((c for c in node.named_children
+                if c.type == "field_initializers"), None)
+    if fis is None:
+        return None
+    fields = []
+    for fi in fis.named_children:
+        if fi.type != "field_initializer" or len(fi.named_children) < 2:
+            return None
+        field = _text(fi.named_children[0], src).strip()
+        fields.append((field, fi.named_children[-1]))
+    return fields if fields else None
+
+
+def _record_type_names(root, src: bytes) -> set:
+    """All record type names declared in the file (`type Point = { … }` →
+    `type_definition` → `record_type_defn` → `type_name`)."""
+    names: set = set()
+
+    def walk(n):
+        if n.type == "record_type_defn":
+            tn = next((c for c in n.named_children if c.type == "type_name"), None)
+            if tn is not None:
+                ident = next((c for c in tn.named_children
+                              if c.type == "identifier"), None)
+                if ident is not None:
+                    names.add(_text(ident, src).strip())
+        for c in n.named_children:
+            walk(c)
+
+    walk(root)
+    return names
 
 
 def _typed_paren_param(paren, src: bytes):
@@ -535,8 +611,19 @@ def _lower_defn(defn, src: bytes) -> str:
                 f"tail-accumulator or foldable non-tail shape\n")
     params_src = ", ".join(
         f"{param_ty.get(p, _DEFAULT_TYPE)} {p}" for p in params)
+    # Record support: axon-typed params are field-accessible (`p.x`), and let-bound
+    # record literals emit construction statements to _PRELUDE before the return.
+    _PRELUDE.clear()
+    _AXON_VARS.clear()
+    for p in params:
+        if param_ty.get(p) == "Axon":
+            _AXON_VARS.add(p)
+    body_src = _lower_expr(body, src)
+    prelude_src = "".join(_PRELUDE)
+    _PRELUDE.clear()
+    _AXON_VARS.clear()
     return (f"function {ret} {name}({params_src}) {{\n"
-            f"    return {_lower_expr(body, src)};\n"
+            f"{prelude_src}    return {body_src};\n"
             f"}}\n")
 
 
@@ -553,6 +640,11 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     src = source.encode("utf-8")
     tree = parser.parse(src)
     _SUBST.clear()
+    # Prepass: register record type names so `(p: Point)` params type as `Axon` and
+    # record literals lower to named-field axons. `type Point = { … }` defs emit no
+    # runtime code themselves (they declare the shape).
+    _RECORD_TYPES.clear()
+    _RECORD_TYPES.update(_record_type_names(tree.root_node, src))
 
     out = ["// Generated by sutra-from-fsharp. See sdk/sutra-from-fsharp/README.md.\n"]
     for child in tree.root_node.named_children:
@@ -561,5 +653,5 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
                          if c.type == "function_or_value_defn"), None)
             if defn is not None:
                 out.append(_lower_defn(defn, src))
-        # modules/types/namespaces are later items
+        # record/type defs are registered in the prepass; modules/namespaces are later items
     return "\n".join(out)

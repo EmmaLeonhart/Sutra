@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-16: F# frontend — records → axons (Phase 3)
+
+Work-loop tick, building on the let-sequence work. F# records now lower to named-field
+axons (the OCaml/Rust/Elixir pattern). Added: `_record_type_names` prepass (registers
+`type Point = { … }` → `_RECORD_TYPES` so `_map_fsharp_type` types `(p: Point)` params as
+`Axon`); a `_PRELUDE` construction-hoist mechanism (F# had none) — a let-bound record
+literal `{ x = a; y = b }` (`brace_expression`) emits `Axon q; q.add("x", a); q.add("y",
+b);` statements before the function's `return` (the bare-path emitter now prepends the
+prelude), with the var kept (NOT substituted); `_AXON_VARS` tracks axon-typed names
+(record params + record-bound locals) so field access `p.x` (a 2-part `long_identifier`)
+dispatches to `realvec(p.item("x"))`; `_record_fields` extracts the field initializers.
+New fixture `record_axon` (`type Point={x;y}; sum2 (p:Point)=p.x+p.y; main = sum2 {x=5;y=8}`)
+compiles AND runs on the substrate to 13; suite 20→22, no regressions (let_seq, typed_params,
+match all still pass — the long_identifier change only triggers for names in `_AXON_VARS`).
+Discharges the dedicated "F# records/DUs → axons" item; next F# step is DU variants → tagged
+axons.
+
 ## 2026-06-16: F# frontend — let-SEQUENCE function bodies (Phase 3; unblocks records)
 
 Work-loop tick. Extended `sdk/sutra-from-fsharp` to lower let-sequence bodies
