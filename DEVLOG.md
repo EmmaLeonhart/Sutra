@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-16: GUI G5 — docs + paper cover the multi-axis / colour extension
+
+Documented the multi-axis steering, measured numbers only. `docs/gui.md`: extended the
+"Steering the picture in real time" section — the same loop steers position, size, and
+colour (with the honest aside about the black-collapse degeneracy a normalised position
+measure would admit) + the `adam_window_rgb.py` command. `paper/gui-steering/paper.md`:
+added a §7 "Steering more than brightness" paragraph with measured directional results —
+position corner-bias top-left ≈ −0.99 / bottom-right ≈ +0.99 (robust seeds 0–4; linear
+mass measure chosen over a scale-invariant centroid to avoid the black-collapse win), size
+spread 0.607 → 0.869, colour relative redness +0.106 → ≈ +0.50–0.62 (redder) vs −1.0
+(less-red), all flipping with preference and 0 non-finite; noted the differentiable colour
+render `render_hero_rgb_torch` in §4 and the abstract; expanded §10 reproducibility with the
+new tests + RGB window. No overclaim: the render is the substrate; reward head + Adam stay
+host-side and named so.
+
 ## 2026-06-16: GUI G3 + G4 — multi-axis steering tests + RGB window UX
 
 **G3** (`demos/gui/test_hero_steering_axes.py`, 5 tests): the controller steers SPATIAL

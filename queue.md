@@ -47,9 +47,10 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## ACTIVE — GUI: extend the Adam-RLHF demo (color / position / size + A/B UX)
 
-- [ ] **G5 — docs + paper.** Update `docs/gui.md` and `paper/gui-steering/` to cover the
-  multi-axis / color extension — measured numbers only, no overclaim. Lower priority;
-  after G1–G4 land green.
+_All G-track items (G1–G5) complete. The Adam-RLHF demo now steers brightness, colour,
+position, and size through the differentiable substrate render, with a colour A/B window,
+docs, and paper coverage — all measured. Next GUI horizon items live in `todo.md` §GUI
+(learned decoder is EMMA-GATED; Yantra integration lower priority)._
 
 ---
 

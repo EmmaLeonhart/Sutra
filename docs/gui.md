@@ -88,6 +88,31 @@ with no broken frames across a session. The render is the substrate; the prefere
 and the optimizer are ordinary host-side code, and we say so — the point is that the thing
 the gradient passes *through* is a Sutra program.
 
+The same loop steers more than brightness. The hero's parameters include **where** the glow
+sits, **how wide** it is, and — in the colour version — the per-channel **tints**, all of
+them axes the gradient reaches through the substrate render. We measured each direction with
+a synthetic rater that scores frames on that one property:
+
+- **Position** — preferring the bright mass toward a corner moves it there; top-left and
+  bottom-right preferences drive the corner-bias measure to opposite extremes and the
+  direction flips with the preference, robustly across random seeds.
+- **Size** — preferring a wider glow raises the rendered frame's spatial spread.
+- **Colour** — on the differentiable RGB render (each channel is the composed hero tinted
+  on the substrate), preferring a redder frame raises its relative redness and flips with
+  the preference.
+
+Every case stays finite (no broken frames). The colour A/B window drives all of these at
+once:
+
+```bash
+python demos/gui/adam_window_rgb.py   # or double-click demos/gui/run_adam_rgb_gui.bat (Windows)
+```
+
+(One honest detail surfaced while building this: a *normalised* position measure is
+scale-invariant, so an optimiser can satisfy it by collapsing the frame to black — a
+degenerate win. We score position by a plain bottom-right-minus-top-left mass instead, which
+black cannot game.)
+
 ## The gallery
 
 | Demo | Source | What you see |

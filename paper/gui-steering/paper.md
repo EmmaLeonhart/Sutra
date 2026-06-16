@@ -31,9 +31,11 @@ oracle to within ~4×10⁻⁷, holding across a 28× range of grid sizes), the n
 cost (compile once, then thousands of θ updates at zero recompiles), and the steering
 result (a brighter-preferring rater drives the substrate-rendered brightness to the
 top of its range, a darker-preferring rater to the bottom; the direction flips with
-the preference, with no non-finite frames). Throughout we keep an explicit account of
-which work runs on the substrate (the render — and the gradients now pass through it)
-and which is host-side (the composition, the reward model, and Adam); we do not claim
+the preference, with no non-finite frames); the same gradient loop also steers the hero's
+position, size, and — on the differentiable colour render — its colour, each measured to
+move in the rater's preferred direction and to flip with it. Throughout we keep an explicit
+account of which work runs on the substrate (the render — and the gradients now pass through
+it) and which is host-side (the composition, the reward model, and Adam); we do not claim
 a single end-to-end substrate program.
 
 ## 1. Introduction
@@ -171,7 +173,10 @@ with a per-headline mixture weight vector. Colour is produced as three whole-fra
 substrate fields: the same composed hero tinted by a per-channel weight in one
 operation each (`hero_channel`), stacked by the host into an RGB image (the
 channel fields are substrate; only the three-way stack is host display assembly).
-The headline is chosen by a host-side argmax over the mixture weights; the glyph
+This colour render is **differentiable** as well (`render_hero_rgb_torch`): the tints
+`cr,cg,cb` are differentiable θ axes broadcast grad-preservingly, so the colour-steering
+result in §7 backpropagates through the same `hero_channel` substrate op. The
+headline is chosen by a host-side argmax over the mixture weights; the glyph
 pixels are substrate (§3).
 
 ## 5. Gradient steering through the differentiable render (Adam + online RLHF)
@@ -276,6 +281,31 @@ zero-initialised head fed single-class labels learned the wrong sign and drove a
 brighter-preferring rater's image *dark* — which is why §5 uses the pairwise
 Bradley-Terry formulation; the numbers above are with that formulation.
 
+**Steering more than brightness: position, size, and colour.** Brightness is a single
+scalar; the same gradient loop steers the hero's spatial and colour axes, which the
+gradient reaches through the same substrate render. We measured each with a synthetic rater
+scoring frames on that one property (`demos/gui/test_hero_steering_axes.py`,
+`test_hero_adam_rgb.py`, 16×16):
+
+- **Position.** Scoring frames by a bottom-right-minus-top-left mass, a rater preferring the
+  bright mass top-left drives that measure to ≈ **−0.99** and one preferring bottom-right to
+  ≈ **+0.99** from a centred ≈ 0 start; the direction flips and the result is robust across
+  seeds 0–4. (We deliberately use this *linear* mass measure rather than a normalised
+  centroid: a normalised centroid is scale-invariant, so the optimiser can satisfy it by
+  collapsing the frame to black — a degenerate win we observed and removed.)
+- **Size.** A rater preferring a wider glow raises the rendered frame's intensity-weighted
+  spatial spread from **0.607 to 0.869**; a tighter preference drives it lower; the
+  direction flips.
+- **Colour.** On the **differentiable** RGB render (`render_hero_rgb_torch`, where each
+  channel is the composed hero tinted on the substrate and the colour tints `cr,cg,cb` are
+  differentiable θ axes), a rater preferring a redder frame raises its relative redness from
+  **+0.106 to ≈ +0.50–0.62** while a less-red preference drives it to **−1.0**; the
+  direction flips, with 0 non-finite frames.
+
+These reuse the §5 loop unchanged — only the rater's scored property and (for colour) the
+differentiable render path differ — so the steering claim is not specific to brightness: the
+preference gradient moves whichever rendered property the reward head learns to read.
+
 **Figures.** `experiments/gui_figures.py` renders figures from these same substrate
 paths: the θ hero (mono and RGB), a substrate glyph banner, the four-quadrant layout,
 and a before/after steering pair (neutral start vs after a steered session). The PNGs
@@ -379,19 +409,26 @@ a usable gradient w.r.t. θ.
 ## 10. Reproducibility
 
 The differentiable renderer and the Adam steering loop are in `demos/gui/`
-(`frame_*.su`, `whole_frame.py` — `render_hero_torch` is the differentiable path —
-`hero_adam.py`, `adam_window.py`, `run_adam_gui.bat`), with the SPSA baseline in
-`hero_spsa.py`/`steering_window.py` and the substrate font in `demos/font/`. The
-regression tests are `demos/gui/test_hero_differentiable.py` (gradients through the
-render), `demos/gui/test_hero_adam.py` (the steering directions), and
-`demos/gui/test_gui_whole_frame.py` (render fidelity). The measured numbers come from:
+(`frame_*.su`, `whole_frame.py` — `render_hero_torch` / `render_hero_rgb_torch` are the
+differentiable mono / colour paths — `hero_adam.py` with its `color=True` multi-axis mode,
+`adam_window.py`, `adam_window_rgb.py`, `run_adam_gui.bat`, `run_adam_rgb_gui.bat`), with
+the SPSA baseline in `hero_spsa.py`/`steering_window.py` and the substrate font in
+`demos/font/`. The regression tests are `demos/gui/test_hero_differentiable.py` and
+`test_hero_rgb_differentiable.py` (gradients through the mono / colour render),
+`test_hero_adam.py`, `test_hero_adam_rgb.py`, and `test_hero_steering_axes.py` (the
+brightness / colour / position / size steering directions), and `test_gui_whole_frame.py`
+(render fidelity). The measured numbers come from:
 
 ```
 python experiments/gui_render_fidelity.py --size 24      # §6 render-fidelity table
 python experiments/gui_norecompile_cost.py --frames 200  # §2 no-recompile cost (0 recompiles)
 pytest demos/gui/test_hero_differentiable.py             # §7 gradients through the render
+pytest demos/gui/test_hero_rgb_differentiable.py         # §7 gradients through the RGB render
 pytest demos/gui/test_hero_adam.py                       # §7 steering directions (bright/dark)
+pytest demos/gui/test_hero_adam_rgb.py                   # §7 colour steering (redder/less-red)
+pytest demos/gui/test_hero_steering_axes.py              # §7 position + size steering
 python demos/gui/adam_window.py                          # the live Adam warmer/colder window
+python demos/gui/adam_window_rgb.py                      # the live colour A/B steering window
 ```
 
 The full demo and steering suites are run with `pytest demos/gui/`.
