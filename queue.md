@@ -389,12 +389,12 @@ tree-sitter-erlang, parser.c+scanner.c → `_grammar/erlang.dll`); lowering cove
 functions/calls/binary-ops, `if`/`case` → blend, multi-clause heads + `when` guards →
 dispatch blend, `if`-based tail rec → `while_loop`, foldable non-tail → CPS. Remaining:
 
-- [ ] **Erlang increments** (through tuples `{a, b}` → positional-key axons +
-  `element(I, T)` (1-based) access shipped 2026-06-16, suite 16/16): records → axons;
-  maps/tuples in multi-clause/recursive bodies (the bare-single path has them; dispatch/
-  recursion paths don't yet); multi-clause recursion (the idiomatic `f(0) -> …; f(N) -> …
-  f(N-1).` — currently `UNSUPPORTED-RECURSION`, shared with Elixir); list comprehensions;
-  `div`/`rem` via complex rotation (not `Math.mod`).
+- [ ] **Erlang increments** (through records `#name{f=v}` → named-field axons +
+  `R#name.f` access shipped 2026-06-16, suite 18/18; the `-record` decl is skipped, name
+  dropped): maps/tuples/records in multi-clause/recursive bodies (the bare-single path has
+  them; dispatch/recursion paths don't yet); multi-clause recursion (the idiomatic
+  `f(0) -> …; f(N) -> … f(N-1).` — currently `UNSUPPORTED-RECURSION`, shared with Elixir);
+  list comprehensions; `div`/`rem` via complex rotation (not `Math.mod`).
 
 ## Formal verification of thrml gadgets in Lean + clawRxiv loop (Emma 2026-06-14)
 

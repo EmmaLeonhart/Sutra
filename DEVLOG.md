@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: Erlang frontend — records `#name{f=v}` → named-field axons (Phase 3)
+
+Work-loop sprint tick. Erlang records now lower to named-field axons (the Elixir-struct
+shape, nominal record name dropped). Added: `_record_fields` parses a `record_expr`
+(`#point{x=5, y=8}`) → [("x", 5), ("y", 8)] from its `record_field` (atom + `field_expr`)
+children; `_record_field_access` reads `R#point.x` (a `record_field_expr` = var +
+`record_name` + `record_field_name`) → `realvec(R.item("x"))`; `_hoist_maps` hoists
+`record_expr` like maps/tuples; `_maps_get_params` types a record-accessed param as `Axon`.
+The `-record(point, {x, y})` declaration produces no codegen (skipped — construction is
+explicit and access carries the field name, so no record registry needed). New fixture
+`record_axon` compiles AND runs on the substrate to 13; suite 16→18, no regressions.
+
 ## 2026-06-16: Clojure frontend — `first`/`second` vector accessors (Phase 3)
 
 Work+report sprint tick (small, building on the vector work). `(first v)` / `(second v)`

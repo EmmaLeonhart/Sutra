@@ -118,6 +118,42 @@ def _tuple_fields(node, src: bytes):
     return [(f"_{i}", el) for i, el in enumerate(elems)]
 
 
+def _record_fields(node, src: bytes):
+    """If `node` is a record construction `#name{f1=v1, …}` (`record_expr`), return
+    [(field, value_node), …]; else None. The nominal record name is dropped — a record
+    is a named-field axon (the Elixir-struct shape). Each `record_field` is an `atom`
+    (the field) + a `field_expr` wrapping the value."""
+    if node.type != "record_expr":
+        return None
+    fields = []
+    for rf in node.named_children:
+        if rf.type != "record_field":
+            continue
+        atom = next((c for c in rf.named_children if c.type == "atom"), None)
+        fexpr = next((c for c in rf.named_children if c.type == "field_expr"), None)
+        if atom is None or fexpr is None or not fexpr.named_children:
+            return None
+        fields.append((_text(atom, src).strip(), fexpr.named_children[-1]))
+    return fields if fields else None
+
+
+def _record_field_access(node, src: bytes):
+    """If `node` is a record field read `R#name.f` (`record_field_expr`), return
+    (field_name, record_node); else None. The nominal record name is dropped."""
+    if node.type != "record_field_expr":
+        return None
+    kids = node.named_children
+    rec = kids[0] if kids else None
+    fname = next((c for c in node.named_children
+                  if c.type == "record_field_name"), None)
+    if rec is None or fname is None:
+        return None
+    atom = next((c for c in fname.named_children if c.type == "atom"), None)
+    if atom is None:
+        return None
+    return _text(atom, src).strip(), rec
+
+
 def _element_access(node, src: bytes):
     """If `node` is `element(I, T)` (a `call` to fun `element`, I a 1-based integer
     literal), return (field_name, tuple_node) with the field translated to the 0-based
@@ -144,6 +180,8 @@ def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
     fields = _map_fields(node, src)
     if fields is None:
         fields = _tuple_fields(node, src)   # tuples lower to positional-key axons
+    if fields is None:
+        fields = _record_fields(node, src)  # records lower to named-field axons
     if fields is not None:
         tmp = f"_ah{_AH[0]}"
         _AH[0] += 1
@@ -165,6 +203,9 @@ def _maps_get_params(body, params: set, src: bytes) -> set:
         ea = _element_access(n, src)   # `element(I, P)` tuple read types P as Axon
         if ea is not None and ea[1].type == "var" and _text(ea[1], src) in params:
             found.add(_text(ea[1], src))
+        rfa = _record_field_access(n, src)   # `P#name.f` record read types P as Axon
+        if rfa is not None and rfa[1].type == "var" and _text(rfa[1], src) in params:
+            found.add(_text(rfa[1], src))
         for c in n.named_children:
             walk(c)
 
@@ -238,9 +279,14 @@ def _lower_expr(node, src: bytes) -> str:
         # `element(I, T)` (1-based) → the positional axon field `_(I-1)` read.
         field, tup_node = ea
         return f'realvec({_lower_expr(tup_node, src)}.item("{field}"))'
-    if t in ("map_expr", "tuple"):
-        # A map/tuple literal reaching here was not hoisted — surface the gap.
-        return "/* UNSUPPORTED-CONSTRUCTION: map/tuple outside a hoistable position */"
+    rfa = _record_field_access(node, src)
+    if rfa is not None:
+        # `R#name.f` → the named axon field read (record name dropped).
+        field, rec_node = rfa
+        return f'realvec({_lower_expr(rec_node, src)}.item("{field}"))'
+    if t in ("map_expr", "tuple", "record_expr"):
+        # A map/tuple/record literal reaching here was not hoisted — surface the gap.
+        return "/* UNSUPPORTED-CONSTRUCTION: aggregate outside a hoistable position */"
     if t == "integer":
         return _text(node, src)
     if t == "var":
