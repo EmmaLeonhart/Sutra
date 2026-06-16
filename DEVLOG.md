@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: trainable click-button vision captured to queue (design-gated, not built)
+
+Emma set the branch's real vision: a clickable, JS-like button we TRAIN to optimize for what
+the website owner wants AND biggest CTR — a demo linked to the `sutra-from-ts` frontend,
+built on the Adam-RLHF machinery (G1–G5). Ran it through brainstorming; four design decisions
+settled with Emma: CTR signal = BOTH (simulated audience for training/CI + real clicks live);
+trainable surface = visual θ + discrete preset copy; objectives = `R = α·owner_pref +
+(1−α)·CTR` with an α knob; JS linkage = real HTML/JS button + differentiable substrate twin,
+spec authored in TS → sutra-from-ts. Captured the design + provisional decomposition (Phase 1
+B1–B3 substrate core/CI-testable; Phase 2 B4–B6 live browser/JS) into `queue.md` and mirrored
+B1–B6 into the task tool so the plan is durable, not chat-only. **Not implemented** — held by
+the brainstorming HARD-GATE pending two open answers from Emma (Phase 1-before-2 ordering;
+preset copy wording); when answered → spec doc → writing-plans → execute.
+
 ## 2026-06-16: GUI cleanup — last autograd warning in the hero suite
 
 `test_hero_differentiable.py:72` did `float(loss)` on a grad-tracking tensor (the one
