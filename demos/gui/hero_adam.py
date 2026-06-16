@@ -40,6 +40,15 @@ HERO_ADAM_AXES = (
     ("bg",     0.1, 0.3),    # background      ∈ [-0.2, 0.4]
 )
 
+# Per-channel colour tints — the COLOUR axes of the RGB render (`color=True`). Each tint
+# multiplies its own channel on the substrate (R←cr, G←cg, B←cb), so the box bottoms at 0
+# (channel off) and tops near 2× the warm-white default. Only used in colour mode.
+HERO_ADAM_COLOR_AXES = (
+    ("cr", 1.0,  1.0),       # red   tint ∈ [0.0, 2.0]
+    ("cg", 0.85, 0.85),      # green tint ∈ [0.0, 1.7]
+    ("cb", 0.6,  0.6),       # blue  tint ∈ [0.0, 1.2]
+)
+
 
 def _load_whole_frame():
     import importlib.util
@@ -55,10 +64,11 @@ class HeroRewardModel:
     linear layer — small enough to learn online from single comparisons, rich enough to
     capture spatial/brightness preferences ('I like a bright top-left')."""
 
-    def __init__(self, pool: int = 4, dtype=None, device=None):
+    def __init__(self, pool: int = 4, channels: int = 1, dtype=None, device=None):
         import torch
         self.pool = pool
-        self.head = torch.nn.Linear(pool * pool, 1)
+        self.channels = int(channels)
+        self.head = torch.nn.Linear(self.channels * pool * pool, 1)
         torch.nn.init.zeros_(self.head.weight)
         torch.nn.init.zeros_(self.head.bias)
         if dtype is not None or device is not None:
@@ -69,7 +79,10 @@ class HeroRewardModel:
 
     def features(self, img):
         import torch.nn.functional as F
-        x = img[None, None]                                  # (1,1,H,W)
+        if img.dim() == 3 and img.shape[-1] == 3:            # (H,W,3) colour frame
+            x = img.permute(2, 0, 1)[None]                   # (1,3,H,W)
+        else:
+            x = img[None, None]                              # (1,1,H,W) mono frame
         return F.adaptive_avg_pool2d(x, (self.pool, self.pool)).reshape(-1)
 
     def __call__(self, img):
@@ -87,7 +100,8 @@ class HeroAdam:
 
     def __init__(self, size: int = 48, seed: int = 0,
                  lr_theta: float = 0.06, lr_reward: float = 0.3,
-                 theta_steps: int = 2, explore: float = 0.15, pool: int = 4):
+                 theta_steps: int = 2, explore: float = 0.15, pool: int = 4,
+                 color: bool = False):
         import torch
         torch.manual_seed(seed)
         self.wf = _load_whole_frame()
@@ -96,7 +110,10 @@ class HeroAdam:
         self.size = int(size)
         self.theta_steps = int(theta_steps)
         self.explore = float(explore)
-        self.axes = HERO_ADAM_AXES
+        # Colour mode adds the per-channel tints (cr/cg/cb) as steerable axes and renders
+        # the differentiable 3-channel frame; mono mode keeps the original 7 axes.
+        self.color = bool(color)
+        self.axes = HERO_ADAM_AXES + (HERO_ADAM_COLOR_AXES if self.color else ())
         self.theta = {name: torch.nn.Parameter(
             torch.tensor(center, dtype=self.dt, device=self.dev))
             for name, center, _hr in self.axes}
@@ -104,7 +121,8 @@ class HeroAdam:
                         for name, center, hr in self.axes}
         _sample = self._render().detach()
         self.img_dt, self.img_dev = _sample.dtype, _sample.device
-        self.reward = HeroRewardModel(pool, dtype=self.img_dt, device=self.img_dev)
+        self.reward = HeroRewardModel(pool, channels=(3 if self.color else 1),
+                                      dtype=self.img_dt, device=self.img_dev)
         self.theta_opt = torch.optim.Adam(list(self.theta.values()), lr=lr_theta)
         self.reward_opt = torch.optim.Adam(list(self.reward.parameters()), lr=lr_reward)
         self._gen = torch.Generator(device=self.img_dev).manual_seed(seed + 1)
@@ -116,6 +134,8 @@ class HeroAdam:
         # SHOWN, not the raw field (whose ring/bg terms can run outside [0,1]). The clamp
         # is differentiable (grad passes through in-range pixels), so Adam still steers.
         th = self.theta if theta is None else theta
+        if self.color:
+            return self.wf.render_hero_rgb_torch(self.size, th).clamp(0.0, 1.0)
         return self.wf.render_hero_torch(self.size, th).clamp(0.0, 1.0)
 
     def current_image(self):

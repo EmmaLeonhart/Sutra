@@ -47,12 +47,6 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## ACTIVE — GUI: extend the Adam-RLHF demo (color / position / size + A/B UX)
 
-- [ ] **G2 — RGB / multi-axis Adam controller.** Extend `HeroAdam` (color mode or a
-  `HeroAdamRGB`) to steer the differentiable RGB render: θ includes `cr/cg/cb`; the
-  reward head consumes per-channel pooled features. TDD `test_hero_adam_rgb.py`: a
-  synthetic "prefer redder" rater drives mean-red up, flips with preference, 0
-  non-finite frames; brightness steering still works. Measured deltas in the asserts.
-
 - [ ] **G3 — multi-axis steering tests.** Beyond color: synthetic raters for POSITION
   (prefer glow toward a corner → centroid moves the right way) and SIZE/spread (prefer
   wider glow → `invs` moves), each measured, finite, and flipping with preference.
