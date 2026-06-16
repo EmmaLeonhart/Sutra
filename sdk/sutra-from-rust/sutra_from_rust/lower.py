@@ -64,6 +64,9 @@ _HOIST_N: list = [0]
 # p.item("x"))` (a raw axon field read collapses arithmetic to ~0 at low dims —
 # finding 2026-06-05). Numeric fields only (strings aren't axon fillers).
 _STRUCTS: set = set()
+# struct name -> ordered field names, for `..base` functional-update (the spread copies
+# every declared field not given explicitly from `base`).
+_STRUCT_FIELDS: dict = {}
 
 
 def _text(node, src: bytes) -> str:
@@ -97,6 +100,7 @@ def _struct_construction(node, src: bytes):
     if tid is None or flist is None or _text(tid, src) not in _STRUCTS:
         return None
     fields = []
+    base = None  # the `..base` functional-update source expr, if any
     for fi in flist.named_children:
         if fi.type == "field_initializer":
             fid = next((c for c in fi.named_children
@@ -113,16 +117,29 @@ def _struct_construction(node, src: bytes):
             if ident is None:
                 return None
             fields.append((_text(ident, src), ident))
+        elif fi.type == "base_field_initializer":
+            # `..base` — copy the remaining declared fields from `base`.
+            base = fi.named_children[0] if fi.named_children else None
+            if base is None:
+                return None
         else:
-            return None  # base (`..rest`) inits are a later item
-    return _text(tid, src), fields
+            return None
+    return _text(tid, src), fields, base
 
 
-def _emit_struct_construction(fields, src: bytes, var: str, indent: str) -> str:
-    """Axon-construction statements for a struct bound to `var` (named keys)."""
+def _emit_struct_construction(name, fields, base, src: bytes, var: str, indent: str) -> str:
+    """Axon-construction statements for a struct bound to `var` (named keys). With a
+    `..base` spread, every declared struct field NOT given explicitly is copied from
+    `base` (`var.add("f", realvec(base.item("f")))`) — Rust functional-update."""
     stmts = f"{indent}Axon {var};\n"
+    given = {f for f, _ in fields}
     for field, val in fields:
         stmts += f'{indent}{var}.add("{field}", {_lower_expr(val, src)});\n'
+    if base is not None:
+        base_src = _lower_expr(base, src)
+        for f in _STRUCT_FIELDS.get(name, []):
+            if f not in given:
+                stmts += f'{indent}{var}.add("{f}", realvec({base_src}.item("{f}")));\n'
     return stmts
 
 
@@ -179,10 +196,10 @@ def _hoist_enum_constructions(body, src: bytes, indent: str = "    "):
             return
         sctor = _struct_construction(n, src)
         if sctor is not None:
-            _name, fields = sctor
+            _name, fields, base = sctor
             tmp = f"_ah{_HOIST_N[0]}"
             _HOIST_N[0] += 1
-            prelude.append(_emit_struct_construction(fields, src, tmp, indent))
+            prelude.append(_emit_struct_construction(_name, fields, base, src, tmp, indent))
             _ARG_HOIST[n.id] = tmp
             added.append(n.id)
             return
@@ -860,7 +877,7 @@ def _lower_function(item, src: bytes) -> str:
         # (no redundant temp), the OCaml record-let shape.
         sctor = _struct_construction(value, src)
         if sctor is not None:
-            stmts += _emit_struct_construction(sctor[1], src, nm, "    ")
+            stmts += _emit_struct_construction(sctor[0], sctor[1], sctor[2], src, nm, "    ")
             continue
         ector = _enum_construction(value, src)
         if ector is not None:
@@ -918,12 +935,24 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     _ARG_HOIST.clear()
     _SUBST.clear()
     _STRUCTS.clear()
+    _STRUCT_FIELDS.clear()
     for child in tree.root_node.named_children:
         if child.type == "struct_item":
             tid = next((c for c in child.named_children
                         if c.type == "type_identifier"), None)
             if tid is not None:
                 _STRUCTS.add(_text(tid, src))
+                fdl = next((c for c in child.named_children
+                            if c.type == "field_declaration_list"), None)
+                names = []
+                if fdl is not None:
+                    for fd in fdl.named_children:
+                        if fd.type == "field_declaration":
+                            fi = next((c for c in fd.named_children
+                                       if c.type == "field_identifier"), None)
+                            if fi is not None:
+                                names.append(_text(fi, src))
+                _STRUCT_FIELDS[_text(tid, src)] = names
         if child.type == "enum_item":
             name_node = next((c for c in child.named_children
                               if c.type == "type_identifier"), None)

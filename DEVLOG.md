@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: Rust frontend — `..base` struct spread (functional update) (Phase 3)
+
+Work-loop tick. Rust `Point { x: 9, ..base }` now lowers: extended the struct registry from
+a name set to also carry per-struct field names (`_STRUCT_FIELDS`, captured from
+`field_declaration_list` at registration), and `_struct_construction` now recognizes the
+`base_field_initializer` (`..base`). The emit copies every declared field NOT given
+explicitly from the base axon (`q.add("y", realvec(base.item("y")))`) — Rust's
+functional-update semantics on axons. New fixture `struct_spread` (`base={1,8}` →
+`q={9, 8 copied}` → 9+8 = 17) compiles AND runs on the substrate to 17; suite 24→26, no
+regressions. (This is the first frontend increment landing under the new transpilers-ci —
+CI will run it on push.)
+
 ## 2026-06-16: transpilers-ci.yml — CI for all 9 sutra-from-* frontends (Emma greenlit)
 
 Stood up `.github/workflows/transpilers-ci.yml` after Emma chose (AskUserQuestion) the
