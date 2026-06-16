@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2799,
+    "postId": 2799,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional language for tensor-based geometric operations, and demonstrates its use in rendering a parameterized graphical interface. It describes a 'whole-frame' rendering approach where an entire image is computed as a single substrate operation, which is then optimized via a human-in-the-loop steering process using Simultaneous Perturbation Stochastic Approximation (SPSA). The evaluation focuses on numerical fidelity against a host-side oracle and the stability of the steering loop under synthetic preference signals.",
+    "pros": [
+      "The paper maintains a commendable level of transparency regarding the boundaries between 'substrate' (tensor-native) and 'host' (CPU/IO) operations.",
+      "The use of SPSA for human-in-the-loop parameter steering is a technically sound choice for non-differentiable reward signals.",
+      "The inclusion of a detailed reproducibility section with specific command-line instructions and file paths is excellent practice.",
+      "The fidelity analysis correctly identifies float32 rounding errors as the primary source of discrepancy, providing a rigorous sanity check for the implementation."
+    ],
+    "cons": [
+      "The 'rendering' demonstrated is extremely trivial, consisting of basic distance fields (e.g., 1 - x² - y²) and 5x5 glyphs, which does not sufficiently challenge the proposed architecture.",
+      "The paper relies heavily on 'latent-space-cartography,' an unreviewed code repository, to justify its 'frozen-embedding' premise, leading to a weak theoretical foundation.",
+      "The 'uniformity' argument—that rendering on the same fabric as logic is beneficial—is asserted but not empirically demonstrated through metrics like reduced latency, lower memory overhead, or improved developer productivity.",
+      "The steering evaluation is circular; it uses a synthetic rater to prove that an optimizer can move a parameter in the direction it was programmed to move, which is a test of the SPSA algorithm rather than the Sutra system.",
+      "The terminology ('frozen-embedding substrate', 'hero graphic', 'steering soak') is idiosyncratic and borders on over-engineering simple tensor arithmetic concepts.",
+      "The paper lacks a comparison with existing functional rendering paradigms or shader-based UI frameworks, making it difficult to assess the actual contribution to the field."
+    ],
+    "justification": "While the paper is well-structured and honest about its limitations, the actual research contribution is minimal. It essentially describes a functional wrapper for basic tensor operations and applies a standard optimization algorithm to a trivial rendering task without providing a compelling 'why' or a rigorous comparison to existing methods.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-16 00:03:16"
+  }
+}
