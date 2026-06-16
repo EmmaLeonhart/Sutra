@@ -54,30 +54,58 @@ def _blend(test_src: str, then_src: str, else_src: str) -> str:
     return f"(((1 + {w}) * ({then_src})) + ((1 - {w}) * ({else_src}))) / 2"
 
 
+def _string_key_field(node, src: bytes):
+    """If `node` is a string literal `"k"`, return its content `k` (the field name
+    for the `%{"k" => v}` arrow form). Else None. Only plain (uninterpolated)
+    strings qualify — an interpolated key has no static field name."""
+    if node.type != "string":
+        return None
+    parts = node.named_children
+    if len(parts) == 1 and parts[0].type == "quoted_content":
+        return _text(parts[0], src)
+    if len(parts) == 0:  # empty string "" — degenerate, skip
+        return None
+    return None  # interpolation / escapes — not a static field name
+
+
 def _map_fields(node, src: bytes):
-    """If `node` is an Elixir `%{x: a, y: b}` map literal with atom-key shorthand
-    pairs, return [(field, value_node), …]; else None. A struct literal
-    `%Name{x: a, y: b}` also parses as a `map` (with an extra `struct` child for
-    the nominal type); it lowers to the same named-field axon, the struct alias
-    dropped — exactly the Rust `struct`-as-named-field-axon shape (a struct is
-    structurally an axon). The `%{"k" => v}` arrow form and non-atom keys are a
-    later item."""
+    """If `node` is an Elixir map literal whose keys are all static field names,
+    return [(field, value_node), …]; else None. Two key forms are supported:
+    atom-key shorthand `%{x: a, y: b}` and the string-key arrow form
+    `%{"k" => v}` — both lower to the same named-field axon (`.add("k", v)` /
+    `.item("k")`), so a string-keyed map and an atom-keyed map are structurally
+    identical axons. A struct literal `%Name{x: a, y: b}` also parses as a `map`
+    (with an extra `struct` child for the nominal type); it lowers to the same
+    named-field axon, the struct alias dropped — the Rust
+    `struct`-as-named-field-axon shape. Non-atom/non-string keys (numeric,
+    interpolated, variable) are still unsupported and make this return None."""
     if node.type != "map":
         return None
     content = next((c for c in node.named_children if c.type == "map_content"), None)
     if content is None:
         return None
-    kws = next((c for c in content.named_children if c.type == "keywords"), None)
-    if kws is None:
-        return None
     fields = []
-    for pair in kws.named_children:
-        if pair.type != "pair" or len(pair.named_children) < 2:
+    # Atom-key shorthand: pairs nest inside a `keywords` node.
+    kws = next((c for c in content.named_children if c.type == "keywords"), None)
+    if kws is not None:
+        for pair in kws.named_children:
+            if pair.type != "pair" or len(pair.named_children) < 2:
+                return None
+            key_node, val_node = pair.named_children[0], pair.named_children[-1]
+            if key_node.type != "keyword":
+                return None
+            field = _text(key_node, src).rstrip().rstrip(":")
+            fields.append((field, val_node))
+        return fields if fields else None
+    # Arrow form: `key => value` pairs are `binary_operator` children directly
+    # under `map_content`. Only string keys give a static field name.
+    for child in content.named_children:
+        if child.type != "binary_operator" or len(child.named_children) < 2:
             return None
-        key_node, val_node = pair.named_children[0], pair.named_children[-1]
-        if key_node.type != "keyword":
-            return None  # `"k" => v` arrow form — later item
-        field = _text(key_node, src).rstrip().rstrip(":")
+        key_node, val_node = child.named_children[0], child.named_children[-1]
+        field = _string_key_field(key_node, src)
+        if field is None:
+            return None  # non-string arrow key — unsupported
         fields.append((field, val_node))
     return fields if fields else None
 
@@ -103,15 +131,20 @@ def _hoist_maps(node, src: bytes, indent: str = "    ") -> str:
 
 
 def _dot_accessed_params(body, params: set, src: bytes) -> set:
-    """Param names read via dot-access (`p.x`) anywhere in `body` — these are
-    maps, so they type as `Axon` rather than the default `number`."""
+    """Param names read as maps anywhere in `body` — via atom-key dot-access
+    (`p.x`) or string-key index-access (`m["k"]`) — these are axons, so they type
+    as `Axon` rather than the default `number`."""
     found: set = set()
 
     def walk(n):
+        obj = None
         if n.type == "dot" and n.named_children:
             obj = n.named_children[0]
-            if obj.type == "identifier" and _text(obj, src) in params:
-                found.add(_text(obj, src))
+        elif n.type == "access_call" and len(n.named_children) == 2 \
+                and _string_key_field(n.named_children[1], src) is not None:
+            obj = n.named_children[0]
+        if obj is not None and obj.type == "identifier" and _text(obj, src) in params:
+            found.add(_text(obj, src))
         for c in n.named_children:
             walk(c)
 
@@ -346,6 +379,15 @@ def _lower_expr(node, src: bytes) -> str:
         if len(kids) == 2 and kids[1].type == "identifier":
             return f'realvec({_lower_expr(kids[0], src)}.item("{_text(kids[1], src)}"))'
         return "/* UNSUPPORTED-EXPR: dot arity */"
+    if t == "access_call":
+        # String-key map read `m["k"]` -> the axon item read, same projection as
+        # the atom-key `p.x` path (a string-keyed map is the same named-field axon).
+        kids = node.named_children
+        if len(kids) == 2:
+            field = _string_key_field(kids[1], src)
+            if field is not None:
+                return f'realvec({_lower_expr(kids[0], src)}.item("{field}"))'
+        return "/* UNSUPPORTED-EXPR: access_call (non-string key) */"
     if t == "map":
         # A map literal reaching here was not hoisted — surface the gap.
         return "/* UNSUPPORTED-CONSTRUCTION: map value outside a hoistable position */"

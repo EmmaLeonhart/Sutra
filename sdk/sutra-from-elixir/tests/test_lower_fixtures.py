@@ -32,6 +32,7 @@ _RUNNABLE = {
     "pipe_chain": 16.0,  # 5 |> add(3) |> double() -> double(add(5,3)) = double(8) = 16
     "map_axon": 13.0,  # def sum2(p), do p.x + p.y; sum2(%{x: 5, y: 8})  (map -> axon, dot -> realvec(item))
     "struct_axon": 13.0,  # sum2(%Point{x: 6, y: 7})  (struct literal -> same named-field axon, alias dropped)
+    "string_map_axon": 13.0,  # sum2(%{"x" => 5, "y" => 8}); p["x"] + p["y"]  (arrow-form string-key map -> axon, m["k"] -> realvec(item))
 }
 
 

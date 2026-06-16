@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — string-key arrow-map `%{"k" => v}` → axons (Phase 3)
+
+Work-loop tick (non-GUI item, advanced while GUI v4 awaited its review). Extended
+`sdk/sutra-from-elixir` to lower the string-key arrow-map form. (1) `_map_fields` now
+handles the arrow form: `%{"k" => v}` parses as `map_content` → `binary_operator`
+children (`string` key `=>` value), distinct from the atom-key `keywords`/`pair`/`keyword`
+shorthand; string keys give a static field name (`_string_key_field` reads the
+`quoted_content`), so a string-keyed map lowers to the SAME named-field axon as the
+atom-keyed one (`.add("k", v)`). (2) `_lower_expr` gained `access_call` (`m["k"]` →
+`realvec(m.item("k"))`, same projection as the atom-key `p.x` dot path). (3)
+`_dot_accessed_params` now also types a param accessed via `m["k"]` as `Axon`. Non-string
+arrow keys (numeric/interpolated/variable) still return None → unsupported (need a
+non-name field scheme — left as the next Elixir increment). New fixture
+`string_map_axon` (`sum2(%{"x" => 5, "y" => 8})`, `p["x"] + p["y"]`) compiles AND runs
+on the substrate to 13.0; suite 22→24 (lower + substrate-run). Models on the OCaml/Rust
+struct-as-axon pattern; mirrors the Clojure string-key-map increment.
+
 ## 2026-06-15 — UN-BANK + start the autonomous work loop (Emma, emphatic)
 
 Reversing the wrong "bank at Weak Reject" call. Emma's instruction was to RUN the
