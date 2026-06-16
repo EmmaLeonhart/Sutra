@@ -265,10 +265,11 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
   needed for brace construction in argument position) OR let-bound-only
   construction (needs (b)). Field access `p.x` is a dotted `long_identifier`, not
   a `field_expression`. Build (b)+the hoist next, then records are straightforward.
-- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through keyword/string-key
-  maps → axons + `(get m :k)` access shipped 2026-06-15, suite 24/24): numeric/symbol map
-  keys; maps in recursive bodies; destructuring binds; multi-arity `defn`; `case`
-  symbol/keyword test members (currently number/bool literals only).
+- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through numeric map keys
+  `{1 a 2 b}` → axon fields "1"/"2" + `(get m 1)` access shipped 2026-06-16, suite 26/26):
+  symbol map keys (needs a symbol-as-value rep); maps in recursive bodies; destructuring
+  binds; multi-arity `defn`; `case` symbol/keyword test members (needs a keyword-as-value
+  rep — currently number/bool literals only).
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through integer/float
   literal `case` patterns + `_`/named catch-all shipped 2026-06-16, suite 20/20;
   laziness out of scope): guarded/multi-equation recursion (currently
