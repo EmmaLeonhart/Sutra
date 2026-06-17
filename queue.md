@@ -34,39 +34,21 @@ needs (count `basis_vector` calls; none → tiny dim); (b) any "recurrent"/"RNN"
 decision function — measured `gap = min(positive) − max(negative)` is in the commit or a planning
 doc. If anything is amiss, write a finding + a fix item here BEFORE other work, then delete this.
 
-## 2. Phase 5 — real-WASM-bytecode core on the substrate (ACTIVE; WASM is the VM direction)
+## 2. Phase 5 — real-WASM-bytecode core (COMPLETE; only follow-ups remain)
 
-WebAssembly is the VM direction (Emma 2026-06-17; JVM done + parked, no further JVM work).
-`experiments/iso5_substrate_dispatch/wasm_core.su` is the real-WASM-bytecode core (real opcode
-values + encoding so `wat→wasm` runs unmodified), the same RAM-state blended-dispatch DNC stack
-machine as `jvm_core.su`. Scoped in `planning/exploratory/2026-06-17-phase5-wasm-core-scoping.md`.
-Done so far: i32 arithmetic + single-byte signed LEB128 (`i32.const`/`add`/`sub`/`mul`/`end`/
-`return`), indexed locals (`local.get`/`set`/`tee`, computed `200+idx` cell), comparisons
-(`i32.eqz`/`eq`/`ne`/`lt_s`/`gt_s`/`le_s`/`ge_s`), and STRUCTURED CONTROL (`block`/`loop`/`if`/
-`else`/`br`/`br_if`/`end` via the load-time pre-resolved target table — a real countdown-sum loop
-and if/else selection run on the substrate). Remaining ladder (each a compile-AND-run increment,
-verified == reference on the substrate):
-- [ ] **Step 4 cross-check (mostly done):** a real-WASM-encoded iterative factorial runs byte-for-byte
-  on the substrate (`test_wasm_core.py::test_wasm_core_runs_real_wasm_factorial`, `fact(0/1/4/5)=
-  1/1/24/120`, n in local 0). Bytes were HAND-ASSEMBLED to the WASM spec encoding because
-  `wat2wasm`/`wasm-tools` is absent here. Remaining: when a toolchain is available (CI), assemble the
-  same `.wat` with real `wat2wasm` and assert the body bytes are byte-identical to `_WASM_FACT`.
-- [ ] **Step 5 — tree recursion via `call` (SCOPED 2026-06-17, `planning/exploratory/2026-06-17-
-  phase5-wasm-call-frames-scoping.md`).** `call`(0x10) + a call-frame stack in RAM so a tree-recursive
-  `fib` lowers to WASM and runs on the substrate (stack in RAM/DNC memory). The Phase-5.5-B enabler.
-  NO JVM template — it's a machine REDESIGN to frame-relative addressing (frame pointer `fp`, locals
-  at `fp+idx`, operand stack at `fp+nloc`-relative, a control/return stack, a host-built function
-  table). Key simplification: args-in-place (callee locals 0..nargs-1 ALIAS the caller's top operands,
-  no copy loop). Sub-step ladder (each compile-AND-run, substrate-verified):
-  - [ ] **5c** — recursion: `fib(0..6)=0,1,1,2,3,5,8` on the substrate (the call stack in the RAM
-    arena). The call/return mechanism is in place (5b); 5c constructs a recursive `fib` WASM body
-    (two self-`call`s + `i32.add`) and verifies the depth-growing RAM call stack produces the right
-    values. This is the Phase-5.5-B substrate demonstration.
-    (5a frame-relative refactor + 5b call/return DONE 2026-06-17: `fp@2`/`nloc@3`/`csp@4`; locals at
-    `fp+idx`, operand stack at `fp+nloc`; control stack at 1500+, function table at 2000+. `call`
-    pushes a 4-cell control entry + sets up the callee frame args-in-place; `return`/func-end pops
-    it + places the return value; `csp`-empty → top-level halt. `main` calling leaf `add` →
-    a+b verified; all single-function regressions still pass.)
+WebAssembly is the VM direction (Emma 2026-06-17; JVM done + parked).
+`experiments/iso5_substrate_dispatch/wasm_core.su` is a complete real-WASM-bytecode core (real
+opcode values + encoding so `wat→wasm` runs unmodified) on the RAM-state blended-dispatch DNC stack
+machine. Implemented + substrate-verified (`test_wasm_core.py`): i32 arithmetic + signed LEB128,
+indexed locals, the comparison family, structured control (`block`/`loop`/`if`/`else`/`br`/`br_if`/
+`end` via a load-time pre-resolved target table), `call`/`return` with a frame-relative call stack
+(frame pointer + control/return stack + host-built function table, args-in-place), a real iterative
+**factorial** byte-for-byte (`fact(0..5)`), and **recursive `fib(0..6)=0,1,1,2,3,5,8`** (tree
+recursion with the call stack in RAM/DNC memory — the Phase-5.5-B substrate demonstration). Only
+follow-ups remain:
+- [ ] **wat2wasm cross-check:** the factorial bytes were HAND-ASSEMBLED to the WASM spec encoding
+  (`wat2wasm`/`wasm-tools` absent here). When a toolchain is available (CI), assemble the same `.wat`
+  with real `wat2wasm` and assert the function-body bytes are byte-identical to `_WASM_FACT`.
 - [ ] **Multi-byte LEB128** (deferred from step 1): when a fixture needs a constant/index > 127,
   decode continuation-byte LEB128 (operand length becomes data-dependent → affects pc advance).
 
