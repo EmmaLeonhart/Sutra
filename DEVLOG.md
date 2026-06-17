@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-16: Haskell frontend — single-param multi-equation recursion (Phase 3)
+
+Work-loop sprint tick — completes the multi-clause-recursion port across all three frontends
+the design doc named (Erlang, Elixir, now Haskell). `fac 0 = 1` + `fac n = n * fac (n - 1)`
+now lowers to the accumulator trampoline (was `_lower_pattern_equations` → recursion rejected).
+Same de-risked refactor: (a) a `_conditional_parts` helper extracts `(cond, then_e, else_e)`
+from a `conditional`; (b) `_try_lower_tail_recursive` / `_try_lower_foldable_nontail` now take
+`cond_src` / `neg_src` SOURCE STRINGS (the if-based call site computes them —
+behaviour-preserving); (c) `_try_lower_multiclause_recursion` detects the 2-equation
+integer-base + variable-recursive shape, synthesizes `(n == 0)` / `(n != 0)`, and is wired into
+`_lower_pattern_equations` before the recursion rejection. New fixture `multiclause_fact` runs
+on the substrate to **120**; the `tail_rec`(→15) and `nontail_fact`(→120) regression guards
+still pass. Suite 26→28. **Multi-clause recursion (the formerly-deferred item) is now done for
+the single-param case across Erlang + Elixir + Haskell.** Remaining: the multi-PARAM tail case
+(base-clause var renaming), shared shape across the three.
+
 ## 2026-06-16: Elixir frontend — single-param multi-clause recursion (Phase 3)
 
 Work+report sprint tick — ports the Erlang multi-clause-recursion path to Elixir. `def fac(0),
