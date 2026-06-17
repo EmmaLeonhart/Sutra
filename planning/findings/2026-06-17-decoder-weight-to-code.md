@@ -27,9 +27,13 @@ input-encoding is still host-built input geometry (as in D2). So "weight→code"
 forward emitted as Sutra + the trained weights as data — not a single self-contained literal.
 
 **Follow-ons (spec).**
-1. **Bake weights to CSV + `load_matrix`** so the emitted `.su` loads its own weights (a fully
-   standalone program), matching the corpus's file-backed pattern end-to-end.
-2. **Emit the Fourier encoding** as substrate ops (polynomial sin-approx via hadamard) so even
-   the input geometry is in-program — removes the host-encoding boundary.
+1. **Bake weights to CSV + `load_matrix`** — ✅ DONE (D12): `bake_decoder` emits a fully
+   standalone `.su` that loads its own weights; verified to reproduce the trained forward.
+2. **Emit the Fourier encoding** as substrate ops — **BLOCKED on a substrate primitive**
+   (`2026-06-17-substrate-transcendentals-canonical-only.md`): `cexp`/`sin`/`tanh` are
+   canonical-vector ops, not elementwise on field buffers, so sin/cos of a coordinate buffer
+   isn't directly computable. A hadamard-polynomial approx covers low frequencies only (degrades
+   the high bands); the clean fix is a new elementwise-buffer transcendental primitive in the
+   compiler. Left host-side (honestly labeled input geometry) until then — NOT faked.
 3. **Feed the decompiler.** A trained decoder (weights + emitted code + IO) is a high-value
    weight↔code corpus triple; wire decoder emissions into `weight_to_code_corpus.py`.

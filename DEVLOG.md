@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-17: finding — substrate transcendentals are canonical-only (on-substrate encoding blocked)
+
+Probed the next decoder follow-on (emit the Fourier encoding ON the substrate) and recorded a
+negative result: `cexp`/`sin`/`tanh` operate on the canonical d-dim vector form, NOT elementwise
+over field buffers (`cos(θ)=realvec(cexp(1.0i·θ))` on a length-5 buffer → 108-vs-5 mismatch in
+`complex_mul`, same wall as D1's tanh). Only `hadamard`/`+`/`-`/`matmul` are elementwise on
+buffers. So computing sin/cos of a coordinate buffer on the substrate isn't directly possible:
+a hadamard-polynomial approx covers low frequencies only (degrades the high bands); the clean
+fix is a new elementwise-buffer transcendental primitive in `codegen_pytorch.py` (compiler-side,
+out of the decoder's scope). **Decision:** keep the Fourier encoding host-side (honestly labeled
+input geometry) rather than ship a polynomial encoding that silently degrades expressivity —
+don't fake substrate-purity. Finding: `planning/findings/2026-06-17-substrate-transcendentals-
+canonical-only.md`; decoder follow-on #2 marked blocked. The decoder forward stays on-substrate;
+this is the input-encoding boundary only.
+
 ## 2026-06-17: learned decoder D12 — bake weights to CSV (fully standalone .su)
 
 `emit_decoder.bake_decoder` writes a trained decoder's weights to CSV and emits an all-`matrix`
