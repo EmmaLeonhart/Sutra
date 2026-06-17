@@ -223,11 +223,11 @@ negative results, not hidden.
   under infix. [Scala 20/20 — named roadmap + tuples done 2026-06-16.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
   positional-key axons + `elem(t, i)` access + `{a, b}` tuple-PATTERN + `%{x: a}` map-PATTERN
-  params shipped 2026-06-16, suite 32/32): struct-PATTERN params (`%Name{x: a}` in a head);
-  multi-statement bodies with `=` destructure (`{a, b} = t` needs do-block sequence lowering,
-  not just the last form); multi-clause heads with recursion (currently
-  `UNSUPPORTED-RECURSION`); `is_integer`-style type-test guards (`and`/`or` chains already
-  lower via `_OP_MAP`). (Erlang is its own frontend.)
+  + `%Name{x: a}` struct-PATTERN params shipped 2026-06-16, suite 34/34; struct alias dropped,
+  same path as map-pattern): multi-statement bodies with `=` destructure (`{a, b} = t` needs
+  do-block sequence lowering, not just the last form); multi-clause heads with recursion
+  (currently `UNSUPPORTED-RECURSION`); `is_integer`-style type-test guards (`and`/`or` chains
+  already lower via `_OP_MAP`). (Erlang is its own frontend.)
   > **F# RECORDS → axons SHIPPED 2026-06-16.** All prereqs done: (a) typed-param
   > extraction (`(p: Point)`); (b) let-SEQUENCE bodies; (c) a let-bound construction
   > hoist — `_PRELUDE` accumulator emits record `{ x = a }` literals as `Axon q;
@@ -397,10 +397,10 @@ functions/calls/binary-ops, `if`/`case` → blend, multi-clause heads + `when` g
 dispatch blend, `if`-based tail rec → `while_loop`, foldable non-tail → CPS. Remaining:
 
 - [ ] **Erlang increments** (through records `#name{f=v}` → named-field axons +
-  `R#name.f` access + `{A, B}` tuple-PATTERN params shipped 2026-06-16, suite 20/20; the
-  `-record` decl is skipped, name dropped): record/map PATTERN params (`#point{x=X}` in a
-  head); maps/tuples/records in recursive bodies (the bare-single path has them; the
-  recursion path doesn't yet); multi-clause recursion (the idiomatic
+  `R#name.f` access + `{A, B}` tuple-PATTERN + `#point{x=X}` record-PATTERN params shipped
+  2026-06-16, suite 22/22; the `-record` decl is skipped, name dropped): map PATTERN params
+  (`#{x := X}` in a head); maps/tuples/records in recursive bodies (the bare-single path has
+  them; the recursion path doesn't yet); multi-clause recursion (the idiomatic
   `f(0) -> …; f(N) -> … f(N-1).` — currently `UNSUPPORTED-RECURSION`, shared with Elixir);
   list comprehensions; `div`/`rem` via complex rotation (not `Math.mod`).
 

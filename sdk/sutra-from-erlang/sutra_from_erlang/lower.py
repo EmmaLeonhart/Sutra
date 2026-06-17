@@ -581,6 +581,33 @@ def _lower_dispatch(name: str, clauses, src: bytes) -> str:
                 for j, e in enumerate(p.named_children):
                     binds.append((_text(e, src),
                                   f'realvec({argnames[i]}.item("_{j}"))'))
+            elif p.type == "record_expr":
+                # `#point{x=X, y=Y}` record-PATTERN param — the arg is a named-field
+                # axon (the nominal record name dropped, as for construction); each
+                # `record_field` binds its `var` local to the field read
+                # `realvec(_ai.item("x"))` (the `R#point.x` projection). A non-var
+                # field value is a later item.
+                rbinds: list[tuple[str, str]] = []
+                ok = True
+                for rf in p.named_children:
+                    if rf.type != "record_field":
+                        continue  # skip the record_name child
+                    fatom = next((c for c in rf.named_children
+                                  if c.type == "atom"), None)
+                    fexpr = next((c for c in rf.named_children
+                                  if c.type == "field_expr"), None)
+                    local = (fexpr.named_children[0]
+                             if fexpr is not None and fexpr.named_children else None)
+                    if fatom is None or local is None or local.type != "var":
+                        ok = False
+                        break
+                    rbinds.append((_text(fatom, src), _text(local, src)))
+                if not ok or not rbinds:
+                    return (f"// UNSUPPORTED-DECL: '{name}' record-pattern param has "
+                            f"a non-var field value (later item)\n")
+                axon_args.add(argnames[i])
+                for field, lname in rbinds:
+                    binds.append((lname, f'realvec({argnames[i]}.item("{field}"))'))
             else:
                 return (f"// UNSUPPORTED-DECL: '{name}' clause pattern param "
                         f"{p.type} (later item)\n")
