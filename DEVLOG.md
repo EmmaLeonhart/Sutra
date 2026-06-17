@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-17: learned decoder D11 — weight→code (emit trained decoder as Sutra) — TRACK COMPLETE
+
+`demos/decoder/emit_decoder.py` emits a trained decoder's forward as a standalone `.su` over
+`matrix` weight params + `Tensor.MatrixMul` + hadamard cubic (`layer_cube`/`layer_lin` →
+`decoder(W0,b0,…,x)`), connecting to Sutra's existing weight↔code infra (file-backed matrices,
+`Tensor.MatrixMul`, from `weight_to_code_corpus.py`). TDD `test_emit_decoder.py` (2), green
+CPU+CUDA: trains a small `[F,16,16,1]` decoder, emits + compiles the `.su`, runs it with the
+trained weights, and confirms it reproduces the host forward to **< 1e-4** — the trained decoder
+is now standalone Sutra CODE + weight tensors (file-backable as CSVs). Finding + follow-on spec
+in `planning/findings/2026-06-17-decoder-weight-to-code.md` (bake weights to CSV via
+`load_matrix`; emit the Fourier encoding on-substrate; feed the w2c decompiler corpus). **The
+learned-decoder track D1–D11 is complete** — the EMMA-gated decoder is real end-to-end: trains,
+reconstructs arbitrary gray/colour frames, scales with capacity, generates from a latent, is
+preference-steerable, demoable, documented, and emits back to Sutra code.
+
 ## 2026-06-17: 3-hourly gui→main auto-integration cron (preserve main's queue/todo)
 
 Emma's standing instruction: every 3 hours, integrate gui→main, preserving main's working

@@ -89,10 +89,17 @@ generated blob centroid +0.077→+0.299) + `latent_window.py` (thin tkinter, I/O
 — no display) + a light import smoke. The steered-generator pipeline end-to-end._ Measured; frame the analytic render as the fixed-weight base case
   and the decoder as the trained generalization; no overclaim.
 
-_Phase D-F — the weight→code / constrain-train horizon (open-ended stretch):_
-- [ ] **D11 — emit trained decoder weights as Sutra code.** Connect to `experiments/w2c_*`
-  (weight→code): can a trained substrate decoder's weights be frozen into emitted `.su`? The
-  "every op trainable" meets "compile the weights to code" vision. Investigate + spec, then build.
+_Phase D-F ✅ (D11). Weight→code: `emit_decoder.py` emits a trained decoder's forward as a
+standalone `.su` (matrix params + `Tensor.MatrixMul` + hadamard cubic), verified to reproduce
+the trained host forward to <1e-4 — the trained decoder IS Sutra code + weight tensors,
+connected to the existing weight↔code infra. Finding + follow-on spec:
+`planning/findings/2026-06-17-decoder-weight-to-code.md` (bake weights to CSV/`load_matrix`,
+emit the Fourier encoding on-substrate, feed the w2c decompiler corpus)._
+
+**🧠🎉 LEARNED DECODER (D1–D11) COMPLETE.** The EMMA-gated decoder, end-to-end: the substrate
+trains → reconstructs arbitrary gray/colour frames → scales with capacity → generates from a
+latent → is preference-steerable → demoable → documented → and emits back to Sutra code. All
+CI-green. Further work = the open-ended follow-ons in the finding above.
 
 ## Existing demo state (the base this track extends)
 
