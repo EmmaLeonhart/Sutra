@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-17: WASM machine — opcodes 26 = SQR + 27 = NIP (Phase 5, batched extension)
+
+Phase 5 (extend the proven WASM leg). Batched TWO independent opcodes in one substrate run to
+amortize the ~25-min verification cost (both fully traced; independent blend chains so a failure
+would localize): **26 = SQR** (unary top*top, net sp 0 — woven into the 99+sp chain via `v_sqr`;
+the now-verified negative multiply means (-5)^2 = 25 works) and **27 = NIP** (drop the
+second-from-top, keep top — net sp -1; writes top1 to the 98+sp result chain via `b_nip` and
+decrements sp via `s_nip`). Neither touches the other's chains. Four new substrate-verified
+cases: SQR(6)→36, `5;NEG;SQR`→25, NIP keep-top (3,5→5), and `NIP; 2; ADD`→7 (usable stack). Full
+`test_mini_wasm_machine.py` ran on the substrate: **50 passed in 1516s, exit 0** — both work, no
+regression. Machine now 28 opcodes (NEG/MIN/MAX/OVER/ABS/SQR/NIP added this session). The
+batched-two-ops approach verified cleanly, so future ticks can amortize the run cost similarly.
+
 ## 2026-06-17: WASM machine — opcode 25 = ABS + measured-verified negative-number behavior (Phase 5)
 
 Phase 5 (extend the proven WASM leg). Added **opcode 25 = ABS** (unary |top|, net sp 0, parallel

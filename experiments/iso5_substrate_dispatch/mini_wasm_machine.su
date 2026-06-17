@@ -33,6 +33,8 @@
 //          23=MAX(pop top1,top2; push max(top2,top1); binary, net sp -1)
 //          24=OVER(push a copy of the second-from-top; net sp +1, like DUP of top2)
 //          25=ABS(pop a, push |a|; unary, net sp 0; boundary-correct at 0)
+//          26=SQR(pop a, push a*a; unary, net sp 0)
+//          27=NIP(drop the second-from-top, keep top; net sp -1)
 // State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
 // output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
 // program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
@@ -71,6 +73,8 @@ function int step(scalar d) {
     int is_max = truth_axis(defuzzy(op == 23));
     int is_over = truth_axis(defuzzy(op == 24));
     int is_abs = truth_axis(defuzzy(op == 25));
+    int is_sqr = truth_axis(defuzzy(op == 26));
+    int is_nip = truth_axis(defuzzy(op == 27));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -120,7 +124,10 @@ function int step(scalar d) {
     // top moves down); binary ops (incl. OR/XOR) write their result; net sp -1
     // collapses 99+sp/98+sp so the result/new-top lands at 99+(sp-1)=98+sp.
     int b_swap = (((1 + is_swap) * (top1)) + ((1 - is_swap) * (top2))) / 2;
-    int b_lt = (((1 + is_lt) * (v_lt)) + ((1 - is_lt) * (b_swap))) / 2;
+    // NIP: drop the second-from-top, keep top. The kept value (top1) lands at the
+    // new top (98+sp after sp -1); a binary-shaped net sp -1 that writes top1 here.
+    int b_nip = (((1 + is_nip) * (top1)) + ((1 - is_nip) * (b_swap))) / 2;
+    int b_lt = (((1 + is_lt) * (v_lt)) + ((1 - is_lt) * (b_nip))) / 2;
     int b_gt = (((1 + is_gt) * (v_gt)) + ((1 - is_gt) * (b_lt))) / 2;
     int b_ge = (((1 + is_ge) * (v_ge)) + ((1 - is_ge) * (b_gt))) / 2;
     int b_le = (((1 + is_le) * (v_le)) + ((1 - is_le) * (b_ge))) / 2;
@@ -152,7 +159,10 @@ function int step(scalar d) {
     int n99_swap = (((1 + is_swap) * (top2)) + ((1 - is_swap) * (top1))) / 2;
     int n99_load = (((1 + is_load) * (loaded)) + ((1 - is_load) * (n99_swap))) / 2;
     int n99_neg = (((1 + is_neg) * (v_neg)) + ((1 - is_neg) * (n99_load))) / 2;
-    int new_99 = (((1 + is_abs) * (v_abs)) + ((1 - is_abs) * (n99_neg))) / 2;
+    int n99_abs = (((1 + is_abs) * (v_abs)) + ((1 - is_abs) * (n99_neg))) / 2;
+    // SQR: top1 * top1, unary (net sp 0). Negatives verified, so (-5)^2 = 25.
+    int v_sqr = top1 * top1;
+    int new_99 = (((1 + is_sqr) * (v_sqr)) + ((1 - is_sqr) * (n99_abs))) / 2;
     ramWrite(99 + sp, new_99);
     // STORE: pop value (top1) and addr (top2), write ram[addr]=value (else no-op
     // rewrite of ram[top2] with its existing value). Net sp -2.
@@ -175,7 +185,8 @@ function int step(scalar d) {
     int s_const = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_over))) / 2;
     int s_store = (((1 + is_store) * (sp - 2)) + ((1 - is_store) * (s_const))) / 2;
     int s_drop = (((1 + is_drop) * (sp_binop)) + ((1 - is_drop) * (s_store))) / 2;
-    int s_out = (((1 + is_output) * (sp_binop)) + ((1 - is_output) * (s_drop))) / 2;
+    int s_nip = (((1 + is_nip) * (sp_binop)) + ((1 - is_nip) * (s_drop))) / 2;
+    int s_out = (((1 + is_output) * (sp_binop)) + ((1 - is_output) * (s_nip))) / 2;
     int s_xor = (((1 + is_xor) * (sp_binop)) + ((1 - is_xor) * (s_out))) / 2;
     int s_or = (((1 + is_or) * (sp_binop)) + ((1 - is_or) * (s_xor))) / 2;
     int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_or))) / 2;
