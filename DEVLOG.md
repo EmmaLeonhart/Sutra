@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-17: Rust frontend — nullary-variant let-value Axon typing (Phase 3)
+
+Work+flush sprint tick — cleans up the documented wart from the prior nullary-variant commit:
+`let d = Dir::South;` previously emitted `int d = _ah0;` (an int-typed local bound to a hoisted
+axon temp — works, since Sutra preserves the value regardless of the declared type label, but
+the emitted type was wrong). The let-value path now detects a bare nullary-variant
+`scoped_identifier` and constructs an Axon-typed local DIRECTLY (`Axon d; d.add("_tag", k);`),
+the same shape as the existing enum/struct construction-let. New fixture `nullary_variant_let`
+(`let d = Dir::South; code(d)`) runs on the substrate to **20**; suite 34→36, no regressions.
+
 ## 2026-06-17: Rust frontend — nullary-variant values (Phase 3)
 
 Work-loop sprint tick — `enum Dir { North, South }` with `Dir::South` used as a VALUE now

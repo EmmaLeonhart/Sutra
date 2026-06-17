@@ -38,6 +38,7 @@ _RUNNABLE = {
     "tuple_destructure": 13.0,  # add_pair(t) { let (a, b) = t; a + b }; main = add_pair((5, 8))  (let-tuple-pattern -> realvec(item _0/_1))
     "struct_destructure": 13.0,  # sum(p: Point) { let Point { x, y } = p; x + y }; main = sum(Point{5,8})  (let-struct-pattern -> realvec(item x/y))
     "nullary_variant": 20.0,  # enum Dir{North,South}; code(d) = match d { Dir::North=>10, Dir::South=>20 }; main = code(Dir::South)  (nullary variant value -> {_tag} axon; scoped match patterns NOT mis-hoisted)
+    "nullary_variant_let": 20.0,  # ... main = { let d = Dir::South; code(d) }  (nullary variant let-value -> Axon-typed local, not int-bound-to-axon)
 }
 
 

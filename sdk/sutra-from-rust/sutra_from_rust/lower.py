@@ -995,6 +995,16 @@ def _lower_function(item, src: bytes) -> str:
         if ector is not None:
             stmts += _emit_enum_construction(ector[0], ector[1], src, nm, "    ")
             continue
+        if value.type == "scoped_identifier":
+            # `let d = Dir::South;` — a NULLARY variant value constructs an
+            # Axon-typed local directly (`Axon d; d.add("_tag", k);`), not an
+            # int-typed local bound to a hoisted axon temp.
+            vids = [c for c in value.named_children if c.type == "identifier"]
+            if (len(vids) == 2 and _text(vids[1], src) in _VARIANTS
+                    and _VARIANTS[_text(vids[1], src)][2] == 0):
+                stmts += _emit_enum_construction(
+                    _text(vids[1], src), [], src, nm, "    ")
+                continue
         ty_node = next((c for c in ld_kids if c.type == "primitive_type"), None)
         ty = _map_type(ty_node, src) if ty_node is not None else _DEFAULT_TYPE
         stmts += _stmt_with_hoist(value, src, f"    {ty} {nm} = {{expr}};\n")
