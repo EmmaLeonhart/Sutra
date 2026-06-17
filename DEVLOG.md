@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-17: WASM core step 5b — function table + non-recursive call/return (Phase 5)
+
+The call-frame machine. Added `call`(0x10) + a control/return stack to `wasm_core.su`, with a
+host-built function table. New state cell `csp@4` (control-stack pointer = 1500 + 4·depth). `call`
+reads the callee descriptor `[start_pc, nargs, nlocals]` from the function table (RAM 2000+idx·3),
+sets up the callee frame **args-in-place** (`new_fp = obase + sp − nargs`, so the callee's locals
+0..nargs−1 alias the caller's top operands — no copy loop), pushes a 4-cell control entry
+`[return_pc, saved_fp, saved_nloc, saved_caller_sp]`, and jumps. `return`(0x0f) — and a callee's
+function-final `end` (detected via the target table's `pc_tgt==pc` halt marker) — pop the control
+entry, restore `fp`/`nloc`/`pc`, and place the return value where the args were
+(`saved_fp+saved_nloc+saved_sp`); when `csp` is empty (top-level) they halt instead, recovering the
+step-1..4 behavior. The control-push and return-value writes are gated (write back / write to a
+scratch cell when not call/return) so they never corrupt other state. The step's final fp/nloc/sp/
+csp/pc are a 3-way select (call vs return vs normal). RAM bumped to 4096 (a garbage call-index read
+stays in bounds). Verified on the substrate: `main` pushing two constants and `call`ing a leaf
+`add(a,b)` → `add(3,4)=7`, `add(10,20)=30`, `add(0,0)=0`, `add(63,1)=64`; all single-function
+regressions (factorial, countdown loop, comparisons, top-level `return`) still pass — they run with
+`csp` empty so `end`/`return` halt as before. Next: 5c, recursion (`fib`), the depth-growing call
+stack — the Phase-5.5-B substrate demonstration.
+
 ## 2026-06-17: WASM core step 5a — frame-relative addressing refactor (Phase 5)
 
 First sub-step of the call-frame machine: made `wasm_core.su`'s addressing FRAME-RELATIVE (toward
