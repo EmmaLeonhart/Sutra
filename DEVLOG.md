@@ -1,5 +1,35 @@
 # Development Log
 
+## 2026-06-17: JVM core COMPLETE (real javac factorial byte-for-byte) — leg DONE + PARKED; WASM is the direction
+
+Phase 5 leg 2 step 2d-final, and the **completion of the JVM core**. Added the last opcodes a real
+`javac` method needs — `iconst_0..5` (3..8) and the four ordered comparisons `if_icmplt/ge/gt/le`
+(161..164, copies of the WASM machine's verified `v_lt/v_gt/v_ge/v_le` gated idiom) — then ran the
+**actual OpenJDK-21 `javac`-emitted iterative-factorial method byte-for-byte** on the substrate:
+`static int fact(int n){int r=1,i=1;while(i<=n){r=r*i;i=i+1;}return r;}` → bytecode
+`[4,60,4,61,28,26,163,0,14,27,28,104,60,28,4,96,61,167,255,243,27,172]`, `n` seeded in local 0
+(JVM static-method calling convention). Measured: **fact(0..5) = 1,1,2,6,24,120**, plus iconst_5
+and all four ordered-branch cases substrate-green.
+
+**Bug found + fixed mid-run (a real substrate finding, `planning/findings/2026-06-17-iconst-literal-
+broadcast-breaks-equality.md`):** the factorial first returned `(n−1)!` (`fact(4)→6`). Root cause
+was NOT the comparison boundary (probes showed literal and computed-vs-literal `if_icmpgt`/`if_icmpge`
+all clean). Dumping the full vectors showed the computed `i=4` was `[4,4,4,…]` (4 on EVERY axis)
+while `make_real(4)` is `[0,0,4,0,…]` — so `eq_synthetic` correctly returned "not equal" and the
+loop guard went fuzzy (`take≈0.5`, pc landed at `round(0.5·20+0.5·9)=14`). The cause: `iconst_N`
+pushed a bare source literal `N`, which (added to a zeroed blend term) broadcasts the scalar across
+all axes. Fix: materialize each constant as `N*one` with `one = 1+0i` (a real-axis unit vector), so
+it lands on the real axis only. Verified `N*one == make_real(N)` componentwise. General rule banked:
+a pushed/stored value must be a real-axis VECTOR, never a bare scalar — the magnitude reads right on
+the real axis but off-axis contamination silently breaks every downstream `==`.
+
+The machine is a genuine RNN/DNC: pc/sp/operand-stack/locals all live in the RAM device as vectors
+carried across recurrent `step()` calls (no host scalar shuttle); the only host readout is hard
+address-decode to pick a cell. **Emma's redirect (2026-06-17): JVM is not the direction — WebAssembly
+is.** So the JVM leg is complete and PARKED here (no class-file front, no further opcodes); Phase 5
+continues by growing the mini WASM machine. JVM opcodes implemented end-to-end: iconst_0..5, bipush,
+iadd/isub/imul/ineg, iload_0..3/istore_0..3, dup/pop/swap, goto/if_icmp{eq,ne,lt,ge,gt,le}, ireturn.
+
 ## 2026-06-17: JVM core — real-javac 2-byte big-endian signed branch offsets (Phase 5 leg 2, step 2d-prep)
 
 Phase 5 leg 2 step 2d-prep — the faithfulness refinement the queue flagged before raw javac bytes.

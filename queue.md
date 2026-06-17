@@ -100,37 +100,20 @@ to ask ("barrel through … until you've gotten a strong acceptance").
   flip by prose edits; attack with real work", and which v75's ACCEPT reviewer accepted. Per
   Emma 2026-06-17 "a few cycles then bytecode" + "a weak reject isn't something we're concerned
   with": banked, NOT chasing the fundamentals with more prose.
-- **Phase 5 — bytecode / VM targets (🔥 NOW ACTIVE, Emma 2026-06-17: after FV cycles, before the
-  long tail).** Neural-VM legs: WASM machine breadth + JS / JVM bytecode interpreters on the
-  substrate (Python rides WASM via Pyodide). **Verified-spec research DONE 2026-06-17 —
-  `planning/exploratory/2026-06-17-phase5-bytecode-vm-spec-research.md`.** Findings: WASM is the
-  proven, already-built leg (extend `WASM/` — cheapest substrate-verifiable next progress); JVM
-  has mature verified specs to specify against (Jinja/JinjaThreads in Isabelle/HOL, Bicolano in
-  Coq, ACL2-JVM); CPython has NO verified spec (bytecode is a version-drifting DSL in
-  `bytecodes.c`) → confirms Emma's "ride Pyodide/Wasm, no direct CPython VM"; JS lowest priority.
-  **Grounded order: (1) extend the WASM machine [substrate-verifiable now]; (2) JVM core specified
-  against Jinja's small-step rules, opcode by opcode; (3) Python via WASM+Pyodide; (4) JS.**
-  Concrete WASM-leg open items are in the merged WASM queue section below; full plan in the
-  raised "Phase 5 — VM/bytecode targets" section below.
-  - **(1) WASM machine breadth — IN PROGRESS.** mini WASM machine (`experiments/iso5_substrate_
-    dispatch/mini_wasm_machine.su`) extended this session: NEG/MIN/MAX/OVER/ABS/SQR/NIP/ROT added
-    (21→29 opcodes), each substrate-verified; negative-number arithmetic measured-verified
-    2026-06-17. DIV/REM excluded (Math.mod ban). Marginal value now dropping → shift to (2).
-  - **(2) JVM core — STEP 1 (arithmetic) DONE 2026-06-17;** scoped in
-    `planning/exploratory/2026-06-17-phase5-jvm-core-scoping.md`. `experiments/iso5_substrate_
-    dispatch/jvm_core.su` is a parallel RAM-state blended-dispatch machine with REAL JVM opcode
-    values + variable-length bytecode: bipush/iadd/isub/imul/ineg/ireturn, 7 substrate-verified
-    cases (`test_jvm_core.py`). **STEPS 2a (locals iload_0..3/istore_0..3 at RAM 200..203) + 2b
-    (stack ops dup/pop/swap) + 2c (branches `goto`/`if_icmpeq`/`if_icmpne`) + 2d-prep
-    (**real-javac 2-byte big-endian signed offsets**, sign-extended ON-SUBSTRATE via the even/odd
-    trick `(2*hi)<255` ≡ `hi<=127`, no equality-boundary case) DONE 2026-06-17** — 17 cases
-    substrate-green, incl. a backward-`goto` countdown-sum loop (3+2+1=6, offset −15 = bytes
-    255,241) exercising branch+locals+arithmetic together. Remaining JVM ladder: (2d-final) an
-    actual javac-emitted method byte-for-byte — the encoding is now javac-faithful (3-byte branches,
-    2-byte BE offsets), so this is: get real `javac` output (or hand-assemble exact javac layout
-    incl. the method's `code` attribute) for e.g. iterative factorial, load the raw bytes, decode ==
-    reference. Note: javac may emit `iconst_N`(3..8)/`iinc`(132)/`goto_w`(200) — add those opcodes
-    as the chosen method requires.
+- **Phase 5 — bytecode / VM targets. WebAssembly IS the direction (Emma 2026-06-17 redirect).**
+  The JVM leg is **DONE and PARKED** — Emma's call: "actual JVM implementation isn't something we
+  should be doing… WebAssembly is just the actual thing." The JVM core was carried through its full
+  minimal ladder incl. a real OpenJDK-21 `javac` factorial run byte-for-byte (see DEVLOG 2026-06-17);
+  no further JVM work (no class-file/constant-pool front, no more opcodes). **Active leg = grow the
+  mini WASM machine** (`experiments/iso5_substrate_dispatch/mini_wasm_machine.su`) + Python via
+  WASM+Pyodide on top of it. Verified-spec research: `planning/exploratory/2026-06-17-phase5-bytecode-
+  vm-spec-research.md` (CPython has NO verified spec → ride Pyodide/Wasm, no direct CPython VM).
+  - **(1) WASM machine breadth — ACTIVE.** mini WASM machine extended: NEG/MIN/MAX/OVER/ABS/SQR/
+    NIP/ROT (21→29 opcodes), each substrate-verified; negative-number arithmetic measured-verified
+    2026-06-17. DIV/REM excluded (Math.mod ban). NEXT: continue WASM breadth toward running a real
+    `.wasm` function byte-for-byte (mirror the JVM leg's javac-factorial oracle: load real wat→wasm
+    bytes, decode == reference), then Python-via-Pyodide. Concrete WASM-leg open items in the merged
+    WASM queue section below.
 - **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
   per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
   / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment
