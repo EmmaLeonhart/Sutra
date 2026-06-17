@@ -114,10 +114,12 @@ def _build_targets(body):
     return tgt
 
 
-def _run(ns, body, steps=10, addr=100):
+def _run(ns, body, steps=10, addr=100, locals0=None):
     """Load `body` (a flat list of WASM function-body bytes) into RAM at the code base
     (10), build + load the pre-resolved branch-target table at RAM 400+, run `steps`
-    host-driven ticks, return the decoded RAM[addr] (operand-stack base 100 by default)."""
+    host-driven ticks, return the decoded RAM[addr] (operand-stack base 100 by default).
+    `locals0` optionally seeds locals 0..N at RAM 200+ — WASM passes function params in
+    the low locals, so `(func (param i32) …)` reads its argument from local 0."""
     v = ns["_VSA"]
     ram = [v.zero_vector() for _ in range(1024)]
     ram[0] = v.make_real(10.0)   # pc
@@ -126,6 +128,8 @@ def _run(ns, body, steps=10, addr=100):
         ram[10 + i] = v.make_real(float(b))
     for off, target_off in _build_targets(body).items():
         ram[400 + off] = v.make_real(float(10 + target_off))  # absolute RAM target pc
+    for i, val in enumerate(locals0 or []):
+        ram[200 + i] = v.make_real(float(val))
     v.ram = ram
     for _ in range(steps):
         ns["step"](0.0)
@@ -187,3 +191,32 @@ def test_wasm_core_runs_on_substrate(body, expected, steps, addr):
     ns = _machine_ns()
     got = _run(ns, body, steps=steps, addr=addr)
     assert got == expected, f"body {body} -> {got}, expected {expected}"
+
+
+# A REAL WebAssembly iterative-factorial function body, run byte-for-byte on the
+# substrate (Phase 5, step 4 — the JVM-factorial oracle, in WASM). Source WAT:
+#   (func (param i32) (result i32) (local i32 i32)   ;; n=local0, r=local1, i=local2
+#     (i32.const 1)(local.set 1)  (i32.const 1)(local.set 2)
+#     (block (loop
+#       (local.get 2)(local.get 0)(i32.gt_s)(br_if 1)   ;; if i>n, exit
+#       (local.get 1)(local.get 2)(i32.mul)(local.set 1) ;; r *= i
+#       (local.get 2)(i32.const 1)(i32.add)(local.set 2) ;; i += 1
+#       (br 0)))
+#     (local.get 1))
+# Bytes are hand-assembled to the WASM spec encoding (wat2wasm/wasm-tools is not
+# available in this environment). The opcode + LEB128 encoding is deterministic from
+# the spec, so these are byte-identical to what wat2wasm emits for the body expression
+# (the module-binary wrapper — magic/sections/locals-decl — is host-side and not part of
+# this minimal core, exactly as the JVM core loaded only the method's Code attribute).
+# Follow-up: cross-check against actual wat2wasm output on a toolchain-equipped path (CI).
+_WASM_FACT = [65, 1, 33, 1, 65, 1, 33, 2, 2, 64, 3, 64, 32, 2, 32, 0, 74, 13, 1,
+              32, 1, 32, 2, 108, 33, 1, 32, 2, 65, 1, 106, 33, 2, 12, 0, 11, 11, 32, 1, 11]
+
+
+@pytest.mark.parametrize("n,expected", [(0, 1), (1, 1), (4, 24), (5, 120)])
+def test_wasm_core_runs_real_wasm_factorial(n, expected):
+    """The real-WASM-encoded iterative-factorial body run byte-for-byte on the substrate;
+    n is seeded into local 0 (WASM param convention). Decoded operand-stack top == n!."""
+    ns = _machine_ns()
+    got = _run(ns, _WASM_FACT, steps=200, addr=100, locals0=[n])
+    assert got == expected, f"fact({n}) -> {got}, expected {expected}"
