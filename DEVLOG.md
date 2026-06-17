@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-17: JVM core — stack ops dup/pop/swap (Phase 5 leg 2, step 2b)
+
+Phase 5 leg 2 step 2b. Added JVM **stack ops** to `jvm_core.su`: `dup`(89, push a copy of the
+top), `pop`(87, discard the top), `swap`(95, swap the top two) — direct mirrors of the WASM
+machine's already-verified DUP/DROP/SWAP, with JVM opcode numbers. `dup` extends the push chain
+(`new_hi` ← top1, sp+1); `swap` writes the two top cells (`new_lo` ← top1, `new_99` ← top2, sp
+keeps); `pop` decrements sp. Three new substrate-verified cases: `bipush 5; dup; iadd → 10`,
+`bipush 9; bipush 3; pop → 9`, `bipush 7; bipush 2; swap; isub → −5`. Full `test_jvm_core.py` ran
+on the substrate: **13 passed in 232s, exit 0** — stack ops work, arithmetic + locals still pass.
+JVM core now does arithmetic + locals + stack ops; remaining ladder: branches (if_icmp*/goto,
+relative offsets), then a real javac-compiled method.
+
 ## 2026-06-17: JVM core — locals iload_N/istore_N (Phase 5 leg 2, step 2a)
 
 Phase 5 leg 2 step 2a. Added JVM **locals** to `jvm_core.su`: `iload_0..3` (opcodes 26–29, push

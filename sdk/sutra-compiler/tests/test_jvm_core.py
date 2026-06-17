@@ -12,7 +12,7 @@ and asserts the decoded operand-stack result — the compile-AND-run bar.
 
 Opcodes (real JVM decimal values): 16=bipush 96=iadd 100=isub 104=imul 116=ineg
 172=ireturn (keeps pc -> idle with the result on top) 26..29=iload_0..3
-59..62=istore_0..3 (locals 0..3 at RAM 200..203). op 0 = nop.
+59..62=istore_0..3 (locals 0..3 at RAM 200..203) 89=dup 87=pop 95=swap. op 0 = nop.
 """
 from __future__ import annotations
 
@@ -79,6 +79,12 @@ _CASES = [
     ([16, 7, 60, 16, 3, 59, 26, 27, 100, 172], -4, 14, 100),
     # local2 round-trip: bipush 9; istore_2; iload_2; ireturn -> 9
     ([16, 9, 61, 28, 172], 9, 10, 100),
+    # dup: bipush 5; dup; iadd -> 5+5 = 10
+    ([16, 5, 89, 96, 172], 10, 10, 100),
+    # pop: bipush 9; bipush 3; pop; ireturn -> top after pop = 9
+    ([16, 9, 16, 3, 87, 172], 9, 10, 100),
+    # swap: bipush 7; bipush 2; swap; isub -> (2-7) = -5
+    ([16, 7, 16, 2, 95, 100, 172], -5, 10, 100),
 ]
 
 
