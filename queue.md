@@ -85,10 +85,16 @@ cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it 
   literal). `test_native_recursion.py` 24/24 (fib/trib/Pell + literal-base `g(0)=g(1)=1`) +
   `test_tabulate.py` 8/8. Subset: base value = param identity OR int literal; base threshold
   K = max(offset). Remaining:
-  - [ ] **4b general form** — irregular / multi-arg / non-identity-base recursion: the explicit
-    agenda + memo-table `while_loop` (the call stack as a value), and wider base values / K>M. The
-    index-structured tabulation is the special-case optimization; this generalizes it to "memoize
-    everything."
+  - [ ] **4b general form — realized via a RAM-backed memo (finding `2026-06-17-tier4-ram-memo-in-loop.md`).**
+    MEASURED 2026-06-17: a `dict` CANNOT be `while_loop` slot state (crashes), but the **RAM device**
+    (`ramRead`/`ramWrite`) persists across loop iterations and works as a true memo table — a bottom-up
+    RAM-memo `fib` runs natively (`fib(8)=21`). So the general form is NOT blocked; it uses a RAM-memo
+    loop, not a dict. Build order: (i) general single-index DP (`f(n)` depending on `f(k)` for
+    arbitrary `k<n`) → seed `ramWrite(j,base(j))`, loop `ramWrite(i, combine(ramRead(i-offset)))`,
+    return `ramRead(n)`; (ii) multi-arg DP (`C(n,k)`) → flattened RAM index, nested loop; (iii) the
+    explicit RAM-agenda + RAM-memo work-stack loop for irregular recursion. Each compile-AND-run ==
+    ground truth on the substrate. The shipped scalar rolling-window stays the cheap fast path for
+    linear recurrences. This corrects the scoping doc's unverified dict/agenda assumption.
 - Tier 5 (`wasm_core`, §2) is NOT the recursion fallback — only genuinely imperative / `eval` / FFI.
   (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes the fib-family native.)
 
