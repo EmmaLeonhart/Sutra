@@ -42,15 +42,10 @@ values + encoding so `wat→wasm` runs unmodified), the same RAM-state blended-d
 machine as `jvm_core.su`. Scoped in `planning/exploratory/2026-06-17-phase5-wasm-core-scoping.md`.
 Done so far: i32 arithmetic + single-byte signed LEB128 (`i32.const`/`add`/`sub`/`mul`/`end`/
 `return`), indexed locals (`local.get`/`set`/`tee`, computed `200+idx` cell), comparisons
-(`i32.eqz`/`eq`/`ne`/`lt_s`/`gt_s`/`le_s`/`ge_s`). Remaining ladder (each a compile-AND-run
-increment, verified == reference on the substrate):
-
-- [ ] **Step 3b — `if`/`else` conditionals.** `if`(0x04, +blocktype) pops a condition: nonzero →
-  fall into the then-arm, zero → jump to `else`+1 (or `end`+1); `else`(0x05) when reached (end of
-  then-arm) → jump to the matching `end`. Extend `_build_targets` to resolve the if false-target +
-  the else→end target (the if/else lengths are already in `_LEN2`). The block/loop/br/br_if core +
-  the pre-resolved target table are DONE (step 3a). Verify an `if`/`else` selecting branch + a
-  loop-with-`if`-body on the substrate.
+(`i32.eqz`/`eq`/`ne`/`lt_s`/`gt_s`/`le_s`/`ge_s`), and STRUCTURED CONTROL (`block`/`loop`/`if`/
+`else`/`br`/`br_if`/`end` via the load-time pre-resolved target table — a real countdown-sum loop
+and if/else selection run on the substrate). Remaining ladder (each a compile-AND-run increment,
+verified == reference on the substrate):
 - [ ] **Step 4 — a real `wat→wasm` function byte-for-byte.** Compile a tiny iterative factorial
   from `.wat` (`wat2wasm`/`wasm-tools` — verify the tool is present first, else hand-assemble exact
   spec-layout bytes), extract the function body bytes, load + run, decode == reference
