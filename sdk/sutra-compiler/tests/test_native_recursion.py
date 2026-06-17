@@ -150,3 +150,59 @@ def test_recursive_literal_base_made_native(n, tmp_path):
     the base window seeded to the literal and runs natively == ground truth."""
     got = _run_su(_G_RECURSIVE.replace("@N@", str(n)), tmp_path)
     assert got == _gt_g(n), f"tabulated literal-base g({n}) -> {got}, expected {_gt_g(n)}"
+
+
+# ---- RAM-memo backend (general single-index DP; handles arbitrary offsets via a true memo table) ----
+
+def _gt_recur(offsets, n):
+    """Ground truth for f(n) = sum f(n-offset), identity base f(j)=j for j<max(offset)."""
+    k = max(offsets)
+    f = list(range(k))
+    for i in range(k, n + 1):
+        f.append(sum(f[i - o] for o in offsets))
+    return f[n]
+
+
+def _run_ram_memo(prelude, n):
+    """Detect the recursive fn in `prelude`, synthesize the RAM-MEMO loop form (not the default
+    rolling-window), compile + run f(n) on the substrate, return the decoded result. The RAM-memo
+    backend isn't wired into the default pipeline (the rolling window is), so this exercises it
+    directly."""
+    pytest.importorskip("torch")
+    repo = pathlib.Path(__file__).resolve().parents[3]
+    compiler_src = repo / "sdk" / "sutra-compiler"
+    if str(compiler_src) not in sys.path:
+        sys.path.insert(0, str(compiler_src))
+    from sutra_compiler.lexer import Lexer
+    from sutra_compiler.parser import Parser
+    from sutra_compiler.tabulate import detect_tabulable_recursion, synthesize_ram_memo_source
+    from sutra_compiler.codegen_pytorch import translate_module
+    lx0 = Lexer(prelude, file="<p>")
+    fn = Parser(lx0.tokenize(), file="<p>", diagnostics=lx0.diagnostics).parse_module().items[0]
+    shape = detect_tabulable_recursion(fn)
+    src = synthesize_ram_memo_source(shape)
+    full = src + f"\nfunction int main() {{ return {fn.name}({n}); }}"
+    lx = Lexer(full, file="<m>")
+    module = Parser(lx.tokenize(), file="<m>", diagnostics=lx.diagnostics).parse_module()
+    assert not lx.diagnostics.has_errors(), list(lx.diagnostics)
+    ns: dict = {}
+    exec(translate_module(module, llm_model="none", runtime_dim=2), ns)
+    out = ns["main"]()
+    v = ns["_VSA"]
+    try:
+        return round(float(out[v.semantic_dim + v.AXIS_REAL]))
+    except (TypeError, IndexError):
+        return round(float(out))
+
+
+@pytest.mark.parametrize("prelude,offsets,n", [
+    # plain fib via the RAM memo (== rolling-window result, different backend)
+    ("function int fib(int n) { if (n < 2) { return n; } return fib(n-1) + fib(n-2); }", (1, 2), 13),
+    # LARGE offset the scalar window would make unwieldy: f(n) = f(n-1) + f(n-5)
+    ("function int f5(int n) { if (n < 5) { return n; } return f5(n-1) + f5(n-5); }", (1, 5), 12),
+])
+def test_ram_memo_general_single_index_dp(prelude, offsets, n):
+    """The RAM-backed memo loop (general single-index DP) runs natively on the substrate == ground
+    truth, including arbitrary/large offsets a fixed scalar window can't cleanly express."""
+    got = _run_ram_memo(prelude, n)
+    assert got == _gt_recur(offsets, n), f"RAM-memo f({n}) -> {got}, expected {_gt_recur(offsets, n)}"
