@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-17: Real-WASM-bytecode core — scoping doc (Phase 5, WASM is the direction)
+
+With the JVM leg parked and WebAssembly now the VM direction (Emma 2026-06-17), scoped the
+real-WASM-bytecode core before coding it — `planning/exploratory/2026-06-17-phase5-wasm-core-
+scoping.md`, mirroring the JVM scoping doc that made that leg go smoothly. Plan: a new `wasm_core.su`
+(parallel to `jvm_core.su`) using REAL WASM opcode values/encoding so `wat→wasm` output runs
+unmodified; the JVM core is the template (same RAM-state DNC stack machine). The two real encoding
+differences from JVM, and how each is handled: (i) **LEB128 variable-length operands** — single-byte
+first, signed value `b − 128·sign` with `sign = 1 − ((2·b) < 127)`, the same even/odd clean-comparison
+trick the JVM branch-offset sign-extension used (multi-byte deferred); (ii) **structured control**
+(`block`/`loop`/`if`/`end`/`br`/`br_if`) — a load-time pre-resolved target table keeps the hot path
+JVM-shaped (runtime label stack deferred). Excluded from the minimal core: binary module parse (load
+just the function body, like JVM loaded the Code attribute), `div_s`/`rem_s` (Math.mod ban), non-i32.
+Bounded ladder: 1 arithmetic+locals+single-byte LEB128 → 2 comparisons → 3 structured control →
+4 a real `wat→wasm` factorial byte-for-byte (the JVM-factorial oracle in WASM) → 5 tree-recursion
+`fib` via `call` (the queue Phase 5.5-B payoff — the call stack lives in RAM/DNC memory). No code yet;
+next tick implements step 1.
+
 ## 2026-06-17: JVM core COMPLETE (real javac factorial byte-for-byte) — leg DONE + PARKED; WASM is the direction
 
 Phase 5 leg 2 step 2d-final, and the **completion of the JVM core**. Added the last opcodes a real
