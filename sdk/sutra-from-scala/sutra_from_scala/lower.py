@@ -306,6 +306,39 @@ def _lower_block(node, src: bytes) -> str:
                     stmts += (f'    {_DEFAULT_TYPE} {_text(el, src)} = '
                               f'realvec({val_src}.item("_{i}"));\n')
                 continue
+            if kids[0].type == "case_class_pattern":
+                # `val Point(a, b) = p` — destructure a case-class axon: the pattern
+                # binds its identifiers POSITIONALLY to the case class's declared
+                # field names (`_CASE_CLASSES[Point] = [x, y]`), each read via
+                # `realvec(p.item("x"))` (the `p.x` projection). The value is hoisted
+                # first so `val Point(a, b) = Point(5, 8)` works too.
+                pat = kids[0]
+                tid = next((c for c in pat.named_children
+                            if c.type == "type_identifier"), None)
+                elems = [e for e in pat.named_children if e.type == "identifier"]
+                cname = _text(tid, src) if tid is not None else None
+                if cname is None or cname not in _CASE_CLASSES or not elems:
+                    stmts += ("    /* UNSUPPORTED-VAL: case-class pattern (unknown "
+                              "class or non-identifier element, later item) */\n")
+                    continue
+                fields = _CASE_CLASSES[cname]
+                if len(elems) != len(fields):
+                    stmts += ("    /* UNSUPPORTED-VAL: case-class pattern arity "
+                              "mismatch (later item) */\n")
+                    continue
+                val_expr = kids[-1]
+                deep = _hoist_constructions(val_expr, src, "    ")
+                added = []
+                if deep is not None:
+                    pre, added = deep
+                    stmts += pre
+                val_src = _lower_expr(val_expr, src)
+                for nid in added:
+                    _ARG_HOIST.pop(nid, None)
+                for el, field in zip(elems, fields):
+                    stmts += (f'    {_DEFAULT_TYPE} {_text(el, src)} = '
+                              f'realvec({val_src}.item("{field}"));\n')
+                continue
             name = _text(kids[0], src)
             val_expr = kids[-1]
             cname = _case_class_call(val_expr, src)
