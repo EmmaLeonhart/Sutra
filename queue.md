@@ -111,10 +111,16 @@ apps are admitted via the kernel (`Init.admit_from_path`), processes described b
 "the window living in the orchestrator" = the substrate GUI window as a Yantra surface that
 spawns a Sutra substrate-server.
 
-- [ ] **Y2 — Yantra `apps/gui-button` surface (now in-tree at `external/Yantra/apps/`).** A
-  surface that spawns Y1, mirroring `gui-rust`. Committable here now that Yantra is vendored.
 - [ ] **Y3 — integration docs.** Note the button↔Yantra surface in `docs/gui.md` / CLAUDE.md
-  §"Cross-repo workflow", measured.
+  §"Cross-repo workflow" (and fold in the cosmetic Yantra-prose-still-says-submodule note from
+  Y0), measured.
+
+_Y2 ✅ done: `external/Yantra/apps/gui-button/button_surface.py` — a Python host surface that
+spawns the Y1 substrate-server and drives it (frame / owner-prefer / click / state), mirroring
+gui-rust's "host spawns the Sutra substrate-server" pattern. Verified by direct run (3/3 tests
+spawning the subprocess + a main() smoke: 32×32 button, 5 rounds, CTR 0.833) — not in demos-ci
+(external/Yantra isn't in `pytest demos/`). A native Rust minifb window over the same protocol
+is a later refinement._
 
 _Y0 ✅ done: the 4 runtime SDK-path references in vendored Yantra (kernel/services.py,
 apps/calc/calc.py, scripts/precompile_all_su.py, tools/regenerate_codebook_fixtures.py) rewired
