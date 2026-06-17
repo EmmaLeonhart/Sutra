@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-17: JVM core — real-javac 2-byte big-endian signed branch offsets (Phase 5 leg 2, step 2d-prep)
+
+Phase 5 leg 2 step 2d-prep — the faithfulness refinement the queue flagged before raw javac bytes.
+Step 2c's branches used a 1-byte relative offset; **real javac emits 2-byte big-endian signed
+offsets** and makes `goto`/`if_icmpeq`/`if_icmpne` **3-byte instructions**. Upgraded `jvm_core.su`
+to that encoding: the offset is reconstructed from the two unsigned bytes at `pc+1` (high) and
+`pc+2` (low) and **sign-extended ON THE SUBSTRATE** — `raw = hi*256 + lo`, `offset16 = raw −
+65536*sign_bit`, where `sign_bit = 1 − ((2*hi) < 255)`. The even/odd trick is the key: `(2*hi)`
+is always even and `255` is always odd, so the comparison operands are never equal → no
+equality-boundary ambiguity (the substrate strict-`<` defuzzes cleanly away from exact equality,
+the same idiom the WASM machine uses, so no `(1−v_eq)` gate is needed here). pc advancement now
+keys off per-op operand-byte counts: `adv = bipush01 + branch01*2`. All 4 branch test cases
+re-encoded to javac layout, including the backward `goto −15` as the real bytes `255,241`
+(`0xFFF1`). Full `test_jvm_core.py` ran on the substrate: **17 passed in 401s, exit 0** — the
+on-substrate sign-extension decodes the backward jump correctly and the countdown-sum loop still
+returns 6. The branch encoding is now javac-faithful; remaining: step 2d-final, an actual
+javac-emitted method byte-for-byte.
+
 ## 2026-06-17: JVM core — branches goto/if_icmpeq/if_icmpne (Phase 5 leg 2, step 2c)
 
 Phase 5 leg 2 step 2c — the last primitive before a real loop. Added JVM **branches** to
