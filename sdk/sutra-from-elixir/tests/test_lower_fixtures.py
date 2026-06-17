@@ -37,6 +37,7 @@ _RUNNABLE = {
     "tuple_axon": 13.0,  # fst(p)=elem(p,0)+elem(p,1); main=fst({5,8})  (tuple -> positional-key axon, elem -> realvec(item))
     "tuple_param": 13.0,  # add_pair({a, b}) = a + b; main = add_pair({5, 8})  (tuple-PATTERN param -> axon, a/b -> realvec(item _0/_1))
     "map_param": 13.0,  # sum2(%{x: a, y: b}) = a + b; main = sum2(%{x: 5, y: 8})  (map-PATTERN param -> axon, a/b -> realvec(item x/y))
+    "match_bind_body": 13.0,  # sum2(t) = ( {a, b} = t; a + b ); main = sum2({5, 8})  (do-block = pattern-match destructure -> realvec(item _0/_1))
     "struct_param": 13.0,  # sum2(%Point{x: a, y: b}) = a + b; main = sum2(%Point{x: 5, y: 8})  (struct-PATTERN param -> axon, alias dropped, a/b -> realvec(item x/y))
 }
 

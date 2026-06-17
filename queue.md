@@ -225,11 +225,11 @@ negative results, not hidden.
   case-class pattern PARAMS (`def f(Point(x, y))`).]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
   positional-key axons + `elem(t, i)` access + `{a, b}` tuple-PATTERN + `%{x: a}` map-PATTERN
-  + `%Name{x: a}` struct-PATTERN params shipped 2026-06-16, suite 34/34; struct alias dropped,
-  same path as map-pattern): multi-statement bodies with `=` destructure (`{a, b} = t` needs
-  do-block sequence lowering, not just the last form); multi-clause heads with recursion
-  (currently `UNSUPPORTED-RECURSION`); `is_integer`-style type-test guards (`and`/`or` chains
-  already lower via `_OP_MAP`). (Erlang is its own frontend.)
+  + `%Name{x: a}` struct-PATTERN params + do-block `=` pattern-match destructure (`{a, b} = t`)
+  shipped 2026-06-16, suite 36/36): multi-clause heads with recursion (currently
+  `UNSUPPORTED-RECURSION`); multi-clause/guarded bodies with `=` bindings (single-clause only
+  now); `is_integer`-style type-test guards (`and`/`or` chains already lower via `_OP_MAP`).
+  (Erlang is its own frontend.)
   > **F# RECORDS → axons SHIPPED 2026-06-16.** All prereqs done: (a) typed-param
   > extraction (`(p: Point)`); (b) let-SEQUENCE bodies; (c) a let-bound construction
   > hoist — `_PRELUDE` accumulator emits record `{ x = a }` literals as `Axon q;
