@@ -1,0 +1,33 @@
+// parse_int2.su — parse a 1-or-2 digit non-negative integer from a string,
+// ON THE SUBSTRATE. The first verified piece of calc step-d
+// (parse-on-substrate; planning/23): the host does I/O only, while digit
+// extraction and place-value run on the Sutra substrate — no host parsing.
+//
+// Mechanism (every step a substrate op, measured 2026-05-24):
+//   - string_char_at(s, i) returns the CODEPOINT as a real number on the
+//     substrate ('5' -> 53.0; out-of-bounds index -> 0.0, saturated).
+//   - digit value = codepoint - 48  ('5' -> 5).
+//   - length-aware place value WITHOUT any comparison, using n = string_length:
+//       value = (c0-48)*(1 + 9*(n-1)) + (c1-48)*(n-1)
+//       n=1: (c0-48)*1 + (c1-48)*0   = c0-48   (the c1 term is killed by *0,
+//                                                so the out-of-bounds 0 codepoint
+//                                                cannot contaminate the result)
+//       n=2: (c0-48)*10 + (c1-48)*1
+//   - make_real lifts the final scalar onto the real axis so the host can
+//     decode it with real() (a 0-d codepoint scalar does NOT lift through bare
+//     arithmetic — that was the blocker; make_real is the fix). switch.su uses
+//     the equivalent real_number(x) constructor.
+//
+// SCOPE — 1 to 2 digits ("2-digit cap to start", planning/23). A 3+-digit
+// input silently truncates to its first two digits, so the caller must ensure
+// <= 2 digits until the variable-length generalization lands (a Sutra
+// accumulator loop / digit array). NOT yet wired into calc.py — this is the
+// verified building block that unblocks the full substrate parser.
+function vector parse_int2(string s) {
+    scalar n  = s.string_length();
+    scalar c0 = s.string_char_at(0) - 48.0;
+    scalar c1 = s.string_char_at(1) - 48.0;
+    return make_real(c0 * (1.0 + 9.0 * (n - 1.0)) + c1 * (n - 1.0));
+}
+
+function vector main() { return parse_int2("42"); }

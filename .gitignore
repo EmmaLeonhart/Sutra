@@ -66,12 +66,6 @@ docs/paper-anonymized.pdf
 # re-downloaded each session, not committed."
 references/
 
-# Yantra (the downstream GPU-native OS, EmmaLeonhart/Yantra) shallow-cloned into
-# external/Yantra for the GUI-integration work — preserved locally / re-freshed by the
-# cron, NOT committed into Sutra (it would duplicate the repo and tangle with Yantra's
-# own external/Sutra submodule). Like the reference material: present here, not vendored.
-external/Yantra/
-
 # Cached LLM embeddings from experiment runs (e.g. rotation_binding_
 # capacity_llm.py). Re-fetched on cache miss; not source.
 experiments/_embedding_cache/

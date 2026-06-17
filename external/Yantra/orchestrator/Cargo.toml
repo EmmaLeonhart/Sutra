@@ -1,0 +1,16 @@
+[package]
+name = "yantra-orchestrator"
+version = "0.0.1"
+edition = "2021"
+description = "Yantra CPU-side Connectome Manager (orchestrator) — incremental Rust port of the Python kernel/ reference. no_std-ready, host-testable units."
+license = "Apache-2.0"
+publish = false
+
+# No third-party dependencies. The orchestrator is bare-metal-bound (like
+# bootloader/), so units stay pure `core` + (for the test harness only) `std`.
+# panic strategy is left at the default so `cargo test` can unwind; the
+# freestanding build sets abort via the consuming target/profile.
+
+[lib]
+name = "yantra_orchestrator"
+path = "src/lib.rs"

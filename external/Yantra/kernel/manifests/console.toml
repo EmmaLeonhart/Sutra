@@ -1,0 +1,19 @@
+# Manifest for the Linux 0.00 "VGA text memory" analogue.
+#
+# console reads R_console (what task_a and task_b both write) — the
+# fan-in receiver of the interleaved character stream. It writes
+# R_console_done; nobody reads it in this demo, so by router policy
+# that is a black-hole (dropped + logged, not an error), the same
+# pattern sink.toml uses for R_stat. The accumulated stream is read
+# off the router host-side (the analogue of reading VGA memory).
+# See planning/21-linux-0.00.md.
+
+name = "console"
+
+axon_width = 768
+compute_units = 1
+
+read_roles = ["R_console"]
+write_roles = ["R_console_done"]
+
+source = "../services/console.su"

@@ -1,0 +1,20 @@
+# Manifest for the Linux 0.00 "task A" analogue.
+#
+# task_a is ticked by the Connectome Manager (Init.tick() = the
+# timer-IRQ analogue). Each tick it emits the ASCII codepoint of
+# 'A' (65) as a substrate number-vector on R_console. The console
+# service reads R_console and accumulates the interleaved A/B
+# stream. See planning/21-linux-0.00.md.
+
+name = "task_a"
+
+axon_width = 768          # matches Sutra's nomic-embed-text default
+compute_units = 1
+
+# The tick trigger arrives on R_tick (the timer-IRQ analogue).
+read_roles = ["R_tick"]
+
+# Emits its character on R_console (fan-in with task_b).
+write_roles = ["R_console"]
+
+source = "../services/task_a.su"
