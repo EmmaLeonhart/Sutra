@@ -64,11 +64,12 @@ via pre-evaluation or memoization, and WASM shrinks to a tier-5 fallback for gen
 the `_try_lower_foldable_nontail` transform present in all 8 functional frontends with a `nontail_fact`
 fixture each, verified 2026-06-17 to compile AND run == reference on the substrate (OCaml/Haskell/Rust
 sampled locally; all 9 gated by `transpilers-ci`). **Tier 3 (fixed-depth multiple → compile-time
-pre-evaluation) is also DONE** — `sutra_compiler/preeval.py` (opt-in `--preeval` / `--max-preeval-depth`
-+ atman.toml `max_preeval_depth`, default 128; folds a constant-arg bounded-pure-recursive call to a
-literal + prunes the dead fn; `test_preeval.py` 11/11 on the substrate). Emma 2026-06-17 resolved the
-formerly-open policy: **pre-eval stays OPT-IN, no automatic pre-eval by default** — so tier 3 is
-complete as shipped. Remaining (the last genuinely-new tier):
+pre-evaluation) is also DONE** — `sutra_compiler/preeval.py` (folds a constant-arg bounded-pure-recursive
+call to a literal + prunes the now-dead self-recursive fn; `test_preeval.py` 12/12 on the substrate).
+Emma 2026-06-17: pre-eval runs by DEFAULT at a SHALLOW depth (**default 3**, not 0 — "should not be
+zero but around 2-3"; it only fires on detectably-precalculable constant-arg calls, uncommon, so
+cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it (0 disables). So tier
+3 is complete. Remaining (the last genuinely-new tier — NATIVE recursion via memoization):
 
 - [ ] **(tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).** SCOPED
   2026-06-17 — `planning/exploratory/2026-06-17-phase5.5-tier4-memoization-scoping.md`. Investigation:
