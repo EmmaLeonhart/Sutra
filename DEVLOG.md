@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Erlang record-PATTERN + Elixir struct-PATTERN parameters (Phase 3)
+
+Work-loop sprint tick (struct/record-pattern params across the two BEAM-family frontends).
+- **Erlang** `fst(#point{x=X, y=Y}) -> X + Y.` now lowers: a `record_expr`-pattern param routes
+  through the multi-clause dispatcher, each `record_field` binding its `var` local to the
+  named axon field read `realvec(_ai.item("x"))` (the `R#point.x` projection); the synthesized
+  arg is typed `Axon` and the nominal record name is dropped (as for record construction). A
+  non-var field value surfaces `UNSUPPORTED-DECL`. New fixture `record_param` → 13 on the
+  substrate; suite 20→22.
+- **Elixir** `def sum2(%Point{x: a, y: b})` struct-pattern params were already covered for
+  free by the map-pattern handler (a struct literal is a `map` node with an extra `struct`
+  alias child that the keyword-pair walk ignores). Added the `struct_param` regression fixture
+  → 13 on the substrate; suite 32→34. Both substrate-verified, no regressions.
+
 ## 2026-06-16: Elixir frontend — `%{x: a, y: b}` map-PATTERN parameters (Phase 3)
 
 Work+report sprint tick (extends Elixir's tuple-pattern-param increment to named-field maps).
