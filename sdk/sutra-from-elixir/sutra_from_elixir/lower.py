@@ -739,36 +739,66 @@ def _lower_defs(def_calls, src: bytes) -> list:
 
 def _try_lower_multiclause_recursion(name: str, members, src: bytes):
     """The idiomatic pattern-matched recursion `def f(0), do: BASE` + `def f(n), do:
-    … f(n-1)` is semantically identical to the single-clause `if`-form, so synthesize
-    the base-match condition `(V == K)` from the clause patterns and reuse the
-    recursion transforms (fed source strings). Scope: exactly 2 single-param clauses —
-    one INTEGER-literal base (no self-call), one IDENTIFIER-pattern recursive clause
-    (self-call), neither guarded nor with a binding prelude. Returns Sutra or None.
-    `members` are the `_lower_defs` tuples `(dc, param_nodes, body, guard, prelude)`."""
+    … f(n-1)` (and the multi-arg accumulator form `def sum(0, acc), do: acc; def
+    sum(n, acc), do: sum(n-1, acc+n)`) is semantically identical to the single-clause
+    `if`-form, so synthesize the base-match condition `(V == K)` from the clause
+    patterns and reuse the recursion transforms (fed source strings). Scope: exactly
+    2 same-arity clauses — a BASE clause with exactly one INTEGER-literal param (rest
+    identifiers) and no self-call, and a recursive clause with ALL IDENTIFIER params
+    and a self-call; neither guarded nor with a binding prelude. The recursive
+    clause's names are the synthesized params; the base clause's identifier params are
+    renamed to them by position (via `_SUBST`). `members` are the `_lower_defs` tuples
+    `(dc, param_nodes, body, guard, prelude)`. Returns Sutra or None."""
     if len(members) != 2:
         return None
     parsed = []
     for _dc, param_nodes, body, guard, prelude in members:
-        if guard is not None or prelude or len(param_nodes) != 1:
+        if guard is not None or prelude or not param_nodes:
             return None
-        parsed.append((param_nodes[0], body))
-    base_c = rec_c = None
-    for pat, body in parsed:
-        if pat.type == "integer" and not _contains_self_call(body, name, src):
-            base_c = (pat, body)
-        elif pat.type == "identifier" and _contains_self_call(body, name, src):
-            rec_c = (pat, body)
-    if base_c is None or rec_c is None:
+        parsed.append((param_nodes, body))
+    arity = len(parsed[0][0])
+    if len(parsed[1][0]) != arity:
         return None
-    k = _text(base_c[0], src).replace("_", "")
-    v = _text(rec_c[0], src)
+    base = rec = None
+    for params, body in parsed:
+        if (any(p.type == "integer" for p in params)
+                and not _contains_self_call(body, name, src)):
+            base = (params, body)
+        elif (all(p.type == "identifier" for p in params)
+                and _contains_self_call(body, name, src)):
+            rec = (params, body)
+    if base is None or rec is None:
+        return None
+    base_params, then_e = base
+    rec_params, else_e = rec
+    lit_positions = [i for i, p in enumerate(base_params) if p.type == "integer"]
+    if len(lit_positions) != 1:
+        return None
+    li = lit_positions[0]
+    if any(base_params[i].type != "identifier" for i in range(arity) if i != li):
+        return None
+    rec_names = [_text(p, src) for p in rec_params]
+    k = _text(base_params[li], src).replace("_", "")
+    v = rec_names[li]
     cond_src, neg_src = f"({v} == {k})", f"({v} != {k})"
-    then_e, else_e = base_c[1], rec_c[1]  # base body, recursive body
-    rec = _try_lower_tail_recursive(name, [v], cond_src, neg_src, then_e, else_e, src)
-    if rec is not None:
-        return rec
-    return _try_lower_foldable_nontail(name, [v], cond_src, neg_src,
-                                       then_e, else_e, src)
+    renames: list = []
+    for i in range(arity):
+        if i == li:
+            continue
+        bn = _text(base_params[i], src)
+        if bn != rec_names[i]:
+            _SUBST[bn] = rec_names[i]
+            renames.append(bn)
+    try:
+        out = _try_lower_tail_recursive(name, rec_names, cond_src, neg_src,
+                                        then_e, else_e, src)
+        if out is None:
+            out = _try_lower_foldable_nontail(name, rec_names, cond_src, neg_src,
+                                              then_e, else_e, src)
+    finally:
+        for bn in renames:
+            _SUBST.pop(bn, None)
+    return out
 
 
 def _lower_def(def_call, src: bytes) -> str:
