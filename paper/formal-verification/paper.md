@@ -66,12 +66,16 @@ provides live evidence that the substrate now carries autograd cleanly across
 the equality surface — both reported in §4.5 with measured numbers. The scope
 is the non-learned trusted base, per published contract; §5 states it precisely
 and §6 positions the work against neural-network verification, SMT for nonlinear
-arithmetic, partial evaluation, and vector-symbolic architectures. Finally, §7
+arithmetic, partial evaluation, and vector-symbolic architectures. Then §7
 turns from software to **hardware** formal verification, on Sutra's
 **energy-based** thermodynamic compile target: Lean-machine-checked proofs that
 its gadgets have the correct output as the **strict global energy minimum** — a
 ground-state decode is exact — with sampler-*convergence* largely proven
-(stationary measure unique; rate open).
+(stationary measure unique; rate open). Finally, §8 reports a **separate and
+explicitly weaker** assurance layer for the nine source-language frontends that
+compile *into* Sutra: a 184-fixture **compile-AND-run-against-ground-truth**
+suite — empirical end-to-end verification of the lowering passes, which we are
+careful not to conflate with the formal guarantees of §§3–7.
 
 ---
 
@@ -960,7 +964,54 @@ mechanise. (Proofs: `fv-lean/` — core, no `mathlib` — and `fv-lean/mathlib/`
 reversibility/stationarity/uniqueness layer; the measured exploration and the
 host/sampled hardware mapping: the companion findings.)
 
-## 8. Conclusion
+## 8. Source-language frontends: empirical end-to-end verification
+
+The verification in §§3–7 is *formal*: closed-form obligation discharge (§3–§4)
+and machine-checked Lean proofs (§7). This section reports a **separate and
+weaker** assurance layer that we are careful not to conflate with it. Sutra is
+also a compile *target* for nine source languages — OCaml, TypeScript, Rust, F#,
+Elixir, Clojure, Haskell, Erlang, and Scala (a C frontend is parked) — each a
+source-to-source lowering pass `⟨lang⟩ → Sutra`. These lowering passes are
+verified **empirically, by end-to-end test, not by proof.**
+
+The bar each frontend is held to is **compile-AND-run against ground truth**, not
+compile-only. A fixture is a small source-language program with a known result;
+the frontend lowers it to Sutra, the §2 compiler lowers that to the tensor-op
+graph, the graph runs on the real substrate, and the decoded output is compared
+to the source language's own answer. A fixture that lowers without an
+`UNSUPPORTED` marker but produces the wrong number is a *failure*, not a pass.
+Across the nine active frontends this is **184 substrate-verified fixtures**
+(OCaml 45, Elixir 21, TypeScript 19, F# 19, Clojure 18, Rust 18, Haskell 17,
+Erlang 15, Scala 12), run under continuous integration. They cover functions and
+typed parameters; conditionals and pattern `match`/`case` (lowered to the §3.2
+branch-as-polynomial encoding, so the source-level branch is a closed-form
+polynomial in the target, not a fork); tail- and foldable-non-tail recursion, and
+the idiomatic multi-clause / multi-equation / guarded pattern recursion of the
+BEAM and ML languages (all lowered to bounded substrate loops, never a
+self-calling graph); and algebraic data — enums, variants, records, tuples,
+structs, with destructuring in let/value/parameter positions — lowered to
+structured axons.
+
+**What this does and does not establish.** It establishes that, on the concrete
+inputs in the fixture suite, each lowering preserves the source language's
+semantics through to a substrate run — a regression-grade, executable check that
+the frontend emits *correct* Sutra. It does **not** establish a formal proof that
+the lowering is correct for all inputs; we make no such claim, and this empirical
+layer must not be read as extending the §3–§4 obligation guarantees or the §7
+Lean proofs to the frontends. The relationship to the formal layer is
+one-directional and clean: because every frontend emits *ordinary* Sutra and the
+§2 compiler is the only component that lowers to tensors, the frontends inherit
+the *target-level* trusted-base properties of §§3–4 for free — whatever a
+hand-written Sutra program receives (substrate-pure tensor-op execution, the same
+obligation surface), the lowered program receives identically. What is *not*
+inherited, and is supplied instead by the empirical suite, is assurance about the
+**lowering step itself** — the source-AST-to-Sutra translation that sits above
+the verified compiler. Formal verification of that translation — a verified
+frontend, in the CompCert (Leroy 2009) sense — is outside the present scope; the
+compile-AND-run suite is the assurance we currently provide there, and we name it
+as exactly that: empirical, not formal.
+
+## 9. Conclusion
 
 Compiling the non-learned trusted base to a tensor-op graph turns formal
 verification from imperative-path enumeration into algebra over a small fixed set
