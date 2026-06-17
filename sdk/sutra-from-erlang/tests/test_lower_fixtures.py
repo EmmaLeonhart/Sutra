@@ -40,6 +40,7 @@ _RUNNABLE = {
     "record_axon": 13.0,  # -record(point,{x,y}); fst(P)=P#point.x+P#point.y; main=fst(#point{x=5,y=8})  (record -> named-field axon, name dropped)
     "tuple_param": 13.0,  # fst({A, B}) -> A + B; main() -> fst({5, 8})  (tuple-PATTERN param -> axon, A/B -> realvec(item _0/_1))
     "record_param": 13.0,  # -record(point,{x,y}); fst(#point{x=X, y=Y}) -> X + Y; main() -> fst(#point{x=5, y=8})  (record-PATTERN param -> axon, X/Y -> realvec(item x/y))
+    "match_bind_body": 13.0,  # fst(P) -> {A, B} = P, A + B; main() -> fst({5, 8})  (body = match destructure -> realvec(item _0/_1))
 }
 
 

@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Erlang frontend — body `=` match destructure (Phase 3)
+
+Work-loop sprint tick (the Erlang analogue of the Elixir do-block-`=` increment). A
+multi-expression clause body like `fst(P) -> {A, B} = P, A + B.` now lowers: the leading `=`
+match expressions are a binding prelude (previously dropped — `_clause_body_expr` kept only the
+final value). `_clause_parts` now threads `prelude_stmts` (a new `_clause_body_prelude`);
+`_lower_function`'s bare-single path lowers each via a new `_apply_match_binding` — a `{A, B}`
+tuple LHS → `realvec(P.item("_0"))`, a `#point{x=X}` record LHS → `realvec(R.item("x"))`, a
+bare `X` → a plain rebind — typing the destructured RHS param `Axon`. The RHS must be a bare
+name. Multi-clause bodies with leading bindings surface `UNSUPPORTED-DECL` (the dispatcher
+would drop them). New fixture `match_bind_body` (`fst(P) -> {A,B}=P, A+B`, `main() ->
+fst({5,8})`) compiles AND runs on the substrate to 13; suite 22→24, the refactored clause path
+verified no regression.
+
 ## 2026-06-16: Elixir frontend — do-block `=` pattern-match destructure (Phase 3)
 
 Work+report sprint tick (the idiomatic Elixir body destructure, which has no `let`). A
