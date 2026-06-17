@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-17: 3-hourly gui→main auto-integration cron (preserve main's queue/todo)
+
+Emma's standing instruction: every 3 hours, integrate gui→main, preserving main's working
+files. Created session cron `2540eba3` (`37 */3 * * *`): commit+push gui → merge gui into main
+keeping MAIN's `queue.md` + `todo.md` (union DEVLOG.md, take gui's for other files) → push main
+→ return to gui (gui keeps its own queue/todo so the autonomous loop is unaffected). Supersedes
+the earlier "gui stays isolated, no merging to main" note (updated in queue.md branch-context).
+Hard rails on the merge: never force-push/reset/discard sibling work; abort + report if a merge
+can't be resolved safely. Running the first integration now to validate the recipe.
+
 ## 2026-06-17: B8 — live trainable-button browser smoke PASSED (Emma confirmed)
 
 Launched `demos/gui/button_server.py --live-ctr` (background, http://127.0.0.1:8770/) and opened

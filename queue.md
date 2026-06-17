@@ -32,10 +32,14 @@ deleted on completion. Keep the task tool in sync with this file.
   rendered frame / gradient against a reference, measured. No overclaiming.
 - **`paper/paper.md` UNFROZEN; `paper/neurips/` permanently FROZEN (do NOT touch).**
 - **CI on this branch: use `gh workflow run demos-ci.yml --ref gui` (workflow_dispatch),
-  then watch the run — do NOT open a PR to main.** `demos-ci`/`compiler-ci` only auto-run on
-  push-to-main or PRs, and a PR from this isolated branch conflicts with main (so it can't
-  even run pull_request CI). gui is kept SEPARATE from main by design — no merging to main.
-  Note also: local-green ≠ CI-green here — CI runs on CPU, local is CUDA; always verify on CI.
+  then watch the run.** `demos-ci`/`compiler-ci` only auto-run on push-to-main or PRs.
+  local-green ≠ CI-green here — CI runs on CPU, local is CUDA; always verify on CI.
+- **3-HOURLY GUI→MAIN AUTO-INTEGRATION (Emma 2026-06-17, supersedes the old "no merging to
+  main").** A session cron (`37 */3 * * *`, id `2540eba3`) commits+pushes gui, then merges
+  gui→main **preserving main's `queue.md` and todo.md** (resolve those to main's; union
+  DEVLOG.md; take gui's for other files), pushes main, and returns to gui. gui keeps its OWN
+  `queue.md`/`todo.md` untouched (the autonomous loop runs off them). Never force-push / reset
+  --hard / discard sibling work; abort + report if a merge can't be resolved safely.
 
 ## 🧠 TOP PRIORITY — LEARNED DECODER (Emma 2026-06-17: gate lifted, all decisions mine, barrel)
 
