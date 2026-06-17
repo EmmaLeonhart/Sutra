@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: Erlang frontend — guarded-base multi-clause recursion (Phase 3)
+
+Work+flush sprint tick — ports the Elixir guarded-base recursion to Erlang (the queue's flagged
+next step). `fac(N) when N == 0 -> 1; fac(N) -> N * fac(N - 1).` now lowers to the accumulator
+trampoline (was routed to `_lower_dispatch` → recursion rejected). `_try_lower_multiclause_recursion`
+now distinguishes the base clause two ways: Mode A (an integer-literal param → cond `(V == K)`)
+and the new Mode B (a `when` guard with all-var params → cond = the lowered guard via a new
+`_guard_cond_node` helper that returns the guard's condition node, with base→rec param renames
+applied to both the guard and the base body). New fixture `guarded_fact` runs on the substrate to
+**120**; the Mode A `multiclause_fact`(→120)/`multiclause_tailsum`(→15) and the non-recursive
+`guard_dispatch` (no self-call → the recursion attempt declines, falls through to the dispatch
+blend) all still pass. Suite 28→30.
+
 ## 2026-06-16: Elixir frontend — guarded-base multi-clause recursion (Phase 3)
 
 Work-loop sprint tick — extends Elixir's multi-clause recursion to a `when`-guarded base clause,

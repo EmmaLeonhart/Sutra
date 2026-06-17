@@ -408,13 +408,12 @@ dispatch blend, `if`-based tail rec → `while_loop`, foldable non-tail → CPS.
 
 - [ ] **Erlang increments** (through records `#name{f=v}` → named-field axons +
   `R#name.f` access + `{A, B}` tuple-PATTERN + `#point{x=X}` record-PATTERN params + body
-  `=` match destructure (`{A, B} = P`) + multi-clause recursion — both SINGLE-PARAM
-  (`fac(0)/fac(N)`) AND MULTI-PARAM tail (`sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1, Acc+N)`,
-  with base-clause var renaming) shipped 2026-06-16, suite 28/28; the `-record` decl is skipped,
-  name dropped): map PATTERN params (`#{x := X}` in a head); multi-clause bodies with `=`
-  bindings (single-clause only now); port the MULTI-PARAM multi-clause path to Elixir + Haskell
-  (single-param already there; the generalization is mechanical); list comprehensions; `div`/
-  `rem` via complex rotation (not `Math.mod`).
+  `=` match destructure (`{A, B} = P`) + multi-clause recursion — SINGLE-PARAM (`fac(0)/fac(N)`),
+  MULTI-PARAM tail (`sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1, Acc+N)`, base-clause var
+  renaming), AND GUARDED-base (`fac(N) when N == 0 -> 1; fac(N) -> …`) shipped 2026-06-16, suite
+  30/30; the `-record` decl is skipped, name dropped): map PATTERN params (`#{x := X}` in a head);
+  multi-clause bodies with `=` bindings (single-clause only now); >2-clause recursion (2-clause
+  base+rec only now); list comprehensions; `div`/`rem` via complex rotation (not `Math.mod`).
 
 ## Formal verification of thrml gadgets in Lean + clawRxiv loop (Emma 2026-06-14)
 

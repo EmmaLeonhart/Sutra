@@ -539,16 +539,17 @@ def _try_lower_foldable_nontail(name: str, params, cond_src, neg_src, then_e, el
 
 def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
     """The idiomatic pattern-matched recursion `f(0) -> BASE; f(N) -> … f(N-1).`
-    (and the multi-arg accumulator form `sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1,
-    Acc+N).`) is semantically identical to the single-clause `if`-form, so synthesize
-    the base-match condition `(V == K)` from the clause patterns and reuse the
-    recursion transforms (fed source strings, not an `if`-cond node). Scope: exactly
-    2 same-arity clauses — a BASE clause with exactly one INTEGER-literal param (rest
-    vars) and no self-call, and a recursive clause with ALL VAR params and a self-call;
-    neither guarded nor with a binding prelude. The recursive clause's var names are
-    the synthesized params; the base clause's var params are renamed to them by
-    position (via `_SUBST`) so the base body references the synthesized params.
-    Returns the emitted Sutra or None."""
+    (the multi-arg accumulator `sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1, Acc+N).`,
+    and the GUARDED form `fac(N) when N == 0 -> 1; fac(N) -> N * fac(N-1).`) is
+    semantically identical to the single-clause `if`-form, so derive the base-match
+    condition and reuse the recursion transforms (fed source strings). Scope: exactly
+    2 same-arity clauses — a recursive clause with ALL VAR params, no guard, and a
+    self-call, plus a BASE clause (no self-call) distinguished EITHER by exactly one
+    INTEGER-literal param (Mode A: cond `(V == K)`) OR by a `when` guard with all-var
+    params (Mode B: cond = the lowered guard). The recursive clause's names are the
+    synthesized params; the base clause's var params are renamed to them by position
+    (via `_SUBST`), applied to both the base body and (Mode B) the guard. Returns the
+    emitted Sutra or None."""
     if len(clauses) != 2:
         return None
     parsed = []
@@ -557,44 +558,56 @@ def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
         if cp is None:
             return None
         _nm, params, guard, body, prelude = cp
-        if guard is not None or prelude or not params:
+        if prelude or not params:
             return None
-        parsed.append((params, body))
+        parsed.append((params, body, guard))
     arity = len(parsed[0][0])
-    if len(parsed[1][0]) != arity:
+    if any(len(p[0]) != arity for p in parsed):
         return None
     base = rec = None
-    for params, body in parsed:
-        if (any(p.type == "integer" for p in params)
-                and not _contains_self_call(body, name, src)):
-            base = (params, body)
-        elif (all(p.type == "var" for p in params)
-                and _contains_self_call(body, name, src)):
+    for params, body, guard in parsed:
+        sc = _contains_self_call(body, name, src)
+        if all(p.type == "var" for p in params) and guard is None and sc:
             rec = (params, body)
+        elif not sc:
+            base = (params, body, guard)
     if base is None or rec is None:
         return None
-    base_params, then_e = base
     rec_params, else_e = rec
-    lit_positions = [i for i, p in enumerate(base_params) if p.type == "integer"]
-    if len(lit_positions) != 1:
-        return None  # exactly one base-case discriminator (for now)
-    li = lit_positions[0]
-    if any(base_params[i].type != "var" for i in range(arity) if i != li):
-        return None  # base's other params must be plain vars
+    base_params, then_e, base_guard = base
     rec_names = [_text(p, src) for p in rec_params]
-    k, v = _text(base_params[li], src), rec_names[li]
-    cond_src, neg_src = f"({v} == {k})", f"({v} != {k})"
-    # rename the base clause's var params to the recursive clause's names (by
-    # position) so the base body resolves against the synthesized params.
+    lit_positions = [i for i, p in enumerate(base_params) if p.type == "integer"]
     renames: list = []
-    for i in range(arity):
-        if i == li:
-            continue
-        bn = _text(base_params[i], src)
-        if bn != rec_names[i]:
-            _SUBST[bn] = rec_names[i]
-            renames.append(bn)
+
+    def _rename(positions):
+        for i in positions:
+            bn = _text(base_params[i], src)
+            if bn != rec_names[i]:
+                _SUBST[bn] = rec_names[i]
+                renames.append(bn)
+
     try:
+        if (base_guard is None and len(lit_positions) == 1
+                and all(base_params[i].type == "var"
+                        for i in range(arity) if i != lit_positions[0])):
+            # Mode A — integer-literal base param.
+            li = lit_positions[0]
+            k = _text(base_params[li], src)
+            cond_src, neg_src = f"({rec_names[li]} == {k})", f"({rec_names[li]} != {k})"
+            _rename([i for i in range(arity) if i != li])
+        elif (base_guard is not None
+                and all(p.type == "var" for p in base_params)):
+            # Mode B — guarded base; the guard (under renames) is the condition.
+            gcond = _guard_cond_node(base_guard, src)
+            if gcond is None:
+                return None
+            _rename(range(arity))
+            cond_src = _lower_expr(gcond, src)
+            neg_src = _negate_cond(gcond, src)
+            if "UNSUPPORTED" in cond_src or "UNSUPPORTED" in neg_src:
+                return None
+        else:
+            return None
         out = _try_lower_tail_recursive(name, rec_names, cond_src, neg_src,
                                         then_e, else_e, src)
         if out is None:
@@ -623,10 +636,17 @@ def _clause_parts(fc, src: bytes):
             _clause_body_expr(cbody, src), _clause_body_prelude(cbody, src))
 
 
+def _guard_cond_node(guard, src: bytes):
+    """The condition expression node of a `when` guard (`guard → guard_clause →
+    expr`), or None. Used by the guarded-base recursion path, which needs the raw
+    node to both lower and negate the condition."""
+    gc = guard.named_children[0] if guard.named_children else None
+    return gc.named_children[0] if (gc is not None and gc.named_children) else None
+
+
 def _guard_test(guard, src: bytes) -> str:
     """Lower a `when` guard to a Sutra test (its `guard_clause` expression)."""
-    gc = guard.named_children[0] if guard.named_children else None
-    expr = gc.named_children[0] if (gc is not None and gc.named_children) else None
+    expr = _guard_cond_node(guard, src)
     return f"({_lower_expr(expr, src)})" if expr is not None else "true"
 
 
