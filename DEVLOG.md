@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: F# frontend — tuple/record/DU construction in argument position (arg-hoist parity)
+
+Work-loop sprint tick — closes a real F# parity gap: a tuple/record/DU construction passed
+DIRECTLY as a call argument (`addPair (5, 8)`, `area (Circle 4)`) previously emitted
+`UNSUPPORTED-EXPR: tuple_expression` — F# only handled constructions in let-binding position,
+while every other frontend hoists arg constructions. Added `_hoist_construction_arg`: when an
+application argument is a tuple (`_tuple_fields`), record (`_record_fields`), or DU
+construction (`_variant_application`), it emits the axon-build statements to `_PRELUDE` and uses
+a fresh `_ahN` temp at the call site (new per-function `_AH_N` counter, reset in `_lower_defn`).
+The let-bound construction path is unchanged (it builds into the bound name). New fixture
+`tuple_arg` (`addPair (5, 8)` directly) compiles AND runs on the substrate to 13; suite 32→34,
+no regressions (the existing let-bound `tuple_axon`/`tuple_destructure` still pass).
+
 ## 2026-06-16: Haskell frontend — multi-param guarded tail recursion (regression guard)
 
 Work+report sprint tick. Verified that Haskell **multi-param** guarded tail recursion

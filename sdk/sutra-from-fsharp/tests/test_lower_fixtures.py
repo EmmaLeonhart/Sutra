@@ -45,6 +45,7 @@ _RUNNABLE = {
     "tuple_destructure": 13.0,  # addPair (t: int*int) = let (a, b) = t in a + b; main = addPair (5,8)  (let-tuple-pattern -> realvec(item _0/_1))
     "record_destructure": 13.0,  # sum (p: Point) = let { x = a; y = b } = p in a + b; main = sum {x=5;y=8}  (let-record-pattern -> realvec(item x/y))
     "du_destructure": 13.0,  # type Shape=Circle of int|...; radius (s) = let (Circle r) = s in r + 1; main = radius (Circle 12)  (let-DU-pattern -> realvec(item _val0))
+    "tuple_arg": 13.0,  # addPair (p: int*int) = fst p + snd p; main = addPair (5, 8)  (tuple construction DIRECTLY as arg -> hoisted to _ahN temp, F# arg-hoist parity)
 }
 
 
