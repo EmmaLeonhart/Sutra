@@ -19,9 +19,10 @@
 //   116=ineg(negate top)  172=ireturn(keep pc -> idle/halt; result is on top)
 //   26..29=iload_0..3(push local N)  59..62=istore_0..3(pop into local N)
 //   89=dup(push copy of top)  87=pop(discard top)  95=swap(swap top two)
-//   167=goto  159=if_icmpeq  160=if_icmpne  (each a 2-byte instr carrying a 1-byte
-//     signed RELATIVE offset; taken branch sets pc=pc+offset, else pc falls through
-//     to pc+2; if_icmp* pop two operands unconditionally.)
+//   167=goto  159=if_icmpeq  160=if_icmpne  (each a 3-byte instr carrying a 2-byte
+//     BIG-ENDIAN signed RELATIVE offset — real javac encoding; taken branch sets
+//     pc=pc+offset (relative to the opcode address), else pc falls through past the
+//     2 operand bytes; if_icmp* pop two operands unconditionally.)
 //   (op 0 = JVM nop: no flag matches -> all cells keep, pc+1 — a natural no-op.)
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1),
 // matching Jinja's `let v2=pop; v1=pop; push (v1 OP v2)`. pc advances 2 for
@@ -127,18 +128,30 @@ function int step(scalar d) {
     int s_ifne = (((1 + is_ifne) * (sp_pop2)) + ((1 - is_ifne) * (s_ifeq))) / 2;
     int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_ifne))) / 2;
     ramWrite(1, new_sp);
-    // pc: bipush +2 (skip operand). Branches carry a 1-byte signed RELATIVE offset
-    // (goto/if_icmpeq/if_icmpne are 2-byte instrs); a taken branch sets pc=pc+imm,
-    // a not-taken if_icmp* falls through to pc+2, goto always takes. ireturn keeps
-    // pc (idle with result on top); every other 1-byte opcode +1.
+    // pc: bipush is a 2-byte instr (skip 1 operand byte). goto/if_icmpeq/if_icmpne
+    // are 3-byte instrs carrying a 2-byte BIG-ENDIAN signed RELATIVE offset (real
+    // javac encoding) at pc+1 (high) and pc+2 (low). A taken branch sets pc=pc+off
+    // (relative to the branch opcode address, per the JVM spec); a not-taken if_icmp*
+    // falls through past its 2 operand bytes; goto always takes. ireturn keeps pc
+    // (idle with result on top); every other 1-byte opcode +1.
+    int imm_lo = ramRead(pc + 2);                    // branch low offset byte
     int goto01 = (is_goto + 1) / 2;
     int ifeq01 = (is_ifeq + 1) / 2;
     int ifne01 = (is_ifne + 1) / 2;
     int bipush01 = (is_bipush + 1) / 2;
-    int b2 = bipush01 + goto01 + ifeq01 + ifne01;   // 1 for 2-byte ops, else 0
-    int pc_seq = pc + 1 + b2;                        // sequential next-pc
+    int branch01 = goto01 + ifeq01 + ifne01;
+    int adv = bipush01 + (branch01 * 2);             // extra operand bytes (1 / 2)
+    int pc_seq = pc + 1 + adv;                        // sequential next-pc
+    // Reconstruct the signed 16-bit big-endian offset from two unsigned bytes
+    // (imm=high, imm_lo=low). Sign bit = (high >= 128); detected via (2*high) < 255,
+    // which equals (high <= 127): 2*high is even and 255 is odd, so the operands are
+    // never equal -> no equality-boundary ambiguity, no gate needed.
+    int hi_pos = (truth_axis(defuzzy((2 * imm) < 255)) + 1) / 2;   // 1 iff high in [0,127]
+    int sign_bit = 1 - hi_pos;                                     // 1 iff negative offset
+    int raw_off = (imm * 256) + imm_lo;                            // unsigned [0,65535]
+    int offset16 = raw_off - (65536 * sign_bit);                  // signed [-32768,32767]
     int take = goto01 + (ifeq01 * v_eq) + (ifne01 * (1 - v_eq));   // 0/1: branch taken
-    int pc_branch = (take * (pc + imm)) + ((1 - take) * pc_seq);
+    int pc_branch = (take * (pc + offset16)) + ((1 - take) * pc_seq);
     int new_pc = (((1 + is_ireturn) * (pc)) + ((1 - is_ireturn) * (pc_branch))) / 2;
     ramWrite(0, new_pc);
     return ramRead(99 + sp);

@@ -121,12 +121,16 @@ to ask ("barrel through … until you've gotten a strong acceptance").
     dispatch/jvm_core.su` is a parallel RAM-state blended-dispatch machine with REAL JVM opcode
     values + variable-length bytecode: bipush/iadd/isub/imul/ineg/ireturn, 7 substrate-verified
     cases (`test_jvm_core.py`). **STEPS 2a (locals iload_0..3/istore_0..3 at RAM 200..203) + 2b
-    (stack ops dup/pop/swap) + 2c (branches `goto`/`if_icmpeq`/`if_icmpne`, 1-byte signed
-    RELATIVE offsets) DONE 2026-06-17** — 17 cases substrate-green, incl. a backward-`goto`
-    countdown-sum loop (3+2+1=6) exercising branch+locals+arithmetic together. Remaining JVM
-    ladder: (2d) a real javac-compiled method (e.g. iterative factorial) byte-for-byte. NOTE:
-    2c uses 1-byte relative offsets; real javac emits 2-byte big-endian signed offsets — handle
-    that decode (sign-extension across two cells) as a faithfulness refinement before raw javac bytes.
+    (stack ops dup/pop/swap) + 2c (branches `goto`/`if_icmpeq`/`if_icmpne`) + 2d-prep
+    (**real-javac 2-byte big-endian signed offsets**, sign-extended ON-SUBSTRATE via the even/odd
+    trick `(2*hi)<255` ≡ `hi<=127`, no equality-boundary case) DONE 2026-06-17** — 17 cases
+    substrate-green, incl. a backward-`goto` countdown-sum loop (3+2+1=6, offset −15 = bytes
+    255,241) exercising branch+locals+arithmetic together. Remaining JVM ladder: (2d-final) an
+    actual javac-emitted method byte-for-byte — the encoding is now javac-faithful (3-byte branches,
+    2-byte BE offsets), so this is: get real `javac` output (or hand-assemble exact javac layout
+    incl. the method's `code` attribute) for e.g. iterative factorial, load the raw bytes, decode ==
+    reference. Note: javac may emit `iconst_N`(3..8)/`iinc`(132)/`goto_w`(200) — add those opcodes
+    as the chosen method requires.
 - **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
   per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
   / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment
