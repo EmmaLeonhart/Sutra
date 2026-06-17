@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-17: learned decoder D10 — docs + paper for the trained generator
+
+Documented the whole learned-decoder arc, measured. `docs/gui.md`: a public "Learning the
+picture, not just rendering it" section — the substrate is trained (matmul + cubic over Fourier
+features) to reconstruct arbitrary images, generate from a latent, and be preference-steered;
+website-clean (no queue/todo/planning/internal-path refs). `paper/gui-steering/paper.md`: a new
+§7.2 "From a fixed-weight render to a trained generator" with the measured numbers (Fourier vs
+raw 4e-4 vs 3e-1; reconstruction 22.4/28.5 dB + colour 20.6 dB; capacity 13.5→18.7 dB; latent
+interpolation centroid −0.34→+0.33; preference steering +0.16/−0.34 flip), the two substrate
+findings (tanh/sin canonical → hadamard cubic; Fourier encoding as host input geometry), and
+the honest boundary (forward on the substrate; optimizer/reward/encoding host-side; training
+not claimed on-substrate). §10 repro gains `pytest demos/decoder/`. Site builds clean
+(`build_site.py` exit 0). Only D11 (weight→code) remains on the decoder track.
+
 ## 2026-06-17: learned decoder D9 — steered-generator demo (headless + window)
 
 `demos/decoder/latent_demo.py`: the end-to-end pipeline as a run-verifiable headless demo —

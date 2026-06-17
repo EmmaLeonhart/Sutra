@@ -146,6 +146,33 @@ host process — a browser bridge, or an OS surface that "owns the window" — c
 the substrate-rendered button, and feed it real clicks. The picture, and the learning signal it
 chases, stay on the substrate; the host only does the window and the events.
 
+## Learning the picture, not just rendering it
+
+Every render above is a *fixed* function — hand-written substrate arithmetic. But the substrate
+is differentiable, so it can also be **trained**. We built a small **learned decoder**: a
+coordinate function `f(x, y) → pixel` made of substrate `matmul` layers with a cubic
+nonlinearity, fed Fourier features of the coordinates. The weights are trainable; an optimizer
+descends a loss by backpropagating **through the substrate forward** (the same boundary as the
+steering above — the render is the substrate, the optimizer is host-side).
+
+What that buys, all measured on the substrate render:
+
+- **It reconstructs an arbitrary image** the analytic renders can't make — two off-centre
+  blobs — to ~22 dB PSNR (≈29 dB with more width), in colour as well as grayscale; quality
+  rises with capacity, as you'd expect.
+- **It generates, not just memorises.** Conditioned on a latent `z` (`f(x, y; z)`) and trained
+  across a small *set* of images with a learned latent each, **interpolating `z` sweeps the
+  output between them** — novel frames the model never saw, produced by moving a point in
+  latent space.
+- **You can steer what it generates.** Freeze the weights and put the *latent* in the same
+  warmer/colder loop: a person's preferences move `z` up a learned reward through the substrate
+  render, so the generated picture morphs toward what they reward.
+
+This is the bridge from "the substrate draws a picture" to "the substrate *learns* one" — the
+analytic glow is the fixed-weight base case; the decoder is the trained, generative,
+steerable generalisation. The forward pass is substrate tensor ops; the optimizer, the reward
+head, and the Fourier input-encoding are host-side, and we say so.
+
 ## The gallery
 
 | Demo | Source | What you see |
