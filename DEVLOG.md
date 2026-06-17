@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-17: WASM core step 5a — frame-relative addressing refactor (Phase 5)
+
+First sub-step of the call-frame machine: made `wasm_core.su`'s addressing FRAME-RELATIVE (toward
+`call`/recursion), with no `call` yet and no behavior change. Added state cells `fp@2` (current frame
+base) and `nloc@3` (current frame's local count); the operand base is `obase = fp + nloc`. Every read/
+write was rewritten off the old fixed bases: `top1/top2` → `obase+sp-1`/`obase+sp-2`, push →
+`obase+sp`, binary result → `obase+sp-2`, in-place top → `obase+sp-1`, locals → `fp+idx`. The harness
+sets `fp=600`/`nloc=4`, seeds params frame-relative (`fp+i`), and reads the result from the operand
+base (`fp+nloc`). RAM layout doc updated; frame arena at 600+.
+
+A real defect surfaced during the regression probe and was fixed before commit (integrity:
+measure → found → fix): `i32.eq 5==5` returned 0. Cause — with the frame-relative layout, locals
+(`fp+idx`) and the operand stack (`fp+nloc`) are now ADJACENT, and the unconditional local-write-back
+`ramWrite(fp+imm, …)` (a no-op for non-local ops, but `imm` is a garbage operand byte then) could land
+on an in-use operand cell and clobber a push made in the SAME step — for `const 5`, `imm=5` →
+`fp+5` = the operand cell just pushed, overwriting 5 with 0. The old layout was safe only because
+locals(200+)/operand(100+) were far apart. Fix: gate the local-WRITE address to a scratch cell (RAM 5)
+unless the op is actually `local.set`/`local.tee` (where `imm` is a small index < nloc, staying in the
+locals region); the `loc_cur` read is harmless. After the fix, all 32 cross-section cases (every
+opcode category + factorial) pass on the substrate, so the refactor preserves all step-1..4 outputs.
+Next: 5b, function table + non-recursive `call`/`return`.
+
 ## 2026-06-17: WASM core step 5 — call-frame machine scoping doc (Phase 5)
 
 Scoped the final WASM-core step — `call` + a recursive call-frame stack — before coding it
