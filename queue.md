@@ -1,700 +1,199 @@
 # Sutra — Work Queue
 
-**This file is a queue, not a state snapshot.** It lists what is being
-worked on right now and what is next. Finished work lives in `git log`,
-`DEVLOG.md`, and `planning/findings/` — NOT here. If you catch yourself
-writing "✅ DONE / SHIPPED / RESOLVED" status in this file, stop: delete
-the item instead and let git log / DEVLOG / a finding hold the history.
-That CRUD is exactly what bloats this queue (2026-05-30 cleanup). Remove
-completed items in the same commit as the work (CLAUDE.md §Workflow Rules).
-
-`todo.md` is longer-horizon. Items migrate `todo.md` → `queue.md` →
-deleted on completion. Keep the task tool in sync with this file.
+**This file is a queue, not a state snapshot.** It lists what is being worked on now
+and what is next, in execution order — barrel it top to bottom. **Finished work is
+REMOVED from this file in the same commit it ships** (history lives in `git log`,
+`DEVLOG.md`, and `planning/findings/`). If you catch yourself writing "✅ DONE /
+SHIPPED / STEP N DONE" in this file, stop — delete the item instead. Leaving
+completed work here as status markers is the bloat that destroys the queue's job as
+an ordered execution list (Emma 2026-06-17). `todo.md` is longer-horizon; items
+migrate `todo.md` → `queue.md` → deleted on completion.
 
 ---
 
 ## Context (read first, do not work on)
 
-- **`paper/paper.md` is UNFROZEN (Emma 2026-06-07)** — the live revision target
-  for a new submission. `paper/neurips/` stays under its own **permanent**
-  freeze (do NOT touch). Integrity discipline applies (measured numbers only;
-  no overclaiming substrate-purity/fused-network as done).
-- **Promise/await is fit-to-spec** (verified 2026-05-20;
-  `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
-- **NEVER use `Math.mod`** (Emma 2026-06-12 — worst-implemented function; measured
-  vector-collapse/NaN, finding `2026-06-12-rotation-mod-vector-collapse-…`). For
-  wrap/periodic behavior use complex rotation (`demos/gui/live_frame.su`).
-- **GUI work is on a SEPARATE branch now (Emma 2026-06-16); GUI is OUT of main's queue.**
-  The Adam-RLHF GUI demo + its paper (`paper/gui-steering/`) stay built/merged on main, but
-  all GUI *agenda* (clawRxiv loop, extensions, paper passes) moved to Emma's own GUI branch
-  and was removed from this queue. On **main**, barrel the transpiler / ACTIVE-DIRECTIVE
-  track. Do NOT re-add GUI items here.
+- **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07) — live revision target. `paper/neurips/`
+  stays **permanently frozen** (do NOT touch). Measured numbers only; no overclaiming.
+- **NEVER use `Math.mod`** (worst-implemented; measured vector-collapse/NaN). Use complex
+  rotation for wrap/periodic (finding `2026-06-12-rotation-mod-vector-collapse-…`).
+- **GUI is on Emma's SEPARATE branch** — OUT of this queue. The Adam-RLHF GUI demo + paper
+  stay built on main, but no GUI *agenda* here. Do NOT re-add GUI items.
+- **Promise/await is fit-to-spec** (verified; `test_await_substrate_pure.py` 4/4), guarded by
+  the watchdogs below.
 
-## 🔥 ACTIVE DIRECTIVE (Emma 2026-06-14 21:06, RE-ORDERED 22:05) — Erlang → FV ACCEPT → rest → FV-expand → ACCEPT
+---
 
-> **GUI MOVED TO ITS OWN BRANCH (Emma 2026-06-16) — this is now the TOP active work on
-> main.** GUI agenda was removed from this queue; it lives on Emma's separate GUI branch.
-> On main: barrel the transpiler / ACTIVE-DIRECTIVE track below. Do NOT re-add GUI here.
+## 1. Daily substrate-honesty audit (recurring — discharge then delete)
 
-Barrel through these phases IN THIS ORDER (Emma's 22:05 correction — the FV clawRxiv
-loop comes RIGHT AFTER Erlang, BEFORE the rest of the transpiler backlog). No stopping
-to ask ("barrel through … until you've gotten a strong acceptance").
+Auto-prepended by `.github/workflows/daily-audit.yml`. First action of the next autonomous
+session: review every commit since the previous daily audit against CLAUDE.md §"Subtler
+substrate breaches": (a) `.su`/compile-path commits — `runtime_dim` matches what the `.su`
+needs (count `basis_vector` calls; none → tiny dim); (b) any "recurrent"/"RNN"/"substrate-pure"/
+"verified" claim — checked against measurement, not earlier framing; (c) any substrate classifier/
+decision function — measured `gap = min(positive) − max(negative)` is in the commit or a planning
+doc. If anything is amiss, write a finding + a fix item here BEFORE other work, then delete this.
 
-- **Phase 1 — Erlang frontend. ✅ DONE 2026-06-14** (`sutra-from-erlang`, suite 12/12).
-- **Phase 2 — FV-paper → SUBSTANTIVE SCOPE WORK (Emma 2026-06-14 blocker-sweep decision).**
-  The clawRxiv ping-pong ran 4 cycles (v64–v71): all FIXABLE cons resolved (hallucinated
-  citation, capacity-vs-exactness, self-containment, tone, termination/bit-exact framing,
-  Lean-composition roadmap) and randomized-PIT scalability became a credited PRO. Rating
-  oscillated Reject↔Weak-Reject — the REMAINING cons are fundamental/philosophical (Kleene
-  fragment too narrow; small-scale demos; frozen-substrate trust; bit-exact "brittleness")
-  and won't flip by prose edits. Emma's call: **attack the fundamentals with REAL WORK, not
-  more framing cycles.** Two concrete substantive moves:
-  1. **Prove the GENERAL Lean gadget-composition lemma** (`fv-lean/`): the sum of
-     strictly-minimized penalty terms over a shared spin register is itself strictly
-     minimized at the consistent joint assignment → a circuit of verified gadgets has its
-     correct output as the strict global energy minimum, machine-checked in general (not
-     just the 2×2-multiplier instance). Converts §7's stated roadmap into a theorem;
-     directly answers the "micro-proofs don't compose" con. Then a multi-gate worked
-     instance (e.g. a 2-bit or wider adder/multiplier) checked via the lemma.
-  2. **Verify a LARGER program end-to-end** through the framework to answer "demos too
-     small / fragment too narrow": push the FV obligation checker / composition past the
-     11-expression calc — a non-trivial composed Kleene/arithmetic program with the
-     obligations discharged + measured.
-  **✅ PHASE 2 COMPLETE — FV PAPER ACCEPTED (clawRxiv v75 = Accept, 2026-06-15).** The
-  substantive work landed: general composition lemma + worked two-gate circuit (both
-  CI-green; proper-penalty/Ising fix); arithmetic-fragment expansion + compiler-optimization-
-  equivalence verification; randomized-PIT scalability — all now credited PROS. Rating went
-  Reject↔Weak-Reject → **Accept** (residual cons are acknowledged fundamentals). **Emma
-  2026-06-15 blocker-sweep: BANK THE ACCEPT, stop the FV clawRxiv loop, MOVE TO PHASE 3.**
-  (The mathlib mixing-rate proof remains available as fill-in if ever wanted, but is no
-  longer the active driver.)
-- **Phase 3 — the rest of the transpiler backlog + integration (🔥 ACTIVE NOW, Emma
-  2026-06-15: gate met, bank the Accept).** Drain the active transpiler increments
-  (F#/Elixir/Clojure/Haskell/Rust data-structure tier + remaining shapes — see the
-  "Active — transpiler track" section below), then integrate Erlang + all the frontends
-  into the architecture docs (`CLAUDE.md`, `AGENTS.md`, `planning/sutra-spec/`, READMEs)
-  AND the main Sutra paper (`paper/paper.md`) — measured/accurate, no overclaim.
-  Integration DONE 2026-06-15: architecture docs (AGENTS.md, CLAUDE.md) + new spec
-  doc `planning/sutra-spec/transpiler-frontends.md` + main paper `paper/paper.md`
-  "Source-language frontends" subsection (§ The Sutra Compiler). Spec doc REFRESHED
-  2026-06-16 to reflect the sprint's pattern-destructuring tier + multi-clause/guarded
-  recursion (maturity table + shared-shapes table re-grounded against the counted
-  fixtures). Remaining Phase 3: the long-tail transpiler increments in the "Active —
-  transpiler track" section below (lower priority than the integration capstone). The
-  main paper (`paper/paper.md` § frontends) is the next doc surface to refresh if the
-  frontend story becomes a paper emphasis.
-- **Phase 4 — expand the FV paper to all of them + clawRxiv loop AGAIN → ACCEPT. 🔥 NOW
-  ACTIVE (Emma 2026-06-17 AskUserQuestion).** The transpiler high-value tiers are done
-  across all 9 frontends (pattern-destructuring + multi-clause/guarded recursion + full DU
-  support this session). **Emma's framing decision (2026-06-17): expand
-  `paper/formal-verification/paper.md` with a CLEARLY-DELINEATED section that frames the
-  frontends as EMPIRICAL substrate-verification (compile-AND-run vs ground truth) — kept
-  DISTINCT from the Lean-FORMAL gadget proofs. Do NOT conflate the two verification
-  notions.** **✅ FV CYCLES DONE 2026-06-17 — banked at Weak Reject; moved to Phase 5.** The §8
-  empirical-frontend section shipped + ran 3 clawRxiv cycles (v76 Reject → v77 Weak Reject → v78
-  Weak Reject, all Gemini-3-Flash — a different reviewer model than v75's ACCEPT). The
-  §8-specific con (over-breadth / "AI-generated breadth" / nine-language / 184-fixture inventory)
-  was DRIVEN OUT by the cycle-3 structural trim — absent from v78's cons. The residual v78 cons
-  are all FUNDAMENTAL (frozen-substrate "garbage-in formal-proof-out", bit-exact skepticism,
-  termination-by-construction, formal-semantics depth) — the class Emma ruled in Phase 2 "won't
-  flip by prose edits; attack with real work", and which v75's ACCEPT reviewer accepted. Per
-  Emma 2026-06-17 "a few cycles then bytecode" + "a weak reject isn't something we're concerned
-  with": banked, NOT chasing the fundamentals with more prose.
-- **Phase 5 — bytecode / VM targets. WebAssembly IS the direction (Emma 2026-06-17 redirect).**
-  The JVM leg is **DONE and PARKED** — Emma's call: "actual JVM implementation isn't something we
-  should be doing… WebAssembly is just the actual thing." The JVM core was carried through its full
-  minimal ladder incl. a real OpenJDK-21 `javac` factorial run byte-for-byte (see DEVLOG 2026-06-17);
-  no further JVM work (no class-file/constant-pool front, no more opcodes). **Active leg = grow the
-  mini WASM machine** (`experiments/iso5_substrate_dispatch/mini_wasm_machine.su`) + Python via
-  WASM+Pyodide on top of it. Verified-spec research: `planning/exploratory/2026-06-17-phase5-bytecode-
-  vm-spec-research.md` (CPython has NO verified spec → ride Pyodide/Wasm, no direct CPython VM).
-  - **(1) Real-WASM-bytecode core — ACTIVE.** The custom-opcode `mini_wasm_machine.su` (29 opcodes,
-    substrate-verified; DIV/REM excluded) is a breadth playground, NOT real `.wasm`. The real leg is
-    a new `wasm_core.su` (parallel to `jvm_core.su`) using REAL WASM opcode values + encoding, so
-    `wat→wasm` output runs unmodified. **SCOPED 2026-06-17 — `planning/exploratory/2026-06-17-phase5-
-    wasm-core-scoping.md`** (decomposes the leg; the JVM core is the template). Two real encoding
-    differences from JVM: (i) LEB128 variable-length operands (single-byte first, same even/odd
-    sign trick), (ii) structured control `block`/`loop`/`if`/`end`/`br` (pre-resolved target table
-    first, keeps the hot path JVM-shaped). **STEP 1a DONE 2026-06-17** — `experiments/iso5_substrate_
-    dispatch/wasm_core.su` runs real WASM bytecode: `i32.const`(0x41, signed single-byte LEB128) +
-    `i32.add`/`sub`/`mul`(0x6a-6c) + `end`(0x0b)/`return`(0x0f); 8 cases substrate-green
-    (`test_wasm_core.py`), incl. signed-LEB128 boundaries (0x3f→63, 0x40→−64) and `(-5)*(-5)=25`.
-    Reused the JVM iconst real-axis-vector fix (`leb_val*one`). **STEP 1b DONE 2026-06-17 —
-    indexed locals** `local.get`/`local.set`/`local.tee`(0x20-22, unsigned single-byte LEB128
-    index): NEW vs JVM's fixed-opcode locals — the local cell is computed `200+idx` (hard-addressed;
-    writes the old value back when not local.set/tee, so non-local ops are no-ops on the locals
-    region, safe even if idx aliases a used local). 12 cases substrate-green (8 arith + 4 locals).
-    **STEP 2 DONE 2026-06-17 — comparisons** `i32.eqz`(0x45, unary top==0) + `i32.eq`(0x46)/`ne`(0x47)/
-    `lt_s`(0x48)/`gt_s`(0x4a)/`le_s`(0x4c)/`ge_s`(0x4e) (binary, push 0/1): copies of the JVM
-    `v_eq`/`v_lt`/`v_gt`/`v_ge`/`v_le` gated idiom; results pushed as `v*one` real-axis vectors (NOT
-    bare scalars — the iconst-broadcast finding). 26 cases substrate-green, incl. equality boundaries
-    (`ge_s`/`le_s` 5>=5/5<=5 → 1) and signed (`lt_s` −5<3 → 1). **NEXT = step 3: structured control**
-    `block`(0x02)/`loop`(0x03)/`if`(0x04)/`else`(0x05)/`end`(0x0b)/`br`(0x0c)/`br_if`(0x0d) — the big
-    encoding difference from JVM; use the load-time PRE-RESOLVED target table (scoping doc), keeps the
-    hot path JVM-shaped. Ladder: 1a arith ✓ → 1b locals ✓ → 2 comparisons ✓ → 3 structured control →
-    4 real wat→wasm factorial byte-for-byte → 5 tree-recursion fib via `call` (= Phase 5.5-B payoff).
-    Then Python-via-Pyodide. Concrete WASM-leg open items in the merged WASM section.
-- **Phase 5.5 — Recursion lowering strategy: single→tail (compiler), multiple→WASM (Emma
-  2026-06-17).** A two-part strategy for NON-TAIL recursion that applies across ALL language
-  frontends. Ordering (Emma): both parts come BEFORE the Phase-6 long tail; Part B comes AFTER
-  the Phase-5 WebAssembly work (it depends on the WASM machine). Emma: "I think this is a very
-  important thing… basically." Generalizes the OCaml reference frontend's foldable-CPS transform
-  to a uniform, explicitly-stated rule for every frontend.
-  - **(A) Single (linear) non-tail recursion → tail recursion — a transform the COMPILERS do.**
-    Emma: non-tail recursion that is "strictly singular at any time" — a SINGLE linear recursive
-    call not in tail position (e.g. `fact(n) = n * fact(n-1)`) — "can be turned into tail
-    recursion. Our language compilers should do that… that's very, very possible from our
-    perspective." Tail recursion lowers to a substrate `loop` (state ← R·state), so this makes
-    linear recursion run as a STACKLESS substrate loop (no host call stack, stays a real
-    RNN/fused graph). Apply uniformly in every frontend's lowering pass. Bounded + verifiable per
-    frontend: a linear non-tail recursive fixture compiles to a `loop` and runs == reference on
-    the substrate (measured, not "ran"). Independent of WASM — can proceed as soon as picked up.
-  - **(B) Multiple (tree) recursion → represent as WebAssembly.** Emma: non-tail recursion with
-    MULTIPLE recursive calls (tree recursion, e.g. naive `fib(n) = fib(n-1) + fib(n-2)`) genuinely
-    "would involve a stack," and "the only way that can actually be done is through a representation
-    of it as WebAssembly." WASM is to become a fundamental fallback runtime — "WebAssembly should
-    be something that can be used basically all the time… perhaps a fundamental part of a lot of
-    runtimes." Emma names the cost honestly: "I know this is a big workaround and it causes
-    problems, but this is the only way I can really see it working." Mechanism: lower a
-    tree-recursive function to WASM bytecode and run it on the substrate WASM machine — the mini
-    WASM machine is a RAM-state STACK machine, so the operand stack / call frames the tree
-    recursion needs live in its RAM (the DNC memory), not a host stack. DEPENDS ON Phase-5 WASM
-    work (the machine must first run a real stack-using `.wasm` function byte-for-byte). Bounded +
-    verifiable: a tree-recursive fixture (fib) lowers to WASM, runs on the substrate machine,
-    decodes == reference. (This supersedes the OCaml "Tree RNN" approach for genuine tree recursion
-    — Emma's call is WASM-representation, not a bespoke tree-shaped RNN.)
-- **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode + recursion lowering).**
-  The remaining per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion /
-  multi-arity / let-bound `with` source — see "Active — transpiler track" + the per-frontend
-  increment sections). Lowest priority of the active phases.
-- **Fill-in — full mathlib mixing rate.** When nothing above is immediately actionable,
-  do the full t→∞ mixing-rate proof (see the FV section below). (Reachable as fill-in; the
-  JS/JVM/Pyodide-Python VM targets are now Phase 5, not "eventually".)
+## 2. Phase 5 — real-WASM-bytecode core on the substrate (ACTIVE; WASM is the VM direction)
 
-## ✅ COMPLETE — Sutra → thrml (Extropic): submodule + compilation target (Emma 2026-06-13)
+WebAssembly is the VM direction (Emma 2026-06-17; JVM done + parked, no further JVM work).
+`experiments/iso5_substrate_dispatch/wasm_core.su` is the real-WASM-bytecode core (real opcode
+values + encoding so `wat→wasm` runs unmodified), the same RAM-state blended-dispatch DNC stack
+machine as `jvm_core.su`. Scoped in `planning/exploratory/2026-06-17-phase5-wasm-core-scoping.md`.
+Done so far: i32 arithmetic + single-byte signed LEB128 (`i32.const`/`add`/`sub`/`mul`/`end`/
+`return`), indexed locals (`local.get`/`set`/`tee`, computed `200+idx` cell), comparisons
+(`i32.eqz`/`eq`/`ne`/`lt_s`/`gt_s`/`le_s`/`ge_s`). Remaining ladder (each a compile-AND-run
+increment, verified == reference on the substrate):
 
-Emma's direction (2026-06-13): vendor Extropic's **`thrml`**
-(<https://github.com/extropic-ai/thrml>) as a git submodule and make it a Sutra
-**compilation target** — a thermodynamic / energy-based backend alongside the
-canonical PyTorch one. This is the second task in the queue (after the in-flight
-transpiler increment) and a multi-step track to expand as it goes.
+- [ ] **Step 3 — structured control.** `block`(0x02)/`loop`(0x03)/`if`(0x04)/`else`(0x05)/
+  `end`(0x0b)/`br`(0x0c)/`br_if`(0x0d). The big encoding difference from JVM (no goto-offsets):
+  use the load-time **pre-resolved target table** (scan body once at load, store absolute targets
+  in RAM) so the hot path stays JVM-shaped. Verify a `loop`+`br_if` countdown-sum on the substrate.
+- [ ] **Step 4 — a real `wat→wasm` function byte-for-byte.** Compile a tiny iterative factorial
+  from `.wat` (`wat2wasm`/`wasm-tools` — verify the tool is present first, else hand-assemble exact
+  spec-layout bytes), extract the function body bytes, load + run, decode == reference
+  (`fact(0..5)=1,1,2,6,24,120`). The JVM-factorial oracle, in WASM.
+- [ ] **Step 5 — tree recursion via `call`.** `call`(0x10) + a call-frame stack in RAM so a
+  tree-recursive `fib` lowers to WASM and runs on the substrate machine (the stack lives in
+  RAM/DNC memory, not a host stack). This is the Phase-5.5-B enabler.
+- [ ] **Multi-byte LEB128** (deferred from step 1): when a fixture needs a constant/index > 127,
+  decode continuation-byte LEB128 (operand length becomes data-dependent → affects pc advance).
 
-**⚠️ NON-DESTRUCTIVE / ADDITIVE-ONLY (Emma 2026-06-13).** The existing neural-
-network pipeline is a SEPARATE thing and must stay exactly as it is. thrml is an
-**additive command-line OPTION** — a new compile target selected by a flag (e.g.
-`--target thrml` / `--emit-thrml` / `--run-thrml`), with the default staying the
-PyTorch path. It does NOT rewire, replace, or alter `codegen_pytorch.py`, the
-`--emit`/`--run` behavior, or any existing test. If a change to the thrml backend
-would touch the shared pipeline destructively, that is NOT what Emma asked — stop
-and reconsider. The existing pipeline + all its tests stay green throughout.
+## 3. Recursion philosophy — analyze the references chat → plan + docs (Emma 2026-06-17)
 
-What thrml is (researched 2026-06-13): a **JAX** library for GPU block-Gibbs
-sampling of **energy-based models** on sparse heterogeneous graphs — Ising/spin
-nodes, factor graphs; public API `SpinNode` / `Block` / `SamplingSchedule` /
-`IsingEBM` / `IsingSamplingProgram` / `sample_states()`. It is Extropic's
-prototyping platform for their **thermodynamic sampling hardware (TSU)**. The
-resonance: Sutra is fuzzy-by-default (uncertainty IS ground truth); a
-thermodynamic sampler is a physical realization of fuzzy computation.
+**AFTER the WASM core (§2), BEFORE the transpiler long tail (§5).** Emma added a Claude chat to
+the references that gives a more fundamental, analytical discussion of how recursion is to be run
+in the language — the philosophy of how Sutra handles this. Source:
+`references/Converting single recursion to tail recursion - Claude.html` (re-download per the
+references policy if the cache is empty). Task: read that chat in full, then put together a
+concrete implementation plan + documentation + planning docs for how Sutra runs recursion
+(grounding/refining the Phase-5.5 strategy below). Deliverable: a planning/spec doc capturing the
+philosophy and the implementation plan it implies. Do NOT invent its contents — read it first.
 
-**This is an EXPLORATION LOOP (Emma 2026-06-13):** "I do not have a massive
-preconceived notion of how this works. Try various ways until we can get our
-computation to actually work on this hardware … a giant loop of constantly trying
-different ways until it actually works." So each work-loop tick = one attempt:
-pick an approach, RUN it on thrml, MEASURE, log it in the attempt log
-(`planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md`), iterate. We can
-change anything that doesn't work. Locked encoding interpretation: a Sutra value
-= an N-bit spin register (each bit a `SpinNode`).
+## 4. Phase 5.5 — recursion lowering: single→tail (compiler), multiple→WASM (Emma 2026-06-17)
 
-- [x] **0. Vendor + study — DONE 2026-06-13.** `external/thrml` submodule pinned
-  `db629a0`; API studied + README example RUN on JAX-CPU. Facts:
-  `planning/findings/2026-06-13-thrml-api-study.md`. JAX/equinox backend-only.
-- [x] **1–5 first-cut attempts — ALL WORK (2026-06-13).** Full measured log in
-  `planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md`: associative
-  memory (96.8% vs 0%), clamped retrieval (99.2% vs 50%), bind/unbind (100% via
-  3-body factor), addition (100% via sample-and-verify, after refuting min-energy
-  & weight-ratio), composed kv-query program (100% vs 0% raw). Value=bit-register,
-  ops=factors, results-by-sample(+verify) — the mapping runs real Sutra compute.
+Two-part strategy for NON-TAIL recursion, applied across ALL language frontends. Both come before
+the §5 long tail; Part B depends on the §2 WASM core. (Will be grounded/refined by §3.)
 
-### thrml — APPROACHES TO TRY (Emma 2026-06-14): implement each, then compare
+- [ ] **(A) Single (linear) non-tail recursion → tail recursion — a compiler transform.** A single
+  linear recursive call not in tail position (e.g. `fact(n)=n*fact(n-1)`) is turned into tail
+  recursion by the frontend lowering. Tail recursion lowers to a substrate `loop` (state ← R·state)
+  → stackless, stays a real RNN/fused graph. Apply uniformly in every frontend. Independent of WASM.
+  Verify per frontend: a linear non-tail recursive fixture compiles to a `loop` and runs ==
+  reference on the substrate.
+- [ ] **(B) Multiple (tree) recursion → represent as WebAssembly.** Tree recursion (multiple
+  recursive calls, e.g. `fib(n)=fib(n-1)+fib(n-2)`) genuinely needs a stack; lower it to WASM
+  bytecode and run on the §2 substrate WASM machine (call frames live in RAM/DNC memory). WASM
+  becomes a fundamental fallback runtime. Emma: "a big workaround… but the only way I can really
+  see it working." Supersedes the OCaml Tree-RNN for genuine tree recursion. Depends on §2 step 5.
+  Verify: a tree-recursive fixture (fib) lowers to WASM, runs on the substrate, decodes == reference.
+  (Follow-on analysis item at the end of `todo.md`: when the WASM compatibility layer is needed
+  vs lower directly, per-language/per-context.)
 
-> The first-cut used hand-built factors + per-op decode. Emma wants the *distinct
-> systems* I suggested each implemented and MEASURED, then compared head-to-head.
-> Each is its own attempt (RUN + measured + logged in the attempt log). Barrel
-> through them top to bottom.
+## 5. Phase 6 — transpiler long-tail (LAST of the active phases)
 
-- [ ] **A. Sample-and-verify as the general method.** Generalize the validated
-  #4c pattern beyond addition: encode 2–3 more ops as constraint factors
-  (equality/compare, select/mux, small multiply) → sample → verify → select.
-  Establish "constraint-program → sample-and-verify" as a general compilation
-  strategy; measure fidelity + samples needed per op.
-- [ ] **B. Ground-state encoding + annealing.** The contrast to A: design proper
-  penalty gadgets (e.g. full-adder with an auxiliary spin) so the answer is the
-  STRICT global min, and reach it with an annealing β-schedule (staged sampling)
-  — target ~100% with a plain modal/min-energy decode, NO verifier. Compare cost
-  + fidelity vs A.
-- [ ] **C. Trainable couplings (the constrain-train link).** Instead of
-  hand-deriving factor weights, LEARN them with thrml's `IsingTrainingSpec` /
-  `estimate_kl_grad` (KL-gradient moment matching) so the model reproduces a
-  target op's I/O distribution. Ties thrml to Sutra's constrain-train vision;
-  measure learned-vs-handbuilt fidelity.
-- [ ] **D. Categorical-node encoding.** Represent a Sutra value as a thrml
-  `CategoricalNode` (k-state) instead of an N-bit spin register; redo a couple of
-  ops; compare fidelity, spin/dim cost, and which ops are cleaner.
-- [ ] **E. Joint-EBM composition.** Compose a multi-op program (the kv-query, or
-  bind→cleanup) as ONE energy model with competing factors + a single sampling
-  run, vs the staged host-handoff of #5; compare fidelity + whether it removes the
-  readout boundary.
-- [ ] **F. Denser / structured codes.** Push associative-memory capacity beyond
-  the measured ~0.14·N Hopfield wall with structured codes (block/ECC-style);
-  measure the capacity gain vs random ±1 registers.
-- [x] **G. codegen_thrml backend — DONE through op-graphs (2026-06-14).** Additive
-  `--emit-thrml` flag + `codegen_thrml.translate_thrml` (non-destructive:
-  `codegen_pytorch.py` / `--emit` / `--run` untouched, guarded by tests). Lowers a
-  `main` body of `vector tmp = bind/unbind(x,y);` intermediates + `return …` over
-  `basis_vector` atoms to a self-verifying thrml program: value = 16-bit spin
-  register, bind/unbind = the 3-body product factor, atoms clamped,
-  intermediates+result sampled jointly. `examples/thrml_bind.su` (1 op) and
-  `thrml_roundtrip.su` (`unbind(bind(a,b),a)=b`, 2 factors) compile AND sample =
-  **1.000** per-bit. `tests/test_codegen_thrml.py` 4/4. Unsupported constructs raise
-  `ThrmlCodegenNotSupported` (no silent mislowering). Future extension (not
-  blocking H): `bundle` + `unbind`+cleanup (the kv-query) need a codebook-cleanup
-  decode; `==`/AND need the gadget lowering — open design points, deferred.
-- [x] **H. COMPARE ALL — DONE 2026-06-14.** Head-to-head of A–G (measured table +
-  cross-cutting trade-offs + recommendation) in
-  `planning/findings/2026-06-14-thrml-approaches-comparison.md`. Standardize on:
-  bit-registers + sample-and-verify (A) as the default lowering (general, robust,
-  what G targets); ground-state decode (B) as the verifier-free fast path for
-  sign-correct gadgets; categorical (D) for small-domain maps; structured codes
-  (F) + trainable couplings (C) for associative-memory capacity; staged
-  composition by default, joint-EBM (E) only for readout-purity. Optional
-  follow-up: a human-facing `docs/` page (the capability is website-worthy).
-- [x] **Hardware-alignment notes — DONE 2026-06-14.**
-  `planning/findings/2026-06-14-thrml-hardware-alignment.md`. Grounded in the
-  Extropic TSU paper (vendored): chip = sparse, locally-connected, **pairwise**
-  p-bit grid sampling via two-color block Gibbs; **host programs weights + reads
-  the result** (matches our host-side verifier/decode/compositor). Non-obvious
-  finding: our **AND + carry gadgets are already pairwise → TSU-native**;
-  bind/XOR/parity (3-/4-body) need a local auxiliary-spin reduction; dense Hopfield
-  memory (all-to-all) is the LEAST chip-aligned (a prototyping-layer strength).
-  Refined recommendation: keep graphs sparse + 2-body for the chip; the
-  gate-circuit + sample-and-verify path is the most TSU-aligned compute path.
+Per-frontend remaining edge cases. Each: fixture-tested + RUN on the substrate against ground
+truth. New frontends model on `sutra-from-ocaml` (the reference). `transpilers-ci.yml` runs all 9
+frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
 
-**⟹ The Sutra→thrml track (A–H + codegen + hardware notes) is COMPLETE.** Next
-queue item is the FV-in-Lean section below, then the a1 demo.
+- [ ] **F#** (`sutra-from-fsharp/`): nested tuple/record patterns (`let (a,(b,c))=t`); nullary
+  variant as a direct function RETURN (`let f () = North`); record-update from a LET-BOUND
+  (non-param) source (`let q = {b with …}`, needs literal-type inference).
+- [ ] **Scala** (`sutra-from-scala/`): nested patterns; case-class pattern PARAMS (`def f(Point(x,y))`).
+- [ ] **Elixir** (`sutra-from-elixir/`): multi-clause/guarded bodies with `=` bindings; >2-clause
+  recursion (2-clause base+rec only now); `is_integer`-style type-test guards.
+- [ ] **Erlang** (`sutra-from-erlang/`): map PATTERN params (`#{x := X}` in a head); multi-clause
+  bodies with `=` bindings; >2-clause recursion; list comprehensions; `div`/`rem` via complex
+  rotation (NOT `Math.mod`).
+- [ ] **Clojure** (`sutra-from-clojure/`): symbol map keys (needs symbol-as-value rep); maps/vectors
+  in recursive bodies; nested destructuring (`[[a b] c]`); multi-arity `defn`; `case` symbol/keyword
+  members (needs keyword-as-value rep).
+- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard guarded recursion; multi-equation guarded
+  recursion (`f 0 acc | …; f n acc | …`); mutually-recursive/forward `where`/`let`; nested/
+  non-variable constructor `case` patterns; nested tuple/constructor `let` patterns; `case` in
+  non-tail expression position. (Laziness out of scope.)
+- [ ] **Rust** (`sutra-from-rust/`): nested match inside a tail-match arm; nested tuple patterns
+  (`let (a,(b,c))=t`); enum/`Some(x)`-pattern `let` destructuring. (Loop bounds need strict `<`/`>`;
+  `<=` drops the boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
+- [ ] **OCaml arrays — scalable RAM device for the 10MB linear memory.** `Bytes.make` / loop-carried
+  arrays use the global RAM list, which doesn't scale to 10MB. Also: non-zero `Array.make` fill for
+  int-dict arrays (slots start at 0 — documented limit, not a bug).
+- [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
+  when two interfaces share a field name with different types.
+- [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
+  distinct from the §2 wasm_core VM).
 
-HARD RAILS: every op runs on the (sampling) substrate; no faked results; RUN +
-MEASURE every attempt (gap vs baseline, never asserted); read thrml's ACTUAL API
-(NO MATH SHORTCUTS / no invented primitives). Failed attempts are logged as
-negative results, not hidden.
+## 6. Python via Pyodide/Wasm (future leg, after the §2 WASM core)
 
-## Active — transpiler track (source -> Sutra) — continues (now second to the thrml track)
+No direct CPython VM (a trap — pure CPython bytecode is useless without C extensions). Python rides
+the WASM leg via **Pyodide** (CPython + NumPy/SciPy/pandas compiled to Wasm) → the WASM frontend →
+substrate. Standout research angle once WASM/thrml is solid: **physical-entropy NumPy** — wire
+NumPy's random draws to the thermodynamic substrate's native sampling entropy (not a PRNG) for
+genuinely physical randomness, unifying Sutra's randomness story. (Verbatim rationale in git
+history of this file, pre-2026-06-17 cleanup.)
 
-### 🔍 Daily substrate-honesty audit — 2026-06-17
+## 7. Merged WASM-repo items (`WASM/` subtree)
 
-Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
+Completed WASM items live in `WASM/devlog.md`. Overview `docs/neural-webassembly.md`.
 
-> New-language frontends are the loop's active track (Emma roadmap order:
-> Scala → F# → Elixir/Erlang → Clojure → Haskell → Rust → WASM). Each models on
-> `sutra-from-ocaml` (the reference frontend; OCaml `let rec` incl. non-tail
-> recursion is done — foldable CPS transform + Tree RNN, see DEVLOG/findings).
-> Roadmap: todo.md §"Multi-language transpiler frontends".
+- [ ] **ISO-5 remaining:** (a) breadth — the other ~23 opcodes (DIV/REM, shifts, stack ops, same
+  blended dispatch); (b) a SCALABLE RAM device for the 10MB linear memory; (c) ground-truth `.txt`
+  build — BLOCKED locally (`uv`/`clang` missing), route through CI. Open idea: one-hot opcode masks
+  as loop state (avoids the literal-vs-loop-state `==` defuzz blocker, finding `2026-06-06-iso5-…`).
+- [ ] **Pruned-transformer 6-program byte-for-byte oracle:** the reduced core is built + locally
+  output-identical 8/8 random inputs. Generate the 6 programs' `.wasm`+token-prefix+`_ref.txt`
+  fixtures ONCE on a clang-equipped CI job, commit them, then verify the pruned core reproduces all
+  6 byte-for-byte (decoded == ref). Local submodule branch (don't push to Percepta).
+- [ ] **E3 — native `i32.sat_add_u` opcode** (spec `WASM/notes/e3_native_opcode_spec.md`; impl
+  remaining): add to OPCODES/STACK_DELTA, result_byte/result_carry, `reference.py` + both isomorphs,
+  `compile_wasm.py`, a test program; rebuild weights; end-to-end vs reference; no regression on the 6
+  programs; re-run `iso_equiv.sh`. Local submodule branch.
+- [ ] **Optional — hull Python path:** `apt install python3-dev`, then `uv run wasm-eval --hull`;
+  quantify hull (O(log n)) vs `--nohull` to substantiate the attention-scaling claim.
+- [ ] **Yantra OS integration** — forward goal; design `WASM/notes/yantra_integration.md` (P0–P6).
 
-- [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through tuples `(a, b)` →
-  positional-key axons (`int * int` param → Axon, `fst`/`snd` → `_0`/`_1`, let-bound
-  construction) + `let (a, b) = t` tuple-pattern destructuring shipped 2026-06-16,
-  suite 28/28): nested tuple/record patterns (`let (a, (b, c)) = t`); nullary variant as a
-  direct function RETURN (`let f () = North` — arg + let-value positions done, return needs the
-  prelude+return shape); record-update from a LET-BOUND (non-param) source (`let q = {b with …}`
-  where b is a record literal — needs literal-type inference; param-typed source done). [`let {
-  x = a } = p` record-pattern + `let (Circle r) = s` DU-case-pattern destructuring + record
-  functional-update `{ p with x = 9 }` (param-typed source: override + copy non-overridden) +
-  tuple/record/DU construction DIRECTLY in ARGUMENT position (arg-hoist parity) + nullary DU
-  variants in value
-  position (`code South` → `{_tag}` axon) shipped 2026-06-16, suite 38/38.] Measured grammar
-  quirk: parenthesize call operands under infix. [Scala 24/24 — `val (a, b) = t` tuple-pattern (1-based keys) + `val Point(a, b)
-  = p` case-class-pattern destructuring done 2026-06-16; remaining Scala: nested patterns,
-  case-class pattern PARAMS (`def f(Point(x, y))`).]
-- [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
-  positional-key axons + `elem(t, i)` access + `{a, b}` tuple-PATTERN + `%{x: a}` map-PATTERN
-  + `%Name{x: a}` struct-PATTERN params + do-block `=` pattern-match destructure (`{a, b} = t`)
-  + multi-clause recursion — SINGLE-PARAM (`def fac(0)/fac(n)`), MULTI-PARAM tail (`def
-  sum(0, acc)/sum(n, acc)`), AND GUARDED-base (`def fac(n) when n == 0/def fac(n)`) shipped
-  2026-06-16, suite 42/42): multi-clause/guarded bodies with `=` bindings (single-clause only
-  now); >2-clause recursion (2-clause base+rec only now); `is_integer`-style type-test guards
-  (`and`/`or` chains already lower via `_OP_MAP`). (Erlang is its own frontend — port the
-  guarded-base recursion there next.)
-  > **F# RECORDS → axons SHIPPED 2026-06-16.** All prereqs done: (a) typed-param
-  > extraction (`(p: Point)`); (b) let-SEQUENCE bodies; (c) a let-bound construction
-  > hoist — `_PRELUDE` accumulator emits record `{ x = a }` literals as `Axon q;
-  > q.add("x", a);` statements before the return, `_AXON_VARS` tracks axon-typed names
-  > so `p.x` dispatches to `realvec(p.item("x"))`, `_RECORD_TYPES` (prepass on
-  > `record_type_defn`) types `(p: Point)` params as `Axon`. Fixture `record_axon`
-  > runs on substrate → 13. NEXT for F#: DU variants → tagged axons (the dedicated
-  > "F# next increments" bullet above now covers it).
-- [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through data vectors `[a b]`
-  → positional-key axons + `(nth v i)` access + `(let [[a b] v] …)` vector + `{:keys [..]}` /
-  `{a :x}` map destructuring shipped 2026-06-16, suite 36/36; `_collect_binding_vecs` +
-  `_mark_binding_pattern` keep binding vectors/maps AND nested patterns from being hoisted as
-  data): symbol map keys (needs a symbol-as-value rep); maps/vectors in recursive bodies;
-  nested destructuring patterns (`[[a b] c]`); multi-arity `defn`; `case` symbol/keyword test
-  members (needs a keyword-as-value rep).
-- [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through tuples `(a, b)` →
-  positional-key axons (`(Int,Int)` sig → Axon, `fst`/`snd` → `_0`/`_1`, arg-position hoist)
-  + `let (a, b) = t` tuple-pattern + `let (Wrap a b) = w` single-constructor-pattern
-  destructuring + multi-equation recursion — both SINGLE-PARAM (`fac 0/fac n`) AND MULTI-PARAM
-  tail (`sum 0 acc = acc; sum n acc = sum (n-1) (acc+n)`, base-equation var renaming) +
-  GUARDED recursion — single-param (`fac n | n == 0 = 1 | otherwise = n*fac (n-1)`) AND
-  multi-param tail (`sumTo n acc | n == 0 = acc | otherwise = sumTo (n-1) (acc+n)`) shipped
-  2026-06-16, suite 34/34; laziness out of scope): >2-guard guarded recursion (2-guard
-  cond+otherwise only now); multi-equation guarded recursion (`f 0 acc | … ; f n acc | …`);
-  mutually-recursive/forward `where`/`let` bindings; nested/non-variable constructor `case`
-  patterns; nested tuple/constructor `let` patterns; `case` in non-tail expression position.
-- [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through tuples `(a, b)` →
-  positional-key axons + `p.0`/`p.1` access + `let (a, b) = t` tuple-pattern + `let Point
-  { x, y } = p` struct-pattern destructuring + nullary-variant values (`Dir::South` → `{_tag}`
-  axon, scoped match patterns guarded from the value-hoist via `.parent`) shipped 2026-06-16,
-  + nullary-variant `let` value (`let d = Dir::South` → Axon-typed local) shipped 2026-06-16,
-  suite 36/36): nested match inside a tail-match arm; nested tuple patterns (`let (a, (b, c)) =
-  t`); enum/`Some(x)`-pattern `let` destructuring.
-  (Loop bounds need strict `<`/`>` — `<=` drops the boundary iteration, finding
-  `2026-06-13-while-loop-le-boundary-equality-defuzz`; same caveat applies to the negated
-  *break* condition, so write `if i >= n { break; }`.)
-- [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree.
-- [ ] **OCaml arrays — RAM device for the 10MB linear memory.** `Bytes.make` and
-  loop-carried arrays use the global RAM list, which doesn't scale to 10MB. A
-  scalable RAM device is the remaining array work (the ordinary-array →
-  int-dict split shipped 2026-06-13; see below). Also: non-zero `Array.make`
-  fill value for int-dict arrays (slots start at 0; straight-line arrays write
-  before read, so this is a documented limit, not a bug).
-- [ ] **TS follow-on (low priority):** per-variable interface typing so field-type
-  lookup is exact when two interfaces share a field name with different types
-  (current global map marks collisions non-numeric to stay safe; no fixture needs it).
-  > **`transpilers-ci.yml` SHIPPED 2026-06-16 (Emma greenlit "full CI including
-  > F#/Erlang/Clojure" via AskUserQuestion).** Runs all 9 frontend suites
-  > (compile-AND-run on the substrate) on push/PR to `sdk/sutra-from-**`: pip-installs
-  > the 6 wheel grammars + torch + the compiler, and gcc-builds the F#/Erlang/Clojure
-  > tree-sitter grammars into `.so` on the Linux runner (the loaders are now
-  > platform-aware: `.dll` on win32, `.so` elsewhere). Verify the run goes green and
-  > iterate if a grammar build / ABI mismatch shows up. (The compile-AND-run bar is
-  > already met by each frontend's own harness.)
+## 8. RAM inline `await` — blocked remainder
 
-## Next-venue paper polish (UNFROZEN — active)
+- [ ] **`await` inside a non-async `recur`** — BLOCKED on the await→while_loop lowering
+  (promises.md); hits `CodegenNotSupported`. The synchronous-`ramRead`-in-`recur` form already gives
+  the read head. Do NOT hack the desugar without settling the semantics.
 
-`paper/paper.md`: ablation table for the §3.7 weighted-Equals training is DONE
-(2026-06-13, measured: full/prototypes-only/gain-only — prototypes carry the
-separation, the gain is co-adapted not load-bearing;
-`experiments/differentiable_training_ablation.py`). Remaining optional polish:
-a capacity-style ablation (mean-centering on/off, dimension sweep) if wanted —
-measured numbers only, never from memory.
+## 9. FV fill-in — full mixing-rate proof (lowest priority)
 
-## 🌐 Merged queue — from the Neural WebAssembly (`WASM/`) repo
+- [ ] **Sampler-convergence full t→∞ mixing RATE / spectral-gap** in `fv-lean/mathlib/` (mid-size
+  step done: `GibbsMathlib.lean` machine-checks reversibility⟹stationarity + the gadget kernel +
+  2-state uniqueness, `lake build` green). Do the spectral-gap contraction to the Gibbs measure for
+  the gadget chain. Fill-in only — when nothing above is actionable. Local-verified (heavy toolchain).
 
-> Items merged from `EmmaLeonhart/neural-webassembly` when subtreed into `WASM/`
-> (2026-06-06, full history). Completed WASM items live in `WASM/devlog.md` +
-> that repo's git log. Long-horizon WASM items: merged agenda atop `todo.md`.
-> Overview: `docs/neural-webassembly.md`.
+---
 
-- [ ] **ISO-5 remaining** (the substrate WASM machine core is built + Turing-complete,
-  21 opcodes, CI 30/30 `test_mini_wasm_machine.py`; see findings `2026-06-06-iso5-*`):
-  (a) breadth — the other ~23 opcodes (same blended dispatch; DIV/REM, shifts, stack
-  ops); (b) a SCALABLE RAM device for the 10MB linear memory (host RAM-list doesn't
-  scale); (c) ground-truth `.txt` build — BLOCKED locally (`uv`/`clang` missing;
-  `iso_equiv.sh` uses WSL), route through CI like the oracle item below.
-  Open idea for per-tick dispatch: one-hot opcode masks carried as loop state
-  (avoids the measured literal-vs-loop-state `==` defuzz-false blocker, finding
-  `2026-06-06-iso5-full-machine-handedit-and-dispatch-blocker.md`).
-- [ ] **Pruned-transformer 6-program byte-for-byte oracle** (the one open step; the
-  reduced core is built + locally verified output-identical 8/8 random inputs).
-  Emma's decision 2026-06-06: generate the 6 programs' `.wasm` + token-prefix +
-  `_ref.txt` fixtures ONCE on a clang-equipped path — preferred a GitHub Actions job
-  (runners have clang/llvm) running `ensure_data()` + `generate_all()` and committing
-  the fixtures back — then verify the pruned core reproduces all 6 byte-for-byte
-  (decoded == ref, MEASURED — not "ran"). Local submodule branch for model edits
-  (don't push to Percepta). HARD RAIL: "still works" means decoded output == reference.
-- [ ] **E3 — integrate a native `i32.sat_add_u` opcode (spec done; impl remaining).**
-  Spec `WASM/notes/e3_native_opcode_spec.md`. The build (own session): add to
-  `OPCODES`/`STACK_DELTA`, `result_byte`/`result_carry`, `reference.py` + both
-  isomorphs, `compile_wasm.py`, a test program; rebuild weights (MILP solves);
-  end-to-end vs reference; no regression on 6 programs; re-run `iso_equiv.sh`.
-  On a local submodule branch (don't push to Percepta).
-- [ ] **Optional — hull Python path.** `apt install python3-dev`, then
-  `uv run wasm-eval --hull` / `pytest -m "not slow"`; quantify hull (O(log n)) vs
-  `--nohull` to substantiate the attention-scaling claim.
-- [ ] **Yantra OS integration** — forward goal; design in
-  `WASM/notes/yantra_integration.md`; phased P0–P6 in the merged `todo.md` agenda.
+## Background / not active work
 
-## RAM inline `await` — one blocked remainder
-
-The inline surface (`ramRead`/`ramWrite` + `await` in async fns + the recur read
-head) is shipped + guarded (`test_ntm_ram.py` 11/11). Remaining:
-
-- [ ] **`await` inside a non-async `recur`** — BLOCKED on the await→while_loop
-  lowering phase (promises.md); hits `CodegenNotSupported`. The synchronous-
-  `ramRead`-in-`recur` form already gives the read head functionally. Do NOT hack
-  the desugar without settling that semantics. (Follow-ups in todo.md: the
-  lowering itself; model-free hash-keyed-role axon for the mailbox dim cost.)
-
-## W2C / corpus (not active work)
-
-Corpus at 7200 programs (submodule `corpus/` + HF mirror, consistency-guarded).
-The official baseline model is PUBLISHED (Emma greenlit 2026-06-12): `corpus/model/`
-carries checkpoint + vocab + substrate eval (exact 0.811 / IO 0.826), on GitHub
-(`7dfb660a`) + HF (`fbf07a2d`). The coefficient wall stands measured (structure
-transfers ~1.0; coefficient families drag — data-bound at least partially). Scale
-further = one-flag bump on `experiments/weight_to_code_corpus.py` → push submodule →
-HF mirror → bump pointer. Loose end (low priority, default leave): 5760 old-layout
-flat CSV orphans on HF — if tidying, precise explicit-path delete (NOT a `*.csv`
-wildcard) + harden `mirror_corpus_to_hf.py` to prune stale files.
-
-## Formal verification (roadmap lives in formal-verification.md + todo.md)
-
-Discharged set + open obligations are authoritative in
-`planning/sutra-spec/formal-verification.md` (key-soundness discharged
-2026-05-29). Remaining substantive work, in order: (1) k=8 → real capacity
-curve; (2) PIT term-count honesty; (3) widen/tighten the decided fragment;
-(4) general obligation checker. These are longer-horizon → `todo.md`.
-Keep `paper/formal-verification/paper.md` updated as each lands (CI
-auto-submits to clawRxiv on push).
-
-## Watchdogs (verification, not new work)
-
-- Hourly local cron: runs `test_await_substrate_pure.py` + greps
-  `codegen_pytorch.py` for the `await_value` leak signatures; reopens an
-  item here if anything regresses.
-- Daily remote routine (claude.ai cloud): spec-audit pass over
-  `planning/sutra-spec/*.md` vs the runtime; commits findings.
-- Daily substrate-honesty audit (`.github/workflows/daily-audit.yml`)
-  prepends an audit item; discharge it (review commits since the last
-  audit vs CLAUDE.md §"Subtler substrate breaches") then delete it.
+- **W2C/corpus:** 7200 programs (submodule `corpus/` + HF mirror); baseline model PUBLISHED
+  (exact 0.811 / IO 0.826). Scale = one-flag bump → push submodule → HF mirror → bump pointer.
+  Loose end (low priority): 5760 old-layout flat-CSV orphans on HF — precise explicit-path delete
+  if ever tidying (NOT a `*.csv` wildcard).
+- **Watchdogs (verification, not new work):** hourly local cron (`test_await_substrate_pure.py` +
+  `await_value` leak grep); daily remote spec-audit (claude.ai); daily substrate-honesty audit (§1).
+- **Doc audit (end-of-queue standing, Emma 2026-06-16):** Sutra is a BUSINESS — comprehensive audit
+  + rework of ALL docs (website `docs/`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `paper/` framing,
+  `sdk/*/README.md`, `planning/sutra-spec/`): contradictions, stale claims, dead website refs,
+  business framing, undocumented capabilities. Plan into per-surface steps when reached; grep, don't
+  trust memory. Do NOT start until the phases above are clear unless Emma re-prioritizes.
+- **Parked / longer-horizon (in `todo.md`):** C→Sutra transpiler (parked, keep in tree); Promises
+  Stage-3 / container-method-dispatch / multi-statement try-catch; TS transpiler closeout; website
+  visual remake; Yantra migration tail; NTM/attention-on-RAM breadth backlog.
 
 ## Pinned tail (always present — bracket every session)
 
-Per the autonomous-loop skill lifecycle: a fresh session starts the crons up
-front; the tail ensures they're still running + summarizes. Not consumed
-between fires.
-
-- **A. Ensure the crons run** (`CronList`; re-create work-loop :03,
-  auto-flush :15, status-report :42, AskUserQuestion blocker-sweep :50 if
-  missing; `durable: false`).
-- **B. End-of-session status report** (reporting only, no commits): what
-  advanced (shas + one-line), queue state, how the rails held, blockers,
-  test health.
-
-## Parked / longer-horizon (in todo.md)
-
-C → Sutra transpiler (`sdk/sutra-from-c/`, parked, keep in tree); Promises
-Stage-3 / container-method-dispatch / multi-statement try-catch; TS
-transpiler closeout; website visual remake; Yantra migration tail (dim-audit
-`examples/*.su`; migrated-demo docs/headers; lessons-learned writeup);
-NTM/attention-on-RAM breadth backlog (trainable-query `.su`; composed-network
-end-to-end training; more parse tasks; multi-head comparison — track closed
-by Emma 2026-06-08, breadth only).
-
-## Erlang frontend — next increments (MVP shipped 2026-06-14, suite 12/12)
-
-`sdk/sutra-from-erlang/` is built: grammar DLL via `build_grammar.py` (WhatsApp
-tree-sitter-erlang, parser.c+scanner.c → `_grammar/erlang.dll`); lowering covers
-functions/calls/binary-ops, `if`/`case` → blend, multi-clause heads + `when` guards →
-dispatch blend, `if`-based tail rec → `while_loop`, foldable non-tail → CPS. Remaining:
-
-- [ ] **Erlang increments** (through records `#name{f=v}` → named-field axons +
-  `R#name.f` access + `{A, B}` tuple-PATTERN + `#point{x=X}` record-PATTERN params + body
-  `=` match destructure (`{A, B} = P`) + multi-clause recursion — SINGLE-PARAM (`fac(0)/fac(N)`),
-  MULTI-PARAM tail (`sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1, Acc+N)`, base-clause var
-  renaming), AND GUARDED-base (`fac(N) when N == 0 -> 1; fac(N) -> …`) shipped 2026-06-16, suite
-  30/30; the `-record` decl is skipped, name dropped): map PATTERN params (`#{x := X}` in a head);
-  multi-clause bodies with `=` bindings (single-clause only now); >2-clause recursion (2-clause
-  base+rec only now); list comprehensions; `div`/`rem` via complex rotation (not `Math.mod`).
-
-## Formal verification of thrml gadgets in Lean + clawRxiv loop (Emma 2026-06-14)
-
-Per the ACTIVE DIRECTIVE at the top: the FV-paper research loop (respond to
-critiques + expand toward a Strong Accept) is **Phase 3**, after Erlang + the
-transpiler backlog (Phase 1) and the architecture/paper integration (Phase 2). The
-gadget Lean proofs + mid-size mathlib are done; what remains here is the clawRxiv
-loop toward Strong Accept (Phase 3) and the full mixing-rate mathlib (fill-in).
-
-Emma's direction (clarifying her 2026-06-14 queue seed): take the energy-based
-gadgets validated in
-`planning/open-questions/2026-06-13-sutra-to-thrml-mapping.md` and **formally
-verify them in Lean** — i.e. prove the things currently shown only by measurement:
-the correct answer is the strict global energy minimum (AND/adder/multiplier
-gadgets), and the sampler converges to it. Then **run the autonomous clawRxiv
-research loop** on the writeup. **"stochastic ODEs"** is Emma's hint for the
-convergence theory — the continuous-time limit of block-Gibbs / Langevin dynamics
-is a stochastic ODE/SDE, the natural frame for a proof that the thermodynamic
-sampler reaches the ground state.
-
-**STARTED 2026-06-14.** Lean4 (via elan, core only — no mathlib) installed.
-`fv-lean/AndGadget.lean`: the **AND gadget ground-state is machine-checked** —
-`and_gadget_min` (correct output attains the min) + `and_gadget_strict` (every
-wrong output strictly higher → unique minimiser), axioms `[propext, Quot.sound]`,
-NO sorry. Runner `scripts/check_fv_lean.sh`. So what A2 measured (100%) and C
-re-learned is now formally correct. `fv-lean/XorGadget.lean` (the 3-body XOR — pins
-the correct sign that the 2026-06-14 bug got wrong) and `fv-lean/FullAdder.lean`
-(sum=parity + carry=majority → addition's ground state is provably the correct
-(s,cout)) are also machine-checked, no sorry. The 2×2 multiplier is these gates
-composed, so its correctness follows. The gadget-FV result is recorded in the
-authoritative FV spec (`planning/sutra-spec/formal-verification.md` § "thrml
-compile-target"). Remaining:
-- [x] **clawRxiv writeup — DONE 2026-06-14.** Added §7 "A second compile target"
-  to `paper/formal-verification/paper.md` (gadget ground-states machine-checked in
-  Lean; honest "what this does not yet prove" on convergence) + abstract clause +
-  conclusion road-ahead; Conclusion renumbered §7→§8. The push auto-submits via
-  `fv-paper-ci.yml` → runs the clawRxiv loop (review lands under `paper/reviews/`).
-- [ ] **Sampler-convergence — full t→∞ mixing RATE (GREENLIT by Emma 2026-06-14 21:06
-  as fill-in work — "do the full mathlib" when nothing else is pending).** The
-  mid-size step is DONE: `fv-lean/mathlib/GibbsMathlib.lean` (isolated Lake project,
-  mathlib v4.30.0) machine-checks `stationary_of_detailedBalance` (reversibility ⟹
-  stationarity, general finite chain), `gibbsKernel_detailedBalance` +
-  `gibbsKernel_stationary` (the gadget's real-`exp` Gibbs kernel is reversible → the
-  Gibbs measure is stationary), and `stationary_unique_two_state` (2-state
-  Perron–Frobenius uniqueness) — all `[propext, Classical.choice, Quot.sound]`, no
-  sorry, `lake build` green. Combined with the core-only irreducibility/aperiodicity:
-  positive + irreducible + reversible finite chain ⟹ unique stationary = Gibbs. NOW
-  DO: the t→∞ **mixing rate** / spectral-gap (full TV-mixing convergence) in the same
-  `fv-lean/mathlib/` project — the spectral gap of the reversible kernel / contraction
-  to the Gibbs measure. Mathlib has finite-Markov / spectral infrastructure; scope to
-  the gadget chain. Fill-in priority: do when the Erlang + integration + FV-loop work
-  below has no immediately-actionable item. Local-verified (heavy toolchain, not CI).
-
-Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
-`paper/formal-verification/paper.md`, the clawRxiv loop). Scope is settled by
-Emma's clarification above (verify the gadgets in Lean + run the clawRxiv loop);
-just do it when the loop reaches it.
-
-## Phase 5 — VM/bytecode targets for maximum imperative functionality (Emma 2026-06-14 21:17; priority RAISED 2026-06-17)
-
-**PRIORITY RAISED (Emma 2026-06-17): this is now Phase 5 — runs right after the FV-paper
-clawRxiv cycles (Phase 4), BEFORE the transpiler long-tail (Phase 6). No longer "very end of
-the queue." The plan below is unchanged; only its position moved up.**
-
-Emma's framing: implementing **JS + WASM + CPython + JVM** as bytecode/VM targets in
-Sutra would, taken together, be the best comprehensive route to **maximum imperative
-functionality** in Sutra — "even though all of it is a bit weird." This is the
-neural-VM direction (the same shape as the already-built Neural WebAssembly machine in
-the `WASM/` subtree, which is the WASM leg): build a substrate program that interprets
-each VM's bytecode, so any language compiling to that bytecode runs on Sutra.
-
-**Update (Emma 2026-06-14 21:26): CPython folds into WASM** (CPython-direct is a trap;
-Python rides Pyodide/Wasm Python through the existing WASM frontend — see the dedicated
-leg below). So the effective legs are **WASM (+ Python via Pyodide), JS, JVM**.
-
-The legs:
-- **WASM** — already underway: the substrate WASM machine (`WASM/`, Turing-complete,
-  21 opcodes, ISO-5; see the merged WASM queue section above). This is the proof the
-  approach works; the others generalize it.
-- **JS** — a JavaScript engine/bytecode target. (Distinct from the existing
-  `sutra-from-ts` *transpiler*, which lowers TS source to Sutra — this would be a JS
-  VM, the imperative-runtime route.) Weirdest of the four; scope TBD.
-- **CPython bytecode — TRAP; do NOT implement directly (Emma 2026-06-14 21:26).** A
-  standalone CPython VM is a dead end: nobody writes pure CPython bytecode, real
-  Python immediately reaches for C extensions, so a bare VM breaks on ~90% of code.
-  The correct route is **Pyodide/Wasm Python** → the existing WASM frontend (see the
-  dedicated leg below). So Python is folded into the WASM leg, not its own VM.
-- **JVM bytecode** — a JVM (interpret JVM bytecode on the substrate).
-
-### Python via Pyodide/Wasm — the correct route (Emma 2026-06-14 21:26)
-
-Emma's decision (chatbot info recorded verbatim for grounding — verify before relying):
-
-> Exactly right — CPython without its ecosystem is basically useless. Nobody writes
-> pure CPython bytecode, everything immediately reaches for extensions. It's a trap
-> because you'd implement the VM and then discover 90% of real Python code immediately
-> breaks on missing C extensions.
->
-> **Wasm Python (Pyodide essentially) is the correct approach** because:
-> - CPython itself compiled to Wasm
-> - NumPy, SciPy, pandas etc. compiled to Wasm
-> - The whole thing is self-contained and portable
-> - You get the actual ecosystem not just the interpreter
->
-> So the path would be:
->
->     Python source
->         ↓
->     Pyodide/Wasm Python runtime (self-contained)
->         ↓
->     Sutra via your existing Wasm frontend
->         ↓
->     Thermodynamic hardware
->
-> And since you already have Wasm working, Python basically comes for free if someone
-> has already done the Pyodide-style compilation work — which they have, it's open
-> source.
->
-> The interesting research question then becomes what happens to **stochastic Python** —
-> like if NumPy random draws from the thermodynamic substrate's natural entropy rather
-> than a PRNG, you get genuinely physical randomness essentially for free, which closes
-> the loop back to your randomness unification problem.
->
-> That's actually a really clean story for a paper or pitch — "we ran Python's ML
-> ecosystem on thermodynamic hardware and replaced synthetic randomness with physical
-> entropy."
-
-So: **no direct CPython VM**; Python rides the WASM leg via Pyodide. The standout
-research angle to chase once the WASM/thrml path is solid: **physical-entropy NumPy** —
-wire NumPy's random draws to the thermodynamic substrate's native sampling entropy
-(not a PRNG), giving genuinely physical randomness for free and unifying Sutra's
-randomness story. The pitch: Python's ML ecosystem on thermodynamic hardware with
-synthetic randomness replaced by physical entropy. (Ties to the thrml track: the
-sampler IS an entropy source.)
-
-Licensing / specs (info a chatbot gave Emma, recorded verbatim for grounding — verify
-before relying):
-
-> Yes, both are open source:
->
-> **CPython** — Python Software Foundation License (PSF), essentially BSD-style
-> permissive. The full source is on GitHub. So the bytecode spec, the VM
-> implementation, everything is available to study.
->
-> **JVM** — more complicated:
-> - The spec itself is openly documented (the Java Virtual Machine Specification is a
->   public document)
-> - OpenJDK is the open source reference implementation, GPL v2 with Classpath Exception
-> - Oracle's JDK is proprietary but OpenJDK is what most people use now
->
-> For your purposes the JVM spec is actually the most useful artifact — it's a formal
-> document describing the bytecode instruction set, type verifier, class file format
-> etc. People have built alternative JVM implementations (GraalVM, Azul) from it.
->
-> The practical question is whether anyone has done formal verification work on either
-> that you could build on the way you did with Wasm. My guess:
-> - **JVM** — probably some academic work, it's been around long enough and is
->   important enough
-> - **CPython bytecode** — less likely, it's less formally specified and changes
->   between Python versions
->
-> Worth searching before committing to implementing either from scratch.
-
-**First step when this is picked up:** search for existing *verified* specs / formal
-semantics for the JVM bytecode and CPython bytecode (as was leveraged for WASM) before
-implementing either from scratch — a verified spec to build on changes the cost
-dramatically. The JVM spec (formal bytecode instruction set + type verifier + class
-file format) is the most useful single artifact; CPython is less formally specified and
-drifts across versions, so pin a CPython version. Licenses (PSF for CPython, JVM spec
-public + OpenJDK GPLv2+Classpath) are permissive enough to study and build on.
-
-## 📚 Comprehensive Sutra documentation audit + rework (Emma 2026-06-16, very-end-of-queue)
-
-**End-of-queue standing item.** Sutra is a **business**, not a research project — the docs
-should read like a product/business's docs, coherent and current. Do a comprehensive
-audit and rework of ALL Sutra documentation: the website (`docs/`), `README.md`,
-`AGENTS.md`, `CLAUDE.md`, `paper/` framing, the `sdk/*/README.md` set, and
-`planning/sutra-spec/`. Check for: contradictions between surfaces, stale claims, dead
-internal refs on the website (humans-read-the-site rule), the right business framing, and
-gaps where a real capability is undocumented. Plan it into concrete per-surface steps when
-reached; verify against the codebase (grep, don't trust memory). Do NOT start until the
-GUI rebuild + the ACTIVE DIRECTIVE phases ahead of it are clear, unless Emma re-prioritizes.
+- **A. Ensure the crons run** (`CronList`; re-create work-loop :03, auto-flush :15, status-report
+  :42, AskUserQuestion blocker-sweep :50 if missing; `durable: false`).
+- **B. End-of-session status report** (reporting only, no commits): what advanced (shas +
+  one-line), queue state, how the rails held, blockers, test health.
 
 ## Pointers
 
-- Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`.
-- GUI: demos `demos/gui/`, experiments `experiments/gui_*.py`, paper
-  `paper/gui-steering/`, page `docs/gui.md`. Agenda: `todo.md` §"GUI".
-- Findings (dated): `planning/findings/`. Open design questions:
-  `planning/open-questions/`. Devlog: `DEVLOG.md`.
-- Corpus repo: `github.com/EmmaLeonhart/sutra-w2c-corpus` (submodule
-  `corpus/`) + `huggingface.co/datasets/EmmaLeonhart/sutra-w2c-corpus`.
-- Yantra (downstream OS): `../Yantra/`.
+- Substrate-leak catalogue: `Audit.md`. Longer-horizon: `todo.md`. Findings: `planning/findings/`.
+  Open design questions: `planning/open-questions/`. Devlog: `DEVLOG.md`.
+- Corpus: `github.com/EmmaLeonhart/sutra-w2c-corpus` (submodule `corpus/`) + HF mirror.
+- Yantra (downstream OS): vendored in-tree at `external/Yantra/`.
