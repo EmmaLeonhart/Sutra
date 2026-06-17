@@ -61,11 +61,13 @@ _Phase D-C ✅ COMPLETE (D5 RGB + D6 capacity). D5: colour reconstruction MSE 0.
 D6 capacity sweep (two-blob, 500 steps): H=8 → 0.0448/13.5 dB, H=32 → 0.0360/14.4 dB, H=64 →
 0.0135/18.7 dB — reconstruction improves monotonically with width, as expected._
 
-_Phase D-D — latent conditioning (generation, not just reconstruction):_
-- [ ] **D7 — latent-conditioned decoder.** `f(x, y, z)`; auto-decoder training over a small SET
-  of targets with per-image learned latents `z`; show `z`-interpolation generates between
-  images (the generative step — arbitrary-image generation from a latent).
-- [ ] **D8 — steer the latent by preference.** Reuse the ButtonAdam owner×CTR machinery to steer
+_Phase D-D — latent conditioning (generation):_
+- [ ] **D8 — steer the latent by preference.**
+
+_D7 ✅ done (THE GENERATIVE LEAP): latent-conditioned `f(x,y,z)` auto-decoder over 2 blob-position
+targets — reconstructs each from its latent (MSE 0.001), and lerping z_A→z_B sweeps the generated
+blob monotonically across the frame (centroid_x −0.34→+0.33). The latent continuously controls
+the output → generation, not just reconstruction. `render_decoder_latent_torch`/`fit_autodecoder`._ Reuse the ButtonAdam owner×CTR machinery to steer
   `z` (and thus the generated frame) — the LEARNED decoder meets the GUI steering loop.
 
 _Phase D-E — integration & writeup:_
