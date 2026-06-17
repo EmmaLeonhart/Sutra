@@ -230,11 +230,12 @@ negative results, not hidden.
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
   positional-key axons + `elem(t, i)` access + `{a, b}` tuple-PATTERN + `%{x: a}` map-PATTERN
   + `%Name{x: a}` struct-PATTERN params + do-block `=` pattern-match destructure (`{a, b} = t`)
-  + multi-clause recursion — SINGLE-PARAM (`def fac(0)/fac(n)`) AND MULTI-PARAM tail (`def
-  sum(0, acc)/sum(n, acc)`, base-clause var renaming) shipped 2026-06-16, suite 40/40):
-  multi-clause/guarded bodies with `=` bindings (single-clause only now); `is_integer`-style
-  type-test guards (`and`/`or` chains already lower via `_OP_MAP`). (Erlang is its own
-  frontend.)
+  + multi-clause recursion — SINGLE-PARAM (`def fac(0)/fac(n)`), MULTI-PARAM tail (`def
+  sum(0, acc)/sum(n, acc)`), AND GUARDED-base (`def fac(n) when n == 0/def fac(n)`) shipped
+  2026-06-16, suite 42/42): multi-clause/guarded bodies with `=` bindings (single-clause only
+  now); >2-clause recursion (2-clause base+rec only now); `is_integer`-style type-test guards
+  (`and`/`or` chains already lower via `_OP_MAP`). (Erlang is its own frontend — port the
+  guarded-base recursion there next.)
   > **F# RECORDS → axons SHIPPED 2026-06-16.** All prereqs done: (a) typed-param
   > extraction (`(p: Point)`); (b) let-SEQUENCE bodies; (c) a let-bound construction
   > hoist — `_PRELUDE` accumulator emits record `{ x = a }` literals as `Axon q;

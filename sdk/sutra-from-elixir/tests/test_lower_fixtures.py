@@ -41,6 +41,7 @@ _RUNNABLE = {
     "multiclause_fact": 120.0,  # def fac(0), do: 1; def fac(n), do: n * fac(n-1); main = fac(5)  (multi-clause pattern recursion -> synthesized (n==0) cond -> CPS fold loop)
     "struct_param": 13.0,  # sum2(%Point{x: a, y: b}) = a + b; main = sum2(%Point{x: 5, y: 8})  (struct-PATTERN param -> axon, alias dropped, a/b -> realvec(item x/y))
     "multiclause_tailsum": 15.0,  # def sum(0, acc), do: acc; def sum(n, acc), do: sum(n-1, acc+n); main = sum(5, 0)  (multi-PARAM multi-clause tail recursion -> while_loop)
+    "guarded_fact": 120.0,  # def fac(n) when n == 0, do: 1; def fac(n), do: n * fac(n-1); main = fac(5)  (GUARDED-base multi-clause recursion -> guard as cond -> CPS fold loop)
 }
 
 

@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — guarded-base multi-clause recursion (Phase 3)
+
+Work-loop sprint tick — extends Elixir's multi-clause recursion to a `when`-guarded base clause,
+the common BEAM idiom `def fac(n) when n == 0, do: 1` + `def fac(n), do: n * fac(n - 1)` (was
+routed to `_lower_def_clauses` → recursion rejected). `_try_lower_multiclause_recursion` now
+distinguishes the base clause TWO ways: Mode A (an integer-literal param → cond `(V == K)`, as
+before) and the new Mode B (a `when` guard with all-identifier params → cond = the lowered guard,
+with base→rec param renames applied to BOTH the guard and the base body). The recursive clause is
+still all-identifier params + no guard + self-call. New fixture `guarded_fact` runs on the
+substrate to **120**; the Mode A `multiclause_fact`(→120)/`multiclause_tailsum`(→15) and the
+non-recursive `guard_dispatch` (which has no self-call, so the recursion attempt declines and it
+falls through to the dispatch blend) all still pass. Suite 40→42. Remaining: port guarded-base
+recursion to Erlang.
+
 ## 2026-06-16: Transpiler spec doc refreshed to match the sprint's frontend expansion (Phase 3 integration)
 
 Work+report sprint tick — re-grounded `planning/sutra-spec/transpiler-frontends.md` against the
