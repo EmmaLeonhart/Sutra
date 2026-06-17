@@ -7,9 +7,11 @@
 // effects are blended writes to fixed cells. Semantics match the W3C WebAssembly
 // spec's small-step reduction rules for this subset.
 //
-// STEP 1a (this file): the i32 arithmetic subset with real opcodes + single-byte
-// signed LEB128 for i32.const. Locals (indexed local.get/set/tee), comparisons,
-// and structured control (block/loop/if/end/br) are the next ladder steps.
+// STEPS 1a+1b (this file): the i32 arithmetic subset with real opcodes + single-
+// byte signed LEB128 for i32.const, plus INDEXED locals (local.get/set/tee with an
+// unsigned single-byte LEB128 index — NEW vs the JVM core's fixed-opcode locals: the
+// local cell is computed 200+idx, a hard-addressed write). Comparisons and structured
+// control (block/loop/if/end/br) are the next ladder steps.
 //
 // SUBSTRATE-PURE: no .real(), no host arithmetic on values — values stay number-
 // vectors; comparisons/dispatch are 0-dim truth-axis tensors; ram addresses decode
@@ -18,9 +20,12 @@
 // address-decode to pick a RAM cell.
 //
 // RAM layout: [0]=pc  [1]=sp   function body bytecode at 10+ (one byte/cell)
-// operand stack 100+.
+// operand stack 100+   locals at 200+idx.
 // Opcodes (real WASM byte values, hex/decimal):
 //   0x41/65=i32.const(push next byte as signed single-byte LEB128; 2-byte instr)
+//   0x20/32=local.get  0x21/33=local.set  0x22/34=local.tee  (each + an unsigned
+//     single-byte LEB128 local index; 2-byte instr. get pushes local[idx]; set pops
+//     top into local[idx]; tee writes local[idx] but LEAVES the value on the stack.)
 //   0x6a/106=i32.add  0x6b/107=i32.sub  0x6c/108=i32.mul
 //   0x0b/11=end  0x0f/15=return  (both keep pc -> idle/halt; result is on top)
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1). pc
@@ -39,11 +44,20 @@ function int step(scalar d) {
     // axis and silently breaks == (finding 2026-06-17-iconst-literal-broadcast).
     complex one = 1 + 0i;
     int is_const = truth_axis(defuzzy(op == 65));    // i32.const 0x41
+    int is_get = truth_axis(defuzzy(op == 32));      // local.get 0x20
+    int is_set = truth_axis(defuzzy(op == 33));      // local.set 0x21
+    int is_tee = truth_axis(defuzzy(op == 34));      // local.tee 0x22
     int is_add = truth_axis(defuzzy(op == 106));     // i32.add  0x6a
     int is_sub = truth_axis(defuzzy(op == 107));     // i32.sub  0x6b
     int is_mul = truth_axis(defuzzy(op == 108));     // i32.mul  0x6c
     int is_end = truth_axis(defuzzy(op == 11));      // end      0x0b
     int is_return = truth_axis(defuzzy(op == 15));   // return   0x0f
+    // For local.get/set/tee the operand byte `imm` is an unsigned single-byte LEB128
+    // local index (0..127); the local lives at the computed cell 200+imm. (For
+    // i32.const `imm` is instead the signed LEB value, decoded below.) loc_cur is the
+    // local's current value — used to PUSH it (local.get) and as the no-op write-back
+    // base when the op is not local.set/tee.
+    int loc_cur = ramRead(200 + imm);
     // Signed single-byte LEB128 decode for i32.const (value in [-64,63]): a byte
     // b<0x80 is complete; signed value = b - 128*sign, sign = (b>=64) = bit 6.
     // Detect via (2*b) < 127 == (b<=63): 2*b is even, 127 is odd, so they're never
@@ -53,8 +67,16 @@ function int step(scalar d) {
     // 100+sp (new top cell): i32.const pushes leb_val (as a real-axis vector); else
     // keep the cell.
     int cell_hi = ramRead(100 + sp);
-    int new_hi = (((1 + is_const) * (leb_val * one)) + ((1 - is_const) * (cell_hi))) / 2;
+    // local.get pushes the local's current value (already a real-axis vector from RAM).
+    int hi_get = (((1 + is_get) * (loc_cur)) + ((1 - is_get) * (cell_hi))) / 2;
+    int new_hi = (((1 + is_const) * (leb_val * one)) + ((1 - is_const) * (hi_get))) / 2;
     ramWrite(100 + sp, new_hi);
+    // Indexed local write (200+imm): local.set/tee write top1 there; any other op
+    // writes the cell's existing value back (a no-op — safe even if imm aliases a
+    // used local, since writing a cell's current value to itself changes nothing).
+    int loc_set = (((1 + is_set) * (top1)) + ((1 - is_set) * (loc_cur))) / 2;
+    int new_loc = (((1 + is_tee) * (top1)) + ((1 - is_tee) * (loc_set))) / 2;
+    ramWrite(200 + imm, new_loc);
     // 98+sp (binary result): add/sub/mul write here; net sp -1 collapses the top so
     // the result lands at the new top (99+(sp-1) = 98+sp). Else keep top2.
     int v_add = top2 + top1;
@@ -64,17 +86,21 @@ function int step(scalar d) {
     int b_sub = (((1 + is_sub) * (v_sub)) + ((1 - is_sub) * (b_mul))) / 2;
     int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_sub))) / 2;
     ramWrite(98 + sp, new_lo);
-    // sp: i32.const +1; add/sub/mul -1; end/return keep.
+    // sp: i32.const +1; local.get +1; local.set -1; local.tee keep; add/sub/mul -1;
+    // end/return keep.
     int sp_binop = sp - 1;
     int s_mul = (((1 + is_mul) * (sp_binop)) + ((1 - is_mul) * (sp))) / 2;
     int s_sub = (((1 + is_sub) * (sp_binop)) + ((1 - is_sub) * (s_mul))) / 2;
     int s_add = (((1 + is_add) * (sp_binop)) + ((1 - is_add) * (s_sub))) / 2;
-    int new_sp = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_add))) / 2;
+    int s_get = (((1 + is_get) * (sp + 1)) + ((1 - is_get) * (s_add))) / 2;
+    int s_set = (((1 + is_set) * (sp_binop)) + ((1 - is_set) * (s_get))) / 2;
+    int new_sp = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_set))) / 2;
     ramWrite(1, new_sp);
-    // pc: i32.const +2 (skip the 1 LEB byte); end/return keep pc (idle with result
-    // on top); every other 1-byte opcode +1.
-    int pc_after = (((1 + is_const) * (pc + 2)) + ((1 - is_const) * (pc + 1))) / 2;
-    int pc_noend = (((1 + is_end) * (pc)) + ((1 - is_end) * (pc_after))) / 2;
+    // pc: 2-byte ops (i32.const, local.get/set/tee) skip their 1 operand byte;
+    // end/return keep pc (idle with result on top); every other 1-byte opcode +1.
+    int two_byte = ((is_const + 1) / 2) + ((is_get + 1) / 2) + ((is_set + 1) / 2) + ((is_tee + 1) / 2);
+    int pc_seq = pc + 1 + two_byte;
+    int pc_noend = (((1 + is_end) * (pc)) + ((1 - is_end) * (pc_seq))) / 2;
     int new_pc = (((1 + is_return) * (pc)) + ((1 - is_return) * (pc_noend))) / 2;
     ramWrite(0, new_pc);
     return ramRead(99 + sp);
