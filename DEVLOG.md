@@ -1111,6 +1111,43 @@ ACTIVE DIRECTIVE the top active work, and **removed the GUI agenda entirely** (c
 note (do NOT re-add GUI here). The GUI demo code + paper stay built/merged on main; only the
 not-yet-done GUI *agenda* left this queue. Crons made more aggressive for the sprint
 (work-loop + auto-flush + status all advance a bounded increment).
+## 2026-06-17: learned decoder D13 — latent-conditioned RGB generation (colour)
+
+Extended the generative decoder (D7, grayscale) to COLOUR: an auto-decoder over a red-blob and
+a blue-blob colour target (3-output, latent-conditioned). TDD `test_latent_rgb.py` (2), green
+CPU+CUDA: each latent reconstructs its colour (MSE red 0.0064 / blue 0.0052), and interpolating
+the latent shifts the generated colour red→blue (centre redness R−B +0.30 → −0.01 → −0.34,
+monotonic). Arbitrary-colour image generation from a latent, on the substrate render. (Caught +
+fixed a test-helper bug while verifying — `_centre_rgb` did `np.asarray` on a CUDA tensor;
+`.cpu()` first. The CUDA failure was that, not training fragility; both devices green after.)
+
+## 2026-06-17: finding — substrate transcendentals are canonical-only (on-substrate encoding blocked)
+
+Probed the next decoder follow-on (emit the Fourier encoding ON the substrate) and recorded a
+negative result: `cexp`/`sin`/`tanh` operate on the canonical d-dim vector form, NOT elementwise
+over field buffers (`cos(θ)=realvec(cexp(1.0i·θ))` on a length-5 buffer → 108-vs-5 mismatch in
+`complex_mul`, same wall as D1's tanh). Only `hadamard`/`+`/`-`/`matmul` are elementwise on
+buffers. So computing sin/cos of a coordinate buffer on the substrate isn't directly possible:
+a hadamard-polynomial approx covers low frequencies only (degrades the high bands); the clean
+fix is a new elementwise-buffer transcendental primitive in `codegen_pytorch.py` (compiler-side,
+out of the decoder's scope). **Decision:** keep the Fourier encoding host-side (honestly labeled
+input geometry) rather than ship a polynomial encoding that silently degrades expressivity —
+don't fake substrate-purity. Finding: `planning/findings/2026-06-17-substrate-transcendentals-
+canonical-only.md`; decoder follow-on #2 marked blocked. The decoder forward stays on-substrate;
+this is the input-encoding boundary only.
+
+## 2026-06-17: learned decoder D12 — bake weights to CSV (fully standalone .su)
+
+`emit_decoder.bake_decoder` writes a trained decoder's weights to CSV and emits an all-`matrix`
+standalone `.su` that `load_matrix`'s its OWN weights (`lc`/`ll` over the loaded matrices; bias
+as (out,1), broadcast-added; cubic via hadamard) — the program needs no host weight tensors,
+only the input. TDD `test_emit_decoder.py` (+1, now 3), green CPU+CUDA: bake a trained
+`[F,16,16,1]` decoder, compile the standalone `.su`, run it with NO weights passed, and it
+reproduces the trained host forward to **< 1e-4**, with `load_matrix` declared for every weight.
+Completes the weight→code first follow-on: the trained decoder is now self-contained Sutra code
++ data (the `weight_to_code_corpus` file-backed pattern). Remaining: emit the Fourier encoding
+on-substrate; feed the w2c decompiler.
+
 ## 2026-06-17: learned decoder D11 — weight→code (emit trained decoder as Sutra) — TRACK COMPLETE
 
 `demos/decoder/emit_decoder.py` emits a trained decoder's forward as a standalone `.su` over

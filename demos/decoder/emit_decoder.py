@@ -79,3 +79,70 @@ def run_emitted(decoder_fn, params, X):
         args.append(b)
     args.append(X)
     return decoder_fn(*args)
+
+
+# --- D12: bake the trained weights to CSV → a FULLY STANDALONE emitted .su ---
+#
+# The emitted program declares all its weights via `load_matrix("…csv")` (the
+# weight_to_code_corpus file-backed-weight pattern), so it needs no host-supplied tensors —
+# just the input. All-`matrix` typed (bias as (out,1), broadcast-added; cubic via hadamard).
+
+_BAKED_HELPERS = """\
+// Emitted by emit_decoder.bake_decoder (learned-decoder D12, weight->code, STANDALONE). The
+// decoder loads its OWN trained weights from CSV via load_matrix — code + data, no host tensors.
+function matrix lc(matrix W, matrix x, matrix b) {
+    matrix h = Tensor.MatrixMul(W, x) + b;
+    return hadamard(hadamard(h, h), h);
+}
+function matrix ll(matrix W, matrix x, matrix b) {
+    return Tensor.MatrixMul(W, x) + b;
+}
+"""
+
+
+def _write_csv(path, M):
+    """Write a 2-D tensor to CSV (one row per line, comma-separated repr-floats)."""
+    rows = M.detach().cpu().reshape(M.shape[0], -1).tolist()
+    path.write_text("\n".join(",".join(repr(float(v)) for v in row) for row in rows) + "\n",
+                    encoding="utf-8")
+
+
+def bake_decoder(params, out_dir, name: str = "decoder_baked"):
+    """Bake trained `params` ([(W (out,in), b (out,1)), …]) to CSVs + emit a STANDALONE `.su`
+    that `load_matrix`'s its own weights and takes only the (batched) input `matrix x` (in, N).
+    Returns the emitted `.su` path. The forward = the same cubic/linear layers as the trained
+    decoder, so running it reproduces the decoder with no host weight tensors."""
+    import pathlib
+    out_dir = pathlib.Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    n = len(params)
+    decls = []
+    for i, (W, b) in enumerate(params):
+        wp, bp = out_dir / f"{name}_W{i}.csv", out_dir / f"{name}_b{i}.csv"
+        _write_csv(wp, W)
+        _write_csv(bp, b.reshape(b.shape[0], 1))
+        decls.append(f'    matrix W{i} = load_matrix("{str(wp).replace(chr(92), "/")}");')
+        decls.append(f'    matrix b{i} = load_matrix("{str(bp).replace(chr(92), "/")}");')
+    expr = "x"
+    for i in range(n - 1):
+        expr = f"lc(W{i}, {expr}, b{i})"
+    expr = f"ll(W{n - 1}, {expr}, b{n - 1})"
+    src = (_BAKED_HELPERS
+           + f"\nfunction matrix {name}(matrix x) {{\n"
+           + "\n".join(decls)
+           + f"\n    return {expr};\n}}\n"
+           + 'function string main() { return "ok"; }\n')
+    su_path = out_dir / f"{name}.su"
+    su_path.write_text(src, encoding="utf-8")
+    return su_path
+
+
+def compile_baked(su_path, name: str = "decoder_baked"):
+    """Compile a baked standalone decoder `.su` → its forward function (loads its own weights)."""
+    import sys
+    sdk = _DIR.parent.parent / "sdk" / "sutra-compiler"
+    if str(sdk) not in sys.path:
+        sys.path.insert(0, str(sdk))
+    from sutra_compiler import compile_su
+    mod = compile_su(su_path, llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
+    return getattr(mod, name)
