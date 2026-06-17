@@ -1,5 +1,13 @@
 # Development Log
 
+## 2026-06-17: learned decoder D5 — reconstructs an arbitrary COLOUR image
+
+3-output decoder: `render_decoder_torch` returns (size,size,3) and `fit_decoder` trains it
+per-channel. TDD `test_reconstruct_rgb.py`: reconstructs a two-blob colour target (red blob +
+green/blue blob, not analytically renderable) to MSE **0.0087 / PSNR 20.6 dB** (24², H=64, 800
+steps), NaN-free; asserts MSE<0.02, PSNR>16, final<1% of start — green CPU+CUDA. Same substrate
+forward (matmul + hadamard cubic), host Adam, now RGB. The D4 milestone generalises to colour.
+
 ## 2026-06-17: learned decoder D4 — reconstructs an arbitrary image (MILESTONE)
 
 The EMMA-gated headline: the learned substrate decoder **reconstructs an arbitrary frame**.
