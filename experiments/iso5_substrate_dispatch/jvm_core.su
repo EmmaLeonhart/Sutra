@@ -1,0 +1,67 @@
+// Minimal JVM-bytecode core on the substrate (Phase 5 leg 2; scoped in
+// planning/exploratory/2026-06-17-phase5-jvm-core-scoping.md). SAME RAM-state
+// blended-dispatch stack machine as mini_wasm_machine.su, but with REAL JVM
+// opcode values and the JVM's variable-length bytecode layout (1 byte per
+// opcode; bipush carries a 1-byte operand). The host drives one step() per
+// instruction (autoregressive); all state lives in the RAM device; dispatch is
+// truth_axis(defuzzy(op == N)); side effects are blended writes to fixed cells.
+// Semantics match Jinja's machine-checked small-step JVM rules for this subset.
+//
+// SUBSTRATE-PURE: no .real(), no host arithmetic — values stay number-vectors;
+// comparisons/dispatch are 0-dim truth-axis tensors; ram addresses decode at the
+// device boundary. (Negative-number arithmetic on this substrate was
+// measured-verified 2026-06-17 via the WASM machine, so isub/ineg are sound.)
+//
+// RAM layout: [0]=pc  [1]=sp   bytecode at 10+ (one byte/cell)  operand stack 100+.
+// Step-1 opcodes (real JVM decimal values):
+//   16=bipush(push next byte; 2-byte instr)  96=iadd  100=isub  104=imul
+//   116=ineg(negate top)  172=ireturn(keep pc -> idle/halt; result is on top)
+//   (op 0 = JVM nop: no flag matches -> all cells keep, pc+1 — a natural no-op.)
+// Binary ops pop two (top1=top, top2=second) and push combine(top2, top1),
+// matching Jinja's `let v2=pop; v1=pop; push (v1 OP v2)`. pc advances 2 for
+// bipush, 1 otherwise; ireturn keeps pc so the machine idles with the result on top.
+function int step(scalar d) {
+    int pc = ramRead(0);
+    int sp = ramRead(1);
+    int op = ramRead(pc);
+    int imm = ramRead(pc + 1);
+    int top1 = ramRead(99 + sp);
+    int top2 = ramRead(98 + sp);
+    int is_bipush = truth_axis(defuzzy(op == 16));
+    int is_iadd = truth_axis(defuzzy(op == 96));
+    int is_isub = truth_axis(defuzzy(op == 100));
+    int is_imul = truth_axis(defuzzy(op == 104));
+    int is_ineg = truth_axis(defuzzy(op == 116));
+    int is_ireturn = truth_axis(defuzzy(op == 172));
+    // 100+sp (new top cell): bipush pushes the operand byte; else keep.
+    int cell_hi = ramRead(100 + sp);
+    int new_hi = (((1 + is_bipush) * (imm)) + ((1 - is_bipush) * (cell_hi))) / 2;
+    ramWrite(100 + sp, new_hi);
+    // 98+sp (binary result): iadd/isub/imul write here; net sp -1 collapses the
+    // top so the result lands at the new top (99+(sp-1) = 98+sp). Else keep top2.
+    int v_add = top2 + top1;
+    int v_sub = top2 - top1;
+    int v_mul = top2 * top1;
+    int b_mul = (((1 + is_imul) * (v_mul)) + ((1 - is_imul) * (top2))) / 2;
+    int b_sub = (((1 + is_isub) * (v_sub)) + ((1 - is_isub) * (b_mul))) / 2;
+    int new_lo = (((1 + is_iadd) * (v_add)) + ((1 - is_iadd) * (b_sub))) / 2;
+    ramWrite(98 + sp, new_lo);
+    // 99+sp (top): ineg negates it in place (net sp 0); else keep top1.
+    int v_neg = 0 - top1;
+    int new_99 = (((1 + is_ineg) * (v_neg)) + ((1 - is_ineg) * (top1))) / 2;
+    ramWrite(99 + sp, new_99);
+    // sp: bipush +1; iadd/isub/imul -1; ineg/ireturn/nop keep.
+    int sp_binop = sp - 1;
+    int s_imul = (((1 + is_imul) * (sp_binop)) + ((1 - is_imul) * (sp))) / 2;
+    int s_isub = (((1 + is_isub) * (sp_binop)) + ((1 - is_isub) * (s_imul))) / 2;
+    int s_iadd = (((1 + is_iadd) * (sp_binop)) + ((1 - is_iadd) * (s_isub))) / 2;
+    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_iadd))) / 2;
+    ramWrite(1, new_sp);
+    // pc: bipush +2 (skip operand); ireturn keeps pc (idle with result on top);
+    // every other 1-byte opcode +1.
+    int pc_after = (((1 + is_bipush) * (pc + 2)) + ((1 - is_bipush) * (pc + 1))) / 2;
+    int new_pc = (((1 + is_ireturn) * (pc)) + ((1 - is_ireturn) * (pc_after))) / 2;
+    ramWrite(0, new_pc);
+    return ramRead(99 + sp);
+}
+function string main() { return "ok"; }
