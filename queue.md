@@ -102,6 +102,11 @@ target; each latent reconstructs its colour (MSE ~0.006), and interpolating z sh
 generated colour red→blue (redness +0.30→−0.34, monotonic) — arbitrary-colour generation from a
 latent, green CPU+CUDA._
 
+_D14 ✅ HIGH-FREQUENCY reconstruction (not just smooth blobs): the decoder fits a sharp
+checkerboard to PSNR 30.6 dB (k=3, nf=6), and more Fourier bands raise the frequency ceiling
+(k=2: 26.5→37.2 dB, nf 4→6) — the Fourier encoding's bands set the achievable frequency,
+measured. Green CPU+CUDA._
+
 **🧠🎉 LEARNED DECODER (D1–D11) COMPLETE.** The EMMA-gated decoder, end-to-end: the substrate
 trains → reconstructs arbitrary gray/colour frames → scales with capacity → generates from a
 latent → is preference-steerable → demoable → documented → and emits back to Sutra code. All
