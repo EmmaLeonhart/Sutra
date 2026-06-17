@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-17: learned decoder D9 — steered-generator demo (headless + window)
+
+`demos/decoder/latent_demo.py`: the end-to-end pipeline as a run-verifiable headless demo —
+train the latent-conditioned substrate decoder (auto-decoder on two blob targets), freeze it,
+steer the latent by a synthetic owner preference (`LatentSteer`), and show the generated blob
+move (centroid_x +0.077 → +0.299 under prefer-rightward; verified by running `main()`).
+`latent_window.py`: a thin tkinter wrapper over the same controller (WARMER/COLDER → the
+generated picture morphs) — I/O only, untested in CI (no display), parses + imports clean.
+`test_latent_demo.py`: a light CI smoke (module imports + the centroid helper) since the heavy
+train+steer is already covered by `test_latent_steer.py`. Next: D10 docs/paper, D11 weight→code.
+
 ## 2026-06-17: learned decoder D8 — preference steers the generator's latent (convergence)
 
 The two tracks meet: the generative decoder (D7) + the ButtonAdam preference loop. `LatentSteer`
