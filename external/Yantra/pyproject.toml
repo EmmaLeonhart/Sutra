@@ -1,0 +1,16 @@
+# Minimal pyproject.toml — pytest config only.
+#
+# This file exists for one reason: pytest 8+ no longer auto-adds the
+# repo root to sys.path, so `from kernel import ...` and `from
+# scripts.something import ...` fail at test-collection time on CI
+# even though they work locally if the user happens to have a
+# .pth-file-shaped sys.path entry. Setting `pythonpath` here makes
+# the import resolution deterministic across local + CI.
+#
+# Yantra is not (yet) a pip-installable package — there is no
+# [project] section, no build backend. When code matures to that
+# point, add the usual fields here.
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

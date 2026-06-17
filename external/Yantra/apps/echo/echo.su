@@ -1,0 +1,27 @@
+// echo.su — first userspace utility.
+//
+// Yantra's smallest possible v0 of "command-line file access" milestone:
+// take an input axon, return it unchanged. The kernel router and the
+// orchestrator handle the actual stdin/stdout routing through axon
+// channels declared in echo.toml.
+//
+// This is intentionally trivial. The point is not the computation —
+// it's that we have a SHIPPABLE userspace utility under apps/, with
+// its own manifest, admitted by the kernel just like any other
+// service, accessed via axon-passing rather than any conventional
+// stdin/stdout file descriptor. When real Sutra string + IO + FS
+// vocabulary matures (per todo.md § 2), the utility list grows from
+// here. echo is the bottom of that ladder.
+//
+// The bound key "stdin_text" is what the producer (whoever invokes
+// echo from the host side) puts the input under; the read key is
+// the same — `axon_item(input, "stdin_text")` extracts and returns
+// the value. The orchestrator's job is to route the result on
+// echo's R_stdout output role, where a downstream stdout sink
+// (eventually) consumes it.
+
+function vector on_axon(vector input_axon) {
+    Axon out;
+    out.add("stdout_text", axon_item(input_axon, "stdin_text"));
+    return out;
+}

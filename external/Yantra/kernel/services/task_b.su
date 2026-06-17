@@ -1,0 +1,17 @@
+// task_b.su — the Linux 0.00 "task B" analogue.
+//
+// Companion to task_a.su. Linux 0.00's task B writes 'B' forever;
+// the timer interrupt alternates it with task A. Here it emits the
+// ASCII codepoint of 'B' — 66 — as a real substrate number-vector
+// via `real_number` (a substrate op, no host shortcut). The value
+// genuinely is chr(66)=='B', decoded host-side by the monitoring
+// `.real()` accessor — not a faked 'B'. The inbound axon (the
+// tick / timer-IRQ analogue) is ignored, as in Linux 0.00.
+//
+// See planning/21-linux-0.00.md for the faithful-mapping rationale
+// and the honest-scope limits (no bare-metal boot, no TSS — by
+// Yantra architecture, on purpose).
+
+function vector on_axon(vector input_axon) {
+    return real_number(66.0);
+}

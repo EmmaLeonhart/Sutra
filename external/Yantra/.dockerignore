@@ -1,0 +1,28 @@
+# Files we don't want in the Docker build context.
+#
+# Even though the dev container bind-mounts the repo at runtime
+# (so this .dockerignore doesn't affect the live working tree),
+# `docker build` still reads the build context — and the context
+# defaults to the entire repo. Excluding the heavy stuff keeps
+# build start-up fast.
+
+# Git internals — never useful in the container's build context.
+.git
+.gitignore
+
+# Scratch / cache dirs.
+.pytest_cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.mypy_cache
+**/.ruff_cache
+
+# Editor / OS noise.
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Local Claude project state if someone has it.
+.claude/
