@@ -42,6 +42,7 @@ _RUNNABLE = {
     "record_param": 13.0,  # -record(point,{x,y}); fst(#point{x=X, y=Y}) -> X + Y; main() -> fst(#point{x=5, y=8})  (record-PATTERN param -> axon, X/Y -> realvec(item x/y))
     "match_bind_body": 13.0,  # fst(P) -> {A, B} = P, A + B; main() -> fst({5, 8})  (body = match destructure -> realvec(item _0/_1))
     "multiclause_fact": 120.0,  # fac(0) -> 1; fac(N) -> N * fac(N-1); main() -> fac(5)  (multi-clause pattern recursion -> synthesized (N==0) cond -> CPS fold loop)
+    "multiclause_tailsum": 15.0,  # sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1, Acc+N); main() -> sum(5, 0)  (multi-PARAM multi-clause tail recursion -> while_loop)
 }
 
 
