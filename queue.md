@@ -50,13 +50,13 @@ deleted on completion. Keep the task tool in sync with this file.
 > autograd through it, optimizer host-side + named; never NaN (no `Math.mod`); measured only.
 
 _Phase D-A — trainable substrate primitives:_
-- [ ] **D1 — trainable dense layer.** `demos/decoder/dense.su` (`dense(W, x, b) = matmul(W,x)+b`,
-  + an activated variant `act(...)`); a `render`/`train` torch wrapper passing `W,b` as
-  `requires_grad` params. TDD: grad flows to `W,b` THROUGH the compiled substrate matmul
-  (non-zero, finite); Adam fits a 1-layer map to a target → loss drops. The load-bearing proof
-  that the substrate trains.
-- [ ] **D2 — nonlinearity choice.** Pick sin (SIREN — periodic, high-freq detail) vs tanh;
-  verify differentiable + NaN-free over the working range; brief measured comparison.
+- [ ] **D2 — nonlinearity + input encoding (REVISED by D1 finding).** D1 found the substrate's
+  `tanh`/`sin` are canonical-complex-vector ops, NOT elementwise over activation buffers — so
+  the MLP nonlinearity is a HADAMARD POLYNOMIAL (D1 ships cubic `dense_cube`). D2: settle the
+  recipe — pick/compare polynomial activations (cubic vs a stabilised/normalised variant to
+  keep it from exploding) AND add host-built **Fourier-feature** input encoding (sin/cos of the
+  coordinates, the same compile-time geometry boundary as the X/Y grid) for expressivity.
+  Measured: which combo fits a target field best, NaN-free.
 
 _Phase D-B — minimal implicit decoder (single image):_
 - [ ] **D3 — multi-layer coordinate decoder.** `demos/decoder/decoder.su` — a 2→H→H→1 SIREN
