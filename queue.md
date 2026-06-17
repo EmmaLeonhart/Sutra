@@ -249,12 +249,11 @@ negative results, not hidden.
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through tuples `(a, b)` →
   positional-key axons (`(Int,Int)` sig → Axon, `fst`/`snd` → `_0`/`_1`, arg-position hoist)
   + `let (a, b) = t` tuple-pattern + `let (Wrap a b) = w` single-constructor-pattern
-  destructuring + SINGLE-PARAM multi-equation recursion (`fac 0 = 1; fac n = n*fac (n-1)`)
-  shipped 2026-06-16, suite 28/28; laziness out of scope): MULTI-PARAM multi-equation recursion
-  (`sum 0 acc = acc; sum n acc = sum (n-1) (acc+n)` — needs base-equation var renaming, shared
-  shape with Erlang/Elixir); GUARDED recursion (`| n == 0 = …`); mutually-recursive/forward
-  `where`/`let` bindings; nested/non-variable constructor `case` patterns; nested
-  tuple/constructor `let` patterns; `case` in non-tail expression position.
+  destructuring + multi-equation recursion — both SINGLE-PARAM (`fac 0/fac n`) AND MULTI-PARAM
+  tail (`sum 0 acc = acc; sum n acc = sum (n-1) (acc+n)`, base-equation var renaming) shipped
+  2026-06-16, suite 30/30; laziness out of scope): GUARDED recursion (`| n == 0 = …`);
+  mutually-recursive/forward `where`/`let` bindings; nested/non-variable constructor `case`
+  patterns; nested tuple/constructor `let` patterns; `case` in non-tail expression position.
 - [ ] **Rust next increments** (`sdk/sutra-from-rust/`; through tuples `(a, b)` →
   positional-key axons + `p.0`/`p.1` access + `let (a, b) = t` tuple-pattern + `let Point
   { x, y } = p` struct-pattern destructuring shipped 2026-06-16, suite 32/32): nullary-variant
