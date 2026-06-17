@@ -46,10 +46,11 @@ Done so far: i32 arithmetic + single-byte signed LEB128 (`i32.const`/`add`/`sub`
 `else`/`br`/`br_if`/`end` via the load-time pre-resolved target table — a real countdown-sum loop
 and if/else selection run on the substrate). Remaining ladder (each a compile-AND-run increment,
 verified == reference on the substrate):
-- [ ] **Step 4 — a real `wat→wasm` function byte-for-byte.** Compile a tiny iterative factorial
-  from `.wat` (`wat2wasm`/`wasm-tools` — verify the tool is present first, else hand-assemble exact
-  spec-layout bytes), extract the function body bytes, load + run, decode == reference
-  (`fact(0..5)=1,1,2,6,24,120`). The JVM-factorial oracle, in WASM.
+- [ ] **Step 4 cross-check (mostly done):** a real-WASM-encoded iterative factorial runs byte-for-byte
+  on the substrate (`test_wasm_core.py::test_wasm_core_runs_real_wasm_factorial`, `fact(0/1/4/5)=
+  1/1/24/120`, n in local 0). Bytes were HAND-ASSEMBLED to the WASM spec encoding because
+  `wat2wasm`/`wasm-tools` is absent here. Remaining: when a toolchain is available (CI), assemble the
+  same `.wat` with real `wat2wasm` and assert the body bytes are byte-identical to `_WASM_FACT`.
 - [ ] **Step 5 — tree recursion via `call`.** `call`(0x10) + a call-frame stack in RAM so a
   tree-recursive `fib` lowers to WASM and runs on the substrate machine (the stack lives in
   RAM/DNC memory, not a host stack). This is the Phase-5.5-B enabler.
