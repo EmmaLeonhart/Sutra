@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 4 — NATIVE recursion via memoization SHIPS (index-structured family)
+
+The automatic transform that gives Sutra native recursion. `sutra_compiler/tabulate.py` now has the
+full pass: `detect_tabulable_recursion` (4b part 1, the fib-family shape) + `synthesize_tabulation_source`
+(generates a memoizing `while_loop` — a rolling window of `max(offsets)` accumulators seeded with the
+base values `0,1,…,M-1`, each iteration appends `sum(window[M-o] for o in offsets)` and shifts; after n
+iterations the head holds f(n)) + `tabulate_module` (parse the synthesized source, swap it for the
+recursive FunctionDecl). Wired into `_compile_to_python` **default-on**, so a RECURSIVE `fib(n) =
+fib(n-1)+fib(n-2)` — which Sutra has no native runtime recursion to run — is automatically rewritten
+into a non-recursive `while_loop` (recurrent neurons) and runs **natively on the substrate, no
+recursion, no WASM**. Verified end-to-end via `sutrac --run`: `test_native_recursion.py` 12/12
+(recursive `fib(0..12)` + tribonacci `trib(0..9)` == ground truth, plus the 6 hand-written-loop cases)
+and `test_tabulate.py` 6/6. Conservative — only the exact tabulable shape transforms; everything else
+is untouched (a non-recursive user-function call already works, verified, so the swapped-in non-recursive
+function is callable). MVP subset: base value = the parameter identity (`return n`), base threshold
+K = max(offset) — the standard fib family. Caught + fixed a test-only bug (`.format()` choking on the
+Sutra source's `{` braces → switched to `.replace`); the transform itself was correct from the first
+probe. This is tier-4's core: WASM is no longer the recursion fallback for the fib family. Remaining:
+the general agenda+memo form for irregular / multi-arg / non-identity-base recursion ("memoize
+everything"). [regression: preeval + OCaml frontend suites re-run with the default-on transform.]
+
 ## 2026-06-17: Phase 5.5 tier 4 step 4b part 1 — tabulation shape detector
 
 Building the automatic transform that gives native recursion. Part 1 is the DETECTOR:

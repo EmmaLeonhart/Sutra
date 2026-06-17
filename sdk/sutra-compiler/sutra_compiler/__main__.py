@@ -284,6 +284,12 @@ def _compile_to_python(path: str, *, runtime_dim: int,
         depth = _read_atman_max_preeval_depth(path) or DEFAULT_MAX_PREEVAL_DEPTH
     if depth > 0:
         preeval_bounded_recursion(module, max_depth=depth)
+    # Tier 4 — native recursion via memoization (Phase 5.5): rewrite tabulable multiple-recursive
+    # functions (the fib family) into a memoizing `while_loop` (recurrent neurons, native — Sutra
+    # has no native runtime recursion otherwise). Conservative: only the exact tabulable shape is
+    # transformed; everything else is untouched. Runs by default so recursion "just works" natively.
+    from .tabulate import tabulate_module
+    tabulate_module(module)
     if loop_T is None:
         loop_T = _read_atman_loop_T(path) or 50
     return translate_pytorch(

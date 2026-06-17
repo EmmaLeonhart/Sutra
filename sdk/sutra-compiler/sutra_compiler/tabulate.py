@@ -117,3 +117,78 @@ def detect_tabulable_recursion(fdecl) -> Optional[TabulableShape]:
         return None              # single recursion is tier 2, not tier 4
     return TabulableShape(param=param, base_op=cond.op, base_k=cond.right.value,
                           base_value=base_value, offsets=tuple(offsets), func=fdecl)
+
+
+def synthesize_tabulation_source(shape: TabulableShape) -> Optional[str]:
+    """Generate non-recursive Sutra source for `shape` as a memoizing `while_loop`, or None if the
+    shape is outside this MVP's synthesizable subset.
+
+    The loop carries a rolling window of M = max(offsets) accumulators holding f(k), …, f(k+M-1);
+    each iteration appends f(k+M) = sum over offsets o of window[M-o] and shifts. After n iterations
+    from the base window the head holds f(n) — the verified 4a form (a recurrent-neuron `while_loop`,
+    NATIVE, no recursion, no WASM). MVP subset: the base value is the parameter identity (`return n`)
+    and the base threshold K equals M (the standard fib-family); then the base window is 0,1,…,M-1.
+    Wider base values / K>M are left to a later step."""
+    if shape.base_op not in ("<", "<="):
+        return None
+    m = max(shape.offsets)
+    # `if (n < K)` covers indices < K; `if (n <= K)` covers indices <= K (so M = K+1 effectively).
+    covers = shape.base_k if shape.base_op == "<" else shape.base_k + 1
+    if covers != m:
+        return None
+    bv = shape.base_value
+    if _name(bv) != "Identifier" or bv.name != shape.param:
+        return None   # MVP: base value must be the parameter identity (f(j) = j for j < K)
+
+    f = shape.func.name
+    n = shape.param
+    ti = f"_t_{n}"                      # loop counter (fresh, avoids clashing with the param)
+    ws = [f"_w{j}" for j in range(m)]
+    combine = " + ".join(ws[m - o] for o in shape.offsets)     # f(i) = sum f(i-o) = window[M-o]
+    shift = "".join(f"    {ws[j]} = {ws[j + 1]};\n" for j in range(m - 1)) + f"    {ws[m - 1]} = _new;\n"
+    loop = f"_tab_{f}"
+    decl_state = ", ".join(f"int {w} = 0" for w in ws)
+    call_state = ", ".join(f"_s{w}" for w in ws)
+    slot_decls = "".join(f"    slot int _s{w} = {w};\n" for w in ws)
+    init_window = "".join(f"    int {ws[j]} = {j};\n" for j in range(m))
+    return (
+        f"while_loop {loop}({ti} < {n}, int {ti} = 0, {decl_state}, int {n} = 0) {{\n"
+        f"    int _new = {combine};\n"
+        f"{shift}"
+        f"    {ti} = {ti} + 1;\n"
+        f"}}\n"
+        f"function int {f}(int {n}) {{\n"
+        f"    int {ti} = 0;\n"
+        f"{init_window}"
+        f"    slot int _s{ti} = {ti};\n"
+        f"{slot_decls}"
+        f"    slot int _s{n} = {n};\n"
+        f"    loop {loop}({ti} < {n}, _s{ti}, {call_state}, _s{n});\n"
+        f"    return _s{ws[0]};\n"
+        f"}}\n"
+    )
+
+
+def tabulate_module(module):
+    """Rewrite every tabulable multiple-recursive FunctionDecl in `module` into its memoizing
+    `while_loop` form (a `while_loop` decl + a non-recursive function), in place. Returns the
+    module. Conservative: a function that doesn't detect+synthesize is left untouched."""
+    from .lexer import Lexer
+    from .parser import Parser
+
+    new_items = []
+    for it in module.items:
+        if type(it).__name__ == "FunctionDecl":
+            shape = detect_tabulable_recursion(it)
+            if shape is not None:
+                src = synthesize_tabulation_source(shape)
+                if src is not None:
+                    lx = Lexer(src, file=f"<tabulate:{it.name}>")
+                    sub = Parser(lx.tokenize(), file=f"<tabulate:{it.name}>",
+                                 diagnostics=lx.diagnostics).parse_module()
+                    if not lx.diagnostics.has_errors():
+                        new_items.extend(sub.items)   # the while_loop decl + the new function
+                        continue
+        new_items.append(it)
+    module.items = new_items
+    return module
