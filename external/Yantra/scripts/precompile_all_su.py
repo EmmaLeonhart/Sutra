@@ -33,7 +33,7 @@ import time
 
 
 _REPO = pathlib.Path(__file__).resolve().parent.parent
-_SUTRA_SDK = _REPO / "external" / "Sutra" / "sdk" / "sutra-compiler"
+_SUTRA_SDK = _REPO.parent.parent / "sdk" / "sutra-compiler"  # Yantra vendored in-tree under Sutra
 if str(_SUTRA_SDK) not in sys.path:
     sys.path.insert(0, str(_SUTRA_SDK))
 
