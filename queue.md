@@ -70,12 +70,22 @@ literal + prunes the dead fn; `test_preeval.py` 11/11 on the substrate). Emma 20
 formerly-open policy: **pre-eval stays OPT-IN, no automatic pre-eval by default** — so tier 3 is
 complete as shipped. Remaining (the last genuinely-new tier):
 
-- [ ] **(tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).**
-  Memoize EVERYTHING by default (pure functions make caching always valid); the memo store is a
-  **lazy lookup table / DAG**, NOT a stack, realized as recurrent-neuron state (fits the
-  stateful-program-as-time-series model). Flattens the call tree to a DAG (naive `fib` → linear).
-  Non-overlapping trees still stay native (no WASM jump). Verify: recursive `fib(n)` runs in linear
-  time via the memo DAG on the substrate (today it runs via tier 5 / `wasm_core`).
+- [ ] **(tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).** SCOPED
+  2026-06-17 — `planning/exploratory/2026-06-17-phase5.5-tier4-memoization-scoping.md`. Investigation:
+  Sutra has `dict<int,int>` (substrate memo) + `while_loop`→recurrent-neuron loops, but NO native
+  runtime recursion. So the tractable realization is **tabulation**: a tree recursion over a regular
+  integer index (`fib`, overlapping subproblems) → a bottom-up DP loop filling a memo table → a
+  `while_loop` (recurrent neurons, native, linear, no WASM). The memo table = "the state, growing over
+  time" — carried as `slot` loop state. Sub-steps:
+  - [ ] **4a** — hand-write a tabulated `fib` (`while_loop` + memo/accumulators) in `.su`, run on the
+    substrate, confirm `fib(n)`==ground truth — proves the native target is expressible (no recursion,
+    no WASM). Grounds 4b/4c.
+  - [ ] **4b** — the automatic **tabulation transform** (the real feature): detect index-structured
+    tree recursion (`f(n)=combine(f(n-c1),f(n-c2),…)` w/ base case + decreasing int arg) → emit the
+    bottom-up DP loop. Verify `fib` + one more shape run natively == reference.
+  - [ ] **4c** — general-key / irregular memoization (HARDER, may stay partial): worklist `while_loop`
+    + dict memo, OR leave genuinely-irregular recursion on tier 5 (WASM). The honest limit of
+    "memoize everything" — don't force everything into tabulation.
 - Tier 5 (genuinely imperative / `eval` → WASM) is the completed `wasm_core` (§2); tiers B/C shrink
   how often it's reached. (`todo.md` end item "analyse the WASM compatibility layer" is answered by
   the spec: WASM is the tier-5 fallback, not the home of all multiple recursion.)
