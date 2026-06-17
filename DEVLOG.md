@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-06-17: tier-3 pre-eval default → shallow-auto (3); tier-4 scoping corrected (memoize EVERYTHING)
+
+Two corrections from Emma. **(1) Pre-eval default depth → 3 (not 0/opt-in).** Emma revised the 3c
+answer: "default max precalculated depth should not be zero but around 2-3." So compile-time pre-eval
+now runs by DEFAULT at a shallow depth (`DEFAULT_MAX_PREEVAL_DEPTH = 3`); it only fires on
+detectably-precalculable constant-arg calls (uncommon), so the default is cheap. `--preeval` raises
+to a deep cap (`DEEP_MAX_PREEVAL_DEPTH = 128`), `--max-preeval-depth N` sets it (0 disables). Made the
+function-pruning SAFE for a default-on pass: `_prune_dead_recursive` removes ONLY directly-self-recursive
+functions that became unreferenced after folding (never general DCE — operator/helper functions are
+never pruned; mutual-recursion groups left intact, documented). `test_preeval.py` 12/12 (added a
+shallow-default test: `fib(3)` folds + runs to 2 without `--preeval`). Regression-checked: OCaml
+frontend full suite 132 passed with default-on pre-eval.
+
+**(2) Tier-4 scoping rewritten — I had brushed off "memoize everything."** The first draft hedged it
+into "tabulate index-structured cases, leave the rest on WASM," substituting a narrower variant for
+Emma's actual method. Corrected: **Sutra has no native recursion, and memoization (the explicit
+work-stack + memo table, run as a `while_loop` → recurrent neurons) is the mechanism that GIVES it
+native recursion — for EVERYTHING.** Any multiple recursion transforms into a tail-recursive loop
+carrying an explicit agenda (the call stack, now a value in memory) + a memo table; overlapping
+subproblems flatten the call tree to a DAG (fib → linear), non-overlapping ones still run natively.
+Tabulation is a special-case optimization (regular integer index), not a separate path. WASM (tier 5)
+is NOT the recursion fallback — only genuinely imperative / `eval` / FFI. Next (per Emma "barrel
+through, add the native recursion"): implement tier 4 — 4a (a native memoizing loop runs a recursion
+on the substrate) → 4b (the automatic transform).
+
 ## 2026-06-17: Phase 5.5 tier 4 (automatic memoization) — scoping doc
 
 Scoped the last and hardest recursion tier before coding it —

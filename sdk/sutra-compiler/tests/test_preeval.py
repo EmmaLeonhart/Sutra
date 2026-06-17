@@ -129,19 +129,32 @@ _FIB_SU = ("function int fib(int n) { if (n < 2) { return n; } return fib(n-1) +
            "function int main() { return fib(8); }\n")
 
 
-def test_cli_preeval_flag_folds_and_compiles(tmp_path):
-    """`_compile_to_python(..., preeval=True)` folds the recursive fib(8) away so the program
-    COMPILES (returns Python source); with preeval=False the recursive if/else is rejected by the
-    V1 codegen — proving the opt-in flag is what drives the fold through the real CLI pipeline."""
+def test_cli_preeval_deep_flag_folds_deep_recursion(tmp_path):
+    """`--preeval` (deep cap) folds the recursive fib(8) away so the program COMPILES; the SHALLOW
+    default (depth 3) leaves fib(8) un-folded so its recursive if/else is rejected by the V1 codegen
+    — proving --preeval raises the cap above the shallow default."""
     _compiler_ns()
     from sutra_compiler.__main__ import _compile_to_python
     from sutra_compiler.codegen_base import CodegenNotSupported
     p = tmp_path / "fib.su"
-    p.write_text(_FIB_SU, encoding="utf-8")
+    p.write_text(_FIB_SU, encoding="utf-8")   # main returns fib(8); needs depth 8 > default 3
     src = _compile_to_python(str(p), runtime_dim=2, runtime_seed=42, preeval=True)
     assert src is not None and "def main" in src
-    with pytest.raises(CodegenNotSupported):
+    with pytest.raises(CodegenNotSupported):   # default depth 3 < 8 -> fib(8) not folded
         _compile_to_python(str(p), runtime_dim=2, runtime_seed=42, preeval=False)
+
+
+def test_cli_shallow_default_folds_shallow_recursion(tmp_path, capsys):
+    """Pre-eval is ON by DEFAULT at a shallow depth (Emma 2026-06-17: ~2-3, not 0): a shallow
+    recursive call (fib(3), depth 3) folds + runs WITHOUT --preeval, printing 2 = fib(3)."""
+    _compiler_ns()
+    from sutra_compiler.__main__ import main
+    p = tmp_path / "fib3.su"
+    p.write_text("function int fib(int n) { if (n < 2) { return n; } return fib(n-1) + fib(n-2); }\n"
+                 "function int main() { return fib(3); }\n", encoding="utf-8")
+    rc = main(["--run", str(p)])   # NO --preeval -> shallow default depth 3 folds fib(3)
+    out = capsys.readouterr().out.strip()
+    assert rc == 0 and round(float(out)) == 2, f"shallow-default --run -> rc={rc}, out={out!r}"
 
 
 def test_cli_preeval_run_outputs_correct_value(tmp_path, capsys):
