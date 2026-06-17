@@ -49,14 +49,9 @@ deleted on completion. Keep the task tool in sync with this file.
 > base case; this is the TRAINED generalization. HARD RAILS: every op on the substrate, real
 > autograd through it, optimizer host-side + named; never NaN (no `Math.mod`); measured only.
 
-_Phase D-A — trainable substrate primitives:_
-- [ ] **D2 — nonlinearity + input encoding (REVISED by D1 finding).** D1 found the substrate's
-  `tanh`/`sin` are canonical-complex-vector ops, NOT elementwise over activation buffers — so
-  the MLP nonlinearity is a HADAMARD POLYNOMIAL (D1 ships cubic `dense_cube`). D2: settle the
-  recipe — pick/compare polynomial activations (cubic vs a stabilised/normalised variant to
-  keep it from exploding) AND add host-built **Fourier-feature** input encoding (sin/cos of the
-  coordinates, the same compile-time geometry boundary as the X/Y grid) for expressivity.
-  Measured: which combo fits a target field best, NaN-free.
+_Phase D-A ✅ (D1 dense layer + D2 encoding/recipe). Recipe: Fourier-feature input encoding
+(host geometry) + cubic-activation substrate MLP, host-chained — Fourier beat raw 0.0003 vs
+0.3135 MSE on a wave._
 
 _Phase D-B — minimal implicit decoder (single image):_
 - [ ] **D3 — multi-layer coordinate decoder.** `demos/decoder/decoder.su` — a 2→H→H→1 SIREN
