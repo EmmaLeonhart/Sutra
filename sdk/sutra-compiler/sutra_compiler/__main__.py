@@ -211,9 +211,42 @@ def _read_atman_loop_T(source_path: str) -> int | None:
         cur = parent
 
 
+def _read_atman_max_preeval_depth(source_path: str) -> int | None:
+    """Walk up from the .su source for an atman.toml declaring
+    `[project.compile] max_preeval_depth = N`. Returns N if found, else None.
+    (Mirrors `_read_atman_loop_T`; the compile-time pre-evaluation depth cap for
+    `--preeval` / Phase-5.5 tier 3.)"""
+    try:
+        import tomllib  # py3.11+
+    except ImportError:
+        try:
+            import tomli as tomllib  # type: ignore
+        except ImportError:
+            return None
+    cur = os.path.dirname(os.path.abspath(source_path))
+    while True:
+        candidate = os.path.join(cur, "atman.toml")
+        if os.path.isfile(candidate):
+            try:
+                with open(candidate, "rb") as fp:
+                    data = tomllib.load(fp)
+            except Exception:
+                return None
+            v = (data.get("project", {})
+                     .get("compile", {})
+                     .get("max_preeval_depth"))
+            return v if isinstance(v, int) and v > 0 else None
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            return None
+        cur = parent
+
+
 def _compile_to_python(path: str, *, runtime_dim: int,
                        runtime_seed: int,
-                       loop_T: int | None = None) -> str | None:
+                       loop_T: int | None = None,
+                       preeval: bool = False,
+                       max_preeval_depth: int | None = None) -> str | None:
     """Validate + parse + codegen one .su file. Returns generated Python
     source, or None on failure (diagnostics already printed).
 
@@ -235,6 +268,16 @@ def _compile_to_python(path: str, *, runtime_dim: int,
     tokens = lexer.tokenize()
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
     module = parser.parse_module()
+    if preeval:
+        # OPT-IN compile-time pre-evaluation of bounded pure recursion (Phase 5.5 tier 3):
+        # fold constant-arg calls to bounded pure recursive functions into literals. Off by
+        # default; the automatic-default policy ("when NOT to pre-evaluate") is an unresolved
+        # design decision (tier 3c), so this stays explicitly opt-in.
+        from .preeval import preeval_bounded_recursion, DEFAULT_MAX_PREEVAL_DEPTH
+        depth = max_preeval_depth
+        if depth is None:
+            depth = _read_atman_max_preeval_depth(path) or DEFAULT_MAX_PREEVAL_DEPTH
+        preeval_bounded_recursion(module, max_depth=depth)
     if loop_T is None:
         loop_T = _read_atman_loop_T(path) or 50
     return translate_pytorch(
@@ -244,7 +287,8 @@ def _compile_to_python(path: str, *, runtime_dim: int,
 
 
 def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int,
-                 loop_T: int | None = None) -> int:
+                 loop_T: int | None = None, preeval: bool = False,
+                 max_preeval_depth: int | None = None) -> int:
     """Compile a .su file with the PyTorch codegen and exec the generated
     module. A `main()` function in the module, if present, is called and
     its return value is printed; otherwise the module's top-level prints
@@ -252,7 +296,7 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int,
     import types
     py_src = _compile_to_python(
         path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-        loop_T=loop_T,
+        loop_T=loop_T, preeval=preeval, max_preeval_depth=max_preeval_depth,
     )
     if py_src is None:
         return 1
@@ -286,7 +330,9 @@ def _decode_terminal_result(mod, result):
 
 def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
              loop_T: int | None = None,
-             output_html: str | None = None) -> int:
+             output_html: str | None = None,
+             preeval: bool = False,
+             max_preeval_depth: int | None = None) -> int:
     """Compile, execute with tracing, and output a 3D visualization HTML.
 
     Strategy: inject a tracing shim into the generated Python source that
@@ -298,7 +344,7 @@ def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
 
     py_src = _compile_to_python(
         path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-        loop_T=loop_T,
+        loop_T=loop_T, preeval=preeval, max_preeval_depth=max_preeval_depth,
     )
     if py_src is None:
         return 1
@@ -384,10 +430,11 @@ _VSA.bundle = _traced_bundle
 
 
 def _run_emit(path: str, *, runtime_dim: int, runtime_seed: int,
-              loop_T: int | None = None) -> int:
+              loop_T: int | None = None, preeval: bool = False,
+              max_preeval_depth: int | None = None) -> int:
     out = _compile_to_python(
         path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-        loop_T=loop_T,
+        loop_T=loop_T, preeval=preeval, max_preeval_depth=max_preeval_depth,
     )
     if out is None:
         return 1
@@ -520,6 +567,24 @@ def main(argv: List[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--preeval", action="store_true",
+        help=(
+            "Opt in to compile-time pre-evaluation of bounded pure recursion "
+            "(Phase 5.5 tier 3): fold constant-argument calls to bounded pure "
+            "recursive functions into literals, then prune the now-dead functions. "
+            "Off by default (the automatic-default policy is an open design question)."
+        ),
+    )
+    parser.add_argument(
+        "--max-preeval-depth", type=int, default=None,
+        help=(
+            "Recursion-depth cap for --preeval. If unset, read from the nearest "
+            "[project.compile] max_preeval_depth in atman.toml, else default 128 "
+            "(kept within the host evaluator's stack limit; deeper recursion is left "
+            "for the runtime path)."
+        ),
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"sutrac {__version__}",
@@ -554,6 +619,8 @@ def main(argv: List[str] | None = None) -> int:
                 runtime_dim=args.runtime_dim,
                 runtime_seed=args.runtime_seed,
                 loop_T=args.loop_T,
+                preeval=args.preeval,
+                max_preeval_depth=args.max_preeval_depth,
             )
         if args.run:
             return _run_execute(
@@ -561,12 +628,16 @@ def main(argv: List[str] | None = None) -> int:
                 runtime_dim=args.runtime_dim,
                 runtime_seed=args.runtime_seed,
                 loop_T=args.loop_T,
+                preeval=args.preeval,
+                max_preeval_depth=args.max_preeval_depth,
             )
         return _run_emit(
             args.paths[0],
             runtime_dim=args.runtime_dim,
             runtime_seed=args.runtime_seed,
             loop_T=args.loop_T,
+            preeval=args.preeval,
+            max_preeval_depth=args.max_preeval_depth,
         )
     if args.json:
         return _run_json(args.paths)

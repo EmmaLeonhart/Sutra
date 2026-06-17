@@ -121,3 +121,46 @@ def test_preeval_respects_max_depth():
     module = _build("fac(6)")
     preeval_bounded_recursion(module, max_depth=2)   # fac(6) needs depth 6 > 2
     assert "fac" in _func_names(module), "fac(6) must NOT fold under max_depth=2"
+
+
+# ---- CLI wiring (step 3b): the `--preeval` flag + atman.toml `max_preeval_depth` ----
+
+_FIB_SU = ("function int fib(int n) { if (n < 2) { return n; } return fib(n-1) + fib(n-2); }\n"
+           "function int main() { return fib(8); }\n")
+
+
+def test_cli_preeval_flag_folds_and_compiles(tmp_path):
+    """`_compile_to_python(..., preeval=True)` folds the recursive fib(8) away so the program
+    COMPILES (returns Python source); with preeval=False the recursive if/else is rejected by the
+    V1 codegen — proving the opt-in flag is what drives the fold through the real CLI pipeline."""
+    _compiler_ns()
+    from sutra_compiler.__main__ import _compile_to_python
+    from sutra_compiler.codegen_base import CodegenNotSupported
+    p = tmp_path / "fib.su"
+    p.write_text(_FIB_SU, encoding="utf-8")
+    src = _compile_to_python(str(p), runtime_dim=2, runtime_seed=42, preeval=True)
+    assert src is not None and "def main" in src
+    with pytest.raises(CodegenNotSupported):
+        _compile_to_python(str(p), runtime_dim=2, runtime_seed=42, preeval=False)
+
+
+def test_cli_preeval_run_outputs_correct_value(tmp_path, capsys):
+    """End-to-end: `sutrac --run --preeval fib.su` folds fib(8) and prints 21."""
+    _compiler_ns()
+    from sutra_compiler.__main__ import main
+    p = tmp_path / "fib.su"
+    p.write_text(_FIB_SU, encoding="utf-8")
+    rc = main(["--run", "--preeval", str(p)])
+    out = capsys.readouterr().out.strip()
+    assert rc == 0 and round(float(out)) == 21, f"--run --preeval -> rc={rc}, out={out!r}"
+
+
+def test_atman_toml_max_preeval_depth_is_read(tmp_path):
+    """`max_preeval_depth` is read from `[project.compile]` in the nearest atman.toml."""
+    _compiler_ns()
+    from sutra_compiler.__main__ import _read_atman_max_preeval_depth
+    (tmp_path / "atman.toml").write_text(
+        "[project.compile]\nmax_preeval_depth = 77\n", encoding="utf-8")
+    p = tmp_path / "x.su"
+    p.write_text("function int main() { return 1; }\n", encoding="utf-8")
+    assert _read_atman_max_preeval_depth(str(p)) == 77
