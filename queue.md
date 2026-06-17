@@ -71,25 +71,22 @@ zero but around 2-3"; it only fires on detectably-precalculable constant-arg cal
 cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it (0 disables). So tier
 3 is complete. Remaining (the last genuinely-new tier — NATIVE recursion via memoization):
 
-- [ ] **(tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).** SCOPED
-  2026-06-17 — `planning/exploratory/2026-06-17-phase5.5-tier4-memoization-scoping.md`. Investigation:
-  Sutra has `dict<int,int>` (substrate memo) + `while_loop`→recurrent-neuron loops, but NO native
-  runtime recursion. So the tractable realization is **tabulation**: a tree recursion over a regular
-  integer index (`fib`, overlapping subproblems) → a bottom-up DP loop filling a memo table → a
-  `while_loop` (recurrent neurons, native, linear, no WASM). The memo table = "the state, growing over
-  time" — carried as `slot` loop state. Sub-steps:
-  - [ ] **4a** — hand-write a tabulated `fib` (`while_loop` + memo/accumulators) in `.su`, run on the
-    substrate, confirm `fib(n)`==ground truth — proves the native target is expressible (no recursion,
-    no WASM). Grounds 4b/4c.
-  - [ ] **4b** — the automatic **tabulation transform** (the real feature): detect index-structured
-    tree recursion (`f(n)=combine(f(n-c1),f(n-c2),…)` w/ base case + decreasing int arg) → emit the
-    bottom-up DP loop. Verify `fib` + one more shape run natively == reference.
-  - [ ] **4c** — general-key / irregular memoization (HARDER, may stay partial): worklist `while_loop`
-    + dict memo, OR leave genuinely-irregular recursion on tier 5 (WASM). The honest limit of
-    "memoize everything" — don't force everything into tabulation.
-- Tier 5 (genuinely imperative / `eval` → WASM) is the completed `wasm_core` (§2); tiers B/C shrink
-  how often it's reached. (`todo.md` end item "analyse the WASM compatibility layer" is answered by
-  the spec: WASM is the tier-5 fallback, not the home of all multiple recursion.)
+- [ ] **(tier 4) NATIVE recursion via memoization — the active build (Emma: "barrel through, add the
+  native recursion stuff").** SCOPED (rewritten) 2026-06-17 —
+  `planning/exploratory/2026-06-17-phase5.5-tier4-memoization-scoping.md`. Sutra has no native
+  recursion; memoization-as-a-loop is the mechanism that GIVES it native recursion for EVERYTHING
+  (NOT tabulate-some-WASM-rest). General form = a `while_loop` (→ recurrent neurons) carrying an
+  explicit agenda (the call stack, now a value in memory) + a memo table; overlapping subproblems
+  flatten the call tree to a DAG (fib → linear), non-overlapping still run natively. Tabulation is the
+  special-case optimization for index-structured recursion. WASM is NOT the recursion fallback.
+  - [ ] **4b — the automatic transform (THE feature):** a compiler pass rewriting a multiple-recursive
+    function into the memoizing loop. Start index-structured (`f(n)=combine(f(n-c1),f(n-c2),…)` + base
+    → the tabulation `while_loop`, 4a's hand form), then the general work-stack + memo form for
+    irregular recursion. Verify each shape runs natively == reference on the substrate. (4a DONE
+    2026-06-17: `test_native_recursion.py` 6/6 — `fib(0..15)` runs natively as a memoizing `while_loop`
+    [recurrent neurons, no recursion, no WASM] == ground truth, proving the native target 4b emits.)
+- Tier 5 (`wasm_core`, §2) is NOT the recursion fallback once tier 4 lands — only genuinely imperative
+  / `eval` / FFI. (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes it native.)
 
 ## 4. Phase 6 — transpiler long-tail (LAST of the active phases)
 

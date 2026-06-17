@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 4 step 4a — recursion runs natively as a memoizing loop (substrate)
+
+Building native recursion via memoization (Emma: "barrel through, add the native recursion stuff").
+Step 4a proves the native target the automatic transform (4b) must emit: a multiple recursion (`fib`)
+computed by a memoizing `while_loop` — recurrent neurons, native, **no call stack, no recursion, no
+WASM**. `test_native_recursion.py` 6/6: `fib(0,1,2,5,10,15)` compiled + run through the real `sutrac`
+pipeline on the substrate (CUDA) == ground truth. The loop carries the rolling last-two results as
+`slot` state (the memo); the bound `n` is threaded invariant. This is the tabulation special case of
+the general "explicit agenda + memo loop" form; 4b is the compiler pass that generates it
+automatically from a recursive function definition. Next: 4b.
+
 ## 2026-06-17: tier-3 pre-eval default → shallow-auto (3); tier-4 scoping corrected (memoize EVERYTHING)
 
 Two corrections from Emma. **(1) Pre-eval default depth → 3 (not 0/opt-in).** Emma revised the 3c
