@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-17: WASM machine — opcode 24 = OVER (Phase 5, fourth opcode extension)
+
+Phase 5 (extend the proven WASM leg). Added **opcode 24 = OVER** (push a copy of the
+second-from-top, the classic stack op; like DUP but copies top2 instead of top1; net sp +1).
+Deliberately chosen as a positive-safe STACK SHUFFLE — it copies an existing RAM cell and uses
+no arithmetic or comparison, so it does not depend on negative-number behavior that the current
+fixtures do not yet exercise (ABS/SQR would; deferred until that behavior is verified). Woven
+into exactly two chains parallel to DUP: the 100+sp new-top chain (`hi_over`, writes top2) and
+the sp+1 chain (`s_over`); touches nothing else. Three new substrate-verified cases: the copied
+second lands at the new top (addr 102 = 3), the original top is preserved (addr 101 = 5), and
+`OVER; ADD` → 8 confirms the resulting stack is usable. Full `test_mini_wasm_machine.py` ran on
+the substrate: **42 passed in 1155s, exit 0** — OVER works, no regression. The machine is now 25
+opcodes (NEG/MIN/MAX/OVER added this session).
+
 ## 2026-06-17: WASM machine — opcode 23 = MAX (Phase 5, third opcode extension)
 
 Phase 5 (extend the proven WASM leg). Added **opcode 23 = MAX** (binary: pop top1,top2; push
