@@ -54,9 +54,6 @@ _Phase D-A ✅ (D1 dense layer + D2 encoding/recipe). Recipe: Fourier-feature in
 0.3135 MSE on a wave._
 
 _Phase D-B — minimal implicit decoder (single image):_
-- [ ] **D3 — multi-layer coordinate decoder.** `demos/decoder/decoder.su` — a 2→H→H→1 SIREN
-  MLP over the coordinate grid; `render_decoder_torch(size, weights)` (whole-frame, the
-  hero_grid pattern). Verify forward is substrate ops, differentiable in all weights, finite.
 - [ ] **D4 — reconstruct an arbitrary image.** Train D3 to fit a target field (start: the
   analytic glow; then a real small image). Measure MSE↓ / PSNR↑ over training; before/after
   figure. The "decoder learns an arbitrary frame" milestone.
