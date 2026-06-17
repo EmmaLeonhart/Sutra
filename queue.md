@@ -112,6 +112,16 @@ to ask ("barrel through … until you've gotten a strong acceptance").
   against Jinja's small-step rules, opcode by opcode; (3) Python via WASM+Pyodide; (4) JS.**
   Concrete WASM-leg open items are in the merged WASM queue section below; full plan in the
   raised "Phase 5 — VM/bytecode targets" section below.
+  - **(1) WASM machine breadth — IN PROGRESS.** mini WASM machine (`experiments/iso5_substrate_
+    dispatch/mini_wasm_machine.su`) extended this session: NEG/MIN/MAX/OVER/ABS/SQR/NIP/ROT added
+    (21→29 opcodes), each substrate-verified; negative-number arithmetic measured-verified
+    2026-06-17. DIV/REM excluded (Math.mod ban). Marginal value now dropping → shift to (2).
+  - **(2) JVM core — SCOPED 2026-06-17,** `planning/exploratory/2026-06-17-phase5-jvm-core-scoping.md`:
+    the mini WASM machine IS a generic RAM-state stack machine, so the JVM core is the same
+    blended-dispatch machine with JVM opcode numbers + a locals region + JVM layout (a parallel
+    `jvm_core.su`), specified against Jinja's small-step semantics. Bounded ladder: arithmetic →
+    locals → stack ops → branches → a real javac-compiled method. **Next implementation leg once
+    WASM-opcode breadth winds down.**
 - **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
   per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
   / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment
