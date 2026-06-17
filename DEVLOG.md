@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-17: WASM machine — opcode 23 = MAX (Phase 5, third opcode extension)
+
+Phase 5 (extend the proven WASM leg). Added **opcode 23 = MAX** (binary: pop top1,top2; push
+max(top2,top1)) — the exact symmetric mirror of MIN (opcode 22) using the machine's other
+boundary-correct flag: `v_max = v_gt*top2 + (1-v_gt)*top1`, where `v_gt` is the 0/1 flag (1 iff
+top2>top1 strictly; 0 at equality or top2<top1 — so at equality MAX = top1 = top2, correct). As a
+binary op (net sp −1) it is woven into exactly two chains — the 98+sp result chain (`b_max`) and
+the sp chain (`s_max`) — touching nothing else, so the other 22 opcodes are unaffected. Three new
+substrate-verified cases (MAX(3,5)→5, MAX(5,3)→5, and the equality boundary MAX(4,4)→4). Full
+`test_mini_wasm_machine.py` ran on the substrate: **39 passed in 1004s, exit 0** — MAX works
+(including the boundary), no regression. The machine is now 24 opcodes (NEG/MIN/MAX added this
+session); the blended-dispatch + boundary-correct-comparison pattern continues to extend cleanly.
+
 ## 2026-06-17: WASM machine — opcode 22 = MIN (Phase 5, second opcode extension)
 
 Phase 5 (extend the proven WASM leg). Added **opcode 22 = MIN** (binary: pop top1,top2; push
