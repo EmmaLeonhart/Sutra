@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: F# frontend — record functional-update `{ p with x = 9 }` (Phase 3)
+
+Work+report sprint tick — the F# analogue of Rust's `..base` struct spread, but harder: F#'s
+`with` form does NOT name the record type, so the field set to copy must be recovered from the
+source record's type. Built the minimal type tracking: (a) the prepass now populates
+`_RECORD_FIELDS[type] = [field, …]` from each `record_type_defn`; (b) `_lower_defn` records a
+record-typed param's declared type in `_PARAM_RECORD_TYPE` (reset per function); (c) a new
+`_record_with_fields` parses `brace_expression → with_field_expression`, looks up the source
+param's type → field list, and the let-value path emits the overridden fields then copies every
+NON-overridden declared field from the source (`realvec(p.item(f))`). Scope: the `with` source
+must be a record-typed param (a let-bound record-literal source needs literal-type inference — a
+documented later item). New fixture `record_update` (`{ p with x = 9 }`, bump {x=1;y=8} → 9+8)
+compiles AND runs on the substrate to **17**; suite 36→38, no regressions.
+
 ## 2026-06-16: F# frontend — nullary DU variants in value position (Phase 3)
 
 Work+flush sprint tick — completes F#'s DU support. A bare nullary variant `North`
