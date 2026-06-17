@@ -29,6 +29,7 @@
 //          15=SWAP(swap top two)  16=DROP(pop, discard)
 //          17=GT(top2>top1 ?1:0)  18=GE(top2>=top1)  19=LE(top2<=top1)  20=NE(top2!=top1)
 //          21=NEG(pop a, push -a; unary, net sp 0 — rewrites the top cell)
+//          22=MIN(pop top1,top2; push min(top2,top1); binary, net sp -1)
 // State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
 // output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
 // program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
@@ -63,6 +64,7 @@ function int step(scalar d) {
     int is_le = truth_axis(defuzzy(op == 19));
     int is_ne = truth_axis(defuzzy(op == 20));
     int is_neg = truth_axis(defuzzy(op == 21));
+    int is_min = truth_axis(defuzzy(op == 22));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -99,6 +101,10 @@ function int step(scalar d) {
     int v_ge = 1 - v_lt;
     int v_le = 1 - v_gt;
     int v_ne = 1 - v_eq;
+    // MIN(top2, top1): the smaller, selected by the 0/1 v_lt flag (1 iff top2<top1
+    // strictly; 0 at equality or top2>top1 — so at equality v_min = top1 = top2).
+    // A binary op (net sp -1): result lands at 98+sp, sp decrements.
+    int v_min = (v_lt * top2) + ((1 - v_lt) * top1);
     // 98+sp (second-from-top) chain. Base keeps top2; SWAP writes top1 here (old
     // top moves down); binary ops (incl. OR/XOR) write their result; net sp -1
     // collapses 99+sp/98+sp so the result/new-top lands at 99+(sp-1)=98+sp.
@@ -114,7 +120,8 @@ function int step(scalar d) {
     int b_and = (((1 + is_and) * (v_and)) + ((1 - is_and) * (b_or))) / 2;
     int b_mul = (((1 + is_mul) * (v_mul)) + ((1 - is_mul) * (b_and))) / 2;
     int b_sub = (((1 + is_sub) * (v_sub)) + ((1 - is_sub) * (b_mul))) / 2;
-    int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_sub))) / 2;
+    int b_min = (((1 + is_min) * (v_min)) + ((1 - is_min) * (b_sub))) / 2;
+    int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_min))) / 2;
     ramWrite(98 + sp, new_lo);
     // LOAD: pop addr (top1), push ram[addr] -> rewrite the top cell (99+sp) with
     // the loaded value (else keep). Net sp 0. Data region is the program's choice
@@ -161,7 +168,8 @@ function int step(scalar d) {
     int s_and = (((1 + is_and) * (sp_binop)) + ((1 - is_and) * (s_brif))) / 2;
     int s_mul = (((1 + is_mul) * (sp_binop)) + ((1 - is_mul) * (s_and))) / 2;
     int s_sub = (((1 + is_sub) * (sp_binop)) + ((1 - is_sub) * (s_mul))) / 2;
-    int new_sp = (((1 + is_add) * (sp_binop)) + ((1 - is_add) * (s_sub))) / 2;
+    int s_min = (((1 + is_min) * (sp_binop)) + ((1 - is_min) * (s_sub))) / 2;
+    int new_sp = (((1 + is_add) * (sp_binop)) + ((1 - is_add) * (s_min))) / 2;
     ramWrite(1, new_sp);
     // pc: HALT keeps; BR_IF-taken jumps to imm; else +2.
     int pc_brif = (((1 + taken) * (imm)) + ((1 - taken) * (pc + 2))) / 2;

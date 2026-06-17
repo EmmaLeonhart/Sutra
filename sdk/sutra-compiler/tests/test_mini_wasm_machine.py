@@ -11,7 +11,8 @@ the decoded results — the "compile AND run AND produce the expected output" ba
 
 Opcodes: 0=HALT 1=CONST(imm) 2=ADD 3=SUB 4=MUL 5=AND(bitwise) 6=BR_IF(abs target)
 7=LOAD 8=STORE 9=EQ 10=LT 11=OUTPUT 12=OR(bitwise) 13=XOR(bitwise) 14=DUP 15=SWAP
-16=DROP 17=GT 18=GE 19=LE 20=NE 21=NEG(unary negate top, net sp 0).
+16=DROP 17=GT 18=GE 19=LE 20=NE 21=NEG(unary negate top, net sp 0)
+22=MIN(binary min(top2,top1), net sp -1).
 """
 
 from __future__ import annotations
@@ -115,6 +116,9 @@ _CASES = [
     ([(1, 7), (1, 7), (20, 0), (0, 0)], 0, 12, 100),          # 7 != 7 -> 0
     ([(1, 5), (21, 0), (0, 0)], -5, 12, 100),                 # CONST 5; NEG -> -5
     ([(1, 5), (21, 0), (1, 3), (2, 0), (0, 0)], -2, 12, 100), # 5; NEG; 3; ADD -> -5+3 = -2
+    ([(1, 3), (1, 5), (22, 0), (0, 0)], 3, 12, 100),          # MIN(3, 5) -> 3
+    ([(1, 5), (1, 3), (22, 0), (0, 0)], 3, 12, 100),          # MIN(5, 3) -> 3
+    ([(1, 4), (1, 4), (22, 0), (0, 0)], 4, 12, 100),          # MIN(4, 4) -> 4 (equality boundary)
     ([(1, 5), (1, 5), (10, 0), (0, 0)], 0, 12, 100),          # 5 < 5 -> 0 (LT equality boundary)
     ([(1, 5), (1, 5), (17, 0), (0, 0)], 0, 12, 100),          # 5 > 5 -> 0 (GT equality boundary)
     (_LOOP, 3, 60, 201),                                       # memory loop, 3 iterations -> acc 3
