@@ -63,6 +63,12 @@ _VARIANTS: dict = {}
 # blend, 32 not 48); the int-local round-trip makes it crisp — the working Haskell shape.
 _VTAG_N = [0]
 
+# Per-function counter for hoisted aggregate-argument temps (`_ahN`). A tuple/record/
+# DU construction passed DIRECTLY as a call argument (`addPair (5, 8)`) is statement-
+# shaped, so it is hoisted to a prelude temp and the temp name used at the call site —
+# bringing F# to parity with the other frontends (which all hoist arg constructions).
+_AH_N = [0]
+
 # Per-function construction prelude (record `{ … }` literals are statement-shaped, so
 # they are emitted as `Axon q; q.add(…)` BEFORE the return) and the set of axon-typed
 # names in scope (record params + record-bound locals) for `p.x` field-access dispatch.
@@ -360,7 +366,10 @@ def _lower_expr(node, src: bytes) -> str:
         if hname in ("fst", "snd") and len(args) == 1:
             field = "_0" if hname == "fst" else "_1"
             return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
-        arg_srcs = [_lower_expr(a, src) for a in args]
+        # A tuple/record/DU construction passed directly as an argument is hoisted to
+        # a prelude temp (axon-build statements), then the temp name used here.
+        arg_srcs = [(_hoist_construction_arg(a, src) or _lower_expr(a, src))
+                    for a in args]
         return f"{hname}({', '.join(arg_srcs)})"
     if t == "match_expression":
         # `match scrut with | k1 -> r1 | … | x -> base` → a nested defuzz blend
@@ -759,6 +768,44 @@ def _variant_application(node, src: bytes):
     return None
 
 
+def _hoist_construction_arg(node, src: bytes):
+    """If `node` is a tuple/record/DU construction in ARGUMENT position, emit its
+    axon-build statements to `_PRELUDE` and return the temp name (`_ahN`); else None.
+    The let-bound construction path stays separate (it builds into the bound name);
+    this is only for constructions passed directly as a call argument."""
+    tf = _tuple_fields(node, src)            # `(a, b)` — paren-wrapped tuple
+    if tf is not None:
+        tmp = f"_ah{_AH_N[0]}"
+        _AH_N[0] += 1
+        _PRELUDE.append(f"    Axon {tmp};\n")
+        for field, val in tf:
+            _PRELUDE.append(f'    {tmp}.add("{field}", {_lower_expr(val, src)});\n')
+        return tmp
+    inner = node
+    if inner.type == "paren_expression" and inner.named_children:
+        inner = inner.named_children[0]
+    rf = _record_fields(inner, src)          # `{ x = a }`
+    if rf is not None:
+        tmp = f"_ah{_AH_N[0]}"
+        _AH_N[0] += 1
+        _PRELUDE.append(f"    Axon {tmp};\n")
+        for field, val in rf:
+            _PRELUDE.append(f'    {tmp}.add("{field}", {_lower_expr(val, src)});\n')
+        return tmp
+    va = _variant_application(inner, src)     # `Circle 4`
+    if va is not None:
+        vname, vargs = va
+        tag, _arity = _VARIANTS[vname]
+        tmp = f"_ah{_AH_N[0]}"
+        _AH_N[0] += 1
+        _PRELUDE.append(f"    Axon {tmp};\n")
+        _PRELUDE.append(f'    {tmp}.add("_tag", {tag});\n')
+        for i, a in enumerate(vargs):
+            _PRELUDE.append(f'    {tmp}.add("_val{i}", {_lower_expr(a, src)});\n')
+        return tmp
+    return None
+
+
 def _typed_paren_param(paren, src: bytes):
     """A `paren_pattern` wrapping `(x: T)` → (name, sutra_type) or None. Shape:
     `paren_pattern → typed_pattern → [identifier_pattern, simple_type]`."""
@@ -902,6 +949,7 @@ def _lower_defn(defn, src: bytes) -> str:
     _PRELUDE.clear()
     _AXON_VARS.clear()
     _VTAG_N[0] = 0
+    _AH_N[0] = 0
     for p in params:
         if param_ty.get(p) == "Axon":
             _AXON_VARS.add(p)
