@@ -1,0 +1,30 @@
+// dense.su — a TRAINABLE dense (Linear) layer on the Sutra substrate (learned-decoder D1).
+//
+// h = matmul(W, x) + b      (W: out×in, x: in, b: out)
+//
+// The weights W and b arrive as PARAMETERS (the same runtime-parameter discipline the hero
+// render uses for θ, but matrices), so a host optimizer trains them by autograd THROUGH the
+// compiled substrate `matmul` — every op runs on the substrate; only the optimizer is
+// host-side. This is the trainable cell the learned coordinate-MLP decoder (D3) stacks.
+function vector dense(vector W, vector x, vector b) {
+    return matmul(W, x) + b;
+}
+
+// Activated variant for stacking into an MLP: a CUBIC nonlinearity h³ via hadamard.
+//
+// FINDING (D1, 2026-06-17): the substrate's `tanh`/`sin` operate on the canonical complex-
+// vector form (fuzzy values), NOT elementwise over an arbitrary length-H activation buffer —
+// `tanh(matmul(W,x))` on a vector raises a dim-mismatch in `_canon`. So the MLP nonlinearity
+// is a HADAMARD POLYNOMIAL, which IS elementwise on real field buffers (the same machinery the
+// hero/button fields use). Cubic is odd (sign-preserving) and differentiable everywhere;
+// expressivity for image fitting comes from Fourier-feature inputs + these layers (D2/D3).
+function vector dense_cube(vector W, vector x, vector b) {
+    vector h = matmul(W, x) + b;
+    return hadamard(hadamard(h, h), h);
+}
+
+// Self-contained sanity: tanh(1) = 0.7616 (matmul of matrices is exercised via the host
+// wrapper / tests, where W,x,b are real torch tensors — `.su` literals are scalars only).
+function vector main() {
+    return tanh(make_real(1.0));
+}
