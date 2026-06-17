@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — multi-PARAM multi-clause tail recursion (Phase 3)
+
+Work+report sprint tick — ports the Erlang N-param generalization to Elixir (mechanical, same
+`_try_lower_multiclause_recursion` shape). `def sum(0, acc), do: acc` + `def sum(n, acc), do:
+sum(n-1, acc+n)` now lowers to a `while_loop`: the synthesizer finds the BASE clause (one
+integer-literal param, rest identifiers, no self-call) and the recursive clause (all
+identifiers, self-call), takes the recursive clause's names as the synthesized params,
+synthesizes `(n == 0)` on the discriminator position, and renames the base clause's identifier
+params to the recursive names by position (via `_SUBST`). New fixture `multiclause_tailsum`
+(`sum(5, 0)`) runs on the substrate to **15**; `multiclause_fact`(→120) and the `tail_rec`/
+`nontail_fact` guards still pass. Suite 38→40. Remaining: the Haskell multi-param port.
+
 ## 2026-06-16: Erlang frontend — multi-PARAM multi-clause tail recursion (Phase 3)
 
 Work+flush sprint tick. Generalized Erlang's `_try_lower_multiclause_recursion` from single-param
