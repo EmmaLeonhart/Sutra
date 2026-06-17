@@ -108,12 +108,19 @@ to ask ("barrel through … until you've gotten a strong acceptance").
   mini WASM machine** (`experiments/iso5_substrate_dispatch/mini_wasm_machine.su`) + Python via
   WASM+Pyodide on top of it. Verified-spec research: `planning/exploratory/2026-06-17-phase5-bytecode-
   vm-spec-research.md` (CPython has NO verified spec → ride Pyodide/Wasm, no direct CPython VM).
-  - **(1) WASM machine breadth — ACTIVE.** mini WASM machine extended: NEG/MIN/MAX/OVER/ABS/SQR/
-    NIP/ROT (21→29 opcodes), each substrate-verified; negative-number arithmetic measured-verified
-    2026-06-17. DIV/REM excluded (Math.mod ban). NEXT: continue WASM breadth toward running a real
-    `.wasm` function byte-for-byte (mirror the JVM leg's javac-factorial oracle: load real wat→wasm
-    bytes, decode == reference), then Python-via-Pyodide. Concrete WASM-leg open items in the merged
-    WASM queue section below.
+  - **(1) Real-WASM-bytecode core — ACTIVE.** The custom-opcode `mini_wasm_machine.su` (29 opcodes,
+    substrate-verified; DIV/REM excluded) is a breadth playground, NOT real `.wasm`. The real leg is
+    a new `wasm_core.su` (parallel to `jvm_core.su`) using REAL WASM opcode values + encoding, so
+    `wat→wasm` output runs unmodified. **SCOPED 2026-06-17 — `planning/exploratory/2026-06-17-phase5-
+    wasm-core-scoping.md`** (decomposes the leg; the JVM core is the template). Two real encoding
+    differences from JVM: (i) LEB128 variable-length operands (single-byte first, same even/odd
+    sign trick), (ii) structured control `block`/`loop`/`if`/`end`/`br` (pre-resolved target table
+    first, keeps the hot path JVM-shaped). **NEXT = step 1:** `i32.const`(0x41 signed single-byte
+    LEB128) + `local.get`/`set`/`tee`(0x20-22) + `i32.add`/`sub`/`mul`(0x6a-6c) + `end`/`return`,
+    verify `(i32.const 3)(i32.const 4)(i32.add)(end) → 7` on the substrate (reuse the JVM iconst
+    real-axis-vector fix). Ladder: 1 arithmetic+locals → 2 comparisons → 3 structured control →
+    4 real wat→wasm factorial byte-for-byte → 5 tree-recursion fib via `call` (= Phase 5.5-B payoff).
+    Then Python-via-Pyodide. Concrete WASM-leg open items in the merged WASM queue section below.
 - **Phase 5.5 — Recursion lowering strategy: single→tail (compiler), multiple→WASM (Emma
   2026-06-17).** A two-part strategy for NON-TAIL recursion that applies across ALL language
   frontends. Ordering (Emma): both parts come BEFORE the Phase-6 long tail; Part B comes AFTER
