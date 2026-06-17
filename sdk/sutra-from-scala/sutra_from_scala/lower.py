@@ -281,6 +281,31 @@ def _lower_block(node, src: bytes) -> str:
             kids = c.named_children
             if len(kids) < 2:
                 continue
+            if kids[0].type == "tuple_pattern":
+                # `val (a, b) = t` — destructure a tuple axon into named locals.
+                # Scala tuple selectors are 1-based (`t._1`), so read `_1`/`_2`/…
+                # via `realvec` (the same projection `._1` uses). Only identifier
+                # elements are in scope; the value is hoisted first so
+                # `val (a, b) = (5, 8)` works too (the tuple binds to a temp axon).
+                pat = kids[0]
+                elems = [e for e in pat.named_children if e.type == "identifier"]
+                if not elems or len(elems) != len(pat.named_children):
+                    stmts += ("    /* UNSUPPORTED-VAL: non-identifier tuple "
+                              "pattern element (later item) */\n")
+                    continue
+                val_expr = kids[-1]
+                deep = _hoist_constructions(val_expr, src, "    ")
+                added: list = []
+                if deep is not None:
+                    pre, added = deep
+                    stmts += pre
+                val_src = _lower_expr(val_expr, src)
+                for nid in added:
+                    _ARG_HOIST.pop(nid, None)
+                for i, el in enumerate(elems, start=1):
+                    stmts += (f'    {_DEFAULT_TYPE} {_text(el, src)} = '
+                              f'realvec({val_src}.item("_{i}"));\n')
+                continue
             name = _text(kids[0], src)
             val_expr = kids[-1]
             cname = _case_class_call(val_expr, src)

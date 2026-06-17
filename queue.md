@@ -220,7 +220,9 @@ negative results, not hidden.
   `{ r with … }`; nested tuple/record patterns (`let (a, (b, c)) = t`); DU-case pattern
   `let` destructuring (`let (Circle r) = s`). [`let { x = a } = p` record-pattern
   destructuring shipped 2026-06-16.] Measured grammar quirk: parenthesize call operands
-  under infix. [Scala 20/20 — named roadmap + tuples done 2026-06-16.]
+  under infix. [Scala 22/22 — `val (a, b) = t` tuple-pattern destructuring (1-based keys)
+  done 2026-06-16; remaining Scala: case-class `val` pattern destructure (`val Point(x, y) =
+  p`), nested patterns.]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
   positional-key axons + `elem(t, i)` access + `{a, b}` tuple-PATTERN + `%{x: a}` map-PATTERN
   + `%Name{x: a}` struct-PATTERN params shipped 2026-06-16, suite 34/34; struct alias dropped,
