@@ -59,6 +59,40 @@ def test_emitted_su_compiles_and_matches_trained_decoder():
     assert max_abs < 1e-4, f"emitted .su decoder != trained host forward: max abs diff {max_abs:.2e}"
 
 
+def test_baked_su_is_standalone_and_reproduces_trained_decoder(tmp_path):
+    """Bake the trained weights to CSV + emit a STANDALONE .su that loads its own weights; run
+    it with NO host weight tensors (only the input) and confirm it reproduces the trained
+    decoder forward — the trained decoder as fully self-contained Sutra code + data."""
+    import torch
+    pytest.importorskip("torch")
+    nn = _load("substrate_nn", "substrate_nn.py")
+    emit = _load("emit_decoder", "emit_decoder.py")
+    _d, _c, vsa = nn.dense_layers()
+    dt, dev = vsa.dtype, vsa.device
+
+    nf = 3
+    params = nn.init_mlp([nn.decoder_input_dim(nf), 16, 16, 1], dt, dev, seed=0)
+    size = 12
+    lin = torch.linspace(-1, 1, size, dtype=dt, device=dev)
+    yy, xx = torch.meshgrid(lin, lin, indexing="ij")
+    target = torch.exp(-6.0 * (xx ** 2 + yy ** 2)).detach()
+    nn.fit_decoder(params, target, size, num_freqs=nf, steps=50, lr=0.01)
+
+    su_path = emit.bake_decoder(params, tmp_path)          # writes CSVs + decoder_baked.su
+    baked_fn = emit.compile_baked(su_path)
+
+    coords = nn.coord_grid(size, dt, dev)
+    X = nn.fourier_features(coords, nf).to(dt).T.contiguous()
+    baked = baked_fn(X)                                    # NO weights passed — loaded from CSV
+    baked = baked.real if baked.is_complex() else baked
+    host = nn.mlp_forward(params, X)
+
+    max_abs = float((baked - host).abs().max().detach())
+    assert max_abs < 1e-4, f"standalone baked decoder != trained host forward: {max_abs:.2e}"
+    src = su_path.read_text(encoding="utf-8")
+    assert src.count("load_matrix(") == 2 * len(params), "not every weight is file-backed"
+
+
 def test_decoder_su_source_shapes_to_layer_count():
     emit = _load("emit_decoder", "emit_decoder.py")
     src = emit.decoder_su_source(3)
