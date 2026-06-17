@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-17: learned decoder D1 — the substrate TRAINS (trainable dense layer)
+
+`demos/decoder/dense.su` (`dense(W,x,b)=matmul(W,x)+b`, + `dense_cube` cubic activation) +
+`substrate_nn.py`. The load-bearing proof: a Linear layer whose weights are trained by a
+host-side Adam via autograd THROUGH the compiled substrate `matmul`. TDD `test_dense.py` (4),
+green on CPU **and** CUDA: dense is differentiable in W,b (grad finite, non-zero through the
+substrate matmul); matches `W@x+b`; Adam fits a held linear map over 8 samples (loss 300-step
+→ <1e-2, <5% of start); the cubic activation matches `(W@x+b)³` elementwise and carries grad.
+
+**Finding (drove a design pivot):** the substrate's `tanh`/`sin` operate on the canonical
+complex-vector form (fuzzy values), NOT elementwise over an arbitrary length-H activation
+buffer — `tanh(matmul(W,x))` on a vector raises a dim-mismatch in `_canon`. So the decoder's
+nonlinearity is a HADAMARD POLYNOMIAL (cubic, elementwise on real field buffers — the same
+machinery the hero/button fields use), and expressivity will come from host-built
+Fourier-feature inputs (D2) rather than SIREN sin-activations. Revised D2 accordingly.
+
 ## 2026-06-17: LEARNED DECODER unleashed — feasibility probed + big D-track queued
 
 Emma lifted the gate: "make all the decisions, don't ask, barrel through, build a big queue,
