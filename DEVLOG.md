@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 4 — RAM device works as a loop-carried memo (general form unblocked)
+
+Measured the feasibility of tier-4's GENERAL memoization form (recursion beyond linear recurrences —
+multi-arg DP, arbitrary single-index DP, irregular). The question: how is a true memo TABLE (not the
+shipped scalar rolling-window) carried as state across a substrate `while_loop`? Finding
+`2026-06-17-tier4-ram-memo-in-loop.md`: a **`dict` as loop slot state FAILS** (RuntimeError — the
+loop carries scalar slots, not a dict), **but the RAM device** (`ramRead`/`ramWrite`) **persists
+across loop iterations and works as the memo** — a bottom-up RAM-memo `fib` (`ramWrite(0,0);
+ramWrite(1,1);` then loop `ramWrite(i, ramRead(i-1)+ramRead(i-2))`) runs on the substrate and returns
+`fib(8)=21`. So the general form is NOT blocked: it uses a RAM-backed memo (the same external-memory
+mechanism the JVM/WASM substrate cores used), not a dict. This corrects the tier-4 scoping doc, which
+had assumed a dict/agenda memo without verifying it — the dict path is dead, the RAM-memo path is
+live. Build order recorded in queue.md: general single-index DP → multi-arg DP (flattened RAM index)
+→ explicit RAM-agenda+RAM-memo work-stack loop, each compile-AND-run-verified. The scalar
+rolling-window stays the cheap fast path for linear recurrences (fib/Pell/Lucas — already shipped).
+
 ## 2026-06-17: Phase 5.5 tier 4 — native recursion widened to non-identity (literal) base values
 
 Widened the tabulation synthesizer to handle a non-identity LITERAL base value, not just the
