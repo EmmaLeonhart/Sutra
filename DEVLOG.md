@@ -901,6 +901,158 @@ ACTIVE DIRECTIVE the top active work, and **removed the GUI agenda entirely** (c
 note (do NOT re-add GUI here). The GUI demo code + paper stay built/merged on main; only the
 not-yet-done GUI *agenda* left this queue. Crons made more aggressive for the sprint
 (work-loop + auto-flush + status all advance a bounded increment).
+## 2026-06-17: 3-hourly gui→main auto-integration cron (preserve main's queue/todo)
+
+Emma's standing instruction: every 3 hours, integrate gui→main, preserving main's working
+files. Created session cron `2540eba3` (`37 */3 * * *`): commit+push gui → merge gui into main
+keeping MAIN's `queue.md` + `todo.md` (union DEVLOG.md, take gui's for other files) → push main
+→ return to gui (gui keeps its own queue/todo so the autonomous loop is unaffected). Supersedes
+the earlier "gui stays isolated, no merging to main" note (updated in queue.md branch-context).
+Hard rails on the merge: never force-push/reset/discard sibling work; abort + report if a merge
+can't be resolved safely. Running the first integration now to validate the recipe.
+
+## 2026-06-17: B8 — live trainable-button browser smoke PASSED (Emma confirmed)
+
+Launched `demos/gui/button_server.py --live-ctr` (background, http://127.0.0.1:8770/) and opened
+it in Emma's browser; she confirmed the live page works ("Browser is great"). This is the one
+item that needed a real display — the in-browser DOM rendering of the substrate-rendered button
+pair + the owner-A/B and visitor-click controls. The headless bridge logic + HTTP layer were
+already CI-tested / smoked; this closes the last gap. **The trainable click-button track (B1–B9)
+is now fully complete, including the live browser.** Server left running for continued use.
+
+## 2026-06-17: learned decoder D10 — docs + paper for the trained generator
+
+Documented the whole learned-decoder arc, measured. `docs/gui.md`: a public "Learning the
+picture, not just rendering it" section — the substrate is trained (matmul + cubic over Fourier
+features) to reconstruct arbitrary images, generate from a latent, and be preference-steered;
+website-clean (no queue/todo/planning/internal-path refs). `paper/gui-steering/paper.md`: a new
+§7.2 "From a fixed-weight render to a trained generator" with the measured numbers (Fourier vs
+raw 4e-4 vs 3e-1; reconstruction 22.4/28.5 dB + colour 20.6 dB; capacity 13.5→18.7 dB; latent
+interpolation centroid −0.34→+0.33; preference steering +0.16/−0.34 flip), the two substrate
+findings (tanh/sin canonical → hadamard cubic; Fourier encoding as host input geometry), and
+the honest boundary (forward on the substrate; optimizer/reward/encoding host-side; training
+not claimed on-substrate). §10 repro gains `pytest demos/decoder/`. Site builds clean
+(`build_site.py` exit 0). Only D11 (weight→code) remains on the decoder track.
+
+## 2026-06-17: learned decoder D9 — steered-generator demo (headless + window)
+
+`demos/decoder/latent_demo.py`: the end-to-end pipeline as a run-verifiable headless demo —
+train the latent-conditioned substrate decoder (auto-decoder on two blob targets), freeze it,
+steer the latent by a synthetic owner preference (`LatentSteer`), and show the generated blob
+move (centroid_x +0.077 → +0.299 under prefer-rightward; verified by running `main()`).
+`latent_window.py`: a thin tkinter wrapper over the same controller (WARMER/COLDER → the
+generated picture morphs) — I/O only, untested in CI (no display), parses + imports clean.
+`test_latent_demo.py`: a light CI smoke (module imports + the centroid helper) since the heavy
+train+steer is already covered by `test_latent_steer.py`. Next: D10 docs/paper, D11 weight→code.
+
+## 2026-06-17: learned decoder D8 — preference steers the generator's latent (convergence)
+
+The two tracks meet: the generative decoder (D7) + the ButtonAdam preference loop. `LatentSteer`
+(`demos/decoder/latent_steer.py`) freezes a trained latent-conditioned decoder's weights and
+moves the LATENT `z` by pairwise preference — a pooled-linear reward head trained on the
+choices (the OwnerRewardModel pattern), Adam ascending it THROUGH the substrate decoder render
+w.r.t. z. TDD `test_latent_steer.py` (3), green CPU+CUDA: starting at the latent midpoint
+(generated blob centroid_x ≈ +0.03), a "prefer rightward" rater drives it to +0.16, a "prefer
+leftward" rater to −0.34, and the direction flips (right > left by ~0.5). So a person's
+preferences now drive WHAT THE LEARNED GENERATOR PRODUCES — render on the substrate, reward
+head + Adam host-side. **Phase D-D complete.** Remaining: D9 demo, D10 docs/paper, D11
+weight→code.
+
+## 2026-06-17: learned decoder D7 — latent-conditioned GENERATION (the generative leap)
+
+The decoder now GENERATES, not just reconstructs. `render_decoder_latent_torch(params, z, …)`
+conditions each pixel on `[Fourier(x,y), z]`; `fit_autodecoder` jointly trains shared weights +
+per-image latents over a SET of targets (host Adam over weights+latents; render on the
+substrate). TDD `test_latent.py` (2), green CPU+CUDA: an auto-decoder on two blob-position
+targets (±0.4 in x) reconstructs each from its own latent (MSE ~0.001), AND lerping z_A→z_B
+sweeps the generated blob monotonically across the frame (centroid_x −0.34 → −0.15 → +0.11 →
++0.26 → +0.33). The latent continuously controls the output — interpolation produces novel
+intermediate frames the model was never trained on. This is the EMMA-gated "decoder from a
+latent to an arbitrary frame," generative form, on the substrate. Next: D8 steers the latent by
+owner×CTR (the learned decoder meets the GUI steering loop).
+
+## 2026-06-17: learned decoder D6 — capacity/scaling (Phase D-C complete)
+
+Measured how reconstruction scales with decoder width on the two-blob target (24², 500 steps,
+seed 0): H=8 → MSE 0.0448 / 13.5 dB, H=16 → 0.0412 / 13.9 dB, H=32 → 0.0360 / 14.4 dB, H=64 →
+0.0135 / 18.7 dB — monotonic improvement with capacity, as expected for an implicit neural
+representation. TDD `test_capacity.py` sweeps [8,32,64] and asserts MSE non-increasing (15%
+slack), widest < half the narrowest, PSNR gain > 3 dB; green CPU+CUDA. Phase D-C complete (RGB
++ capacity). Next: the generative leap — D7 latent-conditioned generation.
+
+## 2026-06-17: learned decoder D5 — reconstructs an arbitrary COLOUR image
+
+3-output decoder: `render_decoder_torch` returns (size,size,3) and `fit_decoder` trains it
+per-channel. TDD `test_reconstruct_rgb.py`: reconstructs a two-blob colour target (red blob +
+green/blue blob, not analytically renderable) to MSE **0.0087 / PSNR 20.6 dB** (24², H=64, 800
+steps), NaN-free; asserts MSE<0.02, PSNR>16, final<1% of start — green CPU+CUDA. Same substrate
+forward (matmul + hadamard cubic), host Adam, now RGB. The D4 milestone generalises to colour.
+
+## 2026-06-17: learned decoder D4 — reconstructs an arbitrary image (MILESTONE)
+
+The EMMA-gated headline: the learned substrate decoder **reconstructs an arbitrary frame**.
+`substrate_nn.py` gains `fit_decoder` (host-side Adam over the weights, MSE through the
+substrate render) + `psnr`. TDD `test_reconstruct.py` trains the decoder to fit a target the
+analytic hero/button renders cannot make — two off-centre gaussian blobs of different size and
+intensity — and measures it: MSE **332 → 0.0058 (PSNR 22.4 dB)** at H=64/800 steps (0.0014 /
+28.5 dB at H=96/1200), NaN-free, on a 24² grid. Test asserts final MSE < 0.02, PSNR > 17 dB,
+and final < 1% of start — green on CPU **and** CUDA. Every forward op is on the substrate
+(`matmul` + hadamard cubic); only Adam is host-side. **Phase D-B complete** — "the decoder
+learns a frame" is demonstrated and measured. Next: RGB (D5), capacity (D6), then the
+generative step — latent-conditioned generation (D7).
+
+## 2026-06-17: learned decoder D3 — whole-frame coordinate decoder
+
+`substrate_nn.py` gains `coord_grid` (the (N²,2) (x,y) grid, hero raster), `decoder_input_dim`,
+and `render_decoder_torch(params, size, num_freqs)` — the learned analogue of
+`render_button_torch`: build the grid → Fourier-encode (host input geometry) → run the
+substrate MLP per pixel → reshape to the frame, autograd intact. TDD `test_decoder.py` (3),
+green CPU+CUDA: renders the right-shape field; finite + differentiable in ALL weights (grad
+reaches every W,b through the substrate forward); resolution-independent (same weights render
+16² and 24²). The render is ready to train — D4 fits it to a target image.
+
+## 2026-06-17: learned decoder D2 — Fourier-feature encoding + the substrate-MLP recipe
+
+Settled the decoder recipe (`substrate_nn.py`: `fourier_features`, `init_mlp`, `mlp_forward`).
+Since the substrate's tanh/sin aren't elementwise (D1), expressivity comes from a host-built
+**Fourier-feature** encoding of the coordinates — `[coords, sin(πf·c), cos(πf·c)]` for
+f∈2^0..2^(L-1) — the same compile-time input-geometry boundary as the X/Y grid; the LEARNED
+forward (batched `matmul` + hadamard cubic, host-chained like the button render) stays on the
+substrate. Kaiming-ish init (1/√in) keeps the cubic from exploding. TDD `test_encoding.py` (3),
+green CPU+CUDA: features well-formed + bounded; a Fourier-feature substrate MLP fits sin(3πx)
+NaN-free to MSE **0.0003**; and Fourier beats raw coordinates **0.0003 vs 0.3135** (~1000×) —
+the encoding earns its place. Recipe locked for D3's whole-frame coordinate decoder.
+
+## 2026-06-17: learned decoder D1 — the substrate TRAINS (trainable dense layer)
+
+`demos/decoder/dense.su` (`dense(W,x,b)=matmul(W,x)+b`, + `dense_cube` cubic activation) +
+`substrate_nn.py`. The load-bearing proof: a Linear layer whose weights are trained by a
+host-side Adam via autograd THROUGH the compiled substrate `matmul`. TDD `test_dense.py` (4),
+green on CPU **and** CUDA: dense is differentiable in W,b (grad finite, non-zero through the
+substrate matmul); matches `W@x+b`; Adam fits a held linear map over 8 samples (loss 300-step
+→ <1e-2, <5% of start); the cubic activation matches `(W@x+b)³` elementwise and carries grad.
+
+**Finding (drove a design pivot):** the substrate's `tanh`/`sin` operate on the canonical
+complex-vector form (fuzzy values), NOT elementwise over an arbitrary length-H activation
+buffer — `tanh(matmul(W,x))` on a vector raises a dim-mismatch in `_canon`. So the decoder's
+nonlinearity is a HADAMARD POLYNOMIAL (cubic, elementwise on real field buffers — the same
+machinery the hero/button fields use), and expressivity will come from host-built
+Fourier-feature inputs (D2) rather than SIREN sin-activations. Revised D2 accordingly.
+
+## 2026-06-17: LEARNED DECODER unleashed — feasibility probed + big D-track queued
+
+Emma lifted the gate: "make all the decisions, don't ask, barrel through, build a big queue,
+push as hard as possible." Probed substrate capability: `matmul`/`dot`/`outer`/`sin`/`tanh`
+exist as ops, and `tanh(matmul(W,x))` compiles + runs on the substrate (= 0.7616) — so a
+trainable SIREN-style coordinate-MLP decoder (Linear=matmul, nonlinearity=sin/tanh, weights as
+trainable params, autograd through the compiled forward, host-side Adam) is real. Decided the
+architecture (no questions): a coordinate MLP rendered whole-frame on the substrate
+(`[x,y(,z)] → matmul/sin layers → RGB`); the analytic hero/button render is the fixed-weight
+base case, this is the trained generalization. Queued a big D-track: D1 trainable dense layer →
+D2 nonlinearity → D3 multi-layer coordinate decoder → D4 reconstruct an image → D5 RGB → D6
+capacity → D7 latent-conditioned generation → D8 steer the latent → D9 demo → D10 docs/paper →
+D11 weight→code horizon. Mirrored D1–D4 to tasks. Kept the crons running (the barreling engine).
+Building D1 next.
 
 ## 2026-06-16: Yantra Y3 — integration docs (Yantra track Y0–Y3 complete)
 
