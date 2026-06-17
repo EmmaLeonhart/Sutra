@@ -58,14 +58,13 @@ The recursion philosophy was distilled from Emma's reference chat into
 **`planning/sutra-spec/recursion-execution-model.md`** (the settled design) — a five-tier hierarchy.
 It REFINES the old two-bucket framing: multiple recursion does NOT all go to WASM; most stays native
 via pre-evaluation or memoization, and WASM shrinks to a tier-5 fallback for genuinely imperative /
-`eval` code. Apply across ALL frontends. Comes before the §4 long tail. Build order = the spec's:
+`eval` code. Apply across ALL frontends. Comes before the §4 long tail. Build order = the spec's.
 
-- [ ] **(A / tier 2) Single (linear) non-tail recursion → tail recursion — a compiler transform.**
-  A single non-tail recursive call (e.g. `fact(n)=n*fact(n-1)`) is rewritten to accumulator-passing
-  tail form by the frontend lowering, then lowers as a substrate `loop` (recurrent neurons,
-  stackless, stays a real fused graph). Apply uniformly in every frontend (generalize the OCaml
-  reference's foldable-CPS transform). Independent of WASM. Verify per frontend: a linear non-tail
-  recursive fixture compiles to a `loop` and runs == reference on the substrate.
+**Tier 1 (tail/loops → recurrent neurons) and Tier 2 (single non-tail → tail) are DONE** — tier 2 is
+the `_try_lower_foldable_nontail` transform present in all 8 functional frontends with a `nontail_fact`
+fixture each, verified 2026-06-17 to compile AND run == reference on the substrate (OCaml/Haskell/Rust
+sampled locally; all 9 gated by `transpilers-ci`). Remaining (the genuinely-new, harder tiers):
+
 - [ ] **(B / tier 3) Fixed-depth multiple recursion → compile-time pre-evaluation.** When depth is
   statically known, unroll / partially-evaluate to straight-line code (referential transparency
   makes compile-time evaluation safe; same machinery as loop unrolling). Cap with a max-depth
