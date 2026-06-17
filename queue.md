@@ -90,14 +90,28 @@ to ask ("barrel through … until you've gotten a strong acceptance").
   `paper/formal-verification/paper.md` with a CLEARLY-DELINEATED section that frames the
   frontends as EMPIRICAL substrate-verification (compile-AND-run vs ground truth) — kept
   DISTINCT from the Lean-FORMAL gadget proofs. Do NOT conflate the two verification
-  notions.** Then run the clawRxiv ping-pong loop (push triggers `fv-paper-ci.yml`) for a
-  FEW cycles (Emma 2026-06-17: "a few cycles", not indefinitely), then MOVE ON to Phase 5.
-- **Phase 5 — bytecode / VM targets (Emma 2026-06-17: do this AFTER the FV-paper cycles,
-  BEFORE the long tail).** The neural-VM legs: the WASM machine breadth + the JS / JVM
-  bytecode interpreters on the substrate (Python rides WASM via Pyodide). Full plan in the
-  "Long-horizon — VM/bytecode targets" section below — that section's PRIORITY is now RAISED:
-  it runs right after the FV-paper cycles, not at the very end. First step when picked up:
-  search for existing verified bytecode specs (as was leveraged for WASM) before implementing.
+  notions.** **✅ FV CYCLES DONE 2026-06-17 — banked at Weak Reject; moved to Phase 5.** The §8
+  empirical-frontend section shipped + ran 3 clawRxiv cycles (v76 Reject → v77 Weak Reject → v78
+  Weak Reject, all Gemini-3-Flash — a different reviewer model than v75's ACCEPT). The
+  §8-specific con (over-breadth / "AI-generated breadth" / nine-language / 184-fixture inventory)
+  was DRIVEN OUT by the cycle-3 structural trim — absent from v78's cons. The residual v78 cons
+  are all FUNDAMENTAL (frozen-substrate "garbage-in formal-proof-out", bit-exact skepticism,
+  termination-by-construction, formal-semantics depth) — the class Emma ruled in Phase 2 "won't
+  flip by prose edits; attack with real work", and which v75's ACCEPT reviewer accepted. Per
+  Emma 2026-06-17 "a few cycles then bytecode" + "a weak reject isn't something we're concerned
+  with": banked, NOT chasing the fundamentals with more prose.
+- **Phase 5 — bytecode / VM targets (🔥 NOW ACTIVE, Emma 2026-06-17: after FV cycles, before the
+  long tail).** Neural-VM legs: WASM machine breadth + JS / JVM bytecode interpreters on the
+  substrate (Python rides WASM via Pyodide). **Verified-spec research DONE 2026-06-17 —
+  `planning/exploratory/2026-06-17-phase5-bytecode-vm-spec-research.md`.** Findings: WASM is the
+  proven, already-built leg (extend `WASM/` — cheapest substrate-verifiable next progress); JVM
+  has mature verified specs to specify against (Jinja/JinjaThreads in Isabelle/HOL, Bicolano in
+  Coq, ACL2-JVM); CPython has NO verified spec (bytecode is a version-drifting DSL in
+  `bytecodes.c`) → confirms Emma's "ride Pyodide/Wasm, no direct CPython VM"; JS lowest priority.
+  **Grounded order: (1) extend the WASM machine [substrate-verifiable now]; (2) JVM core specified
+  against Jinja's small-step rules, opcode by opcode; (3) Python via WASM+Pyodide; (4) JS.**
+  Concrete WASM-leg open items are in the merged WASM queue section below; full plan in the
+  raised "Phase 5 — VM/bytecode targets" section below.
 - **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
   per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
   / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment
