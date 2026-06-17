@@ -71,26 +71,24 @@ zero but around 2-3"; it only fires on detectably-precalculable constant-arg cal
 cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it (0 disables). So tier
 3 is complete. Remaining (the last genuinely-new tier — NATIVE recursion via memoization):
 
-- [ ] **(tier 4) NATIVE recursion via memoization — the active build (Emma: "barrel through, add the
-  native recursion stuff").** SCOPED (rewritten) 2026-06-17 —
-  `planning/exploratory/2026-06-17-phase5.5-tier4-memoization-scoping.md`. Sutra has no native
-  recursion; memoization-as-a-loop is the mechanism that GIVES it native recursion for EVERYTHING
-  (NOT tabulate-some-WASM-rest). General form = a `while_loop` (→ recurrent neurons) carrying an
-  explicit agenda (the call stack, now a value in memory) + a memo table; overlapping subproblems
-  flatten the call tree to a DAG (fib → linear), non-overlapping still run natively. Tabulation is the
-  special-case optimization for index-structured recursion. WASM is NOT the recursion fallback.
-  - [ ] **4b part 2 — loop SYNTHESIS:** from the detected `TabulableShape`, generate the memoizing
-    `while_loop` (a rolling-window of `max(offsets)` accumulators initialized with the base values, or
-    a memo array) computing `f(n)`, swap it for the recursive FunctionDecl, verify it runs natively ==
-    reference on the substrate (`fib`, tribonacci). Then the general work-stack + memo form for
-    irregular recursion. (4b part 1 — DETECTOR — DONE 2026-06-17: `sutra_compiler/tabulate.py`
-    `detect_tabulable_recursion` recognizes the fib-family shape [1 int param, base-case `if (n<op>K)
-    return base`, trailing return summing ≥2 `f(n-const)` calls]; `test_tabulate.py` 6/6 — detects
-    fib/tribonacci, rejects single-recursion/non-recursive/non-constant-offset/extra-statements. 4a
-    DONE: `test_native_recursion.py` 6/6, `fib(0..15)` native memoizing `while_loop` == ground truth —
-    the target 4b part 2 synthesizes.)
-- Tier 5 (`wasm_core`, §2) is NOT the recursion fallback once tier 4 lands — only genuinely imperative
-  / `eval` / FFI. (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes it native.)
+- [ ] **(tier 4) NATIVE recursion via memoization (Emma: "barrel through, add the native recursion
+  stuff").** Sutra has no native recursion; memoization-as-a-loop GIVES it native recursion for
+  EVERYTHING (NOT tabulate-some-WASM-rest). General form = a `while_loop` (→ recurrent neurons)
+  carrying an explicit agenda (the call stack, now a value) + a memo table. Scoping (rewritten):
+  `planning/exploratory/2026-06-17-phase5.5-tier4-memoization-scoping.md`. **The index-structured
+  family is DONE + default-on (2026-06-17):** `sutra_compiler/tabulate.py` — `detect_tabulable_recursion`
+  (the fib-family shape) + `synthesize_tabulation_source` (a rolling-window of `max(offsets)`
+  accumulators → a memoizing `while_loop`) + `tabulate_module`, wired into `_compile_to_python` so
+  RECURSIVE `fib`/tribonacci (which Sutra can't run natively) auto-rewrite to a native loop and run
+  on the substrate == ground truth. `test_native_recursion.py` 12/12 (recursive `fib(0..12)` +
+  `trib(0..9)` via `sutrac --run`) + `test_tabulate.py` 6/6. MVP subset: base value = the param
+  identity, base threshold K = max(offset). Remaining:
+  - [ ] **4b general form** — irregular / multi-arg / non-identity-base recursion: the explicit
+    agenda + memo-table `while_loop` (the call stack as a value), and wider base values / K>M. The
+    index-structured tabulation is the special-case optimization; this generalizes it to "memoize
+    everything."
+- Tier 5 (`wasm_core`, §2) is NOT the recursion fallback — only genuinely imperative / `eval` / FFI.
+  (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes the fib-family native.)
 
 ## 4. Phase 6 — transpiler long-tail (LAST of the active phases)
 

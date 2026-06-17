@@ -130,18 +130,19 @@ _FIB_SU = ("function int fib(int n) { if (n < 2) { return n; } return fib(n-1) +
 
 
 def test_cli_preeval_deep_flag_folds_deep_recursion(tmp_path):
-    """`--preeval` (deep cap) folds the recursive fib(8) away so the program COMPILES; the SHALLOW
-    default (depth 3) leaves fib(8) un-folded so its recursive if/else is rejected by the V1 codegen
-    — proving --preeval raises the cap above the shallow default."""
+    """`--preeval` (deep cap) folds fib(8) to a literal at COMPILE time. With tier-4 tabulation now
+    default-on, the SHALLOW default path ALSO compiles fib(8) — but by rewriting it into a native
+    memoizing loop (runtime), not by folding. So both compile; the deep-fold path proves --preeval
+    raises the cap above the shallow default. (That fib(8) folds to its literal under deep pre-eval
+    is covered by `test_preeval_folds_bounded_recursion_and_runs_on_substrate`.)"""
     _compiler_ns()
     from sutra_compiler.__main__ import _compile_to_python
-    from sutra_compiler.codegen_base import CodegenNotSupported
     p = tmp_path / "fib.su"
     p.write_text(_FIB_SU, encoding="utf-8")   # main returns fib(8); needs depth 8 > default 3
-    src = _compile_to_python(str(p), runtime_dim=2, runtime_seed=42, preeval=True)
-    assert src is not None and "def main" in src
-    with pytest.raises(CodegenNotSupported):   # default depth 3 < 8 -> fib(8) not folded
-        _compile_to_python(str(p), runtime_dim=2, runtime_seed=42, preeval=False)
+    deep = _compile_to_python(str(p), runtime_dim=2, runtime_seed=42, preeval=True)
+    shallow = _compile_to_python(str(p), runtime_dim=2, runtime_seed=42, preeval=False)
+    assert deep is not None and "def main" in deep
+    assert shallow is not None and "def main" in shallow   # tabulation makes the recursive form compile
 
 
 def test_cli_shallow_default_folds_shallow_recursion(tmp_path, capsys):

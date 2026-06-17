@@ -76,3 +76,36 @@ def test_fib_runs_natively_as_a_memoizing_loop(n, tmp_path):
     tier-4 native-recursion target (no call stack, no WASM)."""
     got = _run_su(_FIB_LOOP.format(N=n), tmp_path)
     assert got == _gt_fib(n), f"native-loop fib({n}) -> {got}, expected {_gt_fib(n)}"
+
+
+def _gt_trib(n):
+    t = [0, 1, 2]
+    for i in range(3, n + 1):
+        t.append(t[-1] + t[-2] + t[-3])
+    return t[n]
+
+
+# RECURSIVE source — Sutra has no native runtime recursion, so without the tier-4 transform this
+# can't run on the substrate (recursive if/else). The default-on tabulation pass rewrites it into
+# the memoizing while_loop automatically.
+_FIB_RECURSIVE = ("function int fib(int n) { if (n < 2) { return n; } return fib(n-1) + fib(n-2); }\n"
+                  "function int main() { return fib(@N@); }\n")
+_TRIB_RECURSIVE = ("function int trib(int n) { if (n < 3) { return n; } "
+                   "return trib(n-1) + trib(n-2) + trib(n-3); }\n"
+                   "function int main() { return trib(@N@); }\n")
+
+
+@pytest.mark.parametrize("n", [0, 1, 2, 5, 8, 12])
+def test_recursive_fib_made_native_by_tabulation(n, tmp_path):
+    """The AUTOMATIC tier-4 transform: a RECURSIVE fib (which Sutra can't run natively) is rewritten
+    into the memoizing while_loop by the default-on tabulation pass and runs == ground truth on the
+    substrate via the real `sutrac --run` pipeline — no recursion, no WASM."""
+    got = _run_su(_FIB_RECURSIVE.replace("@N@", str(n)), tmp_path)
+    assert got == _gt_fib(n), f"tabulated recursive fib({n}) -> {got}, expected {_gt_fib(n)}"
+
+
+@pytest.mark.parametrize("n", [0, 1, 2, 3, 6, 9])
+def test_recursive_tribonacci_made_native_by_tabulation(n, tmp_path):
+    """Tribonacci (3 recursive calls) auto-tabulated + run natively == ground truth."""
+    got = _run_su(_TRIB_RECURSIVE.replace("@N@", str(n)), tmp_path)
+    assert got == _gt_trib(n), f"tabulated recursive trib({n}) -> {got}, expected {_gt_trib(n)}"
