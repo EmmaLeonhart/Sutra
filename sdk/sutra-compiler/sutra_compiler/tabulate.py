@@ -142,11 +142,11 @@ def synthesize_tabulation_source(shape: TabulableShape) -> Optional[str]:
     shape is outside this MVP's synthesizable subset.
 
     The loop carries a rolling window of M = max(offsets) accumulators holding f(k), …, f(k+M-1);
-    each iteration appends f(k+M) = sum over offsets o of window[M-o] and shifts. After n iterations
-    from the base window the head holds f(n) — the verified 4a form (a recurrent-neuron `while_loop`,
-    NATIVE, no recursion, no WASM). MVP subset: the base value is the parameter identity (`return n`)
-    and the base threshold K equals M (the standard fib-family); then the base window is 0,1,…,M-1.
-    Wider base values / K>M are left to a later step."""
+    each iteration appends f(k+M) = Σ coeff·window[M-offset] and shifts. After n iterations from the
+    base window the head holds f(n) — the verified 4a form (a recurrent-neuron `while_loop`, NATIVE,
+    no recursion, no WASM). Subset: the base threshold K equals M (the standard family), and the base
+    value is either the parameter identity (`return n` → f(j)=j) or an integer literal (`return L` →
+    f(j)=L for all j<K); so the base window is computable. Wider base expressions / K>M are later."""
     if shape.base_op not in ("<", "<="):
         return None
     m = max(shape.offsets)
@@ -155,8 +155,12 @@ def synthesize_tabulation_source(shape: TabulableShape) -> Optional[str]:
     if covers != m:
         return None
     bv = shape.base_value
-    if _name(bv) != "Identifier" or bv.name != shape.param:
-        return None   # MVP: base value must be the parameter identity (f(j) = j for j < K)
+    if _name(bv) == "Identifier" and bv.name == shape.param:
+        base_vals = list(range(m))            # f(j) = j  (`return n`)
+    elif _name(bv) == "IntLiteral":
+        base_vals = [bv.value] * m            # f(j) = L  (`return L`)
+    else:
+        return None   # wider base expressions left to a later step
 
     f = shape.func.name
     n = shape.param
@@ -173,7 +177,7 @@ def synthesize_tabulation_source(shape: TabulableShape) -> Optional[str]:
     decl_state = ", ".join(f"int {w} = 0" for w in ws)
     call_state = ", ".join(f"_s{w}" for w in ws)
     slot_decls = "".join(f"    slot int _s{w} = {w};\n" for w in ws)
-    init_window = "".join(f"    int {ws[j]} = {j};\n" for j in range(m))
+    init_window = "".join(f"    int {ws[j]} = {base_vals[j]};\n" for j in range(m))
     return (
         f"while_loop {loop}({ti} < {n}, int {ti} = 0, {decl_state}, int {n} = 0) {{\n"
         f"    int _new = {combine};\n"

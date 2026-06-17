@@ -130,3 +130,23 @@ def test_recursive_pell_with_coefficients_made_native(n, tmp_path):
     weighted memoizing loop and run natively == ground truth — native recursion beyond plain fib."""
     got = _run_su(_PELL_RECURSIVE.replace("@N@", str(n)), tmp_path)
     assert got == _gt_pell(n), f"tabulated recursive pell({n}) -> {got}, expected {_gt_pell(n)}"
+
+
+def _gt_g(n):  # g(0)=g(1)=1, g(n)=g(n-1)+g(n-2)  (literal base, the offset-Fibonacci)
+    a, b = 1, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+
+
+# NON-IDENTITY (literal) base: g(0)=g(1)=1 (`return 1`), g(n)=g(n-1)+g(n-2).
+_G_RECURSIVE = ("function int g(int n) { if (n < 2) { return 1; } return g(n-1) + g(n-2); }\n"
+                "function int main() { return g(@N@); }\n")
+
+
+@pytest.mark.parametrize("n", [0, 1, 2, 5, 8, 11])
+def test_recursive_literal_base_made_native(n, tmp_path):
+    """A recurrence with a non-identity LITERAL base (`return 1` → g(0)=g(1)=1) auto-tabulates with
+    the base window seeded to the literal and runs natively == ground truth."""
+    got = _run_su(_G_RECURSIVE.replace("@N@", str(n)), tmp_path)
+    assert got == _gt_g(n), f"tabulated literal-base g({n}) -> {got}, expected {_gt_g(n)}"
