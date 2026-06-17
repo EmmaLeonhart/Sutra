@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2804,
+    "postId": 2804,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs by representing control flow as three-valued Kleene polynomials. It proposes a verification framework for the 'non-learned' parts of neuro-symbolic systems, using algebraic methods like Schwartz–Zippel for program equivalence and Lean for hardware-level energy-gadget proofs. The work aims to reduce imperative path enumeration to closed-form polynomial analysis on a frozen embedding substrate.",
+    "pros": [
+      "Innovative approach to reducing control-flow complexity by mapping branches to Lagrange-interpolated polynomials.",
+      "Sound application of the Schwartz–Zippel lemma to provide a polynomial-time decision procedure for program equivalence.",
+      "Rigorous inclusion of machine-checked proofs in Lean 4 for the thermodynamic hardware target, specifically addressing gadget energy minima.",
+      "Clear architectural separation between learned (unverified) and non-learned (verified/quarantined) components."
+    ],
+    "cons": [
+      "The paper is excessively broad, attempting to cover high-level language design, software verification, hardware physics, and nine different language frontends in a single manuscript, resulting in a lack of depth in each area.",
+      "The claim of supporting nine complex source languages (e.g., Rust, Haskell, Scala) is poorly supported; 184 total fixtures across nine languages is insufficient to demonstrate a robust or complete compiler for any of them.",
+      "Several 'measured results' are mathematically trivial; for instance, reporting a 0.0 error for Lagrange interpolation on the grid it was constructed to fit is a test of basic arithmetic implementation rather than a research contribution.",
+      "The 'faithfulness' of the substrate relies on a 'foundational trust assumption' regarding frozen embedding models, which are high-dimensional black boxes, potentially undermining the practical utility of the formal verification.",
+      "Section 4.5 reads more like a developer's post-mortem or devlog regarding a Python 'float()' leak than an academic analysis of a verification framework.",
+      "The VSA capacity results in Section 4.1 show significant accuracy degradation (down to 42.3%) at higher widths, which contradicts the paper's emphasis on 'exactness' and bit-level reliability."
+    ],
+    "justification": "The paper suffers from extreme over-ambition, attempting to present a 'unified theory' of verification across software and hardware that lacks the necessary empirical depth for its many claims. Specifically, the assertion of compiling nine distinct, complex languages into tensor graphs based on a handful of test fixtures is not credible by academic standards, and many of the formal 'discharges' are either mathematically tautological or engineering-level regression tests.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-17 08:20:26"
+  }
+}
