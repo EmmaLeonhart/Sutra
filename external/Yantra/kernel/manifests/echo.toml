@@ -1,0 +1,25 @@
+# Manifest for the echo kernel service.
+#
+# Echo reads any axon on R_input and re-emits it on R_output. The
+# minimum-viable round-trip demo: a producer process can write to
+# R_input, observe the same payload arrive back on R_output, and
+# confirm the router + capability check work end-to-end.
+
+name = "echo"
+
+# v0.0 has no real GPU memory carve-outs; axon_width is bookkeeping
+# only and `compute_units` is the budget the admission pool checks.
+axon_width = 768          # matches Sutra's nomic-embed-text default
+compute_units = 1
+
+# Roles this process can read (inbound).
+read_roles = ["R_input"]
+
+# Roles this process can write (outbound).
+write_roles = ["R_output"]
+
+# Source-of-truth Sutra implementation. v0.0 services run as Python
+# stubs (kernel.services.EchoService); the .su file is the
+# seed-for-v0.1 source that documents what the real Sutra service
+# will look like once load_su_service() is wired through.
+source = "../services/echo.su"

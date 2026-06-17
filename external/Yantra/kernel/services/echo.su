@@ -1,0 +1,26 @@
+// echo.su — the smallest possible Sutra kernel service.
+//
+// Reads an axon on R_input, re-emits the same payload on R_output.
+// In v0.0 this file is the seed source — services run as the Python
+// stub `kernel.services.EchoService` because the kernel's .su loader
+// (kernel.services.load_su_service) is staged for v0.1. The shape
+// below documents what a real service .su looks like so the loader
+// has a target convention.
+//
+// The convention this file commits to:
+//   - The service exposes a function `on_axon(input_axon)` that
+//     receives an inbound axon and returns the outbound axon (or a
+//     vector if the caller will wrap it back into an axon).
+//   - The kernel-side loader will call on_axon once per inbound
+//     axon delivered to this process's inbox per tick.
+//   - The function is pure: no side effects beyond returning the
+//     output. Real-world side effects (timers, logging) flow through
+//     additional axon channels, not through host-side hooks.
+
+function vector on_axon(vector input_axon) {
+    // For echo the body is trivial — read the inbound R_input slot,
+    // return it on R_output. The router on the Python side is what
+    // assigns roles to the wire; this function operates on raw
+    // vectors so it stays substrate-pure.
+    return input_axon;
+}

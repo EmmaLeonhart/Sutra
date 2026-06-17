@@ -1,0 +1,116 @@
+name: Daily substrate-honesty audit prepend
+
+# Prepends a dated audit-task to queue.md once a day so the next
+# autonomous-loop session's first action is reviewing the previous
+# day's commits for substrate-honesty drift — fake-substrate framing,
+# host-state-shuttle patterns dressed as RNNs, runtime_dim bloat,
+# claims that something is "substrate-pure" / "verified" / "works"
+# without measurement.
+#
+# Why this exists: the 2026-05-27 font-demo session uncovered that
+# Yantra had been calling host-Python state-shuttle "an RNN" across
+# multiple apps and paying 96× runtime_dim bloat on every substrate
+# op because nothing was forcing a regular audit. The fix lived in
+# the cron-driven productivity loop but a single missed audit pass
+# meant the bug compounded. A GH-Action heartbeat makes the audit a
+# durable repo property rather than a session-only practice.
+#
+# The action is read-only on the codebase: it prepends one line to
+# queue.md and pushes. The actual audit work is done by the next
+# autonomous-loop session that picks the item off queue.md.
+#
+# Companion workflow on Sutra: same shape, same purpose. The two
+# stay in sync because the same dim-bloat / fake-recurrence pattern
+# can land in either repo (Yantra apps OR Sutra examples).
+
+on:
+  # Daily schedule DISABLED 2026-06-16 (Emma): the repo does no .su work now —
+  # the OS prototype is preserved/parked and the public site is rebranding to
+  # noldor.tech — so the daily prepend was only cluttering queue.md. Kept the
+  # workflow + manual trigger so it can be re-enabled if .su work resumes; just
+  # restore the `schedule:` block below.
+  #   schedule:
+  #     - cron: '23 4 * * *'   # 04:23 UTC daily, spaced from sutra-submodule-bump
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-audit-prepend
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  prepend-audit-task:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Yantra
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+
+      - name: Prepend dated audit task to queue.md
+        id: prepend
+        shell: python {0}
+        run: |
+          import datetime, os, pathlib, sys
+          today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+          marker = f"### \U0001f50d Daily substrate-honesty audit — {today}"
+          body = (
+              "\n" + marker + "\n\n"
+              "Auto-prepended by .github/workflows/daily-audit.yml. The next "
+              "autonomous-loop session should, as its first action: (a) review every "
+              "commit landed since the previous daily audit; (b) for each commit that "
+              "touched a .su or its compile/admit path, verify runtime_dim matches "
+              "what the .su actually needs (basis_vector usage → embedding dim; "
+              "no basis_vector → tiny dim, typically 8-16); (c) for any commit "
+              'that frames work as "recurrent" / "RNN" / "substrate-pure" / '
+              '"verified", verify the claim against measurement, not against earlier '
+              "session framing; (d) if anything is amiss, write a finding under "
+              "planning/ and a fix item under queue.md, BEFORE doing other queue "
+              "work. Then delete this item.\n"
+          )
+          q = pathlib.Path("queue.md")
+          src = q.read_text(encoding="utf-8")
+          out_path = pathlib.Path(os.environ["GITHUB_OUTPUT"])
+          if marker in src:
+              out_path.write_text("changed=false\n", encoding="utf-8")
+              print("Today's audit task already present — skipping prepend.")
+              sys.exit(0)
+          anchor = "## Active"
+          idx = src.find(anchor)
+          if idx == -1:
+              print("queue.md missing ## Active section — bailing", file=sys.stderr)
+              sys.exit(1)
+          # Insert right after the "## Active" header line (find the next newline).
+          insert_at = src.index("\n", idx) + 1
+          new_src = src[:insert_at] + body + src[insert_at:]
+          q.write_text(new_src, encoding="utf-8")
+          out_path.write_text("changed=true\n", encoding="utf-8")
+          print(f"Prepended audit task for {today}.")
+
+      - name: Commit + push the prepend
+        if: steps.prepend.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add queue.md
+          if git diff --cached --quiet; then
+            echo "No queue.md change staged — skipping commit."
+            exit 0
+          fi
+          today="$(date -u +%Y-%m-%d)"
+          git commit -m "queue.md: prepend daily substrate-honesty audit task for ${today}
+
+          Automated by .github/workflows/daily-audit.yml. The next autonomous-loop
+          session reviews recent commits for substrate-honesty drift before doing
+          other queue work — runtime_dim bloat, fake-recurrence framing, unverified
+          'substrate-pure' / 'works' / 'verified' claims. See queue.md item for the
+          specific checklist."
+          git push origin HEAD:main

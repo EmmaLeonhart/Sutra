@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- B4 — the live HTML/JS button for the trainable-button demo.
+     A real <button> styled from the Sutra controller's θ (via /state). The OWNER picks
+     which of the A/B pair they prefer (-> /prefer, one ButtonAdam step); a VISITOR click on
+     a button is tallied as observed click-through (-> /click). Served by button_server.py.
+     This page is I/O and is not exercised in CI (no browser on the runner). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sutra — trainable click-button (owner preference + CTR)</title>
+  <style>
+    body { background:#111; color:#eee; font-family:system-ui,sans-serif; text-align:center; }
+    .pair { display:flex; gap:40px; justify-content:center; align-items:center; margin:24px; }
+    .cell { display:flex; flex-direction:column; align-items:center; gap:10px; }
+    .stage { display:flex; align-items:center; justify-content:center;
+             width:380px; height:200px; border:1px solid #333; border-radius:8px; }
+    button.cta { border:none; border-radius:10px; color:#fff; font-weight:600;
+                 font-size:18px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+    .owner { margin-top:6px; padding:8px 14px; border-radius:6px; border:1px solid #555;
+             background:#222; color:#ddd; cursor:pointer; }
+    #stats { margin-top:10px; color:#aaa; font-variant-numeric:tabular-nums; }
+  </style>
+</head>
+<body>
+  <h2>Train a button: what the owner wants × what gets clicked</h2>
+  <p id="stats">loading…</p>
+  <div class="pair">
+    <div class="cell">
+      <div class="stage" id="stageA"><button class="cta" id="btnA"></button></div>
+      <button class="owner" onclick="prefer(false)">Owner prefers A</button>
+    </div>
+    <div class="cell">
+      <div class="stage" id="stageB"><button class="cta" id="btnB"></button></div>
+      <button class="owner" onclick="prefer(true)">Owner prefers B</button>
+    </div>
+  </div>
+
+  <script>
+    function applyStyle(stage, btn, s) {
+      stage.style.background = s.page;
+      btn.style.background = s.fill;
+      btn.style.width = s.width_px + "px";
+      btn.style.height = s.height_px + "px";
+      btn.style.transform = "translate(" + s.left_px + "px," + s.top_px + "px)";
+      btn.textContent = s.text;
+    }
+    function render(state) {
+      applyStyle(stageA, btnA, state.current);
+      applyStyle(stageB, btnB, state.variant);
+      document.getElementById("stats").textContent =
+        "round " + state.round + " · clicks " + state.clicks +
+        " / impressions " + state.impressions +
+        " · observed CTR " + state.ctr_observed.toFixed(3);
+    }
+    async function refresh() { render(await (await fetch("/state")).json()); }
+    async function prefer(variant) {
+      render(await (await fetch("/prefer", {method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({prefer_variant: variant})})).json());
+    }
+    async function click(which) {
+      await fetch("/click", {method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({which: which})});
+      refresh();
+    }
+    btnA.addEventListener("click", () => click("current"));
+    btnB.addEventListener("click", () => click("variant"));
+    refresh();
+  </script>
+</body>
+</html>

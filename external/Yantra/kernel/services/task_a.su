@@ -1,0 +1,20 @@
+// task_a.su — the Linux 0.00 "task A" analogue.
+//
+// Linux 0.00's task A is a hardcoded loop that writes 'A' forever;
+// the timer interrupt switches to task B. The Yantra-native
+// realization (see planning/21-linux-0.00.md): a trivial Sutra
+// service the Connectome Manager ticks. Each tick (the timer-IRQ
+// analogue) it emits the ASCII codepoint of 'A' — 65 — as a real
+// substrate number-vector via `real_number`. This is NOT a faked
+// 'A': the emitted vector genuinely carries the value chr(65)=='A'
+// on the real axis, decodable host-side by the monitoring
+// `.real()` accessor (CLAUDE.md: accessors are monitoring-only and
+// allowed). `make_real` is a substrate op — no host shortcut.
+//
+// The inbound axon is the tick trigger and is deliberately ignored,
+// exactly as Linux 0.00's task ignores everything and just writes
+// its letter.
+
+function vector on_axon(vector input_axon) {
+    return real_number(65.0);
+}

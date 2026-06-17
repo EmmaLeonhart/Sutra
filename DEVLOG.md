@@ -574,6 +574,367 @@ note (do NOT re-add GUI here). The GUI demo code + paper stay built/merged on ma
 not-yet-done GUI *agenda* left this queue. Crons made more aggressive for the sprint
 (work-loop + auto-flush + status all advance a bounded increment).
 
+## 2026-06-16: Yantra Y3 — integration docs (Yantra track Y0–Y3 complete)
+
+Documented the button↔Yantra integration. `CLAUDE.md` §"Cross-repo workflow: Sutra ↔ Yantra"
+rewritten for the new reality — Yantra deprecated as an independent repo and vendored in-tree at
+`external/Yantra/` (shallow subtree, SDK refs rewired, no submodule) — plus a "GUI integration —
+the substrate window in the orchestrator" paragraph: `demos/gui/button_substrate_server.py`
+(Sutra bridge) spawned by `external/Yantra/apps/gui-button/button_surface.py` (Yantra host
+surface), owner×CTR steering + render on the substrate, host does window/clicks. Noted the
+stale Yantra-side submodule prose as cosmetic. `docs/gui.md` gained a website-clean "the button
+is a substrate service" note (host spawns it over a stdin/stdout protocol — no repo-internal
+refs). Verified the site builds clean (`scripts/build_site.py` exit 0, `/gui/` rendered). The
+Yantra integration track (Y0 rewire → Y1 substrate-server → Y2 host surface → Y3 docs) is
+complete; a native Rust minifb window over the same protocol remains an optional refinement.
+
+## 2026-06-16: Yantra Y2 — gui-button host surface (spawns the Sutra substrate-server)
+
+`external/Yantra/apps/gui-button/button_surface.py` — `YantraButtonSurface`, a Python host
+surface that SPAWNS the Y1 button substrate-server (`demos/gui/button_substrate_server.py`) as
+a subprocess and drives it: `frame('current'|'variant')` reads a substrate-rendered button,
+`prefer(variant)` forwards the owner's A/B choice (one ButtonAdam step), `click(which)` forwards
+a visitor click, `state()` reads round/clicks/ctr/copy/theta. Same "host is I/O, substrate
+computes" split as Yantra's gui-rust (which spawns counter_substrate_server.py) — this is the
+Python host surface; a native Rust minifb window over the identical protocol is a later
+refinement. Verified by direct run (`pytest external/Yantra/apps/gui-button`, 3/3, spawning the
+real subprocess: renders (16,16,3) frames in [0,1], owner-prefer advances rounds, clicks tally
+in state) + a `main()` smoke (32×32 button, 5 rounds, CTR 0.833, copy chased). NOT in Sutra's
+demos-ci (which is `pytest demos/`); verified by running it, per the hard rails. The Yantra
+integration loop now works end-to-end: surface → substrate-server → ButtonAdam-steered
+substrate button → frames/state back. Only Y3 (docs) remains on the Yantra track.
+
+## 2026-06-16: Yantra Y1 — stdin/stdout button substrate-server (Yantra-spawnable bridge)
+
+`demos/gui/button_substrate_server.py` — `ButtonSubstrateServer`, a stdin/stdout bridge
+mirroring `counter_substrate_server.py` so a Yantra surface (apps/gui-button, Y2) can spawn it
+and paint/steer the trainable button. Reuses `ButtonBridge`/`ButtonAdam`/`render_button_torch`.
+Protocol: `I`/`V` → binary FRAME (header `FRAME <round> <size>\n` + float64 RGB body) of the
+current/variant button; `PA`/`PB` → owner prefers current/variant (one ButtonAdam step +
+re-propose) → `OK <round>`; `CA`/`CB` → visitor click tally (+ live-ctr learning) → `OK`; `S` →
+`STATE <json>` (round/clicks/impressions/ctr/copy/theta); `Q` → quit. `handle()` is pure
+(testable without pipes); `run()` is the subprocess loop with binary stdout (Windows newline
+guard). TDD `test_button_substrate_server.py` (6) all green on CPU; also smoked the real
+subprocess end-to-end (piped `I/S/PB/Q` → FRAME + STATE json + `OK 1`). The buildable-here half
+of the Yantra integration; Y2 (the Yantra-side surface that spawns it) is now in-tree work.
+
+## 2026-06-16: Yantra Y0 — rewire vendored tree's Sutra-SDK references to the parent
+
+Now that Yantra is vendored in-tree at `external/Yantra/`, its 4 runtime references to the
+(removed) `external/Sutra/sdk/sutra-compiler` were dangling. Rewired them to the parent Sutra
+root's `sdk/sutra-compiler` (two levels up from the Yantra root): `kernel/services.py`,
+`apps/calc/calc.py`, `scripts/precompile_all_su.py`, `tools/regenerate_codebook_fixtures.py`.
+Verified all four resolve to the real in-tree SDK, `import sutra_compiler` works from each, and
+`kernel.services` imports cleanly against it. (Yantra's CLAUDE.md/README prose still describes
+the old submodule pin — cosmetic, deferred to Y3 docs.) Y1 (Sutra-side button substrate-server)
+is next.
+
+## 2026-06-16: Yantra vendored in-tree as a shallow subtree + !browserTest.bat (B8 launcher)
+
+Emma's call: Yantra is **deprecated as its own repo** and absorbed into Sutra. Vendored it as a
+shallow subtree at `external/Yantra/` (squashed from `EmmaLeonhart/Yantra` main @ `6401eec8`,
+recorded via a `git-subtree-split` trailer), website stripped (`site/`, `redirect/`), nested
+`.git`/`.gitmodules` removed (the `external/Sutra` submodule pin is obsolete now Yantra lives
+inside Sutra), un-gitignored — 159 files committed. Re-planned the Y-track for the in-tree
+reality: **Y0** rewire Yantra's `external/Sutra/...` references to the parent Sutra root (no
+recursive junction), **Y1** the Sutra-side button substrate-server (buildable here, CI-testable),
+**Y2** a `apps/gui-button` surface now committable in-tree, **Y3** docs. Added **`!browserTest.bat`**
+at the repo root — the B8 live-button browser smoke launcher (`python demos/gui/button_server.py
+--live-ctr` + opens the browser); still needs a human at a browser to actually smoke.
+
+## 2026-06-16: Yantra GUI integration UNBLOCKED — shallow-cloned + planned (corrected error)
+
+Corrected a wrong call: I had reported Yantra integration as "blocked, no submodule." Emma:
+Yantra is shallow-cloned (depth-1, NO submodule recursion), not depended on as a submodule.
+Cloned `https://github.com/EmmaLeonhart/Yantra` into `external/Yantra/` and preserved it in the
+project (gitignored — re-freshable by the cron, NOT committed: it would duplicate the repo and
+tangle with Yantra's own `external/Sutra` submodule). Explored the integration contract: Yantra
+`apps/` GUI entries are host surfaces over substrate compute — `apps/gui-rust/` (a minifb Rust
+window) spawns `external/Sutra/demos/gui/counter_substrate_server.py` and paints its frames;
+apps are kernel-admitted, processes described by `.yprc`. The Sutra GUI demos already live at
+`external/Sutra/demos/gui/`. So the trainable-button window integrates as a Yantra surface that
+spawns a Sutra substrate-server. Planned the Y-track: Y1 (Sutra-side stdin/stdout button
+substrate-server mirroring counter_substrate_server.py — the buildable-here half, CI-testable),
+Y2 (a `apps/gui-button` surface in the Yantra repo, drafted here / applied in a Yantra session),
+Y3 (integration docs). Mirrored Y1–Y3 to the task tool.
+
+## 2026-06-16: trainable button B9 — click-driven copy bandit (CTR loop fully closed)
+
+B7 learned the VISUAL CTR from clicks but left the discrete copy fixed in live mode — yet copy
+("Buy now" vs "Learn more") is the biggest CTR lever (B2 weights it 0.9/0.7/0.4). Added a
+per-copy UCB1 bandit to `ButtonAdam` live mode: `record_copy_outcome(clicked)` tallies the
+shown copy's impressions/clicks, `select_copy_ucb()` picks the next copy (explore unseen first,
+else empirical rate + bonus), with `copy_impressions`/`copy_click_rates` accessors. The bridge
+makes each owner-round one copy impression (record outcome on round boundary, bandit picks the
+next copy). TDD `test_button_copy_bandit.py` (2) + bridge test (+1): a synthetic clicker
+clicking with prob = B2 ctr drives the bandit to explore all copies and concentrate on/select
+"Buy now" — robust across clicker seeds 0–3 (best copy = 0 by both impressions and rate); the
+bandit methods require live mode; the bridge accrues one impression per round. 8/8 (bandit +
+server) on CPU; B3+B7 regression 6/6. **The real-click CTR loop is now fully closed** — clicks
+train both the differentiable visual reward (ascended through the substrate render) and the
+discrete copy choice. Only B8 (browser smoke) remains.
+
+## 2026-06-16: trainable button B7 — learned CTR reward head (real-click loop closed)
+
+`ButtonAdam(live_ctr=True)` adds a differentiable learned CTR head (`ctr_head`, the same
+pooled-linear shape as the owner head) trained from click PREFERENCES via `record_click` —
+a visitor clicking button A over B is a Bradley-Terry preference for A's clickability. In
+live mode the reward's CTR term uses `ctr_head(frame)` (learned) instead of the simulated
+audience; default mode is unchanged (B3 untouched). Copy argmax is skipped in live mode (the
+frame-only head has no copy signal — copy-from-clicks would need a separate discrete bandit,
+noted). TDD `test_button_ctr_learned.py` (3) + `test_button_server.py` (+1): a synthetic
+clicker whose ground truth IS the B2 audience (used only to label clicks + measure, never read
+by the head) trains the learned head, and with α=0 steering raises the TRUE (B2) CTR — 0.501 →
+0.70–0.93 across seeds 0–3, 0 non-finite; record_click requires live mode; default mode builds
+no learned head; and a live-ctr bridge `/click` moves the head's weights. The bridge wires
+`/click` → `record_click` (+ a `--live-ctr` server flag). **The real-click loop is closed**:
+clicks train a differentiable reward that, ascended through the substrate render, gets more
+clicks. 8/8 (server+ctr) on CPU; B3 regression 3/3. Only B8 (browser smoke) remains.
+
+## 2026-06-16: trainable button B4 — live HTML/JS button bridge (track complete)
+
+`demos/gui/button_server.py` (`ButtonBridge` + a thin `http.server` wrapper) +
+`button_page.html`: a real browser `<button>` styled from the controller's θ via `/state`
+(θ→CSS: fill/page rgb, px size from inverse half-extents, copy text); the owner's A/B choice
+posts `/prefer` → one ButtonAdam step; a visitor click posts `/click` → tallied as observed
+CTR. `ButtonAdam.propose` now also records the (current, variant) θ pair (`pending_thetas`) so
+the live pair can be styled. TDD `test_button_server.py` (4): θ→style is valid CSS, state
+returns the pair + counters, click tallies CTR (+ rejects bad input), and owner-prefers-bluer
+steers the fill blue up through the bridge (in B3's verified size=24/50-round regime — a
+smaller grid under-trains the head and the relative-blue objective can collapse to black,
+found while testing). 4/4 on CPU. Also smoked the HTTP layer headlessly (GET / + /state, POST
+/click + /prefer all respond correctly). NOT smoked: the in-browser DOM rendering/clicking
+(needs a real browser) — honestly flagged, not claimed. What's wired vs tracked: the OWNER
+channel drives the design (owner_pref + simulated audience); real clicks are tallied/displayed
+as observed CTR — closing the loop on a learned click-reward head is the noted follow-on.
+**Trainable click-button track (B1–B6) complete.**
+
+## 2026-06-16: trainable button B6 — docs + paper for the click-optimized button
+
+Documented the trainable-button demo, measured numbers only. `docs/gui.md`: new "Training a
+button to get clicks" section — the substrate button trained on `R = α·owner + (1−α)·CTR`,
+the α taste-vs-clicks knob, the simulated-audience-vs-real-clicks split, and the sutra-from-ts
+tie-in. `paper/gui-steering/paper.md`: new §7.1 "Application: a click-optimized button" with
+the measured story (neutral start blueness 0.00 / CTR ≈ 0.50 → α=0 drives CTR ≈ 0.95 + picks
+"Buy now"; α=1 drives blueness +0.38…+0.65; the α knob trades off, robust seeds 0–3), the
+TS→Sutra lowering (centre = 1.0), plus §10 repro entries for the four button suites. Honest
+limitations stated: the audience is *simulated* (real clicks only in the live browser, B4),
+and ts2su lowers number→int so the float render stays button_frame.su. No overclaim: render is
+substrate, reward head + audience + Adam host-side. Only B4 (live browser) remains.
+
+## 2026-06-16: trainable button B5 — JS→Sutra tie-in (button render authored in TS)
+
+`demos/gui/button_spec.ts` expresses the button's quartic-squircle render math in TypeScript;
+`sutra-from-ts` (`ts2su`) lowers it to `demos/gui/button_spec.su`. The concrete "linked to the
+JS stuff" path — the GUI/browser layer is TS/JS, and the same button render the substrate twin
+computes (B1) is authored in TS and lowered to Sutra. Verified end-to-end: transpiles →
+compiles → runs, `main` returns 1.0 (centre channel lit, matching button_frame.su). TDD
+`test_button_spec_ts.py` (2): compile+run the committed `.su` (CI-safe, no ts2su needed on the
+runner) asserting centre = 1.0; plus a regeneration check (skipped if the TS frontend is
+absent) that re-transpiling reproduces the committed `.su`. Honest limitation noted: ts2su
+currently lowers TS `number` → Sutra `int` and `const` locals land as `JavaScriptObject` (type
+not inferred) — it compiles/runs, but the float-fidelity render path stays the hand-written
+button_frame.su; full float lowering is a known TS-frontend follow-on. B4 (live HTML/JS button)
+remains, needs a real browser to smoke. 2/2 on CPU.
+
+## 2026-06-16: trainable button B3 — ButtonAdam dual-reward controller (Phase 1 complete)
+
+`demos/gui/button_adam.py` — `ButtonAdam`: steers the differentiable substrate button (B1)
+to maximize `R(θ,copy) = α·owner_pref(frame) + (1−α)·CTR(frame,copy)`. owner_pref is a
+pooled-linear Bradley-Terry head trained online from the owner's pairwise warmer/colder
+choices (the hero pattern, `OwnerRewardModel`); CTR is the simulated audience (B2). Adam
+ascends R through the substrate render for the continuous θ (colours/size/position); the
+discrete copy is chosen by argmax of R over the presets each round. α is the tradeoff knob.
+Healthy boxes keep the page light and the button covering the centre-but-not-corners (so the
+audience's contrast stays well-defined); fill spans the full cube. TDD `test_button_adam.py`
+(3): α=0 raises CTR (→~0.95) and picks the punchiest copy ("Buy now"); α=1 drives the button
+toward the synthetic owner's blue taste; the α knob trades off (owner bluer, CTR higher CTR).
+Verified robust across seeds 0–3 on forced-CPU **and** CUDA, 0 non-finite. **Phase 1
+(B1–B3) complete** — the trainable-button core works; Phase 2 (live browser/JS) is next.
+
+## 2026-06-16: trainable button B2 — simulated audience (CTR) model
+
+`demos/gui/button_audience.py` — `SimulatedAudience.ctr(frame, copy) → [0,1]`: a
+deterministic, differentiable click-probability proxy. `σ(w_c·contrast + w_w·warmth +
+w_copy·copy_weight − bias)`, where contrast = mean abs colour diff between the button centre
+and the page corners (salience), warmth = centre red−blue (warm CTAs), copy_weight = a
+per-preset click weight (`PRESET_COPY` "Buy now"/"Get started"/"Learn more" → 0.9/0.7/0.4,
+punchier higher). Built from torch slicing/means/sigmoid so it is differentiable in the
+frame — load-bearing for B3 (Adam ascends CTR through the render). Explicitly *simulated*,
+not real traffic (live clicks come in B4); size/shape preference noted as a future
+refinement, not modelled (no overclaim). TDD `test_button_audience.py` (5): CTR ∈ [0,1],
+higher contrast → higher CTR, punchier copy → higher CTR, deterministic, and gradient flows
+through render_button_torch to the fill colour. 5/5 on forced-CPU and CUDA.
+
+## 2026-06-16: trainable button B1 — differentiable substrate button render
+
+`demos/gui/button_frame.su` (`button_channel`) + `whole_frame.render_button_torch(size, θ)`:
+a clickable button as an (H,W,3) RGB frame, one substrate op per channel. The button is a
+quartic-squircle mask `inside = 1 − ((dx·inv_w)⁴ + (dy·inv_h)⁴)` (rounded-rectangle, no
+division — host passes inverse half-extents, the frame_hero `invs` trick) composited per
+channel as `page·(1−inside) + fill·inside`, all elementwise substrate arithmetic. Continuous
+θ (cx,cy,inv_w,inv_h, page rgb, fill rgb) is differentiable through the compiled op; copy is
+deferred to the discrete axis (B3). TDD `test_button_render.py` (4) red→green: differentiable
+(grad_fn set; grad to fill/geometry), centre pixel = fill colour, and the DISPLAYED (clamped
+[0,1]) button matches a host oracle to < 1e-6 (the raw field reaches ~100 outside the button
+— unclamped squircle — never shown, so fidelity is measured on the clamped display frame).
+Verified 4/4 on both CUDA and forced-CPU. The render half of the trainable-button demo.
+
+## 2026-06-16: trainable click-button vision captured to queue (design-gated, not built)
+
+Emma set the branch's real vision: a clickable, JS-like button we TRAIN to optimize for what
+the website owner wants AND biggest CTR — a demo linked to the `sutra-from-ts` frontend,
+built on the Adam-RLHF machinery (G1–G5). Ran it through brainstorming; four design decisions
+settled with Emma: CTR signal = BOTH (simulated audience for training/CI + real clicks live);
+trainable surface = visual θ + discrete preset copy; objectives = `R = α·owner_pref +
+(1−α)·CTR` with an α knob; JS linkage = real HTML/JS button + differentiable substrate twin,
+spec authored in TS → sutra-from-ts. Captured the design + provisional decomposition (Phase 1
+B1–B3 substrate core/CI-testable; Phase 2 B4–B6 live browser/JS) into `queue.md` and mirrored
+B1–B6 into the task tool so the plan is durable, not chat-only. **Not implemented** — held by
+the brainstorming HARD-GATE pending two open answers from Emma (Phase 1-before-2 ordering;
+preset copy wording); when answered → spec doc → writing-plans → execute.
+
+## 2026-06-16: GUI cleanup — last autograd warning in the hero suite
+
+`test_hero_differentiable.py:72` did `float(loss)` on a grad-tracking tensor (the one
+remaining `UserWarning` in the GUI suite); changed to `float(loss.detach())`, matching the
+convention already used in the RGB tests. Verified clean with warnings-as-errors
+(`pytest -W error::UserWarning`, 3/3). Bounded maintenance — the substantive GUI backlog is
+exhausted (the learned decoder is EMMA-gated on architecture; Yantra integration has no
+Yantra submodule in this repo yet), so this is the autonomous hand-back point.
+
+## 2026-06-16: GUI fix — colour steering black-collapse trap (CPU CI was RED)
+
+CI (`demos-ci`, CPU) was RED while local (CUDA) was green — the exact "local-green ≠
+CI-green" hard rail. `test_hero_adam_rgb.py` colour tests failed on CPU seed 0: the
+redder-preferring run collapsed the frame to all-black (redness 0.106 → 0.000) instead of
+reddening. Root cause is structural, not a flake: a tint multiplies its channel on the
+substrate, so `tint·0 = 0` — once the frame goes all-black, the cr/cg/cb axes become no-ops
+and the optimizer is trapped (at the default explore=0.15 it cannot escape; explore 0.2→0.5,
+0.3→1.0 confirmed it as an absorbing state, not a learning-rate issue). Fix: in colour mode
+only, floor the `bright`/`bg` boxes (`bright∈[0.4,1.6]`, `bg∈[0.0,0.4]`) so the centre pixel
+stays ≥ ~0.4 > 0 and the tints always have a non-black canvas to act on; mono mode keeps its
+full range (incl. the all-black state the darker-preference test needs). Verified across
+seeds 0–4 under forced-CPU (`torch.cuda.is_available → False`): redder → +0.33…+1.0, less-red
+→ ≤0, flips every seed, 0 non-finite; mono + steering + rgb-diff suites all green on CPU.
+Updated the paper's §7 colour numbers to the robust CPU figures. (CI re-dispatched to confirm
+green.)
+
+## 2026-06-16: GUI G5 — docs + paper cover the multi-axis / colour extension
+
+Documented the multi-axis steering, measured numbers only. `docs/gui.md`: extended the
+"Steering the picture in real time" section — the same loop steers position, size, and
+colour (with the honest aside about the black-collapse degeneracy a normalised position
+measure would admit) + the `adam_window_rgb.py` command. `paper/gui-steering/paper.md`:
+added a §7 "Steering more than brightness" paragraph with measured directional results —
+position corner-bias top-left ≈ −0.99 / bottom-right ≈ +0.99 (robust seeds 0–4; linear
+mass measure chosen over a scale-invariant centroid to avoid the black-collapse win), size
+spread 0.607 → 0.869, colour relative redness +0.106 → ≈ +0.50–0.62 (redder) vs −1.0
+(less-red), all flipping with preference and 0 non-finite; noted the differentiable colour
+render `render_hero_rgb_torch` in §4 and the abstract; expanded §10 reproducibility with the
+new tests + RGB window. No overclaim: the render is the substrate; reward head + Adam stay
+host-side and named so.
+
+## 2026-06-16: GUI G3 + G4 — multi-axis steering tests + RGB window UX
+
+**G3** (`demos/gui/test_hero_steering_axes.py`, 5 tests): the controller steers SPATIAL
+preferences beyond brightness/colour. POSITION via a `_corner_bias` measure (bottom-right
+mean − top-left mean): top-left preference drives it negative, bottom-right positive, flips
+with preference. SIZE via intensity-weighted spatial spread: a wider preference raises it,
+flips with preference. All finite, 0 NaN/blank.
+
+A real bug was found and fixed, not papered over: the first POSITION measure used a
+NORMALIZED centroid, which is scale-invariant — so the optimizer reached a degenerate
+all-black frame (centroid 0) that beat any cornered glow, and bottom-right steering
+collapsed to black (cx/cy actually moved to +0.8 but the frame went bg=−0.2/bright=0.2 →
+black). Replaced with the LINEAR quadrant-mass functional `_corner_bias`: black scores 0 and
+loses to any cornered glow, and it is directly representable by the pooled-linear reward
+head. Measured robust across seeds 0–4: top-left → −0.99, bottom-right → +0.99 (vs ±0.05
+threshold), always flips; size wide gain +0.26 every seed, wide > tight always.
+
+**G4** (`demos/gui/adam_window_rgb.py` + `run_adam_rgb_gui.bat`): colour A/B preference
+window over `HeroAdam(color=True)` — two substrate-rendered colour frames (A current / B
+proposed), keys A/B, caption surfacing mean RGB + position (cx,cy) + spread (invs). I/O
+only, untested in CI per the existing convention; steering logic covered headless by G2/G3.
+Verified the module parses, imports, and its display helpers work (`_to_uint8`, `_mean_rgb`);
+the live tkinter window was NOT display-smoked (no display in this environment) — not
+claimed as run.
+
+Measured 21/21 green (hero adam 3 + rgb adam 5 + mono diff 3 + rgb diff 5 + steering 5).
+
+## 2026-06-16: reference-context system RC1–RC3 (seed references downloaded + analyzed)
+
+Reused the EXISTING reference system rather than building a parallel one: `references/` is
+already gitignored and `scripts/fetch_reference_pdfs.py` already downloads-fresh-never-commit
+(RC1 intent already satisfied). Enhanced the fetcher (RC2): arXiv `/abs/`→`/pdf/`
+normalization, transient-failure retries (3×, backoff), and non-PDF sources saved as `.html`
+(so web pages work, not just PDFs). Registered + downloaded the 4 seed references (RC3,
+gitignored — verified `git check-ignore`, nothing reached the index): Schmidhuber FKI-126-90
+(6.1 MB), arXiv:1802.08864 (244 KB), arXiv:2604.06425 (26.6 MB), metauto neural-computer page
+(226 KB HTML). Identified each by reading first pages: the four trace one "network as a
+differentiable computer" line — *Making the World Differentiable* (1990) → *One Big Net For
+Everything* (2018) → *Neural Computers* (Meta AI/KAUST + Schmidhuber, 2026) + its project
+essay. Wrote committable analysis in `planning/reference-context.md` (notes only; sources
+stay uncommitted) connecting them to Sutra's substrate-as-computer / differentiable-render
+directions, with the honest contrast that Sutra's ops are compiled/analytic, not learned
+from I/O traces.
+
+## 2026-06-16: incorporated new_queue_stuff.md — reference-context system (top priority)
+
+The 11:45 one-shot cron (Emma-scheduled) fired and incorporated `new_queue_stuff.md` into
+the front of `queue.md`: a new TOP-PRIORITY "reference-context system" block (RC1 dir +
+gitignore, RC2 robust download/analyze script, RC3 fetch+analyze the seed references —
+Schmidhuber FKI-126-90, arXiv 1802.08864, arXiv 2604.06425, metauto.ai/neuralcomputer).
+The directive: download reference PDFs for research-direction context, analyze them, but
+NEVER commit them (copyright — reference material, not repo content); keep artifacts
+gitignored, notes committable. Mirrored RC1–RC3 into the task tool; deleted
+`new_queue_stuff.md`. Emma's note also confirmed the work loop takes priority and is already
+running (the three session crons + this one-shot). GUI G3–G5 remain queued behind RC1–RC3.
+
+## 2026-06-16: GUI G2 — RGB / multi-axis Adam controller (`HeroAdam(color=True)`)
+
+Extended `demos/gui/hero_adam.py` with a `color=True` mode that steers the differentiable
+RGB render (`render_hero_rgb_torch`, G1): θ gains the per-channel tints cr/cg/cb as
+steerable axes (`HERO_ADAM_COLOR_AXES`, boxes bottoming at 0 = channel off), and
+`HeroRewardModel` gains a `channels` param so `features()` pools each of the 3 channels
+(permute → (1,3,H,W) → adaptive-avg-pool → 3·pool² features). `_render` branches to the RGB
+path under colour mode; mono mode is unchanged. Bradley-Terry reward + Adam policy step are
+generic over the axis set, so no changes were needed there. TDD `test_hero_adam_rgb.py`
+(5 tests) red→green: colour frames are (H,W,3) with cr/cg/cb steerable; a synthetic
+prefer-REDDER rater raises relative redness (r0→r1, Δ>0.03), prefer-less-red lowers it, the
+direction flips with preference, and brightness steering still works in colour mode — all
+with 0 non-finite frames. Measured 16/16 green (mono adam 3 + rgb adam 5 + mono diff 3 +
+rgb diff 5), no regression to the mono path.
+
+## 2026-06-16: GUI G1 — differentiable RGB render (`render_hero_rgb_torch`)
+
+The display-only `render_hero_rgb` severed autograd (it broadcasts θ with
+`torch.full(..., float(val))`), so colour preference could not be steered through it.
+Added `render_hero_rgb_torch(size, theta)` to `demos/gui/whole_frame.py`: a (H,W,3) colour
+render that keeps the autograd graph through the compiled `hero_channel` substrate op for
+ALL axes including the per-channel tints `cr/cg/cb` — grad-preserving `val * ones`
+broadcast (the same fix `render_hero_torch` uses), `torch.stack` instead of `np.stack`, no
+`.detach()`. Each channel is the same composed mono hero tinted on the substrate (R←cr,
+G←cg, B←cb), so geometry axes carry grad through all three channels and each tint through
+only its own. TDD: `test_hero_rgb_differentiable.py` (5 tests) written first and confirmed
+red, then green — `grad_fn` set; ∂(red mean)/∂cr ≠ 0; green-channel loss leaks 0 gradient
+into cr (channel independence); ∂(mean)/∂bg == mean(cr,cg,cb) exactly; Adam through the RGB
+render reduces loss. Measured 27/27 green locally (5 new + 22 existing hero/whole-frame),
+no regression. Load-bearing prerequisite for G2 (RGB Adam controller).
+
+## 2026-06-16: `gui` branch created — dedicated GUI work loop (Emma, remote control)
+
+Split a dedicated `gui` branch off `main` so GUI work is not swallowed by the transpiler /
+FV / training backlog (Emma's call over remote control). Cleared `queue.md` to a GUI-only
+track: chosen direction is *extending the Adam-RLHF demo* (color / position / size
+preference dimensions, A/B preference UX, more render params exposed to Adam) — the full
+learned-decoder generation stays EMMA-GATED and out of scope here. Decomposed into G1
+(differentiable RGB render — load-bearing: the existing `render_hero_rgb` severs autograd
+via `torch.full(float(val))`), G2 (RGB/multi-axis Adam controller), G3 (position/size
+steering tests), G4 (RGB window UX), G5 (docs + paper). Started the three session-local
+autonomous-loop crons (work-loop :03, auto-flush :15, status-report :42); mirrored the
+queue into the task tool. The non-GUI backlog remains on `main`.
+
 ## 2026-06-16: GUI P14 — website page covers the Adam steering demo (product framing)
 
 `docs/gui.md` predated the Adam-RLHF demo (it covered the basic whole-frame render + the

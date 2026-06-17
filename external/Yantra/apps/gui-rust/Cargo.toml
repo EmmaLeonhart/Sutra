@@ -1,0 +1,18 @@
+[package]
+name = "yantra-gui-counter"
+version = "0.0.1"
+edition = "2021"
+description = "Yantra Rust GUI counter — window/clicks/paint in Rust; counting + pixel field on the Sutra substrate via a subprocess bridge (apps/gui/counter_substrate_server.py)."
+license = "Apache-2.0"
+publish = false
+
+[[bin]]
+name = "yantra-gui-counter"
+path = "src/main.rs"
+
+[dependencies]
+# minifb: a tiny framebuffer window + mouse input. The Rust orchestrator owns
+# the window/clicks/paint; the Sutra substrate (a Python child process) does the
+# counting + pixel field. This is a host-side dev/demo crate — std + one GUI dep
+# — distinct from the no_std, no-dep `orchestrator/` crate.
+minifb = "0.27"

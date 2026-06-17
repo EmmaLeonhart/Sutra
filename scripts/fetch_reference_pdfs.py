@@ -26,8 +26,8 @@ Adding a new reference:
 from __future__ import annotations
 
 import argparse
-import os
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -52,30 +52,74 @@ REFERENCES: dict[str, tuple[str, str]] = {
         "VSA (Heddes et al. 2022/2023, JMLR 24). Reference for the closest "
         "HDC library peer.",
     ),
-    # Add more entries here as the paper-comparison work expands.
-    # Common candidates: deepproblog, ltn, neurasp, terpret, npi.
+    # --- Research-direction context (Emma 2026-06-16, queue incorporation) -------------
+    # Downloaded for context only; analyzed, never committed (copyright).
+    "schmidhuber-fki-126-90": (
+        "https://people.idsia.ch/~juergen/FKI-126-90_%28revised%29bw_ocr.pdf",
+        "Schmidhuber, FKI-126-90 (revised) — the 1990 'making the world "
+        "differentiable' / recurrent-controller-and-model report. Seed reference "
+        "for the differentiable-substrate / world-model research direction.",
+    ),
+    "arxiv-1802-08864": (
+        "https://arxiv.org/pdf/1802.08864",
+        "arXiv:1802.08864 — seed reference (Emma 2026-06-16); title/role to be "
+        "confirmed from the downloaded PDF in the RC3 analysis notes.",
+    ),
+    "arxiv-2604-06425": (
+        "https://arxiv.org/abs/2604.06425",
+        "arXiv:2604.06425 — seed reference (Emma 2026-06-16); title/role to be "
+        "confirmed from the downloaded PDF in the RC3 analysis notes.",
+    ),
+    "metauto-neuralcomputer": (
+        "https://metauto.ai/neuralcomputer/",
+        "MetaUto 'neural computer' page — seed reference (Emma 2026-06-16) for "
+        "the neural-computer / agent research direction. HTML page, not a PDF.",
+    ),
 }
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = REPO_ROOT / "references"
+_RETRIES = 3
+
+
+def _normalize(url: str) -> tuple[str, str]:
+    """Return (download_url, file_extension). Normalizes arXiv `/abs/<id>` to the PDF
+    endpoint, and picks `.pdf` for PDF sources / `.html` for everything else (e.g. web
+    pages) so the robust downloader handles non-PDF reference sources too."""
+    u = url
+    if "arxiv.org/abs/" in u:
+        u = u.replace("/abs/", "/pdf/")
+    ext = ".pdf" if (u.lower().endswith(".pdf") or "arxiv.org/pdf/" in u) else ".html"
+    return u, ext
 
 
 def fetch(slug: str, url: str, description: str) -> Path:
-    """Download `url` to references/<slug>.pdf, overwriting any existing file."""
+    """Download `url` to references/<slug>.<ext>, overwriting any existing file. Retries
+    transient failures; normalizes arXiv abs URLs and saves non-PDF sources as .html."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    out = CACHE_DIR / f"{slug}.pdf"
+    dl_url, ext = _normalize(url)
+    out = CACHE_DIR / f"{slug}{ext}"
     print(f"Fetching {slug}: {description}")
-    print(f"  source: {url}")
+    print(f"  source: {dl_url}")
     print(f"  dest:   {out}")
     req = urllib.request.Request(
-        url,
-        headers={"User-Agent": "Mozilla/5.0 (Sutra paper-fetch script)"},
+        dl_url,
+        headers={"User-Agent": "Mozilla/5.0 (Sutra reference-fetch script)"},
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = resp.read()
-    out.write_bytes(data)
-    print(f"  bytes:  {len(data):,}")
-    return out
+    last_err: Exception | None = None
+    for attempt in range(1, _RETRIES + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = resp.read()
+            out.write_bytes(data)
+            print(f"  bytes:  {len(data):,}" + (f"  (attempt {attempt})" if attempt > 1 else ""))
+            return out
+        except Exception as e:  # noqa: BLE001 — retry any transient network error
+            last_err = e
+            print(f"  attempt {attempt}/{_RETRIES} failed: {e}", file=sys.stderr)
+            if attempt < _RETRIES:
+                time.sleep(2 * attempt)
+    raise last_err  # type: ignore[misc]
 
 
 def list_references() -> None:

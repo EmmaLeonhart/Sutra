@@ -88,6 +88,64 @@ with no broken frames across a session. The render is the substrate; the prefere
 and the optimizer are ordinary host-side code, and we say so — the point is that the thing
 the gradient passes *through* is a Sutra program.
 
+The same loop steers more than brightness. The hero's parameters include **where** the glow
+sits, **how wide** it is, and — in the colour version — the per-channel **tints**, all of
+them axes the gradient reaches through the substrate render. We measured each direction with
+a synthetic rater that scores frames on that one property:
+
+- **Position** — preferring the bright mass toward a corner moves it there; top-left and
+  bottom-right preferences drive the corner-bias measure to opposite extremes and the
+  direction flips with the preference, robustly across random seeds.
+- **Size** — preferring a wider glow raises the rendered frame's spatial spread.
+- **Colour** — on the differentiable RGB render (each channel is the composed hero tinted
+  on the substrate), preferring a redder frame raises its relative redness and flips with
+  the preference.
+
+Every case stays finite (no broken frames). The colour A/B window drives all of these at
+once:
+
+```bash
+python demos/gui/adam_window_rgb.py   # or double-click demos/gui/run_adam_rgb_gui.bat (Windows)
+```
+
+(One honest detail surfaced while building this: a *normalised* position measure is
+scale-invariant, so an optimiser can satisfy it by collapsing the frame to black — a
+degenerate win. We score position by a plain bottom-right-minus-top-left mass instead, which
+black cannot game.)
+
+## Training a button to get clicks
+
+The same gradient machinery powers a small product demo: a **clickable button**, rendered
+entirely on the substrate, that is *trained* to optimise two things at once — **what the
+site owner wants** and **what gets the biggest click-through rate**. The button is a
+rounded-rectangle (squircle) field with a fill colour, page background, and a choice of
+*copy* ("Buy now" / "Get started" / "Learn more"); its design is a parameter vector the
+optimiser steers, and the render is differentiable, so Adam backpropagates through it.
+
+Two reward signals are blended, `R = α·owner + (1−α)·CTR`:
+
+- **Owner preference** — the same warmer/colder Bradley-Terry head, learning the owner's
+  taste (say, a blue brand button) from their A/B choices.
+- **CTR** — a *simulated audience* (a deterministic, differentiable click-probability model
+  that rewards a button standing out from the page, a warm call-to-action colour, and
+  punchier copy) for training and tests; **real clicks** in a live browser for the demo.
+
+The `α` knob is the story: it trades the owner's taste against raw clicks. Measured (16–24-px
+grid, across seeds): from a neutral grey start (CTR ≈ 0.50), **pure-CTR steering** drives the
+button warm and high-contrast, raises the simulated CTR to **≈ 0.95**, and auto-picks the
+punchiest copy ("Buy now"); **pure-owner steering** instead drives the button toward the
+owner's blue taste; and intermediate `α` sits between — the owner-driven button is bluer, the
+CTR-driven one clicks better. The button's render math is also authored in TypeScript and
+lowered to Sutra by [`sutra-from-ts`](https://github.com/EmmaLeonhart/Sutra/tree/main/sdk/sutra-from-ts),
+the path for the browser/JS layer. The render is the substrate; the reward head, the audience
+model, and Adam are ordinary host-side code, and we say so.
+
+The button isn't only a window — it's a substrate **service**. The same controller is exposed
+over a tiny stdin/stdout protocol (frames out; owner preferences and visitor clicks in), so a
+host process — a browser bridge, or an OS surface that "owns the window" — can spawn it, paint
+the substrate-rendered button, and feed it real clicks. The picture, and the learning signal it
+chases, stay on the substrate; the host only does the window and the events.
+
 ## The gallery
 
 | Demo | Source | What you see |
