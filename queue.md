@@ -61,8 +61,11 @@ _Phase D-C ✅ COMPLETE (D5 RGB + D6 capacity). D5: colour reconstruction MSE 0.
 D6 capacity sweep (two-blob, 500 steps): H=8 → 0.0448/13.5 dB, H=32 → 0.0360/14.4 dB, H=64 →
 0.0135/18.7 dB — reconstruction improves monotonically with width, as expected._
 
-_Phase D-D — latent conditioning (generation):_
-- [ ] **D8 — steer the latent by preference.**
+_Phase D-D ✅ COMPLETE (D7 generation + D8 latent steering). D8: frozen-weight generative decoder
++ `LatentSteer` (ButtonAdam-style pairwise reward, Adam over the latent through the substrate
+render) — a "prefer rightward" rater drives the generated blob's centroid +0.03→+0.16, "prefer
+leftward" →−0.34, flips with preference. **Preference now drives what the learned decoder
+generates — the two tracks (generative decoder + GUI steering) converge.**_
 
 _D7 ✅ done (THE GENERATIVE LEAP): latent-conditioned `f(x,y,z)` auto-decoder over 2 blob-position
 targets — reconstructs each from its latent (MSE 0.001), and lerping z_A→z_B sweeps the generated
