@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-17: Real-WASM-bytecode core step 4 — a real WASM factorial runs byte-for-byte (Phase 5)
+
+Ran a REAL-WASM-encoded iterative-factorial function byte-for-byte on the substrate — the WASM
+analog of the JVM-factorial oracle, and a full-machine integration test (locals + loop + comparison
++ arithmetic + structured control together). No `wasm_core.su` change was needed: the machine already
+supports every opcode the factorial uses (`i32.const`, `local.get`/`set`, `block`, `loop`, `i32.gt_s`,
+`br_if`, `i32.mul`, `i32.add`, `br`, `end` — all from steps 1–3), so step 4 is a test-only validation.
+`test_wasm_core_runs_real_wasm_factorial`: `fact(0/1/4/5) = 1/1/24/120` (n seeded in local 0, WASM
+param convention). The `i==n` loop-guard boundary — the exact case that produced `(n−1)!` on the JVM
+core before the iconst real-axis-vector fix — is CLEAN here, because the WASM core's `i32.const`
+already pushes `leb_val·one` (real-axis vector) so the computed `i` stays bit-clean and `i32.gt_s` at
+`i==n` correctly returns 0. The factorial bytes were HAND-ASSEMBLED to the WASM spec encoding
+(`wat2wasm`/`wasm-tools` is unavailable in this environment); the opcode+LEB128 encoding is
+deterministic from the spec, so they are byte-identical to what `wat2wasm` emits for the body
+expression (the module-binary wrapper is host-side, not part of the minimal core — as the JVM core
+loaded only the method Code attribute). Follow-up queued: cross-check against actual `wat2wasm` output
+on a toolchain-equipped path (CI). The full `.wat` source is in the test docstring for auditability.
+Next: step 5, tree recursion via `call` (the Phase-5.5-B enabler).
+
 ## 2026-06-17: Real-WASM-bytecode core step 3b — if/else conditionals (Phase 5; structured control complete)
 
 Added WASM `if`(0x04, +blocktype) / `else`(0x05) to `wasm_core.su`, completing structured control.
