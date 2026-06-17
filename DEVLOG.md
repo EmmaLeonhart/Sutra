@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-16: Transpiler spec doc refreshed to match the sprint's frontend expansion (Phase 3 integration)
+
+Work+report sprint tick — re-grounded `planning/sutra-spec/transpiler-frontends.md` against the
+now-shipped fixtures (the doc's "Maturity (2026-06-15)" table predated this session's roughly-
+doubling of most frontends). Changes, all measured against the actual fixture directories
+(counted, not estimated): (a) the shared-lowering-shapes table gained two rows — **pattern
+destructuring** (tuple/record/struct/case-class/constructor/map patterns in `let`/`val`/param/
+body positions → axon field reads bound to locals) and **multi-clause/multi-equation/guarded
+pattern recursion** (synthesized `(V == K)` base-match cond → the same tail/foldable transforms);
+(b) the maturity table updated to 2026-06-16 fixture-dir counts (OCaml 45, Elixir 20, TS 19,
+Clojure 18, Rust 16, F# 16, Haskell 16, Erlang 14, Scala 12, C 2 parked) with refreshed
+furthest-along-shapes per frontend; (c) the "out of scope" section corrected — multi-clause/
+guarded pattern recursion is now SUPPORTED (reduced to the if-form), and only recursion that
+does not reduce to the tail/foldable shapes (mutual, non-foldable non-tail, >2-way guarded)
+remains `UNSUPPORTED-RECURSION`. The doc's "grounded in implemented, substrate-verified code"
+header stays true — every claim maps to a passing compile-AND-run fixture.
+
 ## 2026-06-16: Haskell frontend — guarded recursion (Phase 3)
 
 Work+flush sprint tick — extends the recursion machinery to guarded equations. `fac n | n == 0
