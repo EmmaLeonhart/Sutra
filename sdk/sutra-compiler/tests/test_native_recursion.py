@@ -109,3 +109,24 @@ def test_recursive_tribonacci_made_native_by_tabulation(n, tmp_path):
     """Tribonacci (3 recursive calls) auto-tabulated + run natively == ground truth."""
     got = _run_su(_TRIB_RECURSIVE.replace("@N@", str(n)), tmp_path)
     assert got == _gt_trib(n), f"tabulated recursive trib({n}) -> {got}, expected {_gt_trib(n)}"
+
+
+def _gt_pell(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, 2 * b + a
+    return a
+
+
+# General linear recurrence WITH COEFFICIENTS — Pell: P(n) = 2*P(n-1) + P(n-2).
+_PELL_RECURSIVE = ("function int pell(int n) { if (n < 2) { return n; } "
+                   "return 2*pell(n-1) + pell(n-2); }\n"
+                   "function int main() { return pell(@N@); }\n")
+
+
+@pytest.mark.parametrize("n", [0, 1, 2, 4, 6, 8])
+def test_recursive_pell_with_coefficients_made_native(n, tmp_path):
+    """A general linear recurrence with coefficients (`2*pell(n-1)+pell(n-2)`) auto-tabulated into the
+    weighted memoizing loop and run natively == ground truth — native recursion beyond plain fib."""
+    got = _run_su(_PELL_RECURSIVE.replace("@N@", str(n)), tmp_path)
+    assert got == _gt_pell(n), f"tabulated recursive pell({n}) -> {got}, expected {_gt_pell(n)}"
