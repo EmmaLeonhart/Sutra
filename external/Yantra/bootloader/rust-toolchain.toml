@@ -1,0 +1,7 @@
+[toolchain]
+# Pin to a recent nightly. Multiboot1 + custom JSON target spec
+# build-std needs nightly Rust + rust-src. The exact date isn't
+# load-bearing — any recent nightly with build-std support works.
+channel = "nightly-2026-04-01"
+components = ["rust-src", "llvm-tools-preview"]
+profile = "minimal"

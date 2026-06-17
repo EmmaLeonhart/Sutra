@@ -1,0 +1,8 @@
+# Canonical author identity.
+#
+# Every commit authored under EmmaLeonhart@proton.me is the same
+# person; this normalises the display name across the historical
+# "Emma-Leonhart" / "immanuelle-leonhart" / "Emma Leonhart" variants
+# so `git shortlog`, `git blame`, and the GitHub contributors view
+# show one name. No history rewrite needed.
+Emma Leonhart <EmmaLeonhart@proton.me> <EmmaLeonhart@proton.me>

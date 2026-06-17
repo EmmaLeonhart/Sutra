@@ -1,0 +1,23 @@
+// sink.su — counts inbound axons, emits a stat-counter axon.
+//
+// Companion to echo.su. Receives axons on R_output (so it can absorb
+// what echo emits) and emits a count-update on R_stat.
+//
+// In v0.0 this file is the seed source; the running service is the
+// Python stub `kernel.services.SinkService`. See echo.su for the
+// service-shape convention this file commits to.
+
+// State carried across ticks. In Sutra this would be threaded
+// through a tail-recursive loop; the v0.1 loader needs to map
+// kernel ticks onto either single-step invocations of on_axon (the
+// current convention) or the loop-as-RNN pattern Sutra uses
+// natively. Documented as an open question for the loader.
+
+function vector on_axon(vector input_axon) {
+    // Sink does no transformation on the input — it would, in a real
+    // service, increment a counter that lives in the per-process
+    // state vector and emit it. The v0.0 shim does the counting on
+    // the Python side; this .su file documents the shape, not the
+    // counting logic.
+    return input_axon;
+}

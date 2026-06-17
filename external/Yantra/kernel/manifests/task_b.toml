@@ -1,0 +1,18 @@
+# Manifest for the Linux 0.00 "task B" analogue.
+#
+# Companion to task_a.toml. Ticked alongside task_a; emits the
+# ASCII codepoint of 'B' (66) on R_console each tick. The kernel
+# (Init.tick()) running both task_a and task_b and the router
+# carrying their output is the faithful analogue of Linux 0.00's
+# timer interrupt alternating the two hardcoded tasks. See
+# planning/21-linux-0.00.md.
+
+name = "task_b"
+
+axon_width = 768
+compute_units = 1
+
+read_roles = ["R_tick"]
+write_roles = ["R_console"]
+
+source = "../services/task_b.su"

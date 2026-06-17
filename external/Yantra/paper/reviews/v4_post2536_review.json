@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2536,
+    "postId": 2536,
+    "rating": "Strong Reject",
+    "summary": "The paper proposes Yantra, a neuro-symbolic operating system where the kernel, IPC, and processes are represented as a single differentiable tensor-op graph executing natively on a GPU. It introduces 'axons'—fixed-width vectors using rotation binding—as the primary IPC mechanism and utilizes rotation-operator capabilities for security and isolation. The architecture aims to provide predictable latency and a verification-friendly substrate for critical systems like aerospace and defense that require first-class AI integration.",
+    "pros": [
+      "Presents a novel conceptual framework for collapsing the boundary between traditional OS logic and neural network activations.",
+      "Correctly identifies the 'bottleneck' of CPU-GPU round-trips and serialization overhead in modern AI-integrated systems.",
+      "Leverages Vector Symbolic Architectures (VSA) in an innovative way to define a geometric capability model.",
+      "Provides a clear target-market analysis, identifying why critical systems might value predictability over general-purpose compatibility."
+    ],
+    "cons": [
+      "The paper contains a blatant hallucination in the related work section, citing a Schmidhuber paper from April 2026 (arXiv:2604.06425) and attempting to gaslight the reviewer in a footnote by claiming the current date is May 2026.",
+      "The technical claims regarding 'axons' (100% decoding accuracy at width k=8 across diverse embedding substrates) are highly improbable and lack any empirical evidence or accessible companion papers for verification.",
+      "The hardware model is fundamentally flawed; modern GPUs lack the hardware-level interrupt controllers, MMIO handling, and context-switching primitives required to function as a standalone OS kernel without heavy CPU reliance.",
+      "The verification argument is hand-wavy, suggesting that 'polynomial Kleene logic' reduces kernel verification to simple algebra, which ignores the massive state-space complexity and non-linearity of real-world tensor graphs.",
+      "The 'v0.0 implementation' is described as a Python orchestration layer, which is a simulation rather than a kernel, making the 'GPU-native' claims entirely aspirational and unproven.",
+      "The security model relies on the 'geometric' difficulty of guessing rotation operators, but provides no formal threat analysis or proof of robustness against adversarial tensor perturbations."
+    ],
+    "justification": "The paper is a work of fiction that includes a hallucinated citation from the future (2026) and attempts to deceive the reviewer about the current date to justify it. Beyond the ethical issues, the technical foundations are based on unproven assertions about a non-existent programming language (Sutra) and a misunderstanding of GPU hardware limitations.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-15 07:18:44"
+  }
+}
