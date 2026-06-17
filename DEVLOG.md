@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-17: FV paper — empirical source-language-frontend verification section (Phase 4)
+
+Phase 4 (Emma 2026-06-17 framing decision). Added §8 "Source-language frontends: empirical
+end-to-end verification" to `paper/formal-verification/paper.md` + an abstract clause; renumbered
+the old §8 Conclusion → §9. Per Emma's explicit framing call, the section is **carefully NOT
+conflated** with the paper's formal verification (§§3–7): it is named a "separate and weaker"
+assurance layer. Content (all measured, no overclaim): Sutra is also a compile *target* for nine
+source languages, each a source-to-source lowering verified EMPIRICALLY by the
+compile-AND-run-against-ground-truth bar (lower to Sutra → compile to the tensor-op graph → run
+on the real substrate → compare decoded output to the source language's own answer; a fixture
+that lowers but produces the wrong number is a failure). 184 substrate-verified fixtures across
+the nine active frontends (OCaml 45, Elixir 21, TS 19, F# 19, Clojure 18, Rust 18, Haskell 17,
+Erlang 15, Scala 12 — counted from the fixture dirs). The "what this does and does not establish"
+paragraph states the one-directional relationship cleanly: frontends inherit the §§3–4
+TARGET-level trusted-base properties for free (they emit ordinary Sutra; the §2 compiler is the
+only thing that lowers to tensors), but the LOWERING STEP itself is verified empirically, not
+formally — a verified frontend in the CompCert (Leroy 2009) sense is out of scope and named as
+such. The push triggers `fv-paper-ci.yml` → the clawRxiv cycle (Phase 4 = a few cycles).
+
 ## 2026-06-17: Rust frontend — nullary-variant let-value Axon typing (Phase 3)
 
 Work+flush sprint tick — cleans up the documented wart from the prior nullary-variant commit:
