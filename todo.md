@@ -2755,3 +2755,33 @@ block, ahead of the new-language frontends) as an aggressive build of **two** ap
 **CPS + trampolining** and **Tree RNNs** — to be compared on the substrate. Full design:
 `planning/exploratory/non-tail-recursion-on-the-substrate.md`. (Tail-recursive
 accumulators already lower to a Sutra `while_loop`; the non-tail case is the target.)
+
+---
+
+## [After the WASM core] Analyse the WebAssembly compatibility-layer approach — how it actually works, and where it isn't needed
+
+In reaction to the recursion-lowering strategy (Emma 2026-06-17; `queue.md` Phase 5.5,
+`project_recursion_lowering_single_tail_multiple_wasm` memory): single/linear non-tail recursion is
+turned into tail recursion by the compilers, but **multiple/tree recursion is represented as
+WebAssembly** and run on the substrate WASM machine. Once that real-WASM-bytecode core exists
+(`planning/exploratory/2026-06-17-phase5-wasm-core-scoping.md`), we need a deliberate analysis pass
+on what WASM-as-a-compatibility-layer actually buys and costs.
+
+Emma's framing:
+- **WASM is the best compatibility layer for these programs** — the thing that makes it so basically
+  **all** programs written in the source languages will execute, even the constructs (tree
+  recursion, deep call stacks) that don't lower to a stackless substrate loop.
+- **But it isn't the easiest or most intuitive mechanism**, so it needs real analysis: study how
+  the WASM representation actually behaves on the substrate, and **potentially do different things
+  per language / per context** rather than route everything through WASM.
+- **In some languages and some contexts we won't need this layer at all** — where the program's
+  recursion is linear (Part A handles it) or otherwise lowers directly, the WASM fallback is
+  unnecessary overhead and should be skipped.
+- **Multiple (tree) recursion is relatively rare but does happen** — so the WASM layer is a
+  correctness backstop for the tail of real-world programs, not the common path. Calibrate the
+  effort accordingly: get it correct, but recognise most code won't hit it.
+
+Deliverable: an analysis doc (and any resulting per-language/per-context routing decisions) on when
+to use the WASM compatibility layer vs lower directly, grounded in how the real-WASM-bytecode core
+actually executes these cases on the substrate. This lands AFTER the WASM core work, as a reaction
+to that implementation — not before it.
