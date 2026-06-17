@@ -51,6 +51,7 @@ function int step(scalar d) {
     // frames. (Single-frame programs set fp=arena base, nloc=local count at load.)
     int fp = ramRead(2);
     int nloc = ramRead(3);
+    int csp = ramRead(4);        // control-stack pointer (return-frame stack); 1500 + 4*depth
     int obase = fp + nloc;
     int op = ramRead(pc);
     int imm = ramRead(pc + 1);
@@ -83,6 +84,7 @@ function int step(scalar d) {
     int is_br_if = truth_axis(defuzzy(op == 13));    // br_if    0x0d (+LEB label)
     int is_end = truth_axis(defuzzy(op == 11));      // end      0x0b
     int is_return = truth_axis(defuzzy(op == 15));   // return   0x0f
+    int is_call = truth_axis(defuzzy(op == 16));     // call     0x10 (+LEB func index)
     // For local.get/set/tee the operand byte `imm` is an unsigned single-byte LEB128
     // local index (0..127); the local lives at the computed cell 200+imm. (For
     // i32.const `imm` is instead the signed LEB value, decoded below.) loc_cur is the
@@ -151,52 +153,89 @@ function int step(scalar d) {
     // top cell (in place): i32.eqz replaces the top with (top == 0); else keep top1.
     int new_99 = (((1 + is_eqz) * (v_eqz * one)) + ((1 - is_eqz) * (top1))) / 2;
     ramWrite(obase + sp - 1, new_99);
-    // sp: i32.const +1; local.get +1; local.set -1; local.tee keep; add/sub/mul -1;
-    // end/return keep.
+    // pc advancement + branch target (needed by both the branch chain and the
+    // function-return detection). 2-byte ops skip their 1 operand byte (call too).
+    int two_byte = ((is_const + 1) / 2) + ((is_get + 1) / 2) + ((is_set + 1) / 2)
+                 + ((is_tee + 1) / 2) + ((is_block + 1) / 2) + ((is_loop + 1) / 2)
+                 + ((is_if + 1) / 2) + ((is_br + 1) / 2) + ((is_br_if + 1) / 2)
+                 + ((is_call + 1) / 2);
+    int pc_seq = pc + 1 + two_byte;
+    int pc_tgt = ramRead(390 + pc);   // pre-resolved branch/halt target (load-time table)
+    // ---- NORMAL sp chain (the no-call/return case) ----
     int sp_binop = sp - 1;
     int s_mul = (((1 + is_mul) * (sp_binop)) + ((1 - is_mul) * (sp))) / 2;
     int s_sub = (((1 + is_sub) * (sp_binop)) + ((1 - is_sub) * (s_mul))) / 2;
     int s_add = (((1 + is_add) * (sp_binop)) + ((1 - is_add) * (s_sub))) / 2;
-    // binary comparisons pop two, push one (net -1); eqz is unary (net 0, keeps sp).
     int s_eq = (((1 + is_eq) * (sp_binop)) + ((1 - is_eq) * (s_add))) / 2;
     int s_ne = (((1 + is_ne) * (sp_binop)) + ((1 - is_ne) * (s_eq))) / 2;
     int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_ne))) / 2;
     int s_gt = (((1 + is_gt) * (sp_binop)) + ((1 - is_gt) * (s_lt))) / 2;
     int s_le = (((1 + is_le) * (sp_binop)) + ((1 - is_le) * (s_gt))) / 2;
     int s_ge = (((1 + is_ge) * (sp_binop)) + ((1 - is_ge) * (s_le))) / 2;
-    // br_if and if pop their condition (-1); br/block/loop/else/end leave sp unchanged.
     int s_brif = (((1 + is_br_if) * (sp_binop)) + ((1 - is_br_if) * (s_ge))) / 2;
     int s_if = (((1 + is_if) * (sp_binop)) + ((1 - is_if) * (s_brif))) / 2;
     int s_get = (((1 + is_get) * (sp + 1)) + ((1 - is_get) * (s_if))) / 2;
     int s_set = (((1 + is_set) * (sp_binop)) + ((1 - is_set) * (s_get))) / 2;
-    int new_sp = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_set))) / 2;
-    ramWrite(1, new_sp);
-    // pc: 2-byte ops (i32.const, local.get/set/tee, block, loop, br, br_if) skip their
-    // 1 operand byte. Structured control uses a LOAD-TIME PRE-RESOLVED target table at
-    // RAM 400+offset (= cell 390+pc): host-side compilation resolves the block/loop/if
-    // nesting to absolute branch targets (br k -> the k-th enclosing label: loop header
-    // for a loop, after-`end` for a block; the function-final `end` -> itself = halt;
-    // inner `end` -> fall-through). The substrate just reads the resolved target and does
-    // a JVM-shaped conditional jump. (block/loop are control-flow no-ops at runtime —
-    // their effect is entirely in the table; they advance to pc_seq.)
-    int two_byte = ((is_const + 1) / 2) + ((is_get + 1) / 2) + ((is_set + 1) / 2)
-                 + ((is_tee + 1) / 2) + ((is_block + 1) / 2) + ((is_loop + 1) / 2)
-                 + ((is_if + 1) / 2) + ((is_br + 1) / 2) + ((is_br_if + 1) / 2);
-    int pc_seq = pc + 1 + two_byte;
-    int pc_tgt = ramRead(390 + pc);
-    // br_if: jump to target iff the popped condition (top1) is nonzero (v_eqz == 0).
+    int sp_norm = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_set))) / 2;
+    // ---- NORMAL pc chain (branches; return/func-end halt when there is no caller) ----
     int brif_tgt = ((1 - v_eqz) * pc_tgt) + (v_eqz * pc_seq);
-    // if: pop condition; nonzero (v_eqz==0) -> fall into the then-arm (pc_seq); zero
-    // -> jump to the false-target (pc_tgt = else+1, or end+1 if no else). else: always
-    // jump to pc_tgt (= matching end+1) — only reached at the end of the then-arm.
     int if_tgt = (v_eqz * pc_tgt) + ((1 - v_eqz) * pc_seq);
     int p_if = (((1 + is_if) * (if_tgt)) + ((1 - is_if) * (pc_seq))) / 2;
     int p_else = (((1 + is_else) * (pc_tgt)) + ((1 - is_else) * (p_if))) / 2;
     int p_brif = (((1 + is_br_if) * (brif_tgt)) + ((1 - is_br_if) * (p_else))) / 2;
     int p_br = (((1 + is_br) * (pc_tgt)) + ((1 - is_br) * (p_brif))) / 2;
     int p_end = (((1 + is_end) * (pc_tgt)) + ((1 - is_end) * (p_br))) / 2;
-    int new_pc = (((1 + is_return) * (pc)) + ((1 - is_return) * (p_end))) / 2;
+    int pc_norm = (((1 + is_return) * (pc)) + ((1 - is_return) * (p_end))) / 2;
+    // ---- CALL / RETURN frame machinery (step 5b) ----
+    // Callee descriptor from the host-built function table (RAM 2000 + idx*3 =
+    // [start_pc, nargs, nlocals]). For non-call ops `imm` is a garbage index -> harmless
+    // reads (the call branch is not taken).
+    int ft = 2000 + (imm * 3);
+    int ce_pc = ramRead(ft);
+    int ce_na = ramRead(ft + 1);
+    int ce_nl = ramRead(ft + 2);
+    int fp_call = obase + sp - ce_na;          // args-in-place: callee frame aliases caller's top args
+    int do_call01 = (is_call + 1) / 2;
+    // control stack: csp = 1500 + 4*depth; empty iff csp==1500 ((2*csp)<3003, even/odd clean).
+    int csp_empty = (truth_axis(defuzzy((2 * csp) < 3003)) + 1) / 2;
+    int csp_nz = 1 - csp_empty;
+    // a function returns on `return`, or on its function-final `end` (table marks it
+    // pc_tgt==pc; inner ends have pc_tgt==pc+1). do_ret only when a caller exists.
+    int at_func_end = (truth_axis(defuzzy(pc_tgt == pc)) + 1) / 2;
+    int ret01 = ((is_return + 1) / 2) + (((is_end + 1) / 2) * at_func_end);
+    int do_ret = ret01 * csp_nz;
+    // control PUSH (4 cells at csp), gated so non-call steps write back (no-op):
+    // [return_pc, saved_fp, saved_nloc, saved_caller_sp(after arg consumption)].
+    int e0 = (do_call01 * (pc + 2)) + ((1 - do_call01) * ramRead(csp));
+    ramWrite(csp, e0);
+    int e1 = (do_call01 * (fp)) + ((1 - do_call01) * ramRead(csp + 1));
+    ramWrite(csp + 1, e1);
+    int e2 = (do_call01 * (nloc)) + ((1 - do_call01) * ramRead(csp + 2));
+    ramWrite(csp + 2, e2);
+    int e3 = (do_call01 * (sp - ce_na)) + ((1 - do_call01) * ramRead(csp + 3));
+    ramWrite(csp + 3, e3);
+    // control POP (top entry at csp-4) for return.
+    int ret_pc = ramRead(csp - 4);
+    int s_fp = ramRead(csp - 3);
+    int s_nloc = ramRead(csp - 2);
+    int s_sp = ramRead(csp - 1);
+    // return value (callee operand top) is pushed where the args were in the caller
+    // (s_fp+s_nloc+s_sp); gated by do_ret -> else a scratch cell (6).
+    int rv = ramRead(obase + sp - 1);
+    int rv_addr = (do_ret * (s_fp + s_nloc + s_sp)) + ((1 - do_ret) * (6));
+    ramWrite(rv_addr, rv);
+    // ---- final 3-way state select: call vs return vs normal (mutually exclusive) ----
+    int norm = 1 - do_call01 - do_ret;
+    int new_sp = (do_call01 * (0)) + (do_ret * (s_sp + 1)) + (norm * sp_norm);
+    ramWrite(1, new_sp);
+    int new_pc = (do_call01 * ce_pc) + (do_ret * ret_pc) + (norm * pc_norm);
     ramWrite(0, new_pc);
+    int new_fp = (do_call01 * fp_call) + (do_ret * s_fp) + (norm * fp);
+    ramWrite(2, new_fp);
+    int new_nloc = (do_call01 * ce_nl) + (do_ret * s_nloc) + (norm * nloc);
+    ramWrite(3, new_nloc);
+    int new_csp = (do_call01 * (csp + 4)) + (do_ret * (csp - 4)) + (norm * csp);
+    ramWrite(4, new_csp);
     return ramRead(obase + sp - 1);
 }
 function string main() { return "ok"; }
