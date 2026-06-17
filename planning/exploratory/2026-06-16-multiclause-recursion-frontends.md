@@ -2,13 +2,15 @@
 
 **Date:** 2026-06-16
 **Status:** SINGLE-PARAM DONE IN ALL THREE FRONTENDS 2026-06-16 (Erlang, Elixir, Haskell —
-`fac(0)/fac(n)` → substrate 120, `multiclause_fact` fixture in each; the `cond_src`/`neg_src`
-refactor landed in each and the `tail_rec`/`nontail_fact` regression guards still pass).
-Remaining: multi-PARAM multi-clause (`sum(0, acc)/sum(n, acc)` — base-clause var renaming to
-the rec-clause params); the same shape across all three.
-**Frontends affected:** `sutra-from-erlang` (single-param DONE), `sutra-from-elixir`
-(single-param DONE), `sutra-from-haskell` (single-param DONE). Rust/F#/Scala/OCaml/Clojure
-express recursion via `if`/`cond`, already handled.
+`fac(0)/fac(n)` → substrate 120, `multiclause_fact` fixture in each). MULTI-PARAM tail DONE in
+Erlang 2026-06-16 (`sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1, Acc+N)` → substrate 15,
+`multiclause_tailsum` fixture; the synthesizer generalized to N params with base-clause var
+renaming by position). The `cond_src`/`neg_src` refactor + `tail_rec`/`nontail_fact` regression
+guards still pass everywhere. Remaining: port the MULTI-PARAM generalization to Elixir + Haskell
+(mechanical — same `_try_lower_multiclause_recursion` shape).
+**Frontends affected:** `sutra-from-erlang` (single + multi-param DONE), `sutra-from-elixir`
+(single-param DONE; multi-param pending), `sutra-from-haskell` (single-param DONE; multi-param
+pending). Rust/F#/Scala/OCaml/Clojure express recursion via `if`/`cond`, already handled.
 
 ## Implementation landed (Erlang, 2026-06-16)
 

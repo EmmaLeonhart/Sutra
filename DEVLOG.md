@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Erlang frontend — multi-PARAM multi-clause tail recursion (Phase 3)
+
+Work+flush sprint tick. Generalized Erlang's `_try_lower_multiclause_recursion` from single-param
+to N params, so the idiomatic accumulator form `sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1,
+Acc+N).` now lowers to a `while_loop`. The synthesizer now: finds the BASE clause (exactly one
+INTEGER-literal param, rest vars, no self-call) and the recursive clause (ALL vars, self-call);
+takes the recursive clause's var names as the synthesized params; synthesizes `(V == K)` on the
+discriminator position; and RENAMES the base clause's var params to the recursive clause's names
+by position (via `_SUBST`) so the base body (`Acc`) resolves against the synthesized params.
+New fixture `multiclause_tailsum` (`sum(5, 0)` → 0+5+4+3+2+1) runs on the substrate to **15**;
+the single-param `multiclause_fact`(→120) and the `tail_rec`(→15)/`nontail_fact`(→120) guards
+still pass. Suite 26→28. Remaining: port the same N-param generalization to Elixir + Haskell
+(mechanical).
+
 ## 2026-06-16: Haskell frontend — single-param multi-equation recursion (Phase 3)
 
 Work-loop sprint tick — completes the multi-clause-recursion port across all three frontends
