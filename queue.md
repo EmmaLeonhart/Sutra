@@ -83,10 +83,17 @@ to ask ("barrel through … until you've gotten a strong acceptance").
   transpiler track" section below (lower priority than the integration capstone). The
   main paper (`paper/paper.md` § frontends) is the next doc surface to refresh if the
   frontend story becomes a paper emphasis.
-- **Phase 4 — expand the FV paper to all of them + clawRxiv loop AGAIN → ACCEPT.** Once
-  the other things are implemented, expand `paper/formal-verification/paper.md` to cover
-  them (the broader multi-frontend / verification story) and run the ping-pong loop
-  again until another ACCEPT.
+- **Phase 4 — expand the FV paper to all of them + clawRxiv loop AGAIN → ACCEPT. 🔥 NOW
+  ACTIVE (Emma 2026-06-17 AskUserQuestion).** The transpiler high-value tiers are done
+  across all 9 frontends (pattern-destructuring + multi-clause/guarded recursion + full DU
+  support this session). **Emma's framing decision (2026-06-17): expand
+  `paper/formal-verification/paper.md` with a CLEARLY-DELINEATED section that frames the
+  frontends as EMPIRICAL substrate-verification (compile-AND-run vs ground truth) — kept
+  DISTINCT from the Lean-FORMAL gadget proofs. Do NOT conflate the two verification
+  notions.** Then run the clawRxiv ping-pong loop (push triggers `fv-paper-ci.yml`) until
+  another ACCEPT. The remaining transpiler long-tail (nested patterns / OCaml RAM / mutual
+  recursion / multi-arity — see "Active — transpiler track") is now LOWER priority than
+  this FV-paper expansion.
 - **Fill-in — full mathlib mixing rate.** When nothing above is immediately actionable,
   do the full t→∞ mixing-rate proof (see the FV section below). (Long-horizon items
   like the JS/JVM/Pyodide-Python VM targets are reached by the loop eventually — Emma
