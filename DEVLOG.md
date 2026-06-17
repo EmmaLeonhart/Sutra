@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 3 (compile-time pre-evaluation) — scoping doc
+
+Scoped tier 3 (fixed-depth multiple recursion → compile-time pre-evaluation) before coding it —
+`planning/exploratory/2026-06-17-phase5.5-tier3-preeval-scoping.md`. Investigated the compiler's
+existing compile-time passes first: `simplify.py` folds arithmetic + egglog-simplifies; `loop_desugar.py`
+rewrites `loop` into a tail-recursive substrate loop; `inliner.py` inlines single-return stdlib
+functions — but **none evaluates a bounded recursive call to a constant**, so the spec's "leverages
+existing loop optimization" is aspirational and tier 3 is genuinely-new machinery. Design: a
+compile-time partial evaluator (host-side, pure — the same category as the existing arithmetic
+constant-folding, NOT runtime substrate execution, so no host-readout-rule concern) that, for a pure
+recursive call with compile-time-literal controlling args and a provable depth bound ≤
+`max_preeval_depth`, evaluates it to a literal, memoized at compile time so it doesn't blow up.
+Decomposed into 3a (detector + evaluator behind an explicit opt-in, verify a fixed-depth `fib(5)`
+folds to its literal AND the folded program runs == the un-folded reference on the substrate),
+3b (the `max_preeval_depth` `.toml` compilation argument + an empirically-measured default), and 3c
+(ASK EMMA — the *when-NOT-to-pre-evaluate* default policy, which Emma explicitly flagged UNSOLVED;
+candidate policies enumerated in the doc). Key isolation: the opt-in mechanism (3a/3b) is buildable
+now; only the *automatic* default policy (3c) blocks on Emma's design decision — so the build isn't
+gated on a conversation. Next: implement 3a.
+
 ## 2026-06-17: Phase 5.5 tier 2 (single non-tail → tail) verified DONE across frontends
 
 Investigated the tier-2 status (single linear non-tail recursion → tail form) before building, and
