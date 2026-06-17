@@ -89,12 +89,13 @@ generated blob centroid +0.077→+0.299) + `latent_window.py` (thin tkinter, I/O
 — no display) + a light import smoke. The steered-generator pipeline end-to-end._ Measured; frame the analytic render as the fixed-weight base case
   and the decoder as the trained generalization; no overclaim.
 
-_Phase D-F ✅ (D11). Weight→code: `emit_decoder.py` emits a trained decoder's forward as a
-standalone `.su` (matrix params + `Tensor.MatrixMul` + hadamard cubic), verified to reproduce
-the trained host forward to <1e-4 — the trained decoder IS Sutra code + weight tensors,
-connected to the existing weight↔code infra. Finding + follow-on spec:
-`planning/findings/2026-06-17-decoder-weight-to-code.md` (bake weights to CSV/`load_matrix`,
-emit the Fourier encoding on-substrate, feed the w2c decompiler corpus)._
+_Phase D-F ✅ (D11 + D12). Weight→code: `emit_decoder.py` emits a trained decoder's forward as
+`.su` (matrix + `Tensor.MatrixMul` + hadamard cubic; <1e-4 vs host). **D12: `bake_decoder` writes
+the trained weights to CSV and emits a FULLY STANDALONE `.su` that `load_matrix`'s its own
+weights** (no host tensors — code + data), verified to reproduce the trained forward (diff <1e-4,
+all weights file-backed). Remaining follow-ons (finding
+`planning/findings/2026-06-17-decoder-weight-to-code.md`): emit the Fourier encoding on-substrate;
+feed the w2c decompiler corpus._
 
 **🧠🎉 LEARNED DECODER (D1–D11) COMPLETE.** The EMMA-gated decoder, end-to-end: the substrate
 trains → reconstructs arbitrary gray/colour frames → scales with capacity → generates from a
