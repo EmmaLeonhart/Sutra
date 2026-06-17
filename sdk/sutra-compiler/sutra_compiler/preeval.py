@@ -51,44 +51,57 @@ def _walk(node, fn):
             _walk(ch, fn)
 
 
-def _prune_unreachable(module, roots=("main",)):
-    """Dead-function elimination from the entry roots, after folding. A fixed-depth recursive
-    function whose calls were all folded away becomes unreferenced; its definition (often using
-    constructs the V1 codegen lowers elsewhere, e.g. recursive if/else) is then removed so the
-    folded program compiles. Reachability follows every Call-callee identifier (whole-AST walk)."""
-    funcs = {it.name: it for it in module.items
-             if type(it).__name__ == "FunctionDecl"}
+def _prune_dead_recursive(module):
+    """Remove DIRECTLY-self-recursive functions that became unreferenced after folding.
 
-    def called_in(fn_decl):
-        names = set()
+    Pre-eval is now on by default (shallow), so pruning must be conservative — it is NOT
+    general dead-code elimination. It removes ONLY a function that (a) directly calls itself
+    (so pre-eval is what made it dead and its body typically uses constructs the V1 codegen
+    lowers elsewhere, e.g. recursive if/else) AND (b) is not called from any OTHER item
+    (self-calls don't count). Non-recursive helpers, operator/conversion functions, and any
+    function still referenced elsewhere are NEVER pruned, so this can't surprise a program.
+    (Mutually-recursive dead groups are left intact — a documented limitation.)"""
+    def _self_recursive(fd):
+        hit = [False]
 
-        def visit(n):
-            if type(n).__name__ == "Call" and type(n.callee).__name__ == "Identifier":
-                names.add(n.callee.name)
-        _walk(fn_decl, visit)
-        return names
+        def v(n):
+            if (type(n).__name__ == "Call" and type(n.callee).__name__ == "Identifier"
+                    and n.callee.name == fd.name):
+                hit[0] = True
+        _walk(fd, v)
+        return hit[0]
 
-    reachable = set()
-    frontier = [r for r in roots if r in funcs]
-    while frontier:
-        name = frontier.pop()
-        if name in reachable:
-            continue
-        reachable.add(name)
-        for callee in called_in(funcs[name]):
-            if callee in funcs and callee not in reachable:
-                frontier.append(callee)
+    # Names referenced from some OTHER item (a function's self-calls are excluded).
+    ext_refs: set = set()
+    for it in module.items:
+        own = it.name if type(it).__name__ == "FunctionDecl" else None
 
-    module.items = [it for it in module.items
-                    if type(it).__name__ != "FunctionDecl" or it.name in reachable]
+        def visit(n, own=own):
+            if (type(n).__name__ == "Call" and type(n.callee).__name__ == "Identifier"
+                    and n.callee.name != own):
+                ext_refs.add(n.callee.name)
+        _walk(it, visit)
+
+    module.items = [
+        it for it in module.items
+        if type(it).__name__ != "FunctionDecl"
+        or it.name in ext_refs
+        or not _self_recursive(it)
+    ]
     return module
 
 
-# Default recursion-depth cap. Kept well within the host evaluator's own stack limit
-# (CPython ~1000 frames, and each logical level uses several frames) so compile-time
-# pre-evaluation cannot overflow; deeper recursion cleanly falls through to the runtime
-# path. (3b finding 2026-06-17; overridable via the `max_depth` arg / atman.toml.)
-DEFAULT_MAX_PREEVAL_DEPTH = 128
+# Default recursion-depth cap for AUTOMATIC pre-evaluation (Emma 2026-06-17: "default
+# max precalculated depth should not be zero but around 2-3"). A small default folds
+# the cheap shallow cases automatically without binary-bloat risk; deeper recursion
+# cleanly falls through to the runtime path unless the user opts into a higher cap
+# (`--preeval` raises it, `--max-preeval-depth N` / atman.toml set it explicitly).
+DEFAULT_MAX_PREEVAL_DEPTH = 3
+
+# Cap used by the explicit `--preeval` "deep" opt-in. Kept within the host evaluator's
+# own stack limit (CPython ~1000 frames, several per logical level) so compile-time
+# evaluation cannot overflow (3b finding 2026-06-17).
+DEEP_MAX_PREEVAL_DEPTH = 128
 
 
 def preeval_bounded_recursion(module, max_depth: int = DEFAULT_MAX_PREEVAL_DEPTH,
@@ -223,5 +236,5 @@ def preeval_bounded_recursion(module, max_depth: int = DEFAULT_MAX_PREEVAL_DEPTH
             for st in it.body.statements:
                 rewrite_stmt(st)
     if prune:
-        _prune_unreachable(module)
+        _prune_dead_recursive(module)
     return module

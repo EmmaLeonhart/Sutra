@@ -268,15 +268,21 @@ def _compile_to_python(path: str, *, runtime_dim: int,
     tokens = lexer.tokenize()
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
     module = parser.parse_module()
-    if preeval:
-        # OPT-IN compile-time pre-evaluation of bounded pure recursion (Phase 5.5 tier 3):
-        # fold constant-arg calls to bounded pure recursive functions into literals. Off by
-        # default; the automatic-default policy ("when NOT to pre-evaluate") is an unresolved
-        # design decision (tier 3c), so this stays explicitly opt-in.
-        from .preeval import preeval_bounded_recursion, DEFAULT_MAX_PREEVAL_DEPTH
+    # Compile-time pre-evaluation of bounded pure recursion (Phase 5.5 tier 3): fold
+    # constant-arg calls to bounded pure recursive functions into literals. Runs by
+    # DEFAULT at a SHALLOW depth (Emma 2026-06-17: "default ... should not be zero but
+    # around 2-3") — it only fires when the compiler can see a call is precalculable
+    # (constant args), which is uncommon, so the default is cheap. `--preeval` raises
+    # the cap to a deep value; `--max-preeval-depth N` sets it (0 disables).
+    from .preeval import (preeval_bounded_recursion, DEFAULT_MAX_PREEVAL_DEPTH,
+                          DEEP_MAX_PREEVAL_DEPTH)
+    if max_preeval_depth is not None:
         depth = max_preeval_depth
-        if depth is None:
-            depth = _read_atman_max_preeval_depth(path) or DEFAULT_MAX_PREEVAL_DEPTH
+    elif preeval:
+        depth = DEEP_MAX_PREEVAL_DEPTH
+    else:
+        depth = _read_atman_max_preeval_depth(path) or DEFAULT_MAX_PREEVAL_DEPTH
+    if depth > 0:
         preeval_bounded_recursion(module, max_depth=depth)
     if loop_T is None:
         loop_T = _read_atman_loop_T(path) or 50
@@ -569,19 +575,18 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument(
         "--preeval", action="store_true",
         help=(
-            "Opt in to compile-time pre-evaluation of bounded pure recursion "
-            "(Phase 5.5 tier 3): fold constant-argument calls to bounded pure "
-            "recursive functions into literals, then prune the now-dead functions. "
-            "Off by default (the automatic-default policy is an open design question)."
+            "Raise the compile-time pre-evaluation cap to a DEEP value (folds deeper "
+            "bounded pure recursion into literals). Pre-evaluation runs by default at a "
+            "shallow depth (~3); this opts into deep folding. --max-preeval-depth overrides."
         ),
     )
     parser.add_argument(
         "--max-preeval-depth", type=int, default=None,
         help=(
-            "Recursion-depth cap for --preeval. If unset, read from the nearest "
-            "[project.compile] max_preeval_depth in atman.toml, else default 128 "
-            "(kept within the host evaluator's stack limit; deeper recursion is left "
-            "for the runtime path)."
+            "Recursion-depth cap for compile-time pre-evaluation (Phase 5.5 tier 3). "
+            "Default is a shallow ~3 (read from [project.compile] max_preeval_depth in "
+            "atman.toml if set; --preeval bumps it deep). 0 disables pre-evaluation; "
+            "larger values fold deeper recursion (kept within the host evaluator's stack)."
         ),
     )
     parser.add_argument(
