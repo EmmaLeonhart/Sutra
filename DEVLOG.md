@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-17: FV cycles banked (Weak Reject) → Phase 5 bytecode/VM verified-spec research (kickoff)
+
+The cycle-3 structural §8 trim WORKED: **v78 (post 2806) holds Weak Reject and the §8-specific
+con is GONE** — the over-breadth / "AI-generated breadth" / nine-language / 184-inventory complaint
+that dominated v76–v77 is absent from v78's cons. The residual v78 cons are all fundamental
+(frozen-substrate "garbage-in formal-proof-out", bit-exact skepticism, termination-by-construction,
+formal-semantics depth) — the class Emma ruled in Phase 2 don't flip by prose, and which v75's
+ACCEPT reviewer (a different model) accepted. Per Emma 2026-06-17 "a few cycles then bytecode" + "a
+weak reject isn't something we're concerned with": **FV cycles banked (3 cycles, §8 deliverable in
+and no longer hurting the paper), moved to Phase 5.**
+
+Phase 5 kickoff — the directive's stated first step ("search for existing verified bytecode specs
+before implementing"). Web research recorded in
+`planning/exploratory/2026-06-17-phase5-bytecode-vm-spec-research.md`: **JVM** has mature
+mechanized semantics to specify a Sutra interpreter against (Jinja/JinjaThreads in Isabelle/HOL,
+Bicolano in Coq, Kestrel ACL2-JVM — matching Emma's "JVM spec is the most useful artifact");
+**CPython** has NO verified spec (bytecode = a version-drifting DSL in CPython's `bytecodes.c`),
+confirming Emma's "ride Pyodide/Wasm, no direct CPython VM"; **WASM** is the proven already-built
+leg (`WASM/` machine). Grounded implementation order: extend WASM first (substrate-verifiable now),
+then JVM core against Jinja opcode-by-opcode, Python via WASM+Pyodide, JS last. Queue + Phase-5
+section updated; FV banked.
+
 ## 2026-06-17: FV paper — §8 structurally minimized vs the persistent over-breadth con (Phase 4 cycle 3)
 
 v77 (post 2805, same Gemini-3-Flash reviewer) moved **Reject → Weak Reject** — the cycle-2 §8
