@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Haskell frontend — guarded recursion (Phase 3)
+
+Work+flush sprint tick — extends the recursion machinery to guarded equations. `fac n | n == 0
+= 1 | otherwise = n * fac (n - 1)` now lowers to the accumulator trampoline (was
+`UNSUPPORTED-RECURSION: guarded equation with recursion`). A guarded recursive equation IS the
+if-form with the condition stated explicitly in the guard, so a new `_try_lower_guarded_recursion`
+detects the 2-guard shape (one real-condition guard whose result has no self-call, one
+`otherwise` guard whose result has the self-call), lowers the cond-guard's condition directly
+(`(n == 0)` / `(n != 0)` — no synthesis needed), and reuses the `cond_src`/`neg_src` transforms;
+wired into `_lower_equation`'s guarded path before the recursion rejection. New fixture
+`guarded_fact` runs on the substrate to **120**; the existing non-recursive `guards`(→120,
+3-guard `classify`) fixture still uses the blend (the recursion attempt requires exactly 2
+guards). Suite 30→32.
+
 ## 2026-06-16: Haskell frontend — multi-PARAM multi-equation tail recursion (Phase 3) — recursion track COMPLETE
 
 Work-loop sprint tick — the last mechanical port, completing multi-clause recursion across all
