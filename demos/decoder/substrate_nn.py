@@ -122,3 +122,30 @@ def render_decoder_torch(params, size: int = 32, num_freqs: int = 4):
     if out.shape[0] == 1:
         return out.reshape(size, size)
     return out.T.reshape(size, size, out.shape[0])
+
+
+# --- D4: train the decoder to reconstruct a target image ---
+
+def fit_decoder(params, target, size: int, num_freqs: int = 4, steps: int = 800,
+                lr: float = 0.01):
+    """Train the substrate decoder's weights (host-side Adam) to reconstruct `target` (a
+    (size,size) or (size,size,C) field) by MSE, via autograd through the substrate render.
+    Returns the per-step loss list. The render is the substrate; Adam is host-side."""
+    import torch
+    flat = [t for wb in params for t in wb]
+    opt = torch.optim.Adam(flat, lr=lr)
+    losses = []
+    for _ in range(steps):
+        opt.zero_grad()
+        pred = render_decoder_torch(params, size, num_freqs)
+        loss = ((pred - target) ** 2).mean()
+        loss.backward()
+        opt.step()
+        losses.append(float(loss.detach()))
+    return losses
+
+
+def psnr(mse: float) -> float:
+    """Peak signal-to-noise ratio (dB) for a [0,1] image at the given MSE."""
+    import math
+    return float("inf") if mse <= 0 else 10.0 * math.log10(1.0 / mse)
