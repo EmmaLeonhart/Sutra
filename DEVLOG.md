@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-17: B8 — live trainable-button browser smoke PASSED (Emma confirmed)
+
+Launched `demos/gui/button_server.py --live-ctr` (background, http://127.0.0.1:8770/) and opened
+it in Emma's browser; she confirmed the live page works ("Browser is great"). This is the one
+item that needed a real display — the in-browser DOM rendering of the substrate-rendered button
+pair + the owner-A/B and visitor-click controls. The headless bridge logic + HTTP layer were
+already CI-tested / smoked; this closes the last gap. **The trainable click-button track (B1–B9)
+is now fully complete, including the live browser.** Server left running for continued use.
+
 ## 2026-06-17: learned decoder D10 — docs + paper for the trained generator
 
 Documented the whole learned-decoder arc, measured. `docs/gui.md`: a public "Learning the
