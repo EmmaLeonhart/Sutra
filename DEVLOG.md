@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 4 step 4b part 1 — tabulation shape detector
+
+Building the automatic transform that gives native recursion. Part 1 is the DETECTOR:
+`sutra_compiler/tabulate.py` `detect_tabulable_recursion` recognizes the fib-family index-structured
+multiple recursion on the AST — one integer parameter, a base-case `if (n <op> K) { return <base, no
+recursion>; }`, and a trailing return that SUMS ≥2 recursive calls `f(n - const)` at constant positive
+offsets. It returns a `TabulableShape` (param, base op/threshold, base value, offsets, the FunctionDecl)
+for the loop synthesizer (part 2) to consume. Conservative: anything outside the exact shape returns
+None (left for other tiers); it requires ≥2 recursive calls, so it does NOT match single recursion
+(that's tier 2). `test_tabulate.py` 6/6: detects `fib` (offsets (1,2)) + tribonacci ((1,2,3)); rejects
+single-recursion (`fac`), non-recursive, non-constant-offset (`f(n-n)`), and extra-statement shapes.
+Next: 4b part 2 — synthesize the memoizing `while_loop` (rolling window of `max(offsets)` accumulators
+seeded with the base values, or a memo array) from the shape, swap it for the recursive function, and
+verify it runs natively == reference on the substrate.
+
 ## 2026-06-17: Phase 5.5 tier 4 step 4a — recursion runs natively as a memoizing loop (substrate)
 
 Building native recursion via memoization (Emma: "barrel through, add the native recursion stuff").
