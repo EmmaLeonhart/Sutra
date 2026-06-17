@@ -120,11 +120,11 @@ to ask ("barrel through … until you've gotten a strong acceptance").
     `planning/exploratory/2026-06-17-phase5-jvm-core-scoping.md`. `experiments/iso5_substrate_
     dispatch/jvm_core.su` is a parallel RAM-state blended-dispatch machine with REAL JVM opcode
     values + variable-length bytecode: bipush/iadd/isub/imul/ineg/ireturn, 7 substrate-verified
-    cases (`test_jvm_core.py`, e.g. `bipush 3; bipush 4; iadd → 7`, `5*6-2 → 28`, `ineg → -5`).
-    Remaining JVM ladder steps: (2a) locals `iload_N`/`istore_N` (a locals RAM region); (2b)
-    stack ops `dup`/`pop`/`swap`; (2c) branches `if_icmp*`/`goto` (RELATIVE offsets — the one
-    real encoding difference from the WASM machine's absolute targets); (2d) a real
-    javac-compiled method (e.g. iterative factorial) byte-for-byte.
+    cases (`test_jvm_core.py`). **STEP 2a (locals iload_0..3/istore_0..3, locals at RAM 200..203)
+    DONE 2026-06-17** — 10 cases substrate-green. Remaining JVM ladder steps: (2b) stack ops
+    `dup`/`pop`/`swap`; (2c) branches `if_icmp*`/`goto` (RELATIVE offsets — the one real encoding
+    difference from the WASM machine's absolute targets); (2d) a real javac-compiled method (e.g.
+    iterative factorial) byte-for-byte (needs 2b+2c — loop = branch + locals).
 - **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
   per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
   / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment
