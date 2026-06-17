@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-17: Real-WASM-bytecode core step 3b — if/else conditionals (Phase 5; structured control complete)
+
+Added WASM `if`(0x04, +blocktype) / `else`(0x05) to `wasm_core.su`, completing structured control.
+`if` pops a condition: nonzero → fall into the then-arm (pc_seq); zero → jump to the false-target
+(pc_tgt = `else`+1, or `end`+1 if no else). `else`, reached only at the end of the then-arm, always
+jumps to the matching `end`+1 (skipping the else-arm). Both targets are resolved at load time:
+`_build_targets` now records each `if`'s `else` position and sets `tgt[if]` = else+1 / end+1 and
+`tgt[else]` = end+1. The substrate adds `if_tgt = v_eqz·pc_tgt + (1−v_eqz)·pc_seq` and two blend
+rungs (`p_if`, `p_else`); `if` pops its condition (sp−1); `if` is 2-byte (added to two_byte), `else`
+is 1-byte. 30 cases substrate-green (`test_wasm_core.py`): if/else then-taken (cond 1 → 7) and
+else-taken (cond 0 → 9) with blocktype i32, and if-without-else skip (cond 0 → 5) / run (cond 1 → 9)
+with empty blocktype; the countdown loop and all prior cases still pass. Verified directly on the
+compiled substrate machine. Structured control (block/loop/if/else/br/br_if/end) is now complete;
+next: step 4, a real `wat→wasm` function byte-for-byte (the JVM-factorial oracle in WASM).
+
 ## 2026-06-17: Real-WASM-bytecode core step 3a — structured control (block/loop/br/br_if) (Phase 5)
 
 Added WASM structured control to `wasm_core.su`: `block`(0x02)/`loop`(0x03) (each +blocktype byte),
