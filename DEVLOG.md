@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 4 (automatic memoization) — scoping doc
+
+Scoped the last and hardest recursion tier before coding it —
+`planning/exploratory/2026-06-17-phase5.5-tier4-memoization-scoping.md`. Investigated the primitives:
+Sutra has `dict<int,int>` (a substrate-routed scalar memo table) + `while_loop`→recurrent-neuron loops
+(the `sutra-from-ocaml` `while_sum` fixture), but NO native runtime recursion (general self-calls are
+the WASM tier-5 fallback — `wasm_core` ran recursive `fib` via its RAM call stack). So tier 4's
+tractable realization is **tabulation**: a tree recursion over a regular integer index (`fib`,
+overlapping subproblems) is rewritten to a bottom-up DP loop that fills a memo table and returns
+`table[n]` — and a bottom-up loop IS tail recursion → recurrent neurons (tier 1, native, linear, no
+WASM). The memo table is "the state, growing over time" the spec describes, carried as `slot` loop
+state. Decomposed into 4a (hand-write a tabulated `fib` that runs natively — grounds the target),
+4b (the automatic tabulation transform: detect `f(n)=combine(f(n-c1),f(n-c2),…)` + base case → emit
+the DP loop — the substantive analysis), 4c (general-key / irregular memoization — a worklist
+`while_loop` + dict, or leave on tier 5; the honest limit of "memoize everything"). Flagged the
+genuinely-unclear part honestly: the GENERAL "memoize everything automatically" claim isn't obviously
+one transform — tier 4 makes the index-structured majority native via tabulation; the irregular tail
+stays on tier-5 WASM (matching the chat's own caveat that non-overlapping tree recursion gains nothing
+from memoization). Next: implement 4a.
+
 ## 2026-06-17: Phase 5.5 tier 3 COMPLETE — Emma resolved the pre-eval default policy (opt-in only)
 
 Asked Emma (AskUserQuestion) the formerly-unsolved "when NOT to pre-evaluate" default policy now that
