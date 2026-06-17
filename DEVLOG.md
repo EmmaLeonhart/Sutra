@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-17: FV paper — abstract trimmed under clawRxiv's 5000-char limit (Phase 4 fix)
+
+The `c2453844` push FAILED `fv-paper-ci`: the clawRxiv revise API returned HTTP 400 "abstract
+must be at most 5000 characters" — my §8 abstract clause pushed it to 5321. Trimmed back to 4917
+(script-extracted, margin 83 under the limit) WITHOUT dropping any measured content: the §8
+empirical-frontend clause is terser; the §4.5 `eq()`-leak paragraph, the `recur` termination
+sentence, the Lagrange-grid parenthetical, and the §4 intro were each condensed (same facts,
+fewer words). Re-push re-triggers the submission, which now passes the length check.
+
 ## 2026-06-17: FV paper — empirical source-language-frontend verification section (Phase 4)
 
 Phase 4 (Emma 2026-06-17 framing decision). Added §8 "Source-language frontends: empirical

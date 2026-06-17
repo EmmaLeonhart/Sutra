@@ -25,15 +25,13 @@ running on the real compile-and-execute substrate: a codegen-correspondence
 check that the polynomials the compiler emits agree with the spec on the Kleene
 grid (worst |error| = 0.0 across the nine {−1, 0, +1}² points — a regression
 guard against codegen drift, *not* a math-discovery claim about Lagrange
-interpolation, which is exact by construction; §3.2 makes the distinction
-explicit), connective range-soundness (a closed-form proof that outputs lie in
-[−1, +1] over the whole fuzzy domain), and loop termination (bounded, monotone
-halt). The termination story is sharper than a blanket "Sutra bans unbounded
+interpolation, which is exact by construction; §3.2), connective range-soundness
+(a closed-form proof that outputs lie in [−1, +1] over the whole fuzzy domain),
+and loop termination (bounded, monotone halt). The termination story is sharper than a blanket "Sutra bans unbounded
 loops": the surface syntax distinguishes **`loop` / `while_loop`** (bounded
 soft-halt recurrence with a termination obligation) from **`recur`** (an
-explicitly non-halting form for UI tick-loops and event-driven recurrences,
-declared outside the trusted-base scope by construction); §3.3 names the
-split. We also discharge the kernel-enforced read/write confinement half of
+explicitly non-halting form for event-driven recurrences, declared outside the
+trusted-base scope by construction); §3.3 names the split. We also discharge the kernel-enforced read/write confinement half of
 the contract obligation. We further give a **decision procedure for program equivalence over
 the polynomial fragment** (Boolean logic and integer arithmetic): a checker
 extracts each expression's polynomial via
@@ -44,7 +42,7 @@ to the same graph versus being logically equivalent — and we exhibit
 distributivity as a clean witness that the former is strictly stronger.
 
 The reduction is meaningful because the substrate computes the compiled graph
-exactly, which we establish with measured results restated in full here (§4):
+exactly, established with measured results (§4):
 rotation binding decodes bundles at 100% accuracy through width *k* = 8 on four
 frozen embedding substrates where the Hadamard baseline has collapsed to 2.5–7.5%,
 with a bind/unbind round-trip of 1.5 × 10⁻¹⁵; and Sutra's compiled arithmetic —
@@ -52,18 +50,15 @@ operator selection included — runs exactly on the substrate
 (`demos/calc` evaluates 11/11 expressions exactly against a rational oracle;
 `demos/echo` round-trips strings bit-exact at runtime dimension 16).
 §4.5 reports a worked example of why dispatch-level cleanliness is necessary
-but not sufficient: a runtime-prelude substrate leak in the `eq()` runtime
-method (`float(cos.item())` inside the operation severed autograd and was the
-exact host-extraction pattern banned in the spec) survived the broader leak
-sweep because the sweep greps user `.su` programs' emitted Python, not the
-`_TorchVSA` prelude itself; it was caught downstream by a differentiability
-test on a trainable program that the prelude was supposed to support. The fix
-has shipped along with a sweep-coverage extension that scans the runtime
-prelude itself with a method-level allowlist of legitimate host↔substrate
-boundaries, and a second constrain-train experiment (training `beta` inside
-Sutra's `defuzzify_trit` operator end-to-end through the compiled graph)
-provides live evidence that the substrate now carries autograd cleanly across
-the equality surface — both reported in §4.5 with measured numbers. The scope
+but not sufficient: a runtime-prelude leak in the `eq()` method
+(`float(cos.item())` severed autograd — the exact host-extraction pattern the
+spec bans) survived the broader sweep, which greps user `.su` output, not the
+`_TorchVSA` prelude itself; a differentiability test caught it downstream. The
+fix shipped with a sweep-coverage extension that scans the prelude under a
+method-level allowlist of legitimate host↔substrate boundaries, and a second
+constrain-train experiment (training `beta` in `defuzzify_trit` end-to-end
+through the compiled graph) shows the substrate now carries autograd cleanly
+across the equality surface — both with measured numbers. The scope
 is the non-learned trusted base, per published contract; §5 states it precisely
 and §6 positions the work against neural-network verification, SMT for nonlinear
 arithmetic, partial evaluation, and vector-symbolic architectures. Then §7
@@ -71,11 +66,10 @@ turns from software to **hardware** formal verification, on Sutra's
 **energy-based** thermodynamic compile target: Lean-machine-checked proofs that
 its gadgets have the correct output as the **strict global energy minimum** — a
 ground-state decode is exact — with sampler-*convergence* largely proven
-(stationary measure unique; rate open). Finally, §8 reports a **separate and
-explicitly weaker** assurance layer for the nine source-language frontends that
-compile *into* Sutra: a 184-fixture **compile-AND-run-against-ground-truth**
-suite — empirical end-to-end verification of the lowering passes, which we are
-careful not to conflate with the formal guarantees of §§3–7.
+(stationary measure unique; rate open). Finally, §8 names a **separate, weaker**
+empirical layer — a 184-fixture compile-and-run-against-ground-truth suite for
+the nine source-language frontends that compile *into* Sutra — explicitly not
+conflated with the formal guarantees above.
 
 ---
 
