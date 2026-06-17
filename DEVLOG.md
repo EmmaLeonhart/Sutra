@@ -1,5 +1,14 @@
 # Development Log
 
+## 2026-06-17: learned decoder D6 — capacity/scaling (Phase D-C complete)
+
+Measured how reconstruction scales with decoder width on the two-blob target (24², 500 steps,
+seed 0): H=8 → MSE 0.0448 / 13.5 dB, H=16 → 0.0412 / 13.9 dB, H=32 → 0.0360 / 14.4 dB, H=64 →
+0.0135 / 18.7 dB — monotonic improvement with capacity, as expected for an implicit neural
+representation. TDD `test_capacity.py` sweeps [8,32,64] and asserts MSE non-increasing (15%
+slack), widest < half the narrowest, PSNR gain > 3 dB; green CPU+CUDA. Phase D-C complete (RGB
++ capacity). Next: the generative leap — D7 latent-conditioned generation.
+
 ## 2026-06-17: learned decoder D5 — reconstructs an arbitrary COLOUR image
 
 3-output decoder: `render_decoder_torch` returns (size,size,3) and `fit_decoder` trains it

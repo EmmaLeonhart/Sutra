@@ -57,11 +57,9 @@ _Phase D-B ✅ COMPLETE (D3 render + D4 reconstruction). Milestone: the learned 
 reconstructs an arbitrary two-blob image to MSE 0.0058 / PSNR 22.4 dB (H=64, 800 steps; 28.5 dB
 at H=96) — a frame the analytic render can't make, learned on the substrate._
 
-_Phase D-C — RGB + capacity:_
-- [ ] **D6 — capacity/scaling.** depth/width vs reconstruction quality; measured table.
-
-_D5 ✅ done: 3-output decoder reconstructs a colour two-blob target to MSE 0.0087 / PSNR 20.6 dB
-(24², H=64, 800 steps), NaN-free — RGB generalisation of the D4 milestone._
+_Phase D-C ✅ COMPLETE (D5 RGB + D6 capacity). D5: colour reconstruction MSE 0.0087 / PSNR 20.6 dB.
+D6 capacity sweep (two-blob, 500 steps): H=8 → 0.0448/13.5 dB, H=32 → 0.0360/14.4 dB, H=64 →
+0.0135/18.7 dB — reconstruction improves monotonically with width, as expected._
 
 _Phase D-D — latent conditioning (generation, not just reconstruction):_
 - [ ] **D7 — latent-conditioned decoder.** `f(x, y, z)`; auto-decoder training over a small SET
