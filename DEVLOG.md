@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 3 step 3a — compile-time pre-evaluation of bounded recursion
+
+Implemented the tier-3 mechanism: `sdk/sutra-compiler/sutra_compiler/preeval.py`, an OPT-IN
+compile-time partial evaluator. For a call `f(args)` to a pure recursive function whose controlling
+args are compile-time literals and whose recursion is bounded within `max_depth`, it evaluates `f`
+symbolically on the AST (the integer/arithmetic subset — IntLiteral/FloatLiteral/Identifier/
+BinaryOp[+ − * and the six comparisons]/IfStmt/ReturnStmt/Call-to-known-pure-fn) with a depth limit
+and compile-time memoization, and replaces the call with the resulting literal. It then prunes
+functions left unreachable from `main` (whole-AST-field reachability walk, so no call is missed) —
+needed because a folded-away recursive `fib`/`fac` still contains `if/else` the V1 codegen rejects;
+pruning removes the dead definition so the folded program compiles. This is **host-side, pure**
+compile-time evaluation (same category as the existing arithmetic constant-folding) — NOT runtime
+substrate execution, so no host-readout-rule concern; referential transparency makes it sound. It is
+**opt-in** (invoked explicitly; not wired into the default pipeline), so the unsolved "when NOT to
+pre-evaluate" default-policy decision (step 3c, Emma) doesn't gate it. Conservative: any unsupported
+construct (e.g. a local `VarDecl`) aborts that call site, leaving it for the runtime path.
+
+`test_preeval.py` 8/8 on the substrate (the real bar — folded program runs == ground truth):
+`fib(8)→21`, `fac(6)→720`, `fib(10)→55`, base cases `fac(0)→1`/`fib(1)→1`, calls inside a larger
+expression (`fib(10)+fac(5)→175`, both sub-calls fold, pruned to just `main`), the conservative case
+(`VarDecl` body NOT folded, function retained, still computes 6), and `max_depth` honored
+(`fac(6)` un-folded under `max_depth=2`). Next: 3b (expose `max_preeval_depth` as a `.toml`/CLI arg +
+measure a default), then 3c (ASK EMMA the automatic-default policy).
+
 ## 2026-06-17: Phase 5.5 tier 3 (compile-time pre-evaluation) — scoping doc
 
 Scoped tier 3 (fixed-depth multiple recursion → compile-time pre-evaluation) before coding it —

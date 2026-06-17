@@ -73,11 +73,15 @@ sampled locally; all 9 gated by `transpilers-ci`). Remaining (the genuinely-new,
   constant-folding, NOT runtime substrate execution) that, for a pure recursive call with
   compile-time-literal controlling args and a provable depth bound ≤ `max_preeval_depth`, evaluates
   it to a literal (memoized at compile time so it doesn't blow up). Sub-steps:
-  - [ ] **3a** — detector + compile-time evaluator behind an explicit OPT-IN flag (so no default-policy
-    decision is needed yet); verify a fixed-depth fixture (e.g. `fib(5)`) folds to its literal AND the
-    folded program runs == the un-folded reference on the substrate (the fold must not change output).
-  - [ ] **3b** — the `max_preeval_depth` `.toml` compilation argument + a finding measuring a sane
-    default (compile-time cost vs runtime savings); above-cap sites fall through to tier 4/5.
+  - [ ] **3b** — wire the `max_preeval_depth` into the `.toml` / CLI as a real compilation argument
+    (the `preeval_bounded_recursion(module, max_depth=…)` param exists; expose it) + a finding
+    measuring a sane default (compile-time cost vs runtime savings); above-cap sites fall through.
+    (3a DONE 2026-06-17: `sutra_compiler/preeval.py` — an OPT-IN compile-time partial evaluator that
+    folds a constant-arg call to a bounded pure recursive fn (`fib`/`fac` subset: IntLiteral/Identifier/
+    BinaryOp/If/Return/Call) to a literal with depth-limit + compile-time memoization, then prunes the
+    now-dead recursive fn (whole-AST reachability). `test_preeval.py` 8/8: fib(8)→21, fac(6)→720, etc.
+    fold + prune + run == ground truth on the substrate; conservative (unsupported bodies left
+    un-folded); honors max_depth. Host-side pure eval — NOT runtime substrate execution.)
   - [ ] **3c — ASK EMMA (AskUserQuestion):** the *when-NOT-to-pre-evaluate* default policy — Emma
     flagged this UNSOLVED (binary-size / startup / runtime-flexibility tradeoff). Candidate policies
     in the scoping doc (aggressive-to-cap / small-result-only / annotation-only / cost-model). This
