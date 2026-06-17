@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-17: B3 — annealed steering so the live button SETTLES like Adam
+
+Emma's feedback on the live demo: the learning "is kinda all over the place and doesn't feel like
+it slows down over time like Adam". Root cause: `ButtonAdam.propose()` used a FIXED exploration
+magnitude (0.12) and `choose()` a fixed policy lr, so proposals jittered forever and the design
+never converged. Added an annealing schedule keyed to the preference round: `decay(r)=1/(1+anneal·r)`
+(anneal=0.06), with both the proposal exploration (floored at `explore_floor`) and the Adam policy
+lr (floored at `lr_floor` of its initial value) scaled by it, so steps shrink as preferences
+accumulate while staying mildly responsive to a late change of taste. Measured under a fixed
+blue-preferring owner: mean per-round θ step falls from **0.359 (rounds 0–9) to 0.026 (rounds
+40–69)** — ~14× settling — while still converging to the owner's blue (fb 0.895). New regression
+`test_steering_settles_over_time_like_adam` asserts exploration anneals monotonically and late
+steps are <½ early steps yet still reach the blue taste; B3 suite 4/4 green. Live server restarted
+with the annealed controller.
+
 ## 2026-06-17: learned decoder D14 — high-frequency reconstruction + Fourier-band scaling
 
 D4/D5 used smooth gaussian blobs; D14 confirms the decoder handles genuinely HIGH-FREQUENCY
