@@ -196,6 +196,57 @@ def synthesize_tabulation_source(shape: TabulableShape) -> Optional[str]:
     )
 
 
+def synthesize_ram_memo_source(shape: TabulableShape) -> Optional[str]:
+    """Generate non-recursive Sutra source for `shape` as a RAM-MEMO `while_loop` — the general
+    single-index DP form (RAM-device-backed memo, finding `2026-06-17-tier4-ram-memo-in-loop.md`).
+
+    Seeds `ramWrite(j, base(j))` for j < K, then loops `ramWrite(i, Σ coeff·ramRead(i-offset))` for i
+    in [K, n], returning `ramRead(n)`. Unlike the rolling-window form this uses a true memo TABLE (the
+    RAM device persists across loop iterations), so it handles ANY offsets — including large ones a
+    fixed scalar window would make unwieldy. (Uses low RAM addresses 0..n, so it must NOT be combined
+    with a program that also uses low-address arrays; the rolling-window form, with no RAM, stays the
+    default for the cases it covers — this RAM-memo backend is for the wider single-index family.)
+    Requires K >= max(offset) (so every f(i-offset) is already in the memo) and base = identity/literal."""
+    m = max(shape.offsets)
+    covers = shape.base_k if shape.base_op in ("<",) else (shape.base_k + 1 if shape.base_op == "<=" else None)
+    if covers is None or covers < m:
+        return None
+    bv = shape.base_value
+    if _name(bv) == "Identifier" and bv.name == shape.param:
+        base_vals = [str(j) for j in range(covers)]      # f(j) = j
+    elif _name(bv) == "IntLiteral":
+        base_vals = [str(bv.value)] * covers             # f(j) = L
+    else:
+        return None
+
+    f = shape.func.name
+    n = shape.param
+    ti = f"_t_{n}"
+    bound = f"_b_{n}"
+    parts = []
+    for coeff, o in zip(shape.coeffs, shape.offsets):
+        r = f"ramRead({ti} - {o})"
+        parts.append(r if coeff == 1 else f"{coeff} * {r}")
+    combine = " + ".join(parts)
+    seed = "".join(f"    ramWrite({j}, {base_vals[j]});\n" for j in range(covers))
+    return (
+        f"while_loop _ramtab_{f}({ti} < {bound}, int {ti} = {covers}, int {bound} = 0) {{\n"
+        f"    int _v = {combine};\n"
+        f"    ramWrite({ti}, _v);\n"
+        f"    {ti} = {ti} + 1;\n"
+        f"}}\n"
+        f"function int {f}(int {n}) {{\n"
+        f"{seed}"
+        f"    int {bound} = {n} + 1;\n"
+        f"    int {ti} = {covers};\n"
+        f"    slot int _s{ti} = {ti};\n"
+        f"    slot int _s{bound} = {bound};\n"
+        f"    loop _ramtab_{f}({ti} < {bound}, _s{ti}, _s{bound});\n"
+        f"    return ramRead({n});\n"
+        f"}}\n"
+    )
+
+
 def tabulate_module(module):
     """Rewrite every tabulable multiple-recursive FunctionDecl in `module` into its memoizing
     `while_loop` form (a `while_loop` decl + a non-recursive function), in place. Returns the
