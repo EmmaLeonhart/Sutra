@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-17: WASM machine — opcode 22 = MIN (Phase 5, second opcode extension)
+
+Phase 5 (extend the proven WASM leg). Added **opcode 22 = MIN** (binary: pop top1,top2; push
+min(top2,top1)) to the substrate RAM-state mini WASM machine. Reuses the machine's existing
+boundary-correct comparison: `v_min = v_lt*top2 + (1-v_lt)*top1`, where `v_lt` is the 0/1 flag
+(1 iff top2<top1 strictly; 0 at equality or top2>top1 — so at equality MIN = top1 = top2, the
+correct value). As a binary op (net sp −1, like ADD) it is woven into exactly two chains: the
+98+sp result chain (`b_min`) and the sp chain (`s_min`); it does not touch 99+sp/100+sp/pc, so
+the other 21 opcodes are unaffected. Three new substrate-verified cases (MIN(3,5)→3, MIN(5,3)→3,
+and the equality boundary MIN(4,4)→4). Full `test_mini_wasm_machine.py` ran on the substrate:
+**36 passed in 929s, exit 0** — MIN works (including the boundary) and nothing regressed. The
+machine is now 23 opcodes; the same blended-dispatch + boundary-correct-comparison pattern
+extends to MAX, comparisons, and the rest of the ISO-5 breadth (DIV/REM excluded — Math.mod ban).
+
 ## 2026-06-17: WASM machine — opcode 21 = NEG (Phase 5, first opcode extension)
 
 Phase 5 step 1 (extend the proven WASM leg). Added **opcode 21 = NEG** (unary negate the
