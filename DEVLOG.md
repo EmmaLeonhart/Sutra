@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-17: learned decoder D7 — latent-conditioned GENERATION (the generative leap)
+
+The decoder now GENERATES, not just reconstructs. `render_decoder_latent_torch(params, z, …)`
+conditions each pixel on `[Fourier(x,y), z]`; `fit_autodecoder` jointly trains shared weights +
+per-image latents over a SET of targets (host Adam over weights+latents; render on the
+substrate). TDD `test_latent.py` (2), green CPU+CUDA: an auto-decoder on two blob-position
+targets (±0.4 in x) reconstructs each from its own latent (MSE ~0.001), AND lerping z_A→z_B
+sweeps the generated blob monotonically across the frame (centroid_x −0.34 → −0.15 → +0.11 →
++0.26 → +0.33). The latent continuously controls the output — interpolation produces novel
+intermediate frames the model was never trained on. This is the EMMA-gated "decoder from a
+latent to an arbitrary frame," generative form, on the substrate. Next: D8 steers the latent by
+owner×CTR (the learned decoder meets the GUI steering loop).
+
 ## 2026-06-17: learned decoder D6 — capacity/scaling (Phase D-C complete)
 
 Measured how reconstruction scales with decoder width on the two-blob target (24², 500 steps,

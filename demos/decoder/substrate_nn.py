@@ -149,3 +149,50 @@ def psnr(mse: float) -> float:
     """Peak signal-to-noise ratio (dB) for a [0,1] image at the given MSE."""
     import math
     return float("inf") if mse <= 0 else 10.0 * math.log10(1.0 / mse)
+
+
+# --- D7: latent-conditioned decoder (generation) ---
+
+def render_decoder_latent_torch(params, z, size: int = 32, num_freqs: int = 4):
+    """Render a LATENT-CONDITIONED frame `f(x, y; z)`: the per-pixel input is the Fourier-
+    encoded coordinate concatenated with the latent `z` (broadcast to every pixel). The first
+    layer's in-dim must be `decoder_input_dim(num_freqs) + len(z)`. Differentiable in BOTH the
+    weights `params` AND the latent `z` — so an auto-decoder trains shared weights + per-image
+    latents, and interpolating `z` GENERATES between learned images."""
+    import torch
+    dt, dev = params[0][0].dtype, params[0][0].device
+    coords = coord_grid(size, dt, dev)                        # (N², 2)
+    feats = fourier_features(coords, num_freqs).to(dt)        # (N², F)
+    n2 = feats.shape[0]
+    ztile = z.reshape(1, -1).to(dt).expand(n2, -1)            # (N², latent), grad-preserving
+    X = torch.cat([feats, ztile], dim=-1).T.contiguous()      # (F+latent, N²)
+    out = mlp_forward(params, X)
+    if out.shape[0] == 1:
+        return out.reshape(size, size)
+    return out.T.reshape(size, size, out.shape[0])
+
+
+def latent_input_dim(num_freqs: int, latent_dim: int, coord_dim: int = 2) -> int:
+    """First-layer in-size for the latent-conditioned decoder."""
+    return decoder_input_dim(num_freqs, coord_dim) + latent_dim
+
+
+def fit_autodecoder(params, latents, targets, size: int, num_freqs: int = 4,
+                    steps: int = 1000, lr: float = 0.01):
+    """Auto-decoder training: jointly train the SHARED decoder weights `params` and the
+    PER-IMAGE latents `latents` (a list of requires_grad z tensors) to reconstruct `targets`
+    (a list of frames). Each image is rendered from its own latent; the latent then controls
+    the output, so interpolating between learned latents generates between images. Host-side
+    Adam over weights + latents; the render is the substrate. Returns the per-step total loss."""
+    import torch
+    flat = [t for wb in params for t in wb] + list(latents)
+    opt = torch.optim.Adam(flat, lr=lr)
+    losses = []
+    for _ in range(steps):
+        opt.zero_grad()
+        loss = sum(((render_decoder_latent_torch(params, z, size, num_freqs) - tgt) ** 2).mean()
+                   for z, tgt in zip(latents, targets))
+        loss.backward()
+        opt.step()
+        losses.append(float(loss.detach()))
+    return losses
