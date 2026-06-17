@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: Clojure frontend — `{:keys [..]}` / `{a :x}` map destructuring (Phase 3)
+
+Work+flush sprint tick (extends Clojure's vector-destructure increment to maps). Clojure `let`
+now supports both map-destructure forms: `{:keys [a b]}` binds each symbol to the same-named
+field, `{a :x b :y}` binds local `a` to field `x` — both via `realvec(m.item("field"))` (the
+`(get m :k)` projection). Two supporting changes: (a) `_mark_binding_pattern` recursively marks
+a binding-position pattern AND every nested vec/map within it into `_BINDING_VECS` (so for
+`{:keys [a b]}` neither the map pattern NOR its inner `[a b]` vector is hoisted as a data axon);
+(b) `_map_fields` now returns None for a `_BINDING_VECS` node. The value must be a bare name (a
+map param or hoisted data-map temp). New fixtures `map_destructure_keys` + `map_destructure_named`
+(`(let [{:keys [a b]} {:a 5 :b 8}] (+ a b))` etc.) compile AND run on the substrate to 13; suite
+32→36, no regressions.
+
 ## 2026-06-16: F# frontend — `let (Circle r) = s` DU-case-pattern destructuring (Phase 3)
 
 Work-loop sprint tick (the F# analogue of the Haskell constructor-pattern increment). `let
