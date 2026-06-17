@@ -76,9 +76,13 @@ to ask ("barrel through … until you've gotten a strong acceptance").
   AND the main Sutra paper (`paper/paper.md`) — measured/accurate, no overclaim.
   Integration DONE 2026-06-15: architecture docs (AGENTS.md, CLAUDE.md) + new spec
   doc `planning/sutra-spec/transpiler-frontends.md` + main paper `paper/paper.md`
-  "Source-language frontends" subsection (§ The Sutra Compiler). Remaining Phase 3:
-  the data-structure-tier transpiler increments in the "Active — transpiler track"
-  section below (lower priority than the integration capstone, now shipped).
+  "Source-language frontends" subsection (§ The Sutra Compiler). Spec doc REFRESHED
+  2026-06-16 to reflect the sprint's pattern-destructuring tier + multi-clause/guarded
+  recursion (maturity table + shared-shapes table re-grounded against the counted
+  fixtures). Remaining Phase 3: the long-tail transpiler increments in the "Active —
+  transpiler track" section below (lower priority than the integration capstone). The
+  main paper (`paper/paper.md` § frontends) is the next doc surface to refresh if the
+  frontend story becomes a paper emphasis.
 - **Phase 4 — expand the FV paper to all of them + clawRxiv loop AGAIN → ACCEPT.** Once
   the other things are implemented, expand `paper/formal-verification/paper.md` to cover
   them (the broader multi-frontend / verification story) and run the ping-pong loop
