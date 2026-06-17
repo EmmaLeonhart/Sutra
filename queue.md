@@ -74,9 +74,11 @@ the output → generation, not just reconstruction. `render_decoder_latent_torch
   `z` (and thus the generated frame) — the LEARNED decoder meets the GUI steering loop.
 
 _Phase D-E — integration & writeup:_
-- [ ] **D9 — demo window** rendering the learned decoder (+ latent steering); optional Yantra
-  surface mirroring gui-button.
-- [ ] **D10 — docs + paper.** Measured; frame the analytic render as the fixed-weight base case
+- [ ] **D10 — docs + paper.**
+
+_D9 ✅ done: `latent_demo.py` (headless, run-verified: train generator → steer latent right,
+generated blob centroid +0.077→+0.299) + `latent_window.py` (thin tkinter, I/O, untested in CI
+— no display) + a light import smoke. The steered-generator pipeline end-to-end._ Measured; frame the analytic render as the fixed-weight base case
   and the decoder as the trained generalization; no overclaim.
 
 _Phase D-F — the weight→code / constrain-train horizon (open-ended stretch):_
