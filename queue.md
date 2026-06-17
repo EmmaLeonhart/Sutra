@@ -270,10 +270,9 @@ negative results, not hidden.
   positional-key axons + `p.0`/`p.1` access + `let (a, b) = t` tuple-pattern + `let Point
   { x, y } = p` struct-pattern destructuring + nullary-variant values (`Dir::South` → `{_tag}`
   axon, scoped match patterns guarded from the value-hoist via `.parent`) shipped 2026-06-16,
-  suite 34/34): nested match inside a tail-match arm; nested tuple patterns (`let (a, (b, c)) =
-  t`); enum/`Some(x)`-pattern `let` destructuring; nullary-variant `let` value (arg position
-  done; `let d = Dir::South` works via hoist but binds an int-typed local to the axon — clean
-  it to an Axon-typed local).
+  + nullary-variant `let` value (`let d = Dir::South` → Axon-typed local) shipped 2026-06-16,
+  suite 36/36): nested match inside a tail-match arm; nested tuple patterns (`let (a, (b, c)) =
+  t`); enum/`Some(x)`-pattern `let` destructuring.
   (Loop bounds need strict `<`/`>` — `<=` drops the boundary iteration, finding
   `2026-06-13-while-loop-le-boundary-equality-defuzz`; same caveat applies to the negated
   *break* condition, so write `if i >= n { break; }`.)
