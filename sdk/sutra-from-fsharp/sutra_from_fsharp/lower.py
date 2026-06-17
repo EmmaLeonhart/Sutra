@@ -51,6 +51,14 @@ _FSHARP_TYPE_TO_SUTRA = {
 # OCaml/Rust/Haskell pattern).
 _RECORD_TYPES: set = set()
 
+# Record type name → ordered field-name list (from `type Point = { x: int; y: int }`),
+# for `{ r with … }` functional-update: every declared field NOT overridden is copied
+# from the source record. `_PARAM_RECORD_TYPE` maps a record-typed param name to its
+# declared type so the `with` source's field set is known (F#'s `with` form, unlike
+# Rust's `..base`, does not name the type). Reset per function.
+_RECORD_FIELDS: dict = {}
+_PARAM_RECORD_TYPE: dict = {}
+
 # Discriminated-union variant cases: `variant name → (tag, arity)`, tags assigned in
 # declaration order per `type T = | A … | B …`. Construction `A x` → a tagged axon
 # (`_tag` + `_val0…`); a `match` pattern `A x` tests `_tag` and binds the payload.
@@ -525,6 +533,23 @@ def _lower_expr(node, src: bytes) -> str:
                         _PRELUDE.append(f'    {name}.add("{field}", {_lower_expr(fval, src)});\n')
                     _AXON_VARS.add(name)
                     return _lower_expr(kids[1], src)
+                rwf = _record_with_fields(val_node, src)
+                if rwf is not None:
+                    # `let q = { p with x = 9 }` — functional update: emit the
+                    # overridden fields, then copy every other declared field of the
+                    # record type from the source `p` (`realvec(p.item(f))`).
+                    src_name, overrides, tname = rwf
+                    given = {f for f, _ in overrides}
+                    _PRELUDE.append(f"    Axon {name};\n")
+                    for field, fval in overrides:
+                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_expr(fval, src)});\n')
+                    for field in _RECORD_FIELDS[tname]:
+                        if field not in given:
+                            _PRELUDE.append(
+                                f'    {name}.add("{field}", '
+                                f'realvec({src_name}.item("{field}")));\n')
+                    _AXON_VARS.add(name)
+                    return _lower_expr(kids[1], src)
                 rec_fields = _record_fields(val_node, src)
                 if rec_fields is not None:
                     # `let q = { x = a; y = b }` — record construction is statement-
@@ -703,9 +728,39 @@ def _record_fields(node, src: bytes):
     return fields if fields else None
 
 
+def _record_with_fields(node, src: bytes):
+    """If `node` is a record functional-update `{ r with x = a }` (`brace_expression →
+    with_field_expression[source, field_initializers]`) where `r` is a known
+    record-typed param, return (source_name, [(field, value_node), …], type_name);
+    else None. The caller copies every declared field of `type_name` NOT overridden
+    from the source record (the F# analogue of Rust's `..base`)."""
+    if node.type != "brace_expression":
+        return None
+    wfe = next((c for c in node.named_children
+                if c.type == "with_field_expression"), None)
+    if wfe is None or not wfe.named_children:
+        return None
+    src_node = wfe.named_children[0]
+    src_name = _text(src_node, src).strip()
+    tname = _PARAM_RECORD_TYPE.get(src_name)
+    if tname is None or tname not in _RECORD_FIELDS:
+        return None  # source's record type unknown — a later item
+    fis = next((c for c in wfe.named_children
+                if c.type == "field_initializers"), None)
+    overrides = []
+    for fi in (fis.named_children if fis is not None else []):
+        if fi.type != "field_initializer" or len(fi.named_children) < 2:
+            return None
+        overrides.append((_text(fi.named_children[0], src).strip(),
+                          fi.named_children[-1]))
+    return (src_name, overrides, tname) if overrides else None
+
+
 def _record_type_names(root, src: bytes) -> set:
     """All record type names declared in the file (`type Point = { … }` →
-    `type_definition` → `record_type_defn` → `type_name`)."""
+    `type_definition` → `record_type_defn` → `type_name`). Also populates
+    `_RECORD_FIELDS[type] = [field, …]` from the `record_fields` (each `record_field`'s
+    first `identifier` is the field name) for `{ r with … }` functional-update."""
     names: set = set()
 
     def walk(n):
@@ -715,7 +770,19 @@ def _record_type_names(root, src: bytes) -> set:
                 ident = next((c for c in tn.named_children
                               if c.type == "identifier"), None)
                 if ident is not None:
-                    names.add(_text(ident, src).strip())
+                    tname = _text(ident, src).strip()
+                    names.add(tname)
+                    rfs = next((c for c in n.named_children
+                                if c.type == "record_fields"), None)
+                    flds = []
+                    for rf in (rfs.named_children if rfs is not None else []):
+                        if rf.type != "record_field":
+                            continue
+                        fi = next((c for c in rf.named_children
+                                   if c.type == "identifier"), None)
+                        if fi is not None:
+                            flds.append(_text(fi, src).strip())
+                    _RECORD_FIELDS[tname] = flds
         for c in n.named_children:
             walk(c)
 
@@ -925,6 +992,7 @@ def _lower_defn(defn, src: bytes) -> str:
     name: str = ""
     params: list[str] = []
     param_ty: dict[str, str] = {}
+    _PARAM_RECORD_TYPE.clear()  # per-function; populated during param extraction below
     ret = _DEFAULT_TYPE
     fdl = next((c for c in kids if c.type == "function_declaration_left"), None)
     vdl = next((c for c in kids if c.type == "value_declaration_left"), None)
@@ -952,6 +1020,10 @@ def _lower_defn(defn, src: bytes) -> str:
                     pname = _text(ident_pat.named_children[0], src)
                     params.append(pname)
                     param_ty[pname] = _map_fsharp_type(simple_ty, src)
+                    if simple_ty is not None:
+                        sty_txt = _text(simple_ty, src).strip()
+                        if sty_txt in _RECORD_FIELDS:
+                            _PARAM_RECORD_TYPE[pname] = sty_txt
                 elif p.type == "const" and p.named_children \
                         and p.named_children[0].type == "unit":
                     continue  # `()` — the zero-arg marker
@@ -1014,6 +1086,7 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     # record literals lower to named-field axons. `type Point = { … }` defs emit no
     # runtime code themselves (they declare the shape).
     _RECORD_TYPES.clear()
+    _RECORD_FIELDS.clear()
     _RECORD_TYPES.update(_record_type_names(tree.root_node, src))
     _VARIANTS.clear()
     _union_type_names, _union_variants = _union_info(tree.root_node, src)
