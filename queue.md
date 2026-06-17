@@ -119,11 +119,15 @@ to ask ("barrel through … until you've gotten a strong acceptance").
     dispatch/wasm_core.su` runs real WASM bytecode: `i32.const`(0x41, signed single-byte LEB128) +
     `i32.add`/`sub`/`mul`(0x6a-6c) + `end`(0x0b)/`return`(0x0f); 8 cases substrate-green
     (`test_wasm_core.py`), incl. signed-LEB128 boundaries (0x3f→63, 0x40→−64) and `(-5)*(-5)=25`.
-    Reused the JVM iconst real-axis-vector fix (`leb_val*one`). **NEXT = step 1b: indexed locals**
-    `local.get`/`local.set`/`local.tee`(0x20-22, unsigned single-byte LEB128 index) — NEW vs JVM's
-    fixed-opcode locals: the local cell is computed `200+idx` (hard-addressed; write back the old
-    value when not local.set so non-local ops are no-ops on the locals region). Ladder: 1a arith ✓
-    → 1b indexed locals → 2 comparisons → 3 structured control (block/loop/if/end/br, pre-resolved
+    Reused the JVM iconst real-axis-vector fix (`leb_val*one`). **STEP 1b DONE 2026-06-17 —
+    indexed locals** `local.get`/`local.set`/`local.tee`(0x20-22, unsigned single-byte LEB128
+    index): NEW vs JVM's fixed-opcode locals — the local cell is computed `200+idx` (hard-addressed;
+    writes the old value back when not local.set/tee, so non-local ops are no-ops on the locals
+    region, safe even if idx aliases a used local). 12 cases substrate-green (8 arith + 4 locals:
+    set/get/get/add→10, tee leaves value→14, two-locals sub→4, set/get round-trip→9). **NEXT = step
+    2: comparisons** `i32.eqz`(0x45)/`i32.eq`(0x46)/`ne`(0x47)/`lt_s`(0x48)/`gt_s`(0x4a)/`le_s`(0x4c)/
+    `ge_s`(0x4e) — copies of the JVM `v_eq`/`v_lt`/`v_gt`/`v_ge`/`v_le` gated idiom. Ladder: 1a arith
+    ✓ → 1b locals ✓ → 2 comparisons → 3 structured control (block/loop/if/end/br, pre-resolved
     targets) → 4 real wat→wasm factorial byte-for-byte → 5 tree-recursion fib via `call` (= Phase
     5.5-B payoff). Then Python-via-Pyodide. Concrete WASM-leg open items in the merged WASM section.
 - **Phase 5.5 — Recursion lowering strategy: single→tail (compiler), multiple→WASM (Emma

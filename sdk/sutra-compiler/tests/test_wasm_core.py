@@ -10,8 +10,9 @@ compiles the machine via the PyTorch codegen, attaches a RAM device, loads a fun
 body as raw WASM bytes, runs it, and asserts the decoded operand-stack result.
 
 Opcodes (real WASM byte values): 0x41/65=i32.const (signed single-byte LEB128)
-0x6a/106=i32.add 0x6b/107=i32.sub 0x6c/108=i32.mul 0x0b/11=end 0x0f/15=return
-(end/return keep pc -> idle with the result on top).
+0x20/32=local.get 0x21/33=local.set 0x22/34=local.tee (unsigned single-byte LEB128
+index; local lives at RAM 200+idx) 0x6a/106=i32.add 0x6b/107=i32.sub 0x6c/108=i32.mul
+0x0b/11=end 0x0f/15=return (end/return keep pc -> idle with the result on top).
 """
 from __future__ import annotations
 
@@ -74,6 +75,15 @@ _CASES = [
     ([65, 3, 65, 4, 106, 65, 2, 108, 11], 14, 12, 100),  # (3+4)*2 -> 14
     ([65, 63, 11], 63, 10, 100),                  # i32.const 63 (max single-byte positive) -> 63
     ([65, 64, 11], -64, 10, 100),                 # i32.const -64 (LEB 0x40, min single-byte) -> -64
+    # indexed locals (local lives at RAM 200+idx):
+    # i32.const 5; local.set 0; local.get 0; local.get 0; i32.add -> 10
+    ([65, 5, 33, 0, 32, 0, 32, 0, 106, 11], 10, 12, 100),
+    # local.tee leaves the value on the stack: i32.const 7; local.tee 1; local.get 1; i32.add -> 14
+    ([65, 7, 34, 1, 32, 1, 106, 11], 14, 10, 100),
+    # two locals: local1=7; local0=3; local.get 1; local.get 0; i32.sub -> 7-3 = 4
+    ([65, 7, 33, 1, 65, 3, 33, 0, 32, 1, 32, 0, 107, 11], 4, 14, 100),
+    # local round-trip: i32.const 9; local.set 2; local.get 2; return -> 9
+    ([65, 9, 33, 2, 32, 2, 15], 9, 10, 100),
 ]
 
 
