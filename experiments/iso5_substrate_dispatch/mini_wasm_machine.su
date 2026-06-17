@@ -31,6 +31,7 @@
 //          21=NEG(pop a, push -a; unary, net sp 0 — rewrites the top cell)
 //          22=MIN(pop top1,top2; push min(top2,top1); binary, net sp -1)
 //          23=MAX(pop top1,top2; push max(top2,top1); binary, net sp -1)
+//          24=OVER(push a copy of the second-from-top; net sp +1, like DUP of top2)
 // State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
 // output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
 // program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
@@ -67,6 +68,7 @@ function int step(scalar d) {
     int is_neg = truth_axis(defuzzy(op == 21));
     int is_min = truth_axis(defuzzy(op == 22));
     int is_max = truth_axis(defuzzy(op == 23));
+    int is_over = truth_axis(defuzzy(op == 24));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -77,7 +79,10 @@ function int step(scalar d) {
     // copy of the current top); else keeps it.
     int cell_hi = ramRead(100 + sp);
     int hi_dup = (((1 + is_dup) * (top1)) + ((1 - is_dup) * (cell_hi))) / 2;
-    int new_hi = (((1 + is_const) * (imm)) + ((1 - is_const) * (hi_dup))) / 2;
+    // OVER pushes a copy of the SECOND-from-top (top2) onto a new top cell
+    // (100+sp); like DUP but copies top2 instead of top1. Net sp +1.
+    int hi_over = (((1 + is_over) * (top2)) + ((1 - is_over) * (hi_dup))) / 2;
+    int new_hi = (((1 + is_const) * (imm)) + ((1 - is_const) * (hi_over))) / 2;
     ramWrite(100 + sp, new_hi);
     // Binary op writes the result cell (98+sp = second-from-top), else keeps.
     int v_add = top2 + top1;
@@ -157,7 +162,8 @@ function int step(scalar d) {
     // STORE -2; LOAD 0 (net); SWAP/HALT/other keep.
     int sp_binop = sp - 1;
     int s_dup = (((1 + is_dup) * (sp + 1)) + ((1 - is_dup) * (sp))) / 2;
-    int s_const = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_dup))) / 2;
+    int s_over = (((1 + is_over) * (sp + 1)) + ((1 - is_over) * (s_dup))) / 2;
+    int s_const = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_over))) / 2;
     int s_store = (((1 + is_store) * (sp - 2)) + ((1 - is_store) * (s_const))) / 2;
     int s_drop = (((1 + is_drop) * (sp_binop)) + ((1 - is_drop) * (s_store))) / 2;
     int s_out = (((1 + is_output) * (sp_binop)) + ((1 - is_output) * (s_drop))) / 2;
