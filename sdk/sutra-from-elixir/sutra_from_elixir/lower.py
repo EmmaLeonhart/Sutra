@@ -536,11 +536,13 @@ def _guard_split(head, src: bytes):
 
 def _def_head(def_call, src: bytes):
     """Decompose `call(def, arguments(head [, keywords(do: expr)]) [, do_block])`
-    into (name, [param_pattern_nodes], body_expr_node, guard_node_or_None) or None.
-    `head` is either `call(name, arguments(patterns…))`, a bare `identifier`
-    (zero-arg), or a `when`-guarded form of either. Param patterns are returned as
-    raw nodes so the multi-clause dispatcher can inspect them; `_def_parts` is the
-    bare-param view for the single-clause path (which rejects guards)."""
+    into (name, [param_pattern_nodes], body_expr_node, guard_node_or_None,
+    prelude_stmts) or None. `head` is either `call(name, arguments(patterns…))`, a
+    bare `identifier` (zero-arg), or a `when`-guarded form of either. `prelude_stmts`
+    is the do-block statements BEFORE the final value expression (leading `=`
+    pattern-match bindings); empty for an inline `, do: expr` body. Param patterns
+    are returned as raw nodes so the multi-clause dispatcher can inspect them;
+    `_def_parts` is the bare-param view for the single-clause path (rejects guards)."""
     kids = def_call.named_children
     args = next((c for c in kids if c.type == "arguments"), None)
     if args is None or not args.named_children:
@@ -559,8 +561,10 @@ def _def_head(def_call, src: bytes):
         name = _text(head, src)
     else:
         return None
-    # Body: inline `, do: expr` (a keywords pair) or a do_block.
+    # Body: inline `, do: expr` (a keywords pair) or a do_block. For a do_block, the
+    # final statement is the value; the leading statements are `=` binding prelude.
     body = None
+    prelude_stmts: list = []
     kw_node = next((c for c in args.named_children if c.type == "keywords"), None)
     if kw_node is not None:
         pair = next((c for c in kw_node.named_children if c.type == "pair"), None)
@@ -571,19 +575,21 @@ def _def_head(def_call, src: bytes):
         if do_block is not None:
             stmts, _els = _do_block_value(do_block, src)
             if stmts:
-                body = stmts[-1]  # multi-statement bodies (bindings) are later items
+                body = stmts[-1]
+                prelude_stmts = stmts[:-1]
     if body is None:
         return None
-    return name, param_nodes, body, guard
+    return name, param_nodes, body, guard, prelude_stmts
 
 
 def _def_parts(def_call, src: bytes):
-    """Single-clause view: (name, param_names, body) with BARE-identifier params
-    only (literal/pattern params → None, handled by the clause dispatcher)."""
+    """Single-clause view: (name, param_names, body, prelude_stmts) with
+    BARE-identifier params only (literal/pattern params → None, handled by the
+    clause dispatcher). `prelude_stmts` carries leading `=` binding statements."""
     head = _def_head(def_call, src)
     if head is None:
         return None
-    name, param_nodes, body, guard = head
+    name, param_nodes, body, guard, prelude_stmts = head
     if guard is not None:
         return None  # guarded clause → routes through the clause dispatcher
     params: list[str] = []
@@ -591,7 +597,7 @@ def _def_parts(def_call, src: bytes):
         if p.type != "identifier":
             return None  # pattern params (literals, tuples) → multi-clause path
         params.append(_text(p, src))
-    return name, params, body
+    return name, params, body, prelude_stmts
 
 
 def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
@@ -703,12 +709,12 @@ def _lower_defs(def_calls, src: bytes) -> list:
         if head is None:
             out.append(_lower_def(dc, src))  # surfaces UNSUPPORTED-DEF
             continue
-        name, param_nodes, body, guard = head
+        name, param_nodes, body, guard, prelude_stmts = head
         key = (name, len(param_nodes))
         if key not in groups:
             groups[key] = []
             order.append(key)
-        groups[key].append((dc, param_nodes, body, guard))
+        groups[key].append((dc, param_nodes, body, guard, prelude_stmts))
     for key in order:
         members = groups[key]
         bare_single = (len(members) == 1
@@ -716,9 +722,14 @@ def _lower_defs(def_calls, src: bytes) -> list:
                        and all(p.type == "identifier" for p in members[0][1]))
         if bare_single:
             out.append(_lower_def(members[0][0], src))
+        elif any(m[4] for m in members):
+            # A multi-clause / pattern-param clause with leading `=` bindings is a
+            # later item — surface rather than silently drop the binding statements.
+            out.append(f"// UNSUPPORTED-DEF: '{key[0]}' multi-clause body with "
+                       f"binding statements (later item)\n")
         else:
             out.append(_lower_def_clauses(
-                key[0], [(pn, bd, gd) for _dc, pn, bd, gd in members], src))
+                key[0], [(pn, bd, gd) for _dc, pn, bd, gd, _pre in members], src))
     return out
 
 
@@ -726,8 +737,8 @@ def _lower_def(def_call, src: bytes) -> str:
     parts = _def_parts(def_call, src)
     if parts is None:
         return "// UNSUPPORTED-DEF: unrecognized def shape\n"
-    name, params, body = parts
-    if params:
+    name, params, body, prelude_stmts = parts
+    if params and not prelude_stmts:
         rec = _try_lower_tail_recursive(name, params, body, src)
         if rec is not None:
             return rec
@@ -739,19 +750,93 @@ def _lower_def(def_call, src: bytes) -> str:
         # self-calling Sutra function would not terminate through the fuzzy-if
         # blend. Surface the gap rather than mislower.
         return f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the tail-accumulator or foldable non-tail shape\n"
+    # Leading `=` pattern-match bindings (`{a, b} = t`, `%{x: a} = m`, `x = e`) are
+    # the idiomatic Elixir destructure. Each binds names via `_SUBST` (numbers, so
+    # re-evaluating a substituted value is side-effect-free); a tuple/map LHS reads
+    # the positional/named axon fields (`realvec(t.item("_0"))`), typing the RHS
+    # param as `Axon`. The RHS must be a bare name (a param or earlier binding).
+    _ARG_HOIST.clear()
+    sub_names: list[str] = []
+    axon_destructured: set = set()
+    for st in prelude_stmts:
+        bind = _apply_match_binding(st, src, sub_names, axon_destructured)
+        if not bind:
+            for nm in sub_names:
+                _SUBST.pop(nm, None)
+            return (f"// UNSUPPORTED-DEF: '{name}' body binding statement not a "
+                    f"supported `=` destructure (later item)\n")
     # Maps -> axons: hoist any `%{…}` literals in the body to prelude temps, and
     # type any dot-accessed param as `Axon` (it is a map, not a number).
-    _ARG_HOIST.clear()
     prelude = _hoist_maps(body, src)
-    axon_params = _dot_accessed_params(body, set(params), src)
+    axon_params = _dot_accessed_params(body, set(params), src) | (
+        axon_destructured & set(params))
     params_src = ", ".join(
         f"{'Axon' if p in axon_params else _TYPE} {p}" for p in params)
     body_src = _lower_expr(body, src)
+    for nm in sub_names:
+        _SUBST.pop(nm, None)
     _ARG_HOIST.clear()
     return (f"function {_TYPE} {name}({params_src}) {{\n"
             f"{prelude}"
             f"    return {body_src};\n"
             f"}}\n")
+
+
+def _apply_match_binding(stmt, src: bytes, sub_names: list, axon_set: set) -> bool:
+    """Lower a leading `=` pattern-match statement into `_SUBST` entries (appended to
+    `sub_names` for cleanup; any tuple/map RHS param added to `axon_set`). Supported
+    LHS: a `{a, b}` tuple pattern, a `%{x: a}` atom-key map pattern, or a bare
+    `identifier` rebinding. The RHS must lower to a bare name. Returns True on
+    success, False if the statement is outside this shape."""
+    if stmt.type != "binary_operator":
+        return False
+    op = stmt.child_by_field_name("operator")
+    if op is None or _text(op, src) != "=":
+        return False
+    lhs = stmt.child_by_field_name("left")
+    rhs = stmt.child_by_field_name("right")
+    if lhs is None or rhs is None:
+        return False
+    rhs_src = _lower_expr(rhs, src)
+    if not rhs_src.isidentifier():
+        return False  # a complex RHS (`name.item(...)` only dispatches on a name)
+    if lhs.type == "identifier":
+        nm = _text(lhs, src)
+        _SUBST[nm] = f"({rhs_src})"
+        sub_names.append(nm)
+        return True
+    if lhs.type == "tuple" and lhs.named_children \
+            and all(e.type == "identifier" for e in lhs.named_children):
+        axon_set.add(rhs_src)
+        for j, e in enumerate(lhs.named_children):
+            nm = _text(e, src)
+            _SUBST[nm] = f'realvec({rhs_src}.item("_{j}"))'
+            sub_names.append(nm)
+        return True
+    if lhs.type == "map":
+        content = next((c for c in lhs.named_children
+                        if c.type == "map_content"), None)
+        kws = next((c for c in content.named_children
+                    if c.type == "keywords"), None) if content else None
+        if kws is None:
+            return False
+        pairs = []
+        for pair in kws.named_children:
+            if pair.type != "pair" or len(pair.named_children) < 2:
+                return False
+            key_node, val_node = pair.named_children[0], pair.named_children[-1]
+            if key_node.type != "keyword" or val_node.type != "identifier":
+                return False
+            pairs.append((_text(key_node, src).rstrip().rstrip(":"),
+                          _text(val_node, src)))
+        if not pairs:
+            return False
+        axon_set.add(rhs_src)
+        for field, local in pairs:
+            _SUBST[local] = f'realvec({rhs_src}.item("{field}"))'
+            sub_names.append(local)
+        return True
+    return False
 
 
 def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
