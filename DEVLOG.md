@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-16: Erlang frontend — single-param multi-clause recursion (Phase 3)
+
+Work+flush sprint tick — the deferred multi-clause-recursion item, executed via the de-risked
+plan in `planning/exploratory/2026-06-16-multiclause-recursion-frontends.md`. The idiomatic
+`fac(0) -> 1; fac(N) -> N * fac(N - 1).` is semantically identical to the single-clause
+`if`-form, so: (a) `_try_lower_tail_recursive` / `_try_lower_foldable_nontail` were refactored
+to take `cond_src` / `neg_src` SOURCE STRINGS instead of the `if`-cond node (the if-based call
+site computes them via `_lower_expr` / `_negate_cond` — behaviour-preserving); (b) a new
+`_try_lower_multiclause_recursion` detects the 2-clause shape (one INTEGER-literal base clause
+with no self-call, one VAR-pattern recursive clause), synthesizes `(V == K)` / `(V != K)` from
+the patterns, and reuses the transforms; (c) wired into `_lower_function` before
+`_lower_dispatch`. New fixture `multiclause_fact` (`fac(0)/fac(N)`) compiles to the SAME
+accumulator trampoline as the if-form and runs on the substrate to **120**. The
+`tail_rec`(→15) and `nontail_fact`(→120) regression guards still pass, confirming the refactor
+preserved the existing recursion paths. Suite 24→26. Remaining: multi-PARAM tail multi-clause
+(`sum(0, Acc) -> …`) needs base-clause var renaming; then port to Elixir + Haskell.
+
 ## 2026-06-16: Erlang frontend — body `=` match destructure (Phase 3)
 
 Work-loop sprint tick (the Erlang analogue of the Elixir do-block-`=` increment). A

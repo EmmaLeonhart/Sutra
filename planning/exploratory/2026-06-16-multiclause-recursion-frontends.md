@@ -1,13 +1,26 @@
 # Multi-clause recursion in the language frontends — design + breakdown
 
 **Date:** 2026-06-16
-**Status:** analysis / not-yet-implemented (the data-structure tier is done; this is the
-next transpiler increment, deferred from the aggressive sprint because it refactors the
-*working* recursion transforms and so wants careful verification, not a rushed tick).
-**Frontends affected:** `sutra-from-erlang`, `sutra-from-elixir`, `sutra-from-haskell`
-(all three currently emit `UNSUPPORTED-RECURSION` for the idiomatic pattern-matched
-recursive form). Rust/F#/Scala/OCaml/Clojure express recursion via `if`/`cond`, already
-handled.
+**Status:** ERLANG SINGLE-PARAM DONE 2026-06-16 (`fac(0) -> 1; fac(N) -> N*fac(N-1)` →
+substrate 120, `multiclause_fact` fixture; the `cond_src`/`neg_src` refactor landed and the
+`tail_rec`/`nontail_fact` regression guards still pass). Remaining: multi-PARAM multi-clause
+(base-clause var renaming), then port to Elixir + Haskell.
+**Frontends affected:** `sutra-from-erlang` (single-param DONE), `sutra-from-elixir`,
+`sutra-from-haskell` (the latter two still emit `UNSUPPORTED-RECURSION` for the idiomatic
+pattern-matched recursive form). Rust/F#/Scala/OCaml/Clojure express recursion via
+`if`/`cond`, already handled.
+
+## Implementation landed (Erlang, 2026-06-16)
+
+The refactor + single-param path shipped exactly as planned below: `_try_lower_tail_recursive`
+/ `_try_lower_foldable_nontail` now take `cond_src`/`neg_src` STRINGS (the if-based call site
+computes them from the cond node via `_lower_expr` / `_negate_cond`); a new
+`_try_lower_multiclause_recursion` detects the 2-clause integer-base + var-recursive shape,
+synthesizes `(V == K)` / `(V != K)`, and feeds the transforms. Wired into `_lower_function`
+before `_lower_dispatch`. The multi-PARAM tail case (`sum(0, Acc) -> Acc; sum(N, Acc) ->
+sum(N-1, Acc+N)`) is the remaining Erlang piece — it needs the base clause's var params
+substituted to the rec clause's param names (the base body `Acc` references a name that must
+map to the synthesized param).
 
 ## The unsupported pattern
 
