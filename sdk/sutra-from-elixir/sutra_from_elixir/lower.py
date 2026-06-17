@@ -739,57 +739,70 @@ def _lower_defs(def_calls, src: bytes) -> list:
 
 def _try_lower_multiclause_recursion(name: str, members, src: bytes):
     """The idiomatic pattern-matched recursion `def f(0), do: BASE` + `def f(n), do:
-    … f(n-1)` (and the multi-arg accumulator form `def sum(0, acc), do: acc; def
-    sum(n, acc), do: sum(n-1, acc+n)`) is semantically identical to the single-clause
-    `if`-form, so synthesize the base-match condition `(V == K)` from the clause
-    patterns and reuse the recursion transforms (fed source strings). Scope: exactly
-    2 same-arity clauses — a BASE clause with exactly one INTEGER-literal param (rest
-    identifiers) and no self-call, and a recursive clause with ALL IDENTIFIER params
-    and a self-call; neither guarded nor with a binding prelude. The recursive
-    clause's names are the synthesized params; the base clause's identifier params are
-    renamed to them by position (via `_SUBST`). `members` are the `_lower_defs` tuples
-    `(dc, param_nodes, body, guard, prelude)`. Returns Sutra or None."""
+    … f(n-1)` (and the multi-arg accumulator `def sum(0, acc), do: acc; def sum(n,
+    acc), do: sum(n-1, acc+n)`, and the GUARDED form `def fac(n) when n == 0, do: 1;
+    def fac(n), do: n*fac(n-1)`) is semantically identical to the single-clause
+    `if`-form, so derive the base-match condition and reuse the recursion transforms
+    (fed source strings). Scope: exactly 2 same-arity clauses — a recursive clause
+    with ALL IDENTIFIER params, no guard, and a self-call, plus a BASE clause (no
+    self-call) distinguished EITHER by exactly one INTEGER-literal param (Mode A:
+    cond `(V == K)`) OR by a `when` guard with all-identifier params (Mode B: cond =
+    the lowered guard). The recursive clause's names are the synthesized params; the
+    base clause's identifier params are renamed to them by position (via `_SUBST`),
+    applied to both the base body and (Mode B) the guard. `members` are the
+    `_lower_defs` tuples `(dc, param_nodes, body, guard, prelude)`. Returns Sutra or
+    None."""
     if len(members) != 2:
         return None
     parsed = []
     for _dc, param_nodes, body, guard, prelude in members:
-        if guard is not None or prelude or not param_nodes:
+        if prelude or not param_nodes:
             return None
-        parsed.append((param_nodes, body))
+        parsed.append((param_nodes, body, guard))
     arity = len(parsed[0][0])
-    if len(parsed[1][0]) != arity:
+    if any(len(p[0]) != arity for p in parsed):
         return None
     base = rec = None
-    for params, body in parsed:
-        if (any(p.type == "integer" for p in params)
-                and not _contains_self_call(body, name, src)):
-            base = (params, body)
-        elif (all(p.type == "identifier" for p in params)
-                and _contains_self_call(body, name, src)):
+    for params, body, guard in parsed:
+        sc = _contains_self_call(body, name, src)
+        if (all(p.type == "identifier" for p in params) and guard is None and sc):
             rec = (params, body)
+        elif not sc:
+            base = (params, body, guard)
     if base is None or rec is None:
         return None
-    base_params, then_e = base
     rec_params, else_e = rec
-    lit_positions = [i for i, p in enumerate(base_params) if p.type == "integer"]
-    if len(lit_positions) != 1:
-        return None
-    li = lit_positions[0]
-    if any(base_params[i].type != "identifier" for i in range(arity) if i != li):
-        return None
+    base_params, then_e, base_guard = base
     rec_names = [_text(p, src) for p in rec_params]
-    k = _text(base_params[li], src).replace("_", "")
-    v = rec_names[li]
-    cond_src, neg_src = f"({v} == {k})", f"({v} != {k})"
+    lit_positions = [i for i, p in enumerate(base_params) if p.type == "integer"]
     renames: list = []
-    for i in range(arity):
-        if i == li:
-            continue
-        bn = _text(base_params[i], src)
-        if bn != rec_names[i]:
-            _SUBST[bn] = rec_names[i]
-            renames.append(bn)
+
+    def _rename(positions):
+        for i in positions:
+            bn = _text(base_params[i], src)
+            if bn != rec_names[i]:
+                _SUBST[bn] = rec_names[i]
+                renames.append(bn)
+
     try:
+        if (base_guard is None and len(lit_positions) == 1
+                and all(base_params[i].type == "identifier"
+                        for i in range(arity) if i != lit_positions[0])):
+            # Mode A — integer-literal base param.
+            li = lit_positions[0]
+            k = _text(base_params[li], src).replace("_", "")
+            cond_src, neg_src = f"({rec_names[li]} == {k})", f"({rec_names[li]} != {k})"
+            _rename([i for i in range(arity) if i != li])
+        elif (base_guard is not None
+                and all(p.type == "identifier" for p in base_params)):
+            # Mode B — guarded base; the guard (under renames) is the condition.
+            _rename(range(arity))
+            cond_src = _lower_expr(base_guard, src)
+            neg_src = _negate_cond(base_guard, src)
+            if "UNSUPPORTED" in cond_src or "UNSUPPORTED" in neg_src:
+                return None
+        else:
+            return None
         out = _try_lower_tail_recursive(name, rec_names, cond_src, neg_src,
                                         then_e, else_e, src)
         if out is None:
