@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-16: F# frontend — `let (Circle r) = s` DU-case-pattern destructuring (Phase 3)
+
+Work-loop sprint tick (the F# analogue of the Haskell constructor-pattern increment). `let
+(Circle r) = s` now destructures a tagged DU axon: the pattern is a `paren_pattern →
+identifier_pattern[variant head, payload identifier_patterns]`, so a new `_du_pattern_binding`
+confirms the head names a known variant and substitutes each payload local to the tagged-axon
+field read `realvec(s.item("_val{i}"))` (the `match`-arm payload-bind shape). The value must be
+a bare name (a DU param or let-bound DU temp); a non-identifier value surfaces `UNSUPPORTED-LET`.
+New fixture `du_destructure` (`type Shape = Circle of int | …; radius (s) = let (Circle r) = s in
+r + 1`, `main` builds `Circle 12`) compiles AND runs on the substrate to 13; suite 30→32, no
+regressions.
+
 ## 2026-06-16: Scala frontend — `val Point(a, b) = p` case-class-pattern destructuring (Phase 3)
 
 Work+report sprint tick (extends Scala's tuple-destructure increment to case classes).

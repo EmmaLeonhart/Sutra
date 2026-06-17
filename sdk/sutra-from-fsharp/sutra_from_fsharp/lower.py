@@ -485,6 +485,26 @@ def _lower_expr(node, src: bytes) -> str:
                 finally:
                     for nm in subs:
                         _SUBST.pop(nm, None)
+            dpb = _du_pattern_binding(kids[0], src)
+            if dpb is not None:
+                # `let (Circle r) = s` — destructure a tagged DU axon: each payload
+                # local reads `realvec(s.item("_val{i}"))` (the `match`-arm payload
+                # bind). The value must be a bare name (a DU param or a let-bound
+                # DU temp).
+                variant, locals_, val_node = dpb
+                val_src = _lower_expr(val_node, src)
+                if not val_src.isidentifier():
+                    return ("/* UNSUPPORTED-LET: DU-pattern binding value is not a "
+                            "simple name (later item) */")
+                subs = []
+                for i, local in enumerate(locals_):
+                    _SUBST[local] = f'realvec({val_src}.item("_val{i}"))'
+                    subs.append(local)
+                try:
+                    return _lower_expr(kids[1], src)
+                finally:
+                    for nm in subs:
+                        _SUBST.pop(nm, None)
             vb = _value_binding(kids[0], src)
             if vb is not None:
                 name, val_node = vb
@@ -602,6 +622,36 @@ def _record_pattern_binding(fovd, src: bytes):
         binds.append((_text(field_node, src).strip(),
                       _text(local_pat.named_children[0], src).strip()))
     return (binds, kids[-1]) if binds else None
+
+
+def _du_pattern_binding(fovd, src: bytes):
+    """If `fovd` is a DU-case value binding `let (Circle r) = s`
+    (`value_declaration_left → paren_pattern → identifier_pattern[variant head,
+    payload identifier_patterns]`), return (variant, [payload_local, …], value_node);
+    else None. The head `long_identifier_or_op` must name a known variant; only plain
+    identifier payloads are in scope (the `match` DU-pattern shape, lifted to a let)."""
+    kids = fovd.named_children
+    if not kids or kids[0].type != "value_declaration_left":
+        return None
+    vdl = kids[0]
+    if kids[-1] is vdl:
+        return None  # no value expression
+    paren = next((c for c in vdl.named_children if c.type == "paren_pattern"), None)
+    if paren is None:
+        return None
+    ip = next((c for c in paren.named_children
+               if c.type == "identifier_pattern"), None)
+    if ip is None or not ip.named_children:
+        return None
+    variant = _text(ip.named_children[0], src).strip()
+    if variant not in _VARIANTS:
+        return None
+    locals_: list[str] = []
+    for pp in ip.named_children[1:]:
+        if pp.type != "identifier_pattern" or not pp.named_children:
+            return None
+        locals_.append(_text(pp.named_children[0], src).strip())
+    return (variant, locals_, kids[-1]) if locals_ else None
 
 
 def _tuple_fields(node, src: bytes):
