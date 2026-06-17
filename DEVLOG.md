@@ -10,7 +10,8 @@ exact equality), and the WASM stack order maps value1=top2 (deeper), value2=top1
 result is materialized as `v*one` (real-axis vector), NOT a bare scalar — a scalar would broadcast
 across all axes (the iconst-literal-broadcast finding) and break a later `==`/`br_if` on the flag.
 The binary results write the `98+sp` result cell (net sp −1, like add/sub/mul); `eqz` is unary and
-writes the top in place at `99+sp` (sp unchanged). 26 cases substrate-green (`test_wasm_core.py`):
+writes the top in place at `99+sp` (sp unchanged). 24 cases substrate-green (`test_wasm_core.py`,
+full pytest confirmed 24 passed; 8 arithmetic + 4 locals + 12 comparisons):
 the 12 arithmetic+locals cases plus `eq 5==5→1`, `eq 5==3→0`, `ne→1`, `lt_s 3<5→1`/`5<3→0`,
 `gt_s 5>3→1`, the equality boundaries `ge_s 5>=5→1` and `le_s 5<=5→1`, `le_s 5<=3→0`, `eqz 0→1`/
 `eqz 5→0`, and signed `lt_s −5<3→1`. Verified directly on the compiled substrate machine. Next:
