@@ -392,23 +392,32 @@ def _negate_cond(cond, src: bytes) -> str:
     return f"!({_lower_expr(cond, src)})"
 
 
-def _try_lower_tail_recursive(name: str, params, ret: str, body, src: bytes):
-    """Lower a TAIL-recursive equation `f p… = if COND then BASE else f a…` to a
-    declared Sutra `while_loop` (the OCaml/Scala/F#/Rust shape ported). `body` is
-    a `conditional`; `params` is a list of (name, type). Returns Sutra or None."""
+def _conditional_parts(body, src: bytes):
+    """A Haskell `if COND then THEN else ELSE` (`conditional`) → (cond, then_e,
+    else_e) nodes, else None. Factored out so both the if-based recursion path and
+    the synthesized multi-equation path feed the transforms uniformly."""
     if body.type != "conditional" or len(body.named_children) < 3:
         return None
-    cond, then_e, else_e = body.named_children[0], body.named_children[1], body.named_children[2]
+    return body.named_children[0], body.named_children[1], body.named_children[2]
+
+
+def _try_lower_tail_recursive(name: str, params, ret: str, cond_src, neg_src,
+                              then_e, else_e, src: bytes):
+    """Lower a TAIL-recursive equation `f p… = if COND then BASE else f a…` to a
+    declared Sutra `while_loop` (the OCaml/Scala/F#/Rust shape ported). `cond_src`/
+    `neg_src` are the lowered base-match test + negation (strings, so a multi-equation
+    head can synthesize them); `params` is a list of (name, type). Returns Sutra or
+    None."""
     arity = len(params)
     then_args = _self_call_args(then_e, name, arity, src)
     else_args = _self_call_args(else_e, name, arity, src)
     if (then_args is None) == (else_args is None):
         return None
     if else_args is not None:
-        cont = _negate_cond(cond, src)
+        cont = neg_src
         rec_args, base = else_args, then_e
     else:
-        cont = _lower_expr(cond, src)
+        cont = cond_src
         rec_args, base = then_args, else_e
 
     loop_name = f"_rec_{name}"
@@ -443,16 +452,17 @@ def _contains_variable(node, ident: str, src: bytes) -> bool:
     return any(_contains_variable(c, ident, src) for c in node.named_children)
 
 
-def _try_lower_foldable_nontail(name: str, params, ret: str, body, src: bytes):
+def _try_lower_foldable_nontail(name: str, params, ret: str, cond_src, neg_src,
+                                then_e, else_e, src: bytes):
     """CPS / accumulator transform for a FOLDABLE non-tail equation
     `f n = if COND then BASE else LEAF <OP> f REC` (single param, OP in
     `_FOLD_OPS`): the pending call-stack work is reified as an accumulator carried
     by a Sutra `while_loop` trampoline — the OCaml/Scala/Rust shape ported. BASE is
     evaluated pre-loop at the INITIAL param, so a param-dependent BASE is rejected
-    (→ None). Returns loop decl + function, or None."""
-    if body.type != "conditional" or len(body.named_children) < 3 or len(params) != 1:
+    (→ None). `cond_src`/`neg_src` are the lowered base-match test + negation
+    (strings). Returns loop decl + function, or None."""
+    if len(params) != 1:
         return None
-    cond, then_e, else_e = body.named_children[0], body.named_children[1], body.named_children[2]
 
     def foldable(node):
         if node.type != "infix":
@@ -476,11 +486,11 @@ def _try_lower_foldable_nontail(name: str, params, ret: str, body, src: bytes):
     if (fold_else is None) == (fold_then is None):
         return None
     if fold_else is not None:
-        cont = _negate_cond(cond, src)
+        cont = neg_src
         op_text, leaf, rec_arg = fold_else
         base = then_e
     else:
-        cont = _lower_expr(cond, src)
+        cont = cond_src
         op_text, leaf, rec_arg = fold_then
         base = else_e
 
@@ -647,6 +657,41 @@ def _decl_name_arity(decl, src: bytes):
     return _text(name_node, src), arity
 
 
+def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
+    """The idiomatic equation-matched recursion `f 0 = BASE` + `f n = … f (n-1)` is
+    semantically identical to the single-clause `if`-form, so synthesize the
+    base-match condition `(V == K)` from the equation patterns and reuse the recursion
+    transforms (fed source strings). Scope: exactly 2 single-param equations — one
+    INTEGER-literal base (no self-call), one VARIABLE-pattern recursive equation
+    (self-call). `clauses` is the `[(pattern_nodes, body), …]` list. Returns Sutra or
+    None."""
+    if len(clauses) != 2 or any(len(pn) != 1 for pn, _b in clauses):
+        return None
+    base_c = rec_c = None
+    for pn, body in clauses:
+        p = pn[0]
+        is_int = (p.type == "literal" and p.named_children
+                  and p.named_children[0].type == "integer")
+        if is_int and not _contains_self_call(body, name, src):
+            base_c = (p, body)
+        elif p.type == "variable" and _contains_self_call(body, name, src):
+            rec_c = (p, body)
+    if base_c is None or rec_c is None:
+        return None
+    k = _text(base_c[0].named_children[0], src)
+    v = _text(rec_c[0], src)
+    ptypes, ret = _resolve_types(name, 1)
+    typed_params = [(v, ptypes[0])]
+    cond_src, neg_src = f"({v} == {k})", f"({v} != {k})"
+    then_e, else_e = base_c[1], rec_c[1]  # base body, recursive body
+    rec = _try_lower_tail_recursive(name, typed_params, ret, cond_src, neg_src,
+                                    then_e, else_e, src)
+    if rec is not None:
+        return rec
+    return _try_lower_foldable_nontail(name, typed_params, ret, cond_src, neg_src,
+                                       then_e, else_e, src)
+
+
 def _lower_pattern_equations(name: str, decls, src: bytes) -> str:
     """Group same-name/arity equations (`classify 0 = …`, `classify 1 = …`,
     `classify n = …`) into ONE dispatching Sutra function — the Elixir multi-
@@ -666,6 +711,9 @@ def _lower_pattern_equations(name: str, decls, src: bytes) -> str:
             return (f"// UNSUPPORTED-DECL: '{name}' has a guarded pattern equation "
                     f"(later item)\n")
         clauses.append((pnodes, body))
+    multi_rec = _try_lower_multiclause_recursion(name, clauses, src)
+    if multi_rec is not None:
+        return multi_rec
     for _pn, body in clauses:
         if _contains_self_call(body, name, src):
             return (f"// UNSUPPORTED-RECURSION: '{name}' multi-equation dispatch with "
@@ -779,11 +827,17 @@ def _lower_equation(decl, src: bytes) -> str:
         if body is None:
             return f"// UNSUPPORTED-DECL: '{name}' has no single plain `= expr` body\n"
         typed_params = list(zip(params, ptypes))
-        if body.type == "conditional" and params:
-            rec = _try_lower_tail_recursive(name, typed_params, ret, body, src)
+        cparts = _conditional_parts(body, src) if params else None
+        if cparts is not None:
+            cond, then_e, else_e = cparts
+            cond_src = _lower_expr(cond, src)
+            neg_src = _negate_cond(cond, src)
+            rec = _try_lower_tail_recursive(name, typed_params, ret, cond_src,
+                                            neg_src, then_e, else_e, src)
             if rec is not None:
                 return rec
-            fold = _try_lower_foldable_nontail(name, typed_params, ret, body, src)
+            fold = _try_lower_foldable_nontail(name, typed_params, ret, cond_src,
+                                               neg_src, then_e, else_e, src)
             if fold is not None:
                 return fold
         if _contains_self_call(body, name, src):

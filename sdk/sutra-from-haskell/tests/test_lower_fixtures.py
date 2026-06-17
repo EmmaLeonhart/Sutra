@@ -34,7 +34,9 @@ _RUNNABLE = {
     "tuple_axon": 13.0,  # addPair :: (Int,Int) -> Int; addPair p = fst p + snd p; main = addPair (5, 8)  (tuple -> positional-key axon, fst/snd -> _0/_1)
     "tuple_destructure": 13.0,  # addPair t = let (a, b) = t in a + b; main = addPair (5, 8)  (let-tuple-pattern -> realvec(item _0/_1))
     "ctor_destructure": 13.0,  # data Wrap = Wrap Int Int; addw w = let (Wrap a b) = w in a + b; main = addw (Wrap 5 8)  (let-ctor-pattern -> realvec(item _val0/_val1))
+    "multiclause_fact": 120.0,  # fac 0 = 1; fac n = n * fac (n-1); main = fac 5  (multi-equation pattern recursion -> synthesized (n==0) cond -> CPS fold loop)
 }
+# (regression guards for the cond_src/neg_src recursion refactor: tail_rec, nontail_fact above)
 
 
 def _cases():
