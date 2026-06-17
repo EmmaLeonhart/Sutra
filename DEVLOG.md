@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-17: Phase 5 — JVM-core leg scoped (plan-into-queue, no code yet)
+
+Used the ~25-min WASM-machine verification window productively (while opcode 28 = ROT verifies)
+on the next substantive Phase-5 leg, per "plan into queue first / write the spec." Wrote
+`planning/exploratory/2026-06-17-phase5-jvm-core-scoping.md`. Key realization: the existing
+mini WASM machine IS a generic RAM-state stack machine, and the JVM is also a stack machine, so
+the JVM core is the SAME blended-dispatch machine with (a) real JVM opcode numbers, (b) a locals
+RAM region, (c) JVM bytecode layout — built as a parallel `jvm_core.su`, not from scratch.
+Specified against Jinja's machine-checked small-step JVM semantics (the verified reference from
+the spec research). Minimal core deliberately excludes the heavy machinery (no constant pool /
+class file / objects; no idiv/irem per the Math.mod ban; integers only). Decomposed into a
+bounded ladder of substrate-verified steps mirroring how the WASM machine was grown:
+(1) arithmetic (bipush/iconst, iadd/isub/imul, ineg, ireturn) → (2) locals (iload/istore) →
+(3) stack ops (dup/pop/swap) → (4) branches (if_icmp*/goto, relative offsets) → (5) a real
+javac-compiled method end-to-end. Uses real JVM opcode values so eventual javac output runs
+unmodified. No substrate run needed for a scoping doc; this readies the JVM leg for the next
+implementation ticks once the WASM-opcode breadth winds down.
+
 ## 2026-06-17: WASM machine — opcodes 26 = SQR + 27 = NIP (Phase 5, batched extension)
 
 Phase 5 (extend the proven WASM leg). Batched TWO independent opcodes in one substrate run to
