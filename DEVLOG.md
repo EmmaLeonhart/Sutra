@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-17: learned decoder D8 — preference steers the generator's latent (convergence)
+
+The two tracks meet: the generative decoder (D7) + the ButtonAdam preference loop. `LatentSteer`
+(`demos/decoder/latent_steer.py`) freezes a trained latent-conditioned decoder's weights and
+moves the LATENT `z` by pairwise preference — a pooled-linear reward head trained on the
+choices (the OwnerRewardModel pattern), Adam ascending it THROUGH the substrate decoder render
+w.r.t. z. TDD `test_latent_steer.py` (3), green CPU+CUDA: starting at the latent midpoint
+(generated blob centroid_x ≈ +0.03), a "prefer rightward" rater drives it to +0.16, a "prefer
+leftward" rater to −0.34, and the direction flips (right > left by ~0.5). So a person's
+preferences now drive WHAT THE LEARNED GENERATOR PRODUCES — render on the substrate, reward
+head + Adam host-side. **Phase D-D complete.** Remaining: D9 demo, D10 docs/paper, D11
+weight→code.
+
 ## 2026-06-17: learned decoder D7 — latent-conditioned GENERATION (the generative leap)
 
 The decoder now GENERATES, not just reconstructs. `render_decoder_latent_torch(params, z, …)`
