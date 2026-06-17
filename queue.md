@@ -399,10 +399,10 @@ functions/calls/binary-ops, `if`/`case` → blend, multi-clause heads + `when` g
 dispatch blend, `if`-based tail rec → `while_loop`, foldable non-tail → CPS. Remaining:
 
 - [ ] **Erlang increments** (through records `#name{f=v}` → named-field axons +
-  `R#name.f` access + `{A, B}` tuple-PATTERN + `#point{x=X}` record-PATTERN params shipped
-  2026-06-16, suite 22/22; the `-record` decl is skipped, name dropped): map PATTERN params
-  (`#{x := X}` in a head); maps/tuples/records in recursive bodies (the bare-single path has
-  them; the recursion path doesn't yet); multi-clause recursion (the idiomatic
+  `R#name.f` access + `{A, B}` tuple-PATTERN + `#point{x=X}` record-PATTERN params + body
+  `=` match destructure (`{A, B} = P`) shipped 2026-06-16, suite 24/24; the `-record` decl is
+  skipped, name dropped): map PATTERN params (`#{x := X}` in a head); multi-clause bodies with
+  `=` bindings (single-clause only now); multi-clause recursion (the idiomatic
   `f(0) -> …; f(N) -> … f(N-1).` — currently `UNSUPPORTED-RECURSION`, shared with Elixir);
   list comprehensions; `div`/`rem` via complex rotation (not `Math.mod`).
 

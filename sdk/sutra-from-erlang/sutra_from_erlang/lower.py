@@ -247,9 +247,16 @@ def _binop(node, src: bytes):
 
 
 def _clause_body_expr(clause_body, src: bytes):
-    """The expression of a `clause_body` (`-> expr`) — its last named child."""
+    """The value expression of a `clause_body` (`-> e1, …, eN`) — its last named child."""
     kids = clause_body.named_children
     return kids[-1] if kids else None
+
+
+def _clause_body_prelude(clause_body, src: bytes):
+    """The leading statements of a `clause_body` (`-> e1, …, eN-1, eN`) — every
+    expression BEFORE the value expression (Erlang's `=` match bindings)."""
+    kids = clause_body.named_children
+    return list(kids[:-1]) if len(kids) > 1 else []
 
 
 def _call_name_args(node, src: bytes):
@@ -526,7 +533,9 @@ def _try_lower_foldable_nontail(name: str, params, cond, then_e, else_e, src: by
 # ----- function declarations -----
 
 def _clause_parts(fc, src: bytes):
-    """`function_clause` → (name, [param_nodes], guard_or_None, body_expr_node)."""
+    """`function_clause` → (name, [param_nodes], guard_or_None, body_expr_node,
+    prelude_stmts). `prelude_stmts` is the clause-body statements before the value
+    expression (leading `=` match bindings)."""
     name_node = next((c for c in fc.named_children if c.type == "atom"), None)
     args = next((c for c in fc.named_children if c.type == "expr_args"), None)
     guard = next((c for c in fc.named_children if c.type == "guard"), None)
@@ -534,7 +543,8 @@ def _clause_parts(fc, src: bytes):
     if name_node is None or cbody is None:
         return None
     params = list(args.named_children) if args is not None else []
-    return _text(name_node, src), params, guard, _clause_body_expr(cbody, src)
+    return (_text(name_node, src), params, guard,
+            _clause_body_expr(cbody, src), _clause_body_prelude(cbody, src))
 
 
 def _guard_test(guard, src: bytes) -> str:
@@ -557,9 +567,14 @@ def _lower_dispatch(name: str, clauses, src: bytes) -> str:
         cp = _clause_parts(fc, src)
         if cp is None:
             return f"// UNSUPPORTED-DECL: '{name}' malformed clause\n"
-        _nm, params, guard, body = cp
+        _nm, params, guard, body, prelude = cp
         if len(params) != arity:
             return f"// UNSUPPORTED-DECL: '{name}' clause arity mismatch\n"
+        if prelude:
+            # A multi-clause body with leading `=` bindings is a later item —
+            # surface rather than silently drop the binding statements.
+            return (f"// UNSUPPORTED-DECL: '{name}' multi-clause body with binding "
+                    f"statements (later item)\n")
         if _contains_self_call(body, name, src):
             return (f"// UNSUPPORTED-RECURSION: '{name}' multi-clause dispatch with "
                     f"recursion (later item)\n")
@@ -639,14 +654,15 @@ def _lower_function(name: str, clauses, src: bytes) -> str:
     parts0 = _clause_parts(clauses[0], src)
     if parts0 is None:
         return "// UNSUPPORTED-DECL: malformed function clause\n"
-    _name, params, guard, body = parts0
+    _name, params, guard, body, body_prelude = parts0
     # Single bare-var clause with no guard: the recursion-aware path (if-based
     # tail / foldable non-tail), else a plain function.
     bare_single = (len(clauses) == 1 and guard is None
                    and all(p.type == "var" and _text(p, src) != "_" for p in params))
     if bare_single:
         pnames = [_text(p, src) for p in params]
-        cond_triple = _if_as_conditional(body, src) if params else None
+        cond_triple = (_if_as_conditional(body, src)
+                       if params and not body_prelude else None)
         if cond_triple is not None:
             cond, then_e, else_e = cond_triple
             rec = _try_lower_tail_recursive(name, pnames, cond, then_e, else_e, src)
@@ -658,18 +674,80 @@ def _lower_function(name: str, clauses, src: bytes) -> str:
         if _contains_self_call(body, name, src):
             return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
                     f"tail-accumulator or foldable non-tail shape\n")
+        _ARG_HOIST.clear()
+        # Leading `=` match bindings (`{A, B} = P`, `#point{x=X} = R`, `X = E`) — the
+        # idiomatic Erlang body destructure. Each binds names via `_SUBST`; a tuple/
+        # record LHS reads the axon fields and types the RHS param `Axon`.
+        sub_names: list = []
+        axon_destructured: set = set()
+        for st in body_prelude:
+            if not _apply_match_binding(st, src, sub_names, axon_destructured):
+                for nm in sub_names:
+                    _SUBST.pop(nm, None)
+                _ARG_HOIST.clear()
+                return (f"// UNSUPPORTED-DECL: '{name}' body binding statement not a "
+                        f"supported `=` destructure (later item)\n")
         # Maps → axons: hoist any `#{…}` in the body to prelude temps, and type any
         # param read via `maps:get(K, P)` as `Axon` (it is a map, not a number).
-        _ARG_HOIST.clear()
         prelude = _hoist_maps(body, src)
-        axon_params = _maps_get_params(body, set(pnames), src)
+        axon_params = _maps_get_params(body, set(pnames), src) | (
+            axon_destructured & set(pnames))
         params_src = ", ".join(
             f"{'Axon' if p in axon_params else _TYPE} {p}" for p in pnames)
         body_src = (f"function {_TYPE} {name}({params_src}) {{\n"
                     f"{prelude}    return {_lower_expr(body, src)};\n}}\n")
+        for nm in sub_names:
+            _SUBST.pop(nm, None)
         _ARG_HOIST.clear()
         return body_src
     return _lower_dispatch(name, clauses, src)
+
+
+def _apply_match_binding(stmt, src: bytes, sub_names: list, axon_set: set) -> bool:
+    """Lower a leading Erlang `=` match statement (`match_expr` = [pattern, value])
+    into `_SUBST` entries (appended to `sub_names`; a tuple/record RHS name added to
+    `axon_set`). Supported LHS: a `{A, B}` tuple, a `#rec{f=V}` record, or a bare
+    `var` rebinding. The RHS must lower to a bare name. Returns True on success."""
+    if stmt.type != "match_expr" or len(stmt.named_children) != 2:
+        return False
+    lhs, rhs = stmt.named_children[0], stmt.named_children[1]
+    rhs_src = _lower_expr(rhs, src)
+    if not rhs_src.isidentifier():
+        return False
+    if lhs.type == "var":
+        nm = _text(lhs, src)
+        _SUBST[nm] = f"({rhs_src})"
+        sub_names.append(nm)
+        return True
+    if lhs.type == "tuple" and lhs.named_children \
+            and all(e.type == "var" for e in lhs.named_children):
+        axon_set.add(rhs_src)
+        for j, e in enumerate(lhs.named_children):
+            nm = _text(e, src)
+            _SUBST[nm] = f'realvec({rhs_src}.item("_{j}"))'
+            sub_names.append(nm)
+        return True
+    if lhs.type == "record_expr":
+        rbinds = []
+        for rf in lhs.named_children:
+            if rf.type != "record_field":
+                continue
+            fatom = next((c for c in rf.named_children if c.type == "atom"), None)
+            fexpr = next((c for c in rf.named_children
+                          if c.type == "field_expr"), None)
+            local = (fexpr.named_children[0]
+                     if fexpr is not None and fexpr.named_children else None)
+            if fatom is None or local is None or local.type != "var":
+                return False
+            rbinds.append((_text(fatom, src), _text(local, src)))
+        if not rbinds:
+            return False
+        axon_set.add(rhs_src)
+        for field, lname in rbinds:
+            _SUBST[lname] = f'realvec({rhs_src}.item("{field}"))'
+            sub_names.append(lname)
+        return True
+    return False
 
 
 def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
