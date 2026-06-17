@@ -452,18 +452,22 @@ def _negate_cond(cond, src: bytes) -> str:
     return f"!({_lower_expr(cond, src)})"
 
 
-def _try_lower_tail_recursive(name: str, params, cond, then_e, else_e, src: bytes):
-    """`f(p…) -> if COND -> BASE; true -> f(a…) end.` → a declared `while_loop`."""
+def _try_lower_tail_recursive(name: str, params, cond_src, neg_src, then_e, else_e,
+                              src: bytes):
+    """`f(p…) -> if COND -> BASE; true -> f(a…) end.` → a declared `while_loop`.
+    `cond_src` is the lowered base-match test, `neg_src` its negation (the loop's
+    continue condition); both passed as source strings so a multi-clause head (which
+    has no `if`-cond node) can synthesize `(V == K)` / `(V != K)` directly."""
     arity = len(params)
     then_args = _self_call_args(then_e, name, arity, src)
     else_args = _self_call_args(else_e, name, arity, src)
     if (then_args is None) == (else_args is None):
         return None
     if else_args is not None:
-        cont = _negate_cond(cond, src)
+        cont = neg_src
         rec_args, base = else_args, then_e
     else:
-        cont = _lower_expr(cond, src)
+        cont = cond_src
         rec_args, base = then_args, else_e
     ty = _TYPE
     loop_name = f"_rec_{name}"
@@ -482,9 +486,12 @@ def _try_lower_tail_recursive(name: str, params, cond, then_e, else_e, src: byte
     return loop_decl + fn
 
 
-def _try_lower_foldable_nontail(name: str, params, cond, then_e, else_e, src: bytes):
+def _try_lower_foldable_nontail(name: str, params, cond_src, neg_src, then_e, else_e,
+                                src: bytes):
     """`f(n) -> if COND -> BASE; true -> LEAF <OP> f(REC) end.` → an accumulator
-    `while_loop` trampoline (single param, OP in `_FOLD_OPS`)."""
+    `while_loop` trampoline (single param, OP in `_FOLD_OPS`). `cond_src`/`neg_src`
+    are the lowered base-match test + its negation (passed as strings so a
+    multi-clause head can synthesize them)."""
     if len(params) != 1:
         return None
 
@@ -507,11 +514,11 @@ def _try_lower_foldable_nontail(name: str, params, cond, then_e, else_e, src: by
     if (fold_else is None) == (fold_then is None):
         return None
     if fold_else is not None:
-        cont = _negate_cond(cond, src)
+        cont = neg_src
         op_text, leaf, rec_arg = fold_else
         base = then_e
     else:
-        cont = _lower_expr(cond, src)
+        cont = cond_src
         op_text, leaf, rec_arg = fold_then
         base = else_e
     pname = params[0]
@@ -528,6 +535,44 @@ def _try_lower_foldable_nontail(name: str, params, cond, then_e, else_e, src: by
           f"    loop {loop_name}({cont}, _{pname}_r, _acc_r);\n"
           f"    return _acc_r;\n}}\n")
     return loop_decl + fn
+
+
+def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
+    """The idiomatic pattern-matched recursion `f(0) -> BASE; f(N) -> … f(N-1).`
+    is semantically identical to the single-clause `if`-form, so synthesize the
+    base-match condition `(V == K)` from the clause patterns and reuse the existing
+    recursion transforms (fed source strings, not an `if`-cond node). Scope: exactly
+    2 single-param clauses — one INTEGER-literal base clause (no self-call) and one
+    VAR-pattern recursive clause (self-call), neither guarded nor with a binding
+    prelude. Returns the emitted Sutra or None."""
+    if len(clauses) != 2:
+        return None
+    parsed = []
+    for fc in clauses:
+        cp = _clause_parts(fc, src)
+        if cp is None:
+            return None
+        _nm, params, guard, body, prelude = cp
+        if guard is not None or prelude or len(params) != 1:
+            return None
+        parsed.append((params[0], body))
+    base_c = rec_c = None
+    for pat, body in parsed:
+        if pat.type == "integer" and not _contains_self_call(body, name, src):
+            base_c = (pat, body)
+        elif pat.type == "var" and _contains_self_call(body, name, src):
+            rec_c = (pat, body)
+    if base_c is None or rec_c is None:
+        return None
+    k = _text(base_c[0], src)
+    v = _text(rec_c[0], src)
+    cond_src, neg_src = f"({v} == {k})", f"({v} != {k})"
+    then_e, else_e = base_c[1], rec_c[1]  # base body, recursive body
+    rec = _try_lower_tail_recursive(name, [v], cond_src, neg_src, then_e, else_e, src)
+    if rec is not None:
+        return rec
+    return _try_lower_foldable_nontail(name, [v], cond_src, neg_src,
+                                       then_e, else_e, src)
 
 
 # ----- function declarations -----
@@ -665,10 +710,14 @@ def _lower_function(name: str, clauses, src: bytes) -> str:
                        if params and not body_prelude else None)
         if cond_triple is not None:
             cond, then_e, else_e = cond_triple
-            rec = _try_lower_tail_recursive(name, pnames, cond, then_e, else_e, src)
+            cond_src = _lower_expr(cond, src)
+            neg_src = _negate_cond(cond, src)
+            rec = _try_lower_tail_recursive(name, pnames, cond_src, neg_src,
+                                            then_e, else_e, src)
             if rec is not None:
                 return rec
-            fold = _try_lower_foldable_nontail(name, pnames, cond, then_e, else_e, src)
+            fold = _try_lower_foldable_nontail(name, pnames, cond_src, neg_src,
+                                               then_e, else_e, src)
             if fold is not None:
                 return fold
         if _contains_self_call(body, name, src):
@@ -700,6 +749,9 @@ def _lower_function(name: str, clauses, src: bytes) -> str:
             _SUBST.pop(nm, None)
         _ARG_HOIST.clear()
         return body_src
+    multi_rec = _try_lower_multiclause_recursion(name, clauses, src)
+    if multi_rec is not None:
+        return multi_rec
     return _lower_dispatch(name, clauses, src)
 
 
