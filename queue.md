@@ -37,6 +37,57 @@ deleted on completion. Keep the task tool in sync with this file.
   even run pull_request CI). gui is kept SEPARATE from main by design — no merging to main.
   Note also: local-green ≠ CI-green here — CI runs on CPU, local is CUDA; always verify on CI.
 
+## 🧠 TOP PRIORITY — LEARNED DECODER (Emma 2026-06-17: gate lifted, all decisions mine, barrel)
+
+> The EMMA-gated learned decoder, now UNLEASHED: "make all the decisions, don't ask, barrel
+> through, push as hard as possible." Architecture decided (no questions): a **SIREN-style
+> coordinate-MLP decoder rendered whole-frame on the substrate** — per pixel
+> `[x, y (, latent z)] → stack of substrate Linear (matmul W + bias) + sin/tanh layers → RGB`.
+> Weights are trainable parameters; **autograd flows through the compiled substrate forward**
+> (host-side Adam, the proven button pattern). Substrate has matmul/dot/sin/tanh (probed +
+> `tanh(matmul(W,x))` compiles & runs). The analytic hero/button render is the FIXED-weight
+> base case; this is the TRAINED generalization. HARD RAILS: every op on the substrate, real
+> autograd through it, optimizer host-side + named; never NaN (no `Math.mod`); measured only.
+
+_Phase D-A — trainable substrate primitives:_
+- [ ] **D1 — trainable dense layer.** `demos/decoder/dense.su` (`dense(W, x, b) = matmul(W,x)+b`,
+  + an activated variant `act(...)`); a `render`/`train` torch wrapper passing `W,b` as
+  `requires_grad` params. TDD: grad flows to `W,b` THROUGH the compiled substrate matmul
+  (non-zero, finite); Adam fits a 1-layer map to a target → loss drops. The load-bearing proof
+  that the substrate trains.
+- [ ] **D2 — nonlinearity choice.** Pick sin (SIREN — periodic, high-freq detail) vs tanh;
+  verify differentiable + NaN-free over the working range; brief measured comparison.
+
+_Phase D-B — minimal implicit decoder (single image):_
+- [ ] **D3 — multi-layer coordinate decoder.** `demos/decoder/decoder.su` — a 2→H→H→1 SIREN
+  MLP over the coordinate grid; `render_decoder_torch(size, weights)` (whole-frame, the
+  hero_grid pattern). Verify forward is substrate ops, differentiable in all weights, finite.
+- [ ] **D4 — reconstruct an arbitrary image.** Train D3 to fit a target field (start: the
+  analytic glow; then a real small image). Measure MSE↓ / PSNR↑ over training; before/after
+  figure. The "decoder learns an arbitrary frame" milestone.
+
+_Phase D-C — RGB + capacity:_
+- [ ] **D5 — RGB decoder.** 3-output; reconstruct a colour target, measured.
+- [ ] **D6 — capacity/scaling.** depth/width vs reconstruction quality; measured table.
+
+_Phase D-D — latent conditioning (generation, not just reconstruction):_
+- [ ] **D7 — latent-conditioned decoder.** `f(x, y, z)`; auto-decoder training over a small SET
+  of targets with per-image learned latents `z`; show `z`-interpolation generates between
+  images (the generative step — arbitrary-image generation from a latent).
+- [ ] **D8 — steer the latent by preference.** Reuse the ButtonAdam owner×CTR machinery to steer
+  `z` (and thus the generated frame) — the LEARNED decoder meets the GUI steering loop.
+
+_Phase D-E — integration & writeup:_
+- [ ] **D9 — demo window** rendering the learned decoder (+ latent steering); optional Yantra
+  surface mirroring gui-button.
+- [ ] **D10 — docs + paper.** Measured; frame the analytic render as the fixed-weight base case
+  and the decoder as the trained generalization; no overclaim.
+
+_Phase D-F — the weight→code / constrain-train horizon (open-ended stretch):_
+- [ ] **D11 — emit trained decoder weights as Sutra code.** Connect to `experiments/w2c_*`
+  (weight→code): can a trained substrate decoder's weights be frozen into emitted `.su`? The
+  "every op trainable" meets "compile the weights to code" vision. Investigate + spec, then build.
+
 ## Existing demo state (the base this track extends)
 
 - `demos/gui/hero_adam.py` — `HeroAdam`: pairwise online-RLHF (Bradley-Terry reward

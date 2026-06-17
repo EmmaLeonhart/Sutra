@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-17: LEARNED DECODER unleashed — feasibility probed + big D-track queued
+
+Emma lifted the gate: "make all the decisions, don't ask, barrel through, build a big queue,
+push as hard as possible." Probed substrate capability: `matmul`/`dot`/`outer`/`sin`/`tanh`
+exist as ops, and `tanh(matmul(W,x))` compiles + runs on the substrate (= 0.7616) — so a
+trainable SIREN-style coordinate-MLP decoder (Linear=matmul, nonlinearity=sin/tanh, weights as
+trainable params, autograd through the compiled forward, host-side Adam) is real. Decided the
+architecture (no questions): a coordinate MLP rendered whole-frame on the substrate
+(`[x,y(,z)] → matmul/sin layers → RGB`); the analytic hero/button render is the fixed-weight
+base case, this is the trained generalization. Queued a big D-track: D1 trainable dense layer →
+D2 nonlinearity → D3 multi-layer coordinate decoder → D4 reconstruct an image → D5 RGB → D6
+capacity → D7 latent-conditioned generation → D8 steer the latent → D9 demo → D10 docs/paper →
+D11 weight→code horizon. Mirrored D1–D4 to tasks. Kept the crons running (the barreling engine).
+Building D1 next.
+
 ## 2026-06-16: Yantra Y3 — integration docs (Yantra track Y0–Y3 complete)
 
 Documented the button↔Yantra integration. `CLAUDE.md` §"Cross-repo workflow: Sutra ↔ Yantra"
