@@ -91,8 +91,8 @@ class ButtonAdam:
     def __init__(self, size: int = 48, seed: int = 0, alpha: float = 0.5,
                  lr_theta: float = 0.05, lr_reward: float = 0.3,
                  theta_steps: int = 2, explore: float = 0.12, pool: int = 4,
-                 live_ctr: bool = False, anneal: float = 0.06,
-                 explore_floor: float = 0.12, lr_floor: float = 0.25):
+                 live_ctr: bool = False, anneal: float = 0.02,
+                 explore_floor: float = 0.3, lr_floor: float = 0.7):
         import torch
         torch.manual_seed(seed)
         self.wf = _load("gui_whole_frame", "whole_frame.py")
@@ -105,7 +105,14 @@ class ButtonAdam:
         # Annealing: as preferences accumulate, shrink the proposal exploration AND the policy
         # step so the design SETTLES instead of jittering forever (Emma 2026-06-17: the live demo
         # "doesn't slow down over time like Adam"). decay(r)=1/(1+anneal·r), floored so it stays
-        # mildly responsive to a late change of preference rather than freezing.
+        # mildly responsive to a late change of preference rather than freezing. The floors are
+        # generous (lr ≥ 0.7·lr0, explore ≥ 0.3·explore0) because the decay starts at round 0 —
+        # while the OWNER REWARD HEAD is still learning what the owner likes — so a too-aggressive
+        # decay (the original 0.06/0.12/0.25) shrinks the policy lr before the policy can act on
+        # the now-trained reward and the design never converges (measured on CPU: fb-rise 0.5→0.48
+        # in 50 rounds; rendered centre-blue rise only 0.05). 0.02/0.3/0.7 converges strongly on
+        # CPU (server fb-rise +0.29, rendered centre-blue rise +0.56) while still settling ~4×
+        # (per-round θ step 0.50 early → 0.12 late). Measured both scenarios; see DEVLOG.
         self.anneal = float(anneal)
         self.explore_floor = float(explore_floor)
         self.lr_floor = float(lr_floor)

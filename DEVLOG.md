@@ -5,15 +5,23 @@
 Emma's feedback on the live demo: the learning "is kinda all over the place and doesn't feel like
 it slows down over time like Adam". Root cause: `ButtonAdam.propose()` used a FIXED exploration
 magnitude (0.12) and `choose()` a fixed policy lr, so proposals jittered forever and the design
-never converged. Added an annealing schedule keyed to the preference round: `decay(r)=1/(1+anneal·r)`
-(anneal=0.06), with both the proposal exploration (floored at `explore_floor`) and the Adam policy
-lr (floored at `lr_floor` of its initial value) scaled by it, so steps shrink as preferences
-accumulate while staying mildly responsive to a late change of taste. Measured under a fixed
-blue-preferring owner: mean per-round θ step falls from **0.359 (rounds 0–9) to 0.026 (rounds
-40–69)** — ~14× settling — while still converging to the owner's blue (fb 0.895). New regression
-`test_steering_settles_over_time_like_adam` asserts exploration anneals monotonically and late
-steps are <½ early steps yet still reach the blue taste; B3 suite 4/4 green. Live server restarted
-with the annealed controller.
+never settled. Added an annealing schedule keyed to the preference round: `decay(r)=1/(1+anneal·r)`,
+with both the proposal exploration (floored at `explore_floor`) and the Adam policy lr (floored at
+`lr_floor` of its initial value) scaled by it, so steps shrink as preferences accumulate while
+staying mildly responsive to a late change of taste.
+
+**CPU/CUDA gotcha (caught by CI, not local):** the first cut (anneal=0.06, explore_floor=0.12,
+lr_floor=0.25) settled beautifully on CUDA but **failed on CI's CPU** — the decay starts at round 0,
+while the owner reward head is still learning what the owner likes, so too-aggressive decay shrinks
+the policy lr before the policy can act on the now-trained reward and the design never converges
+(measured on real CPU: owner-prefers-blue gave fb-rise +0.5→0.48, rendered centre-blue rise only
++0.05). Re-tuned to **anneal=0.02, explore_floor=0.3, lr_floor=0.7** by sweeping BOTH affected
+scenarios on real CPU (CUDA disabled): now `test_button_server`'s 50-round owner steering gives
+fb-rise **+0.29** and `test_button_adam`'s 60-round centre-render blue rise **+0.56** (both well
+over the +0.1 thresholds), while still settling ~**4×** (mean per-round θ step 0.50 early → 0.12
+late). New regression `test_steering_settles_over_time_like_adam` asserts exploration anneals
+monotonically and late steps are <½ early steps yet it still reaches the blue taste. Full
+`demos/gui` suite 94/94 green on real CPU. Live server restarted with the annealed controller.
 
 ## 2026-06-17: learned decoder D14 — high-frequency reconstruction + Fourier-band scaling
 
