@@ -80,9 +80,10 @@ cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it 
   (the fib-family shape) + `synthesize_tabulation_source` (a rolling-window of `max(offsets)`
   accumulators → a memoizing `while_loop`) + `tabulate_module`, wired into `_compile_to_python` so
   RECURSIVE `fib`/tribonacci (which Sutra can't run natively) auto-rewrite to a native loop and run
-  on the substrate == ground truth. `test_native_recursion.py` 12/12 (recursive `fib(0..12)` +
-  `trib(0..9)` via `sutrac --run`) + `test_tabulate.py` 6/6. MVP subset: base value = the param
-  identity, base threshold K = max(offset). Remaining:
+  on the substrate == ground truth. Now handles general linear recurrences WITH COEFFICIENTS
+  (`2*pell(n-1)+pell(n-2)` → combine `2*_w1 + _w0`). `test_native_recursion.py` 18/18 (recursive
+  `fib(0..12)` + `trib(0..9)` + Pell `pell(0..8)` via `sutrac --run`) + `test_tabulate.py` 8/8. MVP
+  subset: base value = the param identity, base threshold K = max(offset). Remaining:
   - [ ] **4b general form** — irregular / multi-arg / non-identity-base recursion: the explicit
     agenda + memo-table `while_loop` (the call stack as a value), and wider base values / K>M. The
     index-structured tabulation is the special-case optimization; this generalizes it to "memoize
