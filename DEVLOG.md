@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-17: WASM machine — opcode 25 = ABS + measured-verified negative-number behavior (Phase 5)
+
+Phase 5 (extend the proven WASM leg). Added **opcode 25 = ABS** (unary |top|, net sp 0, parallel
+to NEG, touching only the 99+sp chain) with a **boundary-correct negative flag**: `top1 < 0`
+gated by `(1 - is_zero)` so the strict comparison's ambiguity at exactly 0 is resolved and
+`ABS(0) = 0`. `v_abs = abs_neg*(0-top1) + (1-abs_neg)*top1`.
+
+This run also discharged a "test the hypothesis on the substrate, don't assume" gate I had been
+deferring: whether the machine's negative-number arithmetic/comparison actually works. It does —
+**measured-verified this run**: `5; NEG; ABS → 5` (negative comparison + negate), `(-5)*(-5) →
+25` via existing opcodes (negative multiply), plus `ABS(5)→5` and the `ABS(0)→0` boundary. Full
+`test_mini_wasm_machine.py` ran on the substrate: **46 passed in 1281s, exit 0** — ABS works and
+nothing regressed. The negative behavior being verified de-risks future signed ops (SQR, signed
+comparisons) that I had previously held back as "not fully understood." Machine now 26 opcodes
+(NEG/MIN/MAX/OVER/ABS added this session).
+
 ## 2026-06-17: WASM machine — opcode 24 = OVER (Phase 5, fourth opcode extension)
 
 Phase 5 (extend the proven WASM leg). Added **opcode 24 = OVER** (push a copy of the
