@@ -1,0 +1,22 @@
+# Manifest for the sink kernel service.
+#
+# Sink reads axons on R_output (so it can be the receiver of echo's
+# emissions) and writes a stat-counter axon on R_stat. Demonstrates
+# (a) two distinct processes with non-overlapping capabilities and
+# (b) capability discipline: the router refuses any send where the
+# sender doesn't hold the role.
+
+name = "sink"
+
+axon_width = 768
+compute_units = 1
+
+# Reads what echo writes.
+read_roles = ["R_output"]
+
+# Emits a count-update axon on R_stat. Nobody reads R_stat in the
+# v0.0 demo (no logger admitted) — by router policy this is a
+# black-hole: dropped + logged, not an error.
+write_roles = ["R_stat"]
+
+source = "../services/sink.su"

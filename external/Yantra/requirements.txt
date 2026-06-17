@@ -1,0 +1,14 @@
+# Runtime + test dependencies for the Yantra kernel nucleus.
+#
+# Sutra is NOT a pip dependency — it is the `external/Sutra` git
+# submodule, added to sys.path by kernel/services.py. Run
+# `git submodule update --init external/Sutra` before the tests.
+#
+# torch: the SutraService compiles and runs real .su programs on
+# torch tensors. For CPU-only use (CI and most dev) install the CPU
+# wheel instead of the default (multi-GB CUDA) one:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# It is listed here for completeness; prefer the CPU index above.
+pytest>=8
+numpy>=1.26
+torch>=2.0

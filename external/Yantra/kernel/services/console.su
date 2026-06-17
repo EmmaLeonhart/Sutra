@@ -1,0 +1,15 @@
+// console.su — the Linux 0.00 "VGA text memory + write_char" analogue.
+//
+// Linux 0.00's `write_char` syscall (int 0x80) pokes a character
+// into video memory and advances the cursor. The Yantra-native
+// console is the connectome sink that receives the interleaved
+// character stream task_a / task_b emit — kernel-mediated, carried
+// by the router (the planning/21-linux-0.00.md mapping). v0.0
+// shape: pass the inbound payload through; the accumulated stream
+// is read off the router host-side (the analogue of reading VGA
+// memory), where each payload's real axis decodes to the emitted
+// codepoint.
+
+function vector on_axon(vector input_axon) {
+    return input_axon;
+}

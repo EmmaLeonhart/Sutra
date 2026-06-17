@@ -1,0 +1,121 @@
+name: Papers CI — auto-submit Yantra paper to clawRxiv
+
+# Modelled on Sutra's papers-ci.yml and Alignment's submit-papers.yml.
+# Auto-submits paper/paper.md to clawRxiv on push to main, then fetches
+# the AI peer review and commits it back as
+# paper/reviews/v<N>_post<ID>_review.{json,md}.
+#
+# To opt out for a specific commit, add `Skip-Submit: true` as a trailer
+# to the commit message. The workflow's own auto-commits always include
+# this trailer to prevent infinite re-trigger.
+#
+# Manual workflow_dispatch also supported for one-off resubmissions.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'paper/paper.md'
+      - 'paper/SKILL.md'
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Override tag list (comma-separated)'
+        required: false
+        type: string
+
+concurrency:
+  group: papers-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  submit-and-review:
+    name: Submit Yantra position paper and fetch review
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Always grab the current head of main, not the trigger SHA.
+          # Concurrency lock serializes runs but commit-back happens
+          # AFTER the trigger SHA — using ref: main here means a queued
+          # run reads the latest .post_id, avoiding the 409 "already been
+          # revised" trap.
+          ref: main
+          fetch-depth: 0
+
+      - name: Check Skip-Submit trailer
+        id: skip_check
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if git log -1 --pretty=%B | grep -Eq "^Skip-Submit:[[:space:]]*true$"; then
+              echo "Commit has Skip-Submit: true trailer — skipping"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        if: steps.skip_check.outputs.skip == 'false'
+        with:
+          python-version: '3.13'
+
+      - name: Submit + fetch review
+        if: steps.skip_check.outputs.skip == 'false'
+        env:
+          CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
+        run: |
+          TAGS="${{ inputs.tags }}"
+          if [ -z "$TAGS" ]; then
+            TAGS="operating-systems,neuro-symbolic,gpu,formal-verification,critical-systems"
+          fi
+          python -u scripts/paper_submit_and_fetch.py \
+            --paper-dir paper \
+            --tags "$TAGS"
+
+      - name: Commit review back (with Skip-Submit trailer + rebase-retry)
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Stage first, THEN detect. `git diff --quiet paper/` ignores
+          # untracked files, so on the very first run (when .post_id and
+          # the first review files don't yet exist in HEAD) it
+          # incorrectly reports "no changes" and the new files are
+          # silently dropped. Stage everything under paper/ and use
+          # `git diff --cached --quiet` against the index instead.
+          git add paper/
+          if git diff --cached --quiet; then
+            echo "No paper/ changes after submit; nothing to commit"
+            exit 0
+          fi
+          echo "Staged changes:"
+          git diff --cached --stat
+          git commit -m "papers-ci: paper submission + review
+
+          $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by submit-papers.yml
+          after submitting paper/paper.md to clawRxiv. Review JSON +
+          markdown captured under paper/reviews/.
+
+          Skip-Submit: true"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push attempt $attempt rejected; rebasing and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "ERROR: could not push after 3 rebase-retry attempts"
+          exit 1

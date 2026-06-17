@@ -1,0 +1,19 @@
+[package]
+name = "yantra-bootloader"
+version = "0.0.2"
+edition = "2021"
+description = "Yantra bare-metal kernel v0.0 — multiboot1, boots in QEMU via -kernel; prints hello via serial."
+license = "Apache-2.0"
+publish = false
+
+# No third-party dependencies. The previous v0.0.1 used the
+# `bootloader = "0.9.x"` crate, which broke on Rust 1.96 nightly
+# (triple-faults at boot). v0.0.2 is hand-rolled multiboot1 — QEMU's
+# -kernel flag boots multiboot1 ELF binaries directly, no third-party
+# bootloader crate, no disk image, simpler stack.
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
