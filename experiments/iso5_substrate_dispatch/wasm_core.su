@@ -1,0 +1,82 @@
+// Real-WebAssembly-bytecode core on the substrate (Phase 5; scoped in
+// planning/exploratory/2026-06-17-phase5-wasm-core-scoping.md). SAME RAM-state
+// blended-dispatch DNC stack machine as jvm_core.su, but with REAL WASM opcode
+// values and the WASM operand encoding (LEB128), so eventual wat->wasm output runs
+// unmodified. The host drives one step() per instruction (autoregressive); all
+// state lives in the RAM device; dispatch is truth_axis(defuzzy(op == N)); side
+// effects are blended writes to fixed cells. Semantics match the W3C WebAssembly
+// spec's small-step reduction rules for this subset.
+//
+// STEP 1a (this file): the i32 arithmetic subset with real opcodes + single-byte
+// signed LEB128 for i32.const. Locals (indexed local.get/set/tee), comparisons,
+// and structured control (block/loop/if/end/br) are the next ladder steps.
+//
+// SUBSTRATE-PURE: no .real(), no host arithmetic on values — values stay number-
+// vectors; comparisons/dispatch are 0-dim truth-axis tensors; ram addresses decode
+// at the device boundary. pc/sp/operand-stack are vectors carried in RAM across
+// recurrent step() calls (a genuine RNN/DNC); the only host readout is hard
+// address-decode to pick a RAM cell.
+//
+// RAM layout: [0]=pc  [1]=sp   function body bytecode at 10+ (one byte/cell)
+// operand stack 100+.
+// Opcodes (real WASM byte values, hex/decimal):
+//   0x41/65=i32.const(push next byte as signed single-byte LEB128; 2-byte instr)
+//   0x6a/106=i32.add  0x6b/107=i32.sub  0x6c/108=i32.mul
+//   0x0b/11=end  0x0f/15=return  (both keep pc -> idle/halt; result is on top)
+// Binary ops pop two (top1=top, top2=second) and push combine(top2, top1). pc
+// advances 2 for i32.const, 1 for arithmetic; end/return keep pc so the machine
+// idles with the result on top.
+function int step(scalar d) {
+    int pc = ramRead(0);
+    int sp = ramRead(1);
+    int op = ramRead(pc);
+    int imm = ramRead(pc + 1);
+    int top1 = ramRead(99 + sp);
+    int top2 = ramRead(98 + sp);
+    // Real-axis unit vector (make_complex(1,0)). i32.const's opcode-following
+    // constant must be materialized as leb_val*one so it lands on the real axis
+    // ONLY — a bare scalar added to a zeroed blend term broadcasts across every
+    // axis and silently breaks == (finding 2026-06-17-iconst-literal-broadcast).
+    complex one = 1 + 0i;
+    int is_const = truth_axis(defuzzy(op == 65));    // i32.const 0x41
+    int is_add = truth_axis(defuzzy(op == 106));     // i32.add  0x6a
+    int is_sub = truth_axis(defuzzy(op == 107));     // i32.sub  0x6b
+    int is_mul = truth_axis(defuzzy(op == 108));     // i32.mul  0x6c
+    int is_end = truth_axis(defuzzy(op == 11));      // end      0x0b
+    int is_return = truth_axis(defuzzy(op == 15));   // return   0x0f
+    // Signed single-byte LEB128 decode for i32.const (value in [-64,63]): a byte
+    // b<0x80 is complete; signed value = b - 128*sign, sign = (b>=64) = bit 6.
+    // Detect via (2*b) < 127 == (b<=63): 2*b is even, 127 is odd, so they're never
+    // equal -> no equality-boundary case, no gate (same trick as the JVM offset sign).
+    int leb_sign = 1 - ((truth_axis(defuzzy((2 * imm) < 127)) + 1) / 2);  // 1 iff negative
+    int leb_val = imm - (128 * leb_sign);
+    // 100+sp (new top cell): i32.const pushes leb_val (as a real-axis vector); else
+    // keep the cell.
+    int cell_hi = ramRead(100 + sp);
+    int new_hi = (((1 + is_const) * (leb_val * one)) + ((1 - is_const) * (cell_hi))) / 2;
+    ramWrite(100 + sp, new_hi);
+    // 98+sp (binary result): add/sub/mul write here; net sp -1 collapses the top so
+    // the result lands at the new top (99+(sp-1) = 98+sp). Else keep top2.
+    int v_add = top2 + top1;
+    int v_sub = top2 - top1;
+    int v_mul = top2 * top1;
+    int b_mul = (((1 + is_mul) * (v_mul)) + ((1 - is_mul) * (top2))) / 2;
+    int b_sub = (((1 + is_sub) * (v_sub)) + ((1 - is_sub) * (b_mul))) / 2;
+    int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_sub))) / 2;
+    ramWrite(98 + sp, new_lo);
+    // sp: i32.const +1; add/sub/mul -1; end/return keep.
+    int sp_binop = sp - 1;
+    int s_mul = (((1 + is_mul) * (sp_binop)) + ((1 - is_mul) * (sp))) / 2;
+    int s_sub = (((1 + is_sub) * (sp_binop)) + ((1 - is_sub) * (s_mul))) / 2;
+    int s_add = (((1 + is_add) * (sp_binop)) + ((1 - is_add) * (s_sub))) / 2;
+    int new_sp = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_add))) / 2;
+    ramWrite(1, new_sp);
+    // pc: i32.const +2 (skip the 1 LEB byte); end/return keep pc (idle with result
+    // on top); every other 1-byte opcode +1.
+    int pc_after = (((1 + is_const) * (pc + 2)) + ((1 - is_const) * (pc + 1))) / 2;
+    int pc_noend = (((1 + is_end) * (pc)) + ((1 - is_end) * (pc_after))) / 2;
+    int new_pc = (((1 + is_return) * (pc)) + ((1 - is_return) * (pc_noend))) / 2;
+    ramWrite(0, new_pc);
+    return ramRead(99 + sp);
+}
+function string main() { return "ok"; }

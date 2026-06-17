@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-17: Real-WASM-bytecode core step 1a — i32 arithmetic + signed LEB128 (Phase 5)
+
+First code on the real-WASM-bytecode core. `experiments/iso5_substrate_dispatch/wasm_core.su` is
+the same RAM-state blended-dispatch DNC stack machine as `jvm_core.su`, but with REAL WebAssembly
+opcode byte values + the WASM operand encoding, so eventual `wat→wasm` output runs unmodified. Step
+1a opcodes: `i32.const`(0x41, signed single-byte LEB128 operand), `i32.add`(0x6a)/`i32.sub`(0x6b)/
+`i32.mul`(0x6c), `end`(0x0b)/`return`(0x0f) (both keep pc → idle with the result on top). The new
+mechanism vs JVM is the **LEB128 decode**: a byte `b<0x80` is a complete single-byte LEB128; signed
+value `= b − 128·sign` with `sign = 1 − ((2·b) < 127)` — the same even/odd clean-comparison trick
+the JVM branch-offset sign-extension used (`2b` even, `127` odd → never equal → no equality boundary,
+no gate). Reused the JVM `iconst` finding: the constant is pushed as `leb_val·one` (real-axis
+vector), not a bare scalar. 8 cases substrate-green (`test_wasm_core.py`): `3+4=7`, `10−3=7`,
+`6*7=42`, `i32.const −5; return = −5`, `(−5)*(−5)=25`, `(3+4)*2=14`, and the signed-LEB128 boundaries
+`0x3f→63` and `0x40→−64`. Verified directly on the compiled substrate machine. Next: step 1b,
+indexed locals (`local.get`/`set`/`tee`, computed `200+idx` cell — new vs JVM's fixed-opcode locals).
+
 ## 2026-06-17: Real-WASM-bytecode core — scoping doc (Phase 5, WASM is the direction)
 
 With the JVM leg parked and WebAssembly now the VM direction (Emma 2026-06-17), scoped the
