@@ -73,20 +73,18 @@ sampled locally; all 9 gated by `transpilers-ci`). Remaining (the genuinely-new,
   constant-folding, NOT runtime substrate execution) that, for a pure recursive call with
   compile-time-literal controlling args and a provable depth bound ≤ `max_preeval_depth`, evaluates
   it to a literal (memoized at compile time so it doesn't blow up). Sub-steps:
-  - [ ] **3b** — wire the `max_preeval_depth` into the `.toml` / CLI as a real compilation argument
-    (the `preeval_bounded_recursion(module, max_depth=…)` param exists; expose it) + a finding
-    measuring a sane default (compile-time cost vs runtime savings); above-cap sites fall through.
-    (3a DONE 2026-06-17: `sutra_compiler/preeval.py` — an OPT-IN compile-time partial evaluator that
-    folds a constant-arg call to a bounded pure recursive fn (`fib`/`fac` subset: IntLiteral/Identifier/
-    BinaryOp/If/Return/Call) to a literal with depth-limit + compile-time memoization, then prunes the
-    now-dead recursive fn (whole-AST reachability). `test_preeval.py` 8/8: fib(8)→21, fac(6)→720, etc.
-    fold + prune + run == ground truth on the substrate; conservative (unsupported bodies left
-    un-folded); honors max_depth. Host-side pure eval — NOT runtime substrate execution.)
   - [ ] **3c — ASK EMMA (AskUserQuestion):** the *when-NOT-to-pre-evaluate* default policy — Emma
     flagged this UNSOLVED (binary-size / startup / runtime-flexibility tradeoff). Candidate policies
     in the scoping doc (aggressive-to-cap / small-result-only / annotation-only / cost-model). This
-    blocks enabling AUTOMATIC pre-eval (not the opt-in mechanism). Drain via AskUserQuestion when 3a/3b
-    land — known-open problem Emma named, not a rotting deferred item.
+    blocks enabling AUTOMATIC pre-eval (NOT the opt-in mechanism, which is shipped). Drain via
+    AskUserQuestion — known-open problem Emma named, not a rotting deferred item. **3a + 3b are DONE
+    2026-06-17:** `sutra_compiler/preeval.py` opt-in compile-time partial evaluator (folds a
+    constant-arg call to a bounded pure recursive fn to a literal w/ depth-limit + memoization, prunes
+    the dead fn); wired as `--preeval` / `--max-preeval-depth` CLI args + `[project.compile]
+    max_preeval_depth` in atman.toml; default 128 (host-stack-safe, finding
+    `2026-06-17-preeval-depth-default.md`). `test_preeval.py` 11/11 incl. CLI wiring + `--run --preeval`
+    fib(8)→21 on the substrate. So tier 3's MECHANISM ships; only the automatic-default policy (3c)
+    remains, and it's an Emma decision, not implementation.
 - [ ] **(C / tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).**
   Memoize EVERYTHING by default (pure functions make caching always valid); the memo store is a
   **lazy lookup table / DAG**, NOT a stack, realized as recurrent-neuron state (fits the
