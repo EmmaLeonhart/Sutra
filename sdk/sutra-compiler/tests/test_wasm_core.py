@@ -13,9 +13,10 @@ Opcodes (real WASM byte values): 0x41/65=i32.const (signed single-byte LEB128)
 0x20/32=local.get 0x21/33=local.set 0x22/34=local.tee (unsigned single-byte LEB128
 index; local lives at RAM 200+idx) 0x6a/106=i32.add 0x6b/107=i32.sub 0x6c/108=i32.mul
 0x45/69=i32.eqz 0x46/70=i32.eq 0x47/71=i32.ne 0x48/72=i32.lt_s 0x4a/74=i32.gt_s
-0x4c/76=i32.le_s 0x4e/78=i32.ge_s 0x02/2=block 0x03/3=loop 0x0c/12=br 0x0d/13=br_if
-0x0b/11=end 0x0f/15=return. Structured control uses a load-time pre-resolved branch-target
-table (built by `_build_targets`, loaded at RAM 400+); the substrate reads it and jumps.
+0x4c/76=i32.le_s 0x4e/78=i32.ge_s 0x02/2=block 0x03/3=loop 0x04/4=if 0x05/5=else
+0x0c/12=br 0x0d/13=br_if 0x0b/11=end 0x0f/15=return. Structured control uses a load-time
+pre-resolved branch-target table (built by `_build_targets`, loaded at RAM 400+); the
+substrate reads it and jumps.
 """
 from __future__ import annotations
 
@@ -76,18 +77,26 @@ def _build_targets(body):
         instrs.append((off, op, L))
         tgt[off] = off + L   # default: sequential next
         off += L
-    # Pass A: match block/loop/if opens to their `end`s; note the function-final end.
+    # Pass A: match block/loop/if opens to their `end`s; record each if's `else`.
     frames_by_open = {}
     stack = []
     for (off, op, L) in instrs:
         if op in (2, 3, 4):          # block / loop / if
             f = {"kind": {2: "block", 3: "loop", 4: "if"}[op],
-                 "header": off + 2, "end": None}
+                 "header": off + 2, "end": None, "else_off": None}
             stack.append(f)
             frames_by_open[off] = f
+        elif op == 5:                # else (belongs to the innermost open if)
+            stack[-1]["else_off"] = off
         elif op == 11:               # end
             if stack:
                 stack.pop()["end"] = off
+    # if false-target = else+1 (or end+1 if no else); else -> matching end+1.
+    for open_off, f in frames_by_open.items():
+        if f["kind"] == "if":
+            tgt[open_off] = (f["else_off"] + 1) if f["else_off"] is not None else (f["end"] + 1)
+            if f["else_off"] is not None:
+                tgt[f["else_off"]] = f["end"] + 1
     # Pass B: resolve br/br_if targets + the function-final end (depth 0) -> halt.
     stack = []
     for (off, op, L) in instrs:
@@ -163,6 +172,12 @@ _CASES = [
     #   local0=sum local1=i; loop { if i==0 br to block-end; sum+=i; i-=1; br to loop }
     ([65, 0, 33, 0, 65, 3, 33, 1, 2, 64, 3, 64, 32, 1, 69, 13, 1, 32, 0, 32, 1,
       106, 33, 0, 32, 1, 65, 1, 107, 33, 1, 12, 0, 11, 11, 32, 0, 11], 6, 80, 100),
+    # if/else (blocktype i32 = 0x7f=127): const c; if (const 7) else (const 9); end
+    ([65, 1, 4, 127, 65, 7, 5, 65, 9, 11, 11], 7, 12, 100),   # cond 1 -> then-arm -> 7
+    ([65, 0, 4, 127, 65, 7, 5, 65, 9, 11, 11], 9, 12, 100),   # cond 0 -> else-arm -> 9
+    # if WITHOUT else (blocktype empty = 0x40=64): local0=5; if (cond) { local0=9 }; get local0
+    ([65, 5, 33, 0, 65, 0, 4, 64, 65, 9, 33, 0, 11, 32, 0, 11], 5, 14, 100),  # cond 0 -> skip -> 5
+    ([65, 5, 33, 0, 65, 1, 4, 64, 65, 9, 33, 0, 11, 32, 0, 11], 9, 14, 100),  # cond 1 -> run  -> 9
 ]
 
 

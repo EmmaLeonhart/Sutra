@@ -11,9 +11,9 @@
 // byte signed LEB128 for i32.const, INDEXED locals (local.get/set/tee with an unsigned
 // single-byte LEB128 index — NEW vs the JVM core's fixed-opcode locals: the local cell
 // is computed 200+idx, a hard-addressed write), COMPARISONS (i32.eqz + the six
-// ordered/equality i32 compares), and STRUCTURED CONTROL — block/loop/br/br_if/end via
-// a load-time PRE-RESOLVED target table (host-side compilation resolves the nesting to
-// absolute targets; the substrate reads the table + does a JVM-shaped jump). if/else next.
+// ordered/equality i32 compares), and STRUCTURED CONTROL — block/loop/if/else/br/br_if/end
+// via a load-time PRE-RESOLVED target table (host-side compilation resolves the nesting to
+// absolute targets; the substrate reads the table + does a JVM-shaped jump).
 //
 // SUBSTRATE-PURE: no .real(), no host arithmetic on values — values stay number-
 // vectors; comparisons/dispatch are 0-dim truth-axis tensors; ram addresses decode
@@ -33,6 +33,8 @@
 //   0x45/69=i32.eqz(unary: top==0)  0x46/70=i32.eq  0x47/71=i32.ne  0x48/72=i32.lt_s
 //   0x4a/74=i32.gt_s  0x4c/76=i32.le_s  0x4e/78=i32.ge_s  (binary: push 0/1)
 //   0x02/2=block  0x03/3=loop  (+blocktype byte; runtime no-ops, targets in the table)
+//   0x04/4=if(+blocktype; pop cond; nonzero->then-arm, zero->else+1/end+1)  0x05/5=else
+//     (jump to matching end+1 — reached only at the end of the then-arm)
 //   0x0c/12=br(unconditional)  0x0d/13=br_if(pop cond; branch iff nonzero)  (+LEB label)
 //   0x0b/11=end(table: inner->fall-through, function-final->halt)  0x0f/15=return(halt)
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1). pc
@@ -66,6 +68,8 @@ function int step(scalar d) {
     int is_ge = truth_axis(defuzzy(op == 78));       // i32.ge_s 0x4e
     int is_block = truth_axis(defuzzy(op == 2));     // block    0x02 (+blocktype byte)
     int is_loop = truth_axis(defuzzy(op == 3));      // loop     0x03 (+blocktype byte)
+    int is_if = truth_axis(defuzzy(op == 4));        // if       0x04 (+blocktype byte)
+    int is_else = truth_axis(defuzzy(op == 5));      // else     0x05
     int is_br = truth_axis(defuzzy(op == 12));       // br       0x0c (+LEB label)
     int is_br_if = truth_axis(defuzzy(op == 13));    // br_if    0x0d (+LEB label)
     int is_end = truth_axis(defuzzy(op == 11));      // end      0x0b
@@ -143,9 +147,10 @@ function int step(scalar d) {
     int s_gt = (((1 + is_gt) * (sp_binop)) + ((1 - is_gt) * (s_lt))) / 2;
     int s_le = (((1 + is_le) * (sp_binop)) + ((1 - is_le) * (s_gt))) / 2;
     int s_ge = (((1 + is_ge) * (sp_binop)) + ((1 - is_ge) * (s_le))) / 2;
-    // br_if pops its condition (-1); br/block/loop/end leave sp unchanged.
+    // br_if and if pop their condition (-1); br/block/loop/else/end leave sp unchanged.
     int s_brif = (((1 + is_br_if) * (sp_binop)) + ((1 - is_br_if) * (s_ge))) / 2;
-    int s_get = (((1 + is_get) * (sp + 1)) + ((1 - is_get) * (s_brif))) / 2;
+    int s_if = (((1 + is_if) * (sp_binop)) + ((1 - is_if) * (s_brif))) / 2;
+    int s_get = (((1 + is_get) * (sp + 1)) + ((1 - is_get) * (s_if))) / 2;
     int s_set = (((1 + is_set) * (sp_binop)) + ((1 - is_set) * (s_get))) / 2;
     int new_sp = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_set))) / 2;
     ramWrite(1, new_sp);
@@ -159,12 +164,18 @@ function int step(scalar d) {
     // their effect is entirely in the table; they advance to pc_seq.)
     int two_byte = ((is_const + 1) / 2) + ((is_get + 1) / 2) + ((is_set + 1) / 2)
                  + ((is_tee + 1) / 2) + ((is_block + 1) / 2) + ((is_loop + 1) / 2)
-                 + ((is_br + 1) / 2) + ((is_br_if + 1) / 2);
+                 + ((is_if + 1) / 2) + ((is_br + 1) / 2) + ((is_br_if + 1) / 2);
     int pc_seq = pc + 1 + two_byte;
     int pc_tgt = ramRead(390 + pc);
     // br_if: jump to target iff the popped condition (top1) is nonzero (v_eqz == 0).
     int brif_tgt = ((1 - v_eqz) * pc_tgt) + (v_eqz * pc_seq);
-    int p_brif = (((1 + is_br_if) * (brif_tgt)) + ((1 - is_br_if) * (pc_seq))) / 2;
+    // if: pop condition; nonzero (v_eqz==0) -> fall into the then-arm (pc_seq); zero
+    // -> jump to the false-target (pc_tgt = else+1, or end+1 if no else). else: always
+    // jump to pc_tgt (= matching end+1) — only reached at the end of the then-arm.
+    int if_tgt = (v_eqz * pc_tgt) + ((1 - v_eqz) * pc_seq);
+    int p_if = (((1 + is_if) * (if_tgt)) + ((1 - is_if) * (pc_seq))) / 2;
+    int p_else = (((1 + is_else) * (pc_tgt)) + ((1 - is_else) * (p_if))) / 2;
+    int p_brif = (((1 + is_br_if) * (brif_tgt)) + ((1 - is_br_if) * (p_else))) / 2;
     int p_br = (((1 + is_br) * (pc_tgt)) + ((1 - is_br) * (p_brif))) / 2;
     int p_end = (((1 + is_end) * (pc_tgt)) + ((1 - is_end) * (p_br))) / 2;
     int new_pc = (((1 + is_return) * (pc)) + ((1 - is_return) * (p_end))) / 2;
