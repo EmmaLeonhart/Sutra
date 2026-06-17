@@ -35,6 +35,7 @@
 //          25=ABS(pop a, push |a|; unary, net sp 0; boundary-correct at 0)
 //          26=SQR(pop a, push a*a; unary, net sp 0)
 //          27=NIP(drop the second-from-top, keep top; net sp -1)
+//          28=ROT([a b c] -> [b c a]; rotate top three, net sp 0)
 // State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
 // output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
 // program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
@@ -48,6 +49,7 @@ function int step(scalar d) {
     int imm = ramRead(pc + 1);
     int top1 = ramRead(99 + sp);
     int top2 = ramRead(98 + sp);
+    int top3 = ramRead(97 + sp);   // third-from-top (for ROT); unused by other ops
     int is_const = truth_axis(defuzzy(op == 1));
     int is_add = truth_axis(defuzzy(op == 2));
     int is_sub = truth_axis(defuzzy(op == 3));
@@ -75,6 +77,7 @@ function int step(scalar d) {
     int is_abs = truth_axis(defuzzy(op == 25));
     int is_sqr = truth_axis(defuzzy(op == 26));
     int is_nip = truth_axis(defuzzy(op == 27));
+    int is_rot = truth_axis(defuzzy(op == 28));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -140,8 +143,16 @@ function int step(scalar d) {
     int b_sub = (((1 + is_sub) * (v_sub)) + ((1 - is_sub) * (b_mul))) / 2;
     int b_min = (((1 + is_min) * (v_min)) + ((1 - is_min) * (b_sub))) / 2;
     int b_max = (((1 + is_max) * (v_max)) + ((1 - is_max) * (b_min))) / 2;
-    int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_max))) / 2;
+    // ROT [a b c] -> [b c a] (net sp 0): the middle cell (98+sp) gets the old top
+    // (top1=c); the deepest (97+sp) gets the old second (top2=b); the top (99+sp)
+    // gets the old third (top3=a). ROT writes 98+sp = top1 here.
+    int b_rot = (((1 + is_rot) * (top1)) + ((1 - is_rot) * (b_max))) / 2;
+    int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_rot))) / 2;
     ramWrite(98 + sp, new_lo);
+    // ROT deepest cell (97+sp) = top2; every other opcode rewrites it with its
+    // existing value top3 (a no-op — only ROT touches 97+sp).
+    int new_97 = (((1 + is_rot) * (top2)) + ((1 - is_rot) * (top3))) / 2;
+    ramWrite(97 + sp, new_97);
     // LOAD: pop addr (top1), push ram[addr] -> rewrite the top cell (99+sp) with
     // the loaded value (else keep). Net sp 0. Data region is the program's choice
     // (use addresses outside [0..2]/program/stack, e.g. 200+).
@@ -162,7 +173,9 @@ function int step(scalar d) {
     int n99_abs = (((1 + is_abs) * (v_abs)) + ((1 - is_abs) * (n99_neg))) / 2;
     // SQR: top1 * top1, unary (net sp 0). Negatives verified, so (-5)^2 = 25.
     int v_sqr = top1 * top1;
-    int new_99 = (((1 + is_sqr) * (v_sqr)) + ((1 - is_sqr) * (n99_abs))) / 2;
+    int n99_sqr = (((1 + is_sqr) * (v_sqr)) + ((1 - is_sqr) * (n99_abs))) / 2;
+    // ROT moves the old third-from-top (top3=a) to the new top.
+    int new_99 = (((1 + is_rot) * (top3)) + ((1 - is_rot) * (n99_sqr))) / 2;
     ramWrite(99 + sp, new_99);
     // STORE: pop value (top1) and addr (top2), write ram[addr]=value (else no-op
     // rewrite of ram[top2] with its existing value). Net sp -2.

@@ -14,7 +14,8 @@ Opcodes: 0=HALT 1=CONST(imm) 2=ADD 3=SUB 4=MUL 5=AND(bitwise) 6=BR_IF(abs target
 16=DROP 17=GT 18=GE 19=LE 20=NE 21=NEG(unary negate top, net sp 0)
 22=MIN(binary min(top2,top1), net sp -1) 23=MAX(binary max(top2,top1), net sp -1)
 24=OVER(push copy of second-from-top, net sp +1) 25=ABS(unary |top|, net sp 0)
-26=SQR(unary top*top, net sp 0) 27=NIP(drop second-from-top, net sp -1).
+26=SQR(unary top*top, net sp 0) 27=NIP(drop second-from-top, net sp -1)
+28=ROT([a b c]->[b c a], rotate top three, net sp 0).
 """
 
 from __future__ import annotations
@@ -135,6 +136,9 @@ _CASES = [
     ([(1, 5), (21, 0), (26, 0), (0, 0)], 25, 12, 100),        # 5; NEG; SQR -> (-5)^2 = 25
     ([(1, 3), (1, 5), (27, 0), (0, 0)], 5, 12, 100),          # 3,5; NIP -> drop 3, keep 5
     ([(1, 3), (1, 5), (27, 0), (1, 2), (2, 0), (0, 0)], 7, 12, 100),  # 3,5; NIP; 2; ADD -> 5+2 = 7 (usable stack)
+    ([(1, 1), (1, 2), (1, 3), (28, 0), (0, 0)], 1, 12, 102),  # [1,2,3]; ROT -> [2,3,1]; new top = 1
+    ([(1, 1), (1, 2), (1, 3), (28, 0), (0, 0)], 2, 12, 100),  # ...new deepest = 2
+    ([(1, 1), (1, 2), (1, 3), (28, 0), (2, 0), (0, 0)], 4, 12, 101),  # ROT then ADD -> 3+1 = 4 (usable stack)
     ([(1, 5), (1, 5), (10, 0), (0, 0)], 0, 12, 100),          # 5 < 5 -> 0 (LT equality boundary)
     ([(1, 5), (1, 5), (17, 0), (0, 0)], 0, 12, 100),          # 5 > 5 -> 0 (GT equality boundary)
     (_LOOP, 3, 60, 201),                                       # memory loop, 3 iterations -> acc 3
