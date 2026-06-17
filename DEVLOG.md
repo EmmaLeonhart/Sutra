@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 2 (single non-tail → tail) verified DONE across frontends
+
+Investigated the tier-2 status (single linear non-tail recursion → tail form) before building, and
+found it was already implemented in the earlier transpiler sprint — predating the Phase-5.5 framing.
+All 8 functional frontends (ocaml/haskell/fsharp/rust/elixir/erlang/clojure/scala) carry a
+`_try_lower_foldable_nontail` transform (the CPS/accumulator rewrite of `LEAF +|* f(n-1)` into an
+accumulator carried tail-recursively → a substrate `loop`) and ship a `nontail_fact` fixture each.
+Verified on the substrate (not just lowering comparison): the OCaml harness has
+`test_fixture_runs_on_substrate` (runs via `sutrac --run` / the PyTorch codegen) plus a negative
+test `test_foldable_nontail_param_dependent_base_stays_unsupported` (the transform correctly REJECTS
+shapes it can't fold). Ran the non-tail suites locally: OCaml 7 passed, Haskell 2 passed, Rust 2
+passed; all 9 frontends are gated by `transpilers-ci`. So tier 2 is complete and substrate-verified;
+removed it from queue Phase 5.5. Remaining Phase-5.5 work is the genuinely-new, harder tiers: tier 3
+(fixed-depth multiple → compile-time pre-evaluation) and tier 4 (dynamic multiple, pure → automatic
+memoization). Also: the WASM-core step-5c full pytest confirmed 45 passed (the core is fully green).
+
 ## 2026-06-17: Recursion execution model — spec distilled from the reference chat (Phase 5.5)
 
 Read Emma's reference chat *"Converting single recursion to tail recursion"*
