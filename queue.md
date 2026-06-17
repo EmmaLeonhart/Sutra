@@ -63,29 +63,14 @@ via pre-evaluation or memoization, and WASM shrinks to a tier-5 fallback for gen
 **Tier 1 (tail/loops → recurrent neurons) and Tier 2 (single non-tail → tail) are DONE** — tier 2 is
 the `_try_lower_foldable_nontail` transform present in all 8 functional frontends with a `nontail_fact`
 fixture each, verified 2026-06-17 to compile AND run == reference on the substrate (OCaml/Haskell/Rust
-sampled locally; all 9 gated by `transpilers-ci`). Remaining (the genuinely-new, harder tiers):
+sampled locally; all 9 gated by `transpilers-ci`). **Tier 3 (fixed-depth multiple → compile-time
+pre-evaluation) is also DONE** — `sutra_compiler/preeval.py` (opt-in `--preeval` / `--max-preeval-depth`
++ atman.toml `max_preeval_depth`, default 128; folds a constant-arg bounded-pure-recursive call to a
+literal + prunes the dead fn; `test_preeval.py` 11/11 on the substrate). Emma 2026-06-17 resolved the
+formerly-open policy: **pre-eval stays OPT-IN, no automatic pre-eval by default** — so tier 3 is
+complete as shipped. Remaining (the last genuinely-new tier):
 
-- [ ] **(B / tier 3) Fixed-depth multiple recursion → compile-time pre-evaluation.** SCOPED
-  2026-06-17 — `planning/exploratory/2026-06-17-phase5.5-tier3-preeval-scoping.md`. Investigation
-  found NO existing bounded-recursion pre-eval (simplify.py folds arithmetic; loop_desugar makes
-  loops; neither evaluates a recursive call to a constant) — so this is genuinely-new machinery: a
-  compile-time partial evaluator (host-side, pure — same category as the existing arithmetic
-  constant-folding, NOT runtime substrate execution) that, for a pure recursive call with
-  compile-time-literal controlling args and a provable depth bound ≤ `max_preeval_depth`, evaluates
-  it to a literal (memoized at compile time so it doesn't blow up). Sub-steps:
-  - [ ] **3c — ASK EMMA (AskUserQuestion):** the *when-NOT-to-pre-evaluate* default policy — Emma
-    flagged this UNSOLVED (binary-size / startup / runtime-flexibility tradeoff). Candidate policies
-    in the scoping doc (aggressive-to-cap / small-result-only / annotation-only / cost-model). This
-    blocks enabling AUTOMATIC pre-eval (NOT the opt-in mechanism, which is shipped). Drain via
-    AskUserQuestion — known-open problem Emma named, not a rotting deferred item. **3a + 3b are DONE
-    2026-06-17:** `sutra_compiler/preeval.py` opt-in compile-time partial evaluator (folds a
-    constant-arg call to a bounded pure recursive fn to a literal w/ depth-limit + memoization, prunes
-    the dead fn); wired as `--preeval` / `--max-preeval-depth` CLI args + `[project.compile]
-    max_preeval_depth` in atman.toml; default 128 (host-stack-safe, finding
-    `2026-06-17-preeval-depth-default.md`). `test_preeval.py` 11/11 incl. CLI wiring + `--run --preeval`
-    fib(8)→21 on the substrate. So tier 3's MECHANISM ships; only the automatic-default policy (3c)
-    remains, and it's an Emma decision, not implementation.
-- [ ] **(C / tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).**
+- [ ] **(tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).**
   Memoize EVERYTHING by default (pure functions make caching always valid); the memo store is a
   **lazy lookup table / DAG**, NOT a stack, realized as recurrent-neuron state (fits the
   stateful-program-as-time-series model). Flattens the call tree to a DAG (naive `fib` → linear).

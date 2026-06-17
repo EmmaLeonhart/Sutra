@@ -60,7 +60,10 @@ In order of preference — each tier is more general and more expensive than the
    compile time safe. Same machinery as loop unrolling (which Sutra is already good at). A
    **maximum pre-evaluation depth** caps this; the default should be **empirically tested** and live
    as a **compilation argument** (always present in the project `.toml`, the IDE may auto-fill it).
-   *(Status: not yet implemented; "leverages existing loop optimization", expected tractable.)*
+   *(Status: DONE 2026-06-17 — `sutra_compiler/preeval.py`, an OPT-IN compile-time partial evaluator
+   (`--preeval` / `--max-preeval-depth`, atman.toml `max_preeval_depth`, default 128) folding a
+   constant-arg bounded-pure-recursive call to a literal + pruning the dead fn; `test_preeval.py`
+   11/11 on the substrate. Per Emma: opt-in, no automatic pre-eval by default.)*
 
 4. **Dynamic multiple recursion (pure) → automatic memoization (stays native).** When the depth
    isn't static, memoize. Because functions are pure, the compiler memoizes **everything** by
@@ -99,10 +102,12 @@ After tiers 3–4 land, WASM (tier 5) is reserved for genuinely imperative / `ev
 
 ## Open problems
 
-- **When NOT to pre-evaluate.** There are cases where you'd defer evaluation to runtime even when
-  you technically could evaluate at compile time (binary size, startup time, runtime flexibility).
-  Deciding this is **currently unsolved in Sutra** and worth a dedicated design pass before building
-  tier 3's policy.
+- **When NOT to pre-evaluate — RESOLVED (Emma 2026-06-17): pre-eval stays OPT-IN.** The tier-3
+  mechanism ships behind an explicit `--preeval` flag (/ `--max-preeval-depth`, atman.toml
+  `max_preeval_depth`, default 128); there is **no automatic pre-evaluation by default**. This
+  sidesteps the binary-size / startup / runtime-flexibility tradeoff entirely (predictable, zero
+  bloat risk) and defers any automatic policy until a concrete need arises. Implemented in
+  `sutra_compiler/preeval.py`; see the finding `planning/findings/2026-06-17-preeval-depth-default.md`.
 - **Overlap detection is undecidable in general.** Emma's resolution: don't try to detect overlap —
   **memoize everything** (it's the execution environment), and let the fixed-depth tier handle the
   cases where unrolling is clearly better. So tier 4 is the default for all dynamic multiple

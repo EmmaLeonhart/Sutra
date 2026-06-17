@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 3 COMPLETE — Emma resolved the pre-eval default policy (opt-in only)
+
+Asked Emma (AskUserQuestion) the formerly-unsolved "when NOT to pre-evaluate" default policy now that
+the mechanism (3a) + CLI wiring (3b) ship. **Emma's call: keep pre-evaluation OPT-IN — no automatic
+pre-evaluation by default.** This sidesteps the binary-size / startup / runtime-flexibility tradeoff
+entirely (predictable, zero bloat risk) and defers any automatic policy until a concrete need. So
+tier 3 is complete as shipped: `--preeval` folds bounded pure recursion at compile time; nothing
+pre-evaluates unless asked. Recorded the resolution in `planning/sutra-spec/recursion-execution-model.md`
+(the open problem is closed; tier-3 status → DONE) and closed the tier-3 items in queue.md. The last
+remaining Phase-5.5 build is tier 4 (dynamic multiple recursion → automatic memoization, stays native).
+
 ## 2026-06-17: Phase 5.5 tier 3 step 3b — wire `--preeval` / `max_preeval_depth` (CLI + atman.toml)
 
 Exposed the tier-3 pre-evaluation pass as a real compilation argument. Added `--preeval` (opt-in
