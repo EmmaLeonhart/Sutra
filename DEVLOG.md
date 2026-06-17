@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-17: Rust frontend — nullary-variant values (Phase 3)
+
+Work-loop sprint tick — `enum Dir { North, South }` with `Dir::South` used as a VALUE now
+constructs a `{_tag}` axon (was the flagged "ambiguous with a plain name — a later item"). Two
+changes: (a) `_lower_match_stmts` gained a `scoped_identifier` nullary-pattern case (`Dir::North`
+in a match arm → test `(_vtag == tag)`, no payload — alongside the existing payload
+`tuple_struct_pattern`); (b) the value-construction hoist (`_hoist_enum_constructions`) now
+constructs a bare nullary `scoped_identifier` (`Dir::South` → `Axon t; t.add("_tag", k);`),
+GUARDED against match-PATTERN positions via `n.parent.type != "match_pattern"` (a `Dir::North`
+pattern is also a `scoped_identifier`, but it is handled by the match lowering, not the value
+hoist). The F#-style "only declared 0-arity variants" restriction (`_VARIANTS[v][2] == 0`)
+sidesteps the bare-name ambiguity. New fixture `nullary_variant` (`code(Dir::South)` → the
+South arm) runs on the substrate to **20**; the payload-variant `enum_match`/`nested_match`
+fixtures still pass (the guard does not disturb scoped payload patterns). Suite 32→34. (A
+nullary variant as a `let` value works via the hoist but binds an int-typed local to the axon —
+a documented cleanup item.)
+
 ## 2026-06-16: F# frontend — record functional-update `{ p with x = 9 }` (Phase 3)
 
 Work+report sprint tick — the F# analogue of Rust's `..base` struct spread, but harder: F#'s
