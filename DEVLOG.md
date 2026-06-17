@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-16: Yantra GUI integration UNBLOCKED — shallow-cloned + planned (corrected error)
+
+Corrected a wrong call: I had reported Yantra integration as "blocked, no submodule." Emma:
+Yantra is shallow-cloned (depth-1, NO submodule recursion), not depended on as a submodule.
+Cloned `https://github.com/EmmaLeonhart/Yantra` into `external/Yantra/` and preserved it in the
+project (gitignored — re-freshable by the cron, NOT committed: it would duplicate the repo and
+tangle with Yantra's own `external/Sutra` submodule). Explored the integration contract: Yantra
+`apps/` GUI entries are host surfaces over substrate compute — `apps/gui-rust/` (a minifb Rust
+window) spawns `external/Sutra/demos/gui/counter_substrate_server.py` and paints its frames;
+apps are kernel-admitted, processes described by `.yprc`. The Sutra GUI demos already live at
+`external/Sutra/demos/gui/`. So the trainable-button window integrates as a Yantra surface that
+spawns a Sutra substrate-server. Planned the Y-track: Y1 (Sutra-side stdin/stdout button
+substrate-server mirroring counter_substrate_server.py — the buildable-here half, CI-testable),
+Y2 (a `apps/gui-button` surface in the Yantra repo, drafted here / applied in a Yantra session),
+Y3 (integration docs). Mirrored Y1–Y3 to the task tool.
+
 ## 2026-06-16: trainable button B9 — click-driven copy bandit (CTR loop fully closed)
 
 B7 learned the VISUAL CTR from clicks but left the discrete copy fixed in live mode — yet copy
