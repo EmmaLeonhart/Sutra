@@ -13,7 +13,7 @@ Opcodes: 0=HALT 1=CONST(imm) 2=ADD 3=SUB 4=MUL 5=AND(bitwise) 6=BR_IF(abs target
 7=LOAD 8=STORE 9=EQ 10=LT 11=OUTPUT 12=OR(bitwise) 13=XOR(bitwise) 14=DUP 15=SWAP
 16=DROP 17=GT 18=GE 19=LE 20=NE 21=NEG(unary negate top, net sp 0)
 22=MIN(binary min(top2,top1), net sp -1) 23=MAX(binary max(top2,top1), net sp -1)
-24=OVER(push copy of second-from-top, net sp +1).
+24=OVER(push copy of second-from-top, net sp +1) 25=ABS(unary |top|, net sp 0).
 """
 
 from __future__ import annotations
@@ -126,6 +126,10 @@ _CASES = [
     ([(1, 3), (1, 5), (24, 0), (0, 0)], 3, 12, 102),          # 3,5; OVER -> new top (copy of 2nd) = 3 @102
     ([(1, 3), (1, 5), (24, 0), (0, 0)], 5, 12, 101),          # ...original top 5 preserved @101
     ([(1, 3), (1, 5), (24, 0), (2, 0), (0, 0)], 8, 12, 101),  # 3,5; OVER; ADD -> 5+3 = 8 (usable stack)
+    ([(1, 5), (25, 0), (0, 0)], 5, 12, 100),                  # ABS(5) -> 5 (positive unchanged)
+    ([(1, 0), (25, 0), (0, 0)], 0, 12, 100),                  # ABS(0) -> 0 (boundary)
+    ([(1, 5), (21, 0), (25, 0), (0, 0)], 5, 12, 100),         # 5; NEG; ABS -> |-5| = 5 (neg compare+negate)
+    ([(1, 5), (21, 0), (1, 5), (21, 0), (4, 0), (0, 0)], 25, 12, 100),  # (-5)*(-5) = 25 (neg*neg, existing ops)
     ([(1, 5), (1, 5), (10, 0), (0, 0)], 0, 12, 100),          # 5 < 5 -> 0 (LT equality boundary)
     ([(1, 5), (1, 5), (17, 0), (0, 0)], 0, 12, 100),          # 5 > 5 -> 0 (GT equality boundary)
     (_LOOP, 3, 60, 201),                                       # memory loop, 3 iterations -> acc 3

@@ -32,6 +32,7 @@
 //          22=MIN(pop top1,top2; push min(top2,top1); binary, net sp -1)
 //          23=MAX(pop top1,top2; push max(top2,top1); binary, net sp -1)
 //          24=OVER(push a copy of the second-from-top; net sp +1, like DUP of top2)
+//          25=ABS(pop a, push |a|; unary, net sp 0; boundary-correct at 0)
 // State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
 // output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
 // program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
@@ -69,6 +70,7 @@ function int step(scalar d) {
     int is_min = truth_axis(defuzzy(op == 22));
     int is_max = truth_axis(defuzzy(op == 23));
     int is_over = truth_axis(defuzzy(op == 24));
+    int is_abs = truth_axis(defuzzy(op == 25));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -139,11 +141,18 @@ function int step(scalar d) {
     int loaded = ramRead(top1);
     // NEG: unary negate the top in place (net sp 0, like LOAD; rewrites 99+sp).
     int v_neg = 0 - top1;
+    // ABS: |top1|, unary (net sp 0, like NEG). Boundary-correct negative flag —
+    // `top1 < 0` is the strict comparison that defuzzes ambiguously AT 0, so gate
+    // it with (1 - is-zero): at top1 == 0, abs_neg = 0 -> v_abs = top1 = 0.
+    int abs_is_zero = (truth_axis(defuzzy(top1 == 0)) + 1) / 2;
+    int abs_neg = (1 - abs_is_zero) * ((truth_axis(defuzzy(top1 < 0)) + 1) / 2);
+    int v_abs = (abs_neg * (0 - top1)) + ((1 - abs_neg) * top1);
     // 99+sp (top) chain: NEG writes -top1; LOAD writes the loaded value; SWAP
     // writes top2 (old second moves up); else keep top1.
     int n99_swap = (((1 + is_swap) * (top2)) + ((1 - is_swap) * (top1))) / 2;
     int n99_load = (((1 + is_load) * (loaded)) + ((1 - is_load) * (n99_swap))) / 2;
-    int new_99 = (((1 + is_neg) * (v_neg)) + ((1 - is_neg) * (n99_load))) / 2;
+    int n99_neg = (((1 + is_neg) * (v_neg)) + ((1 - is_neg) * (n99_load))) / 2;
+    int new_99 = (((1 + is_abs) * (v_abs)) + ((1 - is_abs) * (n99_neg))) / 2;
     ramWrite(99 + sp, new_99);
     // STORE: pop value (top1) and addr (top2), write ram[addr]=value (else no-op
     // rewrite of ram[top2] with its existing value). Net sp -2.
