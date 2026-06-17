@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-17: WASM core step 5 — call-frame machine scoping doc (Phase 5)
+
+Scoped the final WASM-core step — `call` + a recursive call-frame stack — before coding it
+(`planning/exploratory/2026-06-17-phase5-wasm-call-frames-scoping.md`), the enabler for queue Phase
+5.5-B (tree recursion → WASM). Unlike steps 1–4 there is NO JVM template (the JVM core ran single
+methods, never did calls), and this is the only step that REDESIGNS the machine's addressing:
+recursion needs each call to have its own locals + operand stack to arbitrary depth, so the fixed
+operand-stack base (RAM 100) and fixed locals (RAM 200+idx) become FRAME-RELATIVE — a frame pointer
+`fp`, locals at `fp+idx`, operand stack at `fp+nloc`-relative — plus a control/return stack and a
+host-built function table (the same load-time compilation pattern as the branch-target table). Key
+simplification captured: **args-in-place** — set the callee frame base `new_fp = fp+nloc+sp-nargs` so
+the callee's locals 0..nargs-1 ALIAS the caller's top operands, avoiding a variable-length copy loop
+(which a one-instruction-per-step machine can't run). `call` pushes a 4-cell control entry
+(return_pc, saved_fp, saved_nloc, saved_sp); `return`/`end` pops it, places the return value where the
+args were, and the `csp==0` case recovers the existing step-1..4 top-level halt. Decomposed into
+5a (frame-relative refactor, regression-gated by the 34 existing tests) → 5b (function table +
+non-recursive `call`/`return`, `add(3,4)→7`) → 5c (recursion, `fib(0..6)=0,1,1,2,3,5,8`). Flagged
+as the measurement-required-breach class (a frame-math bug silently corrupts a sibling frame), so each
+sub-step ships a measured substrate test. Step-4 full pytest confirmed 34 passed. Next: implement 5a.
+
 ## 2026-06-17: Real-WASM-bytecode core step 4 — a real WASM factorial runs byte-for-byte (Phase 5)
 
 Ran a REAL-WASM-encoded iterative-factorial function byte-for-byte on the substrate — the WASM
