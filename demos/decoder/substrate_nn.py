@@ -38,3 +38,54 @@ def dense_layers():
     ops, not elementwise over activation buffers (D1 finding)."""
     mod = compile_dense()
     return mod.dense, mod.dense_cube, mod._VSA
+
+
+# --- D2: Fourier-feature input encoding + the substrate-MLP recipe ---
+#
+# The decoder's expressivity comes from a Fourier-feature encoding of the input coordinates
+# (Tancik et al.): the substrate's tanh/sin can't run elementwise over activation buffers
+# (D1), so instead of SIREN sin-activations we feed sin/cos of the coordinates as INPUT. That
+# encoding is host-built input geometry — the same compile-time boundary as the X/Y grid; the
+# LEARNED forward (matmul + cubic) stays on the substrate.
+
+def fourier_features(coords, num_freqs: int = 4):
+    """Encode `coords` (N, d) in [-1,1] as `[coords, sin(πf·coords), cos(πf·coords)]` for
+    f ∈ {2^0..2^(num_freqs-1)} → (N, d·(1+2·num_freqs)). Host-built input geometry (not a
+    substrate computation; the trainable decoder forward is the substrate part)."""
+    import math
+    import torch
+    feats = [coords]
+    for k in range(num_freqs):
+        f = float(2 ** k) * math.pi
+        feats.append(torch.sin(f * coords))
+        feats.append(torch.cos(f * coords))
+    return torch.cat(feats, dim=-1)
+
+
+def init_mlp(sizes, dtype, device, seed: int = 0):
+    """Initialise MLP params: a list of (W (out,in), b (out,1)) leaf tensors with
+    requires_grad. Kaiming-ish scale (1/√in) keeps the cubic activation from blowing up."""
+    import math
+    import torch
+    torch.manual_seed(seed)
+    params = []
+    for i in range(len(sizes) - 1):
+        in_d, out_d = sizes[i], sizes[i + 1]
+        W = (torch.randn(out_d, in_d, dtype=dtype, device=device) / math.sqrt(in_d))
+        W = W.detach().requires_grad_(True)
+        b = torch.zeros(out_d, 1, dtype=dtype, device=device, requires_grad=True)
+        params.append((W, b))
+    return params
+
+
+def mlp_forward(params, X):
+    """Batched substrate MLP forward. `X` is (in, N); `params` = [(W,b), …] with W (out,in),
+    b (out,1). Hidden layers use the cubic activation; the final layer is linear. The forward
+    is substrate ops (compiled `matmul` + hadamard cube); the host only chains the layers
+    (named orchestration, the button-render pattern). Returns (out, N)."""
+    dense, dense_cube, _vsa = dense_layers()
+    h = X
+    for W, b in params[:-1]:
+        h = dense_cube(W, h, b)
+    W, b = params[-1]
+    return dense(W, h, b)

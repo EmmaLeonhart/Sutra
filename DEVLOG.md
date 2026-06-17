@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-17: learned decoder D2 — Fourier-feature encoding + the substrate-MLP recipe
+
+Settled the decoder recipe (`substrate_nn.py`: `fourier_features`, `init_mlp`, `mlp_forward`).
+Since the substrate's tanh/sin aren't elementwise (D1), expressivity comes from a host-built
+**Fourier-feature** encoding of the coordinates — `[coords, sin(πf·c), cos(πf·c)]` for
+f∈2^0..2^(L-1) — the same compile-time input-geometry boundary as the X/Y grid; the LEARNED
+forward (batched `matmul` + hadamard cubic, host-chained like the button render) stays on the
+substrate. Kaiming-ish init (1/√in) keeps the cubic from exploding. TDD `test_encoding.py` (3),
+green CPU+CUDA: features well-formed + bounded; a Fourier-feature substrate MLP fits sin(3πx)
+NaN-free to MSE **0.0003**; and Fourier beats raw coordinates **0.0003 vs 0.3135** (~1000×) —
+the encoding earns its place. Recipe locked for D3's whole-frame coordinate decoder.
+
 ## 2026-06-17: learned decoder D1 — the substrate TRAINS (trainable dense layer)
 
 `demos/decoder/dense.su` (`dense(W,x,b)=matmul(W,x)+b`, + `dense_cube` cubic activation) +
