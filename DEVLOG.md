@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-17: learned decoder D13 — latent-conditioned RGB generation (colour)
+
+Extended the generative decoder (D7, grayscale) to COLOUR: an auto-decoder over a red-blob and
+a blue-blob colour target (3-output, latent-conditioned). TDD `test_latent_rgb.py` (2), green
+CPU+CUDA: each latent reconstructs its colour (MSE red 0.0064 / blue 0.0052), and interpolating
+the latent shifts the generated colour red→blue (centre redness R−B +0.30 → −0.01 → −0.34,
+monotonic). Arbitrary-colour image generation from a latent, on the substrate render. (Caught +
+fixed a test-helper bug while verifying — `_centre_rgb` did `np.asarray` on a CUDA tensor;
+`.cpu()` first. The CUDA failure was that, not training fragility; both devices green after.)
+
 ## 2026-06-17: finding — substrate transcendentals are canonical-only (on-substrate encoding blocked)
 
 Probed the next decoder follow-on (emit the Fourier encoding ON the substrate) and recorded a
