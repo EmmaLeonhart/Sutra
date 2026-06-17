@@ -53,10 +53,9 @@ _Phase D-A ✅ (D1 dense layer + D2 encoding/recipe). Recipe: Fourier-feature in
 (host geometry) + cubic-activation substrate MLP, host-chained — Fourier beat raw 0.0003 vs
 0.3135 MSE on a wave._
 
-_Phase D-B — minimal implicit decoder (single image):_
-- [ ] **D4 — reconstruct an arbitrary image.** Train D3 to fit a target field (start: the
-  analytic glow; then a real small image). Measure MSE↓ / PSNR↑ over training; before/after
-  figure. The "decoder learns an arbitrary frame" milestone.
+_Phase D-B ✅ COMPLETE (D3 render + D4 reconstruction). Milestone: the learned substrate decoder
+reconstructs an arbitrary two-blob image to MSE 0.0058 / PSNR 22.4 dB (H=64, 800 steps; 28.5 dB
+at H=96) — a frame the analytic render can't make, learned on the substrate._
 
 _Phase D-C — RGB + capacity:_
 - [ ] **D5 — RGB decoder.** 3-output; reconstruct a colour target, measured.

@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-17: learned decoder D4 — reconstructs an arbitrary image (MILESTONE)
+
+The EMMA-gated headline: the learned substrate decoder **reconstructs an arbitrary frame**.
+`substrate_nn.py` gains `fit_decoder` (host-side Adam over the weights, MSE through the
+substrate render) + `psnr`. TDD `test_reconstruct.py` trains the decoder to fit a target the
+analytic hero/button renders cannot make — two off-centre gaussian blobs of different size and
+intensity — and measures it: MSE **332 → 0.0058 (PSNR 22.4 dB)** at H=64/800 steps (0.0014 /
+28.5 dB at H=96/1200), NaN-free, on a 24² grid. Test asserts final MSE < 0.02, PSNR > 17 dB,
+and final < 1% of start — green on CPU **and** CUDA. Every forward op is on the substrate
+(`matmul` + hadamard cubic); only Adam is host-side. **Phase D-B complete** — "the decoder
+learns a frame" is demonstrated and measured. Next: RGB (D5), capacity (D6), then the
+generative step — latent-conditioned generation (D7).
+
 ## 2026-06-17: learned decoder D3 — whole-frame coordinate decoder
 
 `substrate_nn.py` gains `coord_grid` (the (N²,2) (x,y) grid, hero raster), `decoder_input_dim`,
