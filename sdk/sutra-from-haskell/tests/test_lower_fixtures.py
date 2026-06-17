@@ -37,6 +37,7 @@ _RUNNABLE = {
     "multiclause_fact": 120.0,  # fac 0 = 1; fac n = n * fac (n-1); main = fac 5  (multi-equation pattern recursion -> synthesized (n==0) cond -> CPS fold loop)
     "multiclause_tailsum": 15.0,  # sum 0 acc = acc; sum n acc = sum (n-1) (acc+n); main = sum 5 0  (multi-PARAM multi-equation tail recursion -> while_loop)
     "guarded_fact": 120.0,  # fac n | n == 0 = 1 | otherwise = n * fac (n-1); main = fac 5  (GUARDED recursion -> cond from guard -> CPS fold loop)
+    "guarded_tailsum": 15.0,  # sumTo n acc | n == 0 = acc | otherwise = sumTo (n-1) (acc+n); main = sumTo 5 0  (multi-PARAM guarded tail recursion -> while_loop)
 }
 # (regression guards for the cond_src/neg_src recursion refactor: tail_rec, nontail_fact above)
 

@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-16: Haskell frontend — multi-param guarded tail recursion (regression guard)
+
+Work+report sprint tick. Verified that Haskell **multi-param** guarded tail recursion
+(`sumTo n acc | n == 0 = acc | otherwise = sumTo (n - 1) (acc + n)`) already lowers correctly —
+the `_try_lower_guarded_recursion` path threads ALL the equation's params (not just one) and the
+guard condition (`n == 0`) goes straight to the tail transform, so the 2-param accumulator form
+works for free. Added the `guarded_tailsum` fixture (→ substrate **15**) to lock it in as a
+regression guard; no code change. Suite 32→34. (The single-param guarded `guarded_fact`→120 and
+the multi-equation `multiclause_*` fixtures continue to pass.)
+
 ## 2026-06-16: Erlang frontend — guarded-base multi-clause recursion (Phase 3)
 
 Work+flush sprint tick — ports the Elixir guarded-base recursion to Erlang (the queue's flagged
