@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 3 step 3b — wire `--preeval` / `max_preeval_depth` (CLI + atman.toml)
+
+Exposed the tier-3 pre-evaluation pass as a real compilation argument. Added `--preeval` (opt-in
+store_true) and `--max-preeval-depth N` to the `sutrac` CLI, plus a `[project.compile]
+max_preeval_depth` field in `atman.toml` (read by `_read_atman_max_preeval_depth`, mirroring
+`loop_max_iterations`); resolution order CLI arg → atman.toml → `DEFAULT_MAX_PREEVAL_DEPTH`. Threaded
+`preeval`/`max_preeval_depth` through `_compile_to_python` and the `_run_execute`/`_run_emit`/`_run_viz`
+helpers; when `--preeval` is set the pipeline runs `preeval_bounded_recursion` after parse, before
+codegen. End-to-end: `sutrac --run --preeval fib.su` folds `fib(8)` and prints **21** (without
+`--preeval` the recursive `if/else` is rejected by the V1 codegen — confirming the flag drives the
+fold). Found + fixed a robustness bug while measuring: a `max_depth` above CPython's recursion limit
+overflowed the host evaluator's stack — now caught (`RecursionError` → not-foldable, clean
+fallthrough). **Measured the default (finding `2026-06-17-preeval-depth-default.md`): 128.** Fold cost
+is sub-millisecond and memoized (linear in distinct subproblems — `fib(60)` folds in 0.26 ms), so the
+cap is chosen not for speed but to keep the host evaluator's own recursion within CPython's ~1000-frame
+stack (128 logical levels ≈ 640 host frames, with headroom); over-cap sites cleanly decline (`fac(500)`
+under cap 128 → not folded). `test_preeval.py` 11/11 (8 mechanism + 3 CLI-wiring) on the substrate.
+Tier-3's MECHANISM now ships; only the automatic-default policy (3c, "when NOT to pre-evaluate")
+remains — an Emma decision, not implementation.
+
 ## 2026-06-17: Phase 5.5 tier 3 step 3a — compile-time pre-evaluation of bounded recursion
 
 Implemented the tier-3 mechanism: `sdk/sutra-compiler/sutra_compiler/preeval.py`, an OPT-IN

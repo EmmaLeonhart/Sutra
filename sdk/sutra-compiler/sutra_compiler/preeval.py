@@ -84,7 +84,15 @@ def _prune_unreachable(module, roots=("main",)):
     return module
 
 
-def preeval_bounded_recursion(module, max_depth: int = 64, prune: bool = True):
+# Default recursion-depth cap. Kept well within the host evaluator's own stack limit
+# (CPython ~1000 frames, and each logical level uses several frames) so compile-time
+# pre-evaluation cannot overflow; deeper recursion cleanly falls through to the runtime
+# path. (3b finding 2026-06-17; overridable via the `max_depth` arg / atman.toml.)
+DEFAULT_MAX_PREEVAL_DEPTH = 128
+
+
+def preeval_bounded_recursion(module, max_depth: int = DEFAULT_MAX_PREEVAL_DEPTH,
+                              prune: bool = True):
     """Fold compile-time-constant calls to bounded pure recursive functions into literals,
     in place, and return the module. With `prune=True`, also strip functions left unreachable
     from `main` by the folding (so the folded program compiles). Conservative: anything
@@ -180,7 +188,11 @@ def preeval_bounded_recursion(module, max_depth: int = 64, prune: bool = True):
                 and e.callee.name in funcs):
             try:
                 return lit(eval_expr(e, {}, 0), e.span)
-            except _NotFoldable:
+            except (_NotFoldable, RecursionError):
+                # RecursionError: the host evaluator's own stack would overflow before
+                # `max_depth` is hit (a `max_depth` set above the host recursion limit).
+                # Treat as not-foldable — leave the call for the runtime path. The default
+                # `max_depth` is kept well within the host limit so this is the rare case.
                 pass
         if t == "BinaryOp":
             e.left = rewrite_expr(e.left)
