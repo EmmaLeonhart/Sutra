@@ -140,6 +140,12 @@ lowered to Sutra by [`sutra-from-ts`](https://github.com/EmmaLeonhart/Sutra/tree
 the path for the browser/JS layer. The render is the substrate; the reward head, the audience
 model, and Adam are ordinary host-side code, and we say so.
 
+The button isn't only a window — it's a substrate **service**. The same controller is exposed
+over a tiny stdin/stdout protocol (frames out; owner preferences and visitor clicks in), so a
+host process — a browser bridge, or an OS surface that "owns the window" — can spawn it, paint
+the substrate-rendered button, and feed it real clicks. The picture, and the learning signal it
+chases, stay on the substrate; the host only does the window and the events.
+
 ## The gallery
 
 | Demo | Source | What you see |
