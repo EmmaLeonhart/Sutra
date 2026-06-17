@@ -114,26 +114,37 @@ def _build_targets(body):
     return tgt
 
 
+# Frame-relative layout (step 5a): the single frame lives in the arena at FP_BASE; its
+# locals occupy FP_BASE..FP_BASE+NLOC-1 and its operand stack starts at FP_BASE+NLOC.
+# NLOC=4 covers locals 0..3 (the most any current fixture uses). The lone final result
+# sits at the operand base (FP_BASE+NLOC) when the machine halts with sp=1.
+FP_BASE = 600
+NLOC = 4
+
+
 def _run(ns, body, steps=10, addr=100, locals0=None):
     """Load `body` (a flat list of WASM function-body bytes) into RAM at the code base
-    (10), build + load the pre-resolved branch-target table at RAM 400+, run `steps`
-    host-driven ticks, return the decoded RAM[addr] (operand-stack base 100 by default).
-    `locals0` optionally seeds locals 0..N at RAM 200+ — WASM passes function params in
-    the low locals, so `(func (param i32) …)` reads its argument from local 0."""
+    (10), build + load the pre-resolved branch-target table at RAM 400+, set the frame
+    pointer (fp=FP_BASE, nloc=NLOC), run `steps` host-driven ticks, return the decoded
+    result from the frame's operand base. `locals0` seeds locals 0..N at fp+i — WASM
+    passes function params in the low locals, so `(func (param i32) …)` reads it from
+    local 0. (`addr` is retained for signature compat; the result is read frame-relative.)"""
     v = ns["_VSA"]
     ram = [v.zero_vector() for _ in range(1024)]
-    ram[0] = v.make_real(10.0)   # pc
-    ram[1] = v.make_real(0.0)    # sp
+    ram[0] = v.make_real(10.0)        # pc
+    ram[1] = v.make_real(0.0)         # sp (frame-relative operand count)
+    ram[2] = v.make_real(float(FP_BASE))  # fp (current frame base)
+    ram[3] = v.make_real(float(NLOC))     # nloc (current frame local count)
     for i, b in enumerate(body):
         ram[10 + i] = v.make_real(float(b))
     for off, target_off in _build_targets(body).items():
         ram[400 + off] = v.make_real(float(10 + target_off))  # absolute RAM target pc
     for i, val in enumerate(locals0 or []):
-        ram[200 + i] = v.make_real(float(val))
+        ram[FP_BASE + i] = v.make_real(float(val))
     v.ram = ram
     for _ in range(steps):
         ns["step"](0.0)
-    return round(float(_rv(v, ram[addr])))
+    return round(float(_rv(v, ram[FP_BASE + NLOC])))
 
 
 # (body, expected, steps, result_addr). Real WASM byte values; signed LEB128 for

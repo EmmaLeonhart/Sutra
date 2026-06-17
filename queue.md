@@ -58,9 +58,12 @@ verified == reference on the substrate):
   at `fp+idx`, operand stack at `fp+nloc`-relative, a control/return stack, a host-built function
   table). Key simplification: args-in-place (callee locals 0..nargs-1 ALIAS the caller's top operands,
   no copy loop). Sub-step ladder (each compile-AND-run, substrate-verified):
-  - [ ] **5a** — frame-relative refactor (no `call` yet): rewrite the fixed `100+sp`/`200+idx` reads
-    to `fp`-relative; re-verify ALL 34 existing tests pass unchanged. (The risky refactor, isolated.)
   - [ ] **5b** — function table + non-recursive `call`/`return`: `main` calls a leaf `add(3,4)` → 7.
+    (5a frame-relative refactor DONE 2026-06-17: state cells `fp@2`/`nloc@3`; locals at `fp+idx`,
+    operand stack at `obase=fp+nloc`; harness sets fp=600/nloc=4 + reads the result frame-relative.
+    A real defect surfaced + fixed: the local write-back collided with the now-adjacent operand
+    region for non-local ops — gated the local-write address to a scratch cell unless set/tee. All
+    34 tests pass unchanged.)
   - [ ] **5c** — recursion: `fib(0..6)=0,1,1,2,3,5,8` on the substrate (the call stack in the RAM arena).
 - [ ] **Multi-byte LEB128** (deferred from step 1): when a fixture needs a constant/index > 127,
   decode continuation-byte LEB128 (operand length becomes data-dependent → affects pc advance).
