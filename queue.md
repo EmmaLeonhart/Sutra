@@ -79,12 +79,16 @@ cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it 
   explicit agenda (the call stack, now a value in memory) + a memo table; overlapping subproblems
   flatten the call tree to a DAG (fib → linear), non-overlapping still run natively. Tabulation is the
   special-case optimization for index-structured recursion. WASM is NOT the recursion fallback.
-  - [ ] **4b — the automatic transform (THE feature):** a compiler pass rewriting a multiple-recursive
-    function into the memoizing loop. Start index-structured (`f(n)=combine(f(n-c1),f(n-c2),…)` + base
-    → the tabulation `while_loop`, 4a's hand form), then the general work-stack + memo form for
-    irregular recursion. Verify each shape runs natively == reference on the substrate. (4a DONE
-    2026-06-17: `test_native_recursion.py` 6/6 — `fib(0..15)` runs natively as a memoizing `while_loop`
-    [recurrent neurons, no recursion, no WASM] == ground truth, proving the native target 4b emits.)
+  - [ ] **4b part 2 — loop SYNTHESIS:** from the detected `TabulableShape`, generate the memoizing
+    `while_loop` (a rolling-window of `max(offsets)` accumulators initialized with the base values, or
+    a memo array) computing `f(n)`, swap it for the recursive FunctionDecl, verify it runs natively ==
+    reference on the substrate (`fib`, tribonacci). Then the general work-stack + memo form for
+    irregular recursion. (4b part 1 — DETECTOR — DONE 2026-06-17: `sutra_compiler/tabulate.py`
+    `detect_tabulable_recursion` recognizes the fib-family shape [1 int param, base-case `if (n<op>K)
+    return base`, trailing return summing ≥2 `f(n-const)` calls]; `test_tabulate.py` 6/6 — detects
+    fib/tribonacci, rejects single-recursion/non-recursive/non-constant-offset/extra-statements. 4a
+    DONE: `test_native_recursion.py` 6/6, `fib(0..15)` native memoizing `while_loop` == ground truth —
+    the target 4b part 2 synthesizes.)
 - Tier 5 (`wasm_core`, §2) is NOT the recursion fallback once tier 4 lands — only genuinely imperative
   / `eval` / FFI. (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes it native.)
 
