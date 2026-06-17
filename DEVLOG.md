@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-17: Real-WASM-bytecode core step 3a — structured control (block/loop/br/br_if) (Phase 5)
+
+Added WASM structured control to `wasm_core.su`: `block`(0x02)/`loop`(0x03) (each +blocktype byte),
+`br`(0x0c)/`br_if`(0x0d) (each +LEB label), and re-homed `end`(0x0b). WASM has no goto-offsets —
+branch targets are implied by the block/loop/if nesting — so this uses the scoping doc's **load-time
+pre-resolved target table**: a host-side compilation pass (`_build_targets` in the test harness)
+scans the body once, matches block/loop/if opens to their `end`s, and resolves each `br k`/`br_if k`
+to an absolute target (the k-th enclosing label: a loop's header for backward iteration, after-`end`
+for a block's forward exit), plus the function-final `end` → itself (halt) and inner `end` →
+fall-through. The table is loaded into RAM at 400+offset; the substrate reads `RAM[390+pc]` and does
+a JVM-shaped jump (`br` → target; `br_if` → target iff the popped condition is nonzero, via `1−v_eqz`;
+`end` → table). This keeps the hot path identical to the JVM branch step — the structural complexity
+lives entirely in the compile-time table. `block`/`loop` are runtime no-ops (advance to pc_seq);
+`br_if` pops its condition (sp−1). RAM bumped to 1024 for the table.
+
+Verified on the substrate (`test_wasm_core.py`, now 26 cases): a real WASM **countdown-sum loop**
+`local0=sum, local1=i; loop { if i==0 br to block-end; sum+=i; i-=1; br to loop }` → **6** (3+2+1,
+exercising `loop`+`br 0` backward + `block`+`br_if 1` forward exit together with locals+arithmetic+
+comparisons), and a forward `block`+`br 0` that skips an unreachable `i32.const 99` → 7. All prior
+arithmetic/locals/comparison cases still pass (the target table makes the function-final `end` halt;
+inner ends fall through). Next: step 3b, `if`/`else` conditionals.
+
 ## 2026-06-17: Real-WASM-bytecode core step 2 — comparisons (Phase 5)
 
 Added the WASM i32 comparison family to `wasm_core.su`: `i32.eqz`(0x45, unary `top==0`) plus the six
