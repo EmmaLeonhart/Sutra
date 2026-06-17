@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Yantra Y1 — stdin/stdout button substrate-server (Yantra-spawnable bridge)
+
+`demos/gui/button_substrate_server.py` — `ButtonSubstrateServer`, a stdin/stdout bridge
+mirroring `counter_substrate_server.py` so a Yantra surface (apps/gui-button, Y2) can spawn it
+and paint/steer the trainable button. Reuses `ButtonBridge`/`ButtonAdam`/`render_button_torch`.
+Protocol: `I`/`V` → binary FRAME (header `FRAME <round> <size>\n` + float64 RGB body) of the
+current/variant button; `PA`/`PB` → owner prefers current/variant (one ButtonAdam step +
+re-propose) → `OK <round>`; `CA`/`CB` → visitor click tally (+ live-ctr learning) → `OK`; `S` →
+`STATE <json>` (round/clicks/impressions/ctr/copy/theta); `Q` → quit. `handle()` is pure
+(testable without pipes); `run()` is the subprocess loop with binary stdout (Windows newline
+guard). TDD `test_button_substrate_server.py` (6) all green on CPU; also smoked the real
+subprocess end-to-end (piped `I/S/PB/Q` → FRAME + STATE json + `OK 1`). The buildable-here half
+of the Yantra integration; Y2 (the Yantra-side surface that spawns it) is now in-tree work.
+
 ## 2026-06-16: Yantra Y0 — rewire vendored tree's Sutra-SDK references to the parent
 
 Now that Yantra is vendored in-tree at `external/Yantra/`, its 4 runtime references to the

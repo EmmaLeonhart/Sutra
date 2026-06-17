@@ -111,11 +111,6 @@ apps are admitted via the kernel (`Init.admit_from_path`), processes described b
 "the window living in the orchestrator" = the substrate GUI window as a Yantra surface that
 spawns a Sutra substrate-server.
 
-- [ ] **Y1 — button substrate-server (Sutra-side, the Yantra-spawnable bridge).** A
-  stdin/stdout substrate server for the trainable button mirroring
-  `counter_substrate_server.py`: commands in (init / click current|variant / owner-prefer /
-  quit), substrate-rendered button frame + state out. Reuses `ButtonAdam`/`render_button_torch`.
-  Sutra-side, CI-testable (protocol test, no browser/Rust). The buildable-here half.
 - [ ] **Y2 — Yantra `apps/gui-button` surface (now in-tree at `external/Yantra/apps/`).** A
   surface that spawns Y1, mirroring `gui-rust`. Committable here now that Yantra is vendored.
 - [ ] **Y3 — integration docs.** Note the button↔Yantra surface in `docs/gui.md` / CLAUDE.md
