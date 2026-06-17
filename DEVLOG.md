@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-17: Recursion execution model — spec distilled from the reference chat (Phase 5.5)
+
+Read Emma's reference chat *"Converting single recursion to tail recursion"*
+(`references/...html`) in full and distilled the philosophy into
+`planning/sutra-spec/recursion-execution-model.md` (the queue item #3 deliverable). The settled
+design is a **five-tier recursion-execution hierarchy** that REFINES (and supersedes) the earlier
+two-bucket "single→tail, multiple→WASM" framing: (1) tail recursion / loops → recurrent neurons
+(native fast path; all loops ARE tail recursion); (2) single linear non-tail recursion → tail form
+by the compiler (accumulator-passing) → tier 1; (3) fixed-/statically-known-depth multiple recursion
+→ compile-time pre-evaluation (unroll; referential transparency makes it safe; max-depth is a `.toml`
+compilation arg with an empirically-tested default); (4) dynamic multiple recursion (pure) →
+automatic memoization, staying NATIVE — memoize everything by default (pure fns make caching always
+valid), the memo store is a lazy lookup-table / DAG (not a stack) realized as recurrent-neuron state,
+flattening the call tree to a DAG (naive fib → linear); (5) genuinely imperative / `eval` → Neural
+WASM. The key load-bearing property is referential transparency, which makes BOTH pre-evaluation and
+memoization universally safe and automatic (no annotations). The big shift: WASM is NOT the home of
+all multiple recursion — it shrinks to a tier-5 fallback for conceptually-imperative code, making the
+Sutra↔WASM boundary semantic rather than performance-based. WASM tier 5 is already DONE (`wasm_core`,
+runs recursive fib byte-for-byte); tiers 3–4 are unbuilt and will shrink how often WASM is reached.
+Open problem flagged: *when NOT to pre-evaluate*. queue.md Phase 5.5 re-grounded on the spec; the
+`project_recursion_lowering_single_tail_multiple_wasm` memory updated.
+
 ## 2026-06-17: WASM core step 5c — recursive fib; the real-WASM-bytecode core is COMPLETE (Phase 5)
 
 Recursive `fib` runs on the substrate — the last WASM-core step and the Phase-5.5-B substrate

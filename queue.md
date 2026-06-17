@@ -52,38 +52,38 @@ follow-ups remain:
 - [ ] **Multi-byte LEB128** (deferred from step 1): when a fixture needs a constant/index > 127,
   decode continuation-byte LEB128 (operand length becomes data-dependent → affects pc advance).
 
-## 3. Recursion philosophy — analyze the references chat → plan + docs (Emma 2026-06-17)
+## 3. Phase 5.5 — recursion lowering (per the recursion-execution-model spec)
 
-**AFTER the WASM core (§2), BEFORE the transpiler long tail (§5).** Emma added a Claude chat to
-the references that gives a more fundamental, analytical discussion of how recursion is to be run
-in the language — the philosophy of how Sutra handles this. Source:
-`references/Converting single recursion to tail recursion - Claude.html` (re-download per the
-references policy if the cache is empty). Task: read that chat in full, then put together a
-concrete implementation plan + documentation + planning docs for how Sutra runs recursion
-(grounding/refining the Phase-5.5 strategy below). Deliverable: a planning/spec doc capturing the
-philosophy and the implementation plan it implies. Do NOT invent its contents — read it first.
+The recursion philosophy was distilled from Emma's reference chat into
+**`planning/sutra-spec/recursion-execution-model.md`** (the settled design) — a five-tier hierarchy.
+It REFINES the old two-bucket framing: multiple recursion does NOT all go to WASM; most stays native
+via pre-evaluation or memoization, and WASM shrinks to a tier-5 fallback for genuinely imperative /
+`eval` code. Apply across ALL frontends. Comes before the §4 long tail. Build order = the spec's:
 
-## 4. Phase 5.5 — recursion lowering: single→tail (compiler), multiple→WASM (Emma 2026-06-17)
+- [ ] **(A / tier 2) Single (linear) non-tail recursion → tail recursion — a compiler transform.**
+  A single non-tail recursive call (e.g. `fact(n)=n*fact(n-1)`) is rewritten to accumulator-passing
+  tail form by the frontend lowering, then lowers as a substrate `loop` (recurrent neurons,
+  stackless, stays a real fused graph). Apply uniformly in every frontend (generalize the OCaml
+  reference's foldable-CPS transform). Independent of WASM. Verify per frontend: a linear non-tail
+  recursive fixture compiles to a `loop` and runs == reference on the substrate.
+- [ ] **(B / tier 3) Fixed-depth multiple recursion → compile-time pre-evaluation.** When depth is
+  statically known, unroll / partially-evaluate to straight-line code (referential transparency
+  makes compile-time evaluation safe; same machinery as loop unrolling). Cap with a max-depth
+  **compilation argument** (empirically-tested default, lives in the project `.toml`). Open problem
+  first: *when NOT to pre-evaluate* (binary size / startup / runtime flexibility) — unsolved, needs a
+  design pass before the policy. Verify: a fixed-depth multiple-recursion fixture pre-evaluates to a
+  constant and runs == reference.
+- [ ] **(C / tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).**
+  Memoize EVERYTHING by default (pure functions make caching always valid); the memo store is a
+  **lazy lookup table / DAG**, NOT a stack, realized as recurrent-neuron state (fits the
+  stateful-program-as-time-series model). Flattens the call tree to a DAG (naive `fib` → linear).
+  Non-overlapping trees still stay native (no WASM jump). Verify: recursive `fib(n)` runs in linear
+  time via the memo DAG on the substrate (today it runs via tier 5 / `wasm_core`).
+- Tier 5 (genuinely imperative / `eval` → WASM) is the completed `wasm_core` (§2); tiers B/C shrink
+  how often it's reached. (`todo.md` end item "analyse the WASM compatibility layer" is answered by
+  the spec: WASM is the tier-5 fallback, not the home of all multiple recursion.)
 
-Two-part strategy for NON-TAIL recursion, applied across ALL language frontends. Both come before
-the §5 long tail; Part B depends on the §2 WASM core. (Will be grounded/refined by §3.)
-
-- [ ] **(A) Single (linear) non-tail recursion → tail recursion — a compiler transform.** A single
-  linear recursive call not in tail position (e.g. `fact(n)=n*fact(n-1)`) is turned into tail
-  recursion by the frontend lowering. Tail recursion lowers to a substrate `loop` (state ← R·state)
-  → stackless, stays a real RNN/fused graph. Apply uniformly in every frontend. Independent of WASM.
-  Verify per frontend: a linear non-tail recursive fixture compiles to a `loop` and runs ==
-  reference on the substrate.
-- [ ] **(B) Multiple (tree) recursion → represent as WebAssembly.** Tree recursion (multiple
-  recursive calls, e.g. `fib(n)=fib(n-1)+fib(n-2)`) genuinely needs a stack; lower it to WASM
-  bytecode and run on the §2 substrate WASM machine (call frames live in RAM/DNC memory). WASM
-  becomes a fundamental fallback runtime. Emma: "a big workaround… but the only way I can really
-  see it working." Supersedes the OCaml Tree-RNN for genuine tree recursion. Depends on §2 step 5.
-  Verify: a tree-recursive fixture (fib) lowers to WASM, runs on the substrate, decodes == reference.
-  (Follow-on analysis item at the end of `todo.md`: when the WASM compatibility layer is needed
-  vs lower directly, per-language/per-context.)
-
-## 5. Phase 6 — transpiler long-tail (LAST of the active phases)
+## 4. Phase 6 — transpiler long-tail (LAST of the active phases)
 
 Per-frontend remaining edge cases. Each: fixture-tested + RUN on the substrate against ground
 truth. New frontends model on `sutra-from-ocaml` (the reference). `transpilers-ci.yml` runs all 9
@@ -116,7 +116,7 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
   distinct from the §2 wasm_core VM).
 
-## 6. Python via Pyodide/Wasm (future leg, after the §2 WASM core)
+## 5. Python via Pyodide/Wasm (future leg, after the §2 WASM core)
 
 No direct CPython VM (a trap — pure CPython bytecode is useless without C extensions). Python rides
 the WASM leg via **Pyodide** (CPython + NumPy/SciPy/pandas compiled to Wasm) → the WASM frontend →
@@ -125,7 +125,7 @@ NumPy's random draws to the thermodynamic substrate's native sampling entropy (n
 genuinely physical randomness, unifying Sutra's randomness story. (Verbatim rationale in git
 history of this file, pre-2026-06-17 cleanup.)
 
-## 7. Merged WASM-repo items (`WASM/` subtree)
+## 6. Merged WASM-repo items (`WASM/` subtree)
 
 Completed WASM items live in `WASM/devlog.md`. Overview `docs/neural-webassembly.md`.
 
@@ -145,13 +145,13 @@ Completed WASM items live in `WASM/devlog.md`. Overview `docs/neural-webassembly
   quantify hull (O(log n)) vs `--nohull` to substantiate the attention-scaling claim.
 - [ ] **Yantra OS integration** — forward goal; design `WASM/notes/yantra_integration.md` (P0–P6).
 
-## 8. RAM inline `await` — blocked remainder
+## 7. RAM inline `await` — blocked remainder
 
 - [ ] **`await` inside a non-async `recur`** — BLOCKED on the await→while_loop lowering
   (promises.md); hits `CodegenNotSupported`. The synchronous-`ramRead`-in-`recur` form already gives
   the read head. Do NOT hack the desugar without settling the semantics.
 
-## 9. FV fill-in — full mixing-rate proof (lowest priority)
+## 8. FV fill-in — full mixing-rate proof (lowest priority)
 
 - [ ] **Sampler-convergence full t→∞ mixing RATE / spectral-gap** in `fv-lean/mathlib/` (mid-size
   step done: `GibbsMathlib.lean` machine-checks reversibility⟹stationarity + the gadget kernel +
