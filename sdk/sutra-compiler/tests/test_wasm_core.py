@@ -53,8 +53,8 @@ def _machine_ns():
 
 
 # 2-byte WASM opcodes (opcode + 1 operand byte): i32.const, local.get/set/tee,
-# block, loop, if, br, br_if. Everything else in this core is 1 byte.
-_LEN2 = {65, 32, 33, 34, 2, 3, 4, 12, 13}
+# block, loop, if, br, br_if, call. Everything else in this core is 1 byte.
+_LEN2 = {65, 32, 33, 34, 2, 3, 4, 12, 13, 16}
 
 
 def _ilen(op):
@@ -118,28 +118,72 @@ def _build_targets(body):
 # locals occupy FP_BASE..FP_BASE+NLOC-1 and its operand stack starts at FP_BASE+NLOC.
 # NLOC=4 covers locals 0..3 (the most any current fixture uses). The lone final result
 # sits at the operand base (FP_BASE+NLOC) when the machine halts with sp=1.
+# CTRL_BASE = control/return stack base (csp = CTRL_BASE + 4*depth); FT_BASE = function
+# table base (entry idx = [start_pc, nargs, nlocals] at FT_BASE+idx*3). RAM_SIZE is large
+# enough that a garbage call-index read (FT_BASE + 255*3) stays in bounds.
 FP_BASE = 600
 NLOC = 4
+CTRL_BASE = 1500
+FT_BASE = 2000
+RAM_SIZE = 4096
 
 
 def _run(ns, body, steps=10, addr=100, locals0=None):
     """Load `body` (a flat list of WASM function-body bytes) into RAM at the code base
     (10), build + load the pre-resolved branch-target table at RAM 400+, set the frame
-    pointer (fp=FP_BASE, nloc=NLOC), run `steps` host-driven ticks, return the decoded
-    result from the frame's operand base. `locals0` seeds locals 0..N at fp+i — WASM
-    passes function params in the low locals, so `(func (param i32) …)` reads it from
-    local 0. (`addr` is retained for signature compat; the result is read frame-relative.)"""
+    pointer (fp=FP_BASE, nloc=NLOC) and the control-stack pointer (csp=CTRL_BASE, empty),
+    run `steps` host-driven ticks, return the decoded result from the frame's operand
+    base. `locals0` seeds locals 0..N at fp+i. (`addr` retained for signature compat.)"""
     v = ns["_VSA"]
-    ram = [v.zero_vector() for _ in range(1024)]
-    ram[0] = v.make_real(10.0)        # pc
-    ram[1] = v.make_real(0.0)         # sp (frame-relative operand count)
+    ram = [v.zero_vector() for _ in range(RAM_SIZE)]
+    ram[0] = v.make_real(10.0)            # pc
+    ram[1] = v.make_real(0.0)             # sp (frame-relative operand count)
     ram[2] = v.make_real(float(FP_BASE))  # fp (current frame base)
     ram[3] = v.make_real(float(NLOC))     # nloc (current frame local count)
+    ram[4] = v.make_real(float(CTRL_BASE))  # csp (control stack empty)
     for i, b in enumerate(body):
         ram[10 + i] = v.make_real(float(b))
     for off, target_off in _build_targets(body).items():
         ram[400 + off] = v.make_real(float(10 + target_off))  # absolute RAM target pc
     for i, val in enumerate(locals0 or []):
+        ram[FP_BASE + i] = v.make_real(float(val))
+    v.ram = ram
+    for _ in range(steps):
+        ns["step"](0.0)
+    return round(float(_rv(v, ram[FP_BASE + NLOC])))
+
+
+def _run_call(ns, funcs, steps, args=None):
+    """Multi-function runner for `call`/`return` (step 5b/5c). `funcs` is a list of
+    function bodies (lists of WASM bytes), function 0 is the entry point (`main`); they
+    are concatenated into RAM at 10+. A function table is built host-side at FT_BASE
+    (entry idx = [start_pc, nargs, nlocals]); the branch-target table is built per
+    function over its own byte range and offset into the concatenated layout. The initial
+    frame is main's (fp=FP_BASE, nloc=NLOC); `args` seeds main's locals (rare). Returns the
+    decoded result at the operand base (FP_BASE+NLOC) when the machine halts."""
+    v = ns["_VSA"]
+    ram = [v.zero_vector() for _ in range(RAM_SIZE)]
+    ram[0] = v.make_real(10.0)
+    ram[1] = v.make_real(0.0)
+    ram[2] = v.make_real(float(FP_BASE))
+    ram[3] = v.make_real(float(NLOC))
+    ram[4] = v.make_real(float(CTRL_BASE))
+    base = 0
+    for idx, fb in enumerate(funcs):
+        start_pc = 10 + base
+        nargs = fb["nargs"]
+        nlocals = fb["nlocals"] if idx else NLOC   # main's frame uses NLOC (result at FP_BASE+NLOC)
+        body = fb["body"]
+        for i, b in enumerate(body):
+            ram[10 + base + i] = v.make_real(float(b))
+        # per-function branch targets, offset into the concatenated layout
+        for off, target_off in _build_targets(body).items():
+            ram[400 + base + off] = v.make_real(float(10 + base + target_off))
+        ram[FT_BASE + idx * 3] = v.make_real(float(start_pc))
+        ram[FT_BASE + idx * 3 + 1] = v.make_real(float(nargs))
+        ram[FT_BASE + idx * 3 + 2] = v.make_real(float(nlocals))
+        base += len(body)
+    for i, val in enumerate(args or []):
         ram[FP_BASE + i] = v.make_real(float(val))
     v.ram = ram
     for _ in range(steps):
@@ -231,3 +275,21 @@ def test_wasm_core_runs_real_wasm_factorial(n, expected):
     ns = _machine_ns()
     got = _run(ns, _WASM_FACT, steps=200, addr=100, locals0=[n])
     assert got == expected, f"fact({n}) -> {got}, expected {expected}"
+
+
+# Non-recursive WASM function call (step 5b): main calls a leaf add(a,b). Two functions
+# concatenated; a host-built function table + a control/return stack in RAM drive the call.
+#   (func $main (result i32)  (i32.const a)(i32.const b)(call $add))   ;; ends with `end`
+#   (func $add (param i32 i32) (result i32) (local.get 0)(local.get 1)(i32.add)(return))
+_ADD_FN = {"body": [32, 0, 32, 1, 106, 15], "nargs": 2, "nlocals": 2}  # get0; get1; i32.add; return
+
+
+@pytest.mark.parametrize("a,b,expected", [(3, 4, 7), (10, 20, 30), (0, 0, 0), (63, 1, 64)])
+def test_wasm_core_runs_non_recursive_call(a, b, expected):
+    """`main` pushes two constants and `call`s a leaf `add` on the substrate; the call
+    frame (return pc, saved fp/nloc/sp) lives in the RAM control stack and the args are
+    passed in-place. The decoded result == a + b."""
+    ns = _machine_ns()
+    main = {"body": [65, a, 65, b, 16, 1, 11], "nargs": 0, "nlocals": 4}  # const a; const b; call 1; end
+    got = _run_call(ns, [main, _ADD_FN], steps=30)
+    assert got == expected, f"add({a},{b}) -> {got}, expected {expected}"
