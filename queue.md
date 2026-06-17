@@ -217,9 +217,9 @@ negative results, not hidden.
   construction) + `let (a, b) = t` tuple-pattern destructuring shipped 2026-06-16,
   suite 28/28): nullary DU variants in value position; construction (DU/tuple/record) in
   ARGUMENT position (only let-bound now; needs an arg-hoist walk); record-update
-  `{ r with … }`; nested tuple/record patterns (`let (a, (b, c)) = t`); DU-case pattern
-  `let` destructuring (`let (Circle r) = s`). [`let { x = a } = p` record-pattern
-  destructuring shipped 2026-06-16.] Measured grammar quirk: parenthesize call operands
+  `{ r with … }`; nested tuple/record patterns (`let (a, (b, c)) = t`). [`let { x = a } = p`
+  record-pattern + `let (Circle r) = s` DU-case-pattern destructuring shipped 2026-06-16,
+  suite 32/32.] Measured grammar quirk: parenthesize call operands
   under infix. [Scala 24/24 — `val (a, b) = t` tuple-pattern (1-based keys) + `val Point(a, b)
   = p` case-class-pattern destructuring done 2026-06-16; remaining Scala: nested patterns,
   case-class pattern PARAMS (`def f(Point(x, y))`).]
