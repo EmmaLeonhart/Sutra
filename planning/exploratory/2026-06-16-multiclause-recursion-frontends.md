@@ -1,13 +1,13 @@
 # Multi-clause recursion in the language frontends — design + breakdown
 
 **Date:** 2026-06-16
-**Status:** ERLANG SINGLE-PARAM DONE 2026-06-16 (`fac(0) -> 1; fac(N) -> N*fac(N-1)` →
-substrate 120, `multiclause_fact` fixture; the `cond_src`/`neg_src` refactor landed and the
+**Status:** ERLANG + ELIXIR SINGLE-PARAM DONE 2026-06-16 (`fac(0)/fac(n)` → substrate 120,
+`multiclause_fact` fixture in both; the `cond_src`/`neg_src` refactor landed in both and the
 `tail_rec`/`nontail_fact` regression guards still pass). Remaining: multi-PARAM multi-clause
-(base-clause var renaming), then port to Elixir + Haskell.
-**Frontends affected:** `sutra-from-erlang` (single-param DONE), `sutra-from-elixir`,
-`sutra-from-haskell` (the latter two still emit `UNSUPPORTED-RECURSION` for the idiomatic
-pattern-matched recursive form). Rust/F#/Scala/OCaml/Clojure express recursion via
+(base-clause var renaming), then port to Haskell.
+**Frontends affected:** `sutra-from-erlang` (single-param DONE), `sutra-from-elixir`
+(single-param DONE), `sutra-from-haskell` (still emits `UNSUPPORTED-RECURSION` for the
+idiomatic pattern-matched recursive form). Rust/F#/Scala/OCaml/Clojure express recursion via
 `if`/`cond`, already handled.
 
 ## Implementation landed (Erlang, 2026-06-16)

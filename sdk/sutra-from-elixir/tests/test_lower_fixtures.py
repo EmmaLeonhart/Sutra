@@ -38,6 +38,7 @@ _RUNNABLE = {
     "tuple_param": 13.0,  # add_pair({a, b}) = a + b; main = add_pair({5, 8})  (tuple-PATTERN param -> axon, a/b -> realvec(item _0/_1))
     "map_param": 13.0,  # sum2(%{x: a, y: b}) = a + b; main = sum2(%{x: 5, y: 8})  (map-PATTERN param -> axon, a/b -> realvec(item x/y))
     "match_bind_body": 13.0,  # sum2(t) = ( {a, b} = t; a + b ); main = sum2({5, 8})  (do-block = pattern-match destructure -> realvec(item _0/_1))
+    "multiclause_fact": 120.0,  # def fac(0), do: 1; def fac(n), do: n * fac(n-1); main = fac(5)  (multi-clause pattern recursion -> synthesized (n==0) cond -> CPS fold loop)
     "struct_param": 13.0,  # sum2(%Point{x: a, y: b}) = a + b; main = sum2(%Point{x: 5, y: 8})  (struct-PATTERN param -> axon, alias dropped, a/b -> realvec(item x/y))
 }
 
