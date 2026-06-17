@@ -115,12 +115,17 @@ to ask ("barrel through … until you've gotten a strong acceptance").
     wasm-core-scoping.md`** (decomposes the leg; the JVM core is the template). Two real encoding
     differences from JVM: (i) LEB128 variable-length operands (single-byte first, same even/odd
     sign trick), (ii) structured control `block`/`loop`/`if`/`end`/`br` (pre-resolved target table
-    first, keeps the hot path JVM-shaped). **NEXT = step 1:** `i32.const`(0x41 signed single-byte
-    LEB128) + `local.get`/`set`/`tee`(0x20-22) + `i32.add`/`sub`/`mul`(0x6a-6c) + `end`/`return`,
-    verify `(i32.const 3)(i32.const 4)(i32.add)(end) → 7` on the substrate (reuse the JVM iconst
-    real-axis-vector fix). Ladder: 1 arithmetic+locals → 2 comparisons → 3 structured control →
-    4 real wat→wasm factorial byte-for-byte → 5 tree-recursion fib via `call` (= Phase 5.5-B payoff).
-    Then Python-via-Pyodide. Concrete WASM-leg open items in the merged WASM queue section below.
+    first, keeps the hot path JVM-shaped). **STEP 1a DONE 2026-06-17** — `experiments/iso5_substrate_
+    dispatch/wasm_core.su` runs real WASM bytecode: `i32.const`(0x41, signed single-byte LEB128) +
+    `i32.add`/`sub`/`mul`(0x6a-6c) + `end`(0x0b)/`return`(0x0f); 8 cases substrate-green
+    (`test_wasm_core.py`), incl. signed-LEB128 boundaries (0x3f→63, 0x40→−64) and `(-5)*(-5)=25`.
+    Reused the JVM iconst real-axis-vector fix (`leb_val*one`). **NEXT = step 1b: indexed locals**
+    `local.get`/`local.set`/`local.tee`(0x20-22, unsigned single-byte LEB128 index) — NEW vs JVM's
+    fixed-opcode locals: the local cell is computed `200+idx` (hard-addressed; write back the old
+    value when not local.set so non-local ops are no-ops on the locals region). Ladder: 1a arith ✓
+    → 1b indexed locals → 2 comparisons → 3 structured control (block/loop/if/end/br, pre-resolved
+    targets) → 4 real wat→wasm factorial byte-for-byte → 5 tree-recursion fib via `call` (= Phase
+    5.5-B payoff). Then Python-via-Pyodide. Concrete WASM-leg open items in the merged WASM section.
 - **Phase 5.5 — Recursion lowering strategy: single→tail (compiler), multiple→WASM (Emma
   2026-06-17).** A two-part strategy for NON-TAIL recursion that applies across ALL language
   frontends. Ordering (Emma): both parts come BEFORE the Phase-6 long tail; Part B comes AFTER
