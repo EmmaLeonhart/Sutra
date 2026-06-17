@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-16: Yantra vendored in-tree as a shallow subtree + !browserTest.bat (B8 launcher)
+
+Emma's call: Yantra is **deprecated as its own repo** and absorbed into Sutra. Vendored it as a
+shallow subtree at `external/Yantra/` (squashed from `EmmaLeonhart/Yantra` main @ `6401eec8`,
+recorded via a `git-subtree-split` trailer), website stripped (`site/`, `redirect/`), nested
+`.git`/`.gitmodules` removed (the `external/Sutra` submodule pin is obsolete now Yantra lives
+inside Sutra), un-gitignored — 159 files committed. Re-planned the Y-track for the in-tree
+reality: **Y0** rewire Yantra's `external/Sutra/...` references to the parent Sutra root (no
+recursive junction), **Y1** the Sutra-side button substrate-server (buildable here, CI-testable),
+**Y2** a `apps/gui-button` surface now committable in-tree, **Y3** docs. Added **`!browserTest.bat`**
+at the repo root — the B8 live-button browser smoke launcher (`python demos/gui/button_server.py
+--live-ctr` + opens the browser); still needs a human at a browser to actually smoke.
+
 ## 2026-06-16: Yantra GUI integration UNBLOCKED — shallow-cloned + planned (corrected error)
 
 Corrected a wrong call: I had reported Yantra integration as "blocked, no submodule." Emma:
