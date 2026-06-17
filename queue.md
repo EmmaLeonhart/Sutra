@@ -90,14 +90,21 @@ to ask ("barrel through … until you've gotten a strong acceptance").
   `paper/formal-verification/paper.md` with a CLEARLY-DELINEATED section that frames the
   frontends as EMPIRICAL substrate-verification (compile-AND-run vs ground truth) — kept
   DISTINCT from the Lean-FORMAL gadget proofs. Do NOT conflate the two verification
-  notions.** Then run the clawRxiv ping-pong loop (push triggers `fv-paper-ci.yml`) until
-  another ACCEPT. The remaining transpiler long-tail (nested patterns / OCaml RAM / mutual
-  recursion / multi-arity — see "Active — transpiler track") is now LOWER priority than
-  this FV-paper expansion.
+  notions.** Then run the clawRxiv ping-pong loop (push triggers `fv-paper-ci.yml`) for a
+  FEW cycles (Emma 2026-06-17: "a few cycles", not indefinitely), then MOVE ON to Phase 5.
+- **Phase 5 — bytecode / VM targets (Emma 2026-06-17: do this AFTER the FV-paper cycles,
+  BEFORE the long tail).** The neural-VM legs: the WASM machine breadth + the JS / JVM
+  bytecode interpreters on the substrate (Python rides WASM via Pyodide). Full plan in the
+  "Long-horizon — VM/bytecode targets" section below — that section's PRIORITY is now RAISED:
+  it runs right after the FV-paper cycles, not at the very end. First step when picked up:
+  search for existing verified bytecode specs (as was leveraged for WASM) before implementing.
+- **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
+  per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
+  / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment
+  sections). Lowest priority of the active phases.
 - **Fill-in — full mathlib mixing rate.** When nothing above is immediately actionable,
-  do the full t→∞ mixing-rate proof (see the FV section below). (Long-horizon items
-  like the JS/JVM/Pyodide-Python VM targets are reached by the loop eventually — Emma
-  2026-06-14 22:05 — not "never.")
+  do the full t→∞ mixing-rate proof (see the FV section below). (Reachable as fill-in; the
+  JS/JVM/Pyodide-Python VM targets are now Phase 5, not "eventually".)
 
 ## ✅ COMPLETE — Sutra → thrml (Extropic): submodule + compilation target (Emma 2026-06-13)
 
@@ -487,9 +494,11 @@ Ties into the existing FV track (`planning/sutra-spec/formal-verification.md`,
 Emma's clarification above (verify the gadgets in Lean + run the clawRxiv loop);
 just do it when the loop reaches it.
 
-## Long-horizon — VM/bytecode targets for maximum imperative functionality (Emma 2026-06-14 21:17)
+## Phase 5 — VM/bytecode targets for maximum imperative functionality (Emma 2026-06-14 21:17; priority RAISED 2026-06-17)
 
-**Very end of the queue — a comprehensive long-horizon plan, not active work.**
+**PRIORITY RAISED (Emma 2026-06-17): this is now Phase 5 — runs right after the FV-paper
+clawRxiv cycles (Phase 4), BEFORE the transpiler long-tail (Phase 6). No longer "very end of
+the queue." The plan below is unchanged; only its position moved up.**
 
 Emma's framing: implementing **JS + WASM + CPython + JVM** as bytecode/VM targets in
 Sutra would, taken together, be the best comprehensive route to **maximum imperative
