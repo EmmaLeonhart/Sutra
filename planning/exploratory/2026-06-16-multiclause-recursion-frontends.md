@@ -3,14 +3,21 @@
 **Date:** 2026-06-16
 **Status:** SINGLE-PARAM DONE IN ALL THREE FRONTENDS 2026-06-16 (Erlang, Elixir, Haskell —
 `fac(0)/fac(n)` → substrate 120, `multiclause_fact` fixture in each). MULTI-PARAM tail DONE in
-Erlang + Elixir 2026-06-16 (`sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1, Acc+N)` → substrate
-15, `multiclause_tailsum` fixture in both; the synthesizer generalized to N params with
-base-clause var renaming by position). The `cond_src`/`neg_src` refactor + `tail_rec`/
-`nontail_fact` regression guards still pass everywhere. Remaining: port the MULTI-PARAM
-generalization to Haskell (mechanical — same `_try_lower_multiclause_recursion` shape).
+ALL THREE 2026-06-16 (Erlang, Elixir, Haskell — `sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1,
+Acc+N)` → substrate 15, `multiclause_tailsum` fixture in each; the synthesizer generalized to
+N params with base-clause var renaming by position). The `cond_src`/`neg_src` refactor +
+`tail_rec`/`nontail_fact` regression guards still pass everywhere.
+
+## ⟹ THIS TASK IS COMPLETE (2026-06-16)
+
+Multi-clause pattern recursion — the formerly-deferred item — is done for both single-param
+(factorial/CPS-fold) and multi-param tail (accumulator) shapes across all three frontends that
+needed it (Erlang, Elixir, Haskell). The remaining transpiler recursion gaps (GUARDED multi-way
+recursion, mutual recursion) are separate, lower-priority items tracked in `queue.md`, not this
+task. Rust/F#/Scala/OCaml/Clojure express recursion via `if`/`cond`, already handled.
+
 **Frontends affected:** `sutra-from-erlang` (single + multi-param DONE), `sutra-from-elixir`
-(single + multi-param DONE), `sutra-from-haskell` (single-param DONE; multi-param pending).
-Rust/F#/Scala/OCaml/Clojure express recursion via `if`/`cond`, already handled.
+(single + multi-param DONE), `sutra-from-haskell` (single + multi-param DONE).
 
 ## Implementation landed (Erlang, 2026-06-16)
 
