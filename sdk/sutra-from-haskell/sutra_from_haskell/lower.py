@@ -723,6 +723,51 @@ def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
     return out
 
 
+def _try_lower_guarded_recursion(name: str, typed_params, ret: str, matches, src: bytes):
+    """A guarded recursive equation `f n | n == 0 = BASE | otherwise = … f (n-1)`
+    is the `if`-form with the condition stated explicitly in the guard, so lower the
+    cond-guard's condition directly and reuse the recursion transforms. Scope: exactly
+    2 single-condition guards — a real-condition guard whose result has no self-call,
+    and an `otherwise` guard whose result has the self-call. (The params are real
+    Sutra params, so guard/body exprs reference them directly.) Returns Sutra or None."""
+    if len(matches) != 2:
+        return None
+
+    def guard_parts(m):
+        guards = next((c for c in m.named_children if c.type == "guards"), None)
+        if guards is None or not m.named_children:
+            return None
+        conds = [c for c in guards.named_children if c.type == "boolean"]
+        if len(conds) != 1 or not conds[0].named_children:
+            return None
+        return conds[0].named_children[0], m.named_children[-1]  # (cond_inner, result)
+
+    parts = [guard_parts(m) for m in matches]
+    if any(p is None for p in parts):
+        return None
+    cond_m = other_m = None
+    for inner, result in parts:
+        is_otherwise = inner.type == "variable" and _text(inner, src) == "otherwise"
+        if not is_otherwise and not _contains_self_call(result, name, src):
+            cond_m = (inner, result)
+        elif is_otherwise and _contains_self_call(result, name, src):
+            other_m = (inner, result)
+    if cond_m is None or other_m is None:
+        return None
+    cond_node, then_e = cond_m  # base (non-recursive) result
+    _otherwise, else_e = other_m  # recursive result
+    cond_src = _lower_expr(cond_node, src)
+    neg_src = _negate_cond(cond_node, src)
+    if "UNSUPPORTED" in cond_src or "UNSUPPORTED" in neg_src:
+        return None
+    rec = _try_lower_tail_recursive(name, typed_params, ret, cond_src, neg_src,
+                                    then_e, else_e, src)
+    if rec is not None:
+        return rec
+    return _try_lower_foldable_nontail(name, typed_params, ret, cond_src, neg_src,
+                                       then_e, else_e, src)
+
+
 def _lower_pattern_equations(name: str, decls, src: bytes) -> str:
     """Group same-name/arity equations (`classify 0 = …`, `classify 1 = …`,
     `classify n = …`) into ONE dispatching Sutra function — the Elixir multi-
@@ -843,6 +888,11 @@ def _lower_equation(decl, src: bytes) -> str:
         guarded = len(matches) > 1 or (
             len(matches) == 1 and any(c.type == "guards" for c in matches[0].named_children))
         if guarded:
+            if params:
+                grec = _try_lower_guarded_recursion(
+                    name, list(zip(params, ptypes)), ret, matches, src)
+                if grec is not None:
+                    return grec
             gbody = _lower_guards(matches, src)
             if gbody is None:
                 return f"// UNSUPPORTED-DECL: '{name}' has a guard shape not yet lowerable\n"
