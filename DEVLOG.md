@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 4 — native recursion widened to non-identity (literal) base values
+
+Widened the tabulation synthesizer to handle a non-identity LITERAL base value, not just the
+parameter identity. Previously only `if (n < K) return n` (f(j)=j) synthesized; now `if (n < K)
+return L` (f(j)=L for all j<K) does too — the rolling-window base seed becomes `[L, L, …]` instead
+of `[0, 1, …]`. So a recurrence like `g(n) = g(n-1) + g(n-2)` with `g(0)=g(1)=1` (the offset
+Fibonacci 1,1,2,3,5,8,…) auto-tabulates to a native `while_loop` and runs on the substrate ==
+ground truth. `test_native_recursion.py` 24/24 (added literal-base `g(0..11)`); identity-base fib/
+Pell/tribonacci still pass. Base subset is now {parameter identity, integer literal}; wider base
+expressions and K>M remain, as does the general agenda+memo form for irregular/multi-arg recursion.
+
 ## 2026-06-17: Phase 5.5 tier 4 — native recursion widened to general linear recurrences (coefficients)
 
 Widened the tabulation transform from coefficient-1 sums to general LINEAR RECURRENCES with
