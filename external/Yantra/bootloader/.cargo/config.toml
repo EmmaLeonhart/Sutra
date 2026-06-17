@@ -1,0 +1,29 @@
+# Cargo config for the Yantra bootloader (multiboot1, 32-bit).
+#
+# Custom JSON target spec for i686-bare-metal (no built-in
+# i686-unknown-none target exists). Modern Rust requires
+# `-Zjson-target-spec` to accept JSON specs; we set it via
+# unstable.
+#
+# build-std rebuilds core + compiler_builtins for the target.
+# panic_immediate_abort keeps the binary tiny (no panic
+# infrastructure beyond our handler).
+
+[build]
+target = "i686-yantra.json"
+
+# json-target-spec: newer nightlies (incl. the pinned
+# nightly-2026-04-01) gate JSON custom target specs behind this
+# unstable flag. Without it `cargo build` fails with ".json target
+# specs require -Zjson-target-spec". Setting it here (not just on
+# the linux000 invocation) also un-breaks the existing v0.4
+# `yantra-bootloader` build under the same pinned nightly — that
+# was a real latent breakage, fixed here, not papered over.
+[unstable]
+build-std = ["core", "compiler_builtins"]
+build-std-features = ["compiler-builtins-mem"]
+json-target-spec = true
+
+[target.'cfg(target_arch = "x86")']
+# Pass -T to rustc so the linker uses our linker.ld.
+rustflags = ["-Clink-arg=-Tlinker.ld", "-Clink-arg=--nmagic"]

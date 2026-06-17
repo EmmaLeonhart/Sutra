@@ -1,0 +1,30 @@
+// digits.su — extract a non-negative integer's decimal digits ON THE SUBSTRATE,
+// via the Fourier-series (eigenrotation) modulus + integer division. This is
+// Emma's product decision for calc step c (2026-05-25): instead of returning a
+// host Fraction behind a host-oracle gate, decompose the result into its
+// 1000s / 100s / 10s / 1s digits on the substrate and return them as a string.
+//
+// For place = 1, 10, 100, 1000:
+//
+//     digit = round( mod( floor(n / place) + 0.5, 10 ) - 0.5 )
+//
+//   - floor(n / place)  is the integer division (Math.floor = torch.floor, an
+//     exact GPU rounding instruction).
+//   - Math.mod is the eigenrotation floor-modulus — the SAME rotation that
+//     powers sin/cos (math.su / modulus.su), i.e. the "Fourier-series modulus".
+//   - The +0.5 / -0.5 offset dodges rotation_mod's branch-cut discontinuity at
+//     exact multiples of 10. WITHOUT it, mod(500, 10) lands on the atan2 branch
+//     cut and a digit comes out ~10 (garbage that only cancels in aggregate).
+//     Since n is an integer, floor(n/place) is an integer, so floor(n/place)+0.5
+//     is never a multiple of 10 — the modulus stays in its smooth region, and
+//     round() snaps the (<1e-7-error) result to the exact digit 0..9.
+//
+// The host reads each digit with real() and assembles the string (I/O only); the
+// digit VALUES are substrate computations. 4-digit demo scope (0..9999). Verified
+// bit-exact over all digit-boundary cases — see tests/test_calc_digits.py.
+function vector digit(scalar n, scalar place) {
+    scalar q = Math.floor(n / place);
+    return make_real(Math.round(Math.mod(q + 0.5, 10.0) - 0.5));
+}
+
+function vector main() { return digit(1234.0, 100.0); }

@@ -1,0 +1,36 @@
+{
+  // VS Code Remote-Containers config. Open this repo in VS Code and
+  // it'll prompt "reopen in container" — picking yes builds the
+  // top-level Dockerfile and drops you into the dev environment.
+  //
+  // The Yantra Dockerfile + this devcontainer.json are tier 1 of the
+  // three "VM tiers" planned for Yantra. See the Dockerfile and
+  // CLAUDE.md "Cross-repo workflow" / planning/18-kernel-browser-
+  // readiness.md for context.
+  "name": "Yantra dev",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspace",
+  // Init the Sutra submodule on first container creation so the
+  // SutraService tests can find external/Sutra/sdk/sutra-compiler.
+  // Skips if the user already initialized on the host (idempotent).
+  "postCreateCommand": "git submodule update --init external/Sutra || true",
+  // VS Code-specific: install the Python + pytest extensions so the
+  // test pane lights up automatically.
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.pytest"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"]
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+name: Deploy GitHub Pages site
+
+# Deploys the yantraos.org GitHub Pages site. TIME-BASED Yantra->Noldor
+# rebrand cutover: before 2026-06-18 this deploys the normal landing page in
+# site/; on or after 2026-06-18 it deploys the path-preserving redirect in
+# redirect/ (yantraos.org/<path> -> noldor.tech/<path>). Both carry CNAME
+# yantraos.org, so the domain stays on this repo's Pages either way. The
+# daily `schedule` is what flips it on the date with no human action and no
+# session cron. DNS is configured at the registrar, outside this repo.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'redirect/**'
+      - '.github/workflows/pages.yml'
+  schedule:
+    # 22:17 UTC daily ≈ 3:17pm Pacific (PDT). On 2026-06-18 this run sees the
+    # date has arrived and deploys the redirect; earlier runs keep the site.
+    - cron: '17 22 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pick site or redirect by date (Yantra->Noldor cutover 2026-06-18)
+        id: pick
+        run: |
+          CUTOVER=2026-06-18
+          TODAY=$(date -u +%F)
+          if [[ "$TODAY" < "$CUTOVER" ]]; then
+            echo "dir=site" >> "$GITHUB_OUTPUT"
+            echo "Pre-cutover ($TODAY < $CUTOVER): deploying the normal site/."
+          else
+            echo "dir=redirect" >> "$GITHUB_OUTPUT"
+            echo "Cutover reached ($TODAY >= $CUTOVER): deploying redirect/ -> noldor.tech."
+          fi
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.pick.outputs.dir }}
+      - id: deployment
+        uses: actions/deploy-pages@v4

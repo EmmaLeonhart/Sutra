@@ -1,0 +1,59 @@
+// switch.su — calculator operator dispatch via the LANGUAGE'S OWN
+// `select` primitive, made exact by softmax saturation. This is Emma's
+// approach: defuzzify/sharpen `select` enough and the branches stop
+// blending. It is the intended switch — it uses Sutra's conditional-
+// branching primitive rather than an arithmetic identity. Requires Sutra
+// >= v0.6.1 (the `dot` builtin); the calc compiles it in float64
+// (runtime_dtype, Sutra >= v0.6.2) for exact integers to 2^53.
+//
+// How it stays exact:
+//   score_t = -1000 * (op - t)^2, read as a clean scalar via
+//   dot(op - make_real(t), make_real(1)) — the dot with the real unit
+//   zeroes every other axis (incl. axon-recovery noise), so the score is
+//   exactly 0 at op=t and <= -1000 elsewhere. exp(-1000) underflows to
+//   exactly 0.0 in BOTH float32 (underflow ~ -88) and float64 (~ -745),
+//   so select's softmax is a TRUE one-hot: the matched branch passes
+//   through and the others are killed by exact-zero weights (no blend).
+//   The constant must clear float64's underflow point, or a zero result
+//   (e.g. 1000-1000) picks up off-branch residue ~1e-47 and is refused.
+//   A second select picks
+//   the division denominator (b for op=/, else 1) so a zero denominator in
+//   a killed branch can never produce nan. A genuine /0 (op=/, b=0) is a
+//   domain error caught upstream by the host.
+//
+// The operator arrives as a 1-char string ("+"/"-"/"*"/"/") the host injects;
+// switch reads its codepoint and decides which operation runs HERE, on the
+// substrate — no host `if`/dict, and no host operator->code map either (the
+// codepoint scoring below subsumes what a host CODE[op] used to do).
+// Operands are `complex` so `/` routes through complex_div; for
+// real inputs every result lands on the real axis. With float64 runtime
+// dtype (Sutra >= v0.6.2, the calc's pinned compile) exact integers hold
+// to 2^53 (~9.007e15) — not float32's ~2^24; bigger values need an
+// arbitrary-precision digit encoding (planning/22 Stage 3, planning/23).
+function vector on_axon(vector input_axon) {
+    complex a = axon_item(input_axon, "a");
+    complex b = axon_item(input_axon, "b");
+    // The operator arrives as a 1-char string ("+", "-", "*", "/"); read its
+    // codepoint ON THE SUBSTRATE (string_char_at) and score it against the four
+    // operator codepoints. cp is an exact integer (string content round-trips
+    // exactly through the axon), so score_t = -1000*(cp-target)^2 is exactly 0 at
+    // a match and <= -1000 otherwise; exp(-1000) underflows to exact 0, so select
+    // is a true one-hot. No host CODE[op] map remains: the operator -> operation
+    // mapping is decided here, on the substrate, from the character itself.
+    string op_char = axon_item(input_axon, "op_char");
+    scalar cp = op_char.string_char_at(0);
+    scalar s0 = 0.0 - 1000.0 * (cp - 43.0) * (cp - 43.0);  // '+'
+    scalar s1 = 0.0 - 1000.0 * (cp - 45.0) * (cp - 45.0);  // '-'
+    scalar s2 = 0.0 - 1000.0 * (cp - 42.0) * (cp - 42.0);  // '*'
+    scalar s3 = 0.0 - 1000.0 * (cp - 47.0) * (cp - 47.0);  // '/'
+
+    vector one = real_number(1.0);
+    complex denom = select([s0, s1, s2, s3], [one, one, one, b]);
+    complex quot = a / denom;
+
+    complex sum  = a + b;
+    complex diff = a - b;
+    complex prod = a * b;
+
+    return select([s0, s1, s2, s3], [sum, diff, prod, quot]);
+}
