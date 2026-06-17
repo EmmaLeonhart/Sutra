@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 4 — general single-index DP via a RAM-memo loop (step i)
+
+Built the RAM-memo synthesis backend (the verified building block from the prior finding):
+`tabulate.py::synthesize_ram_memo_source` generates, for a detected tabulable shape, a `while_loop`
+that uses the RAM device as a true memo TABLE — seeds `ramWrite(j, base(j))` for j < K, loops
+`ramWrite(i, Σ coeff·ramRead(i-offset))` for i in [K, n], returns `ramRead(n)`. Unlike the shipped
+scalar rolling-window, this handles ANY offsets (the memo is the full RAM table, not a fixed-size
+window). Verified on the substrate: `fib(13)=233` via RAM-memo, and a large-offset recurrence
+`f(n)=f(n-1)+f(n-5)` (which a scalar window would express awkwardly) == ground truth.
+`test_native_recursion.py` 28/28 (+ 2 RAM-memo cases). NOT wired as the default — the rolling-window
+stays default (no RAM, no clash risk); the RAM-memo uses low addresses 0..n so it must not mix with a
+program that also uses low-address arrays, hence it's a separate backend for the wider single-index
+family. This is build-order step (i) of the general form. Remaining: (ii) multi-arg DP (`C(n,k)`,
+flattened RAM index + nested loop); (iii) the explicit RAM-agenda + RAM-memo work-stack loop for
+irregular recursion.
+
 ## 2026-06-17: Phase 5.5 tier 4 — RAM device works as a loop-carried memo (general form unblocked)
 
 Measured the feasibility of tier-4's GENERAL memoization form (recursion beyond linear recurrences —

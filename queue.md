@@ -89,12 +89,15 @@ cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it 
     MEASURED 2026-06-17: a `dict` CANNOT be `while_loop` slot state (crashes), but the **RAM device**
     (`ramRead`/`ramWrite`) persists across loop iterations and works as a true memo table — a bottom-up
     RAM-memo `fib` runs natively (`fib(8)=21`). So the general form is NOT blocked; it uses a RAM-memo
-    loop, not a dict. Build order: (i) general single-index DP (`f(n)` depending on `f(k)` for
-    arbitrary `k<n`) → seed `ramWrite(j,base(j))`, loop `ramWrite(i, combine(ramRead(i-offset)))`,
-    return `ramRead(n)`; (ii) multi-arg DP (`C(n,k)`) → flattened RAM index, nested loop; (iii) the
-    explicit RAM-agenda + RAM-memo work-stack loop for irregular recursion. Each compile-AND-run ==
-    ground truth on the substrate. The shipped scalar rolling-window stays the cheap fast path for
-    linear recurrences. This corrects the scoping doc's unverified dict/agenda assumption.
+    loop, not a dict. **(i) general single-index DP via RAM-memo DONE 2026-06-17:**
+    `tabulate.py::synthesize_ram_memo_source` — seeds `ramWrite(j,base(j))`, loops `ramWrite(i,
+    Σ coeff·ramRead(i-offset))`, returns `ramRead(n)`; handles ANY offset (a true memo table, not a
+    fixed scalar window). `test_native_recursion.py` RAM-memo cases pass: `fib(13)=233` + a large-offset
+    `f(n)=f(n-1)+f(n-5)` == ground truth. NOT wired as the default (rolling-window stays default, no
+    RAM; RAM-memo uses low addresses 0..n so it must not mix with low-address program arrays — it's the
+    backend for the wider single-index family). Remaining: (ii) multi-arg DP (`C(n,k)`) → flattened RAM
+    index + nested loop; (iii) the explicit RAM-agenda + RAM-memo work-stack loop for irregular
+    recursion. Each compile-AND-run == ground truth.
 - Tier 5 (`wasm_core`, §2) is NOT the recursion fallback — only genuinely imperative / `eval` / FFI.
   (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes the fib-family native.)
 
