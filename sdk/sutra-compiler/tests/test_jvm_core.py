@@ -10,8 +10,9 @@ side effects are blended writes to fixed cells. This test compiles the machine v
 the PyTorch codegen, attaches a RAM device, loads bytecode as raw bytes, runs it,
 and asserts the decoded operand-stack result — the compile-AND-run bar.
 
-Step-1 opcodes (real JVM decimal values): 16=bipush 96=iadd 100=isub 104=imul
-116=ineg 172=ireturn (keeps pc -> idle with the result on top). op 0 = nop.
+Opcodes (real JVM decimal values): 16=bipush 96=iadd 100=isub 104=imul 116=ineg
+172=ireturn (keeps pc -> idle with the result on top) 26..29=iload_0..3
+59..62=istore_0..3 (locals 0..3 at RAM 200..203). op 0 = nop.
 """
 from __future__ import annotations
 
@@ -72,6 +73,12 @@ _CASES = [
     ([16, 5, 116, 116, 172], 5, 10, 100),     # bipush 5; ineg; ineg -> 5
     ([16, 5, 16, 6, 104, 16, 2, 100, 172], 28, 12, 100),  # 5*6 - 2 = 28
     ([16, 3, 16, 4, 96, 116, 172], -7, 10, 100),          # (3+4); ineg -> -7
+    # locals: store 5 in local 0, load it twice, add -> 10
+    ([16, 5, 59, 26, 26, 96, 172], 10, 12, 100),          # bipush 5; istore_0; iload_0; iload_0; iadd
+    # two locals: local1=7, local0=3; iload_0; iload_1; isub -> 3-7 = -4
+    ([16, 7, 60, 16, 3, 59, 26, 27, 100, 172], -4, 14, 100),
+    # local2 round-trip: bipush 9; istore_2; iload_2; ireturn -> 9
+    ([16, 9, 61, 28, 172], 9, 10, 100),
 ]
 
 

@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-17: JVM core — locals iload_N/istore_N (Phase 5 leg 2, step 2a)
+
+Phase 5 leg 2 step 2a. Added JVM **locals** to `jvm_core.su`: `iload_0..3` (opcodes 26–29, push
+local N onto the operand stack) and `istore_0..3` (59–62, pop into local N). Locals 0..3 live in
+fixed RAM cells 200..203, each read/written at a FIXED address (no address blending, consistent
+with the machine's discipline): iload_N feeds its cell into the push chain; istore_N writes its
+cell (a no-op rewrite of its existing value for non-matching ops). sp chain extended (iload +1,
+istore −1); pc +1 (1-byte ops). Three new substrate-verified cases: `bipush 5; istore_0; iload_0;
+iload_0; iadd → 10` (store + double-load), a two-locals `local1=7; local0=3; iload_0; iload_1;
+isub → −4`, and a `local2` round-trip → 9. Full `test_jvm_core.py` ran on the substrate: **10
+passed in 147s, exit 0** — locals work, the 7 arithmetic cases still pass. JVM core now does
+arithmetic + locals; next ladder steps: stack ops (dup/pop/swap), branches (if_icmp*/goto), a
+real javac method.
+
 ## 2026-06-17: JVM bytecode core on the substrate — arithmetic step (Phase 5 leg 2, step 1)
 
 **First JVM-leg artifact.** Built `experiments/iso5_substrate_dispatch/jvm_core.su` — a minimal

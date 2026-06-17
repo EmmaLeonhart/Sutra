@@ -12,10 +12,12 @@
 // device boundary. (Negative-number arithmetic on this substrate was
 // measured-verified 2026-06-17 via the WASM machine, so isub/ineg are sound.)
 //
-// RAM layout: [0]=pc  [1]=sp   bytecode at 10+ (one byte/cell)  operand stack 100+.
-// Step-1 opcodes (real JVM decimal values):
+// RAM layout: [0]=pc  [1]=sp   bytecode at 10+ (one byte/cell)  operand stack
+// 100+   locals 0..3 at 200..203.
+// Opcodes (real JVM decimal values):
 //   16=bipush(push next byte; 2-byte instr)  96=iadd  100=isub  104=imul
 //   116=ineg(negate top)  172=ireturn(keep pc -> idle/halt; result is on top)
+//   26..29=iload_0..3(push local N)  59..62=istore_0..3(pop into local N)
 //   (op 0 = JVM nop: no flag matches -> all cells keep, pc+1 — a natural no-op.)
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1),
 // matching Jinja's `let v2=pop; v1=pop; push (v1 OP v2)`. pc advances 2 for
@@ -27,16 +29,46 @@ function int step(scalar d) {
     int imm = ramRead(pc + 1);
     int top1 = ramRead(99 + sp);
     int top2 = ramRead(98 + sp);
+    // Local variables 0..3 live in fixed RAM cells 200..203 (clear of pc/sp,
+    // bytecode 10+, operand stack 100+). iload_N reads its fixed cell; istore_N
+    // writes its fixed cell — fixed addresses, no address blending.
+    int l0 = ramRead(200);
+    int l1 = ramRead(201);
+    int l2 = ramRead(202);
+    int l3 = ramRead(203);
     int is_bipush = truth_axis(defuzzy(op == 16));
     int is_iadd = truth_axis(defuzzy(op == 96));
     int is_isub = truth_axis(defuzzy(op == 100));
     int is_imul = truth_axis(defuzzy(op == 104));
     int is_ineg = truth_axis(defuzzy(op == 116));
     int is_ireturn = truth_axis(defuzzy(op == 172));
-    // 100+sp (new top cell): bipush pushes the operand byte; else keep.
+    int is_iload0 = truth_axis(defuzzy(op == 26));
+    int is_iload1 = truth_axis(defuzzy(op == 27));
+    int is_iload2 = truth_axis(defuzzy(op == 28));
+    int is_iload3 = truth_axis(defuzzy(op == 29));
+    int is_istore0 = truth_axis(defuzzy(op == 59));
+    int is_istore1 = truth_axis(defuzzy(op == 60));
+    int is_istore2 = truth_axis(defuzzy(op == 61));
+    int is_istore3 = truth_axis(defuzzy(op == 62));
+    // 100+sp (new top cell): bipush pushes the operand byte; iload_N pushes local
+    // N; else keep. (All pushes write the same fixed new-top cell.)
     int cell_hi = ramRead(100 + sp);
-    int new_hi = (((1 + is_bipush) * (imm)) + ((1 - is_bipush) * (cell_hi))) / 2;
+    int hi_il3 = (((1 + is_iload3) * (l3)) + ((1 - is_iload3) * (cell_hi))) / 2;
+    int hi_il2 = (((1 + is_iload2) * (l2)) + ((1 - is_iload2) * (hi_il3))) / 2;
+    int hi_il1 = (((1 + is_iload1) * (l1)) + ((1 - is_iload1) * (hi_il2))) / 2;
+    int hi_il0 = (((1 + is_iload0) * (l0)) + ((1 - is_iload0) * (hi_il1))) / 2;
+    int new_hi = (((1 + is_bipush) * (imm)) + ((1 - is_bipush) * (hi_il0))) / 2;
     ramWrite(100 + sp, new_hi);
+    // istore_N: pop top1 into local N; else rewrite local N with its existing
+    // value (a no-op — each istore_N writes only its fixed cell).
+    int new_l0 = (((1 + is_istore0) * (top1)) + ((1 - is_istore0) * (l0))) / 2;
+    ramWrite(200, new_l0);
+    int new_l1 = (((1 + is_istore1) * (top1)) + ((1 - is_istore1) * (l1))) / 2;
+    ramWrite(201, new_l1);
+    int new_l2 = (((1 + is_istore2) * (top1)) + ((1 - is_istore2) * (l2))) / 2;
+    ramWrite(202, new_l2);
+    int new_l3 = (((1 + is_istore3) * (top1)) + ((1 - is_istore3) * (l3))) / 2;
+    ramWrite(203, new_l3);
     // 98+sp (binary result): iadd/isub/imul write here; net sp -1 collapses the
     // top so the result lands at the new top (99+(sp-1) = 98+sp). Else keep top2.
     int v_add = top2 + top1;
@@ -55,7 +87,16 @@ function int step(scalar d) {
     int s_imul = (((1 + is_imul) * (sp_binop)) + ((1 - is_imul) * (sp))) / 2;
     int s_isub = (((1 + is_isub) * (sp_binop)) + ((1 - is_isub) * (s_imul))) / 2;
     int s_iadd = (((1 + is_iadd) * (sp_binop)) + ((1 - is_iadd) * (s_isub))) / 2;
-    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_iadd))) / 2;
+    // istore_N pop (-1); iload_N push (+1).
+    int s_ist0 = (((1 + is_istore0) * (sp_binop)) + ((1 - is_istore0) * (s_iadd))) / 2;
+    int s_ist1 = (((1 + is_istore1) * (sp_binop)) + ((1 - is_istore1) * (s_ist0))) / 2;
+    int s_ist2 = (((1 + is_istore2) * (sp_binop)) + ((1 - is_istore2) * (s_ist1))) / 2;
+    int s_ist3 = (((1 + is_istore3) * (sp_binop)) + ((1 - is_istore3) * (s_ist2))) / 2;
+    int s_il0 = (((1 + is_iload0) * (sp + 1)) + ((1 - is_iload0) * (s_ist3))) / 2;
+    int s_il1 = (((1 + is_iload1) * (sp + 1)) + ((1 - is_iload1) * (s_il0))) / 2;
+    int s_il2 = (((1 + is_iload2) * (sp + 1)) + ((1 - is_iload2) * (s_il1))) / 2;
+    int s_il3 = (((1 + is_iload3) * (sp + 1)) + ((1 - is_iload3) * (s_il2))) / 2;
+    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_il3))) / 2;
     ramWrite(1, new_sp);
     // pc: bipush +2 (skip operand); ireturn keeps pc (idle with result on top);
     // every other 1-byte opcode +1.
