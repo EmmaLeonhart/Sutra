@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-17: learned decoder D3 — whole-frame coordinate decoder
+
+`substrate_nn.py` gains `coord_grid` (the (N²,2) (x,y) grid, hero raster), `decoder_input_dim`,
+and `render_decoder_torch(params, size, num_freqs)` — the learned analogue of
+`render_button_torch`: build the grid → Fourier-encode (host input geometry) → run the
+substrate MLP per pixel → reshape to the frame, autograd intact. TDD `test_decoder.py` (3),
+green CPU+CUDA: renders the right-shape field; finite + differentiable in ALL weights (grad
+reaches every W,b through the substrate forward); resolution-independent (same weights render
+16² and 24²). The render is ready to train — D4 fits it to a target image.
+
 ## 2026-06-17: learned decoder D2 — Fourier-feature encoding + the substrate-MLP recipe
 
 Settled the decoder recipe (`substrate_nn.py`: `fourier_features`, `init_mlp`, `mlp_forward`).

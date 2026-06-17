@@ -89,3 +89,36 @@ def mlp_forward(params, X):
         h = dense_cube(W, h, b)
     W, b = params[-1]
     return dense(W, h, b)
+
+
+# --- D3: the whole-frame coordinate decoder ---
+
+def coord_grid(size: int, dtype, device):
+    """The coordinate geometry the decoder consumes: a (size*size, 2) grid of (x, y) in
+    [-1,1]^2, raster order (row → y, col → x) — the same mapping the hero/button renders use.
+    Host-side compile-time geometry (the codebook-like input boundary)."""
+    import torch
+    lin = torch.linspace(-1.0, 1.0, size, dtype=dtype, device=device)
+    yy, xx = torch.meshgrid(lin, lin, indexing="ij")          # yy: row→y, xx: col→x
+    return torch.stack([xx.reshape(-1), yy.reshape(-1)], dim=-1)   # (N², 2): (x, y)
+
+
+def decoder_input_dim(num_freqs: int = 4, coord_dim: int = 2) -> int:
+    """Input feature dimension after Fourier encoding (the decoder's first-layer in-size)."""
+    return coord_dim * (1 + 2 * num_freqs)
+
+
+def render_decoder_torch(params, size: int = 32, num_freqs: int = 4):
+    """DIFFERENTIABLE whole-frame render of the LEARNED coordinate decoder: build the grid,
+    Fourier-encode it (host input geometry), run the substrate MLP per pixel, reshape to the
+    frame. Returns (size, size) for a 1-output decoder, or (size, size, C) for C>1 (RGB, D5).
+    Keeps the autograd graph, so the weights `params` train by Adam through the substrate
+    forward — the learned analogue of `render_button_torch`."""
+    dt, dev = params[0][0].dtype, params[0][0].device
+    coords = coord_grid(size, dt, dev)                        # (N², 2)
+    feats = fourier_features(coords, num_freqs).to(dt)        # (N², F)
+    X = feats.T.contiguous()                                  # (F, N²)
+    out = mlp_forward(params, X)                              # (C, N²)
+    if out.shape[0] == 1:
+        return out.reshape(size, size)
+    return out.T.reshape(size, size, out.shape[0])
