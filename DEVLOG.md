@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-17: Phase 5.5 tier 4 — native recursion widened to general linear recurrences (coefficients)
+
+Widened the tabulation transform from coefficient-1 sums to general LINEAR RECURRENCES with
+coefficients: a recursive term may now be `f(n-C)`, `K*f(n-C)`, or `f(n-C)*K` (K a positive int
+literal). `tabulate.py` gained `_recursive_term` (extracting `(coeff, offset)`), a `coeffs` field on
+`TabulableShape`, and a weighted combine in the synthesizer (`f(i) = Σ coeff·window[M-offset]`, e.g.
+`int _new = 2 * _w1 + _w0;` for Pell). So a recursive `pell(n) = 2*pell(n-1) + pell(n-2)` — a real
+linear recurrence Sutra couldn't run natively — auto-rewrites to the weighted memoizing `while_loop`
+and runs natively on the substrate == ground truth. `test_native_recursion.py` 18/18 (added Pell
+`pell(0..8)`) + `test_tabulate.py` 8/8 (added coefficient detection: `2*pell(n-1)` → coeff 2, and the
+right-factor `g(n-2)*3` → coeff 3). This covers the common Fibonacci/Pell/Lucas/linear-recurrence
+family natively. Remaining tier-4: the general agenda+memo form for irregular / multi-arg /
+non-identity-base recursion.
+
 ## 2026-06-17: Phase 5.5 tier 4 — NATIVE recursion via memoization SHIPS (index-structured family)
 
 The automatic transform that gives Sutra native recursion. `sutra_compiler/tabulate.py` now has the

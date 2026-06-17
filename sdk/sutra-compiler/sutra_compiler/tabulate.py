@@ -27,6 +27,7 @@ class TabulableShape(NamedTuple):
     base_k: int                # the base-case threshold K
     base_value: object         # the base-case return expression (an AST node; no recursive call)
     offsets: tuple             # the constant recursive offsets, e.g. (1, 2) for f(n-1)+f(n-2)
+    coeffs: tuple              # the per-term coefficients, e.g. (2, 1) for 2*f(n-1)+f(n-2)
     func: object               # the FunctionDecl node
 
 
@@ -58,13 +59,13 @@ def _sum_terms(expr):
     return [expr]
 
 
-def _recursive_offset(term, param: str, fname: str) -> Optional[int]:
-    """If `term` is `f(n - C)` with C a positive int literal, return C; else None."""
-    if _name(term) != "Call" or _name(term.callee) != "Identifier" or term.callee.name != fname:
+def _recursive_call_offset(call, param: str, fname: str) -> Optional[int]:
+    """If `call` is `f(n - C)` with C a positive int literal, return C; else None."""
+    if _name(call) != "Call" or _name(call.callee) != "Identifier" or call.callee.name != fname:
         return None
-    if len(term.args) != 1:
+    if len(call.args) != 1:
         return None
-    arg = term.args[0]
+    arg = call.args[0]
     if _name(arg) != "BinaryOp" or arg.op != "-":
         return None
     if _name(arg.left) != "Identifier" or arg.left.name != param:
@@ -72,6 +73,21 @@ def _recursive_offset(term, param: str, fname: str) -> Optional[int]:
     if _name(arg.right) != "IntLiteral" or arg.right.value <= 0:
         return None
     return arg.right.value
+
+
+def _recursive_term(term, param: str, fname: str):
+    """If `term` is a (coefficient * ) recursive call — `f(n-C)`, `K*f(n-C)`, or `f(n-C)*K` with K a
+    positive int literal — return (coeff, offset); else None. (General linear-recurrence terms.)"""
+    off = _recursive_call_offset(term, param, fname)
+    if off is not None:
+        return (1, off)
+    if _name(term) == "BinaryOp" and term.op == "*":
+        for a, b in ((term.left, term.right), (term.right, term.left)):
+            if _name(a) == "IntLiteral" and a.value > 0:
+                off = _recursive_call_offset(b, param, fname)
+                if off is not None:
+                    return (a.value, off)
+    return None
 
 
 def detect_tabulable_recursion(fdecl) -> Optional[TabulableShape]:
@@ -107,16 +123,18 @@ def detect_tabulable_recursion(fdecl) -> Optional[TabulableShape]:
     if rec_ret.value is None:
         return None
     terms = _sum_terms(rec_ret.value)
-    offsets = []
+    coeffs, offsets = [], []
     for t in terms:
-        off = _recursive_offset(t, param, fname)
-        if off is None:
-            return None          # a non-`f(n-C)` term -> not the pure tabulable shape
-        offsets.append(off)
+        ct = _recursive_term(t, param, fname)
+        if ct is None:
+            return None          # a non-(coeff*)`f(n-C)` term -> not the pure tabulable shape
+        coeffs.append(ct[0])
+        offsets.append(ct[1])
     if len(offsets) < 2:
         return None              # single recursion is tier 2, not tier 4
     return TabulableShape(param=param, base_op=cond.op, base_k=cond.right.value,
-                          base_value=base_value, offsets=tuple(offsets), func=fdecl)
+                          base_value=base_value, offsets=tuple(offsets),
+                          coeffs=tuple(coeffs), func=fdecl)
 
 
 def synthesize_tabulation_source(shape: TabulableShape) -> Optional[str]:
@@ -144,7 +162,12 @@ def synthesize_tabulation_source(shape: TabulableShape) -> Optional[str]:
     n = shape.param
     ti = f"_t_{n}"                      # loop counter (fresh, avoids clashing with the param)
     ws = [f"_w{j}" for j in range(m)]
-    combine = " + ".join(ws[m - o] for o in shape.offsets)     # f(i) = sum f(i-o) = window[M-o]
+    # f(i) = sum over terms of coeff * f(i-offset) = coeff * window[M-offset]
+    parts = []
+    for coeff, o in zip(shape.coeffs, shape.offsets):
+        w = ws[m - o]
+        parts.append(w if coeff == 1 else f"{coeff} * {w}")
+    combine = " + ".join(parts)
     shift = "".join(f"    {ws[j]} = {ws[j + 1]};\n" for j in range(m - 1)) + f"    {ws[m - 1]} = _new;\n"
     loop = f"_tab_{f}"
     decl_state = ", ".join(f"int {w} = 0" for w in ws)

@@ -26,6 +26,16 @@ def test_detects_fib():
     s = _detect("function int fib(int n) { if (n < 2) { return n; } return fib(n-1) + fib(n-2); }")
     assert s is not None
     assert s.param == "n" and s.base_op == "<" and s.base_k == 2 and s.offsets == (1, 2)
+    assert s.coeffs == (1, 1)
+
+
+def test_detects_coefficients():
+    # Pell: P(n) = 2*P(n-1) + P(n-2)  (general linear recurrence with coefficients)
+    s = _detect("function int pell(int n) { if (n < 2) { return n; } return 2*pell(n-1) + pell(n-2); }")
+    assert s is not None and s.offsets == (1, 2) and s.coeffs == (2, 1)
+    # coefficient on the right factor too: f(n-2) * 3
+    s2 = _detect("function int g(int n) { if (n < 2) { return n; } return g(n-1) + g(n-2) * 3; }")
+    assert s2 is not None and s2.offsets == (1, 2) and s2.coeffs == (1, 3)
 
 
 def test_detects_tribonacci():
