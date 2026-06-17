@@ -111,9 +111,10 @@ apps are admitted via the kernel (`Init.admit_from_path`), processes described b
 "the window living in the orchestrator" = the substrate GUI window as a Yantra surface that
 spawns a Sutra substrate-server.
 
-- [ ] **Y3 — integration docs.** Note the button↔Yantra surface in `docs/gui.md` / CLAUDE.md
-  §"Cross-repo workflow" (and fold in the cosmetic Yantra-prose-still-says-submodule note from
-  Y0), measured.
+_Y3 ✅ done: CLAUDE.md §"Cross-repo workflow" rewritten for Yantra-vendored-in-tree (deprecated
+as its own repo) + the button↔Yantra surface (substrate-server spawned by the gui-button
+surface); `docs/gui.md` gained a website-clean "substrate service" note (host spawns it over a
+stdin/stdout protocol). Site builds clean. **Yantra track Y0–Y3 COMPLETE.**_
 
 _Y2 ✅ done: `external/Yantra/apps/gui-button/button_surface.py` — a Python host surface that
 spawns the Y1 substrate-server and drives it (frame / owner-prefer / click / state), mirroring

@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Yantra Y3 — integration docs (Yantra track Y0–Y3 complete)
+
+Documented the button↔Yantra integration. `CLAUDE.md` §"Cross-repo workflow: Sutra ↔ Yantra"
+rewritten for the new reality — Yantra deprecated as an independent repo and vendored in-tree at
+`external/Yantra/` (shallow subtree, SDK refs rewired, no submodule) — plus a "GUI integration —
+the substrate window in the orchestrator" paragraph: `demos/gui/button_substrate_server.py`
+(Sutra bridge) spawned by `external/Yantra/apps/gui-button/button_surface.py` (Yantra host
+surface), owner×CTR steering + render on the substrate, host does window/clicks. Noted the
+stale Yantra-side submodule prose as cosmetic. `docs/gui.md` gained a website-clean "the button
+is a substrate service" note (host spawns it over a stdin/stdout protocol — no repo-internal
+refs). Verified the site builds clean (`scripts/build_site.py` exit 0, `/gui/` rendered). The
+Yantra integration track (Y0 rewire → Y1 substrate-server → Y2 host surface → Y3 docs) is
+complete; a native Rust minifb window over the same protocol remains an optional refinement.
+
 ## 2026-06-16: Yantra Y2 — gui-button host surface (spawns the Sutra substrate-server)
 
 `external/Yantra/apps/gui-button/button_surface.py` — `YantraButtonSurface`, a Python host

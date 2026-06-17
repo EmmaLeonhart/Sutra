@@ -95,10 +95,13 @@ Emma designed Sutra and knows its mechanisms far better than any agent landing i
 
 ## Cross-repo workflow: Sutra ↔ Yantra
 
-Sutra is consumed downstream by **Yantra** (`https://github.com/EmmaLeonhart/Yantra`),
-the GPU-native OS built in Sutra. Yantra pins this repo as a git submodule at
-`external/Sutra` and may **drive Sutra-side changes from inside Yantra sessions**.
-Sutra commit messages mentioning Yantra are the workflow operating as designed.
+Sutra is consumed downstream by **Yantra** (the GPU-native OS built in Sutra).
+**As of 2026-06-16 Yantra is being deprecated as an independent repo and vendored in-tree**
+as a shallow subtree at `external/Yantra/` (squashed from `EmmaLeonhart/Yantra` main, website
+stripped; gitignored-no-more — it is committed here). Its runtime references to the Sutra SDK
+are rewired to this repo's `sdk/sutra-compiler` (no submodule recursion). Historically Yantra
+pinned this repo as a git submodule at its own `external/Sutra`; that relationship is winding
+down as the two merge. Commit messages mentioning Yantra are the workflow operating as designed.
 
 **Division of responsibility:**
 - **Yantra** — kernel orchestration (`kernel/`, axon router, storage tiers,
@@ -108,6 +111,16 @@ Sutra commit messages mentioning Yantra are the workflow operating as designed.
   (each a fixture-tested, substrate-verified lowering pass; OCaml is the reference,
   TS is Yantra's gate, C is parked), lowering passes, axon spec, multi-process
   runtime, runtime ABI.
+
+**GUI integration — the substrate window in the orchestrator.** Yantra `apps/` GUI entries are
+host surfaces over substrate compute: a surface spawns a Sutra substrate-server and does only
+window/clicks/paint. The trainable click-button rides this pattern end-to-end:
+`demos/gui/button_substrate_server.py` (the Sutra-side stdin/stdout bridge over `ButtonAdam`) is
+spawned by `external/Yantra/apps/gui-button/button_surface.py` (the Yantra host surface), which
+forwards owner A/B preferences + visitor clicks and paints the substrate-rendered button — the
+owner×CTR steering and the render run on the substrate; the host is I/O. (The Yantra-side
+prose under `external/Yantra/` still describes the old `external/Sutra` submodule pin in places
+— stale since the in-tree merge; cosmetic.)
 
 **Rules that bind regardless of who's driving the change** — when a Yantra-driven
 session edits Sutra source, the rules in this file still apply: integrity /
