@@ -7,11 +7,11 @@
 // effects are blended writes to fixed cells. Semantics match the W3C WebAssembly
 // spec's small-step reduction rules for this subset.
 //
-// STEPS 1a+1b (this file): the i32 arithmetic subset with real opcodes + single-
-// byte signed LEB128 for i32.const, plus INDEXED locals (local.get/set/tee with an
-// unsigned single-byte LEB128 index — NEW vs the JVM core's fixed-opcode locals: the
-// local cell is computed 200+idx, a hard-addressed write). Comparisons and structured
-// control (block/loop/if/end/br) are the next ladder steps.
+// STEPS 1a+1b+2 (this file): the i32 arithmetic subset with real opcodes + single-
+// byte signed LEB128 for i32.const, INDEXED locals (local.get/set/tee with an unsigned
+// single-byte LEB128 index — NEW vs the JVM core's fixed-opcode locals: the local cell
+// is computed 200+idx, a hard-addressed write), and COMPARISONS (i32.eqz + the six
+// ordered/equality i32 compares). Structured control (block/loop/if/end/br) is next.
 //
 // SUBSTRATE-PURE: no .real(), no host arithmetic on values — values stay number-
 // vectors; comparisons/dispatch are 0-dim truth-axis tensors; ram addresses decode
@@ -27,6 +27,8 @@
 //     single-byte LEB128 local index; 2-byte instr. get pushes local[idx]; set pops
 //     top into local[idx]; tee writes local[idx] but LEAVES the value on the stack.)
 //   0x6a/106=i32.add  0x6b/107=i32.sub  0x6c/108=i32.mul
+//   0x45/69=i32.eqz(unary: top==0)  0x46/70=i32.eq  0x47/71=i32.ne  0x48/72=i32.lt_s
+//   0x4a/74=i32.gt_s  0x4c/76=i32.le_s  0x4e/78=i32.ge_s  (binary: push 0/1)
 //   0x0b/11=end  0x0f/15=return  (both keep pc -> idle/halt; result is on top)
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1). pc
 // advances 2 for i32.const, 1 for arithmetic; end/return keep pc so the machine
@@ -50,6 +52,13 @@ function int step(scalar d) {
     int is_add = truth_axis(defuzzy(op == 106));     // i32.add  0x6a
     int is_sub = truth_axis(defuzzy(op == 107));     // i32.sub  0x6b
     int is_mul = truth_axis(defuzzy(op == 108));     // i32.mul  0x6c
+    int is_eqz = truth_axis(defuzzy(op == 69));      // i32.eqz  0x45 (unary: top==0)
+    int is_eq = truth_axis(defuzzy(op == 70));       // i32.eq   0x46
+    int is_ne = truth_axis(defuzzy(op == 71));       // i32.ne   0x47
+    int is_lt = truth_axis(defuzzy(op == 72));       // i32.lt_s 0x48
+    int is_gt = truth_axis(defuzzy(op == 74));       // i32.gt_s 0x4a
+    int is_le = truth_axis(defuzzy(op == 76));       // i32.le_s 0x4c
+    int is_ge = truth_axis(defuzzy(op == 78));       // i32.ge_s 0x4e
     int is_end = truth_axis(defuzzy(op == 11));      // end      0x0b
     int is_return = truth_axis(defuzzy(op == 15));   // return   0x0f
     // For local.get/set/tee the operand byte `imm` is an unsigned single-byte LEB128
@@ -64,6 +73,19 @@ function int step(scalar d) {
     // equal -> no equality-boundary case, no gate (same trick as the JVM offset sign).
     int leb_sign = 1 - ((truth_axis(defuzzy((2 * imm) < 127)) + 1) / 2);  // 1 iff negative
     int leb_val = imm - (128 * leb_sign);
+    // Comparisons as 0/1 values (copies of the JVM gated idiom). WASM i32 compares
+    // pop value1 (=top2, deeper) and value2 (=top1, top) and push (value1 <cond> value2):
+    //   eq: top2==top1  ne: top2!=top1  lt_s: top2<top1  gt_s: top2>top1
+    //   ge_s: top2>=top1  le_s: top2<=top1. == is crisp; strict </> defuzz ambiguously
+    // at EXACT equality so gate by (1 - v_eq). eqz is the unary (top1 == 0).
+    int v_eq = (truth_axis(defuzzy(top2 == top1)) + 1) / 2;
+    int v_lt_raw = (truth_axis(defuzzy(top2 < top1)) + 1) / 2;
+    int v_gt_raw = (truth_axis(defuzzy(top1 < top2)) + 1) / 2;
+    int v_lt = (1 - v_eq) * v_lt_raw;   // top2 < top1
+    int v_gt = (1 - v_eq) * v_gt_raw;   // top2 > top1
+    int v_ge = 1 - v_lt;                // top2 >= top1
+    int v_le = 1 - v_gt;                // top2 <= top1
+    int v_eqz = (truth_axis(defuzzy(top1 == 0)) + 1) / 2;
     // 100+sp (new top cell): i32.const pushes leb_val (as a real-axis vector); else
     // keep the cell.
     int cell_hi = ramRead(100 + sp);
@@ -84,15 +106,35 @@ function int step(scalar d) {
     int v_mul = top2 * top1;
     int b_mul = (((1 + is_mul) * (v_mul)) + ((1 - is_mul) * (top2))) / 2;
     int b_sub = (((1 + is_sub) * (v_sub)) + ((1 - is_sub) * (b_mul))) / 2;
-    int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_sub))) / 2;
+    // Binary comparisons push their 0/1 result here too (net sp -1). Each result is
+    // materialized as v*one (real-axis vector), NOT a bare scalar — a scalar would
+    // broadcast across all axes (the iconst-literal-broadcast finding) and break a
+    // later == / br_if on the pushed flag.
+    int b_eq = (((1 + is_eq) * (v_eq * one)) + ((1 - is_eq) * (b_sub))) / 2;
+    int b_ne = (((1 + is_ne) * ((1 - v_eq) * one)) + ((1 - is_ne) * (b_eq))) / 2;
+    int b_lt = (((1 + is_lt) * (v_lt * one)) + ((1 - is_lt) * (b_ne))) / 2;
+    int b_gt = (((1 + is_gt) * (v_gt * one)) + ((1 - is_gt) * (b_lt))) / 2;
+    int b_le = (((1 + is_le) * (v_le * one)) + ((1 - is_le) * (b_gt))) / 2;
+    int b_ge = (((1 + is_ge) * (v_ge * one)) + ((1 - is_ge) * (b_le))) / 2;
+    int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_ge))) / 2;
     ramWrite(98 + sp, new_lo);
+    // 99+sp (top, in place): i32.eqz replaces the top with (top == 0); else keep top1.
+    int new_99 = (((1 + is_eqz) * (v_eqz * one)) + ((1 - is_eqz) * (top1))) / 2;
+    ramWrite(99 + sp, new_99);
     // sp: i32.const +1; local.get +1; local.set -1; local.tee keep; add/sub/mul -1;
     // end/return keep.
     int sp_binop = sp - 1;
     int s_mul = (((1 + is_mul) * (sp_binop)) + ((1 - is_mul) * (sp))) / 2;
     int s_sub = (((1 + is_sub) * (sp_binop)) + ((1 - is_sub) * (s_mul))) / 2;
     int s_add = (((1 + is_add) * (sp_binop)) + ((1 - is_add) * (s_sub))) / 2;
-    int s_get = (((1 + is_get) * (sp + 1)) + ((1 - is_get) * (s_add))) / 2;
+    // binary comparisons pop two, push one (net -1); eqz is unary (net 0, keeps sp).
+    int s_eq = (((1 + is_eq) * (sp_binop)) + ((1 - is_eq) * (s_add))) / 2;
+    int s_ne = (((1 + is_ne) * (sp_binop)) + ((1 - is_ne) * (s_eq))) / 2;
+    int s_lt = (((1 + is_lt) * (sp_binop)) + ((1 - is_lt) * (s_ne))) / 2;
+    int s_gt = (((1 + is_gt) * (sp_binop)) + ((1 - is_gt) * (s_lt))) / 2;
+    int s_le = (((1 + is_le) * (sp_binop)) + ((1 - is_le) * (s_gt))) / 2;
+    int s_ge = (((1 + is_ge) * (sp_binop)) + ((1 - is_ge) * (s_le))) / 2;
+    int s_get = (((1 + is_get) * (sp + 1)) + ((1 - is_get) * (s_ge))) / 2;
     int s_set = (((1 + is_set) * (sp_binop)) + ((1 - is_set) * (s_get))) / 2;
     int new_sp = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (s_set))) / 2;
     ramWrite(1, new_sp);

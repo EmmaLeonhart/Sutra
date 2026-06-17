@@ -123,13 +123,17 @@ to ask ("barrel through … until you've gotten a strong acceptance").
     indexed locals** `local.get`/`local.set`/`local.tee`(0x20-22, unsigned single-byte LEB128
     index): NEW vs JVM's fixed-opcode locals — the local cell is computed `200+idx` (hard-addressed;
     writes the old value back when not local.set/tee, so non-local ops are no-ops on the locals
-    region, safe even if idx aliases a used local). 12 cases substrate-green (8 arith + 4 locals:
-    set/get/get/add→10, tee leaves value→14, two-locals sub→4, set/get round-trip→9). **NEXT = step
-    2: comparisons** `i32.eqz`(0x45)/`i32.eq`(0x46)/`ne`(0x47)/`lt_s`(0x48)/`gt_s`(0x4a)/`le_s`(0x4c)/
-    `ge_s`(0x4e) — copies of the JVM `v_eq`/`v_lt`/`v_gt`/`v_ge`/`v_le` gated idiom. Ladder: 1a arith
-    ✓ → 1b locals ✓ → 2 comparisons → 3 structured control (block/loop/if/end/br, pre-resolved
-    targets) → 4 real wat→wasm factorial byte-for-byte → 5 tree-recursion fib via `call` (= Phase
-    5.5-B payoff). Then Python-via-Pyodide. Concrete WASM-leg open items in the merged WASM section.
+    region, safe even if idx aliases a used local). 12 cases substrate-green (8 arith + 4 locals).
+    **STEP 2 DONE 2026-06-17 — comparisons** `i32.eqz`(0x45, unary top==0) + `i32.eq`(0x46)/`ne`(0x47)/
+    `lt_s`(0x48)/`gt_s`(0x4a)/`le_s`(0x4c)/`ge_s`(0x4e) (binary, push 0/1): copies of the JVM
+    `v_eq`/`v_lt`/`v_gt`/`v_ge`/`v_le` gated idiom; results pushed as `v*one` real-axis vectors (NOT
+    bare scalars — the iconst-broadcast finding). 26 cases substrate-green, incl. equality boundaries
+    (`ge_s`/`le_s` 5>=5/5<=5 → 1) and signed (`lt_s` −5<3 → 1). **NEXT = step 3: structured control**
+    `block`(0x02)/`loop`(0x03)/`if`(0x04)/`else`(0x05)/`end`(0x0b)/`br`(0x0c)/`br_if`(0x0d) — the big
+    encoding difference from JVM; use the load-time PRE-RESOLVED target table (scoping doc), keeps the
+    hot path JVM-shaped. Ladder: 1a arith ✓ → 1b locals ✓ → 2 comparisons ✓ → 3 structured control →
+    4 real wat→wasm factorial byte-for-byte → 5 tree-recursion fib via `call` (= Phase 5.5-B payoff).
+    Then Python-via-Pyodide. Concrete WASM-leg open items in the merged WASM section.
 - **Phase 5.5 — Recursion lowering strategy: single→tail (compiler), multiple→WASM (Emma
   2026-06-17).** A two-part strategy for NON-TAIL recursion that applies across ALL language
   frontends. Ordering (Emma): both parts come BEFORE the Phase-6 long tail; Part B comes AFTER

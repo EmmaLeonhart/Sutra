@@ -12,7 +12,9 @@ body as raw WASM bytes, runs it, and asserts the decoded operand-stack result.
 Opcodes (real WASM byte values): 0x41/65=i32.const (signed single-byte LEB128)
 0x20/32=local.get 0x21/33=local.set 0x22/34=local.tee (unsigned single-byte LEB128
 index; local lives at RAM 200+idx) 0x6a/106=i32.add 0x6b/107=i32.sub 0x6c/108=i32.mul
-0x0b/11=end 0x0f/15=return (end/return keep pc -> idle with the result on top).
+0x45/69=i32.eqz 0x46/70=i32.eq 0x47/71=i32.ne 0x48/72=i32.lt_s 0x4a/74=i32.gt_s
+0x4c/76=i32.le_s 0x4e/78=i32.ge_s 0x0b/11=end 0x0f/15=return (end/return keep pc ->
+idle with the result on top).
 """
 from __future__ import annotations
 
@@ -84,6 +86,19 @@ _CASES = [
     ([65, 7, 33, 1, 65, 3, 33, 0, 32, 1, 32, 0, 107, 11], 4, 14, 100),
     # local round-trip: i32.const 9; local.set 2; local.get 2; return -> 9
     ([65, 9, 33, 2, 32, 2, 15], 9, 10, 100),
+    # comparisons (push 0/1; value1=top2 deeper, value2=top1 top):
+    ([65, 5, 65, 5, 70, 11], 1, 12, 100),    # i32.eq 5==5 -> 1
+    ([65, 5, 65, 3, 70, 11], 0, 12, 100),    # i32.eq 5==3 -> 0
+    ([65, 5, 65, 3, 71, 11], 1, 12, 100),    # i32.ne 5!=3 -> 1
+    ([65, 3, 65, 5, 72, 11], 1, 12, 100),    # i32.lt_s 3<5 -> 1
+    ([65, 5, 65, 3, 72, 11], 0, 12, 100),    # i32.lt_s 5<3 -> 0
+    ([65, 5, 65, 3, 74, 11], 1, 12, 100),    # i32.gt_s 5>3 -> 1
+    ([65, 5, 65, 5, 78, 11], 1, 12, 100),    # i32.ge_s 5>=5 (equality boundary) -> 1
+    ([65, 5, 65, 5, 76, 11], 1, 12, 100),    # i32.le_s 5<=5 (equality boundary) -> 1
+    ([65, 5, 65, 3, 76, 11], 0, 12, 100),    # i32.le_s 5<=3 -> 0
+    ([65, 0, 69, 11], 1, 10, 100),           # i32.eqz 0 -> 1
+    ([65, 5, 69, 11], 0, 10, 100),           # i32.eqz 5 -> 0
+    ([65, 123, 65, 3, 72, 11], 1, 12, 100),  # i32.lt_s -5<3 (signed) -> 1
 ]
 
 
