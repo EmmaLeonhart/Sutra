@@ -72,7 +72,7 @@ AXON_WIDTH = 8
 # digits.su is compiled directly (its `digit(n, place)` is a pure substrate
 # function call, not an axon service — the same direct-substrate pattern the GUI
 # uses for frame.su / count.su). That needs the Sutra compiler on the path.
-_SUTRA_SDK = _REPO_ROOT / "external" / "Sutra" / "sdk" / "sutra-compiler"
+_SUTRA_SDK = _REPO_ROOT.parent.parent / "sdk" / "sutra-compiler"  # Yantra vendored in-tree under Sutra
 if str(_SUTRA_SDK) not in sys.path:
     sys.path.insert(0, str(_SUTRA_SDK))
 

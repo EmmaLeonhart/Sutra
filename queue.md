@@ -111,10 +111,6 @@ apps are admitted via the kernel (`Init.admit_from_path`), processes described b
 "the window living in the orchestrator" = the substrate GUI window as a Yantra surface that
 spawns a Sutra substrate-server.
 
-- [ ] **Y0 — wire the vendored tree (rewire `external/Sutra` references).** Yantra's code/bats
-  reference `external/Sutra/...`; now that Yantra lives INSIDE Sutra at `external/Yantra/`, the
-  Sutra root is two levels up. Point those references at the parent (e.g. Yantra's
-  `external/Sutra/...` → the repo root's `demos/gui/...`). Do NOT commit a recursive junction.
 - [ ] **Y1 — button substrate-server (Sutra-side, the Yantra-spawnable bridge).** A
   stdin/stdout substrate server for the trainable button mirroring
   `counter_substrate_server.py`: commands in (init / click current|variant / owner-prefer /
@@ -124,6 +120,12 @@ spawns a Sutra substrate-server.
   surface that spawns Y1, mirroring `gui-rust`. Committable here now that Yantra is vendored.
 - [ ] **Y3 — integration docs.** Note the button↔Yantra surface in `docs/gui.md` / CLAUDE.md
   §"Cross-repo workflow", measured.
+
+_Y0 ✅ done: the 4 runtime SDK-path references in vendored Yantra (kernel/services.py,
+apps/calc/calc.py, scripts/precompile_all_su.py, tools/regenerate_codebook_fixtures.py) rewired
+from the obsolete `external/Sutra/sdk` to the parent Sutra root's `sdk/sutra-compiler`; verified
+they resolve + `kernel.services` imports against the in-tree SDK. (Docs prose in Yantra's
+CLAUDE.md/READMEs still describes the old submodule relationship — cosmetic, fold into Y3.)_
 
 _B8 browser smoke launcher: `!browserTest.bat` at the repo root (runs
 `button_server.py --live-ctr` + opens the browser). Still needs a human at a browser to smoke._

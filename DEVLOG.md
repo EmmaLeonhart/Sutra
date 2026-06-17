@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Yantra Y0 — rewire vendored tree's Sutra-SDK references to the parent
+
+Now that Yantra is vendored in-tree at `external/Yantra/`, its 4 runtime references to the
+(removed) `external/Sutra/sdk/sutra-compiler` were dangling. Rewired them to the parent Sutra
+root's `sdk/sutra-compiler` (two levels up from the Yantra root): `kernel/services.py`,
+`apps/calc/calc.py`, `scripts/precompile_all_su.py`, `tools/regenerate_codebook_fixtures.py`.
+Verified all four resolve to the real in-tree SDK, `import sutra_compiler` works from each, and
+`kernel.services` imports cleanly against it. (Yantra's CLAUDE.md/README prose still describes
+the old submodule pin — cosmetic, deferred to Y3 docs.) Y1 (Sutra-side button substrate-server)
+is next.
+
 ## 2026-06-16: Yantra vendored in-tree as a shallow subtree + !browserTest.bat (B8 launcher)
 
 Emma's call: Yantra is **deprecated as its own repo** and absorbed into Sutra. Vendored it as a
