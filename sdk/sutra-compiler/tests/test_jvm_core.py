@@ -10,11 +10,11 @@ side effects are blended writes to fixed cells. This test compiles the machine v
 the PyTorch codegen, attaches a RAM device, loads bytecode as raw bytes, runs it,
 and asserts the decoded operand-stack result — the compile-AND-run bar.
 
-Opcodes (real JVM decimal values): 16=bipush 96=iadd 100=isub 104=imul 116=ineg
-172=ireturn (keeps pc -> idle with the result on top) 26..29=iload_0..3
-59..62=istore_0..3 (locals 0..3 at RAM 200..203) 89=dup 87=pop 95=swap
-167=goto 159=if_icmpeq 160=if_icmpne (2-byte big-endian signed RELATIVE offset,
-real javac encoding). op 0 = nop.
+Opcodes (real JVM decimal values): 3..8=iconst_0..5 16=bipush 96=iadd 100=isub
+104=imul 116=ineg 172=ireturn (keeps pc -> idle with the result on top)
+26..29=iload_0..3 59..62=istore_0..3 (locals 0..3 at RAM 200..203) 89=dup 87=pop
+95=swap 167=goto 159/160/161/162/163/164=if_icmp{eq,ne,lt,ge,gt,le} (2-byte
+big-endian signed RELATIVE offset, real javac encoding). op 0 = nop.
 """
 from __future__ import annotations
 
@@ -50,16 +50,21 @@ def _machine_ns():
     return ns
 
 
-def _run(ns, bytecode, steps=10, addr=100):
+def _run(ns, bytecode, steps=10, addr=100, locals0=None):
     """Load `bytecode` (a flat list of JVM bytes) into RAM at the code base (10),
     run `steps` host-driven ticks, return the decoded RAM[addr] (operand-stack
-    base 100 by default — where the final result lands)."""
+    base 100 by default — where the final result lands). `locals0` optionally seeds
+    local variables 0..3 at RAM 200..203 — the JVM static-method calling convention
+    passes method arguments in the low locals, so e.g. fact(int n) reads n from
+    local 0."""
     v = ns["_VSA"]
     ram = [v.zero_vector() for _ in range(512)]
     ram[0] = v.make_real(10.0)   # pc
     ram[1] = v.make_real(0.0)    # sp
     for i, b in enumerate(bytecode):
         ram[10 + i] = v.make_real(float(b))
+    for i, val in enumerate(locals0 or []):
+        ram[200 + i] = v.make_real(float(val))
     v.ram = ram
     for _ in range(steps):
         ns["step"](0.0)
@@ -100,7 +105,37 @@ _CASES = [
     #   local0=sum local1=i; while i!=0 { sum+=i; i-=1 }; return sum
     ([16, 0, 59, 16, 3, 60, 27, 16, 0, 159, 0, 15, 26, 27, 96, 59,
       27, 16, 1, 100, 60, 167, 255, 241, 26, 172], 6, 60, 100),
+    # iconst_5 (opcode 8) pushes the literal 5; ireturn -> 5
+    ([8, 172], 5, 10, 100),
+    # if_icmpgt taken (value1=5 > value2=3 -> branch +8 to "push 1") -> 1
+    ([16, 5, 16, 3, 163, 0, 8, 16, 0, 167, 0, 5, 16, 1, 172], 1, 12, 100),
+    # if_icmpge at the EQUALITY boundary (5 >= 5 is true -> branch) -> 1
+    # (exercises v_ge = 1 - v_lt at exact equality, the case the WASM machine fixed)
+    ([16, 5, 16, 5, 162, 0, 8, 16, 0, 167, 0, 5, 16, 1, 172], 1, 12, 100),
+    # if_icmplt taken (value1=3 < value2=5 -> branch) -> 1
+    ([16, 3, 16, 5, 161, 0, 8, 16, 0, 167, 0, 5, 16, 1, 172], 1, 12, 100),
+    # if_icmple NOT taken (value1=5 <= value2=3 is false -> fall through to "push 0") -> 0
+    ([16, 5, 16, 3, 164, 0, 8, 16, 0, 167, 0, 5, 16, 1, 172], 0, 12, 100),
 ]
+
+
+# Real `javac` output for `static int fact(int n) { int r=1,i=1; while(i<=n){r=r*i;i=i+1;} return r; }`
+# (Temurin/OpenJDK 21, `javap -c`). Loaded byte-for-byte; n is passed in local 0.
+#   0:iconst_1 1:istore_1 2:iconst_1 3:istore_2 4:iload_2 5:iload_0
+#   6:if_icmpgt 20  9:iload_1 10:iload_2 11:imul 12:istore_1 13:iload_2
+#   14:iconst_1 15:iadd 16:istore_2 17:goto 4  20:iload_1 21:ireturn
+_FACT_BYTECODE = [4, 60, 4, 61, 28, 26, 163, 0, 14, 27, 28, 104, 60,
+                  28, 4, 96, 61, 167, 255, 243, 27, 172]
+
+
+@pytest.mark.parametrize("n,expected", [(0, 1), (1, 1), (4, 24), (5, 120)])
+def test_jvm_core_runs_real_javac_factorial(n, expected):
+    """The actual javac-emitted iterative-factorial method, run byte-for-byte on the
+    substrate (Phase 5 leg 2, step 2d-final). n is seeded into local 0 (JVM static-
+    method calling convention); the decoded operand-stack top must equal n!."""
+    ns = _machine_ns()
+    got = _run(ns, _FACT_BYTECODE, steps=200, addr=100, locals0=[n])
+    assert got == expected, f"fact({n}) -> {got}, expected {expected}"
 
 
 @pytest.mark.parametrize("bytecode,expected,steps,addr", _CASES,
