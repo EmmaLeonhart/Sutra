@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-17: Real-WASM-bytecode core step 1b — indexed locals (Phase 5)
+
+Added WASM **indexed locals** to `wasm_core.su`: `local.get`(0x20)/`local.set`(0x21)/`local.tee`
+(0x22), each carrying an unsigned single-byte LEB128 local index. The new mechanism vs the JVM core
+(which used fixed-opcode locals iload_0..3/istore_0..3, one fixed cell per opcode) is that the local
+lives at the **computed cell `200+idx`** — a hard-addressed read/write. The write is made safe under
+blended dispatch by writing the cell's existing value back when the op is not local.set/tee (a
+no-op, safe even if `idx` aliases a used local, since writing a cell's current value to itself
+changes nothing); local.set writes `top1` and pops, local.tee writes `top1` and leaves it on the
+stack, local.get pushes `loc_cur`. pc advancement now keys off a 2-byte-op count covering i32.const
++ all three local ops. 12 cases substrate-green (`test_wasm_core.py`): the 8 step-1a arithmetic
+cases plus `const 5; local.set 0; local.get 0; local.get 0; i32.add → 10`, `local.tee` leaves the
+value (`const 7; tee 1; get 1; add → 14`), two-locals `local1=7; local0=3; get1; get0; i32.sub → 4`,
+and a `set/get` round-trip `→ 9`. Verified directly on the compiled substrate machine. Next: step 2,
+comparisons (i32.eqz/eq/ne/lt_s/gt_s/le_s/ge_s — copies of the JVM gated comparison idiom).
+
 ## 2026-06-17: Real-WASM-bytecode core step 1a — i32 arithmetic + signed LEB128 (Phase 5)
 
 First code on the real-WASM-bytecode core. `experiments/iso5_substrate_dispatch/wasm_core.su` is
