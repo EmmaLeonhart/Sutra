@@ -239,12 +239,12 @@ negative results, not hidden.
   > runs on substrate → 13. NEXT for F#: DU variants → tagged axons (the dedicated
   > "F# next increments" bullet above now covers it).
 - [ ] **Clojure next increments** (`sdk/sutra-from-clojure/`; through data vectors `[a b]`
-  → positional-key axons + `(nth v i)` access + `(let [[a b] v] …)` vector destructuring
-  shipped 2026-06-16, suite 32/32; `_collect_binding_vecs` keeps let/loop binding vectors
-  AND inner destructuring pattern vectors from being hoisted as data): symbol map keys
-  (needs a symbol-as-value rep); maps/vectors in recursive bodies; MAP destructuring
-  (`{:keys [..]}` / `{a :x}` in binding position) + nested vector patterns; multi-arity
-  `defn`; `case` symbol/keyword test members (needs a keyword-as-value rep).
+  → positional-key axons + `(nth v i)` access + `(let [[a b] v] …)` vector + `{:keys [..]}` /
+  `{a :x}` map destructuring shipped 2026-06-16, suite 36/36; `_collect_binding_vecs` +
+  `_mark_binding_pattern` keep binding vectors/maps AND nested patterns from being hoisted as
+  data): symbol map keys (needs a symbol-as-value rep); maps/vectors in recursive bodies;
+  nested destructuring patterns (`[[a b] c]`); multi-arity `defn`; `case` symbol/keyword test
+  members (needs a keyword-as-value rep).
 - [ ] **Haskell next increments** (`sdk/sutra-from-haskell/`; through tuples `(a, b)` →
   positional-key axons (`(Int,Int)` sig → Axon, `fst`/`snd` → `_0`/`_1`, arg-position hoist)
   + `let (a, b) = t` tuple-pattern + `let (Wrap a b) = w` single-constructor-pattern
