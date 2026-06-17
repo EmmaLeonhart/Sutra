@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-17: WASM machine — opcode 21 = NEG (Phase 5, first opcode extension)
+
+Phase 5 step 1 (extend the proven WASM leg). Added **opcode 21 = NEG** (unary negate the
+top of stack; pop a, push −a) to the substrate RAM-state mini WASM machine
+(`experiments/iso5_substrate_dispatch/mini_wasm_machine.su`). The change is minimal and
+contained to the blended-dispatch structure: a new `is_neg = truth_axis(defuzzy(op == 21))`
+flag, `v_neg = 0 - top1` (element-wise substrate negate), woven only into the 99+sp top-cell
+blend chain (`new_99 = is_neg ? v_neg : <existing>`). NEG is net sp 0 (like LOAD) so it is NOT
+in the sp/pc/98+sp/100+sp chains — it cannot disturb the existing 20 opcodes. Two new
+substrate-verified test cases (`CONST 5; NEG` → −5; `5; NEG; 3; ADD` → −2). Full
+`test_mini_wasm_machine.py` ran on the substrate: **33 passed in 851s, exit 0** — NEG works and
+the existing opcodes are unaffected. First opcode added to the machine since the 21-opcode
+ISO-5 core; the same blended-dispatch pattern extends to the remaining ISO-5 breadth.
+
 ## 2026-06-17: FV cycles banked (Weak Reject) → Phase 5 bytecode/VM verified-spec research (kickoff)
 
 The cycle-3 structural §8 trim WORKED: **v78 (post 2806) holds Weak Reject and the §8-specific
