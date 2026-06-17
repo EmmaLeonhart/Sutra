@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-17: WASM machine — opcode 28 = ROT (Phase 5; establishes the 3-cell write pattern)
+
+Phase 5 (extend the proven WASM leg). Added **opcode 28 = ROT** (`[a b c] → [b c a]`, rotate the
+top three, net sp 0) to the substrate mini WASM machine. The first opcode to touch THREE stack
+cells, establishing a reusable pattern: a new `top3 = ramRead(97+sp)` read; ROT-writes into the
+98+sp chain (middle ← top1, via `b_rot`) and the 99+sp chain (top ← top3); plus a **new 97+sp
+write chain** (deepest ← top2; a no-op rewrite of its existing value `top3` for every other
+opcode — only ROT touches 97+sp). All writes use the captured `top1/top2/top3` (no
+write-after-write hazard, matching the machine's capture-then-write discipline). Three new
+substrate-verified cases: new top = a (1), new deepest = b (2), and `ROT; ADD` → 4 (usable
+stack). Full `test_mini_wasm_machine.py` ran on the substrate: **53 passed in 1682s, exit 0** —
+ROT works, no regression. Machine now 29 opcodes; the 3-cell pattern carries to TUCK/2DUP if
+wanted. Per the JVM-core scoping (committed `3195d2eb`), the next Phase-5 leg shifts from
+WASM-opcode breadth to the JVM arithmetic core.
+
 ## 2026-06-17: Phase 5 — JVM-core leg scoped (plan-into-queue, no code yet)
 
 Used the ~25-min WASM-machine verification window productively (while opcode 28 = ROT verifies)
