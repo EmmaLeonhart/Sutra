@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-06-17: WASM core step 5c — recursive fib; the real-WASM-bytecode core is COMPLETE (Phase 5)
+
+Recursive `fib` runs on the substrate — the last WASM-core step and the Phase-5.5-B substrate
+demonstration (tree recursion represented as WASM, the call stack living in RAM/DNC memory rather
+than a host stack). Like the factorial, no `wasm_core.su` change was needed: `fib` reuses the 5b
+call/return machinery plus `if`/`else`/`i32.lt_s`/`i32.sub`/`i32.add` — so 5c is a test-only
+validation. `fib(n) = if n<2 then n else fib(n-1)+fib(n-2)`, two self-`call`s + `i32.add`; each
+recursive call opens a new frame in the RAM arena (args-in-place) and a new control-stack entry, and
+the depth-growing stack lives entirely in RAM. Measured: **fib(0..6) = 0,1,1,2,3,5,8**. This also
+re-exercised the computed-vs-literal equality boundary in `i32.lt_s` at `n==2` (the class that bit
+the JVM factorial pre-fix) — clean here, because `i32.const` pushes real-axis-clean values.
+
+With this, the **real-WASM-bytecode core is complete**: i32 arithmetic + signed LEB128, indexed
+locals, the comparison family, structured control (block/loop/if/else/br/br_if/end via the
+pre-resolved target table), `call`/`return` with a frame-relative call stack (frame pointer +
+control/return stack + host-built function table), a real iterative factorial byte-for-byte, and
+recursive fib — all substrate-verified. WASM is now a working substrate VM target capable of running
+real arithmetic/locals/loop/branch/recursive functions byte-for-byte. Remaining are minor follow-ups
+(cross-check the factorial bytes against real `wat2wasm` in CI; multi-byte LEB128). Next active queue
+item: the recursion-philosophy analysis (read the references chat → plan + docs), then Phase 5.5.
+
 ## 2026-06-17: WASM core step 5b — function table + non-recursive call/return (Phase 5)
 
 The call-frame machine. Added `call`(0x10) + a control/return stack to `wasm_core.su`, with a

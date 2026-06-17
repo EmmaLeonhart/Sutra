@@ -293,3 +293,26 @@ def test_wasm_core_runs_non_recursive_call(a, b, expected):
     main = {"body": [65, a, 65, b, 16, 1, 11], "nargs": 0, "nlocals": 4}  # const a; const b; call 1; end
     got = _run_call(ns, [main, _ADD_FN], steps=30)
     assert got == expected, f"add({a},{b}) -> {got}, expected {expected}"
+
+
+# RECURSIVE WASM fib (step 5c — tree recursion, the Phase-5.5-B substrate demonstration):
+#   (func $fib (param i32) (result i32)
+#     (if (result i32) (i32.lt_s (local.get 0) (i32.const 2))
+#       (then (local.get 0))
+#       (else (i32.add (call $fib (i32.sub (local.get 0) (i32.const 1)))
+#                      (call $fib (i32.sub (local.get 0) (i32.const 2)))))))
+# Each recursive `call $fib` opens a new frame in the RAM arena and a new control-stack
+# entry; the depth-growing call stack lives entirely in RAM (the DNC memory), not a host
+# stack. (Also re-exercises the computed-vs-literal equality boundary in `lt_s` at n==2.)
+_FIB_FN = {"body": [32, 0, 65, 2, 72, 4, 127, 32, 0, 5, 32, 0, 65, 1, 107, 16, 1,
+                    32, 0, 65, 2, 107, 16, 1, 106, 11, 15], "nargs": 1, "nlocals": 1}
+
+
+@pytest.mark.parametrize("n,expected", [(0, 0), (1, 1), (2, 1), (3, 2), (4, 3), (5, 5), (6, 8)])
+def test_wasm_core_runs_recursive_fib(n, expected):
+    """Recursive fib(n) on the substrate; the tree-recursion call stack lives in the RAM
+    frame/control arenas. Decoded result == the n-th Fibonacci number."""
+    ns = _machine_ns()
+    main = {"body": [65, n, 16, 1, 11], "nargs": 0, "nlocals": 4}  # const n; call 1; end
+    got = _run_call(ns, [main, _FIB_FN], steps=60 + 90 * n)
+    assert got == expected, f"fib({n}) -> {got}, expected {expected}"
