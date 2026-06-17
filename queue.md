@@ -226,11 +226,11 @@ negative results, not hidden.
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →
   positional-key axons + `elem(t, i)` access + `{a, b}` tuple-PATTERN + `%{x: a}` map-PATTERN
   + `%Name{x: a}` struct-PATTERN params + do-block `=` pattern-match destructure (`{a, b} = t`)
-  + SINGLE-PARAM multi-clause recursion (`def fac(0)/fac(n)`) shipped 2026-06-16, suite 38/38):
-  MULTI-PARAM multi-clause recursion (`def sum(0, acc)/sum(n, acc)` — needs base-clause var
-  renaming, shared shape with Erlang); multi-clause/guarded bodies with `=` bindings
-  (single-clause only now); `is_integer`-style type-test guards (`and`/`or` chains already
-  lower via `_OP_MAP`). (Erlang is its own frontend.)
+  + multi-clause recursion — SINGLE-PARAM (`def fac(0)/fac(n)`) AND MULTI-PARAM tail (`def
+  sum(0, acc)/sum(n, acc)`, base-clause var renaming) shipped 2026-06-16, suite 40/40):
+  multi-clause/guarded bodies with `=` bindings (single-clause only now); `is_integer`-style
+  type-test guards (`and`/`or` chains already lower via `_OP_MAP`). (Erlang is its own
+  frontend.)
   > **F# RECORDS → axons SHIPPED 2026-06-16.** All prereqs done: (a) typed-param
   > extraction (`(p: Point)`); (b) let-SEQUENCE bodies; (c) a let-bound construction
   > hoist — `_PRELUDE` accumulator emits record `{ x = a }` literals as `Axon q;
