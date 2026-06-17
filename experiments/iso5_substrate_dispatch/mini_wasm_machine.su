@@ -28,6 +28,7 @@
 //          12=OR(bitwise)  13=XOR(bitwise)  14=DUP(push copy of top)
 //          15=SWAP(swap top two)  16=DROP(pop, discard)
 //          17=GT(top2>top1 ?1:0)  18=GE(top2>=top1)  19=LE(top2<=top1)  20=NE(top2!=top1)
+//          21=NEG(pop a, push -a; unary, net sp 0 — rewrites the top cell)
 // State: [0]=pc [1]=sp [2]=halted [3]=out_ptr. Program at 10+, stack at 100+,
 // output buffer at 300+ (out_ptr counts bytes emitted). Data memory: any region the
 // program uses for LOAD/STORE (e.g. 200+), clear of the above. LOAD/STORE + BR_IF
@@ -61,6 +62,7 @@ function int step(scalar d) {
     int is_ge = truth_axis(defuzzy(op == 18));
     int is_le = truth_axis(defuzzy(op == 19));
     int is_ne = truth_axis(defuzzy(op == 20));
+    int is_neg = truth_axis(defuzzy(op == 21));
     int is_halt = truth_axis(defuzzy(op == 0));
     // BR_IF: pop the top as a condition; if nonzero jump to imm (absolute
     // address), else fall through. taken = is_brif AND (cond != 0), as a clean
@@ -118,10 +120,13 @@ function int step(scalar d) {
     // the loaded value (else keep). Net sp 0. Data region is the program's choice
     // (use addresses outside [0..2]/program/stack, e.g. 200+).
     int loaded = ramRead(top1);
-    // 99+sp (top) chain: LOAD writes the loaded value; SWAP writes top2 (old
-    // second moves up); else keep top1.
+    // NEG: unary negate the top in place (net sp 0, like LOAD; rewrites 99+sp).
+    int v_neg = 0 - top1;
+    // 99+sp (top) chain: NEG writes -top1; LOAD writes the loaded value; SWAP
+    // writes top2 (old second moves up); else keep top1.
     int n99_swap = (((1 + is_swap) * (top2)) + ((1 - is_swap) * (top1))) / 2;
-    int new_99 = (((1 + is_load) * (loaded)) + ((1 - is_load) * (n99_swap))) / 2;
+    int n99_load = (((1 + is_load) * (loaded)) + ((1 - is_load) * (n99_swap))) / 2;
+    int new_99 = (((1 + is_neg) * (v_neg)) + ((1 - is_neg) * (n99_load))) / 2;
     ramWrite(99 + sp, new_99);
     // STORE: pop value (top1) and addr (top2), write ram[addr]=value (else no-op
     // rewrite of ram[top2] with its existing value). Net sp -2.
