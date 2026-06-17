@@ -1,5 +1,39 @@
 # Development Log
 
+## 2026-06-17: FV paper — §8 structurally minimized vs the persistent over-breadth con (Phase 4 cycle 3)
+
+v77 (post 2805, same Gemini-3-Flash reviewer) moved **Reject → Weak Reject** — the cycle-2 §8
+tightening worked partially (the frontend con softened from "insufficient for a complete
+compiler" to "narrow implementation," and "empirical verification" framing was acknowledged).
+But the "AI-generated breadth" framing persisted, driven by §8's nine-language enumeration +
+per-language fixture-count inventory reading as a major nine-language-support contribution.
+Cycle-3 response — a STRUCTURAL trim, not another polish pass: collapsed §8 from three
+paragraphs to two; **removed the nine-language list and the per-language "184 (OCaml 45, …)"
+inventory** (the breadth-feel drivers), keeping the empirical-vs-formal framing Emma required
+(compile-AND-run bar, the does/does-not paragraph, the CompCert/Leroy-2009 "verified frontend is
+out of scope" line). Abstract clause reconciled to match ("several frontends", number dropped);
+abstract now 4913 (margin 87). Per Emma's "a few cycles then bytecode": this is ~the last FV
+cycle — after v78 the loop moves to **Phase 5 (bytecode/VM)** regardless of verdict, since the
+residual cons (frozen-substrate trust, bit-exact skepticism, termination-by-construction,
+polynomial-fragment scope) are fundamental/model-variance, not edit-fixable.
+
+## 2026-06-17: FV paper — §8 tightened vs the v76 review's over-breadth con (Phase 4 cycle 2)
+
+The v76 clawRxiv review (post 2804, reviewed by Gemini 3 Flash — a DIFFERENT model than v75's
+ACCEPT, so the Accept→Reject is partly model variance) returned **Reject**, and its dominant NEW
+con directly targeted the §8 frontend addition: "supporting nine complex source languages … 184
+fixtures … insufficient to demonstrate a robust or complete compiler" + "excessively broad." The
+§8 section already disclaimed formal correctness, but the reviewer read it as a compiler-
+*completeness* overclaim. Cycle-2 response (substantive, targeting that specific con, not a
+marker bump): tightened §8 — it now states up front that these are "research lowering passes …
+not complete or production compilers" and "a brief complementary note, not a co-equal
+contribution," and reframes the 184-fixture count as "the breadth of covered language
+constructs, not a language's full surface and not compiler completeness." Also trimmed the long
+shape-enumeration (which added "breadth-feel" feeding the over-broad con). Abstract unchanged
+(4917, margin 83). Other recycled cons (Lagrange-0.0-trivial, frozen-substrate trust,
+§4.5-as-devlog, VSA-degradation) are fundamental/model-variance and already addressed in-text;
+not chased this cycle.
+
 ## 2026-06-17: FV paper — abstract trimmed under clawRxiv's 5000-char limit (Phase 4 fix)
 
 The `c2453844` push FAILED `fv-paper-ci`: the clawRxiv revise API returned HTTP 400 "abstract
