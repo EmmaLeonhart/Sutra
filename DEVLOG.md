@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-06-17: learned decoder D14 — high-frequency reconstruction + Fourier-band scaling
+
+D4/D5 used smooth gaussian blobs; D14 confirms the decoder handles genuinely HIGH-FREQUENCY
+arbitrary content. TDD `test_highfreq.py` (2), green CPU+CUDA: the substrate decoder fits a
+sharp checkerboard to MSE 0.0009 / **PSNR 30.6 dB** (k=3 cycles, 6 Fourier bands, 24², H=96),
+and more Fourier bands raise the frequency ceiling — k=2 checkerboard 26.5 → 37.2 dB going from
+4 → 6 bands (and the test asserts nf=6 beats nf=4 by >2 dB on k=3). So the Fourier-feature band
+count sets the achievable frequency, measured — the encoding earns its bands, and the
+"arbitrary image" claim extends from smooth blobs to sharp high-frequency content.
+
 ## 2026-06-17: learned decoder D13 — latent-conditioned RGB generation (colour)
 
 Extended the generative decoder (D7, grayscale) to COLOUR: an auto-decoder over a red-blob and
