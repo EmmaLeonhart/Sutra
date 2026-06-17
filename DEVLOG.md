@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-17: JVM bytecode core on the substrate — arithmetic step (Phase 5 leg 2, step 1)
+
+**First JVM-leg artifact.** Built `experiments/iso5_substrate_dispatch/jvm_core.su` — a minimal
+JVM-bytecode interpreter on the Sutra substrate, exactly as scoped in
+`2026-06-17-phase5-jvm-core-scoping.md`: the SAME RAM-state blended-dispatch stack machine as the
+mini WASM machine, but with **real JVM opcode values** and the JVM's variable-length bytecode
+layout (one byte per RAM cell; bipush carries a 1-byte operand). Step-1 opcodes:
+`bipush`(16, push the operand byte, pc+=2), `iadd`(96)/`isub`(100)/`imul`(104) (binary,
+Jinja's `v1 OP v2` order, sp-1), `ineg`(116, negate top in place, sp 0), `ireturn`(172, keep pc
+→ idle with the result on top); op 0 = JVM nop falls out naturally (no flag matches → all cells
+keep, pc+1). New harness `test_jvm_core.py` loads bytecode as a raw byte array and runs it on the
+substrate. **7 cases pass in 48s, exit 0** (much faster than the WASM machine — fewer opcodes, no
+bitwise/comparison): `bipush 3; bipush 4; iadd → 7`, `10-3 → 7`, `6*7 → 42`, `bipush 5; ineg →
+-5`, double-`ineg → 5`, `5*6 - 2 → 28`, `(3+4); ineg → -7`. The one new element vs the WASM
+machine is variable-length pc advancement (bipush +2, others +1, ireturn idle) — verified
+correct. Next JVM steps per the ladder: locals (iload/istore), stack ops, branches, a real javac
+method.
+
 ## 2026-06-17: WASM machine — opcode 28 = ROT (Phase 5; establishes the 3-cell write pattern)
 
 Phase 5 (extend the proven WASM leg). Added **opcode 28 = ROT** (`[a b c] → [b c a]`, rotate the

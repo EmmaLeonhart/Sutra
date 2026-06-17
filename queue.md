@@ -116,12 +116,15 @@ to ask ("barrel through … until you've gotten a strong acceptance").
     dispatch/mini_wasm_machine.su`) extended this session: NEG/MIN/MAX/OVER/ABS/SQR/NIP/ROT added
     (21→29 opcodes), each substrate-verified; negative-number arithmetic measured-verified
     2026-06-17. DIV/REM excluded (Math.mod ban). Marginal value now dropping → shift to (2).
-  - **(2) JVM core — SCOPED 2026-06-17,** `planning/exploratory/2026-06-17-phase5-jvm-core-scoping.md`:
-    the mini WASM machine IS a generic RAM-state stack machine, so the JVM core is the same
-    blended-dispatch machine with JVM opcode numbers + a locals region + JVM layout (a parallel
-    `jvm_core.su`), specified against Jinja's small-step semantics. Bounded ladder: arithmetic →
-    locals → stack ops → branches → a real javac-compiled method. **Next implementation leg once
-    WASM-opcode breadth winds down.**
+  - **(2) JVM core — STEP 1 (arithmetic) DONE 2026-06-17;** scoped in
+    `planning/exploratory/2026-06-17-phase5-jvm-core-scoping.md`. `experiments/iso5_substrate_
+    dispatch/jvm_core.su` is a parallel RAM-state blended-dispatch machine with REAL JVM opcode
+    values + variable-length bytecode: bipush/iadd/isub/imul/ineg/ireturn, 7 substrate-verified
+    cases (`test_jvm_core.py`, e.g. `bipush 3; bipush 4; iadd → 7`, `5*6-2 → 28`, `ineg → -5`).
+    Remaining JVM ladder steps: (2a) locals `iload_N`/`istore_N` (a locals RAM region); (2b)
+    stack ops `dup`/`pop`/`swap`; (2c) branches `if_icmp*`/`goto` (RELATIVE offsets — the one
+    real encoding difference from the WASM machine's absolute targets); (2d) a real
+    javac-compiled method (e.g. iterative factorial) byte-for-byte.
 - **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
   per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
   / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment
