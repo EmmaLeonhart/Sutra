@@ -45,10 +45,12 @@ Done so far: i32 arithmetic + single-byte signed LEB128 (`i32.const`/`add`/`sub`
 (`i32.eqz`/`eq`/`ne`/`lt_s`/`gt_s`/`le_s`/`ge_s`). Remaining ladder (each a compile-AND-run
 increment, verified == reference on the substrate):
 
-- [ ] **Step 3 — structured control.** `block`(0x02)/`loop`(0x03)/`if`(0x04)/`else`(0x05)/
-  `end`(0x0b)/`br`(0x0c)/`br_if`(0x0d). The big encoding difference from JVM (no goto-offsets):
-  use the load-time **pre-resolved target table** (scan body once at load, store absolute targets
-  in RAM) so the hot path stays JVM-shaped. Verify a `loop`+`br_if` countdown-sum on the substrate.
+- [ ] **Step 3b — `if`/`else` conditionals.** `if`(0x04, +blocktype) pops a condition: nonzero →
+  fall into the then-arm, zero → jump to `else`+1 (or `end`+1); `else`(0x05) when reached (end of
+  then-arm) → jump to the matching `end`. Extend `_build_targets` to resolve the if false-target +
+  the else→end target (the if/else lengths are already in `_LEN2`). The block/loop/br/br_if core +
+  the pre-resolved target table are DONE (step 3a). Verify an `if`/`else` selecting branch + a
+  loop-with-`if`-body on the substrate.
 - [ ] **Step 4 — a real `wat→wasm` function byte-for-byte.** Compile a tiny iterative factorial
   from `.wat` (`wat2wasm`/`wasm-tools` — verify the tool is present first, else hand-assemble exact
   spec-layout bytes), extract the function body bytes, load + run, decode == reference

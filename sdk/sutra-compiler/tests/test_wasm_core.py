@@ -13,8 +13,9 @@ Opcodes (real WASM byte values): 0x41/65=i32.const (signed single-byte LEB128)
 0x20/32=local.get 0x21/33=local.set 0x22/34=local.tee (unsigned single-byte LEB128
 index; local lives at RAM 200+idx) 0x6a/106=i32.add 0x6b/107=i32.sub 0x6c/108=i32.mul
 0x45/69=i32.eqz 0x46/70=i32.eq 0x47/71=i32.ne 0x48/72=i32.lt_s 0x4a/74=i32.gt_s
-0x4c/76=i32.le_s 0x4e/78=i32.ge_s 0x0b/11=end 0x0f/15=return (end/return keep pc ->
-idle with the result on top).
+0x4c/76=i32.le_s 0x4e/78=i32.ge_s 0x02/2=block 0x03/3=loop 0x0c/12=br 0x0d/13=br_if
+0x0b/11=end 0x0f/15=return. Structured control uses a load-time pre-resolved branch-target
+table (built by `_build_targets`, loaded at RAM 400+); the substrate reads it and jumps.
 """
 from __future__ import annotations
 
@@ -50,16 +51,72 @@ def _machine_ns():
     return ns
 
 
+# 2-byte WASM opcodes (opcode + 1 operand byte): i32.const, local.get/set/tee,
+# block, loop, if, br, br_if. Everything else in this core is 1 byte.
+_LEN2 = {65, 32, 33, 34, 2, 3, 4, 12, 13}
+
+
+def _ilen(op):
+    return 2 if op in _LEN2 else 1
+
+
+def _build_targets(body):
+    """Host-side compilation (load-time, allowed): resolve WASM structured control to a
+    pre-resolved branch-target table {code_offset: target_code_offset}. Default target is
+    the sequential next offset; the function-final `end` targets ITSELF (halt); `br k`/
+    `br_if k` target the k-th enclosing label (loop header for a loop, after-`end` for a
+    block/if). The substrate reads RAM[400+offset] = 10 + target_offset and jumps there."""
+    n = len(body)
+    instrs = []          # (offset, opcode, length)
+    tgt = {}
+    off = 0
+    while off < n:
+        op = body[off]
+        L = _ilen(op)
+        instrs.append((off, op, L))
+        tgt[off] = off + L   # default: sequential next
+        off += L
+    # Pass A: match block/loop/if opens to their `end`s; note the function-final end.
+    frames_by_open = {}
+    stack = []
+    for (off, op, L) in instrs:
+        if op in (2, 3, 4):          # block / loop / if
+            f = {"kind": {2: "block", 3: "loop", 4: "if"}[op],
+                 "header": off + 2, "end": None}
+            stack.append(f)
+            frames_by_open[off] = f
+        elif op == 11:               # end
+            if stack:
+                stack.pop()["end"] = off
+    # Pass B: resolve br/br_if targets + the function-final end (depth 0) -> halt.
+    stack = []
+    for (off, op, L) in instrs:
+        if op in (2, 3, 4):
+            stack.append(frames_by_open[off])
+        elif op == 11:
+            if stack:
+                stack.pop()
+            else:
+                tgt[off] = off       # function-final end -> halt (jump to self)
+        elif op in (12, 13):         # br / br_if
+            k = body[off + 1]
+            f = stack[-(k + 1)]
+            tgt[off] = f["header"] if f["kind"] == "loop" else f["end"] + 1
+    return tgt
+
+
 def _run(ns, body, steps=10, addr=100):
     """Load `body` (a flat list of WASM function-body bytes) into RAM at the code base
-    (10), run `steps` host-driven ticks, return the decoded RAM[addr] (operand-stack
-    base 100 by default — where the final result lands)."""
+    (10), build + load the pre-resolved branch-target table at RAM 400+, run `steps`
+    host-driven ticks, return the decoded RAM[addr] (operand-stack base 100 by default)."""
     v = ns["_VSA"]
-    ram = [v.zero_vector() for _ in range(512)]
+    ram = [v.zero_vector() for _ in range(1024)]
     ram[0] = v.make_real(10.0)   # pc
     ram[1] = v.make_real(0.0)    # sp
     for i, b in enumerate(body):
         ram[10 + i] = v.make_real(float(b))
+    for off, target_off in _build_targets(body).items():
+        ram[400 + off] = v.make_real(float(10 + target_off))  # absolute RAM target pc
     v.ram = ram
     for _ in range(steps):
         ns["step"](0.0)
@@ -99,6 +156,13 @@ _CASES = [
     ([65, 0, 69, 11], 1, 10, 100),           # i32.eqz 0 -> 1
     ([65, 5, 69, 11], 0, 10, 100),           # i32.eqz 5 -> 0
     ([65, 123, 65, 3, 72, 11], 1, 12, 100),  # i32.lt_s -5<3 (signed) -> 1
+    # structured control (pre-resolved target table):
+    # block + br 0 forward exit skips the unreachable i32.const 99 -> top = 7
+    ([65, 7, 2, 64, 12, 0, 65, 99, 11, 11], 7, 8, 100),
+    # countdown-sum loop 3+2+1 = 6 (block/loop/br_if 1 exit/br 0 repeat):
+    #   local0=sum local1=i; loop { if i==0 br to block-end; sum+=i; i-=1; br to loop }
+    ([65, 0, 33, 0, 65, 3, 33, 1, 2, 64, 3, 64, 32, 1, 69, 13, 1, 32, 0, 32, 1,
+      106, 33, 0, 32, 1, 65, 1, 107, 33, 1, 12, 0, 11, 11, 32, 0, 11], 6, 80, 100),
 ]
 
 
