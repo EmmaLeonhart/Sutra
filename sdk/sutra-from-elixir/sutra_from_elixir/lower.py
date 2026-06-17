@@ -249,31 +249,38 @@ def _negate_cond(cond, src: bytes) -> str:
     return f"!({_lower_expr(cond, src)})"
 
 
-def _try_lower_tail_recursive(name: str, params, body, src: bytes):
-    """Lower a TAIL-recursive `def f(p…) do if COND do BASE else f(a…) end end` to
-    a declared Sutra `while_loop` (the OCaml/Scala/F#/Rust/Haskell shape ported).
-    `body` is the `if` call; `params` is a list of names. Returns Sutra or None."""
+def _if_parts(body, src: bytes):
+    """An Elixir `if COND do THEN else ELSE end` call → (cond_node, then_e, else_e),
+    else None. Factored out so both the if-based recursion path and the synthesized
+    multi-clause-recursion path feed the transforms uniformly."""
     if body.type != "call" or _call_kw(body, src) != "if":
         return None
     args_node = next((c for c in body.named_children if c.type == "arguments"), None)
     do_block = next((c for c in body.named_children if c.type == "do_block"), None)
     if args_node is None or not args_node.named_children or do_block is None:
         return None
-    cond = args_node.named_children[0]
     then_forms, else_forms = _do_block_value(do_block, src)
     if not then_forms or not else_forms:
         return None  # both arms required (the if must have an else)
-    then_e, else_e = then_forms[-1], else_forms[-1]
+    return args_node.named_children[0], then_forms[-1], else_forms[-1]
+
+
+def _try_lower_tail_recursive(name: str, params, cond_src, neg_src, then_e, else_e,
+                              src: bytes):
+    """Lower a TAIL-recursive `def f(p…) do if COND do BASE else f(a…) end end` to
+    a declared Sutra `while_loop` (the OCaml/Scala/F#/Rust/Haskell shape ported).
+    `cond_src`/`neg_src` are the lowered base-match test + its negation (passed as
+    strings so a multi-clause head can synthesize them). Returns Sutra or None."""
     arity = len(params)
     then_args = _self_call_args(then_e, name, arity, src)
     else_args = _self_call_args(else_e, name, arity, src)
     if (then_args is None) == (else_args is None):
         return None
     if else_args is not None:
-        cont = _negate_cond(cond, src)
+        cont = neg_src
         rec_args, base = else_args, then_e
     else:
-        cont = _lower_expr(cond, src)
+        cont = cond_src
         rec_args, base = then_args, else_e
 
     ty = _TYPE
@@ -309,25 +316,18 @@ def _contains_identifier_node(node, ident: str, src: bytes) -> bool:
     return any(_contains_identifier_node(c, ident, src) for c in node.named_children)
 
 
-def _try_lower_foldable_nontail(name: str, params, body, src: bytes):
+def _try_lower_foldable_nontail(name: str, params, cond_src, neg_src, then_e, else_e,
+                                src: bytes):
     """CPS / accumulator transform for a FOLDABLE non-tail
     `def f(n) do if COND do BASE else LEAF <OP> f(REC) end end` (single param, OP
     in `_FOLD_OPS`): the pending call-stack work is reified as an accumulator
     carried by a Sutra `while_loop` trampoline — the OCaml/Scala/F#/Rust/Haskell/
     Clojure shape ported. BASE is evaluated pre-loop at the INITIAL param, so a
-    param-dependent BASE is rejected (→ None). Returns loop decl + function, or
-    None."""
-    if body.type != "call" or _call_kw(body, src) != "if" or len(params) != 1:
+    param-dependent BASE is rejected (→ None). `cond_src`/`neg_src` are the lowered
+    base-match test + negation (strings, so a multi-clause head can synthesize
+    them). Returns loop decl + function, or None."""
+    if len(params) != 1:
         return None
-    args_node = next((c for c in body.named_children if c.type == "arguments"), None)
-    do_block = next((c for c in body.named_children if c.type == "do_block"), None)
-    if args_node is None or not args_node.named_children or do_block is None:
-        return None
-    cond = args_node.named_children[0]
-    then_forms, else_forms = _do_block_value(do_block, src)
-    if not then_forms or not else_forms:
-        return None
-    then_e, else_e = then_forms[-1], else_forms[-1]
 
     def foldable(node):
         if node.type != "binary_operator":
@@ -350,11 +350,11 @@ def _try_lower_foldable_nontail(name: str, params, body, src: bytes):
     if (fold_else is None) == (fold_then is None):
         return None
     if fold_else is not None:
-        cont = _negate_cond(cond, src)
+        cont = neg_src
         op_text, leaf, rec_arg = fold_else
         base = then_e
     else:
-        cont = _lower_expr(cond, src)
+        cont = cond_src
         op_text, leaf, rec_arg = fold_then
         base = else_e
 
@@ -728,9 +728,47 @@ def _lower_defs(def_calls, src: bytes) -> list:
             out.append(f"// UNSUPPORTED-DEF: '{key[0]}' multi-clause body with "
                        f"binding statements (later item)\n")
         else:
-            out.append(_lower_def_clauses(
-                key[0], [(pn, bd, gd) for _dc, pn, bd, gd, _pre in members], src))
+            multi_rec = _try_lower_multiclause_recursion(key[0], members, src)
+            if multi_rec is not None:
+                out.append(multi_rec)
+            else:
+                out.append(_lower_def_clauses(
+                    key[0], [(pn, bd, gd) for _dc, pn, bd, gd, _pre in members], src))
     return out
+
+
+def _try_lower_multiclause_recursion(name: str, members, src: bytes):
+    """The idiomatic pattern-matched recursion `def f(0), do: BASE` + `def f(n), do:
+    … f(n-1)` is semantically identical to the single-clause `if`-form, so synthesize
+    the base-match condition `(V == K)` from the clause patterns and reuse the
+    recursion transforms (fed source strings). Scope: exactly 2 single-param clauses —
+    one INTEGER-literal base (no self-call), one IDENTIFIER-pattern recursive clause
+    (self-call), neither guarded nor with a binding prelude. Returns Sutra or None.
+    `members` are the `_lower_defs` tuples `(dc, param_nodes, body, guard, prelude)`."""
+    if len(members) != 2:
+        return None
+    parsed = []
+    for _dc, param_nodes, body, guard, prelude in members:
+        if guard is not None or prelude or len(param_nodes) != 1:
+            return None
+        parsed.append((param_nodes[0], body))
+    base_c = rec_c = None
+    for pat, body in parsed:
+        if pat.type == "integer" and not _contains_self_call(body, name, src):
+            base_c = (pat, body)
+        elif pat.type == "identifier" and _contains_self_call(body, name, src):
+            rec_c = (pat, body)
+    if base_c is None or rec_c is None:
+        return None
+    k = _text(base_c[0], src).replace("_", "")
+    v = _text(rec_c[0], src)
+    cond_src, neg_src = f"({v} == {k})", f"({v} != {k})"
+    then_e, else_e = base_c[1], rec_c[1]  # base body, recursive body
+    rec = _try_lower_tail_recursive(name, [v], cond_src, neg_src, then_e, else_e, src)
+    if rec is not None:
+        return rec
+    return _try_lower_foldable_nontail(name, [v], cond_src, neg_src,
+                                       then_e, else_e, src)
 
 
 def _lower_def(def_call, src: bytes) -> str:
@@ -739,12 +777,19 @@ def _lower_def(def_call, src: bytes) -> str:
         return "// UNSUPPORTED-DEF: unrecognized def shape\n"
     name, params, body, prelude_stmts = parts
     if params and not prelude_stmts:
-        rec = _try_lower_tail_recursive(name, params, body, src)
-        if rec is not None:
-            return rec
-        fold = _try_lower_foldable_nontail(name, params, body, src)
-        if fold is not None:
-            return fold
+        ifp = _if_parts(body, src)
+        if ifp is not None:
+            cond, then_e, else_e = ifp
+            cond_src = _lower_expr(cond, src)
+            neg_src = _negate_cond(cond, src)
+            rec = _try_lower_tail_recursive(name, params, cond_src, neg_src,
+                                            then_e, else_e, src)
+            if rec is not None:
+                return rec
+            fold = _try_lower_foldable_nontail(name, params, cond_src, neg_src,
+                                               then_e, else_e, src)
+            if fold is not None:
+                return fold
     if _contains_self_call(body, name, src):
         # Recursion outside the supported tail/foldable shapes — a plain
         # self-calling Sutra function would not terminate through the fuzzy-if

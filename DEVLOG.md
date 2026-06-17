@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — single-param multi-clause recursion (Phase 3)
+
+Work+report sprint tick — ports the Erlang multi-clause-recursion path to Elixir. `def fac(0),
+do: 1` + `def fac(n), do: n * fac(n - 1)` now lowers to the accumulator trampoline (was
+`_lower_def_clauses` → recursion rejected). Mirroring the Erlang refactor: (a) an `_if_parts`
+helper extracts `(cond, then_e, else_e)` from an `if` body; (b) `_try_lower_tail_recursive` /
+`_try_lower_foldable_nontail` now take `cond_src` / `neg_src` SOURCE STRINGS (the if-based call
+site computes them — behaviour-preserving); (c) `_try_lower_multiclause_recursion` detects the
+2-clause integer-base + identifier-recursive shape, synthesizes `(n == 0)` / `(n != 0)`, and is
+wired into `_lower_defs` before `_lower_def_clauses`. New fixture `multiclause_fact` runs on the
+substrate to **120**; the `tail_rec`(→15) and `nontail_fact`(→120) regression guards still pass.
+Suite 36→38. Remaining: multi-PARAM tail multi-clause (base-clause var renaming) and the Haskell
+port.
+
 ## 2026-06-16: Erlang frontend — single-param multi-clause recursion (Phase 3)
 
 Work+flush sprint tick — the deferred multi-clause-recursion item, executed via the de-risked
