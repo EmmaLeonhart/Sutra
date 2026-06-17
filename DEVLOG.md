@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: F# frontend — nullary DU variants in value position (Phase 3)
+
+Work+flush sprint tick — completes F#'s DU support. A bare nullary variant `North`
+(`type Dir = North | South`) used as a VALUE (`code South`, `let d = North`) previously
+mislowered to an undefined identifier; it now constructs a `{_tag: k}` axon. Added
+`_nullary_variant_name` (a bare identifier whose text is a declared 0-arity variant —
+`_VARIANTS` only holds declared variant names, so ordinary variables are not captured) +
+`_emit_nullary_variant`; wired into both `_hoist_construction_arg` (argument position, with a
+paren-unwrap) and the let-value path (`let d = North`). The match-pattern path (`| North ->`)
+is unchanged — nullary variant patterns were already handled (`(_vtag == tag)`, empty payload).
+New fixture `nullary_variant` (`code South`, tag 1) compiles AND runs on the substrate to **20**;
+suite 34→36, no regressions. (A nullary variant as a function's direct RETURN — `let f () =
+North` — still needs the prelude+return shape; a documented later item.)
+
 ## 2026-06-16: F# frontend — tuple/record/DU construction in argument position (arg-hoist parity)
 
 Work-loop sprint tick — closes a real F# parity gap: a tuple/record/DU construction passed
