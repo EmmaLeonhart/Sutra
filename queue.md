@@ -219,12 +219,13 @@ negative results, not hidden.
 - [ ] **F# next increments** (`sdk/sutra-from-fsharp/`; through tuples `(a, b)` →
   positional-key axons (`int * int` param → Axon, `fst`/`snd` → `_0`/`_1`, let-bound
   construction) + `let (a, b) = t` tuple-pattern destructuring shipped 2026-06-16,
-  suite 28/28): nullary DU variants in value position; record-update `{ r with … }`; nested
-  tuple/record patterns (`let (a, (b, c)) = t`). [`let { x = a } = p` record-pattern + `let
-  (Circle r) = s` DU-case-pattern destructuring shipped 2026-06-16; tuple/record/DU construction
-  DIRECTLY in ARGUMENT position now hoisted to `_ahN` temps (arg-hoist parity with the other
-  frontends) shipped 2026-06-16, suite 34/34.] Measured grammar quirk: parenthesize call operands
-  under infix. [Scala 24/24 — `val (a, b) = t` tuple-pattern (1-based keys) + `val Point(a, b)
+  suite 28/28): record-update `{ r with … }`; nested tuple/record patterns (`let (a, (b, c)) =
+  t`); nullary variant as a direct function RETURN (`let f () = North` — arg + let-value
+  positions done, return position needs the prelude+return shape). [`let { x = a } = p`
+  record-pattern + `let (Circle r) = s` DU-case-pattern destructuring + tuple/record/DU
+  construction DIRECTLY in ARGUMENT position (arg-hoist parity) + nullary DU variants in value
+  position (`code South` → `{_tag}` axon) shipped 2026-06-16, suite 36/36.] Measured grammar
+  quirk: parenthesize call operands under infix. [Scala 24/24 — `val (a, b) = t` tuple-pattern (1-based keys) + `val Point(a, b)
   = p` case-class-pattern destructuring done 2026-06-16; remaining Scala: nested patterns,
   case-class pattern PARAMS (`def f(Point(x, y))`).]
 - [ ] **Elixir next increments** (`sdk/sutra-from-elixir/`; through tuples `{a, b}` →

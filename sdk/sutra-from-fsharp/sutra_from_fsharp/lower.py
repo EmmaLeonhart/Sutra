@@ -548,6 +548,12 @@ def _lower_expr(node, src: bytes) -> str:
                         _PRELUDE.append(f'    {name}.add("_val{i}", {_lower_expr(a, src)});\n')
                     _AXON_VARS.add(name)
                     return _lower_expr(kids[1], src)
+                nv = _nullary_variant_name(val_node, src)
+                if nv is not None:
+                    # `let d = North` — nullary DU construction to a `{_tag}` axon.
+                    _emit_nullary_variant(nv, name)
+                    _AXON_VARS.add(name)
+                    return _lower_expr(kids[1], src)
                 val_src = _lower_expr(val_node, src)
                 prev = _SUBST.get(name)
                 _SUBST[name] = f"({val_src})"
@@ -768,11 +774,40 @@ def _variant_application(node, src: bytes):
     return None
 
 
+def _nullary_variant_name(node, src: bytes):
+    """If `node` is a bare identifier naming a 0-arity DU variant (`North` of
+    `type Dir = North | South`), return the variant name; else None. F# spells a
+    nullary variant value as a plain (capitalised) identifier; `_VARIANTS` only holds
+    declared variant names, so this does not capture ordinary variables."""
+    if node.type in ("identifier", "long_identifier", "long_identifier_or_op"):
+        name = _text(node, src).strip()
+        if name in _VARIANTS and _VARIANTS[name][1] == 0:  # (tag, arity)
+            return name
+    return None
+
+
+def _emit_nullary_variant(name: str, var: str) -> None:
+    """Emit a nullary tagged-axon construction (`Axon var; var.add("_tag", k);`) for
+    variant `name` bound to `var`, to `_PRELUDE`."""
+    tag = _VARIANTS[name][0]
+    _PRELUDE.append(f"    Axon {var};\n")
+    _PRELUDE.append(f'    {var}.add("_tag", {tag});\n')
+
+
 def _hoist_construction_arg(node, src: bytes):
     """If `node` is a tuple/record/DU construction in ARGUMENT position, emit its
     axon-build statements to `_PRELUDE` and return the temp name (`_ahN`); else None.
     The let-bound construction path stays separate (it builds into the bound name);
     this is only for constructions passed directly as a call argument."""
+    inner0 = node
+    if inner0.type == "paren_expression" and inner0.named_children:
+        inner0 = inner0.named_children[0]
+    nv = _nullary_variant_name(node, src) or _nullary_variant_name(inner0, src)
+    if nv is not None:                       # bare nullary variant `North`
+        tmp = f"_ah{_AH_N[0]}"
+        _AH_N[0] += 1
+        _emit_nullary_variant(nv, tmp)
+        return tmp
     tf = _tuple_fields(node, src)            # `(a, b)` — paren-wrapped tuple
     if tf is not None:
         tmp = f"_ah{_AH_N[0]}"
