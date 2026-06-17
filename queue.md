@@ -97,32 +97,36 @@ rendering/clicking is the only un-smoked piece (needs a browser — Emma to exer
 
 **🎉 Trainable click-button (B1–B6) complete.**
 
-## 🟦 Yantra GUI integration — UNBLOCKED (Emma 2026-06-16: shallow-clone, no submodule)
+## 🟦 Yantra GUI integration — Yantra VENDORED IN-TREE (Emma 2026-06-16)
 
-> Correction: Yantra is NOT blocked on a missing submodule. It is shallow-cloned (depth-1, no
-> submodules) into `external/Yantra/` (gitignored, preserved here / re-freshed by the cron):
-> `git clone --depth 1 --no-recurse-submodules https://github.com/EmmaLeonhart/Yantra external/Yantra`.
+> Yantra is **deprecated as an independent repo** and absorbed into Sutra: vendored as a
+> shallow subtree at `external/Yantra/` (squashed from `EmmaLeonhart/Yantra` main @
+> `6401eec8`; website `site/`/`redirect/` stripped; nested `.git`/`.gitmodules` removed). It is
+> now committed in-tree — Y2 work happens here, not in a separate repo.
 
-**Integration contract (from the clone):** Yantra `apps/` GUI entries are HOST SURFACES over
-substrate compute — `apps/gui-rust/` (a `minifb` Rust window) spawns the Sutra substrate
+**Integration contract (from the vendored tree):** Yantra `apps/` GUI entries are HOST SURFACES
+over substrate compute — `apps/gui-rust/` (a `minifb` Rust window) spawns the Sutra substrate
 server `external/Sutra/demos/gui/counter_substrate_server.py` and paints its per-frame output;
-apps are admitted via the kernel (`Init.admit_from_path`), processes described by `.yprc`
-manifests. The richer GUI demos already live Sutra-side under `external/Sutra/demos/gui/`. So
-"the window living in the orchestrator" = the substrate GUI window as a Yantra-orchestrated
-surface that spawns a Sutra substrate-server.
+apps are admitted via the kernel (`Init.admit_from_path`), processes described by `.yprc`. So
+"the window living in the orchestrator" = the substrate GUI window as a Yantra surface that
+spawns a Sutra substrate-server.
 
+- [ ] **Y0 — wire the vendored tree (rewire `external/Sutra` references).** Yantra's code/bats
+  reference `external/Sutra/...`; now that Yantra lives INSIDE Sutra at `external/Yantra/`, the
+  Sutra root is two levels up. Point those references at the parent (e.g. Yantra's
+  `external/Sutra/...` → the repo root's `demos/gui/...`). Do NOT commit a recursive junction.
 - [ ] **Y1 — button substrate-server (Sutra-side, the Yantra-spawnable bridge).** A
   stdin/stdout substrate server for the trainable button mirroring
-  `counter_substrate_server.py` (Yantra's gui-rust spawns that pattern): commands in (init /
-  click current|variant / owner-prefer / quit), substrate-rendered button frame + state out.
-  Reuses `ButtonAdam`/`render_button_torch`. Sutra-side, CI-testable (protocol test, no
-  browser/Rust). This is the buildable-here half of the integration.
-- [ ] **Y2 — Yantra apps/ entry (in the Yantra repo).** A `apps/gui-button/` surface that
-  spawns Y1, mirroring `gui-rust`. Lives in `external/Yantra` (the Yantra repo) — drafted here,
-  applied in a Yantra session (Sutra is pinned there as `external/Sutra`). Not committable from
-  Sutra.
+  `counter_substrate_server.py`: commands in (init / click current|variant / owner-prefer /
+  quit), substrate-rendered button frame + state out. Reuses `ButtonAdam`/`render_button_torch`.
+  Sutra-side, CI-testable (protocol test, no browser/Rust). The buildable-here half.
+- [ ] **Y2 — Yantra `apps/gui-button` surface (now in-tree at `external/Yantra/apps/`).** A
+  surface that spawns Y1, mirroring `gui-rust`. Committable here now that Yantra is vendored.
 - [ ] **Y3 — integration docs.** Note the button↔Yantra surface in `docs/gui.md` / CLAUDE.md
   §"Cross-repo workflow", measured.
+
+_B8 browser smoke launcher: `!browserTest.bat` at the repo root (runs
+`button_server.py --live-ctr` + opens the browser). Still needs a human at a browser to smoke._
 
 - [ ] **B8 — browser smoke of `button_page.html` (Emma + browser).** NOT autonomous — needs a
   real browser. Run `python demos/gui/button_server.py --live-ctr` (or default), click in the
