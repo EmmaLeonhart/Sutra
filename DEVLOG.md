@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-16: Yantra Y2 — gui-button host surface (spawns the Sutra substrate-server)
+
+`external/Yantra/apps/gui-button/button_surface.py` — `YantraButtonSurface`, a Python host
+surface that SPAWNS the Y1 button substrate-server (`demos/gui/button_substrate_server.py`) as
+a subprocess and drives it: `frame('current'|'variant')` reads a substrate-rendered button,
+`prefer(variant)` forwards the owner's A/B choice (one ButtonAdam step), `click(which)` forwards
+a visitor click, `state()` reads round/clicks/ctr/copy/theta. Same "host is I/O, substrate
+computes" split as Yantra's gui-rust (which spawns counter_substrate_server.py) — this is the
+Python host surface; a native Rust minifb window over the identical protocol is a later
+refinement. Verified by direct run (`pytest external/Yantra/apps/gui-button`, 3/3, spawning the
+real subprocess: renders (16,16,3) frames in [0,1], owner-prefer advances rounds, clicks tally
+in state) + a `main()` smoke (32×32 button, 5 rounds, CTR 0.833, copy chased). NOT in Sutra's
+demos-ci (which is `pytest demos/`); verified by running it, per the hard rails. The Yantra
+integration loop now works end-to-end: surface → substrate-server → ButtonAdam-steered
+substrate button → frames/state back. Only Y3 (docs) remains on the Yantra track.
+
 ## 2026-06-16: Yantra Y1 — stdin/stdout button substrate-server (Yantra-spawnable bridge)
 
 `demos/gui/button_substrate_server.py` — `ButtonSubstrateServer`, a stdin/stdout bridge
