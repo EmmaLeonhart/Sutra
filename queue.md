@@ -58,8 +58,10 @@ reconstructs an arbitrary two-blob image to MSE 0.0058 / PSNR 22.4 dB (H=64, 800
 at H=96) — a frame the analytic render can't make, learned on the substrate._
 
 _Phase D-C — RGB + capacity:_
-- [ ] **D5 — RGB decoder.** 3-output; reconstruct a colour target, measured.
 - [ ] **D6 — capacity/scaling.** depth/width vs reconstruction quality; measured table.
+
+_D5 ✅ done: 3-output decoder reconstructs a colour two-blob target to MSE 0.0087 / PSNR 20.6 dB
+(24², H=64, 800 steps), NaN-free — RGB generalisation of the D4 milestone._
 
 _Phase D-D — latent conditioning (generation, not just reconstruction):_
 - [ ] **D7 — latent-conditioned decoder.** `f(x, y, z)`; auto-decoder training over a small SET
