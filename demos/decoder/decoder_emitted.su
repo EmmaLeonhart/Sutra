@@ -1,0 +1,17 @@
+// Emitted by emit_decoder.py (learned-decoder D11, weight->code). The decoder FORWARD as a
+// standalone Sutra program over `matrix` weight params; the trained weights are supplied at
+// call (file-backable as CSVs, the weight_to_code_corpus pattern). Activation = cubic via
+// hadamard (the substrate's tanh/sin are canonical-only — D1 finding).
+function vector layer_cube(matrix W, vector x, vector b) {
+    vector h = Tensor.MatrixMul(W, x) + b;
+    return hadamard(hadamard(h, h), h);
+}
+function vector layer_lin(matrix W, vector x, vector b) {
+    return Tensor.MatrixMul(W, x) + b;
+}
+
+function vector decoder(matrix W0, vector b0, matrix W1, vector b1, matrix W2, vector b2, vector x) {
+    return layer_lin(W2, layer_cube(W1, layer_cube(W0, x, b0), b1), b2);
+}
+
+function vector main() { return tanh(make_real(1.0)); }
