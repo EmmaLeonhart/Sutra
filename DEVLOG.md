@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-16: Elixir frontend — do-block `=` pattern-match destructure (Phase 3)
+
+Work+report sprint tick (the idiomatic Elixir body destructure, which has no `let`). A
+multi-statement do-block body like `def sum2(t) do {a, b} = t; a + b end` now lowers: the
+leading `=` statements are a binding prelude (previously dropped — only the last form was kept).
+`_def_head`/`_def_parts` now thread `prelude_stmts` (the do-block statements before the value
+expression); `_lower_def` lowers each via a new `_apply_match_binding` — a `{a, b}` tuple LHS →
+`realvec(t.item("_0"))`, a `%{x: a}` map LHS → `realvec(t.item("x"))`, a bare `x` → a plain
+rebind — typing the destructured RHS param as `Axon`. The RHS must be a bare name. Multi-clause
+/ guarded bodies with leading bindings surface `UNSUPPORTED-DEF` (the dispatcher would drop
+them, so it's flagged, not silently lost). New fixture `match_bind_body` (`sum2(t) = ({a,b}=t;
+a+b)`, `main = sum2({5, 8})`) compiles AND runs on the substrate to 13; suite 34→36, the
+refactored single-clause def path verified no regression.
+
 ## 2026-06-16: Clojure frontend — `{:keys [..]}` / `{a :x}` map destructuring (Phase 3)
 
 Work+flush sprint tick (extends Clojure's vector-destructure increment to maps). Clojure `let`
