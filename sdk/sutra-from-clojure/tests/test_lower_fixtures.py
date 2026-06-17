@@ -45,6 +45,8 @@ _RUNNABLE = {
     "vector_axon": 13.0,  # (defn fst [v] (+ (nth v 0) (nth v 1))); (let [w [5 8]] (fst w))  (data vector -> positional-key axon; let binding-vec NOT hoisted as data)
     "vector_first_second": 13.0,  # (defn fst [v] (+ (first v) (second v))); (let [w [5 8]] (fst w))  (first/second -> _0/_1 vector accessors)
     "let_destructure": 13.0,  # (let [[a b] [5 8]] (+ a b))  (vector destructuring bind -> realvec(item _0/_1); inner pattern vec NOT hoisted)
+    "map_destructure_keys": 13.0,  # (let [{:keys [a b]} {:a 5 :b 8}] (+ a b))  (:keys map destructuring -> realvec(item a/b); pattern map+vec NOT hoisted)
+    "map_destructure_named": 13.0,  # (let [{a :x b :y} {:x 5 :y 8}] (+ a b))  ({local :field} map destructuring -> realvec(item x/y))
 }
 
 

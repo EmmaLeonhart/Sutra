@@ -108,8 +108,8 @@ def _map_fields(node, src: bytes):
     """If `node` is a Clojure `{:x a "y" b}` map literal whose keys are all static
     field names (keyword, string, or number), return [(field, value_node), …]; else
     None. Symbol/expression keys are a later item."""
-    if node.type != "map_lit":
-        return None
+    if node.type != "map_lit" or node.id in _BINDING_VECS:
+        return None  # a binding-position map PATTERN is structural, not a data map
     kids = node.named_children
     if len(kids) % 2 != 0 or not kids:
         return None
@@ -135,10 +135,22 @@ def _vec_fields(node, src: bytes):
     return [(f"_{i}", el) for i, el in enumerate(elems)]
 
 
+def _mark_binding_pattern(node) -> None:
+    """Mark a binding-position destructuring PATTERN (and every nested vec/map
+    pattern within it) into `_BINDING_VECS`, so the hoist treats none of them as
+    DATA literals — e.g. for `{:keys [a b]}` both the map pattern AND its inner
+    `[a b]` vector are structural (their symbols are bindings, not values)."""
+    if node.type in ("vec_lit", "map_lit"):
+        _BINDING_VECS.add(node.id)
+        for c in node.named_children:
+            _mark_binding_pattern(c)
+
+
 def _collect_binding_vecs(node, src: bytes) -> None:
     """Populate `_BINDING_VECS` with the node ids of let/loop binding vectors in
-    `node` (the first `vec_lit` arg of a `(let […] …)` / `(loop […] …)` form), so the
-    hoist treats only DATA vectors as positional axons."""
+    `node` (the first `vec_lit` arg of a `(let […] …)` / `(loop […] …)` form) AND the
+    destructuring PATTERNS at their even (binding) positions, so the hoist treats
+    only DATA vectors/maps as axons."""
     if node.type == "list_lit":
         head = _head_symbol(node, src)
         if head in ("let", "loop"):
@@ -146,13 +158,9 @@ def _collect_binding_vecs(node, src: bytes) -> None:
             bvec = next((a for a in args if a.type == "vec_lit"), None)
             if bvec is not None:
                 _BINDING_VECS.add(bvec.id)
-                # A destructuring PATTERN vector `[a b]` sits at an even (binding)
-                # position inside the binding vector — it is structural, not data,
-                # so mark it too (else `_hoist_maps` would hoist it as an axon).
                 bkids = bvec.named_children
                 for i in range(0, len(bkids) - 1, 2):
-                    if bkids[i].type == "vec_lit":
-                        _BINDING_VECS.add(bkids[i].id)
+                    _mark_binding_pattern(bkids[i])
     for c in node.named_children:
         _collect_binding_vecs(c, src)
 
@@ -535,6 +543,41 @@ def _lower_expr(node, src: bytes) -> str:
                         nm = _text(e, src)
                         _SUBST[nm] = f'realvec({val_src}.item("_{j}"))'
                         bound.append(nm)
+                    continue
+                if pat.type == "map_lit":
+                    # Map destructuring — two forms, both reading named axon fields:
+                    #   `{:keys [a b]}` → bind a/b to fields "a"/"b" (same name)
+                    #   `{a :x b :y}`   → bind local a to field "x", b to "y"
+                    # via `realvec(m.item("field"))` (the `(get m :k)` projection).
+                    mkids = pat.named_children
+                    val_src = _lower_expr(pairs[i + 1], src)
+                    mbinds: list[tuple[str, str]] = []  # (local, field)
+                    ok = val_src.isidentifier()
+                    if (ok and len(mkids) == 2 and mkids[0].type == "kwd_lit"
+                            and _kwd_name(mkids[0], src) == "keys"
+                            and mkids[1].type == "vec_lit"):
+                        for s in mkids[1].named_children:
+                            if s.type != "sym_lit":
+                                ok = False
+                                break
+                            mbinds.append((_text(s, src), _text(s, src)))
+                    elif ok and mkids and len(mkids) % 2 == 0:
+                        for j in range(0, len(mkids), 2):
+                            loc, key = mkids[j], mkids[j + 1]
+                            if loc.type != "sym_lit" or key.type != "kwd_lit":
+                                ok = False
+                                break
+                            mbinds.append((_text(loc, src), _kwd_name(key, src)))
+                    else:
+                        ok = False
+                    if not ok or not mbinds:
+                        for nm in bound:
+                            _SUBST.pop(nm, None)
+                        return ("/* UNSUPPORTED-EXPR: map destructuring shape "
+                                "(non-name value / unsupported keys — later item) */")
+                    for local, field in mbinds:
+                        _SUBST[local] = f'realvec({val_src}.item("{field}"))'
+                        bound.append(local)
                     continue
                 if pat.type != "sym_lit":
                     for nm in bound:
