@@ -97,6 +97,11 @@ all weights file-backed). Remaining follow-ons (finding
 `planning/findings/2026-06-17-decoder-weight-to-code.md`): emit the Fourier encoding on-substrate;
 feed the w2c decompiler corpus._
 
+_D13 ✅ latent-conditioned RGB GENERATION: auto-decoder over a red-blob + blue-blob colour
+target; each latent reconstructs its colour (MSE ~0.006), and interpolating z shifts the
+generated colour red→blue (redness +0.30→−0.34, monotonic) — arbitrary-colour generation from a
+latent, green CPU+CUDA._
+
 **🧠🎉 LEARNED DECODER (D1–D11) COMPLETE.** The EMMA-gated decoder, end-to-end: the substrate
 trains → reconstructs arbitrary gray/colour frames → scales with capacity → generates from a
 latent → is preference-steerable → demoable → documented → and emits back to Sutra code. All
