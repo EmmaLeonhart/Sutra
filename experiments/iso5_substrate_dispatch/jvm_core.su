@@ -18,6 +18,7 @@
 //   16=bipush(push next byte; 2-byte instr)  96=iadd  100=isub  104=imul
 //   116=ineg(negate top)  172=ireturn(keep pc -> idle/halt; result is on top)
 //   26..29=iload_0..3(push local N)  59..62=istore_0..3(pop into local N)
+//   89=dup(push copy of top)  87=pop(discard top)  95=swap(swap top two)
 //   (op 0 = JVM nop: no flag matches -> all cells keep, pc+1 — a natural no-op.)
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1),
 // matching Jinja's `let v2=pop; v1=pop; push (v1 OP v2)`. pc advances 2 for
@@ -50,6 +51,9 @@ function int step(scalar d) {
     int is_istore1 = truth_axis(defuzzy(op == 60));
     int is_istore2 = truth_axis(defuzzy(op == 61));
     int is_istore3 = truth_axis(defuzzy(op == 62));
+    int is_dup = truth_axis(defuzzy(op == 89));
+    int is_pop = truth_axis(defuzzy(op == 87));
+    int is_swap = truth_axis(defuzzy(op == 95));
     // 100+sp (new top cell): bipush pushes the operand byte; iload_N pushes local
     // N; else keep. (All pushes write the same fixed new-top cell.)
     int cell_hi = ramRead(100 + sp);
@@ -57,7 +61,9 @@ function int step(scalar d) {
     int hi_il2 = (((1 + is_iload2) * (l2)) + ((1 - is_iload2) * (hi_il3))) / 2;
     int hi_il1 = (((1 + is_iload1) * (l1)) + ((1 - is_iload1) * (hi_il2))) / 2;
     int hi_il0 = (((1 + is_iload0) * (l0)) + ((1 - is_iload0) * (hi_il1))) / 2;
-    int new_hi = (((1 + is_bipush) * (imm)) + ((1 - is_bipush) * (hi_il0))) / 2;
+    int hi_push = (((1 + is_bipush) * (imm)) + ((1 - is_bipush) * (hi_il0))) / 2;
+    // dup pushes a copy of the current top onto the new top cell.
+    int new_hi = (((1 + is_dup) * (top1)) + ((1 - is_dup) * (hi_push))) / 2;
     ramWrite(100 + sp, new_hi);
     // istore_N: pop top1 into local N; else rewrite local N with its existing
     // value (a no-op — each istore_N writes only its fixed cell).
@@ -76,11 +82,15 @@ function int step(scalar d) {
     int v_mul = top2 * top1;
     int b_mul = (((1 + is_imul) * (v_mul)) + ((1 - is_imul) * (top2))) / 2;
     int b_sub = (((1 + is_isub) * (v_sub)) + ((1 - is_isub) * (b_mul))) / 2;
-    int new_lo = (((1 + is_iadd) * (v_add)) + ((1 - is_iadd) * (b_sub))) / 2;
+    int b_add = (((1 + is_iadd) * (v_add)) + ((1 - is_iadd) * (b_sub))) / 2;
+    // swap writes the old top (top1) into the second cell (net sp 0).
+    int new_lo = (((1 + is_swap) * (top1)) + ((1 - is_swap) * (b_add))) / 2;
     ramWrite(98 + sp, new_lo);
     // 99+sp (top): ineg negates it in place (net sp 0); else keep top1.
     int v_neg = 0 - top1;
-    int new_99 = (((1 + is_ineg) * (v_neg)) + ((1 - is_ineg) * (top1))) / 2;
+    int n99_neg = (((1 + is_ineg) * (v_neg)) + ((1 - is_ineg) * (top1))) / 2;
+    // swap writes the old second (top2) into the top cell.
+    int new_99 = (((1 + is_swap) * (top2)) + ((1 - is_swap) * (n99_neg))) / 2;
     ramWrite(99 + sp, new_99);
     // sp: bipush +1; iadd/isub/imul -1; ineg/ireturn/nop keep.
     int sp_binop = sp - 1;
@@ -96,7 +106,10 @@ function int step(scalar d) {
     int s_il1 = (((1 + is_iload1) * (sp + 1)) + ((1 - is_iload1) * (s_il0))) / 2;
     int s_il2 = (((1 + is_iload2) * (sp + 1)) + ((1 - is_iload2) * (s_il1))) / 2;
     int s_il3 = (((1 + is_iload3) * (sp + 1)) + ((1 - is_iload3) * (s_il2))) / 2;
-    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_il3))) / 2;
+    // pop pops (-1); dup pushes (+1); swap keeps sp.
+    int s_pop = (((1 + is_pop) * (sp_binop)) + ((1 - is_pop) * (s_il3))) / 2;
+    int s_dup = (((1 + is_dup) * (sp + 1)) + ((1 - is_dup) * (s_pop))) / 2;
+    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_dup))) / 2;
     ramWrite(1, new_sp);
     // pc: bipush +2 (skip operand); ireturn keeps pc (idle with result on top);
     // every other 1-byte opcode +1.
