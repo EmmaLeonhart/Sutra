@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-16: Haskell frontend — multi-PARAM multi-equation tail recursion (Phase 3) — recursion track COMPLETE
+
+Work-loop sprint tick — the last mechanical port, completing multi-clause recursion across all
+three frontends. `sum 0 acc = acc; sum n acc = sum (n - 1) (acc + n)` now lowers to a
+`while_loop`: the generalized `_try_lower_multiclause_recursion` finds the BASE equation (one
+integer-literal pattern, rest variables, no self-call) and the recursive equation (all
+variables, self-call), takes the recursive equation's names + the signature types as the
+synthesized params, synthesizes `(n == 0)` on the discriminator position, and renames the base
+equation's variable patterns to the recursive names by position (via `_SUBST`). New fixture
+`multiclause_tailsum` (`sum 5 0`) runs on the substrate to **15**; `multiclause_fact`(→120) +
+`tail_rec`/`nontail_fact` guards still pass. Suite 28→30.
+
+**⟹ Multi-clause pattern recursion — the formerly-deferred item — is now COMPLETE** for both
+single-param (factorial/CPS-fold) and multi-param tail (accumulator) shapes across Erlang +
+Elixir + Haskell. The `planning/exploratory/2026-06-16-multiclause-recursion-frontends.md`
+design doc is closed. Remaining recursion gaps (guarded multi-way, mutual recursion) are
+separate lower-priority queue items.
+
 ## 2026-06-16: Elixir frontend — multi-PARAM multi-clause tail recursion (Phase 3)
 
 Work+report sprint tick — ports the Erlang N-param generalization to Elixir (mechanical, same

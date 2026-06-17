@@ -657,39 +657,70 @@ def _decl_name_arity(decl, src: bytes):
     return _text(name_node, src), arity
 
 
+def _is_int_literal_pat(p) -> bool:
+    """A Haskell integer-literal pattern `0` is a `literal` wrapping an `integer`."""
+    return (p.type == "literal" and bool(p.named_children)
+            and p.named_children[0].type == "integer")
+
+
 def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
-    """The idiomatic equation-matched recursion `f 0 = BASE` + `f n = … f (n-1)` is
-    semantically identical to the single-clause `if`-form, so synthesize the
-    base-match condition `(V == K)` from the equation patterns and reuse the recursion
-    transforms (fed source strings). Scope: exactly 2 single-param equations — one
-    INTEGER-literal base (no self-call), one VARIABLE-pattern recursive equation
-    (self-call). `clauses` is the `[(pattern_nodes, body), …]` list. Returns Sutra or
-    None."""
-    if len(clauses) != 2 or any(len(pn) != 1 for pn, _b in clauses):
+    """The idiomatic equation-matched recursion `f 0 = BASE` + `f n = … f (n-1)`
+    (and the multi-arg accumulator form `sum 0 acc = acc; sum n acc = sum (n-1)
+    (acc+n)`) is semantically identical to the single-clause `if`-form, so synthesize
+    the base-match condition `(V == K)` from the equation patterns and reuse the
+    recursion transforms (fed source strings). Scope: exactly 2 same-arity equations —
+    a BASE equation with exactly one INTEGER-literal pattern (rest variables) and no
+    self-call, and a recursive equation with ALL VARIABLE patterns and a self-call.
+    The recursive equation's names are the synthesized params; the base equation's
+    variable patterns are renamed to them by position (via `_SUBST`). `clauses` is the
+    `[(pattern_nodes, body), …]` list. Returns Sutra or None."""
+    if len(clauses) != 2:
         return None
-    base_c = rec_c = None
+    arity = len(clauses[0][0])
+    if arity == 0 or any(len(pn) != arity for pn, _b in clauses):
+        return None
+    base = rec = None
     for pn, body in clauses:
-        p = pn[0]
-        is_int = (p.type == "literal" and p.named_children
-                  and p.named_children[0].type == "integer")
-        if is_int and not _contains_self_call(body, name, src):
-            base_c = (p, body)
-        elif p.type == "variable" and _contains_self_call(body, name, src):
-            rec_c = (p, body)
-    if base_c is None or rec_c is None:
+        if (any(_is_int_literal_pat(p) for p in pn)
+                and not _contains_self_call(body, name, src)):
+            base = (pn, body)
+        elif (all(p.type == "variable" for p in pn)
+                and _contains_self_call(body, name, src)):
+            rec = (pn, body)
+    if base is None or rec is None:
         return None
-    k = _text(base_c[0].named_children[0], src)
-    v = _text(rec_c[0], src)
-    ptypes, ret = _resolve_types(name, 1)
-    typed_params = [(v, ptypes[0])]
+    base_pats, then_e = base
+    rec_pats, else_e = rec
+    lit_positions = [i for i, p in enumerate(base_pats) if _is_int_literal_pat(p)]
+    if len(lit_positions) != 1:
+        return None
+    li = lit_positions[0]
+    if any(base_pats[i].type != "variable" for i in range(arity) if i != li):
+        return None
+    rec_names = [_text(p, src) for p in rec_pats]
+    k = _text(base_pats[li].named_children[0], src)
+    v = rec_names[li]
+    ptypes, ret = _resolve_types(name, arity)
+    typed_params = list(zip(rec_names, ptypes))
     cond_src, neg_src = f"({v} == {k})", f"({v} != {k})"
-    then_e, else_e = base_c[1], rec_c[1]  # base body, recursive body
-    rec = _try_lower_tail_recursive(name, typed_params, ret, cond_src, neg_src,
-                                    then_e, else_e, src)
-    if rec is not None:
-        return rec
-    return _try_lower_foldable_nontail(name, typed_params, ret, cond_src, neg_src,
-                                       then_e, else_e, src)
+    renames: list = []
+    for i in range(arity):
+        if i == li:
+            continue
+        bn = _text(base_pats[i], src)
+        if bn != rec_names[i]:
+            _SUBST[bn] = rec_names[i]
+            renames.append(bn)
+    try:
+        out = _try_lower_tail_recursive(name, typed_params, ret, cond_src, neg_src,
+                                        then_e, else_e, src)
+        if out is None:
+            out = _try_lower_foldable_nontail(name, typed_params, ret, cond_src,
+                                              neg_src, then_e, else_e, src)
+    finally:
+        for bn in renames:
+            _SUBST.pop(bn, None)
+    return out
 
 
 def _lower_pattern_equations(name: str, decls, src: bytes) -> str:
