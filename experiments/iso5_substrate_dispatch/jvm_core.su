@@ -19,6 +19,9 @@
 //   116=ineg(negate top)  172=ireturn(keep pc -> idle/halt; result is on top)
 //   26..29=iload_0..3(push local N)  59..62=istore_0..3(pop into local N)
 //   89=dup(push copy of top)  87=pop(discard top)  95=swap(swap top two)
+//   167=goto  159=if_icmpeq  160=if_icmpne  (each a 2-byte instr carrying a 1-byte
+//     signed RELATIVE offset; taken branch sets pc=pc+offset, else pc falls through
+//     to pc+2; if_icmp* pop two operands unconditionally.)
 //   (op 0 = JVM nop: no flag matches -> all cells keep, pc+1 — a natural no-op.)
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1),
 // matching Jinja's `let v2=pop; v1=pop; push (v1 OP v2)`. pc advances 2 for
@@ -54,6 +57,13 @@ function int step(scalar d) {
     int is_dup = truth_axis(defuzzy(op == 89));
     int is_pop = truth_axis(defuzzy(op == 87));
     int is_swap = truth_axis(defuzzy(op == 95));
+    int is_goto = truth_axis(defuzzy(op == 167));
+    int is_ifeq = truth_axis(defuzzy(op == 159));   // if_icmpeq
+    int is_ifne = truth_axis(defuzzy(op == 160));   // if_icmpne
+    // Clean equality (top2 == top1) as a 0/1 value (crisp at the boundary, unlike
+    // strict </>); the if_icmp* branch conditions use it. (Ordered if_icmp lt/ge/
+    // gt/le need the boundary-correct strict comparisons — a later step.)
+    int v_eq = (truth_axis(defuzzy(top2 == top1)) + 1) / 2;
     // 100+sp (new top cell): bipush pushes the operand byte; iload_N pushes local
     // N; else keep. (All pushes write the same fixed new-top cell.)
     int cell_hi = ramRead(100 + sp);
@@ -109,12 +119,27 @@ function int step(scalar d) {
     // pop pops (-1); dup pushes (+1); swap keeps sp.
     int s_pop = (((1 + is_pop) * (sp_binop)) + ((1 - is_pop) * (s_il3))) / 2;
     int s_dup = (((1 + is_dup) * (sp + 1)) + ((1 - is_dup) * (s_pop))) / 2;
-    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_dup))) / 2;
+    // if_icmpeq/if_icmpne pop TWO operands (-2) whether or not they branch; goto
+    // keeps sp. (The pc chain below decides taken/not-taken; the stack effect is
+    // unconditional for if_icmp*.)
+    int sp_pop2 = sp - 2;
+    int s_ifeq = (((1 + is_ifeq) * (sp_pop2)) + ((1 - is_ifeq) * (s_dup))) / 2;
+    int s_ifne = (((1 + is_ifne) * (sp_pop2)) + ((1 - is_ifne) * (s_ifeq))) / 2;
+    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_ifne))) / 2;
     ramWrite(1, new_sp);
-    // pc: bipush +2 (skip operand); ireturn keeps pc (idle with result on top);
-    // every other 1-byte opcode +1.
-    int pc_after = (((1 + is_bipush) * (pc + 2)) + ((1 - is_bipush) * (pc + 1))) / 2;
-    int new_pc = (((1 + is_ireturn) * (pc)) + ((1 - is_ireturn) * (pc_after))) / 2;
+    // pc: bipush +2 (skip operand). Branches carry a 1-byte signed RELATIVE offset
+    // (goto/if_icmpeq/if_icmpne are 2-byte instrs); a taken branch sets pc=pc+imm,
+    // a not-taken if_icmp* falls through to pc+2, goto always takes. ireturn keeps
+    // pc (idle with result on top); every other 1-byte opcode +1.
+    int goto01 = (is_goto + 1) / 2;
+    int ifeq01 = (is_ifeq + 1) / 2;
+    int ifne01 = (is_ifne + 1) / 2;
+    int bipush01 = (is_bipush + 1) / 2;
+    int b2 = bipush01 + goto01 + ifeq01 + ifne01;   // 1 for 2-byte ops, else 0
+    int pc_seq = pc + 1 + b2;                        // sequential next-pc
+    int take = goto01 + (ifeq01 * v_eq) + (ifne01 * (1 - v_eq));   // 0/1: branch taken
+    int pc_branch = (take * (pc + imm)) + ((1 - take) * pc_seq);
+    int new_pc = (((1 + is_ireturn) * (pc)) + ((1 - is_ireturn) * (pc_branch))) / 2;
     ramWrite(0, new_pc);
     return ramRead(99 + sp);
 }

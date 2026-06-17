@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-17: JVM core — branches goto/if_icmpeq/if_icmpne (Phase 5 leg 2, step 2c)
+
+Phase 5 leg 2 step 2c — the last primitive before a real loop. Added JVM **branches** to
+`jvm_core.su`: `goto`(167), `if_icmpeq`(159), `if_icmpne`(160), each a 2-byte instruction carrying
+a **1-byte signed RELATIVE offset** (the one real encoding difference from the WASM machine's
+absolute targets, called out in the scoping doc). The pc chain was restructured around a uniform
+2-byte-op count `b2 = bipush + goto + if_icmpeq + if_icmpne` (so `pc_seq = pc+1+b2`) and a `take`
+selector `goto01 + ifeq01·v_eq + ifne01·(1−v_eq)`; a taken branch sets `pc = pc + imm`, else falls
+through to `pc_seq`. `v_eq` is the **clean boundary-correct equality** `(truth_axis(defuzzy(top2 ==
+top1)) + 1)/2` (crisp {0,1} at exact equality, unlike strict `</>` which defuzz ~0.5 at the
+boundary). `if_icmp*` pop two operands unconditionally (sp−2); `goto` keeps sp. Four new
+substrate-verified cases: goto-skip → 1, if_icmpeq-taken → 1, if_icmpne-fallthrough → 0, and a
+**backward-`goto` countdown-sum loop** (`while i!=0 { sum+=i; i-=1 }`, 3+2+1) → **6** — branch +
+locals + arithmetic composing into a real loop. Full `test_jvm_core.py` ran on the substrate:
+**17 passed in 346s, exit 0**. Remaining ladder: (2d) a real javac-compiled method byte-for-byte
+(real javac emits 2-byte big-endian offsets — a sign-extension decode to add before raw javac bytes).
+
 ## 2026-06-17: JVM core — stack ops dup/pop/swap (Phase 5 leg 2, step 2b)
 
 Phase 5 leg 2 step 2b. Added JVM **stack ops** to `jvm_core.su`: `dup`(89, push a copy of the

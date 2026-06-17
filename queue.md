@@ -121,10 +121,12 @@ to ask ("barrel through … until you've gotten a strong acceptance").
     dispatch/jvm_core.su` is a parallel RAM-state blended-dispatch machine with REAL JVM opcode
     values + variable-length bytecode: bipush/iadd/isub/imul/ineg/ireturn, 7 substrate-verified
     cases (`test_jvm_core.py`). **STEPS 2a (locals iload_0..3/istore_0..3 at RAM 200..203) + 2b
-    (stack ops dup/pop/swap) DONE 2026-06-17** — 13 cases substrate-green. Remaining JVM ladder:
-    (2c) branches `if_icmp*`/`goto` (RELATIVE offsets — the one real encoding difference from the
-    WASM machine's absolute targets); (2d) a real javac-compiled method (e.g. iterative factorial)
-    byte-for-byte (needs 2c — loop = branch + locals + arithmetic, all the rest now in place).
+    (stack ops dup/pop/swap) + 2c (branches `goto`/`if_icmpeq`/`if_icmpne`, 1-byte signed
+    RELATIVE offsets) DONE 2026-06-17** — 17 cases substrate-green, incl. a backward-`goto`
+    countdown-sum loop (3+2+1=6) exercising branch+locals+arithmetic together. Remaining JVM
+    ladder: (2d) a real javac-compiled method (e.g. iterative factorial) byte-for-byte. NOTE:
+    2c uses 1-byte relative offsets; real javac emits 2-byte big-endian signed offsets — handle
+    that decode (sign-extension across two cells) as a faithfulness refinement before raw javac bytes.
 - **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
   per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
   / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment

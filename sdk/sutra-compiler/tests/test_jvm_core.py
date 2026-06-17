@@ -12,7 +12,8 @@ and asserts the decoded operand-stack result — the compile-AND-run bar.
 
 Opcodes (real JVM decimal values): 16=bipush 96=iadd 100=isub 104=imul 116=ineg
 172=ireturn (keeps pc -> idle with the result on top) 26..29=iload_0..3
-59..62=istore_0..3 (locals 0..3 at RAM 200..203) 89=dup 87=pop 95=swap. op 0 = nop.
+59..62=istore_0..3 (locals 0..3 at RAM 200..203) 89=dup 87=pop 95=swap
+167=goto 159=if_icmpeq 160=if_icmpne (1-byte signed RELATIVE offset). op 0 = nop.
 """
 from __future__ import annotations
 
@@ -85,6 +86,16 @@ _CASES = [
     ([16, 9, 16, 3, 87, 172], 9, 10, 100),
     # swap: bipush 7; bipush 2; swap; isub -> (2-7) = -5
     ([16, 7, 16, 2, 95, 100, 172], -5, 10, 100),
+    # goto: bipush 1; goto +4 (skip the bipush 99); ireturn -> top = 1
+    ([16, 1, 167, 4, 16, 99, 172], 1, 10, 100),
+    # if_icmpeq taken (5==5 -> branch over the "push 0; goto" arm to "push 1") -> 1
+    ([16, 5, 16, 5, 159, 6, 16, 0, 167, 4, 16, 1, 172], 1, 12, 100),
+    # if_icmpne NOT taken (5==5 so ne is false -> fall through to "push 0") -> 0
+    ([16, 5, 16, 5, 160, 6, 16, 0, 167, 4, 16, 1, 172], 0, 12, 100),
+    # countdown-sum loop 3+2+1 = 6 (backward goto -14, if_icmpeq exit at +13):
+    #   local0=sum local1=i; while i!=0 { sum+=i; i-=1 }; return sum
+    ([16, 0, 59, 16, 3, 60, 27, 16, 0, 159, 13, 26, 27, 96, 59,
+      27, 16, 1, 100, 60, 167, -14, 26, 172], 6, 60, 100),
 ]
 
 
