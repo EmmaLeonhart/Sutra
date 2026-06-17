@@ -48,7 +48,7 @@ def _compile_minimal_su(semantic_dim: int) -> types.ModuleType:
     """Compile a one-liner .su at the target dim so we get a real _TorchVSA
     instance with the right embed() implementation. Cheaper than re-deriving
     the codegen pipeline by hand."""
-    sutra_sdk = _REPO / "external" / "Sutra" / "sdk" / "sutra-compiler"
+    sutra_sdk = _REPO.parent.parent / "sdk" / "sutra-compiler"  # Yantra vendored in-tree under Sutra
     if str(sutra_sdk) not in sys.path:
         sys.path.insert(0, str(sutra_sdk))
     from sutra_compiler import compile_su

@@ -41,7 +41,7 @@ from kernel.router import Axon, AxonRouter, CapabilityError
 # Make the Sutra compiler importable from the submodule. We do this
 # at module-import time rather than per-call so SutraService can rely
 # on the import succeeding in __init__.
-_SUTRA_SDK = pathlib.Path(__file__).resolve().parent.parent / "external" / "Sutra" / "sdk" / "sutra-compiler"
+_SUTRA_SDK = pathlib.Path(__file__).resolve().parent.parent.parent.parent / "sdk" / "sutra-compiler"  # Yantra vendored in-tree: Sutra is the grandparent of the Yantra root
 if _SUTRA_SDK.is_dir() and str(_SUTRA_SDK) not in sys.path:
     sys.path.insert(0, str(_SUTRA_SDK))
 
