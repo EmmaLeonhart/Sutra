@@ -218,6 +218,23 @@ def _hoist_enum_constructions(body, src: bytes, indent: str = "    "):
             _ARG_HOIST[n.id] = tmp
             added.append(n.id)
             return
+        if n.type == "scoped_identifier":
+            # `Dir::South` — a NULLARY enum variant in VALUE position constructs a
+            # `{_tag}` axon (no payload). Guard against match-PATTERN positions (a
+            # `Dir::North` pattern is also a `scoped_identifier`, but its parent is a
+            # `match_pattern` and it is handled by `_lower_match_stmts`, not hoisted).
+            parent = n.parent
+            ids = [c for c in n.named_children if c.type == "identifier"]
+            if ((parent is None or parent.type != "match_pattern")
+                    and len(ids) == 2 and _text(ids[1], src) in _VARIANTS
+                    and _VARIANTS[_text(ids[1], src)][2] == 0):
+                variant = _text(ids[1], src)
+                tmp = f"_ah{_HOIST_N[0]}"
+                _HOIST_N[0] += 1
+                prelude.append(_emit_enum_construction(variant, [], src, tmp, indent))
+                _ARG_HOIST[n.id] = tmp
+                added.append(n.id)
+                return
         if n.type == "match_expression":
             k = _HOIST_N[0]
             _HOIST_N[0] += 1
@@ -816,6 +833,13 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
             for i, p in enumerate(payload):
                 binds.append((_text(p, src), f"{valv}{i}"))
             test = f"({tagv} == {tag})"
+        elif inner.type == "scoped_identifier":
+            # `Dir::North` — a NULLARY variant pattern (no payload): test the tag.
+            ids = [c for c in inner.named_children if c.type == "identifier"]
+            variant = _text(ids[-1], src) if ids else None
+            if variant not in _VARIANTS:
+                return None, f"/* UNSUPPORTED-MATCH: unknown variant {variant} */"
+            test = f"({tagv} == {_VARIANTS[variant][1]})"
         elif inner.type == "identifier" and _text(inner, src) in _VARIANTS:
             test = f"({tagv} == {_VARIANTS[_text(inner, src)][1]})"
         elif inner.type in ("wildcard_pattern", "identifier"):

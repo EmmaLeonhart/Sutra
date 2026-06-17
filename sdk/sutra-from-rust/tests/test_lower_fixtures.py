@@ -37,6 +37,7 @@ _RUNNABLE = {
     "tuple_axon": 13.0,  # fst(p: (i64,i64)) = p.0 + p.1; main = fst((5, 8))  (tuple -> positional-key axon, p.0 -> realvec(item _0))
     "tuple_destructure": 13.0,  # add_pair(t) { let (a, b) = t; a + b }; main = add_pair((5, 8))  (let-tuple-pattern -> realvec(item _0/_1))
     "struct_destructure": 13.0,  # sum(p: Point) { let Point { x, y } = p; x + y }; main = sum(Point{5,8})  (let-struct-pattern -> realvec(item x/y))
+    "nullary_variant": 20.0,  # enum Dir{North,South}; code(d) = match d { Dir::North=>10, Dir::South=>20 }; main = code(Dir::South)  (nullary variant value -> {_tag} axon; scoped match patterns NOT mis-hoisted)
 }
 
 
