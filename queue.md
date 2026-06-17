@@ -74,7 +74,11 @@ the output → generation, not just reconstruction. `render_decoder_latent_torch
   `z` (and thus the generated frame) — the LEARNED decoder meets the GUI steering loop.
 
 _Phase D-E — integration & writeup:_
-- [ ] **D10 — docs + paper.**
+
+_D10 ✅ done: `docs/gui.md` "Learning the picture, not just rendering it" (public, website-clean)
++ `paper/gui-steering` §7.2 "From a fixed-weight render to a trained generator" with the measured
+arc (recon 22.4 dB, colour 20.6 dB, capacity scaling, latent interp −0.34→+0.33, preference
+steering), framed as the trained generalisation of the analytic base case. Site builds clean._
 
 _D9 ✅ done: `latent_demo.py` (headless, run-verified: train generator → steer latent right,
 generated blob centroid +0.077→+0.299) + `latent_window.py` (thin tkinter, I/O, untested in CI

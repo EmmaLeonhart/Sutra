@@ -354,6 +354,50 @@ lowers TS `number` to Sutra `int`, so the *float-fidelity* render stays the hand
 runs. As elsewhere, the render is the substrate; the reward head, the audience model, and Adam
 are host-side and named so.
 
+### 7.2 From a fixed-weight render to a trained generator (a learned decoder)
+
+Every render so far is a *fixed* function — hand-written substrate arithmetic. Because the
+substrate is differentiable, it can also be *trained*. We built a **learned coordinate decoder**
+on the substrate: a per-pixel function `f(x, y) → value` that is a stack of substrate `matmul`
+(Linear) layers with a hadamard-cubic nonlinearity, fed a Fourier-feature encoding of the
+coordinate. The weights are trainable parameters; a host-side Adam descends a reconstruction
+loss by backpropagating **through the compiled substrate forward** — the same boundary as the
+steering above (`demos/decoder/`).
+
+Two substrate facts shaped the design. First, the substrate's `tanh`/`sin` operate on the
+canonical complex-vector (fuzzy) representation, not elementwise over an arbitrary activation
+buffer, so the nonlinearity is a hadamard polynomial (cubic — elementwise on field buffers,
+the same machinery the hero/button fields use). Second, expressivity therefore comes from a
+**Fourier-feature** encoding of the input coordinate (`[coords, sin(πf·c), cos(πf·c)]`), built
+host-side as input geometry — the same compile-time boundary as the coordinate grid; the
+*learned* forward (matmul + cubic) is the substrate part. A Fourier-feature substrate MLP fits
+a `sin(3πx)` wave to MSE 4×10⁻⁴, ~1000× better than raw-coordinate input (3×10⁻¹).
+
+Measured results (all on the substrate render; host-side Adam):
+
+- **Reconstruction of an arbitrary frame** the analytic renders cannot produce (two off-centre
+  gaussian blobs): MSE 0.0058 / **PSNR 22.4 dB** at hidden width 64, 0.0014 / 28.5 dB at width
+  96 — and quality rises monotonically with width (8→64: 13.5→18.7 dB), the expected
+  implicit-representation scaling. The same holds in colour (3-output): MSE 0.0087 / 20.6 dB.
+- **Generation, not memorisation.** Conditioning each pixel on a latent `z` (`f(x, y; z)`) and
+  training an *auto-decoder* across a set of images (each with its own learned `z`), the latent
+  reconstructs its image (MSE ~10⁻³) and **interpolating `z` between two learned latents sweeps
+  the output between them** — for two blobs at x=±0.4, the generated blob's centroid moves
+  monotonically −0.34 → +0.33 across the interpolation, i.e. novel frames produced by moving a
+  point in latent space.
+- **Preference-steerable generation.** Freezing the trained weights and placing the *latent* in
+  the §5 warmer/colder loop (a pairwise reward head, Adam ascending it through the substrate
+  decoder render w.r.t. `z`), a synthetic rater preferring a rightward blob drives the generated
+  centroid +0.03 → +0.16 and a leftward rater → −0.34, flipping with the preference — the
+  learned generator steered by preference.
+
+The analytic hero/button render of §2–§6 is the fixed-weight base case; this decoder is its
+trained, generative, and steerable generalisation, with the same explicit boundary — the
+forward pass is substrate tensor ops (`matmul` + hadamard cubic); the optimizer, the reward
+head, and the Fourier input-encoding are host-side. We do not claim the *training* runs on the
+substrate, only that the render the gradient passes through does (the §7 fact, now for a
+learned function).
+
 ## 8. What we are not claiming
 
 - **The composition is host-side.** Assembling glyphs into a banner, placing the
@@ -476,6 +520,7 @@ pytest demos/gui/test_button_render.py                   # §7.1 substrate butto
 pytest demos/gui/test_button_audience.py                 # §7.1 simulated audience (CTR) model
 pytest demos/gui/test_button_adam.py                     # §7.1 owner+CTR dual-reward steering + α knob
 pytest demos/gui/test_button_spec_ts.py                  # §7.1 TS->Sutra button-spec lowering
+pytest demos/decoder/                                    # §7.2 learned decoder: train/reconstruct/generate/steer
 ```
 
 The trainable click-button (§7.1) lives in `demos/gui/` (`button_frame.su`,
