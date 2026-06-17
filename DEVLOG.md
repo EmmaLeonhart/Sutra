@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Scala frontend — `val Point(a, b) = p` case-class-pattern destructuring (Phase 3)
+
+Work+report sprint tick (extends Scala's tuple-destructure increment to case classes).
+`val Point(a, b) = p` now destructures a case-class axon: the `case_class_pattern` binds its
+identifiers POSITIONALLY to the case class's declared field names (`_CASE_CLASSES[Point] = [x,
+y]`), each read via `realvec(p.item("x"))` (the `p.x` projection). The value is hoisted first
+(so `val Point(a, b) = Point(5, 8)` works too). An unknown class, non-identifier element, or
+arity mismatch surfaces `UNSUPPORTED-VAL` (later item). New fixture `caseclass_destructure`
+(`case class Point(x, y); sum(p) = { val Point(a, b) = p; a + b }`, `main = sum(Point(5, 8))`)
+compiles AND runs on the substrate to 13; suite 22→24, no regressions.
+
 ## 2026-06-16: Scala frontend — `val (a, b) = t` tuple-pattern destructuring (Phase 3)
 
 Work+flush sprint tick (the Scala analogue of the destructure tier). Scala block `val`
