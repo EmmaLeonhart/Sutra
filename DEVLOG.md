@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-17: learned decoder D12 — bake weights to CSV (fully standalone .su)
+
+`emit_decoder.bake_decoder` writes a trained decoder's weights to CSV and emits an all-`matrix`
+standalone `.su` that `load_matrix`'s its OWN weights (`lc`/`ll` over the loaded matrices; bias
+as (out,1), broadcast-added; cubic via hadamard) — the program needs no host weight tensors,
+only the input. TDD `test_emit_decoder.py` (+1, now 3), green CPU+CUDA: bake a trained
+`[F,16,16,1]` decoder, compile the standalone `.su`, run it with NO weights passed, and it
+reproduces the trained host forward to **< 1e-4**, with `load_matrix` declared for every weight.
+Completes the weight→code first follow-on: the trained decoder is now self-contained Sutra code
++ data (the `weight_to_code_corpus` file-backed pattern). Remaining: emit the Fourier encoding
+on-substrate; feed the w2c decompiler.
+
 ## 2026-06-17: learned decoder D11 — weight→code (emit trained decoder as Sutra) — TRACK COMPLETE
 
 `demos/decoder/emit_decoder.py` emits a trained decoder's forward as a standalone `.su` over
