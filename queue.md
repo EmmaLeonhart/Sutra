@@ -114,10 +114,39 @@ to ask ("barrel through … until you've gotten a strong acceptance").
     `.wasm` function byte-for-byte (mirror the JVM leg's javac-factorial oracle: load real wat→wasm
     bytes, decode == reference), then Python-via-Pyodide. Concrete WASM-leg open items in the merged
     WASM queue section below.
-- **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode).** The remaining
-  per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion / multi-arity
-  / let-bound `with` source — see "Active — transpiler track" + the per-frontend increment
-  sections). Lowest priority of the active phases.
+- **Phase 5.5 — Recursion lowering strategy: single→tail (compiler), multiple→WASM (Emma
+  2026-06-17).** A two-part strategy for NON-TAIL recursion that applies across ALL language
+  frontends. Ordering (Emma): both parts come BEFORE the Phase-6 long tail; Part B comes AFTER
+  the Phase-5 WebAssembly work (it depends on the WASM machine). Emma: "I think this is a very
+  important thing… basically." Generalizes the OCaml reference frontend's foldable-CPS transform
+  to a uniform, explicitly-stated rule for every frontend.
+  - **(A) Single (linear) non-tail recursion → tail recursion — a transform the COMPILERS do.**
+    Emma: non-tail recursion that is "strictly singular at any time" — a SINGLE linear recursive
+    call not in tail position (e.g. `fact(n) = n * fact(n-1)`) — "can be turned into tail
+    recursion. Our language compilers should do that… that's very, very possible from our
+    perspective." Tail recursion lowers to a substrate `loop` (state ← R·state), so this makes
+    linear recursion run as a STACKLESS substrate loop (no host call stack, stays a real
+    RNN/fused graph). Apply uniformly in every frontend's lowering pass. Bounded + verifiable per
+    frontend: a linear non-tail recursive fixture compiles to a `loop` and runs == reference on
+    the substrate (measured, not "ran"). Independent of WASM — can proceed as soon as picked up.
+  - **(B) Multiple (tree) recursion → represent as WebAssembly.** Emma: non-tail recursion with
+    MULTIPLE recursive calls (tree recursion, e.g. naive `fib(n) = fib(n-1) + fib(n-2)`) genuinely
+    "would involve a stack," and "the only way that can actually be done is through a representation
+    of it as WebAssembly." WASM is to become a fundamental fallback runtime — "WebAssembly should
+    be something that can be used basically all the time… perhaps a fundamental part of a lot of
+    runtimes." Emma names the cost honestly: "I know this is a big workaround and it causes
+    problems, but this is the only way I can really see it working." Mechanism: lower a
+    tree-recursive function to WASM bytecode and run it on the substrate WASM machine — the mini
+    WASM machine is a RAM-state STACK machine, so the operand stack / call frames the tree
+    recursion needs live in its RAM (the DNC memory), not a host stack. DEPENDS ON Phase-5 WASM
+    work (the machine must first run a real stack-using `.wasm` function byte-for-byte). Bounded +
+    verifiable: a tree-recursive fixture (fib) lowers to WASM, runs on the substrate machine,
+    decodes == reference. (This supersedes the OCaml "Tree RNN" approach for genuine tree recursion
+    — Emma's call is WASM-representation, not a bespoke tree-shaped RNN.)
+- **Phase 6 — transpiler long-tail (Emma 2026-06-17: LAST, after bytecode + recursion lowering).**
+  The remaining per-frontend edge cases (nested patterns / OCaml RAM device / mutual recursion /
+  multi-arity / let-bound `with` source — see "Active — transpiler track" + the per-frontend
+  increment sections). Lowest priority of the active phases.
 - **Fill-in — full mathlib mixing rate.** When nothing above is immediately actionable,
   do the full t→∞ mixing-rate proof (see the FV section below). (Reachable as fill-in; the
   JS/JVM/Pyodide-Python VM targets are now Phase 5, not "eventually".)
