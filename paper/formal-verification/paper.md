@@ -965,8 +965,12 @@ and machine-checked Lean proofs (§7). This section reports a **separate and
 weaker** assurance layer that we are careful not to conflate with it. Sutra is
 also a compile *target* for nine source languages — OCaml, TypeScript, Rust, F#,
 Elixir, Clojure, Haskell, Erlang, and Scala (a C frontend is parked) — each a
-source-to-source lowering pass `⟨lang⟩ → Sutra`. These lowering passes are
-verified **empirically, by end-to-end test, not by proof.**
+source-to-source lowering pass `⟨lang⟩ → Sutra`. These are **research lowering
+passes that exercise the constructs a source language presents to the substrate,
+not complete or production compilers** — a completeness claim we explicitly do
+not make — and they are verified **empirically, by end-to-end test, not by
+proof.** This section is a brief complementary note, not a co-equal contribution
+to the formal results above.
 
 The bar each frontend is held to is **compile-AND-run against ground truth**, not
 compile-only. A fixture is a small source-language program with a known result;
@@ -974,17 +978,17 @@ the frontend lowers it to Sutra, the §2 compiler lowers that to the tensor-op
 graph, the graph runs on the real substrate, and the decoded output is compared
 to the source language's own answer. A fixture that lowers without an
 `UNSUPPORTED` marker but produces the wrong number is a *failure*, not a pass.
-Across the nine active frontends this is **184 substrate-verified fixtures**
-(OCaml 45, Elixir 21, TypeScript 19, F# 19, Clojure 18, Rust 18, Haskell 17,
-Erlang 15, Scala 12), run under continuous integration. They cover functions and
-typed parameters; conditionals and pattern `match`/`case` (lowered to the §3.2
-branch-as-polynomial encoding, so the source-level branch is a closed-form
-polynomial in the target, not a fork); tail- and foldable-non-tail recursion, and
-the idiomatic multi-clause / multi-equation / guarded pattern recursion of the
-BEAM and ML languages (all lowered to bounded substrate loops, never a
-self-calling graph); and algebraic data — enums, variants, records, tuples,
-structs, with destructuring in let/value/parameter positions — lowered to
-structured axons.
+Across the nine active frontends this is **184 substrate-verified fixtures** — a
+count that measures the *breadth of covered language constructs*, not a
+language's full surface and not compiler completeness. The covered constructs are
+the ones that exercise the verification-relevant lowerings: conditionals and
+pattern `match`/`case` (lowered to the §3.2 branch-as-polynomial encoding, so the
+source-level branch is a closed-form polynomial, not a fork); the recursion forms
+(tail, foldable-non-tail, and the BEAM/ML multi-clause and guarded variants, all
+lowered to bounded substrate loops, never a self-calling graph); and algebraic
+data lowered to structured axons. The point is not a complete compiler for any
+language — it is that the same target the §3 obligations describe is reachable
+from each source language's idioms, checked by execution.
 
 **What this does and does not establish.** It establishes that, on the concrete
 inputs in the fixture suite, each lowering preserves the source language's
