@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-16: Scala frontend — `val (a, b) = t` tuple-pattern destructuring (Phase 3)
+
+Work+flush sprint tick (the Scala analogue of the destructure tier). Scala block `val`
+bindings now destructure a tuple pattern: `val (a, b) = t` reads the **1-based** positional axon
+fields `realvec(t.item("_1"))` / `realvec(t.item("_2"))` (matching Scala's 1-based `._1`/`._2`
+selectors, the key convention `tuple_axon` already uses). The value is hoisted first so
+`val (a, b) = (5, 8)` works too (the tuple binds to a temp axon); only identifier elements are
+in scope, a nested element surfaces `UNSUPPORTED-VAL`. New fixture `tuple_destructure`
+(`addPair(t: (Int,Int)) = { val (a, b) = t; a + b }`, `main = addPair((5, 8))`) compiles AND
+runs on the substrate to 13; suite 20→22, no regressions.
+
 ## 2026-06-16: Erlang record-PATTERN + Elixir struct-PATTERN parameters (Phase 3)
 
 Work-loop sprint tick (struct/record-pattern params across the two BEAM-family frontends).

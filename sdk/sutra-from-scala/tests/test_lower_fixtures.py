@@ -27,6 +27,7 @@ _RUNNABLE = {
     "match_literal": 200.0,  # n match {1=>100; 2=>200; _=>300} at n=2  (literal match -> nested blend)
     "case_class": 12.0,  # case class Point -> axon; getx(mk(7,9))=7 + sum2(Point(2,3))=5
     "tuple_axon": 13.0,  # def fst(p: (Int,Int)) = p._1 + p._2; main = fst((5, 8))  (tuple -> positional-key axon, 1-based _1/_2 to match ._1 access)
+    "tuple_destructure": 13.0,  # def addPair(t: (Int,Int)) = { val (a, b) = t; a + b }; main = addPair((5, 8))  (val-tuple-pattern -> realvec(item _1/_2), 1-based)
     "tail_rec": 15.0,  # def sumTo(acc,n) = if (n==0) acc else sumTo(acc+n, n-1); sumTo(0,5)
     "match_guard": 60.0,  # case 0 => 100; case x if x > 0 => x*10; case _ => 300; classify(6)
     "nontail_fact": 120.0,  # def fact(n) = if (n==0) 1 else n * fact(n-1); fact(5)  (CPS fold)
