@@ -15,14 +15,16 @@
 // RAM layout: [0]=pc  [1]=sp   bytecode at 10+ (one byte/cell)  operand stack
 // 100+   locals 0..3 at 200..203.
 // Opcodes (real JVM decimal values):
+//   3..8=iconst_0..5(push the literal N; 1-byte instr, constant is in the opcode)
 //   16=bipush(push next byte; 2-byte instr)  96=iadd  100=isub  104=imul
 //   116=ineg(negate top)  172=ireturn(keep pc -> idle/halt; result is on top)
 //   26..29=iload_0..3(push local N)  59..62=istore_0..3(pop into local N)
 //   89=dup(push copy of top)  87=pop(discard top)  95=swap(swap top two)
-//   167=goto  159=if_icmpeq  160=if_icmpne  (each a 3-byte instr carrying a 2-byte
-//     BIG-ENDIAN signed RELATIVE offset — real javac encoding; taken branch sets
-//     pc=pc+offset (relative to the opcode address), else pc falls through past the
-//     2 operand bytes; if_icmp* pop two operands unconditionally.)
+//   167=goto  159=if_icmpeq  160=if_icmpne  161=if_icmplt  162=if_icmpge
+//   163=if_icmpgt  164=if_icmple  (each a 3-byte instr carrying a 2-byte BIG-ENDIAN
+//     signed RELATIVE offset — real javac encoding; taken branch sets pc=pc+offset
+//     (relative to the opcode address), else pc falls past the 2 operand bytes;
+//     if_icmp* pop two operands unconditionally. value1=top2 (deeper), value2=top1.)
 //   (op 0 = JVM nop: no flag matches -> all cells keep, pc+1 — a natural no-op.)
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1),
 // matching Jinja's `let v2=pop; v1=pop; push (v1 OP v2)`. pc advances 2 for
@@ -41,6 +43,11 @@ function int step(scalar d) {
     int l1 = ramRead(201);
     int l2 = ramRead(202);
     int l3 = ramRead(203);
+    // Real-axis unit vector (make_complex(1,0)). Opcode-embedded constants
+    // (iconst_N) must be materialized as N*one so they land on the real axis ONLY
+    // — a bare scalar literal added to a zeroed blend term broadcasts across every
+    // axis (computed [N,N,N,...] != make_real(N)), which silently breaks == later.
+    complex one = 1 + 0i;
     int is_bipush = truth_axis(defuzzy(op == 16));
     int is_iadd = truth_axis(defuzzy(op == 96));
     int is_isub = truth_axis(defuzzy(op == 100));
@@ -61,10 +68,31 @@ function int step(scalar d) {
     int is_goto = truth_axis(defuzzy(op == 167));
     int is_ifeq = truth_axis(defuzzy(op == 159));   // if_icmpeq
     int is_ifne = truth_axis(defuzzy(op == 160));   // if_icmpne
-    // Clean equality (top2 == top1) as a 0/1 value (crisp at the boundary, unlike
-    // strict </>); the if_icmp* branch conditions use it. (Ordered if_icmp lt/ge/
-    // gt/le need the boundary-correct strict comparisons — a later step.)
+    int is_iflt = truth_axis(defuzzy(op == 161));   // if_icmplt
+    int is_ifge = truth_axis(defuzzy(op == 162));   // if_icmpge
+    int is_ifgt = truth_axis(defuzzy(op == 163));   // if_icmpgt
+    int is_ifle = truth_axis(defuzzy(op == 164));   // if_icmple
+    // iconst_0..5 (opcodes 3..8) push the integer constant (op - 3): a 1-byte
+    // instruction, no operand byte — the constant is encoded in the opcode itself.
+    int is_iconst0 = truth_axis(defuzzy(op == 3));
+    int is_iconst1 = truth_axis(defuzzy(op == 4));
+    int is_iconst2 = truth_axis(defuzzy(op == 5));
+    int is_iconst3 = truth_axis(defuzzy(op == 6));
+    int is_iconst4 = truth_axis(defuzzy(op == 7));
+    int is_iconst5 = truth_axis(defuzzy(op == 8));
+    // Comparisons as 0/1 values. == is crisp at the boundary; strict </> defuzz
+    // ambiguously at EXACT equality, so gate them by (1 - v_eq) (the WASM machine's
+    // verified idiom). if_icmp<cond> pops value1 (=top2, pushed first/deeper) and
+    // value2 (=top1, on top) and branches if value1 <cond> value2:
+    //   eq: top2==top1   ne: top2!=top1   lt: top2<top1   ge: top2>=top1
+    //   gt: top2>top1    le: top2<=top1.
     int v_eq = (truth_axis(defuzzy(top2 == top1)) + 1) / 2;
+    int v_lt_raw = (truth_axis(defuzzy(top2 < top1)) + 1) / 2;
+    int v_gt_raw = (truth_axis(defuzzy(top1 < top2)) + 1) / 2;
+    int v_lt = (1 - v_eq) * v_lt_raw;   // top2 < top1
+    int v_gt = (1 - v_eq) * v_gt_raw;   // top2 > top1
+    int v_ge = 1 - v_lt;                // top2 >= top1
+    int v_le = 1 - v_gt;                // top2 <= top1
     // 100+sp (new top cell): bipush pushes the operand byte; iload_N pushes local
     // N; else keep. (All pushes write the same fixed new-top cell.)
     int cell_hi = ramRead(100 + sp);
@@ -73,8 +101,17 @@ function int step(scalar d) {
     int hi_il1 = (((1 + is_iload1) * (l1)) + ((1 - is_iload1) * (hi_il2))) / 2;
     int hi_il0 = (((1 + is_iload0) * (l0)) + ((1 - is_iload0) * (hi_il1))) / 2;
     int hi_push = (((1 + is_bipush) * (imm)) + ((1 - is_bipush) * (hi_il0))) / 2;
+    // iconst_N pushes the literal constant N (encoded in the opcode, no operand).
+    // Each constant is N*one (real-axis vector), NOT the bare scalar N: a scalar
+    // added to the zeroed (1-flag)*prev term would broadcast across all axes.
+    int hi_ic0 = (((1 + is_iconst0) * (0 * one)) + ((1 - is_iconst0) * (hi_push))) / 2;
+    int hi_ic1 = (((1 + is_iconst1) * (1 * one)) + ((1 - is_iconst1) * (hi_ic0))) / 2;
+    int hi_ic2 = (((1 + is_iconst2) * (2 * one)) + ((1 - is_iconst2) * (hi_ic1))) / 2;
+    int hi_ic3 = (((1 + is_iconst3) * (3 * one)) + ((1 - is_iconst3) * (hi_ic2))) / 2;
+    int hi_ic4 = (((1 + is_iconst4) * (4 * one)) + ((1 - is_iconst4) * (hi_ic3))) / 2;
+    int hi_ic5 = (((1 + is_iconst5) * (5 * one)) + ((1 - is_iconst5) * (hi_ic4))) / 2;
     // dup pushes a copy of the current top onto the new top cell.
-    int new_hi = (((1 + is_dup) * (top1)) + ((1 - is_dup) * (hi_push))) / 2;
+    int new_hi = (((1 + is_dup) * (top1)) + ((1 - is_dup) * (hi_ic5))) / 2;
     ramWrite(100 + sp, new_hi);
     // istore_N: pop top1 into local N; else rewrite local N with its existing
     // value (a no-op — each istore_N writes only its fixed cell).
@@ -117,16 +154,27 @@ function int step(scalar d) {
     int s_il1 = (((1 + is_iload1) * (sp + 1)) + ((1 - is_iload1) * (s_il0))) / 2;
     int s_il2 = (((1 + is_iload2) * (sp + 1)) + ((1 - is_iload2) * (s_il1))) / 2;
     int s_il3 = (((1 + is_iload3) * (sp + 1)) + ((1 - is_iload3) * (s_il2))) / 2;
+    // iconst_N push (+1).
+    int s_ic0 = (((1 + is_iconst0) * (sp + 1)) + ((1 - is_iconst0) * (s_il3))) / 2;
+    int s_ic1 = (((1 + is_iconst1) * (sp + 1)) + ((1 - is_iconst1) * (s_ic0))) / 2;
+    int s_ic2 = (((1 + is_iconst2) * (sp + 1)) + ((1 - is_iconst2) * (s_ic1))) / 2;
+    int s_ic3 = (((1 + is_iconst3) * (sp + 1)) + ((1 - is_iconst3) * (s_ic2))) / 2;
+    int s_ic4 = (((1 + is_iconst4) * (sp + 1)) + ((1 - is_iconst4) * (s_ic3))) / 2;
+    int s_ic5 = (((1 + is_iconst5) * (sp + 1)) + ((1 - is_iconst5) * (s_ic4))) / 2;
     // pop pops (-1); dup pushes (+1); swap keeps sp.
-    int s_pop = (((1 + is_pop) * (sp_binop)) + ((1 - is_pop) * (s_il3))) / 2;
+    int s_pop = (((1 + is_pop) * (sp_binop)) + ((1 - is_pop) * (s_ic5))) / 2;
     int s_dup = (((1 + is_dup) * (sp + 1)) + ((1 - is_dup) * (s_pop))) / 2;
-    // if_icmpeq/if_icmpne pop TWO operands (-2) whether or not they branch; goto
+    // All six if_icmp<cond> pop TWO operands (-2) whether or not they branch; goto
     // keeps sp. (The pc chain below decides taken/not-taken; the stack effect is
     // unconditional for if_icmp*.)
     int sp_pop2 = sp - 2;
     int s_ifeq = (((1 + is_ifeq) * (sp_pop2)) + ((1 - is_ifeq) * (s_dup))) / 2;
     int s_ifne = (((1 + is_ifne) * (sp_pop2)) + ((1 - is_ifne) * (s_ifeq))) / 2;
-    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_ifne))) / 2;
+    int s_iflt = (((1 + is_iflt) * (sp_pop2)) + ((1 - is_iflt) * (s_ifne))) / 2;
+    int s_ifge = (((1 + is_ifge) * (sp_pop2)) + ((1 - is_ifge) * (s_iflt))) / 2;
+    int s_ifgt = (((1 + is_ifgt) * (sp_pop2)) + ((1 - is_ifgt) * (s_ifge))) / 2;
+    int s_ifle = (((1 + is_ifle) * (sp_pop2)) + ((1 - is_ifle) * (s_ifgt))) / 2;
+    int new_sp = (((1 + is_bipush) * (sp + 1)) + ((1 - is_bipush) * (s_ifle))) / 2;
     ramWrite(1, new_sp);
     // pc: bipush is a 2-byte instr (skip 1 operand byte). goto/if_icmpeq/if_icmpne
     // are 3-byte instrs carrying a 2-byte BIG-ENDIAN signed RELATIVE offset (real
@@ -138,8 +186,12 @@ function int step(scalar d) {
     int goto01 = (is_goto + 1) / 2;
     int ifeq01 = (is_ifeq + 1) / 2;
     int ifne01 = (is_ifne + 1) / 2;
+    int iflt01 = (is_iflt + 1) / 2;
+    int ifge01 = (is_ifge + 1) / 2;
+    int ifgt01 = (is_ifgt + 1) / 2;
+    int ifle01 = (is_ifle + 1) / 2;
     int bipush01 = (is_bipush + 1) / 2;
-    int branch01 = goto01 + ifeq01 + ifne01;
+    int branch01 = goto01 + ifeq01 + ifne01 + iflt01 + ifge01 + ifgt01 + ifle01;
     int adv = bipush01 + (branch01 * 2);             // extra operand bytes (1 / 2)
     int pc_seq = pc + 1 + adv;                        // sequential next-pc
     // Reconstruct the signed 16-bit big-endian offset from two unsigned bytes
@@ -150,7 +202,8 @@ function int step(scalar d) {
     int sign_bit = 1 - hi_pos;                                     // 1 iff negative offset
     int raw_off = (imm * 256) + imm_lo;                            // unsigned [0,65535]
     int offset16 = raw_off - (65536 * sign_bit);                  // signed [-32768,32767]
-    int take = goto01 + (ifeq01 * v_eq) + (ifne01 * (1 - v_eq));   // 0/1: branch taken
+    int take = goto01 + (ifeq01 * v_eq) + (ifne01 * (1 - v_eq))
+             + (iflt01 * v_lt) + (ifge01 * v_ge) + (ifgt01 * v_gt) + (ifle01 * v_le);
     int pc_branch = (take * (pc + offset16)) + ((1 - take) * pc_seq);
     int new_pc = (((1 + is_ireturn) * (pc)) + ((1 - is_ireturn) * (pc_branch))) / 2;
     ramWrite(0, new_pc);
