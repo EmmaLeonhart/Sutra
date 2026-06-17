@@ -21,9 +21,11 @@
 // recurrent step() calls (a genuine RNN/DNC); the only host readout is hard
 // address-decode to pick a RAM cell.
 //
-// RAM layout: [0]=pc  [1]=sp   function body bytecode at 10+ (one byte/cell)
-// operand stack 100+   locals at 200+idx   pre-resolved branch-target table at 400+
-// (cell 400+offset = 390+pc holds the absolute jump-target pc for that instruction).
+// RAM layout: [0]=pc  [1]=sp  [2]=fp(current frame base)  [3]=nloc(current frame's
+// local count)   function body bytecode at 10+ (one byte/cell)   pre-resolved
+// branch-target table at 400+ (cell 400+offset = 390+pc holds the absolute jump-target
+// pc).  FRAME ARENA at 600+: the current frame's locals at fp+idx, operand stack at
+// obase=fp+nloc (operand k at obase+k). (Single-frame programs: fp=600, nloc set at load.)
 // Opcodes (real WASM byte values, hex/decimal):
 //   0x41/65=i32.const(push next byte as signed single-byte LEB128; 2-byte instr)
 //   0x20/32=local.get  0x21/33=local.set  0x22/34=local.tee  (each + an unsigned
@@ -43,10 +45,17 @@
 function int step(scalar d) {
     int pc = ramRead(0);
     int sp = ramRead(1);
+    // FRAME-RELATIVE addressing (step 5a, toward call/recursion): the current frame's
+    // locals live at fp+idx and its operand stack at obase=fp+nloc (operand k at
+    // obase+k, top at obase+sp-1). fp/nloc are RAM state so a future `call` can switch
+    // frames. (Single-frame programs set fp=arena base, nloc=local count at load.)
+    int fp = ramRead(2);
+    int nloc = ramRead(3);
+    int obase = fp + nloc;
     int op = ramRead(pc);
     int imm = ramRead(pc + 1);
-    int top1 = ramRead(99 + sp);
-    int top2 = ramRead(98 + sp);
+    int top1 = ramRead(obase + sp - 1);
+    int top2 = ramRead(obase + sp - 2);
     // Real-axis unit vector (make_complex(1,0)). i32.const's opcode-following
     // constant must be materialized as leb_val*one so it lands on the real axis
     // ONLY — a bare scalar added to a zeroed blend term broadcasts across every
@@ -79,7 +88,7 @@ function int step(scalar d) {
     // i32.const `imm` is instead the signed LEB value, decoded below.) loc_cur is the
     // local's current value — used to PUSH it (local.get) and as the no-op write-back
     // base when the op is not local.set/tee.
-    int loc_cur = ramRead(200 + imm);
+    int loc_cur = ramRead(fp + imm);
     // Signed single-byte LEB128 decode for i32.const (value in [-64,63]): a byte
     // b<0x80 is complete; signed value = b - 128*sign, sign = (b>=64) = bit 6.
     // Detect via (2*b) < 127 == (b<=63): 2*b is even, 127 is odd, so they're never
@@ -101,17 +110,25 @@ function int step(scalar d) {
     int v_eqz = (truth_axis(defuzzy(top1 == 0)) + 1) / 2;
     // 100+sp (new top cell): i32.const pushes leb_val (as a real-axis vector); else
     // keep the cell.
-    int cell_hi = ramRead(100 + sp);
+    int cell_hi = ramRead(obase + sp);
     // local.get pushes the local's current value (already a real-axis vector from RAM).
     int hi_get = (((1 + is_get) * (loc_cur)) + ((1 - is_get) * (cell_hi))) / 2;
     int new_hi = (((1 + is_const) * (leb_val * one)) + ((1 - is_const) * (hi_get))) / 2;
-    ramWrite(100 + sp, new_hi);
+    ramWrite(obase + sp, new_hi);
     // Indexed local write (200+imm): local.set/tee write top1 there; any other op
     // writes the cell's existing value back (a no-op — safe even if imm aliases a
     // used local, since writing a cell's current value to itself changes nothing).
     int loc_set = (((1 + is_set) * (top1)) + ((1 - is_set) * (loc_cur))) / 2;
     int new_loc = (((1 + is_tee) * (top1)) + ((1 - is_tee) * (loc_set))) / 2;
-    ramWrite(200 + imm, new_loc);
+    // The local write must NOT bleed into the operand region: locals (fp+idx) and the
+    // operand stack (fp+nloc) are now ADJACENT, and `imm` is a garbage operand byte for
+    // non-local ops, so `fp+imm` could hit an in-use operand cell and clobber a push made
+    // this same step. Gate the WRITE address to a scratch cell (RAM 5) unless the op is
+    // actually local.set/local.tee (where `imm` is a small index < nloc, staying in the
+    // locals region). The read of `loc_cur` above is harmless (a read can't corrupt).
+    int set01 = ((is_set + 1) / 2) + ((is_tee + 1) / 2);
+    int loc_addr = (set01 * (fp + imm)) + ((1 - set01) * (5));
+    ramWrite(loc_addr, new_loc);
     // 98+sp (binary result): add/sub/mul write here; net sp -1 collapses the top so
     // the result lands at the new top (99+(sp-1) = 98+sp). Else keep top2.
     int v_add = top2 + top1;
@@ -130,10 +147,10 @@ function int step(scalar d) {
     int b_le = (((1 + is_le) * (v_le * one)) + ((1 - is_le) * (b_gt))) / 2;
     int b_ge = (((1 + is_ge) * (v_ge * one)) + ((1 - is_ge) * (b_le))) / 2;
     int new_lo = (((1 + is_add) * (v_add)) + ((1 - is_add) * (b_ge))) / 2;
-    ramWrite(98 + sp, new_lo);
-    // 99+sp (top, in place): i32.eqz replaces the top with (top == 0); else keep top1.
+    ramWrite(obase + sp - 2, new_lo);
+    // top cell (in place): i32.eqz replaces the top with (top == 0); else keep top1.
     int new_99 = (((1 + is_eqz) * (v_eqz * one)) + ((1 - is_eqz) * (top1))) / 2;
-    ramWrite(99 + sp, new_99);
+    ramWrite(obase + sp - 1, new_99);
     // sp: i32.const +1; local.get +1; local.set -1; local.tee keep; add/sub/mul -1;
     // end/return keep.
     int sp_binop = sp - 1;
@@ -180,6 +197,6 @@ function int step(scalar d) {
     int p_end = (((1 + is_end) * (pc_tgt)) + ((1 - is_end) * (p_br))) / 2;
     int new_pc = (((1 + is_return) * (pc)) + ((1 - is_return) * (p_end))) / 2;
     ramWrite(0, new_pc);
-    return ramRead(99 + sp);
+    return ramRead(obase + sp - 1);
 }
 function string main() { return "ok"; }
