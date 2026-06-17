@@ -65,13 +65,24 @@ the `_try_lower_foldable_nontail` transform present in all 8 functional frontend
 fixture each, verified 2026-06-17 to compile AND run == reference on the substrate (OCaml/Haskell/Rust
 sampled locally; all 9 gated by `transpilers-ci`). Remaining (the genuinely-new, harder tiers):
 
-- [ ] **(B / tier 3) Fixed-depth multiple recursion → compile-time pre-evaluation.** When depth is
-  statically known, unroll / partially-evaluate to straight-line code (referential transparency
-  makes compile-time evaluation safe; same machinery as loop unrolling). Cap with a max-depth
-  **compilation argument** (empirically-tested default, lives in the project `.toml`). Open problem
-  first: *when NOT to pre-evaluate* (binary size / startup / runtime flexibility) — unsolved, needs a
-  design pass before the policy. Verify: a fixed-depth multiple-recursion fixture pre-evaluates to a
-  constant and runs == reference.
+- [ ] **(B / tier 3) Fixed-depth multiple recursion → compile-time pre-evaluation.** SCOPED
+  2026-06-17 — `planning/exploratory/2026-06-17-phase5.5-tier3-preeval-scoping.md`. Investigation
+  found NO existing bounded-recursion pre-eval (simplify.py folds arithmetic; loop_desugar makes
+  loops; neither evaluates a recursive call to a constant) — so this is genuinely-new machinery: a
+  compile-time partial evaluator (host-side, pure — same category as the existing arithmetic
+  constant-folding, NOT runtime substrate execution) that, for a pure recursive call with
+  compile-time-literal controlling args and a provable depth bound ≤ `max_preeval_depth`, evaluates
+  it to a literal (memoized at compile time so it doesn't blow up). Sub-steps:
+  - [ ] **3a** — detector + compile-time evaluator behind an explicit OPT-IN flag (so no default-policy
+    decision is needed yet); verify a fixed-depth fixture (e.g. `fib(5)`) folds to its literal AND the
+    folded program runs == the un-folded reference on the substrate (the fold must not change output).
+  - [ ] **3b** — the `max_preeval_depth` `.toml` compilation argument + a finding measuring a sane
+    default (compile-time cost vs runtime savings); above-cap sites fall through to tier 4/5.
+  - [ ] **3c — ASK EMMA (AskUserQuestion):** the *when-NOT-to-pre-evaluate* default policy — Emma
+    flagged this UNSOLVED (binary-size / startup / runtime-flexibility tradeoff). Candidate policies
+    in the scoping doc (aggressive-to-cap / small-result-only / annotation-only / cost-model). This
+    blocks enabling AUTOMATIC pre-eval (not the opt-in mechanism). Drain via AskUserQuestion when 3a/3b
+    land — known-open problem Emma named, not a rotting deferred item.
 - [ ] **(C / tier 4) Dynamic multiple recursion (pure) → automatic memoization (stays native).**
   Memoize EVERYTHING by default (pure functions make caching always valid); the memo store is a
   **lazy lookup table / DAG**, NOT a stack, realized as recurrent-neuron state (fits the
