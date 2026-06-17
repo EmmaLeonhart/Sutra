@@ -37,6 +37,8 @@ implementation — when a shape is ambiguous, OCaml's is canonical.
 | Foldable non-tail recursion (`LEAF +\|* f(REC)`) | **CPS accumulator `while_loop` trampoline** | The pending call-stack work is reified as an accumulator carried by the loop; combine op must be associative+commutative (`+`/`*`). |
 | Imperative `while` / unbounded `loop { … break }` | substrate **`while_loop`** | State = the in-scope names the cond/body touch; only mutable locals are written back. A `loop { if C { break; } … }` lowers to `while !C { … }`. |
 | Enums / variants / ADTs / tuples / records / structs | **tagged or structural axon** | A constructor becomes a `{_tag, _val…}` axon; a record/struct becomes a positional/field axon (the structural-typing carrier). Field access is an `unbind`. |
+| Pattern destructuring (`let (a, b) = t`, `let {x=a}=p`, `let (Ctor x)=v`, `f({a,b})`, `def f(%{x:a})`, body `=` matches, `(let [{:keys [a b]}] …)`) | **axon field reads bound to locals** | Each bound name reads its positional/named axon field via `realvec(obj.item(k))` — the same projection field access uses. Covers tuple/record/struct/case-class/constructor/map patterns in `let`/`val`/parameter/body positions; the destructured value's param types as an axon. |
+| Multi-clause / multi-equation / guarded **pattern recursion** (`fac(0)→1; fac(N)→N·fac(N-1)`, `sum(0,A)→A; sum(N,A)→sum(N-1,A+N)`, `f n \| n==0 = … \| otherwise = … f(n-1)`) | synthesized `if`-form → **`while_loop` / CPS trampoline** | The base-match condition `(V == K)` is synthesized from the clause patterns (or read directly from a guard) and fed to the same tail/foldable recursion transforms; the base clause's vars are renamed by position to the recursive clause's params. Single- and multi-param accumulator forms supported (Erlang/Elixir/Haskell). |
 | Pipe operator (`\|>`), `where`/`let` local binds | inlined application / local bindings | Sugar that beta-reduces; no new substrate mechanism. |
 
 The recurring boundary caveat across every loop shape: **loop bounds must use strict
@@ -45,33 +47,41 @@ The recurring boundary caveat across every loop shape: **loop bounds must use st
 `2026-06-13-while-loop-le-boundary-equality-defuzz`). For Rust's `loop { … break }` this
 applies to the negated *break* condition (`if i >= n { break; }` negates to strict `i < n`).
 
-## Maturity (2026-06-15)
+## Maturity (2026-06-16)
 
-Nine frontends are active plus C (parked). Fixture counts are the substrate-verified
-compile-AND-run fixtures; they track breadth of covered shapes, not lines of code.
+Nine frontends are active plus C (parked). Fixture counts are the fixture directories,
+each lowered without `UNSUPPORTED` and (for the runnable subset) run on the real substrate
+against ground truth; they track breadth of covered shapes, not lines of code. The
+2026-06-16 sprint roughly doubled most frontends — adding the pattern-destructuring tier
+(tuple/record/struct/case-class/constructor/map patterns in `let`/`val`/parameter/body
+positions) and multi-clause / multi-equation / guarded pattern recursion.
 
 | Frontend | Fixtures | Furthest-along shapes beyond the core |
 |---|---|---|
 | OCaml (`sutra-from-ocaml`) | 45 | The reference frontend — records/variants→axons, options, tuples, modules. |
+| Elixir (`sutra-from-elixir`) | 20 | Tuple/map/struct-PATTERN params, do-block `=` destructure, single- + multi-param multi-clause recursion, `when` guards, pipe `\|>`. |
 | TypeScript (`sutra-from-ts`) | 19 | Yantra's downstream GUI gate; the most-exercised in practice. |
-| Rust (`sutra-from-rust`) | 10 | Enums→axons, structs→axons, imperative `while` + compound assignment, unbounded `loop { … break }`. |
-| Scala (`sutra-from-scala`) | 9 | Named roadmap complete (val bindings, if/else + literal `match` blends). |
-| Clojure (`sutra-from-clojure`) | 9 | `case` → nested equality blend. |
-| Elixir (`sutra-from-elixir`) | 9 | `when` guards (incl. `and`/`or` chains), pipe `\|>`, multi-clause dispatch. |
-| F# (`sutra-from-fsharp`) | 8 | Name-binding `match` patterns, parameter type annotations. |
-| Haskell (`sutra-from-haskell`) | 8 | `where`/`let` bindings (laziness out of scope). |
-| Erlang (`sutra-from-erlang`) | 6 | Multi-clause function heads grouped by (name, arity); guards. |
+| Clojure (`sutra-from-clojure`) | 18 | Vector + `{:keys […]}`/`{a :x}` map destructuring, `(nth v i)`/`first`/`second`, `case` → nested equality blend. |
+| Rust (`sutra-from-rust`) | 16 | Tuple + struct `let`-pattern destructuring, enums/structs→axons, imperative `while` + compound assignment, unbounded `loop { … break }`. |
+| F# (`sutra-from-fsharp`) | 16 | Tuple/record/DU `let`-pattern destructuring, name-binding `match` patterns, parameter type annotations. |
+| Haskell (`sutra-from-haskell`) | 16 | Tuple/constructor `let`-pattern destructuring, single- + multi-param multi-equation recursion, **guarded recursion** (laziness out of scope). |
+| Erlang (`sutra-from-erlang`) | 14 | Tuple/record-PATTERN params, body `=` match destructure, single- + multi-param multi-clause recursion, multi-clause heads + guards. |
+| Scala (`sutra-from-scala`) | 12 | Tuple + case-class `val`-pattern destructuring, val bindings, if/else + literal `match` blends, object-as-namespace dispatch. |
 | C (`sutra-from-c`) | 2 | **Parked** (2026-05-08) — earliest, behind TS as the Yantra gate. |
 
 ## What is deliberately out of scope per frontend
 
-Recursion outside the tail-accumulator and foldable-non-tail shapes surfaces as
-`UNSUPPORTED-RECURSION` rather than emitting a self-calling function that would not
-terminate through the fuzzy-if blend — this is a correctness guard, not a gap to paper
-over. Likewise, a source construct with no clean substrate meaning (e.g. an Elixir
-`is_integer/1` type-test guard, where the substrate has no runtime type tag) is left
-unsupported rather than faked with an always-true blend. Each frontend's README lists its
-own next-increment backlog.
+Recursion is supported wherever it reduces to the tail-accumulator or foldable-non-tail
+shape — directly via `if`/`cond`, or via the synthesized base-match condition for
+multi-clause / multi-equation / guarded pattern recursion (the BEAM/ML frontends). What
+remains `UNSUPPORTED-RECURSION` is recursion that does *not* reduce to those shapes:
+mutual recursion, non-foldable non-tail recursion, and (still) >2-way guarded or
+multi-clause recursion with more than one base discriminator. These surface the marker
+rather than emitting a self-calling function that would not terminate through the fuzzy-if
+blend — a correctness guard, not a gap to paper over. Likewise, a source construct with no
+clean substrate meaning (e.g. an Elixir `is_integer/1` type-test guard, where the substrate
+has no runtime type tag) is left unsupported rather than faked with an always-true blend.
+Each frontend's README lists its own next-increment backlog.
 
 ## Relationship to the rest of the spec
 
