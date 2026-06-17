@@ -51,9 +51,17 @@ verified == reference on the substrate):
   1/1/24/120`, n in local 0). Bytes were HAND-ASSEMBLED to the WASM spec encoding because
   `wat2wasm`/`wasm-tools` is absent here. Remaining: when a toolchain is available (CI), assemble the
   same `.wat` with real `wat2wasm` and assert the body bytes are byte-identical to `_WASM_FACT`.
-- [ ] **Step 5 — tree recursion via `call`.** `call`(0x10) + a call-frame stack in RAM so a
-  tree-recursive `fib` lowers to WASM and runs on the substrate machine (the stack lives in
-  RAM/DNC memory, not a host stack). This is the Phase-5.5-B enabler.
+- [ ] **Step 5 — tree recursion via `call` (SCOPED 2026-06-17, `planning/exploratory/2026-06-17-
+  phase5-wasm-call-frames-scoping.md`).** `call`(0x10) + a call-frame stack in RAM so a tree-recursive
+  `fib` lowers to WASM and runs on the substrate (stack in RAM/DNC memory). The Phase-5.5-B enabler.
+  NO JVM template — it's a machine REDESIGN to frame-relative addressing (frame pointer `fp`, locals
+  at `fp+idx`, operand stack at `fp+nloc`-relative, a control/return stack, a host-built function
+  table). Key simplification: args-in-place (callee locals 0..nargs-1 ALIAS the caller's top operands,
+  no copy loop). Sub-step ladder (each compile-AND-run, substrate-verified):
+  - [ ] **5a** — frame-relative refactor (no `call` yet): rewrite the fixed `100+sp`/`200+idx` reads
+    to `fp`-relative; re-verify ALL 34 existing tests pass unchanged. (The risky refactor, isolated.)
+  - [ ] **5b** — function table + non-recursive `call`/`return`: `main` calls a leaf `add(3,4)` → 7.
+  - [ ] **5c** — recursion: `fib(0..6)=0,1,1,2,3,5,8` on the substrate (the call stack in the RAM arena).
 - [ ] **Multi-byte LEB128** (deferred from step 1): when a fixture needs a constant/index > 127,
   decode continuation-byte LEB128 (operand length becomes data-dependent → affects pc advance).
 
