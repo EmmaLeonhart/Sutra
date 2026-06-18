@@ -11301,3 +11301,22 @@ the default dim 50 (the distinctive field-name keys `v`/`pos` avoid the
 `_1`/`_val0`-style cross-talk Haskell's mixed case hit), so no per-fixture dim
 bump. FULL Rust suite: **50 passed** (was 48). Rust nested-pattern destructure
 now covers tuple/struct + MIXED.
+
+## 2026-06-18 — sutra-from-scala: MIXED tuple/case-class nesting in `val` destructure (Phase 3)
+
+Scala frontend now lowers MIXED nested `val` patterns both ways:
+case-class-inside-tuple (`val (a, Box(v)) = t`) and tuple-inside-case-class
+(`val Outer(a, (x, y)) = o`). `_collect_scala_tuple_paths` and
+`_collect_caseclass_paths` previously recursed only into their own kind (and
+the case-class collector's `elems` filter EXCLUDED tuple elements, so an
+arity check rejected them); they now cross-call, and the filter admits
+`tuple_pattern` — the Scala analog of today's OCaml/F#/Haskell/Rust mixed-
+nesting work (this corrects last tick's mistaken claim that Scala's
+case-classes already subsumed MIXED nesting). Construction already built the
+nested axons. Both directions verified on the substrate: `caseclass_in_tuple`
+=**13**, `tuple_in_caseclass`=**16**; both clean at the default dim 50 because
+the 1-based `_1`/`_2` tuple keys appear at only ONE level (no cross-level key
+reuse — unlike the pure nested-tuple fixture, which needs dim 128). FULL Scala
+suite: **36 passed** (was 34). Scala nested-pattern destructure now covers
+tuple/case-class + MIXED. MIXED nesting is now drained across all five
+ML-family frontends (OCaml, F#, Haskell, Rust, Scala).

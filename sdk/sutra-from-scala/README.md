@@ -39,5 +39,7 @@ verified-running patterns as needs arise. (NESTED tuple destructure [at
 [`case Point(a, b) => …` → positional `realvec(scrut.item("x"))`] shipped 2026-06-17;
 NESTED case-class `val` patterns [`val Outer(Inner(a, b), c) = o` → an `Axon` temp per
 non-leaf prefix over declared field names] + a Bool `match { case true => …; case false
-=> … }` [`(b == true)`/`(b == false)`] shipped 2026-06-18; multi-variant case-class match
-needing `_tag` tests is a later item.)
+=> … }` [`(b == true)`/`(b == false)`] shipped 2026-06-18; MIXED tuple/case-class `val`
+nesting [`val (a, Box(v)) = t`, `val Outer(a, (x, y)) = o` — the tuple- and case-class-path
+collectors cross-call; clean at dim 50 since the `_1`/`_2` keys appear at one level only]
+shipped 2026-06-18; multi-variant case-class match needing `_tag` tests is a later item.)

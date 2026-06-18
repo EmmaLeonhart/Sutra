@@ -35,6 +35,8 @@ _RUNNABLE = {
     "caseclass_destructure": 13.0,  # case class Point(x,y); sum(p) = { val Point(a, b) = p; a + b }; main = sum(Point(5, 8))  (val-case-class-pattern -> realvec(item x/y) positionally)
     "caseclass_match": 13.0,  # case class Point(x,y); sum(p) = p match { case Point(a, b) => a + b }; main = sum(Point(5, 8))  (case-class MATCH pattern -> positional realvec(item x/y))
     "nested_caseclass_destructure": 16.0,  # case class Inner(x,y), Outer(inner,z); sum(o) = { val Outer(Inner(a, b), c) = o; a+b+c }; sum(Outer(Inner(5,8),3))  (NESTED case-class val pattern -> Axon temp for the inner prefix)
+    "caseclass_in_tuple": 13.0,  # case class Box(v); f(t: (Int,Box)) = { val (a, Box(v)) = t; a+v }; f((5, Box(8)))  (MIXED: case class nested in a tuple pattern; _collect_scala_tuple_paths cross-calls _collect_caseclass_paths. _1/_2 keys appear at ONE level only -> clean at dim 50, no cross-level reuse)
+    "tuple_in_caseclass": 16.0,  # case class Outer(a, pos: (Int,Int)); g(o) = { val Outer(a, (x, y)) = o; a+x+y }; g(Outer(5,(8,3)))  (MIXED: tuple nested in a case-class pattern; _collect_caseclass_paths cross-calls _collect_scala_tuple_paths. clean at dim 50)
     "tail_rec": 15.0,  # def sumTo(acc,n) = if (n==0) acc else sumTo(acc+n, n-1); sumTo(0,5)
     "match_guard": 60.0,  # case 0 => 100; case x if x > 0 => x*10; case _ => 300; classify(6)
     "nontail_fact": 120.0,  # def fact(n) = if (n==0) 1 else n * fact(n-1); fact(5)  (CPS fold)
