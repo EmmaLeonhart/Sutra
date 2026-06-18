@@ -92,10 +92,12 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
 - [ ] **F#** (`sutra-from-fsharp/`): ~~nested TUPLE + RECORD patterns (`let (a,(b,c))=t`,
   `let {inner={v}}=r`)~~ DONE 2026-06-17 (nested-axon construction via `_lower_field_value` hoist +
   an `Axon` temp per non-leaf prefix via shared `_emit_nested_reads` so reads dispatch as `axon_item`;
-  `nested_tuple_destructure`=16, `nested_record_destructure`=13 on the substrate); remaining: mixed
-  tuple-in-record / record-in-tuple nesting; nullary variant as a direct function RETURN
-  (`let f () = North`); record-update from a LET-BOUND (non-param) source (`let q = {b with …}`,
-  needs literal-type inference).
+  `nested_tuple_destructure`=16, `nested_record_destructure`=13 on the substrate). ~~Nullary variant
+  as a direct function RETURN (`let f () = North`)~~ DONE 2026-06-17 (body-is-a-DU-variant → return
+  type `Axon` + `{_tag}` axon; zero-arg call `f ()` drops the unit arg; `nullary_variant_return`=10
+  on the substrate). Remaining: mixed tuple-in-record / record-in-tuple nesting; variant in a blended
+  `if` branch (`if c then North else South`); record-update from a LET-BOUND (non-param) source
+  (`let q = {b with …}`, needs literal-type inference).
 - [ ] **Scala** (`sutra-from-scala/`): nested patterns; case-class pattern PARAMS (`def f(Point(x,y))`).
 - [ ] **Elixir** (`sutra-from-elixir/`): multi-clause/guarded bodies with `=` bindings; >2-clause
   recursion (2-clause base+rec only now); `is_integer`-style type-test guards.

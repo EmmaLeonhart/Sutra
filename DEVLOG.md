@@ -10629,3 +10629,22 @@ destructure path (`record_destructure`=13, `nested_record_destructure`=13, `tupl
 The tuple refactor onto `_emit_nested_reads` is behaviour-preserving (tuple fixtures unchanged).
 Remaining on the F# item: mixed tuple-in-record / record-in-tuple nesting; nullary-variant-return;
 let-bound record-update.
+
+## 2026-06-17 — F# frontend: function RETURNING a nullary variant `let f () = North` ships (runs == 10)
+
+Phase 6, F# item. A function whose body IS directly a DU variant now returns the tagged AXON, not
+the default int. In `lower.py`'s function emission: when `ret` is the default and the (paren-unwrapped)
+body is a nullary variant (`_nullary_variant_name`) or a DU application (`_variant_application`), the
+body is hoisted via `_hoist_construction_arg` (emits `Axon _ah0; _ah0.add("_tag", k);`) and the return
+type is set to `Axon`. Also fixed the zero-arg CALL `f ()`: the application lowering now drops a unit
+argument (`unit` / `const→unit` / empty `paren_expression`), so `getNorth ()` lowers to `getNorth()`
+(was `getNorth(UNSUPPORTED-EXPR: unit)`).
+
+Fixture `nullary_variant_return` (`let getNorth () = North; let code (d) = match d with North->10 |
+South->20; main = code (getNorth ())`) runs on the substrate == **10** (== ground truth — `getNorth()`
+builds `{_tag:0}`, `code` reads the tag). Verified: all 22 F# lower-only fixtures clean + the 4
+variant-related substrate fixtures (`nullary_variant`=20, `nullary_variant_return`=10, `union_axon`=48,
+`du_destructure`=13) pass (26 passed / 18 substrate-deselected for speed; CI runs all). A variant in a
+blended `if` branch (`if c then North else South`) remains a later item — that needs an axon-valued
+blend + return-type inference over both branches. Remaining on F#: that + mixed tuple/record nesting +
+let-bound record-update.
