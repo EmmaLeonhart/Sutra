@@ -374,6 +374,15 @@ def _lower_expr(node, src: bytes) -> str:
         if hname in ("fst", "snd") and len(args) == 1:
             field = "_0" if hname == "fst" else "_1"
             return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
+        # A zero-arg call `f ()` carries a unit argument — drop it so it lowers to the
+        # nullary call `f()` (matches the `let f () = …` zero-param definition).
+        def _is_unit_arg(a):
+            if a.type == "unit":
+                return True
+            if a.type == "const" and a.named_children and a.named_children[0].type == "unit":
+                return True
+            return a.type == "paren_expression" and not a.named_children
+        args = [a for a in args if not _is_unit_arg(a)]
         # A tuple/record/DU construction passed directly as an argument is hoisted to
         # a prelude temp (axon-build statements), then the temp name used here.
         arg_srcs = [(_hoist_construction_arg(a, src) or _lower_expr(a, src))
@@ -1152,7 +1161,19 @@ def _lower_defn(defn, src: bytes) -> str:
     for p in params:
         if param_ty.get(p) == "Axon":
             _AXON_VARS.add(p)
-    body_src = _lower_expr(body, src)
+    # A function whose body IS directly a DU variant (`let f () = North`, `let g () =
+    # Circle 4`) returns the `{_tag}` / tagged AXON, not the default int — hoist the
+    # construction to a prelude temp and set the return type to Axon. (A variant inside a
+    # blended `if` branch — `if c then North else South` — is a later item.)
+    _body_inner = (body.named_children[0]
+                   if body.type == "paren_expression" and body.named_children else body)
+    if ret == _DEFAULT_TYPE and (
+            _nullary_variant_name(_body_inner, src) is not None
+            or _variant_application(_body_inner, src) is not None):
+        body_src = _hoist_construction_arg(body, src)
+        ret = "Axon"
+    else:
+        body_src = _lower_expr(body, src)
     prelude_src = "".join(_PRELUDE)
     _PRELUDE.clear()
     _AXON_VARS.clear()
