@@ -10718,3 +10718,20 @@ Consequence noted in queue: the shipped F#/Rust nested fixtures pass at dim 50 o
 run all nested-axon fixtures at dim ≥ 128, or use distinct depth-prefixed nested keys — is pending (see
 the finding's options); not blocking. Scala suite: 26 passed (lower-only + `tuple_destructure`=13 at
 dim 50 + `nested_tuple_destructure`=16 at dim 128).
+
+## 2026-06-17 — finding: `while_loop` halt is single-condition only (>2-guard Haskell tail recursion blocked)
+
+Attempted to extend the Haskell frontend to >2-guard TAIL recursion (multiple non-recursive bases +
+one `otherwise`-recursive step). The natural lowering needs a compound continue condition
+`neg(c1) && neg(c2)`, but **the substrate `while_loop` halt honors only a SINGLE comparison** — a
+minimal `while_loop((i < 5) && (i != 3))` ran to i=5 (expected 3: the `i != 3` conjunct was ignored),
+and the 3-guard `f acc n | n<=0=acc | n==1=acc+100 | otherwise=f(acc+n)(n-1)` returned 6 not 105 for
+`f 0 3` (loop ran past n==1 to n==0). Consistent with the loop being an eigenrotation + single
+match/threshold test, not a boolean circuit.
+
+Per the integrity rules the multibase transform was **measured wrong and reverted** (Haskell stays at
+the existing 2-guard scope), and the limitation is recorded:
+`planning/findings/2026-06-17-while-loop-halt-is-single-condition-only.md`. >2-guard guarded tail
+recursion is blocked unless the base conditions algebraically merge to one comparison (`n<=0 || n==1`
+→ `n<=1`, case-specific). Queue Haskell item annotated BLOCKED with the finding + options (algebraic
+merge / derived single-flag halt / accept the limit). 2-guard guarded recursion is unaffected.

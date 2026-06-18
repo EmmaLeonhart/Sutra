@@ -118,10 +118,14 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
 - [ ] **Clojure** (`sutra-from-clojure/`): symbol map keys (needs symbol-as-value rep); maps/vectors
   in recursive bodies; nested destructuring (`[[a b] c]`); multi-arity `defn`; `case` symbol/keyword
   members (needs keyword-as-value rep).
-- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard guarded recursion; multi-equation guarded
-  recursion (`f 0 acc | …; f n acc | …`); mutually-recursive/forward `where`/`let`; nested/
-  non-variable constructor `case` patterns; nested tuple/constructor `let` patterns; `case` in
-  non-tail expression position. (Laziness out of scope.)
+- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard guarded recursion **— BLOCKED on the substrate
+  loop's single-condition halt** (finding `2026-06-17-while-loop-halt-is-single-condition-only.md`:
+  a compound `&&` continue condition is ignored past the first conjunct, so N base conditions can't
+  gate one loop unless they algebraically merge to one comparison; the multibase transform was
+  written, measured wrong [`f 0 3`→6 not 105], and reverted); multi-equation guarded recursion
+  (`f 0 acc | …; f n acc | …`); mutually-recursive/forward `where`/`let`; nested/non-variable
+  constructor `case` patterns; nested tuple/constructor `let` patterns; `case` in non-tail expression
+  position. (Laziness out of scope.)
 - [ ] **Rust** (`sutra-from-rust/`): nested match inside a tail-match arm; ~~nested tuple AND struct
   patterns (`let (a,(b,c))=t`, `let Outer { a, inner: Inner { v } } = o`)~~ DONE 2026-06-17
   (`_collect_rust_tuple_paths` / `_collect_rust_struct_paths` + shared `_emit_rust_nested_reads`: an
