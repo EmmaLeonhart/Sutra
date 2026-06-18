@@ -902,6 +902,103 @@ def _try_lower_guarded_recursion(name: str, typed_params, ret: str, matches, src
                                        then_e, else_e, src)
 
 
+def _try_lower_multibase_tail_recursion(name: str, typed_params, ret: str, matches, src: bytes):
+    """N >= 2 non-recursive base guards (each a SINGLE comparison) + one `otherwise`
+    guard whose result is a TAIL self-call:
+
+        f n acc | n <= 0 = acc | n == 1 = acc+100 | otherwise = f (n-1) (acc+n)
+
+    lowers to a `while_loop` whose continue is the `&&` of the NEGATED base
+    conditions — the substrate compound halt (§0.3, 2026-06-18, which made a
+    compound `&&`/`||` halt and equality halts actually fire); the body is the
+    recursive step; and the post-loop value is a nested defuzz-blend of the base
+    RHSs keyed by their conditions, evaluated on the FINAL loop state (at exit the
+    continue is false, so exactly one base condition holds). The 2-guard case
+    (one base + one `otherwise`) is the existing `_try_lower_guarded_recursion`;
+    this is the >2-guard generalisation. Scope (anything else → None, a later
+    item): single-comparison base guards (so each negates cleanly), the recursive
+    guard is `otherwise` and a TAIL call. Returns Sutra or None.
+
+    Caveat — base conditions should be CRISP at their boundary. Equality bases
+    (`n == 0`, `n == 1`) are crisp (§0.3 made `==`/`!=` halts crisp), and a strict
+    `<`/`>` away from its boundary is fine. A `<=`/`>=` base is correct in the
+    loop's *continue* (the tie rounds to halt via heaviside) but reads as a
+    half-blend in the *post-loop value* at its exact boundary — the pre-existing
+    `<=` boundary-fuzziness limitation (finding 2026-06-13-while-loop-le-boundary-
+    equality-defuzz), orthogonal to this transform. Use `==` for an exact base."""
+    if len(matches) <= 2:
+        return None  # 0/1 base is the existing 2-guard path
+    arity = len(typed_params)
+    bases: list = []   # (cond_inner_node, result_node) — explicit-condition bases
+    rec_result = None
+    for m in matches:
+        guards = next((c for c in m.named_children if c.type == "guards"), None)
+        if guards is None or not m.named_children:
+            return None
+        conds = [c for c in guards.named_children if c.type == "boolean"]
+        if len(conds) != 1 or not conds[0].named_children:
+            return None  # compound/zero guard — out of scope
+        inner = conds[0].named_children[0]
+        result = m.named_children[-1]
+        is_otherwise = inner.type == "variable" and _text(inner, src) == "otherwise"
+        has_rec = _contains_self_call(result, name, src)
+        if is_otherwise:
+            if not has_rec or rec_result is not None:
+                return None  # `otherwise` must be the single recursive step
+            rec_result = result
+        else:
+            if has_rec:
+                return None  # explicit-condition recursive guard — later item
+            bases.append((inner, result))
+    if rec_result is None or len(bases) < 2:
+        return None
+    rec_args = _self_call_args(rec_result, name, arity, src)
+    if rec_args is None:
+        return None  # non-tail `otherwise` — later item
+    # Continue condition: AND of the negated base conditions.
+    neg_terms: list = []
+    for cond_inner, _r in bases:
+        neg = _negate_cond(cond_inner, src)
+        if "UNSUPPORTED" in neg:
+            return None
+        neg_terms.append(f"({neg})")
+    cont = " && ".join(neg_terms)
+    # Post-loop value: nested blend of base RHSs keyed by their conditions on the
+    # final state, in source order. The last base is the bare `else` (at loop exit
+    # exactly one base condition holds, so if no earlier one matched the last does).
+    rendered: list = []
+    for cond_inner, result in bases:
+        csrc = _lower_expr(cond_inner, src)
+        rsrc = _lower_expr(result, src)
+        if "UNSUPPORTED" in csrc or "UNSUPPORTED" in rsrc:
+            return None
+        rendered.append((csrc, rsrc))
+    base_src = rendered[-1][1]
+    for csrc, rsrc in reversed(rendered[:-1]):
+        base_src = _blend(csrc, rsrc, base_src)
+    # Emit — the `_try_lower_tail_recursive` shape, multibase continue + base.
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in typed_params)
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
+                         for i, ((_nm, ty), arg) in enumerate(zip(typed_params, rec_args)))
+    assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(typed_params))
+    loop_decl = (f"while_loop {loop_name}({cont}, {state_decls}) "
+                 f"{{\n{temp_decls}{assigns}}}\n")
+    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in typed_params)
+    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in typed_params)
+    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in typed_params)
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in typed_params)
+    fn = (
+        f"function {ret} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_pattern_equations(name: str, decls, src: bytes) -> str:
     """Group same-name/arity equations (`classify 0 = …`, `classify 1 = …`,
     `classify n = …`) into ONE dispatching Sutra function — the Elixir multi-
@@ -1027,6 +1124,10 @@ def _lower_equation(decl, src: bytes) -> str:
                     name, list(zip(params, ptypes)), ret, matches, src)
                 if grec is not None:
                     return grec
+                mrec = _try_lower_multibase_tail_recursion(
+                    name, list(zip(params, ptypes)), ret, matches, src)
+                if mrec is not None:
+                    return mrec
             gbody = _lower_guards(matches, src)
             if gbody is None:
                 return f"// UNSUPPORTED-DECL: '{name}' has a guard shape not yet lowerable\n"

@@ -11522,3 +11522,24 @@ set was the one place missing them). Regression test tests/test_string_equality.
 No regression: compiler codegen/string/int_dict/vector 101 passed, TS frontend 46+1xfail.
 
 Also confirmed: queue §0.6 transpilers-CI GREEN — all of §0 (0.2–0.6) is complete and CI-verified.
+
+## 2026-06-18 — queue §4: Haskell >2-guard multibase TAIL recursion
+
+The first capability unblocked by §0.3's compound-halt fix. `_try_lower_guarded_recursion`
+was hard-scoped to exactly 2 guards (one base + one `otherwise`-recursive). Added
+`_try_lower_multibase_tail_recursion` for N>=2 single-comparison base guards + one `otherwise`
+tail-recursive guard:
+
+    f n acc | n == 0 = acc | n == 1 = acc+100 | otherwise = f (n-1) (acc+n)
+
+lowers to a while_loop whose continue is the `&&` of the negated base conditions (the substrate
+compound halt §0.3 made fire), body = the recursive step, post-loop value = a nested defuzz-blend
+of the base RHSs keyed by their conditions on the FINAL loop state. Fixture `multibase_tailsum`
+f 3 0 = 105, RUN on the substrate. Base-selection verified across cases (measured): f 0 5 → 5
+(n==0 base), f 1 9 → 109 (n==1 base), f 3 0 → 105, f 5 0 → 114.
+
+Found + documented (orthogonal, pre-existing): a `<=`/`>=` base reads as a half-blend in the
+POST-LOOP value at its exact boundary (the continue rounds the tie to halt via heaviside, but the
+blend reads raw fuzzy truth) — the known `<=` boundary limitation (finding 2026-06-13). Use `==`
+for an exact base; equality bases are crisp after §0.3. Full Haskell suite 50 passed (no
+regression). Elixir/Erlang port the same transform next (Haskell is the family reference).
