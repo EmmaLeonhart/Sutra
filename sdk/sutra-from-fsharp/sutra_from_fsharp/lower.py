@@ -329,6 +329,10 @@ def _lower_expr(node, src: bytes) -> str:
         inner = node.named_children[0] if node.named_children else None
         if inner is not None and inner.type in ("int", "float", "int32", "int64"):
             return _text(inner, src).rstrip("LlmMfF")
+        if inner is not None and inner.type == "bool":
+            # `true` / `false` → the Sutra `true`/`false` literal (a bool `match`
+            # arm then becomes `(b == true)` / `(b == false)`, the crisp literal shape).
+            return _text(inner, src)
         return f"/* UNSUPPORTED-CONST: {inner.type if inner else 'empty'} */"
     if t in ("identifier", "long_identifier", "long_identifier_or_op"):
         # Record field access `p.x` is a `long_identifier` with parts [p, x]; when the
