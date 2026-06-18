@@ -24,44 +24,47 @@ migrate `todo.md` → `queue.md` → deleted on completion.
 
 ---
 
-## 0. ASK EMMA FIRST — next session, before any other work
+## 0. Next work items — barrel in this sequence (Emma 2026-06-18: just do them)
 
-Drain these via **`AskUserQuestion`** (phone notification), **in this sequence**, at the
-START of the next session. They exist because the clean frontend work is now done (the
-nested + MIXED destructure ports across all 5 ML-family frontends — OCaml, F#, Haskell,
-Rust, Scala — are complete) and every remaining substantive step needs a decision only
-Emma can make. Do NOT guess and do NOT silently pick a phase — ask, then execute the
-answer. (These are ADDED here, not crossed off anything; the existing items below stay.)
+The clean nested + MIXED destructure ports across all 5 ML-family frontends (OCaml, F#,
+Haskell, Rust, Scala) are done. These are the next things to build — work them in order, do
+NOT ask Emma which to pick (her call: "all of those things are just the first things in the
+queue now"). Make the reasonable engineering choice where one is noted, build it on the
+substrate, measure, ship. Each: fixture-tested + RUN against ground truth; keep
+`transpilers-ci` green.
 
-- **0.1 — Overall next direction (the big fork).** Easy frontend wins are exhausted. What
-  is the priority order for the next cycles among: (a) **TS nested-interface support** —
-  Yantra's gate, highest user-value, but needs new frontend architecture (see 0.3); (b)
-  **pivot to the post-frontend phases** — thrml approaches → FV-expand (Phase 4) → WASM
-  follow-ups (§2/§6) → VM/bytecode targets; (c) **the end-of-queue doc audit** (Sutra is a
-  business — see "Doc audit" in Background)?
-- **0.2 — Nested-axon dim policy.** The cross-talk finding
-  (`2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`) means nested reads can
-  read WRONG at the default `runtime_dim` 50 when keys repeat across levels (measured:
-  Haskell `ctor_in_tuple` → 26 not 13 at dim 50; clean at ≥100). Two fixes: (a) run ALL
-  nested-axon fixtures at `runtime_dim ≥ 128`; (b) switch nested axons to **depth-prefixed
-  keys** so reads are clean at dim 50 — but that changes the axon KEY wire-format, and axons
-  are a serialization format (cross-program compatibility). Which? (Shipped fixtures are
-  measured-correct at their chosen dims, so this is robustness, not a live bug.)
-- **0.3 — TS nested member-access architecture.** To read `o.inner.v` on the TS frontend, it
-  needs a **hoist-prelude** mechanism it currently lacks (`_lower_expression` is pure
-  expr→str; chained `.item().item()` fails at runtime — measured). OK to add one modeled on
-  OCaml's `_hoist_aggregate_args_deep` (hoist nested member chains into `Axon` temps before
-  the return)? The construction side (recurse nested object literals) is uncontroversial; the
-  access-side hoist is the architectural bit, and TS is Yantra's regression-sensitive gate.
-- **0.4 — Design-gated frontend items** — confirm an approach for each, or defer to
-  `todo.md`: Erlang `div`/`rem` via complex rotation (NOT `Math.mod`); Clojure
-  symbol/keyword-as-value representation; Elixir `is_integer`-style type-test guards
-  (everything is a vector on the substrate — what does a type test even mean?).
-- **0.5 — The single-condition-halt blocker.** `while_loop` ignores a compound `&&` continue
-  condition past the first conjunct (finding
-  `2026-06-17-while-loop-halt-is-single-condition-only.md`), which blocks >2-clause /
-  multi-base native recursion in Haskell, Elixir, and Erlang. Fix the substrate loop to
-  support a compound halt, or accept these stay on the tier-5 WASM fallback?
+- [ ] **0.1 — TS nested-interface support** (Yantra's gate; highest user-value). Two parts:
+  (a) recurse nested object-literal construction (`{ a: 5, inner: { v: 8 } }` — currently
+  `UNSUPPORTED-EXPR: object` for the inner object); (b) read nested member access
+  (`o.inner.v`) via an `Axon`-temp **hoist-prelude** — TS's `_lower_expression` is pure
+  expr→str and chained `.item().item()` fails at runtime (measured), so add a hoist modeled
+  on OCaml's `_hoist_aggregate_args_deep` (lift nested member chains into `Axon` temps before
+  the return). TS is regression-sensitive — verify the full TS suite + `transpilers-ci` green.
+- [ ] **0.2 — Nested-axon read robustness** (cross-talk finding
+  `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`). Nested reads read WRONG at
+  the default `runtime_dim` 50 when keys repeat across levels (measured: Haskell
+  `ctor_in_tuple` → 26 not 13 at dim 50; clean at ≥100). Default approach: run ALL
+  nested-axon fixtures at `runtime_dim ≥ 128` (simple, no wire-format change). Stretch option
+  if it proves cleaner: depth-prefixed nested keys so reads are clean at dim 50 — but that
+  changes the axon KEY wire-format (axons are a serialization format), so only if it doesn't
+  break cross-program axon compatibility. Robustness, not a live bug (shipped fixtures are
+  measured-correct at their chosen dims).
+- [ ] **0.3 — Single-condition-halt blocker** (finding
+  `2026-06-17-while-loop-halt-is-single-condition-only.md`). `while_loop` ignores a compound
+  `&&` continue condition past the first conjunct, blocking >2-clause / multi-base native
+  recursion in Haskell, Elixir, Erlang. Fix the substrate loop to honor a compound halt
+  (then the multibase-recursion transforms land natively); if the substrate genuinely can't,
+  document the precise blocker and leave those on the tier-5 WASM fallback.
+- [ ] **0.4 — Erlang `div`/`rem`** via complex rotation (NOT `Math.mod` — landmine, finding
+  `2026-06-12-rotation-mod-vector-collapse-…`). `rem` maps to the existing `%`/`_VSA.fmod`
+  (as OCaml `mod` does — `modulo`=2); `div` (truncated integer division) via the existing
+  `stdlib/modulus.su` trunc machinery. Fixture + RUN on the substrate.
+- [ ] **0.5 — Clojure symbol/keyword-as-value rep** — unblocks symbol map keys + `case`
+  symbol/keyword members. Needs a representation for a bare symbol/keyword as a Sutra value
+  (likely a string-flag codepoint array, per the axon-IPC-payload model). Spec it, then build.
+- [ ] **0.6 — Elixir `is_integer`-style type-test guards** — everything is a vector on the
+  substrate, so define what a type test means here (e.g. a tag/axis check) before building, or
+  defer to `todo.md` with the reason recorded. Spec-first.
 
 ---
 
@@ -114,158 +117,34 @@ actionable here this session — irregular needs substrate-perf root-causing, no
   / `eval` / FFI recursion — NOT for the DP family (which is native).
   (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes the fib-family native.)
 
-## 4. Phase 6 — transpiler long-tail (LAST of the active phases)
+## 4. Phase 6 — transpiler long-tail (after §0)
 
-Per-frontend remaining edge cases. Each: fixture-tested + RUN on the substrate against ground
-truth. New frontends model on `sutra-from-ocaml` (the reference). `transpilers-ci.yml` runs all 9
-frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
+Per-frontend remaining OPEN edge cases (completed items are deleted, not crossed off — see
+CLAUDE.md). Each: fixture-tested + RUN on the substrate against ground truth; model on
+`sutra-from-ocaml` (the reference); keep `transpilers-ci.yml` green. The nested + MIXED
+destructure sweep is complete for all 5 ML-family frontends; what's left:
 
-- [ ] **F#** (`sutra-from-fsharp/`): ~~nested TUPLE + RECORD patterns (`let (a,(b,c))=t`,
-  `let {inner={v}}=r`)~~ DONE 2026-06-17 (nested-axon construction via `_lower_field_value` hoist +
-  an `Axon` temp per non-leaf prefix via shared `_emit_nested_reads` so reads dispatch as `axon_item`;
-  `nested_tuple_destructure`=16, `nested_record_destructure`=13 on the substrate). ~~Nullary variant
-  as a direct function RETURN (`let f () = North`)~~ DONE 2026-06-17 (body-is-a-DU-variant → return
-  type `Axon` + `{_tag}` axon; zero-arg call `f ()` drops the unit arg; `nullary_variant_return`=10
-  on the substrate). ~~Record-update from a LET-BOUND (non-param) source (`let q = {b with …}`)~~
-  DONE 2026-06-17 (`_infer_record_type` recovers the type from the literal's field set; a let-bound
-  record registers into `_PARAM_RECORD_TYPE`; `record_update_let`=17 on the substrate). ~~Variant in
-  a blended `if` branch (`if c then North else South`)~~ DONE 2026-06-17 (branches hoist to `{_tag}`
-  axon temps via `_lower_field_value`; the blend cleanly selects the matched axon at `f=±1`; ret→Axon
-  via `_if_returns_variant`; `variant_if_branch`=10 [North]/20 [South] on the substrate). ~~Mixed
-  tuple-in-record / record-in-tuple nesting~~ DONE 2026-06-18 (a shared `_collect_element_paths`
-  dispatcher lets the tuple- and record-path collectors cross-call; `record_in_tuple`=16,
-  `tuple_in_record`=16 on the substrate); ~~NESTED DU-`let` patterns (`let (Wrap { v = vv }) = w`)~~
-  DONE 2026-06-18 (construction already recursed; `_du_pattern_binding` now returns `_val{i}` path keys
-  via `_collect_element_paths` so a record/tuple payload descends through `_emit_nested_reads`;
-  `nested_du_destructure`=13 on the substrate, flat `du_destructure` unregressed). **F# item fully
-  drained** — only general breadth remains.
-- [ ] **Scala** (`sutra-from-scala/`): ~~nested tuple patterns (`val (a,(b,c))=t`)~~ DONE 2026-06-17
-  (`_collect_scala_tuple_paths` + shared `_emit_scala_nested_reads`, 1-based keys; `nested_tuple_destructure`=16
-  but ONLY at `runtime_dim ≥ 100` — Scala's `_1`/`_2` keys cross-talk at the default dim 50, finding
-  `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`; the harness now runs it at dim 128 via a
-  per-fixture `(expected, dim)` value); ~~case-class MATCH patterns (`case Point(a, b) => …`)~~ DONE
-  2026-06-17 (irrefutable positional destructure to declared fields via `realvec(scrut.item("x"))`,
-  mirroring the `val Point(a,b)=p` path; `caseclass_match`=13 on the substrate; multi-VARIANT
-  case-class match needing `_tag` tests is a later item); ~~nested case-class patterns
-  (`val Outer(Inner(a, b), c) = o`)~~ DONE 2026-06-18 (`_collect_caseclass_paths` recurses into nested
-  case_class_pattern elements over declared field names + shared `_emit_scala_nested_reads`;
-  `nested_caseclass_destructure`=16 on the substrate — distinct field keys clean at dim 50); ~~MIXED
-  tuple/case-class nesting (`val (a, Box(v)) = t`, `val Outer(a, (x, y)) = o`)~~ DONE 2026-06-18
-  (`_collect_scala_tuple_paths` and `_collect_caseclass_paths` now cross-call so a case class nests in
-  a tuple and vice-versa; `caseclass_in_tuple`=13, `tuple_in_caseclass`=16 on the substrate — the
-  `_1`/`_2` keys appear at only one level so no cross-level reuse, clean at dim 50). **Scala item
-  drained** — only general breadth remains.
-  - [ ] **(cross-cutting) nested-axon cross-talk** — F#/Rust nested fixtures pass at the default dim 50 by
-    luck of their `_0`/`_1`/field-name keys; for robustness consider running ALL nested-axon fixtures at
-    `runtime_dim ≥ 128`, or use distinct depth-prefixed nested keys. Decision pending (see the finding's
-    options). Not blocking — shipped fixtures are measured-correct + CI-green.
-- [ ] **Elixir** (`sutra-from-elixir/`): ~~multi-clause/guarded bodies with `=` bindings~~ DONE
-  2026-06-17 (`_lower_def_clauses` now threads each clause's leading `=` destructure bindings via
-  `_apply_match_binding`, typing the destructured param `Axon`; `multiclause_bind_body`=13 on the
-  substrate); ~~string-key arrow-map (`%{"x" => a}`) PATTERN params~~ DONE 2026-06-18 (reuse
-  `_map_fields`, which already handles both atom-shorthand and string-key arrow forms, + an
-  identifier-local check; `string_map_param`=13 on the substrate); >2-clause recursion with multiple
-  LITERAL bases (hits the single-condition-halt blocker, finding
-  `2026-06-17-while-loop-halt-is-single-condition-only.md`); `is_integer`-style type-test guards
-  (dubious on the substrate — everything is a vector; needs a design call).
-- [ ] **Erlang** (`sutra-from-erlang/`): ~~map PATTERN params (`#{x := X}` in a head)~~ DONE 2026-06-17
-  (`map_expr` param case: each `map_field` binds its `var` to `realvec(_ai.item("key"))`, the
-  `maps:get` projection; `map_param`=13 on the substrate); ~~multi-clause bodies with `=` bindings~~
-  DONE 2026-06-17 (the clause dispatch threads each clause's leading `=` destructure bindings via
-  `_apply_match_binding`, typing the destructured param `Axon`; `multiclause_bind_body`=13 on the
-  substrate); >2-clause recursion (NOTE: multi-literal-base >2-clause recursion hits the
-  single-condition-halt blocker, finding `2026-06-17-while-loop-halt-is-single-condition-only.md`);
-  list comprehensions; `div`/`rem` via complex rotation (NOT `Math.mod`).
-- [ ] **Clojure** (`sutra-from-clojure/`): symbol map keys (needs symbol-as-value rep); maps/vectors
-  in recursive bodies; ~~nested destructuring (`[[a b] c]`)~~ DONE 2026-06-17 (`_collect_clj_vec_paths`
-  + a `_DESTRUCTURE_PRELUDE` accumulator for the `Axon` temps [Clojure's let is substitution-only, so
-  the temps go in a function-level prelude]; vector-destructured params typed `Axon`;
-  `nested_vec_destructure`=16 on the substrate — `_0`/`_1` keys clean at dim 50); ~~multi-arity `defn`~~
-  DONE 2026-06-18 (a prepass registers multi-arity names in `_MULTI_ARITY`; each arity emits a mangled
-  `name__{arity}` function; call sites dispatch by arg count; same-arity self-recursion in a clause
-  surfaces UNSUPPORTED; `multi_arity`=17 on the substrate); `case` symbol/keyword members (needs
-  keyword-as-value rep).
-- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard guarded recursion **— BLOCKED on the substrate
-  loop's single-condition halt** (finding `2026-06-17-while-loop-halt-is-single-condition-only.md`:
-  a compound `&&` continue condition is ignored past the first conjunct, so N base conditions can't
-  gate one loop unless they algebraically merge to one comparison; the multibase transform was
-  written, measured wrong [`f 0 3`→6 not 105], and reverted); multi-equation guarded recursion
-  (`f 0 acc | …; f n acc | …`); mutually-recursive/forward `where`/`let`; nested/non-variable
-  ~~nested constructor `case` patterns (`Outer (Inner a b) c -> …`)~~ DONE 2026-06-18 (the apply-arm
-  in `_lower_case_stmts` reads nested payloads via `_collect_hs_ctor_paths` + an `Axon` temp per
-  non-leaf prefix in the case prelude, outer tag test; `nested_ctor_case`=16 on the substrate, flat
-  variant case unregressed); ~~nested tuple `let` patterns (`let (a, (b, c)) = t`)~~ DONE 2026-06-18
-  (`_collect_hs_tuple_paths` + a `_DESTRUCTURE_PRELUDE` accumulator for the `Axon` temps [the let bind
-  is substitution-only]; `nested_tuple_let`=16 on the substrate — `_0`/`_1` keys clean at dim 50);
-  ~~nested CONSTRUCTOR `let` patterns (`let (Outer (Inner a b) c) = w`)~~ DONE 2026-06-18
-  (`_collect_hs_ctor_paths` + shared `_emit_hs_nested_reads`; `nested_ctor_let`=16 on the substrate —
-  `_val0`/`_val1` keys MEASURED clean at dim 50); ~~MIXED tuple/ctor `let` nesting (`let (a, Box b) = t`,
-  `let (Wrap (a, b)) = w`)~~ DONE 2026-06-18 (`_collect_hs_tuple_paths` and `_collect_hs_ctor_paths`
-  now cross-call so a ctor nests in a tuple and vice-versa; `tuple_in_ctor`=13 clean at dim 50,
-  `ctor_in_tuple`=13 — the `_1`/`_val0` key mix CROSS-TALKS to 26 at dim 50, clean at dim≥100 [finding
-  `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`], so its fixture runs at dim 128 via
-  the harness's new `(expected, dim)` spec tuple); ~~`case` in non-tail expression
-  position~~ DONE 2026-06-17 for LITERAL cases (`_lower_expr` reuses `_lower_case_stmts`: a literal
-  case has no `int _vtag` prelude so it inlines as a nested blend; `case_nontail`=101 on the substrate;
-  a VARIANT case in expression position still needs an int-local an expression can't emit → later item).
-  **Bool literal case `case b of True -> … | False -> …`** DONE 2026-06-18 (`(b == true)`/`(b == false)`
-  blend, `True`/`False` values → `true`/`false`; `bool_case`=10 on the substrate). (Laziness out of scope.)
-- [ ] **Rust** (`sutra-from-rust/`): ~~nested match inside a tail-match arm~~ DONE 2026-06-18 for a
-  LITERAL inner match (`_lower_match_stmts` gains integer-literal patterns + only emits the `_vtag`
-  prelude for VARIANT matches, so a literal match has no prelude and `_lower_expr` inlines it as a
-  blend; `nested_match_tail_arm`=5 on the substrate; a VARIANT inner match still needs int-locals an
-  expression can't emit → later item); ~~nested tuple AND struct
-  patterns (`let (a,(b,c))=t`, `let Outer { a, inner: Inner { v } } = o`)~~ DONE 2026-06-17
-  (`_collect_rust_tuple_paths` / `_collect_rust_struct_paths` + shared `_emit_rust_nested_reads`: an
-  `Axon` temp per non-leaf prefix so reads dispatch as `axon_item`; `nested_tuple_destructure`=16,
-  `nested_struct_destructure`=13 on the substrate); ~~MIXED tuple/struct nesting (`let (a, Inner { v }) = t`,
-  `let Outer { a, pos: (x, y) } = o`)~~ DONE 2026-06-18 (`_collect_rust_tuple_paths` and
-  `_collect_rust_struct_paths` now cross-call so a struct nests in a tuple and vice-versa;
-  `struct_in_tuple`=13, `tuple_in_struct`=16 on the substrate — distinctive field-name keys clean at
-  dim 50, no per-fixture dim bump needed); ~~enum `if let` destructuring
-  (`if let E::V(x) = s { … } else { … }`)~~ DONE 2026-06-17 (function-tail form: `int _vtag =
-  realvec(s.item("_tag"))` for a CRISP tag test [inline `realvec(...)==0` defuzzes to 50/50 at tag 0
-  — measured 6.5 not 13; the int-local round-trip fixes it] + `_val{i}` payload binds in the THEN arm;
-  `if_let_enum`=13 [Circle] / 0 [Square] on the substrate; NESTED if-let surfaces UNSUPPORTED — needs
-  an int-local an expression can't emit). (Loop bounds need strict `<`/`>`; `<=` drops the boundary
-  iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
-- [ ] **OCaml** (`sutra-from-ocaml/`, the reference frontend): ~~flat tuple-`let` destructure
-  (`let (a, b) = t in …`)~~ DONE 2026-06-18 (the `let_expression` body lowering substitutes each element
-  to `realvec(t.item("_i"))` and pops after the body; the binder parses as `parenthesized_pattern →
-  tuple_pattern`; `tuple_destructure`=13 on the substrate, full 133-test suite green); ~~record-`let`
-  destructure (`let { x; y } = p in …`, punned + renamed)~~ DONE 2026-06-18 (`_ocaml_record_let` +
-  same substitute-and-pop; `record_destructure`=13 on the substrate); ~~variant-`let` destructure
-  (`let (Box x) = b`, `let (Wrap (a, b)) = w`)~~ DONE 2026-06-18 (`_ocaml_variant_let`: single payload →
-  `_val`, tuple payload → `_val0`/`_val1` matching the construction convention; `du_destructure`=13 on
-  the substrate); ~~NESTED tuple-`let` patterns (`let (a, (b, c)) = t`)~~ DONE 2026-06-18
-  (`_emit_tuple_construction` recurses to build nested-tuple axons via `_aggregate_arg_emitter`;
-  `_ocaml_tuple_paths` flattens the nested pattern + an `Axon` temp per non-leaf prefix in the let-in
-  `out`; `nested_tuple_destructure`=16 on the substrate); ~~NESTED record-`let` patterns
-  (`let { a; inr = { v } } = o`)~~ DONE 2026-06-18 (`_emit_record_construction` recurses for nested
-  aggregate field values; `_ocaml_record_paths` flattens the nested record/tuple pattern into
-  field-name path keys; the tuple- and record-let branches now share one `_emit_nested_subst` helper
-  that emits an `Axon` temp per non-leaf prefix; `nested_record_destructure`=13 on the substrate);
-  ~~NESTED variant-`let` patterns (`let (Wrap { v }) = w`)~~ DONE 2026-06-18 (`_emit_variant_construction`
-  recurses for an aggregate payload via `_aggregate_arg_emitter`; `_ocaml_variant_let` returns
-  `_val`/`_val{i}` path keys and descends a record/tuple payload via `_ocaml_record_paths`/
-  `_ocaml_tuple_paths`; the variant-let branch joins the shared `_emit_nested_subst` helper;
-  `nested_variant_destructure`=13 on the substrate, all flat-variant fixtures unregressed).
-  ~~MIXED tuple/record nesting (`let (a, { x; y }) = t`, `let { pos = (x, y) } = r`)~~ DONE 2026-06-18
-  (`_ocaml_tuple_paths` now cross-calls `_ocaml_record_paths` on a record element, the reverse direction
-  already worked, so tuple- and record-patterns mix both ways; `record_in_tuple`=16, `tuple_in_record`=16
-  on the substrate). Remaining: **aggregate payload in an `option`/variant MATCH arm**
-  (`match s with Some { x; y } -> x + y | None -> 0` — the option-match codegen binds the payload as a
+- [ ] **F# / Scala** — nested/mixed destructure fully drained; only general breadth remains
+  (closures, generics, traits/instance classes, String ops), modelled on OCaml as needs arise.
+- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard / multi-equation guarded recursion (BLOCKED on
+  the single-condition-halt blocker, §0.3); mutually-recursive / forward `where`/`let`; a VARIANT
+  `case` in expression position (needs an int-local an expression can't emit). Laziness out of scope.
+- [ ] **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (needs an int-local
+  an expression can't emit). (Loop bounds must use strict `<`/`>`; `<=` drops the boundary iteration
+  — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
+- [ ] **Elixir / Erlang** — >2-clause / multi-literal-base recursion (BLOCKED on §0.3); Erlang list
+  comprehensions. (Erlang `div`/`rem` is §0.4; Elixir `is_integer` guards is §0.6.)
+- [ ] **Clojure** — maps/vectors in recursive bodies. (Symbol/keyword-as-value rep is §0.5.)
+- [ ] **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH**
+  arm (`match s with Some { x; y } -> … | None -> …` — the option-match codegen binds the payload as a
   SCALAR `int _oval = realvec(s.item("_val"))`, so a record/tuple payload's fields are unbound and
-  `Some { record }` construction surfaces UNSUPPORTED; measured 2026-06-18. Needs the option/variant
-  MATCH path to descend an aggregate payload the way the variant-`let` path now does — a non-trivial
-  rework of the scalar-payload assumption, NOT a clean cross-call); **scalable RAM device for the 10MB
-  linear memory** (`Bytes.make` / loop-carried arrays use the global RAM list, which doesn't scale to
-  10MB); non-zero `Array.make` fill for int-dict arrays (slots start at 0 — documented limit, not a
-  bug). **OCaml nested-pattern destructure fully drained for `let` bindings** (tuple/record/variant +
-  MIXED, flat + nested); the MATCH-arm aggregate payload above is the one nested gap left, plus the
-  RAM/array-fill items + general breadth.
+  `Some { record }` construction is UNSUPPORTED; measured 2026-06-18; needs the MATCH path to descend
+  an aggregate payload like the variant-`let` path now does — a non-trivial rework, not a clean
+  cross-call); scalable RAM device for the 10MB linear memory (`Bytes.make` / loop-carried arrays use
+  the global RAM list, which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented
+  limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
-  when two interfaces share a field name with different types.
+  when two interfaces share a field name with different types. (Nested-interface support is §0.1.)
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
   distinct from the §2 wasm_core VM).
 

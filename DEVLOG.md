@@ -11372,3 +11372,20 @@ gated on the §0 ASK-EMMA decisions (staged), and the post-frontend phases are
 blocked locally (clang/wat2wasm absent → WASM builds; thrml mapping is an open
 question; FV §7 is a spectral-gap proof not to be faked). Not re-asking the §0
 fork this tick — Emma just saw it and asked for it at the START of next session.
+
+## 2026-06-18 — CLAUDE.md "remove-as-done is SAFE" rule + queue reframe/de-bloat (Emma)
+
+Emma corrected my terminology error: "crossing items off" = leaving struck-through/DONE
+markers in queue.md = the UNSAFE bloat; REMOVING completed items entirely as they ship =
+SAFE (git log is the safety net). Three changes:
+- CLAUDE.md: added a ⭐VERY IMPORTANT rule in the queue section — delete finished items from
+  queue.md in the same commit that ships them; never leave crossed-off/DONE markers.
+- queue.md §0: reframed the "ASK EMMA FIRST" block into "Next work items — barrel in this
+  sequence." Per Emma ("all of those things are just the first things in the queue now"), the
+  staged decisions are now WORK items to build, not questions to ask: 0.1 TS nested-interface
+  support, 0.2 nested-axon read robustness (default: dim≥128), 0.3 single-condition-halt fix,
+  0.4 Erlang div/rem, 0.5 Clojure symbol/keyword-as-value rep, 0.6 Elixir is_integer guards.
+- queue.md §4: de-bloated the transpiler long-tail — removed ~188 lines of `~~DONE~~`
+  strikethrough completed sub-items, keeping only the OPEN per-frontend work.
+Also corrected the `crossing-items-off-is-unsafe` memory (I'd recorded the interpretation
+backwards). No code change this tick; queue/docs only.
