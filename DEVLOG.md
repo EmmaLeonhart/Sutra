@@ -11487,3 +11487,25 @@ RUN on the substrate == ground truth. Full Clojure suite 42 passed (no regressio
 Noted separately (not fixed): `_SYNTHETIC_AXIS_TYPES` has lowercase `"string"`/`"char"` but
 the class types are `String`/`Character`, so a hand-written `String x` equality falls to
 cosine. The Clojure path sidesteps it (params are `number`). Follow-up candidate.
+
+## 2026-06-18 — queue §0.6: Elixir type-test guards — measured, partly deferred
+
+"What does a type test mean on a substrate where everything is a vector?" Measured + spec'd
+in planning/findings/2026-06-18-substrate-type-tests.md.
+
+Decisive negative result: `is_integer` vs `is_float` is FUNDAMENTALLY UNREPRESENTABLE — int
+N and float N are the bit-identical real-axis vector (measured ||make_real(2) −
+make_real(2.0)|| = 0), so no axis check separates them. Representing them needs a new
+int/float tag in Sutra's CORE number encoding (an Emma-level design decision). Deferred to
+todo.md with that reason; NOT faked as is_number (which would wrongly pass is_integer(2.5)).
+
+The tag-checkable guards (is_binary/is_atom via AXIS_STRING_FLAG, is_list/is_map/is_tuple via
+AXIS_AXON_POPULATED, is_number, is_boolean) ARE representable but not built this session — they
+need substrate truth-returning predicates, and is_binary additionally needs Elixir string-
+literal-arg lowering (itself UNSUPPORTED). Recorded as ready-to-build future work (build recipe
+in the findings doc + todo.md).
+
+Shipped honesty change: the Elixir frontend no longer emits a call to a nonexistent `is_*`
+runtime function (silently broken, looked like it might work). A type-test guard now produces a
+clear UNSUPPORTED-GUARD marker (→ UNSUPPORTED-DEF), grep-able, via `_TYPE_TEST_GUARDS`. Elixir
+suite 48 passed (no regression).

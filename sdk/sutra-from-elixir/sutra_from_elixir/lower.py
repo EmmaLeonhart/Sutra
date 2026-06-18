@@ -190,6 +190,33 @@ def _lower_pipe(left, right, src: bytes) -> str:
     return "/* UNSUPPORTED-PIPE: target is not a call */"
 
 
+# Elixir type-test guard predicates → why they are not lowered (queue §0.6;
+# measured in planning/findings/2026-06-18-substrate-type-tests.md). Two classes:
+# UNREPRESENTABLE (int and float are the identical real-axis vector, so no axis
+# check separates them) and tag-checkable-but-not-yet-built (a clean substrate
+# truth-predicate over an existing axis flag — future work).
+_TYPE_TEST_GUARDS = {
+    "is_integer": "unrepresentable: int N and float N are the bit-identical "
+                  "real-axis vector on the substrate (measured); no axis check "
+                  "separates is_integer from is_float. Needs a core int/float tag.",
+    "is_float": "unrepresentable: see is_integer (int and float share the "
+                "identical substrate vector).",
+    "is_number": "tag-checkable (NOT string-flag, NOT axon-populated) but not "
+                 "yet built — needs a substrate truth-returning predicate.",
+    "is_binary": "tag-checkable (AXIS_STRING_FLAG) but not yet built — needs a "
+                 "substrate truth-predicate AND Elixir string-literal-arg lowering.",
+    "is_bitstring": "tag-checkable (AXIS_STRING_FLAG) but not yet built.",
+    "is_atom": "tag-checkable (atoms lower to string-flag codepoint arrays) but "
+               "not yet built; booleans-as-atoms make the boundary subtle.",
+    "is_boolean": "tag-checkable (AXIS_TRUTH-only value) but not yet built.",
+    "is_list": "tag-checkable (AXIS_AXON_POPULATED) but not yet built.",
+    "is_map": "tag-checkable (AXIS_AXON_POPULATED) but not yet built.",
+    "is_tuple": "tag-checkable (AXIS_AXON_POPULATED) but not yet built.",
+    "is_nil": "no substrate notion of nil yet.",
+    "is_function": "no substrate notion of a first-class function value yet.",
+}
+
+
 def _call_kw(node, src: bytes) -> Optional[str]:
     """The keyword identifier of a `call` node (`def`, `defmodule`, `if`, …),
     or None when the call is an ordinary function application."""
@@ -517,6 +544,21 @@ def _lower_expr(node, src: bytes) -> str:
             if kw == "elem" and len(arg_nodes) == 2 and arg_nodes[1].type == "integer":
                 idx = _text(arg_nodes[1], src).strip()
                 return f'realvec({_lower_expr(arg_nodes[0], src)}.item("_{idx}"))'
+            # Type-test guards (`is_integer(n)`, `is_binary(s)`, …). On a substrate
+            # where every value is a vector, a type test means an axis/tag check —
+            # but `is_integer` vs `is_float` is FUNDAMENTALLY UNREPRESENTABLE: int 2
+            # and float 2.0 are the bit-identical real-axis vector (measured
+            # ||diff||=0), so no check can separate them. The tag-checkable ones
+            # (is_binary/is_atom via AXIS_STRING_FLAG, is_list/is_map/is_tuple via
+            # AXIS_AXON_POPULATED, is_boolean via AXIS_TRUTH, is_number via none of
+            # those) ARE representable but not yet built (they need a substrate
+            # truth-returning predicate, and is_binary additionally needs Elixir
+            # string-literal-arg lowering). Emit an honest UNSUPPORTED-GUARD marker
+            # rather than a call to a nonexistent `is_*` runtime function. See
+            # planning/findings/2026-06-18-substrate-type-tests.md. (queue §0.6)
+            if kw in _TYPE_TEST_GUARDS:
+                reason = _TYPE_TEST_GUARDS[kw]
+                return f"/* UNSUPPORTED-GUARD: {kw} — {reason} */"
             # Ordinary application `f(a, b)`.
             arg_srcs = [_lower_expr(a, src) for a in arg_nodes]
             return f"{kw}({', '.join(arg_srcs)})"
