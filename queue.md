@@ -132,8 +132,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   in recursive bodies; ~~nested destructuring (`[[a b] c]`)~~ DONE 2026-06-17 (`_collect_clj_vec_paths`
   + a `_DESTRUCTURE_PRELUDE` accumulator for the `Axon` temps [Clojure's let is substitution-only, so
   the temps go in a function-level prelude]; vector-destructured params typed `Axon`;
-  `nested_vec_destructure`=16 on the substrate — `_0`/`_1` keys clean at dim 50); multi-arity `defn`
-  (needs call-site arity rewriting); `case` symbol/keyword members (needs keyword-as-value rep).
+  `nested_vec_destructure`=16 on the substrate — `_0`/`_1` keys clean at dim 50); ~~multi-arity `defn`~~
+  DONE 2026-06-18 (a prepass registers multi-arity names in `_MULTI_ARITY`; each arity emits a mangled
+  `name__{arity}` function; call sites dispatch by arg count; same-arity self-recursion in a clause
+  surfaces UNSUPPORTED; `multi_arity`=17 on the substrate); `case` symbol/keyword members (needs
+  keyword-as-value rep).
 - [ ] **Haskell** (`sutra-from-haskell/`): >2-guard guarded recursion **— BLOCKED on the substrate
   loop's single-condition halt** (finding `2026-06-17-while-loop-halt-is-single-condition-only.md`:
   a compound `&&` continue condition is ignored past the first conjunct, so N base conditions can't
