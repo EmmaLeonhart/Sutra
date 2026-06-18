@@ -129,6 +129,27 @@ def _struct_construction(node, src: bytes):
     return _text(tid, src), fields, base
 
 
+def _collect_rust_tuple_paths(tp, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) `tuple_pattern` into `[(path_keys, name), …]`, where
+    `path_keys` is the chain of positional axon keys (`_0`, `_1`, …) reaching the bound
+    name. A nested `tuple_pattern` element recurses (so `(a, (b, c))` →
+    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); any non-identifier /
+    non-tuple element is a later item (→ None)."""
+    out: list = []
+    for i, el in enumerate(tp.named_children):
+        key = f"_{i}"
+        if el.type == "identifier":
+            out.append((prefix + (key,), _text(el, src)))
+        elif el.type == "tuple_pattern":
+            sub = _collect_rust_tuple_paths(el, src, prefix + (key,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None
+    return out
+
+
 def _emit_struct_construction(name, fields, base, src: bytes, var: str, indent: str) -> str:
     """Axon-construction statements for a struct bound to `var` (named keys). With a
     `..base` spread, every declared struct field NOT given explicitly is copied from
@@ -912,14 +933,16 @@ def _lower_function(item, src: bytes) -> str:
     for ld in lets:
         ld_kids = ld.named_children
         if ld_kids and ld_kids[0].type == "tuple_pattern":
-            # `let (a, b) = t;` — destructure a tuple axon into named locals.
-            # Each element reads the positional axon field (`_0`, `_1`, …) via
-            # `realvec` (the same projection `p.0` uses). Only identifier elements
-            # are in scope (nested patterns are a later item); the value is hoisted
-            # first so `let (a, b) = (5, 8);` works too, binding to a temp axon.
+            # `let (a, b) = t;` — destructure a tuple axon into named locals. Each
+            # element reads the positional axon field (`_0`, `_1`, …) via `realvec` (the
+            # same projection `p.0` uses). NESTED patterns (`let (a, (b, c)) = t;`) read
+            # through an `Axon` temp per non-leaf prefix — chaining `.item()` on a raw
+            # tensor fails (the compiler returns a tensor from axon_item; an `Axon`-typed
+            # temp re-dispatches as axon_item). The value is hoisted first so
+            # `let (a, b) = (5, 8);` works too, binding to a temp axon.
             tp = ld_kids[0]
-            elems = [c for c in tp.named_children if c.type == "identifier"]
-            if not elems or len(elems) != len(tp.named_children):
+            paths = _collect_rust_tuple_paths(tp, src, ())
+            if paths is None:
                 return (f"// UNSUPPORTED-FN: '{name}' has a non-identifier tuple "
                         f"pattern element (later item)\n")
             value = ld_kids[-1]
@@ -934,9 +957,24 @@ def _lower_function(item, src: bytes) -> str:
             if "UNSUPPORTED" in val_src:
                 return (f"// UNSUPPORTED-FN: '{name}' tuple-pattern let value "
                         f"out of shape\n")
-            for i, el in enumerate(elems):
-                stmts += (f'    {_DEFAULT_TYPE} {_text(el, src)} = '
-                          f'realvec({val_src}.item("_{i}"));\n')
+            prefix_temp = {(): val_src}
+            temp_lines: list = []
+
+            def _tuple_temp_for(prefix):
+                if prefix in prefix_temp:
+                    return prefix_temp[prefix]
+                parent = _tuple_temp_for(prefix[:-1])
+                tmp = f"_np{len(temp_lines)}"
+                temp_lines.append(f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+                prefix_temp[prefix] = tmp
+                return tmp
+
+            bind_lines: list = []
+            for keys, nm in paths:
+                holder = _tuple_temp_for(keys[:-1])
+                bind_lines.append(f'    {_DEFAULT_TYPE} {nm} = '
+                                  f'realvec({holder}.item("{keys[-1]}"));\n')
+            stmts += "".join(temp_lines) + "".join(bind_lines)
             continue
         if ld_kids and ld_kids[0].type == "struct_pattern":
             # `let Point { x, y } = p;` — destructure a struct axon into named
