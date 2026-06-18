@@ -11124,3 +11124,16 @@ runs on the substrate == **10** (and `f(false)` measured == 20). Scala suite: 19
 clean + `bool_match`=10, `match_literal`=200, `caseclass_match`=13 — the literal + case-class match
 paths unregressed). The Scala frontend's pattern surface is now broad (tuple/record/case-class nesting,
 literal/bool/case-class match) — only general breadth remains.
+
+## 2026-06-18 — sutra-from-fsharp: Bool `match b with | true -> … | false -> …` ships (== 10) — bool sweep complete
+
+Phase 6, F# item — closes the bool-pattern sweep across ALL frontends (Haskell/Rust/Elixir/Erlang/
+Scala/F#; Clojure already worked). The match already built the `(b == <const>)` blend, but the bool
+literal `true`/`false` lowered to `UNSUPPORTED-CONST: bool`. The F# const handler now lowers a `bool`
+const to the Sutra `true`/`false` literal — so the arm test becomes `(b == true)` / `(b == false)`
+(the crisp literal shape), and the bool VALUE `f true` lowers too.
+
+Fixture `bool_match` (`let f (b: bool) = match b with | true -> 10 | false -> 20; main = f true`) runs
+on the substrate == **10** (and `f false` measured == 20). F# suite: 30 passed (lower-only clean +
+`bool_match`=10, `match_literal`=200, `if_classify`=100 — the literal-match + if-blend paths
+unregressed). The bool-literal pattern is now uniform across every non-reference frontend.
