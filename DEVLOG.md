@@ -10919,3 +10919,19 @@ Fixture `multi_arity` (`(defn add ([a] (add a 10)) ([a b] (+ a b))); (add 7)`) r
 + `multi_arity`=17, `add_main`=16, recursion fixtures `nary_sum`/`tail_rec` — the single-arity path
 refactor onto `_emit_function_body` is behaviour-preserving). Remaining on Clojure: symbol map keys;
 `case` symbol/keyword members; maps in recursive bodies.
+
+## 2026-06-18 — sutra-from-rust: LITERAL inner match in a tail-match arm ships (== 5)
+
+Phase 6, Rust item. A `match` nested in an expression (here the inner `match n { 0 => x, _ => x+1 }`
+in the `E::A(x) =>` arm of a function-tail match) previously surfaced UNSUPPORTED. `_lower_match_stmts`
+now (a) recognizes integer-LITERAL patterns (`0 => …` → `(scrut == k)`, plain-number scrutinee, crisp)
+and (b) emits the `int _vtag`/`_val{i}` prelude ONLY for VARIANT matches — so a literal match returns
+NO prelude and `_lower_expr` inlines it as a pure blend. A VARIANT match in expression position still
+needs the int-locals an expression can't emit → it stays UNSUPPORTED with a clear marker (use as the
+function tail), the same shape as the Haskell case-in-non-tail and Rust nested-if-let rules.
+
+Fixture `nested_match_tail_arm` (`match e { E::A(x) => match n { 0 => x, _ => x+1 }, E::B(y) => y };
+f(E::A(5), 0)`) runs on the substrate == **5** (A arm → inner literal match `n==0` → x=5). Rust suite:
+44 passed (lower-only clean + `nested_match_tail_arm`=5, `enum_match`=2, `if_let_enum`=13 — the
+variant-match paths I touched are unregressed). Remaining on Rust: a VARIANT match nested in an
+expression / tail-arm; nested `if let`.
