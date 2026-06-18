@@ -1,5 +1,33 @@
 # Development Log
 
+## 2026-06-17: compiler primitive — elementwise-buffer transcendentals (`sin_buf`/`cos_buf`)
+
+Emma: "Make the compiler primitive." Built the elementwise transcendental over a field buffer that
+the 2026-06-17 transcendentals finding flagged as the clean fix for on-substrate Fourier encoding +
+SIREN sin-activations. The substrate's scalar `sin`/`cos`/`cexp` act on the canonical d-dim complex
+NUMBER and dim-mismatch on a length-N buffer; `sin_buf`/`cos_buf` are the buffer counterparts.
+
+- **`codegen_pytorch.py`** — `sin_buf(x)`/`cos_buf(x)` runtime methods. Same substrate-pure
+  mechanism as the scalar trig (wrap each element to (−π,π] then a triangular soft-index crosstalk
+  matmul against the cached sin/cos table), BROADCAST over the N elements — the exact `(N,T)`
+  weight-matrix pattern `sawtooth_mod` already ships. One fused tensor op, autograd-preserving,
+  **periodic by construction** (no high-frequency polynomial divergence — the failure mode of the
+  rejected polynomial path).
+- **`codegen_base.py`** — registered `sin_buf`/`cos_buf` builtins so `.su` can call them.
+- **Measured:** matches `math.sin/cos` to ~8e-5 at arguments 0.5 … 100.0 (incl. far outside
+  [−π,π], the high-freq Fourier-band range), and `d/dx sin_buf ≈ cos` to 5e-3 (differentiable end
+  to end → SIREN sin-activations now expressible). `sdk/sutra-compiler/tests/test_buffer_transcendentals.py`
+  (5), green; existing `test_transcendentals.py` (8) still green.
+- **Decoder wiring (closes the finding):** `fourier_features_substrate` in `demos/decoder/substrate_nn.py`
+  runs the encoding's sin/cos on the substrate via `sin_buf`/`cos_buf` (the `f·coords` scaling is an
+  affine input transform, the `cat` is layout). Reproduces the host `fourier_features` to max |Δ|
+  6.9e-5, stays differentiable, and a decoder built on it fits the wave. `demos/decoder/test_encoding.py`
+  (+3), green. Finding `2026-06-17-substrate-transcendentals-canonical-only.md` marked RESOLVED.
+
+The decoder forward (matmul + hadamard cubic) was always on the substrate; now the *input
+transcendental* is too — the one host-Python part of the encoding that genuinely had to leave the
+substrate. The host `fourier_features` is kept as the reference the substrate version is measured against.
+
 ## 2026-06-17: todo.md §GUI — record the decoder + Yantra integration as SHIPPED (flow-forward)
 
 Housekeeping mandated by the workflow rule "items only ever flow forward; do not leave done items
