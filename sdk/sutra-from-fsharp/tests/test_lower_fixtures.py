@@ -44,13 +44,13 @@ _RUNNABLE = {
     "union_axon": 48.0,  # type Shape=Circle of int|Square of int; area via match; main = area (Circle 4) = 4*4*3  (DU -> tagged axon)
     "tuple_axon": 13.0,  # addPair (p: int*int) = (fst p)+(snd p); let t=(5,8) in addPair t  (tuple -> positional-key axon, fst/snd -> _0/_1)
     "tuple_destructure": 13.0,  # addPair (t: int*int) = let (a, b) = t in a + b; main = addPair (5,8)  (let-tuple-pattern -> realvec(item _0/_1))
-    "nested_tuple_destructure": 16.0,  # f (t: int*(int*int)) = let (a,(b,c)) = t in a+b+c; main = f (5,(8,3))  (NESTED tuple pattern: nested-axon construction + Axon-temp chained item read)
+    "nested_tuple_destructure": (16.0, 256),  # f (t: int*(int*int)) = let (a,(b,c)) = t in a+b+c; main = f (5,(8,3))  (NESTED tuple pattern: nested-axon construction + Axon-temp chained item read; dim>=256, finding 2026-06-17)
     "record_destructure": 13.0,  # sum (p: Point) = let { x = a; y = b } = p in a + b; main = sum {x=5;y=8}  (let-record-pattern -> realvec(item x/y))
-    "nested_record_destructure": 13.0,  # f (o: Outer) = let { a = aa; inner = { v = vv } } = o in aa+vv; main = f {a=5; inner={v=8}}  (NESTED record pattern: Axon temp for the inner-record prefix)
-    "record_in_tuple": 16.0,  # f (t: int*Pt) = let (a, { x = b; y = c }) = t in a+b+c; f (5, {x=8;y=3})  (MIXED: record nested inside a tuple pattern)
-    "tuple_in_record": 16.0,  # g (r: Pt) = let { a = aa; pos = (x, y) } = r in aa+x+y; g {a=5; pos=(8,3)}  (MIXED: tuple nested inside a record pattern)
+    "nested_record_destructure": (13.0, 256),  # f (o: Outer) = let { a = aa; inner = { v = vv } } = o in aa+vv; main = f {a=5; inner={v=8}}  (NESTED record pattern: Axon temp for the inner-record prefix; dim>=256, finding 2026-06-17)
+    "record_in_tuple": (16.0, 256),  # f (t: int*Pt) = let (a, { x = b; y = c }) = t in a+b+c; f (5, {x=8;y=3})  (MIXED: record nested inside a tuple pattern; dim>=256, finding 2026-06-17)
+    "tuple_in_record": (16.0, 256),  # g (r: Pt) = let { a = aa; pos = (x, y) } = r in aa+x+y; g {a=5; pos=(8,3)}  (MIXED: tuple nested inside a record pattern; dim>=256, finding 2026-06-17)
     "du_destructure": 13.0,  # type Shape=Circle of int|...; radius (s) = let (Circle r) = s in r + 1; main = radius (Circle 12)  (let-DU-pattern -> realvec(item _val0))
-    "nested_du_destructure": 13.0,  # f (w: Wrap) = let (Wrap { v = vv }) = w in vv + 1; main = f (Wrap {v=12})  (NESTED DU: ctor wrapping a record -> _val0 prefix + Axon temp; construction already recurses, _du_pattern_binding now returns _val{i} path keys via _collect_element_paths)
+    "nested_du_destructure": (13.0, 256),  # f (w: Wrap) = let (Wrap { v = vv }) = w in vv + 1; main = f (Wrap {v=12})  (NESTED DU: ctor wrapping a record -> _val0 prefix + Axon temp; dim>=256, finding 2026-06-17)
     "tuple_arg": 13.0,  # addPair (p: int*int) = fst p + snd p; main = addPair (5, 8)  (tuple construction DIRECTLY as arg -> hoisted to _ahN temp, F# arg-hoist parity)
     "nullary_variant": 20.0,  # type Dir=North|South; code (d) = match d with North->10|South->20; main = code South  (nullary DU variant in value position -> {_tag} axon)
     "nullary_variant_return": 10.0,  # let getNorth () = North; main = code (getNorth ())  (function RETURNING a nullary variant -> ret type Axon + {_tag} axon; zero-arg call drops unit arg)
@@ -74,16 +74,24 @@ def test_lowers_without_unsupported(name, fix):
     assert "UNSUPPORTED" not in out, f"{name} lowered with UNSUPPORTED:\n{out}"
 
 
-@pytest.mark.parametrize("name,expected",
+@pytest.mark.parametrize("name,spec",
                          sorted(_RUNNABLE.items()), ids=sorted(_RUNNABLE))
-def test_runs_on_substrate(name, expected, tmp_path):
+def test_runs_on_substrate(name, spec, tmp_path):
     pytest.importorskip("torch", reason="substrate run needs torch")
+    # A spec is either a bare expected float (default runtime_dim) or an
+    # (expected, runtime_dim) tuple. Nested-axon fixtures run at runtime_dim
+    # >= 256 so reads don't depend on key sets reading clean at the default
+    # dim 50 by luck (finding 2026-06-17-nested-axon-readout-crosstalk-...).
+    expected, dim = spec if isinstance(spec, tuple) else (spec, None)
     fix = FIXTURE_DIR / name / "input.fsx"
     su = lower(fix.read_text(encoding="utf-8"))
     su_path = tmp_path / f"{name}.su"
     su_path.write_text(su, encoding="utf-8")
+    cmd = [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)]
+    if dim is not None:
+        cmd += ["--runtime-dim", str(dim)]
     proc = subprocess.run(
-        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
+        cmd,
         capture_output=True, text=True, cwd=str(_REPO),
     )
     out = (proc.stdout + proc.stderr).strip()
