@@ -157,9 +157,9 @@ jobs:
           retention-days: 90
 
   build-neurips-frozen-pdfs:
-    # Mirror of build-pdfs but rooted at paper/neurips/ — the frozen
-    # NeurIPS 2026 submission archive (per CLAUDE.md § "🔒 NeurIPS
-    # submission is FROZEN" and paper/neurips/README.md). These PDFs
+    # Mirror of build-pdfs but rooted at paper/neurips/ — the
+    # NeurIPS 2026 submission archive (per CLAUDE.md § "NeurIPS freeze
+    # is LIFTED" and paper/neurips/README.md). These PDFs
     # are the camera-ready and anonymized artifacts the docs site
     # exposes for download at /neurips-2026/. Triggered only on
     # changes to paper/neurips/** so we don't rebuild the frozen

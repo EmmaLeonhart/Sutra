@@ -62,7 +62,7 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 
 | Path | What's there |
 |---|---|
-| `paper/neurips/` | **Permanently FROZEN.** The camera-ready NeurIPS 2026 submission (`paper.md`, `paper.tex`, supplementary). Do not edit any part. See `CLAUDE.md` §"NeurIPS submission is FROZEN". |
+| `paper/neurips/` | The camera-ready NeurIPS 2026 submission (`paper.md`, `paper.tex`, supplementary). The edit-freeze was **retired 2026-06-18** — editable to fix factual drift (don't rewrite the submitted science). The immutable record is git commit `ea6f8a01`. See `CLAUDE.md` §"NeurIPS freeze is LIFTED". |
 | `paper/paper.md` | The live, evolving paper (next-venue draft); the website's `/paper/` renders from this. **Time-boxed arXiv freeze through May 2026** — see `CLAUDE.md`. |
 | `paper/supplementary/` | Live supplementary docs. The frozen NeurIPS copy is under `paper/neurips/supplementary/`. |
 | `paper/reviews/` | clawRxiv AI peer review responses, auto-committed by the CI workflow. Signal, not verdicts. |
