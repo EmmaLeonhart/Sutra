@@ -481,7 +481,10 @@ def _lower_expr(node, src: bytes) -> str:
                         or not bd.named_children:
                     return "/* UNSUPPORTED-CASE: malformed clause */"
                 pat = pa.named_children[0]
-                if pat.type == "integer":
+                if pat.type in ("integer", "boolean"):
+                    # `0 -> …` / `true -> …` literal pattern: dispatch the scrutinee value
+                    # directly (`scrut == k`, `scrut == true`) — Elixir `true`/`false`
+                    # match the Sutra `true`/`false`.
                     res_src = _lower_expr(bd.named_children[-1], src)
                     parsed.append((f"({scrut_src} == {_text(pat, src)})", res_src))
                 elif pat.type == "identifier":
