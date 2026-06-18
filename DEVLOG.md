@@ -11235,3 +11235,20 @@ shared `_emit_nested_subst` helper (Axon temp per non-leaf prefix). New fixture
 `variant_toplevel_value`, `aggregate_arg_nested_op`) unregressed. OCaml
 nested-pattern destructure is now fully drained (tuple/record/variant, flat +
 nested); only the scalable-RAM-device and non-zero-`Array.make`-fill items remain.
+
+## 2026-06-18 — sutra-from-fsharp: NESTED DU-`let` destructure (Phase 3)
+
+F# frontend now lowers nested constructor-pattern `let` bindings
+(`let (Wrap { v = vv }) = w in vv + 1`, a DU wrapping a record) — the F#
+analog of the OCaml nested-variant-let landed earlier today. Construction
+already recursed (`x.add("_val0", _ah0)` builds the inner record axon);
+the gap was destructure. `_du_pattern_binding` now dispatches each payload
+component i through `_collect_element_paths` keyed `_val{i}` (instead of
+requiring a plain `identifier_pattern`), so a record/tuple payload descends
+and the leaf locals carry their full key chain (`Wrap { v = vv }` →
+`[(("_val0","v"), "vv")]`); the DU-let caller reads them through the shared
+`_emit_nested_reads` (Axon temp per non-leaf prefix), exactly like the
+nested tuple/record paths. New fixture `nested_du_destructure` runs on the
+substrate == **13** (== ground truth 12 + 1). FULL F# suite: **56 passed**
+(was 55); flat `du_destructure` unregressed (the path rewrite is a strict
+superset). F# nested-pattern destructure now covers tuple/record/DU + mixed.
