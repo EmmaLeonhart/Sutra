@@ -55,11 +55,13 @@ Verified end-to-end: `(defn classify [k] (if (= k :foo) 10 20))
 (defn main [] (+ (classify :foo) (classify :bar)))` → **30** on the substrate
 (`classify :foo` = 10, `classify :bar` = 20). Fixture `kwd_value` in the Clojure suite.
 
-## Latent issue noticed (separate, not fixed here)
+## Latent issue noticed — FIXED 2026-06-18
 
-`_SYNTHETIC_AXIS_TYPES` contains lowercase `"string"`/`"char"` but the user-facing class
-types are `String`/`Character` (capitalised). A var explicitly typed `String` therefore does
-NOT route `==` through `eq_synthetic` (it falls to cosine). The Clojure path sidesteps this
-by leaving params `number`-typed, but a hand-written Sutra program using `String x` for
-equality hits the cosine path. Worth a follow-up (add the capitalised aliases to the set);
-out of scope for §0.5.
+`_SYNTHETIC_AXIS_TYPES` contained lowercase `"string"`/`"char"` but the user-facing class
+types are `String`/`Character` (capitalised). A var explicitly typed `String` therefore did
+NOT route `==` through `eq_synthetic` (it fell to cosine — measured `classify("foo")+
+classify("bar")` = 20, wrong, vs 30 expected). The Clojure path sidesteps it (params stay
+`number`-typed), but any hand-written Sutra program using `String x` for equality hit the
+cosine path. **Fixed:** added `"String"`/`"Character"` to `_SYNTHETIC_AXIS_TYPES` (the codegen
+already treated `("string","String","Character")` together for return types; this set was the
+one place missing them). Regression test `tests/test_string_equality.py` (RUN → 30).
