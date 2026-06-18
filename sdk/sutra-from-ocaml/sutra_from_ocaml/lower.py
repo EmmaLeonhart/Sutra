@@ -1190,7 +1190,16 @@ def _emit_tuple_construction(body, source: bytes, indent: str, var: str) -> str:
     reused as a function body or as a hoisted call argument."""
     lines = f"{indent}Axon {var};\n"
     for i, el in enumerate(body.named_children):
-        lines += f'{indent}{var}.add("_{i}", {_lower_expression(el, source)});\n'
+        # A NESTED aggregate element (`(5, (8, 3))`'s inner `(8, 3)`, a record, or a
+        # variant) is built into its own temp axon first, then stored — so nested tuples
+        # become nested axons. A scalar element lowers inline.
+        ua = _unwrap_parens(el)
+        nested = _aggregate_arg_emitter(ua, source, indent, f"{var}_{i}")
+        if nested is not None:
+            lines += nested
+            lines += f'{indent}{var}.add("_{i}", {var}_{i});\n'
+        else:
+            lines += f'{indent}{var}.add("_{i}", {_lower_expression(el, source)});\n'
     return lines
 
 
@@ -1363,10 +1372,33 @@ def _lower_variant_value_body(kind, source: bytes, indent: str) -> str:
             + f"{indent}return _variant;\n")
 
 
+def _ocaml_tuple_paths(pat, source: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) OCaml `tuple_pattern` into [(path_keys, name), …] over
+    positional axon keys (`_0`, `_1`, …). A nested `tuple_pattern` element (paren-wrapped)
+    recurses (`(a, (b, c))` → `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); any
+    non-`value_name`/non-tuple element is a later item (→ None)."""
+    out: list = []
+    for i, el in enumerate(pat.named_children):
+        key = f"_{i}"
+        e = el
+        if e.type == "parenthesized_pattern" and e.named_children:
+            e = e.named_children[0]
+        if e.type == "value_name":
+            out.append((prefix + (key,), _node_text(e, source)))
+        elif e.type == "tuple_pattern":
+            sub = _ocaml_tuple_paths(e, source, prefix + (key,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None
+    return out
+
+
 def _ocaml_flat_tuple_let(vd, source: bytes):
-    """If `vd` is a flat tuple-pattern value binding `let (a, b) = expr` (a `let_binding`
-    whose binder is a `tuple_pattern` of plain `value_name`s), return ([name, …],
-    value_node); else None. A nested element is a later item (→ None)."""
+    """If `vd` is a tuple-pattern value binding `let (a, b) = expr` (a `let_binding` whose
+    binder is a `tuple_pattern`, paren-wrapped), return ([(path_keys, name), …],
+    value_node); else None. Supports NESTED tuple patterns via `_ocaml_tuple_paths`."""
     lb = next((c for c in vd.named_children if c.type == "let_binding"), None)
     if lb is None or not lb.named_children:
         return None
@@ -1379,10 +1411,8 @@ def _ocaml_flat_tuple_let(vd, source: bytes):
         pat = pat.named_children[0]
     if pat.type != "tuple_pattern":
         return None
-    elems = pat.named_children
-    if not elems or any(e.type != "value_name" for e in elems):
-        return None
-    return [_node_text(e, source) for e in elems], kids[-1]
+    paths = _ocaml_tuple_paths(pat, source, ())
+    return (paths, kids[-1]) if paths else None
 
 
 def _ocaml_record_let(vd, source: bytes):
@@ -1663,22 +1693,40 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
             *bindings, in_body = kids
             out = ""
             popped: list = []  # (name, saved) tuple-let substitutions to restore
+            np_ctr = [0]       # shared `_np{N}` counter for nested-tuple Axon temps
             for b in bindings:
                 if b.type == "value_definition":
                     # `let (a, b) = t in …` — destructure a tuple axon: each element
                     # substitutes to the positional field read `realvec(t.item("_i"))`
-                    # (no Sutra local to declare for a tuple binder). The value must be a
-                    # bare name (a param / axon-bound local); the substitutions are
-                    # restored after the body so they don't leak.
+                    # (no Sutra local to declare for a tuple binder). A NESTED pattern
+                    # (`let (a, (b, c)) = t`) reads through an `Axon` temp per non-leaf
+                    # prefix, emitted into `out`. The value must be a bare name; the
+                    # substitutions are restored after the body so they don't leak.
                     tl = _ocaml_flat_tuple_let(b, source)
                     if tl is not None:
-                        names, val_node = tl
+                        paths, val_node = tl
                         val_src = _lower_expression(val_node, source)
                         if val_src.isidentifier():
-                            for i, nm in enumerate(names):
+                            prefix_temp = {(): val_src}
+                            temp_lines: list = []
+
+                            def _tup_temp(prefix):
+                                if prefix in prefix_temp:
+                                    return prefix_temp[prefix]
+                                parent = _tup_temp(prefix[:-1])
+                                tmp = f"_np{np_ctr[0]}"
+                                np_ctr[0] += 1
+                                temp_lines.append(
+                                    f'{indent}Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+                                prefix_temp[prefix] = tmp
+                                return tmp
+
+                            for keys, nm in paths:
+                                holder = _tup_temp(keys[:-1])
                                 saved = _MATCH_SUBST.get(nm, _MISSING)
-                                _MATCH_SUBST[nm] = f'realvec({val_src}.item("_{i}"))'
+                                _MATCH_SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
                                 popped.append((nm, saved))
+                            out += "".join(temp_lines)
                             continue
                     # `let { x; y } = p in …` — destructure a record axon: each local
                     # substitutes to the named field read `realvec(p.item("x"))`.

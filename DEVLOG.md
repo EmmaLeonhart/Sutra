@@ -11183,3 +11183,18 @@ Fixture `du_destructure` (`type box = Box of int; unbox (b) = let (Box x) = b in
 12)`) runs on the substrate == **13** (and the tuple-payload `let (Wrap (a, b)) = w` measured == 13).
 The FULL OCaml suite passed: **135 passed** — no regression. Remaining on OCaml: scalable RAM device
 (10MB linear memory); non-zero `Array.make` fill; nested tuple/record-let patterns.
+
+## 2026-06-18 — sutra-from-ocaml: NESTED tuple-`let` `let (a, (b, c)) = t in …` ships (== 16)
+
+Phase 6, OCaml reference frontend. A nested tuple-`let` needs BOTH nested construction and nested
+destructure; both previously broke. (1) Construction: `_emit_tuple_construction` now recurses — a
+nested-aggregate tuple element (the inner `(8, 3)`) is built into its own temp axon via
+`_aggregate_arg_emitter` and stored, so `(5, (8, 3))` becomes a nested axon (`_arg0._1 = _arg0_1`).
+(2) Destructure: `_ocaml_tuple_paths` recursively flattens the nested pattern to positional key-paths,
+and the let-in caller emits one `Axon` temp per non-leaf prefix into `out` (chaining `.item()` on a
+raw tensor fails). `_0`/`_1` keys are clean at dim 50; flat tuples emit no temp (unchanged).
+
+Fixture `nested_tuple_destructure` (`f (t: int*(int*int)) = let (a, (b, c)) = t in a+b+c; f (5, (8,
+3))`) runs on the substrate == **16** (== ground truth). The FULL OCaml suite passed: **136 passed** —
+no regression (flat tuple/record/variant let all still green). Remaining on OCaml: scalable RAM device
+(10MB linear memory); non-zero `Array.make` fill; nested record/variant-let patterns.

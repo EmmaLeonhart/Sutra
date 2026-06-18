@@ -37,8 +37,9 @@ agenda — `if/then/else`, `let … in`, `let rec`, tuples/records/variants,
 destructure `let (a, b) = t in …` → `realvec(t.item("_0"))` substitution
 record-`let` destructure `let { x; y } = p in …` [punned + renamed `{ x = a }`]
 → `realvec(p.item("x"))`, and variant-`let` destructure `let (Box x) = b in …` /
-`let (Wrap (a, b)) = w in …` [single payload → `_val`, tuple payload → `_val0`/`_val1`]
-shipped 2026-06-18.)
+`let (Wrap (a, b)) = w in …` [single payload → `_val`, tuple payload → `_val0`/`_val1`],
+and NESTED tuple-`let` `let (a, (b, c)) = t in …` [nested-axon construction + an `Axon`
+temp per non-leaf prefix] shipped 2026-06-18.)
 
 ## Use
 
