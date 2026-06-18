@@ -719,6 +719,29 @@ def _lower_dispatch(name: str, clauses, src: bytes) -> str:
                 axon_args.add(argnames[i])
                 for field, lname in rbinds:
                     binds.append((lname, f'realvec({argnames[i]}.item("{field}"))'))
+            elif p.type == "map_expr":
+                # `#{x := X, y := Y}` map-PATTERN param — the arg is a named-field axon
+                # (the same shape a `#{x => V}` map VALUE builds). Each `map_field` binds
+                # its `var` local to the field read `realvec(_ai.item("x"))` (the
+                # `maps:get(x, M)` projection). A non-var value / non-atom key is a later
+                # item.
+                mbinds: list[tuple[str, str]] = []
+                ok = True
+                for mf in p.named_children:
+                    if mf.type != "map_field":
+                        continue
+                    katom = next((c for c in mf.named_children if c.type == "atom"), None)
+                    local = next((c for c in mf.named_children if c.type == "var"), None)
+                    if katom is None or local is None:
+                        ok = False
+                        break
+                    mbinds.append((_text(katom, src), _text(local, src)))
+                if not ok or not mbinds:
+                    return (f"// UNSUPPORTED-DECL: '{name}' map-pattern param has a "
+                            f"non-var/atom field (later item)\n")
+                axon_args.add(argnames[i])
+                for field, lname in mbinds:
+                    binds.append((lname, f'realvec({argnames[i]}.item("{field}"))'))
             else:
                 return (f"// UNSUPPORTED-DECL: '{name}' clause pattern param "
                         f"{p.type} (later item)\n")

@@ -112,9 +112,12 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
     options). Not blocking — shipped fixtures are measured-correct + CI-green.
 - [ ] **Elixir** (`sutra-from-elixir/`): multi-clause/guarded bodies with `=` bindings; >2-clause
   recursion (2-clause base+rec only now); `is_integer`-style type-test guards.
-- [ ] **Erlang** (`sutra-from-erlang/`): map PATTERN params (`#{x := X}` in a head); multi-clause
-  bodies with `=` bindings; >2-clause recursion; list comprehensions; `div`/`rem` via complex
-  rotation (NOT `Math.mod`).
+- [ ] **Erlang** (`sutra-from-erlang/`): ~~map PATTERN params (`#{x := X}` in a head)~~ DONE 2026-06-17
+  (`map_expr` param case: each `map_field` binds its `var` to `realvec(_ai.item("key"))`, the
+  `maps:get` projection; `map_param`=13 on the substrate); multi-clause bodies with `=` bindings;
+  >2-clause recursion (NOTE: multi-literal-base >2-clause recursion hits the single-condition-halt
+  blocker, finding `2026-06-17-while-loop-halt-is-single-condition-only.md`); list comprehensions;
+  `div`/`rem` via complex rotation (NOT `Math.mod`).
 - [ ] **Clojure** (`sutra-from-clojure/`): symbol map keys (needs symbol-as-value rep); maps/vectors
   in recursive bodies; nested destructuring (`[[a b] c]`); multi-arity `defn`; `case` symbol/keyword
   members (needs keyword-as-value rep).
