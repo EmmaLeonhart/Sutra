@@ -11110,3 +11110,17 @@ Fixture `bool_case` (`f(B) -> case B of true -> 10; false -> 20 end; main() -> f
 substrate == **10** (and `f(false)` measured == 20). Erlang suite: 36 passed (lower-only clean +
 `bool_case`=10, `case_dispatch`=119 — the integer-case path unregressed). Remaining on Erlang:
 general atom-as-value rep; list comprehensions; `div`/`rem` via complex rotation (modulus library).
+
+## 2026-06-18 — sutra-from-scala: Bool `match { case true => …; case false => … }` ships (== 10)
+
+Phase 6, Scala item — extends today's bool-pattern sweep (now Haskell/Rust/Elixir/Erlang/Scala; Clojure
+already worked). A `match` on a `Boolean` scrutinee previously surfaced UNSUPPORTED-MATCH-PATTERN
+("boolean_literal"; the bool VALUE `f(true)` already worked). The match-pattern dispatch now treats a
+`boolean_literal` arm like an `integer_literal` one — dispatch the scrutinee directly (`(b == true)` /
+`(b == false)`, the crisp literal shape, no `_tag`; Scala `true`/`false` match the Sutra `true`/`false`).
+
+Fixture `bool_match` (`def f(b: Boolean): Int = b match { case true => 10; case false => 20 }; f(true)`)
+runs on the substrate == **10** (and `f(false)` measured == 20). Scala suite: 19 passed (lower-only
+clean + `bool_match`=10, `match_literal`=200, `caseclass_match`=13 — the literal + case-class match
+paths unregressed). The Scala frontend's pattern surface is now broad (tuple/record/case-class nesting,
+literal/bool/case-class match) — only general breadth remains.
