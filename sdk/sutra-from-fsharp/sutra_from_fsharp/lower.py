@@ -468,14 +468,33 @@ def _lower_expr(node, src: bytes) -> str:
                 # `realvec(t.item("_i"))` (the same projection `fst`/`snd` use). The
                 # value must be a bare name (a param or a let-bound temp); a
                 # parenthesised `(expr).item(...)` falls through to the tensor op.
-                names, val_node = tpb
+                paths, val_node = tpb
                 val_src = _lower_expr(val_node, src)
                 if not val_src.isidentifier():
                     return ("/* UNSUPPORTED-LET: tuple-pattern binding value is "
                             "not a simple name (later item) */")
+                # For NESTED paths, bind each non-leaf prefix to an `Axon` temp so the
+                # next `.item()` dispatches as `axon_item` again — chaining `.item()` on
+                # a raw tensor fails (the compiler returns a tensor from axon_item;
+                # measured: `Axon t1 = t.item("_1"); t1.item("_0")` works, the chain does
+                # not). Prefixes are shared across siblings (`b` and `c` of `(a,(b,c))`
+                # reuse the one `t.item("_1")` temp).
+                prefix_temp: dict[tuple, str] = {(): val_src}
+
+                def _temp_for(prefix):
+                    if prefix in prefix_temp:
+                        return prefix_temp[prefix]
+                    parent = _temp_for(prefix[:-1])
+                    tmp = f"_np{_AH_N[0]}"
+                    _AH_N[0] += 1
+                    _PRELUDE.append(f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+                    prefix_temp[prefix] = tmp
+                    return tmp
+
                 subs: list[str] = []
-                for i, nm in enumerate(names):
-                    _SUBST[nm] = f'realvec({val_src}.item("_{i}"))'
+                for keys, nm in paths:
+                    holder = _temp_for(keys[:-1])   # axon reaching the leaf's parent
+                    _SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
                     subs.append(nm)
                 try:
                     return _lower_expr(kids[1], src)
@@ -530,7 +549,7 @@ def _lower_expr(node, src: bytes) -> str:
                     # `let t = (a, b)` — tuple construction to a positional-key axon.
                     _PRELUDE.append(f"    Axon {name};\n")
                     for field, fval in tup_fields:
-                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_expr(fval, src)});\n')
+                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_field_value(fval, src)});\n')
                     _AXON_VARS.add(name)
                     return _lower_expr(kids[1], src)
                 rwf = _record_with_fields(val_node, src)
@@ -542,7 +561,7 @@ def _lower_expr(node, src: bytes) -> str:
                     given = {f for f, _ in overrides}
                     _PRELUDE.append(f"    Axon {name};\n")
                     for field, fval in overrides:
-                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_expr(fval, src)});\n')
+                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_field_value(fval, src)});\n')
                     for field in _RECORD_FIELDS[tname]:
                         if field not in given:
                             _PRELUDE.append(
@@ -558,7 +577,7 @@ def _lower_expr(node, src: bytes) -> str:
                     # dispatches via _AXON_VARS. Sutra/Yantra OS: a record is an axon.
                     _PRELUDE.append(f"    Axon {name};\n")
                     for field, fval in rec_fields:
-                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_expr(fval, src)});\n')
+                        _PRELUDE.append(f'    {name}.add("{field}", {_lower_field_value(fval, src)});\n')
                     _AXON_VARS.add(name)
                     return _lower_expr(kids[1], src)
                 va = _variant_application(val_node, src)
@@ -570,7 +589,7 @@ def _lower_expr(node, src: bytes) -> str:
                     _PRELUDE.append(f"    Axon {name};\n")
                     _PRELUDE.append(f'    {name}.add("_tag", {tag});\n')
                     for i, a in enumerate(vargs):
-                        _PRELUDE.append(f'    {name}.add("_val{i}", {_lower_expr(a, src)});\n')
+                        _PRELUDE.append(f'    {name}.add("_val{i}", {_lower_field_value(a, src)});\n')
                     _AXON_VARS.add(name)
                     return _lower_expr(kids[1], src)
                 nv = _nullary_variant_name(val_node, src)
@@ -610,11 +629,43 @@ def _value_binding(fovd, src: bytes):
     return _text(ip, src).strip(), kids[-1]
 
 
+def _collect_tuple_paths(rep, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) tuple `repeat_pattern` into [(path_keys, name), …],
+    where `path_keys` is the chain of positional axon keys (`_0`, `_1`, …) reaching the
+    bound name. A nested `paren_pattern` element recurses (so `(a, (b, c))` →
+    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); any non-identifier /
+    non-tuple element is a later item (→ None)."""
+    out: list[tuple[tuple, str]] = []
+    for i, el in enumerate(rep.named_children):
+        key = f"_{i}"
+        if el.type == "identifier_pattern" and el.named_children:
+            out.append((prefix + (key,), _text(el.named_children[0], src).strip()))
+        elif el.type == "paren_pattern":
+            sub = next((c for c in el.named_children if c.type == "repeat_pattern"), None)
+            if sub is None:
+                # `(a)` — a parenthesised single identifier, not a nested tuple
+                ip = next((c for c in el.named_children
+                           if c.type == "identifier_pattern"), None)
+                if ip is not None and ip.named_children:
+                    out.append((prefix + (key,), _text(ip.named_children[0], src).strip()))
+                else:
+                    return None
+            else:
+                subpaths = _collect_tuple_paths(sub, src, prefix + (key,))
+                if subpaths is None:
+                    return None
+                out.extend(subpaths)
+        else:
+            return None
+    return out
+
+
 def _tuple_pattern_binding(fovd, src: bytes):
     """If `fovd` is a tuple-pattern value binding `let (a, b) = expr`
-    (`value_declaration_left → paren_pattern → repeat_pattern` of plain
-    `identifier_pattern`s), return ([name, …], value_node); else None. A nested /
-    non-identifier element is a later item (→ None)."""
+    (`value_declaration_left → paren_pattern → repeat_pattern`), return
+    ([(path_keys, name), …], value_node); else None. Supports NESTED tuple patterns
+    (`let (a, (b, c)) = t`) via `_collect_tuple_paths` — each name carries its chain of
+    positional keys. A non-identifier/non-tuple element is a later item (→ None)."""
     kids = fovd.named_children
     if not kids or kids[0].type != "value_declaration_left":
         return None
@@ -627,12 +678,8 @@ def _tuple_pattern_binding(fovd, src: bytes):
     rep = next((c for c in paren.named_children if c.type == "repeat_pattern"), None)
     if rep is None:
         return None
-    names: list[str] = []
-    for ip in rep.named_children:
-        if ip.type != "identifier_pattern" or not ip.named_children:
-            return None
-        names.append(_text(ip.named_children[0], src).strip())
-    return (names, kids[-1]) if names else None
+    paths = _collect_tuple_paths(rep, src, ())
+    return (paths, kids[-1]) if paths else None
 
 
 def _record_pattern_binding(fovd, src: bytes):
@@ -861,11 +908,23 @@ def _emit_nullary_variant(name: str, var: str) -> None:
     _PRELUDE.append(f'    {var}.add("_tag", {tag});\n')
 
 
+def _lower_field_value(node, src: bytes) -> str:
+    """Lower a field/element value. If it is itself an aggregate construction (a NESTED
+    tuple/record/DU/nullary variant), hoist it to an `_ahN` temp axon and return the
+    temp name — so a nested tuple `(5, (8, 3))` builds a nested axon (`_1` → a temp axon
+    with `_0=8, _1=3`). A plain scalar falls through to `_lower_expr`."""
+    tmp = _hoist_construction_arg(node, src)
+    if tmp is not None:
+        return tmp
+    return _lower_expr(node, src)
+
+
 def _hoist_construction_arg(node, src: bytes):
     """If `node` is a tuple/record/DU construction in ARGUMENT position, emit its
     axon-build statements to `_PRELUDE` and return the temp name (`_ahN`); else None.
     The let-bound construction path stays separate (it builds into the bound name);
-    this is only for constructions passed directly as a call argument."""
+    this is only for constructions passed directly as a call argument. Field values are
+    lowered via `_lower_field_value` so DEEPLY nested constructions hoist recursively."""
     inner0 = node
     if inner0.type == "paren_expression" and inner0.named_children:
         inner0 = inner0.named_children[0]
@@ -881,7 +940,7 @@ def _hoist_construction_arg(node, src: bytes):
         _AH_N[0] += 1
         _PRELUDE.append(f"    Axon {tmp};\n")
         for field, val in tf:
-            _PRELUDE.append(f'    {tmp}.add("{field}", {_lower_expr(val, src)});\n')
+            _PRELUDE.append(f'    {tmp}.add("{field}", {_lower_field_value(val, src)});\n')
         return tmp
     inner = node
     if inner.type == "paren_expression" and inner.named_children:
@@ -892,7 +951,7 @@ def _hoist_construction_arg(node, src: bytes):
         _AH_N[0] += 1
         _PRELUDE.append(f"    Axon {tmp};\n")
         for field, val in rf:
-            _PRELUDE.append(f'    {tmp}.add("{field}", {_lower_expr(val, src)});\n')
+            _PRELUDE.append(f'    {tmp}.add("{field}", {_lower_field_value(val, src)});\n')
         return tmp
     va = _variant_application(inner, src)     # `Circle 4`
     if va is not None:
@@ -903,7 +962,7 @@ def _hoist_construction_arg(node, src: bytes):
         _PRELUDE.append(f"    Axon {tmp};\n")
         _PRELUDE.append(f'    {tmp}.add("_tag", {tag});\n')
         for i, a in enumerate(vargs):
-            _PRELUDE.append(f'    {tmp}.add("_val{i}", {_lower_expr(a, src)});\n')
+            _PRELUDE.append(f'    {tmp}.add("_val{i}", {_lower_field_value(a, src)});\n')
         return tmp
     return None
 

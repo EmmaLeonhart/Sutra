@@ -55,4 +55,7 @@ surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms are ported.
 
 Variant/record `match` patterns; records/DUs → axons (the OCaml record/variant
 pattern); modules. (Parameter + return type annotations shipped 2026-06-15;
-literal + name-binding `match` patterns shipped 2026-06-13.)
+literal + name-binding `match` patterns shipped 2026-06-13; NESTED tuple
+destructure `let (a,(b,c)) = t` shipped 2026-06-17 — nested-axon construction +
+an `Axon` temp per non-leaf prefix so reads dispatch as `axon_item`, since
+chaining `.item()` on a raw tensor fails. Nested RECORD patterns still a later item.)
