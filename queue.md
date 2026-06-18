@@ -164,7 +164,12 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   is substitution-only]; `nested_tuple_let`=16 on the substrate — `_0`/`_1` keys clean at dim 50);
   ~~nested CONSTRUCTOR `let` patterns (`let (Outer (Inner a b) c) = w`)~~ DONE 2026-06-18
   (`_collect_hs_ctor_paths` + shared `_emit_hs_nested_reads`; `nested_ctor_let`=16 on the substrate —
-  `_val0`/`_val1` keys MEASURED clean at dim 50); ~~`case` in non-tail expression
+  `_val0`/`_val1` keys MEASURED clean at dim 50); ~~MIXED tuple/ctor `let` nesting (`let (a, Box b) = t`,
+  `let (Wrap (a, b)) = w`)~~ DONE 2026-06-18 (`_collect_hs_tuple_paths` and `_collect_hs_ctor_paths`
+  now cross-call so a ctor nests in a tuple and vice-versa; `tuple_in_ctor`=13 clean at dim 50,
+  `ctor_in_tuple`=13 — the `_1`/`_val0` key mix CROSS-TALKS to 26 at dim 50, clean at dim≥100 [finding
+  `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`], so its fixture runs at dim 128 via
+  the harness's new `(expected, dim)` spec tuple); ~~`case` in non-tail expression
   position~~ DONE 2026-06-17 for LITERAL cases (`_lower_expr` reuses `_lower_case_stmts`: a literal
   case has no `int _vtag` prelude so it inlines as a nested blend; `case_nontail`=101 on the substrate;
   a VARIANT case in expression position still needs an int-local an expression can't emit → later item).
