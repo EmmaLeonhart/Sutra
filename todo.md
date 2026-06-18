@@ -2790,32 +2790,32 @@ to that implementation — not before it.
 
 ## [After the v0.8.0 release] Complicated-form native recursion — the serious attempt (Emma 2026-06-17)
 
-**Status at v0.8.0:** native recursion via memoization SHIPS for the practical core — linear
-recurrences (fib/Pell/Lucas/tribonacci; coefficients; identity or literal base) auto-tabulate to a
-native rolling-window `while_loop` by default (`sutra_compiler/tabulate.py`), and general
-single-index DP runs natively via a RAM-backed memo loop (`synthesize_ram_memo_source`; verified
-`fib(13)=233`, large offsets). What remains is the **complicated form**: multi-argument DP and
-genuinely irregular recursion.
+**Status after the serious attempt (2026-06-17):** native recursion via memoization SHIPS for the
+practical core AND for **multi-argument DP**. Linear recurrences (fib/Pell/Lucas/tribonacci;
+coefficients; identity or literal base) auto-tabulate to a native rolling-window `while_loop`, general
+single-index DP runs natively via a RAM-backed memo loop (`synthesize_ram_memo_source`), and
+**multi-arg DP is now native + auto-synthesized**: `sutra_compiler/tabulate.py::detect_2arg_dp` +
+`synthesize_2arg_dp_source` auto-rewrite a genuinely RECURSIVE 2-arg `.su` (e.g.
+`C(n,k)=C(n-1,k-1)+C(n-1,k)`, base `C(n,0)=C(n,n)=1`) into a rectangular `(n+1)^2` RAM-memo
+`while_loop` (boundaries → nested blends, col wrap via even/odd — no `Math.mod`, recurrence reads RAM)
+before codegen, running == ground truth `C(0,0)..C(6,3)` (58/58 tabulate+native-recursion tests).
+What remains is **only genuinely irregular (non-grid, stack-based) recursion**.
 
-**How it needs to be done (the design, grounded in the verified building blocks).** Sutra has no
-native runtime recursion; memoization-as-a-loop is the mechanism that gives it (recursion-execution-
-model spec). The memo table is realized with the **RAM device** (`ramRead`/`ramWrite`) carried across
-a `while_loop` — measured to work (`2026-06-17-tier4-ram-memo-in-loop.md`); a `dict` slot does NOT.
-The two remaining shapes:
-- **Multi-arg DP** (e.g. `C(n,k) = C(n-1,k-1) + C(n-1,k)`, base `C(n,0)=C(n,n)=1`): a RAM memo with a
-  **flattened index** (`ramRead(base + a*stride + b)`) filled by a loop over the flattened domain.
-  The hard parts: per-cell **base-case conditionals** in the loop body (Sutra's V1 codegen rejects
-  `if/else` — must use a substrate **blend** `is_base*base + (1-is_base)*combine`, as the JVM/WASM
-  cores did), and **mod-free index management** (decode flattened → (row,col) without `Math.mod`,
-  which is banned — carry row/col as separate loop counters with a blend-based wrap, or pre-seed the
-  base cells in a separate loop).
-- **Irregular recursion** (multi-shape, data-dependent branching): an explicit **RAM-agenda stack**
-  (the call stack, now a value) + a RAM-memo, driven by a single `while_loop` (push subproblems,
-  combine when children are ready). Same blend-based conditional + mod-free machinery.
+**Irregular recursion — attempted, deferred (the one part that did not land).** The general mechanism
+is an explicit **RAM-agenda stack** (the call stack, now a value) + a RAM-memo, driven by one
+`while_loop`: a fully branchless **RAM-stack post-order evaluator** (frame nodeid/phase in RAM, `sp`
+as loop state with a `(2*sp)>1` halt, per-frame phase machine pushing one child per iteration, all
+control via ±1-flag blends). This was BUILT and its algorithm **verified correct in a Python mirror**
+of the exact blend ops (7-node sum-tree → 100, 3-node → 30, == real recursion). But it **does not
+execute practically on the substrate**: 7-node times out >200s, even a 3-node tree at unroll-cap 8
+pins the GPU for minutes with no output (the proven Pascal loop — same primitives, same machine —
+runs in ~1.5s, so it is a per-step pathology in the larger branchless body, un-root-caused). Finding:
+`planning/findings/2026-06-17-tier4-irregular-recursion-trampoline-substrate-too-slow.md`.
 
-**Emma's rule (2026-06-17): make a VERY VERY serious attempt at actually building this.** If it
-succeeds, great — it completes "memoize everything → native." **If it fails, give up on the
-complicated native form** and accept the shipped state: the core is native, and genuinely-complicated
-recursion runs via the **tier-5 WASM fallback** (`wasm_core`, which already runs recursive `fib` via
-its RAM call stack). A `CronCreate` (8h) checks whether this got built: if done, it removes this item
-and cuts a follow-up release; if not, this item stays and WASM remains the fallback for these cases.
+**Per Emma's rule (2026-06-17):** the serious attempt was made; multi-arg DP succeeded and is kept;
+irregular recursion is the part that **did not land**, so it **stays on this to-do for later** and
+runs meanwhile via the **tier-5 WASM fallback** (`wasm_core`, which already runs recursive `fib` via
+its RAM call stack, 45/45). Later work, if revisited: root-cause the trampoline's per-step substrate
+cost (why a ~2× larger branchless body is ≥100× slower in the recurrent `loop` unroll), or accept WASM
+as the permanent path for non-tabulable recursion. NOT a default-on lowering (no auto-detection) until
+it runs.
