@@ -104,8 +104,10 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   (`_collect_scala_tuple_paths` + shared `_emit_scala_nested_reads`, 1-based keys; `nested_tuple_destructure`=16
   but ONLY at `runtime_dim ≥ 100` — Scala's `_1`/`_2` keys cross-talk at the default dim 50, finding
   `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`; the harness now runs it at dim 128 via a
-  per-fixture `(expected, dim)` value); nested case-class/record patterns; case-class pattern PARAMS
-  (`def f(Point(x,y))`).
+  per-fixture `(expected, dim)` value); ~~case-class MATCH patterns (`case Point(a, b) => …`)~~ DONE
+  2026-06-17 (irrefutable positional destructure to declared fields via `realvec(scrut.item("x"))`,
+  mirroring the `val Point(a,b)=p` path; `caseclass_match`=13 on the substrate; multi-VARIANT
+  case-class match needing `_tag` tests is a later item); nested case-class/record patterns.
   - [ ] **(cross-cutting) nested-axon cross-talk** — F#/Rust nested fixtures pass at the default dim 50 by
     luck of their `_0`/`_1`/field-name keys; for robustness consider running ALL nested-axon fixtures at
     `runtime_dim ≥ 128`, or use distinct depth-prefixed nested keys. Decision pending (see the finding's
