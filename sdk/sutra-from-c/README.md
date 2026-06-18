@@ -32,4 +32,4 @@ The CLI does not currently produce output — it reports `not yet implemented`.
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+AGPL-3.0-only. See `LICENSE`.

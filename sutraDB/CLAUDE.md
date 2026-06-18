@@ -254,7 +254,7 @@ SutraDB's differentiator: unifying both into one system where vectors are triple
 - **IRI encoding**: Sequential interning (current) vs. hash-based (Oxigraph's SipHash approach)?
 - **HNSW compaction**: what threshold triggers a background pass to clean deleted nodes?
 - **SPARQL property paths** (`+`, `*`, `?`): traversal strategy for cycles on large graphs?
-- ~~**License**: Apache 2.0 (patent grant) vs MIT (simplicity)?~~ **Resolved: Apache 2.0.**
+- ~~**License**: Apache 2.0 (patent grant) vs MIT (simplicity)?~~ **Resolved: AGPL-3.0-only** (changed 2026-06-18; was Apache 2.0).
 
 ---
 

@@ -61,4 +61,4 @@ ocaml2su input.ml -o /tmp/x.su && sutrac --emit /tmp/x.su
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+AGPL-3.0-only. See `LICENSE`.

@@ -240,7 +240,7 @@ resolver = "2"
 [workspace.package]
 version = "0.3.7"
 edition = "2021"
-license = "Apache-2.0"
+license = "AGPL-3.0-only"
 authors = []
 description = "A lean RDF-star triplestore with native HNSW vector indexing and hybrid SPARQL"
 
