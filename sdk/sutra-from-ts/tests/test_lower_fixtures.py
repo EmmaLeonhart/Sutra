@@ -152,6 +152,7 @@ def test_fixture_compiles(name, input_path, expected_path):
 _RUNNABLE_FIXTURES = {
     "interface_pass": 25.0,       # distance_squared({x:3, y:4})
     "discriminated_union": 25.0,  # area({kind:"circle", r:5})
+    "nested_interface": 13.0,     # f({a:5, inner:{v:8}}) = o.a + o.inner.v  (NESTED interface: recursive object-literal construction + member-access hoist-prelude `Axon _np0 = o.item("inner")`; distinct field-name keys clean at dim 50)
 }
 
 

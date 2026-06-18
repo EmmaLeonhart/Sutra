@@ -102,6 +102,14 @@ class Context:
     # comparisons). On a name collision with conflicting types the field
     # is marked non-numeric to stay safe.
     field_types: dict[str, str] = field(default_factory=dict)
+    # Prelude lines (e.g. `Axon _np0 = o.item("inner");`) hoisted out of a
+    # nested member-access chain, drained before the statement that uses them:
+    # chaining `.item().item()` fails at runtime (the inner read returns a raw
+    # tensor whose `.item` takes no args), so each non-leaf axon hop goes through
+    # a typed `Axon` temp. `next_np()` names them (globally unique via the shared
+    # counter); `flush_prelude()` emits + clears, called per statement.
+    prelude: list = field(default_factory=list)
+    temp_counter: list = field(default_factory=lambda: [0])
 
     def is_axon_typed(self, type_name: str) -> bool:
         return (
@@ -116,6 +124,21 @@ class Context:
         idx = self.loop_counter[0]
         self.loop_counter[0] = idx + 1
         return idx
+
+    def next_np(self) -> str:
+        i = self.temp_counter[0]
+        self.temp_counter[0] = i + 1
+        return f"_np{i}"
+
+    def flush_prelude(self, indent: str) -> str:
+        """Emit + clear the hoisted-axon-temp prelude lines, indented. Called
+        after lowering a statement's expression(s) and before emitting the
+        statement, so the temps are declared first."""
+        if not self.prelude:
+            return ""
+        lines = "".join(f"{indent}{ln}\n" for ln in self.prelude)
+        self.prelude = []
+        return lines
 
     def child_scope(self) -> "Context":
         """Return a context with the same global state and a fresh local
@@ -132,6 +155,8 @@ class Context:
             loop_counter=self.loop_counter,
             arrow_captures=self.arrow_captures,
             field_types=self.field_types,
+            prelude=[],
+            temp_counter=self.temp_counter,
         )
 
 
@@ -209,6 +234,17 @@ def _expr_type(node, source: bytes, ctx: Context) -> Optional[str]:
         return "bool"
     if node.type == "parenthesized_expression" and node.named_children:
         return _expr_type(node.named_children[0], source, ctx)
+    if node.type == "member_expression":
+        # `obj.prop` — when `obj` is Axon-typed, the field's type comes from
+        # the global interface field-type map. An interface-typed field reads
+        # back "Axon" (a nested axon), a numeric field "int"/"float", etc. This
+        # lets a nested member chain (`o.inner.v`) resolve level by level.
+        obj = node.child_by_field_name("object")
+        prop = node.child_by_field_name("property")
+        if (obj is not None and prop is not None
+                and _expr_type(obj, source, ctx) == "Axon"):
+            return ctx.field_types.get(_node_text(prop, source))
+        return None
     return None
 
 
@@ -220,7 +256,7 @@ def _lower_object_literal_into_axon(
     the object literal is the RHS of a typed-variable declaration whose
     type is Axon-shaped."""
     out = ""
-    for child in obj_node.named_children:
+    for idx, child in enumerate(obj_node.named_children):
         if child.type != "pair":
             continue
         key = child.child_by_field_name("key")
@@ -234,8 +270,17 @@ def _lower_object_literal_into_axon(
             key_str = key_text
         else:
             key_str = f'"{key_text}"'
-        value_src = _lower_expression(value, source, ctx)
-        out += f"{indent}{target_name}.add({key_str}, {value_src});\n"
+        if value.type == "object":
+            # A NESTED object literal field (`{ inner: { v: 8 } }`) is built
+            # into its own temp Axon first, then stored — so nested interfaces
+            # become nested axons. Mirrors the OCaml record-construction recursion.
+            sub = f"{target_name}_{idx}"
+            out += f"{indent}Axon {sub};\n"
+            out += _lower_object_literal_into_axon(value, sub, source, ctx, indent)
+            out += f"{indent}{target_name}.add({key_str}, {sub});\n"
+        else:
+            value_src = _lower_expression(value, source, ctx)
+            out += f"{indent}{target_name}.add({key_str}, {value_src});\n"
     return out
 
 
@@ -426,6 +471,17 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
                 if key in ctx.enum_member_values:
                     return str(ctx.enum_member_values[key])
         obj_src = _lower_expression(obj, source, ctx)
+        # NESTED axon read (`o.inner.v`): when `obj` is itself an Axon-typed
+        # member access, `obj_src` is a `.item(...)` call and chaining another
+        # `.item(...)` onto it fails at runtime (the inner read returns a raw
+        # tensor). Hoist `obj_src` into a typed `Axon` temp via the prelude so
+        # the next read dispatches as `axon_item`. The prelude is drained before
+        # the enclosing statement (see _lower_statement / _lower_function_body).
+        if (obj is not None and obj.type == "member_expression"
+                and _expr_type(obj, source, ctx) == "Axon"):
+            tmp = ctx.next_np()
+            ctx.prelude.append(f"Axon {tmp} = {obj_src};")
+            obj_src = tmp
         prop_text = _node_text(prop, source) if prop is not None else ""
         obj_t = _expr_type(obj, source, ctx) if obj is not None else None
         if obj_t == "Axon":
@@ -756,6 +812,7 @@ def _lower_lexical_declaration(
             # don't trigger inference fallback to JavaScriptObject.
         elif value_node is not None:
             value_src = _lower_expression(value_node, source, ctx)
+            out += ctx.flush_prelude(indent)  # nested-member-access hoist temps
             out += f"{indent}{type_prefix}{sutra_type} {name} = {value_src};\n"
         else:
             out += f"{indent}{type_prefix}{sutra_type} {name};\n"
@@ -768,13 +825,17 @@ def _lower_statement(
     if node.type == "return_statement":
         if node.named_children:
             expr_node = node.named_children[0]
-            return f"{indent}return {_lower_expression(expr_node, source, ctx)};\n"
+            expr_src = _lower_expression(expr_node, source, ctx)
+            pre = ctx.flush_prelude(indent)  # nested-member-access hoist temps
+            return f"{pre}{indent}return {expr_src};\n"
         return f"{indent}return;\n"
     if node.type == "expression_statement":
         inner = node.named_children[0] if node.named_children else None
         if inner is None:
             return ""
-        return f"{indent}{_lower_expression(inner, source, ctx)};\n"
+        expr_src = _lower_expression(inner, source, ctx)
+        pre = ctx.flush_prelude(indent)
+        return f"{pre}{indent}{expr_src};\n"
     if node.type in ("lexical_declaration", "variable_declaration"):
         return _lower_lexical_declaration(node, source, ctx, indent)
     if node.type == "while_statement":
@@ -805,8 +866,9 @@ def _lower_statement(
         w = f"truth_axis(defuzzy({cond_src}))"
         if alt is not None:
             alt_src = _lower_branch_result(alt, source, ctx)
+            pre = ctx.flush_prelude(indent)
             return (
-                f"{indent}return (((1 + {w}) * ({cons_src})) "
+                f"{pre}{indent}return (((1 + {w}) * ({cons_src})) "
                 f"+ ((1 - {w}) * ({alt_src}))) / 2;\n"
             )
         # Emma 2026-05-10: if without else is the select-with-implicit-
@@ -819,7 +881,8 @@ def _lower_statement(
         # false (defuzz → -1, truth → -1), the multiplier is (1-1)/2
         # = 0 — body is zeroed out. Differentiable, fuzzy at the
         # midpoint, no host-side control flow.
-        return f"{indent}return (((1 + {w}) * ({cons_src}))) / 2;\n"
+        pre = ctx.flush_prelude(indent)
+        return f"{pre}{indent}return (((1 + {w}) * ({cons_src}))) / 2;\n"
     if node.type == "statement_block":
         out = ""
         for child in node.named_children:
@@ -904,6 +967,7 @@ def _lower_function_body(body_node, source: bytes, ctx: Context) -> str:
                 # if_statement note: a bare `* ({atom})` emits `* (a) + …`,
                 # which the Sutra parser reads as a cast (CastExpr).
                 w = f"truth_axis(defuzzy({cond_src}))"
+                out_lines.append(ctx.flush_prelude("    "))  # nested-access hoist temps
                 out_lines.append(
                     f"    return (((1 + {w}) * ({cons_ret})) "
                     f"+ ((1 - {w}) * ({else_src}))) / 2;\n"
