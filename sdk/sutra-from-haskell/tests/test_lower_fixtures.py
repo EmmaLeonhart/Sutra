@@ -30,6 +30,7 @@ _RUNNABLE = {
     "where_block": 31.0,  # f x = y + z where y = x+1; z = x*2; main = f 10 = 11+20
     "let_block": 18.0,  # g x = let a = x+1; b = a*2 in a + b; main = g 5 = 6+12 (sequential bind)
     "data_adt": 2.0,  # data Expr = Lit Int | Neg Int; evalE via case; evalE(Lit 7)+evalE(Neg 5) = 7+(-5)  (ADT -> tagged axon)
+    "nested_ctor_case": 16.0,  # f w = case w of Outer (Inner a b) c -> a+b+c; main = f (Outer (Inner 5 8) 3)  (NESTED ctor CASE pattern -> Axon temp for the _val0 prefix; outer tag test)
     "case_literal": 300.0,  # classify n = case n of 0->100; 1->200; _->300; classify 1 + classify 0 = 200+100  (literal-pattern case -> equality blend)
     "case_nontail": 101.0,  # f n = 1 + (case n of 0 -> 100; _ -> 200); f 0 = 1 + 100  (literal case in NON-TAIL expression position -> inline nested blend)
     "tuple_axon": 13.0,  # addPair :: (Int,Int) -> Int; addPair p = fst p + snd p; main = addPair (5, 8)  (tuple -> positional-key axon, fst/snd -> _0/_1)

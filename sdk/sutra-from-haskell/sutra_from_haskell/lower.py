@@ -296,6 +296,22 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
     max_arity = 0
     uses_variant = False
     uses_literal = False
+    # NESTED constructor payloads (`Outer (Inner a b) c -> …`) read through an `Axon`
+    # temp per non-leaf prefix, emitted into the case prelude (reading from the
+    # scrutinee). Shared across arms (a `_np` counter keeps names unique).
+    case_axon_temps: list = []
+    prefix_temp = {(): scrut_src}
+
+    def _case_axon_temp_for(prefix):
+        if prefix in prefix_temp:
+            return prefix_temp[prefix]
+        parent = _case_axon_temp_for(prefix[:-1])
+        tmp = f"_np{len(case_axon_temps)}"
+        case_axon_temps.append(
+            f'{indent}Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+        prefix_temp[prefix] = tmp
+        return tmp
+
     for alt in alts_node.named_children:
         if alt.type != "alternative":
             continue
@@ -310,13 +326,22 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
             if head.type != "constructor" or _text(head, src) not in _VARIANTS:
                 return None, "/* UNSUPPORTED-CASE: non-variant constructor pattern */"
             tag = _VARIANTS[_text(head, src)][1]
-            max_arity = max(max_arity, len(pargs))
-            for i, p in enumerate(pargs):
-                if p.type != "variable":
-                    return None, "/* UNSUPPORTED-CASE: non-variable payload pattern */"
-                binds.append((_text(p, src), f"_val{i}"))
             test = f"(_vtag == {tag})"
             uses_variant = True
+            if all(p.type == "variable" for p in pargs):
+                max_arity = max(max_arity, len(pargs))
+                for i, p in enumerate(pargs):
+                    binds.append((_text(p, src), f"_val{i}"))
+            else:
+                # NESTED ctor payload (`Outer (Inner a b) c`): read each leaf through an
+                # `Axon` temp per non-leaf prefix (`_collect_hs_ctor_paths` flattens the
+                # whole pattern to `_val{i}` key-paths; the test is still the OUTER tag).
+                paths = _collect_hs_ctor_paths(pat, src, ())
+                if paths is None:
+                    return None, "/* UNSUPPORTED-CASE: non-variable payload pattern */"
+                for keys, nm in paths:
+                    holder = _case_axon_temp_for(keys[:-1])
+                    binds.append((nm, f'realvec({holder}.item("{keys[-1]}"))'))
         elif pat.type == "constructor" and _text(pat, src) in _VARIANTS:
             test = f"(_vtag == {_VARIANTS[_text(pat, src)][1]})"
             uses_variant = True
@@ -354,6 +379,7 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
         stmts = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
         for i in range(max_arity):
             stmts += f'{indent}int _val{i} = realvec({scrut_src}.item("_val{i}"));\n'
+        stmts += "".join(case_axon_temps)   # NESTED-payload `Axon` temps (read from scrut)
     expr = parsed[-1][1]  # last arm = base (exhaustive ADT match / catch-all)
     for test, res in reversed(parsed[:-1]):
         expr = res if test is None else _blend(test, res, expr)
