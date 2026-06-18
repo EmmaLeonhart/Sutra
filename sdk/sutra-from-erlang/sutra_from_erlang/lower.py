@@ -582,10 +582,14 @@ def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
     if any(len(p[0]) != arity for p in parsed):
         return None
     base = rec = None
+    rec_guard = None
     for params, body, guard in parsed:
         sc = _contains_self_call(body, name, src)
-        if all(p.type == "var" for p in params) and guard is None and sc:
+        if all(p.type == "var" for p in params) and sc:
+            # Recursive clause: all-var params + self-call. Its guard may be None
+            # (Mode A/B catch-all recursive) or an explicit `when` guard (Mode C).
             rec = (params, body)
+            rec_guard = guard
         elif not sc:
             base = (params, body, guard)
     if base is None or rec is None:
@@ -612,15 +616,32 @@ def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
             k = _text(base_params[li], src)
             cond_src, neg_src = f"({rec_names[li]} == {k})", f"({rec_names[li]} != {k})"
             _rename([i for i in range(arity) if i != li])
-        elif (base_guard is not None
+        elif (rec_guard is None and base_guard is not None
                 and all(p.type == "var" for p in base_params)):
-            # Mode B — guarded base; the guard (under renames) is the condition.
+            # Mode B — guarded base + catch-all recursive; the base guard is the
+            # base-match condition (the loop halts when it holds).
             gcond = _guard_cond_node(base_guard, src)
             if gcond is None:
                 return None
             _rename(range(arity))
             cond_src = _lower_expr(gcond, src)
             neg_src = _negate_cond(gcond, src)
+            if "UNSUPPORTED" in cond_src or "UNSUPPORTED" in neg_src:
+                return None
+        elif (rec_guard is not None and base_guard is None
+                and all(p.type == "var" for p in base_params)):
+            # Mode C — guarded RECURSIVE clause + catch-all base
+            # (`f(N, Acc) when N > 0 -> f(N-1, Acc+N); f(_, Acc) -> Acc.`). The
+            # continue is the recursive guard directly; the catch-all base is the
+            # post-loop value. The guard references the recursive clause's param
+            # names (= rec_names), so it lowers without rename; only the base body
+            # is renamed.
+            gcond = _guard_cond_node(rec_guard, src)
+            if gcond is None:
+                return None
+            _rename(range(arity))
+            neg_src = _lower_expr(gcond, src)        # continue = recursive guard
+            cond_src = _negate_cond(gcond, src)
             if "UNSUPPORTED" in cond_src or "UNSUPPORTED" in neg_src:
                 return None
         else:

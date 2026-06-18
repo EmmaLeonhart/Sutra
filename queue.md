@@ -89,11 +89,10 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   multibase (CPS fold over multiple bases); mutually-recursive / forward `where`/`let`; a VARIANT
   `case` in expression position (the int-local-in-expression-position codegen limit — shared with the
   dropped Rust variant-match; non-trivial). Laziness out of scope.
-- [ ] **Elixir / Erlang** — multi-literal-base TAIL recursion DONE 2026-06-18
-  (`_try_lower_multibase_multiclause_recursion` in both, `multibase_tailsum` fixtures RUN == 105).
-  Remaining: >2-clause NON-tail multibase (CPS fold); GUARDED >2-clause multibase (mixed literal +
-  `when` bases); Erlang list comprehensions. (Erlang `div`/`rem` + Elixir `is_integer` guards
-  shipped/deferred 2026-06-18.)
+- [ ] **Elixir / Erlang** — multi-literal-base TAIL recursion + GUARDED RECURSIVE clause (Mode C:
+  `f(N,Acc) when N>0 -> f(...); f(_,Acc) -> Acc`) DONE 2026-06-18 (both; fixtures `multibase_tailsum`
+  / `guarded_rec_clause` RUN == 105 / 15). Remaining: >2-clause NON-tail multibase (CPS fold);
+  GUARDED >2-clause multibase (mixed literal + `when` bases); Erlang list comprehensions.
 - [ ] **Clojure** — maps/vectors in recursive bodies. (Symbol/keyword-as-value rep is §0.5.)
 - [ ] **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH**
   arm (`match s with Some { x; y } -> … | None -> …` — the option-match codegen binds the payload as a
