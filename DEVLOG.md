@@ -10950,3 +10950,21 @@ Fixture `nested_tuple_let` (`f t = let (a, (b, c)) = t in a+b+c; f (5, (8, 3))`)
 `tuple_destructure`=13, `ctor_destructure`=13 — flat let-tuple/ctor paths unregressed). Remaining on
 Haskell: nested CONSTRUCTOR `let` patterns; nested/non-variable `case` patterns; multi-equation/guarded
 recursion (the >2-guard form is blocked by the single-condition halt); mutually-recursive `where`/`let`.
+
+## 2026-06-18 — sutra-from-haskell: nested CONSTRUCTOR `let` patterns `let (Outer (Inner a b) c) = w` ship (== 16)
+
+Phase 6, Haskell item — companion to today's nested-tuple-let. A nested constructor `let` pattern
+previously left its payload names unbound (same silent defect). The Axon-temp read machinery was
+extracted into a shared `_emit_hs_nested_reads(val_src, paths, bound)` (one `Axon` temp per non-leaf
+prefix in `_DESTRUCTURE_PRELUDE`); both the tuple- and constructor-`let` destructures use it. New
+`_collect_hs_ctor_paths` recursively flattens a constructor pattern to `_val{i}` key-paths, recursing
+into a payload that is itself a `(parens`-wrapped`) apply` constructor.
+
+MEASURED: the `_val0`/`_val1` keys read CLEAN at the default `runtime_dim=50` (`nested_ctor_let`=16 at
+both dim 50 and 128) — unlike Scala's 1-based `_1`/`_2` tuple keys (finding
+`2026-06-17-nested-axon-readout-crosstalk`), so no dim bump is needed here. Fixture `nested_ctor_let`
+(`data Inner=Inner Int Int; data Outer=Outer Inner Int; f w=let (Outer (Inner a b) c)=w in a+b+c;
+f (Outer (Inner 5 8) 3)`) runs == **16**. Haskell suite: 40 passed (lower-only clean + `nested_ctor_let`=16,
+`ctor_destructure`=13, `nested_tuple_let`=16, `data_adt`=2 — flat ctor + variant-match paths
+unregressed). Remaining on Haskell: nested/non-variable `case` patterns; multi-equation/guarded
+recursion (>2-guard blocked by the single-condition halt); mutually-recursive `where`/`let`.

@@ -65,6 +65,57 @@ def _text(node, src: bytes) -> str:
     return src[node.start_byte:node.end_byte].decode("utf-8")
 
 
+def _emit_hs_nested_reads(val_src: str, paths, bound: list) -> None:
+    """For each `(path_keys, name)` in `paths`, bind `name` (in `_SUBST`, appending to
+    `bound`) to `realvec(<holder>.item("<leaf>"))`, emitting one `Axon` temp per non-leaf
+    prefix to `_DESTRUCTURE_PRELUDE` (shared across siblings). Chaining `.item()` on a raw
+    tensor fails, so non-leaf hops go through an `Axon` temp. Shared by the nested tuple-
+    and constructor-`let`-pattern destructures."""
+    prefix_temp = {(): val_src}
+
+    def _temp_for(prefix):
+        if prefix in prefix_temp:
+            return prefix_temp[prefix]
+        parent = _temp_for(prefix[:-1])
+        tmp = f"_np{len(_DESTRUCTURE_PRELUDE)}"
+        _DESTRUCTURE_PRELUDE.append(f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+        prefix_temp[prefix] = tmp
+        return tmp
+
+    for keys, nm in paths:
+        holder = _temp_for(keys[:-1])
+        _SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
+        bound.append(nm)
+
+
+def _collect_hs_ctor_paths(cpat, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) constructor pattern `(Ctor p…)` into [(path_keys,
+    name), …] over `_val{i}` keys. A `variable` payload is a leaf; a payload that is a
+    nested constructor `(Inner a b)` (a `parens`-wrapped `apply`) recurses
+    (`(Outer (Inner a b) c)` → `[(("_val0","_val0"),"a"), (("_val0","_val1"),"b"),
+    (("_val1",),"c")]`). Any other payload shape → None. `cpat` is the `apply` spine."""
+    chead, pargs = _flatten_apply(cpat, src)
+    if chead.type != "constructor" or _text(chead, src) not in _VARIANTS or not pargs:
+        return None
+    out: list = []
+    for i, pv in enumerate(pargs):
+        key = f"_val{i}"
+        if pv.type == "variable":
+            out.append((prefix + (key,), _text(pv, src)))
+        else:
+            inner = pv
+            if inner.type == "parens" and inner.named_children:
+                inner = inner.named_children[0]
+            if inner.type == "apply":
+                sub = _collect_hs_ctor_paths(inner, src, prefix + (key,))
+                if sub is None:
+                    return None
+                out.extend(sub)
+            else:
+                return None
+    return out
+
+
 def _collect_hs_tuple_paths(tup, src: bytes, prefix: tuple):
     """Flatten a (possibly NESTED) Haskell `tuple` pattern into [(path_keys, name), …],
     where `path_keys` is the chain of 0-based positional axon keys (`_0`, `_1`, …). A
@@ -601,41 +652,23 @@ def _apply_local_binds(local_binds, src: bytes) -> list[str]:
             # `name.item(...)` is the axon-method form the compiler dispatches.
             if not val_src.isidentifier():
                 continue
-            prefix_temp = {(): val_src}
-
-            def _tup_temp_for(prefix):
-                if prefix in prefix_temp:
-                    return prefix_temp[prefix]
-                parent = _tup_temp_for(prefix[:-1])
-                tmp = f"_np{len(_DESTRUCTURE_PRELUDE)}"
-                _DESTRUCTURE_PRELUDE.append(
-                    f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
-                prefix_temp[prefix] = tmp
-                return tmp
-
-            for keys, nm in paths:
-                holder = _tup_temp_for(keys[:-1])
-                _SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
-                bound.append(nm)
+            _emit_hs_nested_reads(val_src, paths, bound)
             continue
-        # `(Ctor a b) = w` — single-constructor ADT destructure: each payload
-        # variable reads the tagged-axon field `realvec(w.item("_val{i}"))` (the
-        # `case`-arm payload-bind shape). The pattern is a `parens` wrapping the
-        # constructor `apply` spine; only `variable` payloads are in scope.
+        # `(Ctor a b) = w` — single-constructor ADT destructure: each payload variable
+        # reads the tagged-axon field `realvec(w.item("_val{i}"))` (the `case`-arm
+        # payload-bind shape). NESTED constructor patterns (`(Outer (Inner a b) c) = w`)
+        # read through an `Axon` temp per non-leaf prefix. The pattern is a `parens`
+        # wrapping the constructor `apply` spine.
         cpat = first
         if cpat is not None and cpat.type == "parens" and cpat.named_children:
             cpat = cpat.named_children[0]
         if cpat is not None and cpat.type == "apply":
-            chead, pargs = _flatten_apply(cpat, src)
-            if (chead.type == "constructor" and _text(chead, src) in _VARIANTS
-                    and pargs and all(a.type == "variable" for a in pargs)):
+            cpaths = _collect_hs_ctor_paths(cpat, src, ())
+            if cpaths is not None:
                 val = _match_body(b, src)
                 val_src = _lower_expr(val, src) if val is not None else ""
                 if val is not None and val_src.isidentifier():
-                    for i, pv in enumerate(pargs):
-                        nm = _text(pv, src)
-                        _SUBST[nm] = f'realvec({val_src}.item("_val{i}"))'
-                        bound.append(nm)
+                    _emit_hs_nested_reads(val_src, cpaths, bound)
                     continue
         name_node = next((c for c in b.named_children if c.type == "variable"), None)
         val = _match_body(b, src)  # the bind's `match` (= expr) body
