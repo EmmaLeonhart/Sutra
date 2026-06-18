@@ -154,7 +154,53 @@ Completed WASM items live in `WASM/devlog.md`. Overview `docs/neural-webassembly
 
 ---
 
-## Background / not active work
+## thing to do about quantum computing
+
+Here's something Claude said about quantum computing
+
+please explore all of it. implement these languages and try things out with these emulators
+
+organize this into a  set of tasks with all the executable things as tasks and work through them like normal queue items. exploratory but serious attempts at all of them as long as the software is accessible
+
+Great question with an interesting answer — the relationship is nuanced.
+
+Quantum computing and functional programming
+
+Natural fits:
+
+	•	Quantum algorithms are inherently mathematical and compositional — you’re composing unitary transformations, which maps well onto function composition
+	•	No side effects on quantum state (until measurement), which resonates with pure FP
+	•	Languages like Q# and Silq already lean into functional idioms — pattern matching, strong typing, immutability of quantum state mid-circuit
+
+Tensions:
+
+	•	Quantum computing is fundamentally not referentially transparent at measurement — measurement collapses state and is irreversible, which is a side effect
+	•	You can’t clone quantum state (no-cloning theorem), which breaks assumptions that FP often makes about values being freely copyable
+	•	Most quantum algorithms aren’t “better” for arbitrary computation — they exploit interference and superposition for specific problem structures (factoring, search, simulation)
+
+Emulators worth trying
+
+Yes, absolutely — several good options:
+
+Qiskit (IBM, Python) — most mature ecosystem, includes a statevector simulator. You can run circuits locally without any quantum hardware.
+
+Cirq (Google, Python) — cleaner API IMO, good simulator, targets near-term hardware well.
+
+PennyLane — best if you care about differentiable quantum circuits, which given Sutra’s differentiable-everything thesis might interest you specifically.
+
+Quirk — browser-based visual circuit builder, great for intuition before writing code.
+
+Q# + Azure Quantum — if you want the most FP-native syntax, Q# feels closest to a functional language and has a local simulator.
+
+Given your work on Sutra
+
+There’s actually a potentially interesting angle here: quantum circuits are differentiable tensor graphs with a very constrained structure (unitary matrices). The way PennyLane treats quantum circuits as differentiable programs is conceptually close to what Sutra does with its forward pass. You might find the variational quantum eigensolver (VQE) paradigm — parameterized circuits trained by gradient descent — resonates with your architecture more than “classic” quantum algorithms like Shor’s.
+
+Qiskit or PennyLane would be my starting recommendation for actually getting hands-on.
+
+
+
+## Please actually do this work why was it paused
 
 - **W2C/corpus:** 7200 programs (submodule `corpus/` + HF mirror); baseline model PUBLISHED
   (exact 0.811 / IO 0.826). Scale = one-flag bump → push submodule → HF mirror → bump pointer.
