@@ -247,12 +247,218 @@ def synthesize_ram_memo_source(shape: TabulableShape) -> Optional[str]:
     )
 
 
+# ----------------------------------------------------------------------------------------------
+# Multi-argument DP (the "complicated form", v0.8.0 serious attempt). A 2-argument recurrence
+#
+#     function int f(int a, int b) {
+#         if (<b == 0>)  { return C0; }       # >= 1 boundary `if (cond) return <int const>;` (no else)
+#         if (<b == a>)  { return C1; }
+#         return f(a-1, b-1) + f(a-1, b) [+ …];   # >= 1 recursive term, EVERY term decreasing `a`
+#     }
+#
+# is the binomial / Pascal family. It compiles to a single RAM-memo `while_loop` that fills a
+# (n+1)x(n+1) row-major table (base address 100, cell (row,col) at 100 + row*(n+1) + col), row
+# outer / col inner, the col counter wrapped by a substrate blend (no Math.mod), each boundary
+# applied by a nested blend `(((1+flag)*const) + ((1-flag)*else))/2`, and the recurrence terms read
+# from RAM. This is the hand-proven Pascal loop (test_native_recursion.py, 2026-06-17) generalized
+# over the detected boundaries + offsets + coeffs. Conservative: every recursive term MUST decrease
+# the first param by >= 1 (so row i depends only on rows < i, making the row-major fill well-founded)
+# and the second-param offsets MUST be >= 0; anything else returns None (left to the agenda+memo
+# form or to WASM). Cap: the fill is (n+1)^2 cells, so practical to the `loop_max_iterations` budget
+# (default 50 -> n <= 6); larger n needs `[project.compile] loop_max_iterations` raised.
+
+class Tabulable2DShape(NamedTuple):
+    p0: str                    # first (outer / row) integer param — decreased by every term
+    p1: str                    # second (inner / col) integer param
+    boundaries: tuple          # ((flag_su_expr:str, const:int), …) — base cases, applied as blends
+    coeffs: tuple              # per-term coefficients
+    offsets: tuple             # per-term (da, db): f(p0-da, p1-db), da>=1, db>=0
+    func: object               # the FunctionDecl node
+
+
+def _recursive_call_offset_2d(call, p0: str, p1: str, fname: str):
+    """If `call` is `f(p0 - DA, p1 - DB)` with DA>=1, DB>=0 constant int literals (a bare `p` counts
+    as offset 0), return (DA, DB); else None."""
+    if _name(call) != "Call" or _name(call.callee) != "Identifier" or call.callee.name != fname:
+        return None
+    if len(call.args) != 2:
+        return None
+
+    def _axis_offset(arg, param):
+        # `param`            -> offset 0
+        if _name(arg) == "Identifier" and arg.name == param:
+            return 0
+        # `param - C`        -> offset C (C a non-negative int literal)
+        if (_name(arg) == "BinaryOp" and arg.op == "-"
+                and _name(arg.left) == "Identifier" and arg.left.name == param
+                and _name(arg.right) == "IntLiteral" and arg.right.value >= 0):
+            return arg.right.value
+        return None
+
+    da = _axis_offset(call.args[0], p0)
+    db = _axis_offset(call.args[1], p1)
+    if da is None or db is None or da < 1 or db < 0:
+        return None
+    return (da, db)
+
+
+def _recursive_term_2d(term, p0: str, p1: str, fname: str):
+    """`f(p0-DA,p1-DB)`, `K*f(…)`, or `f(…)*K` -> (coeff, da, db); else None."""
+    off = _recursive_call_offset_2d(term, p0, p1, fname)
+    if off is not None:
+        return (1, off[0], off[1])
+    if _name(term) == "BinaryOp" and term.op == "*":
+        for a, b in ((term.left, term.right), (term.right, term.left)):
+            if _name(a) == "IntLiteral" and a.value > 0:
+                off = _recursive_call_offset_2d(b, p0, p1, fname)
+                if off is not None:
+                    return (a.value, off[0], off[1])
+    return None
+
+
+def _boundary_flag(cond, p0: str, p1: str):
+    """Map a base-case condition to a substrate flag-expr over the loop's `_row`/`_col` counters
+    (row<->p0, col<->p1). Returns the Sutra expr string (a ±1 `truth_axis(defuzzy(...))` flag) or
+    None if the condition is outside the recognized set. Boundary-clean comparisons only:
+    `col == 0` via the even/odd `(2*col) < 1`; `col == row`/`row == col` via crisp `==` (the proven
+    loop uses crisp `==` for the diagonal); a literal `col == K` via crisp `==`."""
+    if _name(cond) != "BinaryOp":
+        return None
+    op, L, R = cond.op, cond.left, cond.right
+
+    def is_id(x, nm):
+        return _name(x) == "Identifier" and x.name == nm
+    def is_int(x, v=None):
+        return _name(x) == "IntLiteral" and (v is None or x.value == v)
+
+    # col == 0  /  col < 1  /  col <= 0   (the second param hits its low edge)
+    if op == "==" and is_id(L, p1) and is_int(R, 0):
+        return "truth_axis(defuzzy((2 * _dp_col) < 1))"
+    if op == "<" and is_id(L, p1) and is_int(R, 1):
+        return "truth_axis(defuzzy((2 * _dp_col) < 1))"
+    if op == "<=" and is_id(L, p1) and is_int(R, 0):
+        return "truth_axis(defuzzy((2 * _dp_col) < 1))"
+    # col == row / row == col  (the diagonal)
+    if op == "==" and ((is_id(L, p1) and is_id(R, p0)) or (is_id(L, p0) and is_id(R, p1))):
+        return "truth_axis(defuzzy(_dp_col == _dp_row))"
+    # col == K  (a constant diagonal/edge)
+    if op == "==" and is_id(L, p1) and is_int(R):
+        return f"truth_axis(defuzzy(_dp_col == {R.value}))"
+    return None
+
+
+def detect_2arg_dp(fdecl):
+    """Return a Tabulable2DShape if `fdecl` is the 2-arg binomial/Pascal-family DP, else None.
+    Shape: 2 int params; >= 1 leading boundary `if (cond) return <int const>;` (no else, each cond
+    recognized by `_boundary_flag`); then a final `return` summing >= 1 recursive term, EVERY term
+    decreasing the first param by >= 1. Conservative — unrecognized shapes return None."""
+    if _name(fdecl) != "FunctionDecl" or fdecl.body is None:
+        return None
+    if len(fdecl.params) != 2:
+        return None
+    p0, p1 = fdecl.params[0].name, fdecl.params[1].name
+    fname = fdecl.name
+    stmts = fdecl.body.statements
+    if len(stmts) < 2:
+        return None
+    *bnd_ifs, rec_ret = stmts
+    if _name(rec_ret) != "ReturnStmt" or rec_ret.value is None:
+        return None
+    boundaries = []
+    for s in bnd_ifs:
+        if _name(s) != "IfStmt" or s.else_branch is not None:
+            return None
+        then = s.then_branch.statements
+        if len(then) != 1 or _name(then[0]) != "ReturnStmt" or then[0].value is None:
+            return None
+        cval = then[0].value
+        if _name(cval) != "IntLiteral" or _contains_call_to(cval, fname):
+            return None
+        flag = _boundary_flag(s.condition, p0, p1)
+        if flag is None:
+            return None
+        boundaries.append((flag, cval.value))
+    if not boundaries:
+        return None  # no base case -> not a well-founded DP we can seed
+    terms = _sum_terms(rec_ret.value)
+    coeffs, offsets = [], []
+    for t in terms:
+        ct = _recursive_term_2d(t, p0, p1, fname)
+        if ct is None:
+            return None  # a non-recursive / non-decreasing term -> not this shape
+        coeffs.append(ct[0])
+        offsets.append((ct[1], ct[2]))
+    if not offsets:
+        return None
+    return Tabulable2DShape(p0=p0, p1=p1, boundaries=tuple(boundaries),
+                            coeffs=tuple(coeffs), offsets=tuple(offsets), func=fdecl)
+
+
+def synthesize_2arg_dp_source(shape: Tabulable2DShape):
+    """Emit non-recursive Sutra source for `shape` as a RAM-memo `while_loop` filling a (n+1)x(n+1)
+    row-major table (base 100), row outer / col inner, col wrapped by an even/odd blend (no
+    Math.mod), each boundary applied by a nested blend, the recurrence read from RAM. The proven
+    Pascal loop generalized over the detected boundaries/coeffs/offsets. Returns the source string."""
+    p0, p1 = shape.p0, shape.p1
+    f = shape.func.name
+    # All synthesized loop vars use a `_dp_` prefix: it dodges the codegen's reserved single-letter
+    # underscore names (the unroll counter `_t`, `_step`, …) AND is distinctive enough not to collide
+    # with the user's param names p0/p1.
+    # interior recurrence: Σ coeff * ramRead(100 + (row-da)*W + (col-db))
+    parts = []
+    for coeff, (da, db) in zip(shape.coeffs, shape.offsets):
+        addr = f"100 + (_dp_row - {da}) * _dp_w + (_dp_col - {db})"
+        r = f"ramRead({addr})"
+        parts.append(r if coeff == 1 else f"{coeff} * {r}")
+    interior = " + ".join(parts)
+    # boundary blend chain: cval = b0 ? c0 : (b1 ? c1 : interior)  (innermost = interior)
+    expr = "_dp_interior"
+    blend_lines = [f"    int _dp_interior = {interior};\n"]
+    for idx, (flag, const) in enumerate(reversed(shape.boundaries)):
+        fv = f"_dp_bf{len(shape.boundaries) - 1 - idx}"
+        blend_lines.append(f"    int {fv} = {flag};\n")
+        expr = f"(((1 + {fv}) * {const}) + ((1 - {fv}) * ({expr}))) / 2"
+    blend_lines.append(f"    int _dp_cval = {expr};\n")
+    body = "".join(blend_lines)
+    loop = f"_dploop_{f}"
+    return (
+        f"while_loop {loop}(_dp_i < _dp_t, int _dp_i = 0, int _dp_row = 0, int _dp_col = 0, "
+        f"int _dp_t = 0, int _dp_n = 0, int _dp_w = 0) {{\n"
+        f"{body}"
+        f"    ramWrite(100 + _dp_row * _dp_w + _dp_col, _dp_cval);\n"
+        f"    int _dp_atend = truth_axis(defuzzy((2 * _dp_col) > (2 * _dp_n - 1)));\n"
+        f"    int _dp_newcol = (((1 + _dp_atend) * 0) + ((1 - _dp_atend) * (_dp_col + 1))) / 2;\n"
+        f"    int _dp_winc = (_dp_atend + 1) / 2;\n"
+        f"    _dp_col = _dp_newcol;\n"
+        f"    _dp_row = _dp_row + _dp_winc;\n"
+        f"    _dp_i = _dp_i + 1;\n"
+        f"}}\n"
+        f"function int {f}(int {p0}, int {p1}) {{\n"
+        f"    int _dp_i = 0; int _dp_row = 0; int _dp_col = 0;\n"
+        f"    int _dp_w = {p0} + 1;\n"
+        f"    int _dp_t = ({p0} + 1) * ({p0} + 1);\n"
+        f"    int _dp_n = {p0};\n"
+        f"    slot int _dp_si = _dp_i; slot int _dp_sr = _dp_row; slot int _dp_sc = _dp_col;\n"
+        f"    slot int _dp_st = _dp_t; slot int _dp_sn = _dp_n; slot int _dp_sw = _dp_w;\n"
+        f"    loop {loop}(_dp_i < _dp_t, _dp_si, _dp_sr, _dp_sc, _dp_st, _dp_sn, _dp_sw);\n"
+        f"    return ramRead(100 + {p0} * _dp_w + {p1});\n"
+        f"}}\n"
+    )
+
+
 def tabulate_module(module):
-    """Rewrite every tabulable multiple-recursive FunctionDecl in `module` into its memoizing
-    `while_loop` form (a `while_loop` decl + a non-recursive function), in place. Returns the
-    module. Conservative: a function that doesn't detect+synthesize is left untouched."""
+    """Rewrite every tabulable recursive FunctionDecl in `module` into its memoizing `while_loop`
+    form (a `while_loop` decl + a non-recursive function), in place. Returns the module. Handles
+    both the single-index fib family (`detect_tabulable_recursion`) and the 2-arg binomial/Pascal
+    DP family (`detect_2arg_dp`). Conservative: a function that doesn't detect+synthesize is left
+    untouched."""
     from .lexer import Lexer
     from .parser import Parser
+
+    def _parse_replacement(src, tag):
+        lx = Lexer(src, file=tag)
+        sub = Parser(lx.tokenize(), file=tag, diagnostics=lx.diagnostics).parse_module()
+        return None if lx.diagnostics.has_errors() else sub.items
 
     new_items = []
     for it in module.items:
@@ -261,11 +467,17 @@ def tabulate_module(module):
             if shape is not None:
                 src = synthesize_tabulation_source(shape)
                 if src is not None:
-                    lx = Lexer(src, file=f"<tabulate:{it.name}>")
-                    sub = Parser(lx.tokenize(), file=f"<tabulate:{it.name}>",
-                                 diagnostics=lx.diagnostics).parse_module()
-                    if not lx.diagnostics.has_errors():
-                        new_items.extend(sub.items)   # the while_loop decl + the new function
+                    items = _parse_replacement(src, f"<tabulate:{it.name}>")
+                    if items is not None:
+                        new_items.extend(items)   # the while_loop decl + the new function
+                        continue
+            shape2 = detect_2arg_dp(it)
+            if shape2 is not None:
+                src = synthesize_2arg_dp_source(shape2)
+                if src is not None:
+                    items = _parse_replacement(src, f"<tabulate2d:{it.name}>")
+                    if items is not None:
+                        new_items.extend(items)
                         continue
         new_items.append(it)
     module.items = new_items
