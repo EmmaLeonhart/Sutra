@@ -11018,3 +11018,18 @@ Fixture `nested_caseclass_destructure` (`case class Inner(x,y), Outer(inner,z); 
 (a,b),c)=o; a+b+c}; sum(Outer(Inner(5,8),3))`) runs == **16**. Scala suite: 18 passed (lower-only clean
 + `nested_caseclass_destructure`=16, `caseclass_destructure`=13, `caseclass_match`=13 — flat case-class
 paths unregressed). The Scala frontend item is now fully drained — only general breadth remains.
+
+## 2026-06-18 — sutra-from-elixir: STRING-key arrow-map PATTERN params `def sum2(%{"x" => a, "y" => b})` ship (== 13)
+
+Phase 6, Elixir item. A string-key arrow-map pattern in a function head previously surfaced UNSUPPORTED
+(the param handler only did atom-key shorthand `%{x: a}`). Now it reuses `_map_fields` — which already
+handles BOTH the atom-shorthand (`keywords`/`pair`) and the string-key arrow form (`map_content →
+binary_operator(string => local)`) for value maps — plus an identifier-local check; each pair binds its
+local to `realvec(_ai.item("x"))`. A string-keyed and an atom-keyed map are structurally the same
+named-field axon, so the same `.item("x")` projection works.
+
+Fixture `string_map_param` (`def sum2(%{"x" => a, "y" => b}) = a + b; sum2(%{"x" => 5, "y" => 8})`) runs
+on the substrate == **13**. Elixir suite: 46 passed (lower-only clean + `string_map_param`=13,
+`map_param`=13, `string_map_axon`=13 — the atom-key param + string-key VALUE-map paths unregressed).
+Remaining on Elixir: multi-clause heads with recursion; `is_integer` type-test guards (dubious on the
+substrate — needs a design call).
