@@ -48,6 +48,7 @@ _RUNNABLE = {
     "multiclause_fact": 120.0,  # fac(0) -> 1; fac(N) -> N * fac(N-1); main() -> fac(5)  (multi-clause pattern recursion -> synthesized (N==0) cond -> CPS fold loop)
     "multiclause_tailsum": 15.0,  # sum(0, Acc) -> Acc; sum(N, Acc) -> sum(N-1, Acc+N); main() -> sum(5, 0)  (multi-PARAM multi-clause tail recursion -> while_loop)
     "guarded_fact": 120.0,  # fac(N) when N == 0 -> 1; fac(N) -> N * fac(N-1); main() -> fac(5)  (GUARDED-base multi-clause recursion -> guard as cond -> CPS fold loop)
+    "multibase_tailsum": 105.0,  # f(0,Acc)->Acc; f(1,Acc)->Acc+100; f(N,Acc)->f(N-1,Acc+N); f(3,0)=105  (>2-CLAUSE multi-literal-base tail recursion: continue = (N!=0)&&(N!=1) compound halt [§0.3], post-loop = nested blend of base bodies on final state)
 }
 
 
