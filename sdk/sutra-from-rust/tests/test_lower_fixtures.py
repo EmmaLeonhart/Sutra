@@ -26,6 +26,7 @@ _RUNNABLE = {
     "let_block": 17.0,  # let y = x + 1; let z = y * 2; z + x  at x=5
     "enum_match": 2.0,  # enum Expr -> tagged axon; eval(Lit 7)=7 + eval(Neg 5)=-5
     "if_let_enum": 13.0,  # if let Shape::Circle(r) = s { r+1 } else { 0 }; radius(Circle(12))  (if-let enum destructure -> int _vtag tag test [crisp at 0] + _val0 bind)
+    "nested_match_tail_arm": 5.0,  # match e { A(x) => match n { 0 => x, _ => x+1 }, B(y) => y }; f(A(5),0)=5  (LITERAL inner match in a tail-match arm -> inline blend)
     "tail_rec": 15.0,  # fn sum_to(acc, n) { if n==0 { acc } else { sum_to(acc+n, n-1) } }; sum_to(0, 5)
     "nontail_fact": 120.0,  # fn fact(n) { if n==0 { 1 } else { n * fact(n-1) } }; fact(5)  (CPS fold)
     "struct_axon": 12.0,  # struct Point -> axon; getx(a{7,9})=7 + sum2(Point{2,3})=5
