@@ -136,11 +136,11 @@ _RUNNABLE_FIXTURES = {
     "tuple_destructure": 13.0,  # add_pair (t: int*int) = let (a, b) = t in a + b; main = add_pair (5, 8)  (let-tuple-pattern -> realvec(item _0/_1))
     "record_destructure": 13.0,  # type point={x;y}; sum (p) = let { x; y } = p in x + y; main = sum {x=5;y=8}  (let-record-pattern, punned -> realvec(item x/y))
     "du_destructure": 13.0,  # type box = Box of int; unbox (b) = let (Box x) = b in x + 1; main = unbox (Box 12)  (let-DU-pattern, single payload -> realvec(item _val))
-    "nested_tuple_destructure": 16.0,  # f (t: int*(int*int)) = let (a, (b, c)) = t in a+b+c; f (5, (8, 3))  (NESTED tuple let: nested-axon construction + Axon temp for the _1 prefix)
-    "nested_record_destructure": 13.0,  # f (o: outer) = let { a; inr = { v } } = o in a + v; f {a=5; inr={v=8}}  (NESTED record let: nested-axon construction + Axon temp for the inr prefix; field-name keys read clean at dim 50)
-    "nested_variant_destructure": 13.0,  # f (w: wrap) = let (Wrap { v }) = w in v + 1; f (Wrap {v=12})  (NESTED variant let: ctor wrapping a record -> _val prefix + Axon temp; _emit_variant_construction recurses, _ocaml_variant_let returns _val/_val{i} path keys)
-    "record_in_tuple": 16.0,  # f (t: int*pt) = let (a, { x; y }) = t in a+x+y; f (5, {x=8;y=3})  (MIXED: record nested inside a tuple pattern; _ocaml_tuple_paths cross-calls _ocaml_record_paths)
-    "tuple_in_record": 16.0,  # g (r: pt) = let { a; pos = (x, y) } = r in a+x+y; g {a=5; pos=(8,3)}  (MIXED: tuple nested inside a record pattern; _ocaml_record_paths cross-calls _ocaml_tuple_paths)
+    "nested_tuple_destructure": (16.0, 256),  # f (t: int*(int*int)) = let (a, (b, c)) = t in a+b+c; f (5, (8, 3))  (NESTED tuple let: nested-axon construction + Axon temp for the _1 prefix; dim>=256, finding 2026-06-17)
+    "nested_record_destructure": (13.0, 256),  # f (o: outer) = let { a; inr = { v } } = o in a + v; f {a=5; inr={v=8}}  (NESTED record let: nested-axon construction + Axon temp for the inr prefix; dim>=256, finding 2026-06-17)
+    "nested_variant_destructure": (13.0, 256),  # f (w: wrap) = let (Wrap { v }) = w in v + 1; f (Wrap {v=12})  (NESTED variant let: ctor wrapping a record -> _val prefix + Axon temp; dim>=256, finding 2026-06-17)
+    "record_in_tuple": (16.0, 256),  # f (t: int*pt) = let (a, { x; y }) = t in a+x+y; f (5, {x=8;y=3})  (MIXED: record nested inside a tuple pattern; _ocaml_tuple_paths cross-calls _ocaml_record_paths; dim>=256, finding 2026-06-17)
+    "tuple_in_record": (16.0, 256),  # g (r: pt) = let { a; pos = (x, y) } = r in a+x+y; g {a=5; pos=(8,3)}  (MIXED: tuple nested inside a record pattern; _ocaml_record_paths cross-calls _ocaml_tuple_paths; dim>=256, finding 2026-06-17)
     "tail_rec_sum": 15.0,  # main () = sum_to 0 5  (tail rec -> while_loop)
     "tail_rec_swap": 7.0,  # main () = swaploop 7 9 2  (simultaneous update via temps)
     "match_lit": 200.0,    # main () = classify 1  (match -> nested defuzz blend)
@@ -213,8 +213,8 @@ def _extract_result(out: str) -> float:
     return float(m.group(1))
 
 
-@pytest.mark.parametrize("fixture_name,expected", sorted(_RUNNABLE_FIXTURES.items()))
-def test_fixture_runs_on_substrate(tmp_path, fixture_name, expected):
+@pytest.mark.parametrize("fixture_name,spec", sorted(_RUNNABLE_FIXTURES.items()))
+def test_fixture_runs_on_substrate(tmp_path, fixture_name, spec):
     """Transpile a fixture with a callable entry → `.su`, then run it on
     the real Sutra substrate (PyTorch codegen via `sutrac --run`) and
     assert `main()` matches ground truth. The "compile AND run AND
@@ -222,17 +222,26 @@ def test_fixture_runs_on_substrate(tmp_path, fixture_name, expected):
 
     Skipped when torch is unavailable (the substrate runtime needs it),
     so CI without the heavy runtime stays green instead of failing.
+
+    A spec is either a bare expected float (default runtime_dim) or an
+    (expected, runtime_dim) tuple. Nested-axon fixtures run at runtime_dim
+    >= 256 so reads don't depend on key sets reading clean at the default
+    dim 50 by luck (finding 2026-06-17-nested-axon-readout-crosstalk-...).
     """
     pytest.importorskip("torch")
     import subprocess
 
+    expected, dim = spec if isinstance(spec, tuple) else (spec, None)
     fixture = FIXTURE_DIR / fixture_name / "input.ml"
     sutra_src = lower(fixture.read_text(encoding="utf-8"), source_path=fixture)
     su_path = tmp_path / f"{fixture_name}.su"
     su_path.write_text(sutra_src, encoding="utf-8")
 
+    cmd = [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)]
+    if dim is not None:
+        cmd += ["--runtime-dim", str(dim)]
     proc = subprocess.run(
-        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
+        cmd,
         capture_output=True,
         text=True,
     )
