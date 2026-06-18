@@ -155,7 +155,11 @@ Completed WASM items live in `WASM/devlog.md`. Overview `docs/neural-webassembly
 
 ---
 
-## 1. Quantum computing × Sutra (Emma 2026-06-18 — exploratory but serious)
+## 9. Quantum computing × Sutra — LOWEST priority, exploratory (Emma 2026-06-18)
+
+**Bottom of the queue on purpose** (Emma's explicit placement): do this ONLY after all the
+functional-programming / transpiler long-tail (§4) and every other deferred item above is done.
+Exploratory, not a priority. Q1–Q3 were done early by misreading the placement; the rest waits.
 
 Emma's braindump (quantum ↔ FP, emulators worth trying, the Sutra differentiable-circuit
 angle) is organized here as executable tasks; the conceptual content + measured results live
