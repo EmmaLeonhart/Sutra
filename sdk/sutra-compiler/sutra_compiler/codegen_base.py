@@ -2861,8 +2861,17 @@ class BaseCodegen:
     # + tanh rather than cosine similarity (which doesn't distinguish
     # well between values that share direction but differ in
     # magnitude — `1` and `2` are cosine-similar but Euclidean-far).
+    # The capitalised class spellings `String`/`Character` are the
+    # user-facing types (the lowercase forms are the primitive aliases);
+    # both must route `==`/`!=` through eq_synthetic. Without `String`/
+    # `Character` here a var explicitly typed `String` fell to the cosine
+    # `eq` path, which cannot separate two short strings (measured
+    # cos("foo","bar")=0.998) — so string equality silently mis-blended.
+    # The codegen already treats `("string","String","Character")` together
+    # for return-type handling; this set was the one place missing them.
     _SYNTHETIC_AXIS_TYPES = frozenset(
-        {"int", "float", "complex", "number", "scalar", "char", "string"}
+        {"int", "float", "complex", "number", "scalar",
+         "char", "Character", "string", "String"}
     )
 
     def _is_synthetic_axis_expr(self, expr: ast.Expr) -> bool:
