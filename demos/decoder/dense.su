@@ -23,6 +23,15 @@ function vector dense_cube(vector W, vector x, vector b) {
     return hadamard(hadamard(h, h), h);
 }
 
+// SIREN-style activated variant: a SIN nonlinearity, now that `sin_buf` makes sin elementwise
+// over an activation buffer (compiler primitive, 2026-06-17 — the D1 finding above is what
+// blocked this until now). h = sin(matmul(W,x) + b), the activation running on the substrate
+// (sin_buf = periodic table readout, autograd-preserving). The SIREN frequency ω is folded into
+// W at init (the standard trick), so the layer body itself is just sin of the affine map.
+function vector dense_sin(vector W, vector x, vector b) {
+    return sin_buf(matmul(W, x) + b);
+}
+
 // Self-contained sanity: tanh(1) = 0.7616 (matmul of matrices is exercised via the host
 // wrapper / tests, where W,x,b are real torch tensors — `.su` literals are scalars only).
 function vector main() {
