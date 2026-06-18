@@ -11069,3 +11069,16 @@ Fixture `bool_case` (`f b = case b of True -> 10; False -> 20; main = f True`) r
 `data_adt`=2, `case_literal`=300 — the variant + integer-literal case paths unregressed). Remaining on
 Haskell: multi-equation/guarded recursion (>2-guard blocked by the single-condition halt);
 mutually-recursive `where`/`let`.
+
+## 2026-06-18 — sutra-from-rust: Bool `match { true => …, false => … }` ships (== 10)
+
+Phase 6, Rust item — the Rust companion to today's Haskell bool-case. A `match` on a `bool` scrutinee
+previously surfaced UNSUPPORTED ("pattern boolean_literal"; the bool VALUE `f(true)` already worked).
+`_lower_match_stmts` now treats `boolean_literal` arms the same as integer-literal arms — dispatch the
+scrutinee value directly (`(b == true)` / `(b == false)`, no `_tag` read, the crisp literal-dispatch
+shape; Rust `true`/`false` match the Sutra `true`/`false`).
+
+Fixture `bool_match` (`fn f(b: bool) -> i64 { match b { true => 10, false => 20 } }; f(true)`) runs on
+the substrate == **10** (and `f(false)` measured == 20). Rust suite: 46 passed (lower-only clean +
+`bool_match`=10, `enum_match`=2, `nested_match_tail_arm`=5 — the variant + nested-match paths
+unregressed). Remaining on Rust: a VARIANT match nested in an expression / tail-arm; nested `if let`.
