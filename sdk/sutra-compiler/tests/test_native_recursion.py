@@ -206,3 +206,51 @@ def test_ram_memo_general_single_index_dp(prelude, offsets, n):
     truth, including arbitrary/large offsets a fixed scalar window can't cleanly express."""
     got = _run_ram_memo(prelude, n)
     assert got == _gt_recur(offsets, n), f"RAM-memo f({n}) -> {got}, expected {_gt_recur(offsets, n)}"
+
+
+# ---- Multi-arg DP (the "complicated form", v0.8.0 serious attempt) ----
+# Binomial C(n,k) = C(n-1,k-1) + C(n-1,k), edges C(n,0)=C(n,n)=1, as a SINGLE RAM-memo while_loop:
+# a 2-D memo flattened at base 100 + row*W + col, row/col carried as loop counters (no Math.mod),
+# the edge base-cases selected by substrate blends (col==0 via the even/odd `(2*col)<1`, col==row via
+# crisp `==`), the interior via ramRead of the previous row, and the row advance via a blend wrap.
+def _pascal_su(N, K):
+    W = N + 1
+    total = (N + 1) * (N + 2) // 2
+    return f"""\
+while_loop _p(i < t, int i = 0, int row = 0, int col = 0, int t = {total}) {{
+    int prev = 100 + (row - 1) * {W};
+    int interior = ramRead(prev + col - 1) + ramRead(prev + col);
+    int fcol0 = truth_axis(defuzzy((2 * col) < 1));
+    int fdiag = truth_axis(defuzzy(col == row));
+    int inner = (((1 + fdiag) * 1) + ((1 - fdiag) * interior)) / 2;
+    int cval = (((1 + fcol0) * 1) + ((1 - fcol0) * inner)) / 2;
+    ramWrite(100 + row * {W} + col, cval);
+    int newcol = (((1 + fdiag) * 0) + ((1 - fdiag) * (col + 1))) / 2;
+    int wrap01 = (fdiag + 1) / 2;
+    col = newcol;
+    row = row + wrap01;
+    i = i + 1;
+}}
+function int main() {{
+    int i = 0; int row = 0; int col = 0; int t = {total};
+    slot int _i = i; slot int _row = row; slot int _col = col; slot int _t = t;
+    loop _p(i < t, _i, _row, _col, _t);
+    return ramRead(100 + {N} * {W} + {K});
+}}
+"""
+
+
+def _gt_binom(n, k):
+    r = 1
+    for i in range(k):
+        r = r * (n - i) // (i + 1)
+    return r
+
+
+@pytest.mark.parametrize("N,K", [(0, 0), (4, 2), (5, 0), (5, 5), (6, 3), (7, 2), (8, 4)])
+def test_multiarg_dp_binomial_runs_natively(N, K, tmp_path):
+    """MULTI-ARG DP (binomial C(n,k)) compiled to a single RAM-memo `while_loop` and run NATIVELY on
+    the substrate == ground truth (edges + interior; no recursion, no WASM) — the v0.8.0 serious
+    attempt at the complicated form. (Loop bound (N+1)(N+2)/2 ≤ the default unroll cap for N ≤ 8.)"""
+    got = _run_su(_pascal_su(N, K), tmp_path)
+    assert got == _gt_binom(N, K), f"native C({N},{K}) -> {got}, expected {_gt_binom(N, K)}"

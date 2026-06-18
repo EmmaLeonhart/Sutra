@@ -95,9 +95,14 @@ cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it 
     fixed scalar window). `test_native_recursion.py` RAM-memo cases pass: `fib(13)=233` + a large-offset
     `f(n)=f(n-1)+f(n-5)` == ground truth. NOT wired as the default (rolling-window stays default, no
     RAM; RAM-memo uses low addresses 0..n so it must not mix with low-address program arrays — it's the
-    backend for the wider single-index family). Remaining: (ii) multi-arg DP (`C(n,k)`) → flattened RAM
-    index + nested loop; (iii) the explicit RAM-agenda + RAM-memo work-stack loop for irregular
-    recursion. Each compile-AND-run == ground truth.
+    backend for the wider single-index family). **(ii) multi-arg DP — PROVEN NATIVE 2026-06-17 (v0.8.0
+    serious attempt):** binomial `C(n,k)=C(n-1,k-1)+C(n-1,k)` compiled to a SINGLE RAM-memo `while_loop`
+    (2-D memo flattened `100+row*W+col`, row/col as loop counters with NO Math.mod, edge base-cases via
+    substrate blends [`(2*col)<1` even/odd + crisp `col==row`], interior via `ramRead` of the prior row,
+    row advance via a blend wrap) runs natively == ground truth across `C(0,0)..C(8,4)`
+    (`test_native_recursion.py` 7 multi-arg cases). All building blocks confirmed. Remaining:
+    AUTO-SYNTHESIS (a 2-arg shape detector + this loop generator — the hand-written pattern is proven;
+    automate it), then (iii) the explicit RAM-agenda + RAM-memo work-stack loop for irregular recursion.
 - Tier 5 (`wasm_core`, §2) is NOT the recursion fallback — only genuinely imperative / `eval` / FFI.
   (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes the fib-family native.)
 
