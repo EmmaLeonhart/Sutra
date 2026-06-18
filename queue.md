@@ -216,28 +216,6 @@ including the live browser._
 
 ---
 
-## 🔬 ACTIVE — SIREN-style sin-activation decoder (unblocked by the sin_buf primitive)
-
-> The `sin_buf`/`cos_buf` primitive (just shipped) explicitly unblocks SIREN-style sin
-> activations on hidden layers — the decoder previously used a hadamard-cubic nonlinearity
-> ONLY because sin couldn't run elementwise on an activation buffer (D1 finding). Now it can.
-> The decoder track is unleashed (Emma 2026-06-17 "make all the decisions, barrel through"), so
-> build the SIREN variant and MEASURE it honestly against the cubic+Fourier decoder on the same
-> target. Substrate-pure (sin activation = `sin_buf` on the substrate); a finding either way
-> (negative result is a valid, required outcome per the integrity rules). Validates the new
-> primitive in a real use case beyond its unit test.
-
-- [ ] **S1** — add `dense_sin(W,x,b) = sin_buf(matmul(W,x)+b)` to `demos/decoder/dense.su`
-  (compiled substrate SIREN layer using the new builtin).
-- [ ] **S2** — `substrate_nn.py`: `siren_forward(params, X)` (stacks `dense_sin`, final linear)
-  + `init_siren(sizes, ω0)` with the principled SIREN init (first layer U(−1/n,1/n)·ω0 folded
-  into W, hidden U(−√(6/n),√(6/n))).
-- [ ] **S3** — measure: fit the same wave + a 2D target with SIREN vs cubic+Fourier; report MSE/PSNR.
-- [ ] **S4** — test (`test_siren.py`): SIREN forward runs NaN-free on the substrate + fits the
-  wave below a measured threshold; assert sin activation is differentiable end-to-end.
-- [ ] **S5** — finding `planning/findings/2026-06-17-siren-sin-activation-decoder.md` (the measured
-  comparison, honest), DEVLOG, delete S1–S5, push, CI-verify (compiler-ci + demos-ci) green CPU.
-
 ## Pinned tail (always last — autonomous-loop lifecycle)
 
 - [ ] **Ensure the three crons are running** — start them if this session never did,
