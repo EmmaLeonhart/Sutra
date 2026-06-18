@@ -333,6 +333,12 @@ def _lower_expr(node, src: bytes) -> str:
             # `true` / `false` → the Sutra `true`/`false` literal (a bool `match`
             # arm then becomes `(b == true)` / `(b == false)`, the crisp literal shape).
             return _text(inner, src)
+        if inner is not None and inner.type == "string":
+            # A plain F# string literal `"…"` → a Sutra string literal (string-flag
+            # codepoint array); `_text` keeps the quotes, the Sutra surface form.
+            # `==`/`<>` on it routes to eq_synthetic via the String type. Interpolated
+            # / triple-quoted strings parse as other node types and fall through.
+            return _text(inner, src)
         return f"/* UNSUPPORTED-CONST: {inner.type if inner else 'empty'} */"
     if t in ("identifier", "long_identifier", "long_identifier_or_op"):
         # Record field access `p.x` is a `long_identifier` with parts [p, x]; when the

@@ -2818,3 +2818,15 @@ Per Emma's rule it runs via the **tier-5 WASM fallback** (`wasm_core`, recursive
 the ACCEPTED state, not an open task. Revisit ONLY if someone root-causes why the larger branchless
 body is ≥100× slower in the recurrent `loop` unroll; otherwise WASM is the permanent path for
 non-tabulable recursion.
+
+---
+
+## (LAST / lowest value) Transpiler edge cases on the WASM fallback — few cycles each (Emma 2026-06-18)
+
+The very bottom of the to-do list. Per-frontend source constructs that don't yet lower NATIVELY
+but already run via the tier-5 WASM fallback — catalogued in
+**`planning/wasm-fallback-edge-cases.md`**. Worth attempting to lower natively, but **NOT high
+value added**: spend at most a **few cycles on each**, and if a clean native lowering doesn't fall
+out in that budget, leave it on WASM and move on. Never fake or loosen a test to "pass" one. When
+one IS cleared natively (fixture RUN == ground truth), delete it from the catalogue + record in
+`DEVLOG.md`. Do these ONLY after everything above is cleared.
