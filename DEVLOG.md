@@ -10869,3 +10869,20 @@ Fixture `if_let_enum` (`if let Shape::Circle(r) = s { r+1 } else { 0 }; radius(S
 runs on the substrate == **13** (Circle, tag matches → r+1); `radius(Shape::Square(7))` measured == **0**
 (else arm). Rust suite: 42 passed (lower-only clean + `if_let_enum`=13, `enum_match`=2 — match-tail
 path unregressed). Remaining on Rust: nested match inside a function-tail match arm; nested `if let`.
+
+## 2026-06-17 — sutra-from-fsharp: variant in a blended `if` branch `if c then North else South` ships (== 10/20)
+
+Phase 6, F# item — completes the F# DU-in-value-position work. A function whose body is
+`if c then <variant> else <variant>` now returns the `{_tag}` axon and selects the right variant via
+the blend. The if-handler lowers branches through `_lower_field_value`, so a DU-variant branch hoists
+to its `{_tag}` axon temp (`North` → `_ah0 {_tag:0}`, `South` → `_ah1 {_tag:1}`); the defuzz blend
+`((1+f)*northAxon + (1-f)*southAxon)/2` cleanly selects the matched axon at `f = ±1` (a numeric branch
+falls through to `_lower_expr` unchanged — `if_classify`=100 unregressed). New `_if_returns_variant`
+sets the function return type to `Axon` when both branches are variants.
+
+Fixture `variant_if_branch` (`let pick (n) = if n > 0 then North else South; let code (d) = match d
+with North->10 | South->20; main = code (pick 5)`) runs on the substrate == **10** (`pick 5` → North →
+`code` reads tag 0 → 10); `pick (0 - 1)` → South measured == **20** (the blend selects the South axon,
+`code`'s int-local `_vtag` makes the tag test crisp both ways). F# suite: 29 passed (lower-only clean +
+`variant_if_branch`=10, `nullary_variant`=20, `nullary_variant_return`=10, `union_axon`=48,
+`if_classify`=100). Remaining on F#: mixed tuple-in-record / record-in-tuple nesting.

@@ -97,9 +97,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   type `Axon` + `{_tag}` axon; zero-arg call `f ()` drops the unit arg; `nullary_variant_return`=10
   on the substrate). ~~Record-update from a LET-BOUND (non-param) source (`let q = {b with …}`)~~
   DONE 2026-06-17 (`_infer_record_type` recovers the type from the literal's field set; a let-bound
-  record registers into `_PARAM_RECORD_TYPE`; `record_update_let`=17 on the substrate). Remaining:
-  mixed tuple-in-record / record-in-tuple nesting; variant in a blended `if` branch
-  (`if c then North else South`, needs an axon-valued blend + return-type inference over both branches).
+  record registers into `_PARAM_RECORD_TYPE`; `record_update_let`=17 on the substrate). ~~Variant in
+  a blended `if` branch (`if c then North else South`)~~ DONE 2026-06-17 (branches hoist to `{_tag}`
+  axon temps via `_lower_field_value`; the blend cleanly selects the matched axon at `f=±1`; ret→Axon
+  via `_if_returns_variant`; `variant_if_branch`=10 [North]/20 [South] on the substrate). Remaining:
+  mixed tuple-in-record / record-in-tuple nesting.
 - [ ] **Scala** (`sutra-from-scala/`): ~~nested tuple patterns (`val (a,(b,c))=t`)~~ DONE 2026-06-17
   (`_collect_scala_tuple_paths` + shared `_emit_scala_nested_reads`, 1-based keys; `nested_tuple_destructure`=16
   but ONLY at `runtime_dim ≥ 100` — Scala's `_1`/`_2` keys cross-talk at the default dim 50, finding
