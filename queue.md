@@ -164,12 +164,9 @@ in `planning/exploratory/2026-06-18-quantum-computing-and-sutra.md` and runnable
 DONE 2026-06-18 (Qiskit/Cirq/PennyLane all installed + verified on the substrate; see DEVLOG).
 Remaining:
 
-- [ ] **Q3 — Q# / Silq (FP-native quantum languages).** `dotnet 9.0.203` is present. Try Q#
-  via the `qsharp` Python package and/or the .NET Q# SDK — write a small program (Bell / a
-  Grover step) and run it on the local simulator. Assess Silq's toolchain accessibility; if
-  installable, a small program, else document the blocker. Serious attempt, software-permitting.
-- [ ] **Q4 — extend the writeup** as Q3 + Q5 land (keep it grounded in measured runs, not
-  speculation; mirror the §"What we are not claiming" discipline).
+- [ ] **Q4 — extend the writeup** as Q5 lands (keep it grounded in measured runs, not
+  speculation; mirror the §"What we are not claiming" discipline). (Q3 done 2026-06-18: Q# Bell +
+  GHZ run via the `qsharp` pkg; Silq is not pip-accessible — documented blocker.)
 - [ ] **Q5 — VQE-to-Sutra (the genuinely novel test).** Express + train a 1–2-parameter
   variational circuit on Sutra's OWN complex substrate (eigenrotation + `AXIS_REAL`/`AXIS_IMAG`)
   and compare the trained parameter / expectation to PennyLane's `default.qubit`. This is the

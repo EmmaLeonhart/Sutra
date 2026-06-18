@@ -11607,3 +11607,14 @@ Writeup `planning/exploratory/2026-06-18-quantum-computing-and-sutra.md` (ground
 explicit scope limit — Sutra ops are NOT unitary, so this is a structural parallel, not "Sutra is
 quantum"). Remaining queue items: Q3 (Q#/Silq), Q4 (extend writeup), Q5 (VQE-to-Sutra — express +
 train a small variational circuit on Sutra's own complex substrate; the genuinely novel test).
+
+## 2026-06-18 — quantum exploration Q3: Q# (FP-native) running; Silq not accessible
+
+Q# — the most FP-native quantum language (strong typing, immutable mid-circuit state, operations
+as values) — runs via the `qsharp` Python package (Azure QDK sparse simulator; dotnet 9 present).
+`experiments/quantum/qsharp_fp_native.py`: Bell counts ~50/50 {(Zero,Zero),(One,One)} and a
+3-qubit GHZ ~50/50 {[Zero×3],[One×3]} — correct entanglement in both. (The `qsharp` pip package
+warns it is superseded by `qdk`; import still works.) Silq is NOT pip-installable (confirmed not
+on PyPI — standalone D-toolchain compiler / VS Code extension), so it is the documented blocker
+per Emma's "as long as the software is accessible." Remaining: Q5 (VQE-to-Sutra) — the genuinely
+novel test; Q4 extends the writeup once Q5 lands.
