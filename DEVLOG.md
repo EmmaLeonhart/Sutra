@@ -10968,3 +10968,19 @@ f (Outer (Inner 5 8) 3)`) runs == **16**. Haskell suite: 40 passed (lower-only c
 `ctor_destructure`=13, `nested_tuple_let`=16, `data_adt`=2 — flat ctor + variant-match paths
 unregressed). Remaining on Haskell: nested/non-variable `case` patterns; multi-equation/guarded
 recursion (>2-guard blocked by the single-condition halt); mutually-recursive `where`/`let`.
+
+## 2026-06-18 — sutra-from-fsharp: MIXED tuple/record nesting ships (== 16 both directions) — F# item drained
+
+Phase 6, the last F# item. A record nested inside a tuple pattern (`let (a, { x = b; y = c }) = t`) or
+a tuple nested inside a record pattern (`let { a = aa; pos = (x, y) } = r`) now destructures + runs.
+The tuple- and record-path collectors were unified through a shared `_collect_element_paths(el, src,
+key_prefix)` dispatcher: an `identifier_pattern` is a leaf, a `paren_pattern` recurses as a tuple, a
+`record_pattern` recurses as a record — so the two cross-call and any mix of positional (`_0`/`_1`) and
+named (field) keys flattens to one path list, read through the existing `Axon`-temp `_emit_nested_reads`.
+
+Fixtures `record_in_tuple` (`f (t: int*Pt) = let (a, { x = b; y = c }) = t in a+b+c; f (5, {x=8;y=3})`)
+and `tuple_in_record` (`g (r: Pt) = let { a = aa; pos = (x, y) } = r in aa+x+y; g {a=5; pos=(8,3)}`)
+both run on the substrate == **16** (== ground truth; mixed `_0`/`_1`/field keys clean at dim 50). F#
+suite: 30 passed (lower-only clean + `record_in_tuple`=16, `tuple_in_record`=16, `nested_tuple_destructure`=16,
+`nested_record_destructure`=13 — the collector refactor is behaviour-preserving). The F# frontend item
+is now fully drained — only general breadth (closures, generics, …) remains.
