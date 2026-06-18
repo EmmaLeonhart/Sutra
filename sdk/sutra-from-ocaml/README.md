@@ -40,8 +40,9 @@ record-`let` destructure `let { x; y } = p in …` [punned + renamed `{ x = a }`
 `let (Wrap (a, b)) = w in …` [single payload → `_val`, tuple payload → `_val0`/`_val1`],
 and NESTED tuple-`let` `let (a, (b, c)) = t in …` [nested-axon construction + an `Axon`
 temp per non-leaf prefix], and NESTED record-`let` `let { a; inr = { v } } = o in …`
-[recursive record construction + field-name path keys, same shared `Axon`-temp machinery]
-shipped 2026-06-18.)
+[recursive record construction + field-name path keys, same shared `Axon`-temp machinery],
+and NESTED variant-`let` `let (Wrap { v }) = w in …` [recursive variant construction +
+`_val`/`_val{i}` path keys descending a record/tuple payload] shipped 2026-06-18.)
 
 ## Use
 

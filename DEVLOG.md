@@ -11216,3 +11216,22 @@ New fixture `nested_record_destructure` runs on the substrate == **13**
 (== ground truth `5 + 8`). FULL OCaml suite: **137 passed** (was 136) — no
 regression. Remaining on OCaml: scalable RAM device (10MB linear memory);
 non-zero `Array.make` fill; nested variant-let patterns.
+
+## 2026-06-18 — sutra-from-ocaml: NESTED variant-`let` destructure (Phase 3)
+
+OCaml reference frontend now lowers nested constructor-pattern `let`
+bindings (`let (Wrap { v }) = w in v + 1`, a variant wrapping a record).
+Construction: `_emit_variant_construction` now routes each payload slot
+(`_val`, or `_val{i}` for a tuple payload) through `_aggregate_arg_emitter`,
+so a variant wrapping a record/tuple builds a nested axon
+(`_arg0.add("_val", _arg0__val)` where `_arg0__val` is the inner record).
+Destructure: `_ocaml_variant_let` now returns `[(path_keys, local), …]` with
+`_val`/`_val{i}` prefixes and descends a record/tuple payload via
+`_ocaml_record_paths`/`_ocaml_tuple_paths`; the variant-let branch joins the
+shared `_emit_nested_subst` helper (Axon temp per non-leaf prefix). New fixture
+`nested_variant_destructure` runs on the substrate == **13** (== ground truth
+12 + 1). FULL OCaml suite: **138 passed** (was 137); every flat-variant fixture
+(`du_destructure`, `variant_arg`, `variant_multiarg`, `variant_arg_pos`,
+`variant_toplevel_value`, `aggregate_arg_nested_op`) unregressed. OCaml
+nested-pattern destructure is now fully drained (tuple/record/variant, flat +
+nested); only the scalable-RAM-device and non-zero-`Array.make`-fill items remain.

@@ -1364,12 +1364,27 @@ def _emit_variant_construction(kind, source: bytes, indent: str, var: str) -> st
     tag, arity, args = kind
     out = (f"{indent}Axon {var};\n"
            f'{indent}{var}.add("_tag", {tag});\n')
+
+    def _emit_slot(key, node):
+        # A nested aggregate payload (`Wrap { v = 8 }`, `Wrap (a, b)` element that is
+        # itself a record/tuple) is built into its own temp axon first, then stored —
+        # so a variant wrapping an aggregate becomes a nested axon. Scalars lower inline.
+        nonlocal out
+        ua = _unwrap_parens(node) if node is not None else None
+        nested = (_aggregate_arg_emitter(ua, source, indent, f"{var}_{key}")
+                  if ua is not None else None)
+        if nested is not None:
+            out += nested
+            out += f'{indent}{var}.add("{key}", {var}_{key});\n'
+        else:
+            val = _lower_expression(node, source) if node is not None else "0"
+            out += f'{indent}{var}.add("{key}", {val});\n'
+
     if arity <= 1:
-        val = _lower_expression(args[0], source) if (arity == 1 and args) else "0"
-        out += f'{indent}{var}.add("_val", {val});\n'
+        _emit_slot("_val", args[0] if (arity == 1 and args) else None)
     else:
         for i in range(arity):
-            out += f'{indent}{var}.add("_val{i}", {_lower_expression(args[i], source)});\n'
+            _emit_slot(f"_val{i}", args[i])
     return out
 
 
@@ -1480,11 +1495,12 @@ def _ocaml_record_let(vd, source: bytes):
 
 
 def _ocaml_variant_let(vd, source: bytes):
-    """If `vd` is a single-constructor variant binding `let (Wrap a) = w` or
-    `let (Wrap (a, b)) = w` (a `constructor_pattern`, optionally paren-wrapped), return
-    ([payload_local, …], value_node); else None. The constructor's payload maps
-    positionally to `_val0`, `_val1`, … (the construction spreads a tuple payload the
-    same way). Irrefutable single-constructor destructure (the `_tag` is not re-checked)."""
+    """If `vd` is a single-constructor variant binding `let (Wrap a) = w`,
+    `let (Wrap (a, b)) = w`, or NESTED `let (Wrap { v }) = w`/`let (Wrap (Box x)) = w`
+    (a `constructor_pattern`, optionally paren-wrapped), return ([(path_keys, local), …],
+    value_node); else None. A single payload sits at `_val`; a tuple payload spreads to
+    `_val0`, `_val1`, …; a nested record/tuple payload descends via `_ocaml_record_paths`
+    / `_ocaml_tuple_paths`. Irrefutable single-constructor destructure (`_tag` not re-checked)."""
     lb = next((c for c in vd.named_children if c.type == "let_binding"), None)
     if lb is None or not lb.named_children:
         return None
@@ -1498,21 +1514,46 @@ def _ocaml_variant_let(vd, source: bytes):
         return None
     if not any(c.type == "constructor_path" for c in pat.named_children):
         return None
-    payload: list = []
-    for c in pat.named_children:
-        if c.type == "constructor_path":
-            continue
-        if c.type == "value_name":
-            payload.append(_node_text(c, source))
-        elif (c.type == "parenthesized_pattern" and c.named_children
-              and c.named_children[0].type == "tuple_pattern"):
-            tp = c.named_children[0]
-            if any(e.type != "value_name" for e in tp.named_children):
+    payload_pats = [c for c in pat.named_children if c.type != "constructor_path"]
+    if not payload_pats:
+        return None
+
+    def _leaf_or_aggregate(node, prefix):
+        """Emit path(s) for one payload slot under `prefix` (a single key tuple).
+        A `value_name` is a leaf; a record/tuple pattern descends. Returns None for
+        unsupported shapes."""
+        e = node
+        if e.type == "parenthesized_pattern" and e.named_children:
+            e = e.named_children[0]
+        if e.type == "value_name":
+            return [(prefix, _node_text(e, source))]
+        if e.type == "record_pattern":
+            return _ocaml_record_paths(e, source, prefix)
+        if e.type == "tuple_pattern":
+            return _ocaml_tuple_paths(e, source, prefix)
+        return None
+
+    paths: list = []
+    # A single payload that is a paren-wrapped tuple is the multi-arg spread
+    # (`Wrap (a, b)` → `_val0`/`_val1`); otherwise it is one `_val` slot.
+    only = payload_pats[0] if len(payload_pats) == 1 else None
+    inner = (only.named_children[0]
+             if (only is not None and only.type == "parenthesized_pattern"
+                 and only.named_children) else None)
+    if inner is not None and inner.type == "tuple_pattern":
+        for i, el in enumerate(inner.named_children):
+            sub = _leaf_or_aggregate(el, (f"_val{i}",))
+            if sub is None:
                 return None
-            payload.extend(_node_text(e, source) for e in tp.named_children)
-        else:
+            paths.extend(sub)
+    elif len(payload_pats) == 1:
+        sub = _leaf_or_aggregate(payload_pats[0], ("_val",))
+        if sub is None:
             return None
-    return (payload, kids[-1]) if payload else None
+        paths.extend(sub)
+    else:
+        return None
+    return (paths, kids[-1]) if paths else None
 
 
 def _lower_local_binding(vd, source: bytes, indent: str,
@@ -1790,17 +1831,13 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
                     # `realvec(w.item("_val{i}"))` (the `match`-arm payload-bind shape).
                     vl = _ocaml_variant_let(b, source)
                     if vl is not None:
-                        vnames, val_node = vl
+                        paths, val_node = vl
                         val_src = _lower_expression(val_node, source)
                         if val_src.isidentifier():
-                            # Construction stores a SINGLE payload at `_val` and a
-                            # multi-arg (tuple) payload at `_val0`/`_val1`/… — match it.
-                            keys = (["_val"] if len(vnames) == 1
-                                    else [f"_val{i}" for i in range(len(vnames))])
-                            for nm, key in zip(vnames, keys):
-                                saved = _MATCH_SUBST.get(nm, _MISSING)
-                                _MATCH_SUBST[nm] = f'realvec({val_src}.item("{key}"))'
-                                popped.append((nm, saved))
+                            # Single payload → `_val`, tuple payload → `_val{i}`, a nested
+                            # record/tuple payload reads through an `Axon` temp per non-leaf
+                            # prefix — the same machinery as nested tuple/record let.
+                            out += _emit_nested_subst(paths, val_src)
                             continue
                     out += _lower_local_binding(b, source, indent, record_types, refs)
                 else:

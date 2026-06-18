@@ -138,6 +138,7 @@ _RUNNABLE_FIXTURES = {
     "du_destructure": 13.0,  # type box = Box of int; unbox (b) = let (Box x) = b in x + 1; main = unbox (Box 12)  (let-DU-pattern, single payload -> realvec(item _val))
     "nested_tuple_destructure": 16.0,  # f (t: int*(int*int)) = let (a, (b, c)) = t in a+b+c; f (5, (8, 3))  (NESTED tuple let: nested-axon construction + Axon temp for the _1 prefix)
     "nested_record_destructure": 13.0,  # f (o: outer) = let { a; inr = { v } } = o in a + v; f {a=5; inr={v=8}}  (NESTED record let: nested-axon construction + Axon temp for the inr prefix; field-name keys read clean at dim 50)
+    "nested_variant_destructure": 13.0,  # f (w: wrap) = let (Wrap { v }) = w in v + 1; f (Wrap {v=12})  (NESTED variant let: ctor wrapping a record -> _val prefix + Axon temp; _emit_variant_construction recurses, _ocaml_variant_let returns _val/_val{i} path keys)
     "tail_rec_sum": 15.0,  # main () = sum_to 0 5  (tail rec -> while_loop)
     "tail_rec_swap": 7.0,  # main () = swaploop 7 9 2  (simultaneous update via temps)
     "match_lit": 200.0,    # main () = classify 1  (match -> nested defuzz blend)
