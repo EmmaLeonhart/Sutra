@@ -1363,6 +1363,28 @@ def _lower_variant_value_body(kind, source: bytes, indent: str) -> str:
             + f"{indent}return _variant;\n")
 
 
+def _ocaml_flat_tuple_let(vd, source: bytes):
+    """If `vd` is a flat tuple-pattern value binding `let (a, b) = expr` (a `let_binding`
+    whose binder is a `tuple_pattern` of plain `value_name`s), return ([name, …],
+    value_node); else None. A nested element is a later item (→ None)."""
+    lb = next((c for c in vd.named_children if c.type == "let_binding"), None)
+    if lb is None or not lb.named_children:
+        return None
+    kids = lb.named_children
+    if kids[-1] is kids[0]:
+        return None
+    pat = kids[0]
+    # `(a, b)` parses as a `parenthesized_pattern` wrapping the `tuple_pattern`.
+    if pat.type == "parenthesized_pattern" and pat.named_children:
+        pat = pat.named_children[0]
+    if pat.type != "tuple_pattern":
+        return None
+    elems = pat.named_children
+    if not elems or any(e.type != "value_name" for e in elems):
+        return None
+    return [_node_text(e, source) for e in elems], kids[-1]
+
+
 def _lower_local_binding(vd, source: bytes, indent: str,
                          record_types=frozenset(), refs: Optional[dict] = None) -> str:
     """Lower one `value_definition` from a `let … in` into a Sutra local
@@ -1578,12 +1600,33 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
         if len(kids) >= 2:
             *bindings, in_body = kids
             out = ""
+            popped: list = []  # (name, saved) tuple-let substitutions to restore
             for b in bindings:
                 if b.type == "value_definition":
+                    # `let (a, b) = t in …` — destructure a tuple axon: each element
+                    # substitutes to the positional field read `realvec(t.item("_i"))`
+                    # (no Sutra local to declare for a tuple binder). The value must be a
+                    # bare name (a param / axon-bound local); the substitutions are
+                    # restored after the body so they don't leak.
+                    tl = _ocaml_flat_tuple_let(b, source)
+                    if tl is not None:
+                        names, val_node = tl
+                        val_src = _lower_expression(val_node, source)
+                        if val_src.isidentifier():
+                            for i, nm in enumerate(names):
+                                saved = _MATCH_SUBST.get(nm, _MISSING)
+                                _MATCH_SUBST[nm] = f'realvec({val_src}.item("_{i}"))'
+                                popped.append((nm, saved))
+                            continue
                     out += _lower_local_binding(b, source, indent, record_types, refs)
                 else:
                     out += f"{indent}// UNSUPPORTED-LET-IN-PART: {b.type}\n"
             out += _lower_body_to_statements(in_body, source, indent, record_types, refs)
+            for nm, saved in reversed(popped):
+                if saved is _MISSING:
+                    _MATCH_SUBST.pop(nm, None)
+                else:
+                    _MATCH_SUBST[nm] = saved
             return out
     if body.type == "sequence_expression":
         kids = body.named_children
