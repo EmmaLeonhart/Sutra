@@ -527,16 +527,18 @@ def _lower_expr(node, src: bytes) -> str:
             if dpb is not None:
                 # `let (Circle r) = s` — destructure a tagged DU axon: each payload
                 # local reads `realvec(s.item("_val{i}"))` (the `match`-arm payload
-                # bind). The value must be a bare name (a DU param or a let-bound
-                # DU temp).
-                variant, locals_, val_node = dpb
+                # bind). A NESTED record/tuple payload (`let (Wrap { v = vv }) = w`)
+                # reads through an `Axon` temp per non-leaf prefix (`_emit_nested_reads`,
+                # the same mechanism the nested tuple/record paths use). The value must
+                # be a bare name (a DU param or a let-bound DU temp).
+                _variant, paths, val_node = dpb
                 val_src = _lower_expr(val_node, src)
                 if not val_src.isidentifier():
                     return ("/* UNSUPPORTED-LET: DU-pattern binding value is not a "
                             "simple name (later item) */")
                 subs = []
-                for i, local in enumerate(locals_):
-                    _SUBST[local] = f'realvec({val_src}.item("_val{i}"))'
+                for local, expr in _emit_nested_reads(val_src, paths):
+                    _SUBST[local] = expr
                     subs.append(local)
                 try:
                     return _lower_expr(kids[1], src)
@@ -772,9 +774,11 @@ def _record_pattern_binding(fovd, src: bytes):
 def _du_pattern_binding(fovd, src: bytes):
     """If `fovd` is a DU-case value binding `let (Circle r) = s`
     (`value_declaration_left → paren_pattern → identifier_pattern[variant head,
-    payload identifier_patterns]`), return (variant, [payload_local, …], value_node);
-    else None. The head `long_identifier_or_op` must name a known variant; only plain
-    identifier payloads are in scope (the `match` DU-pattern shape, lifted to a let)."""
+    payload patterns]`), return (variant, [(path_keys, local), …], value_node); else None.
+    The head `long_identifier_or_op` must name a known variant. Each payload component i is
+    keyed `_val{i}`; a NESTED record/tuple payload (`Wrap { v = vv }`, `Wrap (a, b)`)
+    descends via `_collect_element_paths`, so the leaf locals carry their full key chain
+    (`Wrap { v = vv }` → `[(("_val0","v"), "vv")]`) — read through `_emit_nested_reads`."""
     kids = fovd.named_children
     if not kids or kids[0].type != "value_declaration_left":
         return None
@@ -791,12 +795,13 @@ def _du_pattern_binding(fovd, src: bytes):
     variant = _text(ip.named_children[0], src).strip()
     if variant not in _VARIANTS:
         return None
-    locals_: list[str] = []
-    for pp in ip.named_children[1:]:
-        if pp.type != "identifier_pattern" or not pp.named_children:
+    paths: list[tuple[tuple, str]] = []
+    for i, pp in enumerate(ip.named_children[1:]):
+        sub = _collect_element_paths(pp, src, (f"_val{i}",))
+        if sub is None:
             return None
-        locals_.append(_text(pp.named_children[0], src).strip())
-    return (variant, locals_, kids[-1]) if locals_ else None
+        paths.extend(sub)
+    return (variant, paths, kids[-1]) if paths else None
 
 
 def _tuple_fields(node, src: bytes):

@@ -103,7 +103,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   via `_if_returns_variant`; `variant_if_branch`=10 [North]/20 [South] on the substrate). ~~Mixed
   tuple-in-record / record-in-tuple nesting~~ DONE 2026-06-18 (a shared `_collect_element_paths`
   dispatcher lets the tuple- and record-path collectors cross-call; `record_in_tuple`=16,
-  `tuple_in_record`=16 on the substrate). **F# item fully drained** — only general breadth remains.
+  `tuple_in_record`=16 on the substrate); ~~NESTED DU-`let` patterns (`let (Wrap { v = vv }) = w`)~~
+  DONE 2026-06-18 (construction already recursed; `_du_pattern_binding` now returns `_val{i}` path keys
+  via `_collect_element_paths` so a record/tuple payload descends through `_emit_nested_reads`;
+  `nested_du_destructure`=13 on the substrate, flat `du_destructure` unregressed). **F# item fully
+  drained** — only general breadth remains.
 - [ ] **Scala** (`sutra-from-scala/`): ~~nested tuple patterns (`val (a,(b,c))=t`)~~ DONE 2026-06-17
   (`_collect_scala_tuple_paths` + shared `_emit_scala_nested_reads`, 1-based keys; `nested_tuple_destructure`=16
   but ONLY at `runtime_dim ≥ 100` — Scala's `_1`/`_2` keys cross-talk at the default dim 50, finding
