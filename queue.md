@@ -155,53 +155,32 @@ Completed WASM items live in `WASM/devlog.md`. Overview `docs/neural-webassembly
 
 ---
 
-## thing to do about quantum computing
+## 1. Quantum computing × Sutra (Emma 2026-06-18 — exploratory but serious)
 
-Here's something Claude said about quantum computing
+Emma's braindump (quantum ↔ FP, emulators worth trying, the Sutra differentiable-circuit
+angle) is organized here as executable tasks; the conceptual content + measured results live
+in `planning/exploratory/2026-06-18-quantum-computing-and-sutra.md` and runnable code in
+`experiments/quantum/`. Q1 (emulator sweep) and Q2 (PennyLane differentiable training) are
+DONE 2026-06-18 (Qiskit/Cirq/PennyLane all installed + verified on the substrate; see DEVLOG).
+Remaining:
 
-please explore all of it. implement these languages and try things out with these emulators
+- [ ] **Q3 — Q# / Silq (FP-native quantum languages).** `dotnet 9.0.203` is present. Try Q#
+  via the `qsharp` Python package and/or the .NET Q# SDK — write a small program (Bell / a
+  Grover step) and run it on the local simulator. Assess Silq's toolchain accessibility; if
+  installable, a small program, else document the blocker. Serious attempt, software-permitting.
+- [ ] **Q4 — extend the writeup** as Q3 + Q5 land (keep it grounded in measured runs, not
+  speculation; mirror the §"What we are not claiming" discipline).
+- [ ] **Q5 — VQE-to-Sutra (the genuinely novel test).** Express + train a 1–2-parameter
+  variational circuit on Sutra's OWN complex substrate (eigenrotation + `AXIS_REAL`/`AXIS_IMAG`)
+  and compare the trained parameter / expectation to PennyLane's `default.qubit`. This is the
+  real test of the "quantum circuit is a constrained differentiable graph = Sutra forward pass"
+  parallel — only claim the parallel once this runs. NOTE the scope limit: Sutra ops are NOT
+  unitary (bundling is lossy), so this is "can Sutra express + train a small VQE-shaped graph,"
+  not "Sutra is a quantum computer."
 
-organize this into a  set of tasks with all the executable things as tasks and work through them like normal queue items. exploratory but serious attempts at all of them as long as the software is accessible
+---
 
-Great question with an interesting answer — the relationship is nuanced.
-
-Quantum computing and functional programming
-
-Natural fits:
-
-	•	Quantum algorithms are inherently mathematical and compositional — you’re composing unitary transformations, which maps well onto function composition
-	•	No side effects on quantum state (until measurement), which resonates with pure FP
-	•	Languages like Q# and Silq already lean into functional idioms — pattern matching, strong typing, immutability of quantum state mid-circuit
-
-Tensions:
-
-	•	Quantum computing is fundamentally not referentially transparent at measurement — measurement collapses state and is irreversible, which is a side effect
-	•	You can’t clone quantum state (no-cloning theorem), which breaks assumptions that FP often makes about values being freely copyable
-	•	Most quantum algorithms aren’t “better” for arbitrary computation — they exploit interference and superposition for specific problem structures (factoring, search, simulation)
-
-Emulators worth trying
-
-Yes, absolutely — several good options:
-
-Qiskit (IBM, Python) — most mature ecosystem, includes a statevector simulator. You can run circuits locally without any quantum hardware.
-
-Cirq (Google, Python) — cleaner API IMO, good simulator, targets near-term hardware well.
-
-PennyLane — best if you care about differentiable quantum circuits, which given Sutra’s differentiable-everything thesis might interest you specifically.
-
-Quirk — browser-based visual circuit builder, great for intuition before writing code.
-
-Q# + Azure Quantum — if you want the most FP-native syntax, Q# feels closest to a functional language and has a local simulator.
-
-Given your work on Sutra
-
-There’s actually a potentially interesting angle here: quantum circuits are differentiable tensor graphs with a very constrained structure (unitary matrices). The way PennyLane treats quantum circuits as differentiable programs is conceptually close to what Sutra does with its forward pass. You might find the variational quantum eigensolver (VQE) paradigm — parameterized circuits trained by gradient descent — resonates with your architecture more than “classic” quantum algorithms like Shor’s.
-
-Qiskit or PennyLane would be my starting recommendation for actually getting hands-on.
-
-
-
-## Please actually do this work why was it paused
+## Background / not active work
 
 - **W2C/corpus:** 7200 programs (submodule `corpus/` + HF mirror); baseline model PUBLISHED
   (exact 0.811 / IO 0.826). Scale = one-flag bump → push submodule → HF mirror → bump pointer.

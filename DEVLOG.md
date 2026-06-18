@@ -11586,3 +11586,24 @@ the final loop state. Fixtures `multibase_tailsum` f(3,0)=105, RUN on the substr
 selection verified across cases (measured): f(0,5)→5, f(1,9)→109, f(5,0)→114 in both. Full suites
 green: Elixir 50, Erlang 40 (no regression). The §4 multi-literal-base recursion item is done for
 Haskell + Elixir + Erlang; non-tail / guarded-mixed multibase remain.
+
+## 2026-06-18 — quantum-computing exploration (Emma's queue item): emulator sweep + differentiable circuit
+
+Emma added a quantum-computing exploration to the queue ("explore all of it... serious attempts
+as long as the software is accessible"). Organized into tasks Q1–Q5; Q1+Q2 done this session.
+
+**Q1 — emulator accessibility (measured).** PennyLane 0.45.0, Qiskit 2.4.2 (+ qiskit-aer), Cirq
+1.6.1 all pip-install cleanly on Py 3.13 / Windows and produce a correct Bell state (~50/50
+|00⟩/|11⟩, none on |01⟩/|10⟩) — `experiments/quantum/emulator_sweep.py`. Quirk is browser-only
+(noted). dotnet 9.0.203 is present so Q# is plausible (Q3, not yet run).
+
+**Q2 — differentiable circuit (the Sutra angle, measured).** PennyLane:
+`experiments/quantum/pennylane_differentiable.py`. `<Z>(θ)=cos θ` exact; analytic gradient
+`d<Z>/dθ=-sin θ` exact; gradient descent trains θ→π driving `<Z>→-1` (the VQE/variational
+paradigm). This is structurally Sutra's move: a differentiable forward pass over a tensor graph,
+trained by gradient descent — the quantum graph just being unitarity-constrained.
+
+Writeup `planning/exploratory/2026-06-18-quantum-computing-and-sutra.md` (grounded in the runs;
+explicit scope limit — Sutra ops are NOT unitary, so this is a structural parallel, not "Sutra is
+quantum"). Remaining queue items: Q3 (Q#/Silq), Q4 (extend writeup), Q5 (VQE-to-Sutra — express +
+train a small variational circuit on Sutra's own complex substrate; the genuinely novel test).
