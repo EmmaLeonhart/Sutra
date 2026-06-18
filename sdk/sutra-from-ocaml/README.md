@@ -42,7 +42,9 @@ and NESTED tuple-`let` `let (a, (b, c)) = t in …` [nested-axon construction + 
 temp per non-leaf prefix], and NESTED record-`let` `let { a; inr = { v } } = o in …`
 [recursive record construction + field-name path keys, same shared `Axon`-temp machinery],
 and NESTED variant-`let` `let (Wrap { v }) = w in …` [recursive variant construction +
-`_val`/`_val{i}` path keys descending a record/tuple payload] shipped 2026-06-18.)
+`_val`/`_val{i}` path keys descending a record/tuple payload], and MIXED tuple/record
+nesting `let (a, { x; y }) = t in …` / `let { pos = (x, y) } = r in …`
+[`_ocaml_tuple_paths` and `_ocaml_record_paths` cross-call] shipped 2026-06-18.)
 
 ## Use
 

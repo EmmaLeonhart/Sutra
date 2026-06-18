@@ -1397,10 +1397,12 @@ def _lower_variant_value_body(kind, source: bytes, indent: str) -> str:
 
 
 def _ocaml_tuple_paths(pat, source: bytes, prefix: tuple):
-    """Flatten a (possibly NESTED) OCaml `tuple_pattern` into [(path_keys, name), …] over
-    positional axon keys (`_0`, `_1`, …). A nested `tuple_pattern` element (paren-wrapped)
-    recurses (`(a, (b, c))` → `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); any
-    non-`value_name`/non-tuple element is a later item (→ None)."""
+    """Flatten a (possibly NESTED, possibly MIXED) OCaml `tuple_pattern` into
+    [(path_keys, name), …] over positional axon keys (`_0`, `_1`, …). A nested
+    `tuple_pattern` element (paren-wrapped) recurses (`(a, (b, c))` →
+    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); a nested `record_pattern`
+    element (`(a, { x; y })`) recurses via `_ocaml_record_paths`, so tuple- and
+    record-patterns can MIX. Any other element is a later item (→ None)."""
     out: list = []
     for i, el in enumerate(pat.named_children):
         key = f"_{i}"
@@ -1411,6 +1413,11 @@ def _ocaml_tuple_paths(pat, source: bytes, prefix: tuple):
             out.append((prefix + (key,), _node_text(e, source)))
         elif e.type == "tuple_pattern":
             sub = _ocaml_tuple_paths(e, source, prefix + (key,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        elif e.type == "record_pattern":
+            sub = _ocaml_record_paths(e, source, prefix + (key,))
             if sub is None:
                 return None
             out.extend(sub)
