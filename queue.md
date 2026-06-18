@@ -24,6 +24,47 @@ migrate `todo.md` → `queue.md` → deleted on completion.
 
 ---
 
+## 0. ASK EMMA FIRST — next session, before any other work
+
+Drain these via **`AskUserQuestion`** (phone notification), **in this sequence**, at the
+START of the next session. They exist because the clean frontend work is now done (the
+nested + MIXED destructure ports across all 5 ML-family frontends — OCaml, F#, Haskell,
+Rust, Scala — are complete) and every remaining substantive step needs a decision only
+Emma can make. Do NOT guess and do NOT silently pick a phase — ask, then execute the
+answer. (These are ADDED here, not crossed off anything; the existing items below stay.)
+
+- **0.1 — Overall next direction (the big fork).** Easy frontend wins are exhausted. What
+  is the priority order for the next cycles among: (a) **TS nested-interface support** —
+  Yantra's gate, highest user-value, but needs new frontend architecture (see 0.3); (b)
+  **pivot to the post-frontend phases** — thrml approaches → FV-expand (Phase 4) → WASM
+  follow-ups (§2/§6) → VM/bytecode targets; (c) **the end-of-queue doc audit** (Sutra is a
+  business — see "Doc audit" in Background)?
+- **0.2 — Nested-axon dim policy.** The cross-talk finding
+  (`2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`) means nested reads can
+  read WRONG at the default `runtime_dim` 50 when keys repeat across levels (measured:
+  Haskell `ctor_in_tuple` → 26 not 13 at dim 50; clean at ≥100). Two fixes: (a) run ALL
+  nested-axon fixtures at `runtime_dim ≥ 128`; (b) switch nested axons to **depth-prefixed
+  keys** so reads are clean at dim 50 — but that changes the axon KEY wire-format, and axons
+  are a serialization format (cross-program compatibility). Which? (Shipped fixtures are
+  measured-correct at their chosen dims, so this is robustness, not a live bug.)
+- **0.3 — TS nested member-access architecture.** To read `o.inner.v` on the TS frontend, it
+  needs a **hoist-prelude** mechanism it currently lacks (`_lower_expression` is pure
+  expr→str; chained `.item().item()` fails at runtime — measured). OK to add one modeled on
+  OCaml's `_hoist_aggregate_args_deep` (hoist nested member chains into `Axon` temps before
+  the return)? The construction side (recurse nested object literals) is uncontroversial; the
+  access-side hoist is the architectural bit, and TS is Yantra's regression-sensitive gate.
+- **0.4 — Design-gated frontend items** — confirm an approach for each, or defer to
+  `todo.md`: Erlang `div`/`rem` via complex rotation (NOT `Math.mod`); Clojure
+  symbol/keyword-as-value representation; Elixir `is_integer`-style type-test guards
+  (everything is a vector on the substrate — what does a type test even mean?).
+- **0.5 — The single-condition-halt blocker.** `while_loop` ignores a compound `&&` continue
+  condition past the first conjunct (finding
+  `2026-06-17-while-loop-halt-is-single-condition-only.md`), which blocks >2-clause /
+  multi-base native recursion in Haskell, Elixir, and Erlang. Fix the substrate loop to
+  support a compound halt, or accept these stay on the tier-5 WASM fallback?
+
+---
+
 ## 2. Phase 5 — real-WASM-bytecode core (COMPLETE; only follow-ups remain)
 
 WebAssembly is the VM direction (Emma 2026-06-17; JVM done + parked).
