@@ -10664,3 +10664,19 @@ the substrate == **17** (override x=9, copy y=8 from b). Verified: all 23 F# low
 + the 5 record-related substrate fixtures (`record_update`=17, `record_update_let`=17, `record_axon`=13,
 `record_destructure`=13, `nested_record_destructure`=13) pass (28 passed / 18 substrate-deselected for
 speed; CI runs all). Remaining on F#: mixed tuple/record nesting + a variant in a blended `if` branch.
+
+## 2026-06-17 — sutra-from-rust: nested TUPLE destructure `let (a, (b, c)) = t` ships (runs == 16)
+
+Phase 6, Rust item. Same capability just shipped for F#, ported to Rust's (statement-based) lowering.
+New `_collect_rust_tuple_paths` recursively flattens a `tuple_pattern` (nested `tuple_pattern`
+elements recurse) to positional key-paths (`(a,(b,c))` → `[(("_0",),"a"), (("_1","_0"),"b"),
+(("_1","_1"),"c")]`). The destructure emits one `Axon` temp per non-leaf prefix
+(`Axon _np0 = t.item("_1");`) then binds each leaf `int b = realvec(_np0.item("_0"));` — chaining
+`.item()` on a raw tensor fails (the compiler returns a tensor from `axon_item`; an `Axon`-typed temp
+re-dispatches as `axon_item`). Nested tuple CONSTRUCTION already worked (Rust's arg-hoist nests).
+
+Fixture `nested_tuple_destructure` (`f(t: (i64,(i64,i64))) { let (a,(b,c)) = t; a+b+c }; f((5,(8,3)))`)
+runs on the substrate == **16** (== ground truth). Full Rust suite: 38 passed (all lower-only fixtures
++ the selected substrate fixtures including `nested_tuple_destructure`=16, `tuple_destructure`=13,
+`struct_destructure`=13). Remaining on Rust: nested match inside a tail-match arm; enum/`Some(x)`-pattern
+`let` destructuring.

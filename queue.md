@@ -113,9 +113,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   recursion (`f 0 acc | …; f n acc | …`); mutually-recursive/forward `where`/`let`; nested/
   non-variable constructor `case` patterns; nested tuple/constructor `let` patterns; `case` in
   non-tail expression position. (Laziness out of scope.)
-- [ ] **Rust** (`sutra-from-rust/`): nested match inside a tail-match arm; nested tuple patterns
-  (`let (a,(b,c))=t`); enum/`Some(x)`-pattern `let` destructuring. (Loop bounds need strict `<`/`>`;
-  `<=` drops the boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
+- [ ] **Rust** (`sutra-from-rust/`): nested match inside a tail-match arm; ~~nested tuple patterns
+  (`let (a,(b,c))=t`)~~ DONE 2026-06-17 (`_collect_rust_tuple_paths` + an `Axon` temp per non-leaf
+  prefix so reads dispatch as `axon_item`; `nested_tuple_destructure`=16 on the substrate);
+  enum/`Some(x)`-pattern `let` destructuring. (Loop bounds need strict `<`/`>`; `<=` drops the
+  boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
 - [ ] **OCaml arrays — scalable RAM device for the 10MB linear memory.** `Bytes.make` / loop-carried
   arrays use the global RAM list, which doesn't scale to 10MB. Also: non-zero `Array.make` fill for
   int-dict arrays (slots start at 0 — documented limit, not a bug).
