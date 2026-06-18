@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-17: weight→code follow-on #2 — emit the Fourier encoding on-substrate (baked decoder)
+
+Closed the last blocked follow-on of the weight→code finding: the baked decoder now runs the
+Fourier ENCODING on the substrate too, not just the decode. `emit_decoder.bake_decoder_with_encoding`
+emits a fully self-contained `dec_enc(matrix coords)` — raw (x,y) in, image out, encoding
+(`sin_buf`/`cos_buf`) + decode both on the substrate, weights from CSV. This was blocked on an
+elementwise-buffer transcendental until `sin_buf`/`cos_buf` shipped earlier today.
+
+**No concat primitive needed** (the part that could have ballooned scope): since `W0 @
+row_stack(blocks) = Σ_j W0[:,cols_j] @ block_j`, the trained `W0` is split by columns at bake time
+into the coords block + per-frequency sin/cos blocks, and the first-layer pre-activation is emitted
+as a SUM of `Tensor.MatrixMul(W0_block, sin_buf/cos_buf(f_k·coords))` — mathematically identical,
+using only existing ops (`Tensor.MatrixMul`, `+`, scalar·buffer scaling, verified elementwise) +
+the new primitive. **Verified** (`test_emit_decoder.py` +1, 4/4; full `demos/decoder` 33/33 green on
+real CPU): the baked coords→pixels `.su` reproduces the same substrate computation
+(`fourier_features_substrate` + `mlp_forward`) to **4.6e-5**. Honesty note: vs the exact-`torch.sin`
+host render the gap is ~0.05 — the `sin_buf` table readout's ~8e-5 error amplified through the two
+cubic layers, a documented property of the encoding (separately tested), not a bake defect. Finding
+`2026-06-17-decoder-weight-to-code.md` follow-on #2 marked DONE.
+
 ## 2026-06-17: SIREN sin-activation decoder on the substrate — runs, does NOT beat cubic+Fourier
 
 Used the new `sin_buf` primitive to build a SIREN-style sin-activation decoder (`dense_sin` =
