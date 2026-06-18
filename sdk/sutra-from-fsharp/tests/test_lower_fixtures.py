@@ -46,6 +46,8 @@ _RUNNABLE = {
     "nested_tuple_destructure": 16.0,  # f (t: int*(int*int)) = let (a,(b,c)) = t in a+b+c; main = f (5,(8,3))  (NESTED tuple pattern: nested-axon construction + Axon-temp chained item read)
     "record_destructure": 13.0,  # sum (p: Point) = let { x = a; y = b } = p in a + b; main = sum {x=5;y=8}  (let-record-pattern -> realvec(item x/y))
     "nested_record_destructure": 13.0,  # f (o: Outer) = let { a = aa; inner = { v = vv } } = o in aa+vv; main = f {a=5; inner={v=8}}  (NESTED record pattern: Axon temp for the inner-record prefix)
+    "record_in_tuple": 16.0,  # f (t: int*Pt) = let (a, { x = b; y = c }) = t in a+b+c; f (5, {x=8;y=3})  (MIXED: record nested inside a tuple pattern)
+    "tuple_in_record": 16.0,  # g (r: Pt) = let { a = aa; pos = (x, y) } = r in aa+x+y; g {a=5; pos=(8,3)}  (MIXED: tuple nested inside a record pattern)
     "du_destructure": 13.0,  # type Shape=Circle of int|...; radius (s) = let (Circle r) = s in r + 1; main = radius (Circle 12)  (let-DU-pattern -> realvec(item _val0))
     "tuple_arg": 13.0,  # addPair (p: int*int) = fst p + snd p; main = addPair (5, 8)  (tuple construction DIRECTLY as arg -> hoisted to _ahN temp, F# arg-hoist parity)
     "nullary_variant": 20.0,  # type Dir=North|South; code (d) = match d with North->10|South->20; main = code South  (nullary DU variant in value position -> {_tag} axon)

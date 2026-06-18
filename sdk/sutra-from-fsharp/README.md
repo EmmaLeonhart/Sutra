@@ -64,4 +64,6 @@ type `Axon` + `{_tag}` axon; zero-arg call `f ()` drops the unit arg) shipped 20
 Record-update over a LET-BOUND source (`let q = { b with x = 9 }` — type inferred from
 `b`'s field set) shipped 2026-06-17. A variant in a blended `if` branch (`if c then North
 else South` → branches hoist to `{_tag}` axon temps, the blend selects the matched axon at
-`f = ±1`, return type `Axon`) shipped 2026-06-17. Mixed tuple/record nesting still a later item.)
+`f = ±1`, return type `Axon`) shipped 2026-06-17. MIXED tuple/record nesting
+(`let (a, { x = b }) = t`, `let { pos = (x, y) } = r`) shipped 2026-06-18 — a shared
+`_collect_element_paths` dispatcher lets the tuple- and record-path collectors cross-call.)
