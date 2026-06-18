@@ -11618,3 +11618,16 @@ warns it is superseded by `qdk`; import still works.) Silq is NOT pip-installabl
 on PyPI — standalone D-toolchain compiler / VS Code extension), so it is the documented blocker
 per Emma's "as long as the software is accessible." Remaining: Q5 (VQE-to-Sutra) — the genuinely
 novel test; Q4 extends the writeup once Q5 lands.
+
+## 2026-06-18 — transpiler long-tail: drop Rust variant-match; Haskell explicit-recursive-guard
+
+Per Emma 2026-06-18: Rust isn't high priority and its variant-inner-match gap isn't easy (it's
+the int-local-in-expression-position codegen limitation), so the Rust §4 item is dropped (not
+on-hold — removed; the gap stays UNSUPPORTED). Doing the higher-priority non-Rust long-tail.
+
+Haskell: a recursive guard may now be an EXPLICIT condition, not just `otherwise` —
+`sumTo acc n | n == 0 = acc | n > 0 = sumTo (acc+n) (n-1)`. `_try_lower_guarded_recursion` now
+identifies base vs recursive by self-call (recursive guard's cond, if explicit, becomes the loop
+continue; otherwise → negated base cond as before). Fixture `guarded_explicit_rec` sumTo 0 5 = 15,
+RUN on the substrate. Full Haskell suite 52 passed (no regression on the `otherwise` / multibase
+paths).
