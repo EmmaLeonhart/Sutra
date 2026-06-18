@@ -225,6 +225,36 @@ def _emit_struct_construction(name, fields, base, src: bytes, var: str, indent: 
     return stmts
 
 
+def _if_let_parts(cond_node, src: bytes):
+    """If `cond_node` is a `let_condition` `let E::V(x…) = s` whose pattern is a
+    `tuple_struct_pattern` over a KNOWN variant with identifier payloads, return
+    (variant, [payload_var_nodes], scrutinee_node); else None."""
+    if cond_node.type != "let_condition":
+        return None
+    pat = next((c for c in cond_node.named_children
+                if c.type == "tuple_struct_pattern"), None)
+    if pat is None:
+        return None
+    sid = next((c for c in pat.named_children if c.type == "scoped_identifier"), None)
+    if sid is None:
+        return None
+    ids = [c for c in sid.named_children if c.type == "identifier"]
+    if len(ids) != 2 or _text(ids[1], src) not in _VARIANTS:
+        return None
+    variant = _text(ids[1], src)
+    pvars = [c for c in pat.named_children if c.type == "identifier"]
+    if not pvars or any(p.type != "identifier" for p in pvars):
+        return None
+    # the scrutinee is the let_condition child after the pattern (an identifier here)
+    scrut = next((c for c in cond_node.named_children
+                  if c is not pat and c.type == "identifier"), None)
+    if scrut is None:
+        return None
+    if len(pvars) != _VARIANTS[variant][2]:   # arity must match the variant payload
+        return None
+    return variant, pvars, scrut
+
+
 def _enum_construction(node, src: bytes):
     """If `node` is an enum construction `E::V(a, b)` (a call whose head is a
     `scoped_identifier` naming a known variant), return (variant, [arg_nodes]);
@@ -817,9 +847,17 @@ def _lower_expr(node, src: bytes) -> str:
         kids = node.named_children
         if len(kids) < 2:
             return "/* UNSUPPORTED-EXPR: malformed if */"
-        cond_src = _lower_expr(kids[0], src)
         then_blk = kids[1]
         else_clause = next((c for c in kids if c.type == "else_clause"), None)
+        # `if let E::V(x) = s` NESTED in an expression needs an `int _vtag` prelude for a
+        # CRISP tag test (an inline `realvec(s.item("_tag")) == 0` defuzzes to the 50/50
+        # blend at tag 0 — measured 6.5 not 13). Statements can't be emitted here, so a
+        # nested if-let is a later item; `if let` AS THE FUNCTION TAIL is handled crisply
+        # in `_lower_function`.
+        if kids[0].type == "let_condition":
+            return ("/* UNSUPPORTED-EXPR: nested `if let` (needs an int-local tag test; "
+                    "use as the function tail) */")
+        cond_src = _lower_expr(kids[0], src)
         _lets_t, then_tail = _block_value(then_blk, src)
         if _lets_t or then_tail is None:
             return "/* UNSUPPORTED-EXPR: if-arm with statements (later item) */"
@@ -1076,6 +1114,8 @@ def _lower_function(item, src: bytes) -> str:
         ty = _map_type(ty_node, src) if ty_node is not None else _DEFAULT_TYPE
         stmts += _stmt_with_hoist(value, src, f"    {ty} {nm} = {{expr}};\n")
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
+    il_tail = (_if_let_parts(tail.named_children[0], src)
+               if tail.type == "if_expression" and tail.named_children else None)
     if tail.type == "match_expression":
         # A variant match as the function tail emits its `_vtag` / `_val{i}`
         # binding statements before the blend (the OCaml shape).
@@ -1084,6 +1124,39 @@ def _lower_function(item, src: bytes) -> str:
             body_tail = f"    return {match_expr};\n"  # UNSUPPORTED marker
         else:
             body_tail = match_stmts + f"    return {match_expr};\n"
+    elif il_tail is not None:
+        # `if let E::V(x) = s { … } else { … }` as the function tail: emit an int-local
+        # for a CRISP tag test (`int _vtag = realvec(s.item("_tag")); (_vtag == tag)` —
+        # the round-trip snaps the noisy filler, the OCaml/match shape), bind the payload
+        # locals in the THEN arm, and blend with the else arm.
+        variant, pvars, scrut = il_tail
+        _enum, tag, _arity = _VARIANTS[variant]
+        scrut_src = _lower_expr(scrut, src)
+        then_blk = tail.named_children[1]
+        else_clause = next((c for c in tail.named_children
+                            if c.type == "else_clause"), None)
+        _lets_t, then_tail = _block_value(then_blk, src)
+        _lets_e, else_tail = (_block_value(else_clause.named_children[0], src)
+                              if else_clause is not None and else_clause.named_children
+                              else (False, None))
+        if _lets_t or then_tail is None or _lets_e:
+            body_tail = ("    return /* UNSUPPORTED-EXPR: if-let arm with statements "
+                         "(later item) */;\n")
+        else:
+            vtag = "_vtag_il"
+            binds = [(_text(v, src), f'realvec({scrut_src}.item("_val{i}"))')
+                     for i, v in enumerate(pvars)]
+            for nm, sub in binds:
+                _SUBST[nm] = sub
+            try:
+                then_src = _lower_expr(then_tail, src)
+            finally:
+                for nm, _sub in binds:
+                    _SUBST.pop(nm, None)
+            else_src = _lower_expr(else_tail, src) if else_tail is not None else "0"
+            cond_src = f"({vtag} == {tag})"
+            body_tail = (f'    int {vtag} = realvec({scrut_src}.item("_tag"));\n'
+                         f"    return {_blend(cond_src, then_src, else_src)};\n")
     else:
         body_tail = _stmt_with_hoist(tail, src, "    return {expr};\n")
     return (f"function {ret} {name}({params_src}) {{\n"

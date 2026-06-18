@@ -83,9 +83,11 @@ Dependency: `tree-sitter-rust` (`pip install tree-sitter-rust`).
 ## Next
 
 Statement-bearing if-arms; nullary-variant values; struct `..base` spread; nested
-match inside a function-tail match arm; enum/`Some(x)`-pattern `let` destructuring.
-(Unbounded `loop { … break }`, struct field-init shorthand, and nested/non-tail
-`match` in expression position all shipped 2026-06-15. NESTED tuple AND struct
-patterns (`let (a, (b, c)) = t`, `let Outer { a, inner: Inner { v } } = o`) shipped
-2026-06-17 — a shared `_emit_rust_nested_reads` emits an `Axon` temp per non-leaf
-prefix so reads dispatch as `axon_item`, since chaining `.item()` on a raw tensor fails.)
+match inside a function-tail match arm; NESTED `if let` (needs an int-local an
+expression can't emit). (Unbounded `loop { … break }`, struct field-init shorthand,
+and nested/non-tail `match` in expression position all shipped 2026-06-15. NESTED tuple
+AND struct patterns (`let (a, (b, c)) = t`, `let Outer { a, inner: Inner { v } } = o`)
+shipped 2026-06-17 — a shared `_emit_rust_nested_reads` emits an `Axon` temp per non-leaf
+prefix so reads dispatch as `axon_item`, since chaining `.item()` on a raw tensor fails.
+Function-tail enum `if let E::V(x) = s { … } else { … }` shipped 2026-06-17 — an
+`int _vtag` round-trip makes the tag test crisp at tag 0.)

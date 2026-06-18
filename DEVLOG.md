@@ -10853,3 +10853,19 @@ runs on the substrate == **13** (guard `Flag>0` blends `A+B` vs base 0; `_a1` ty
 suite: 34 passed (lower-only clean + `multiclause_bind_body`=13, `match_bind_body`=13,
 `multiclause_fact`=120 — recursion path unregressed). Remaining on Erlang: >2-clause recursion
 (single-condition-halt blocker); list comprehensions; `div`/`rem` via complex rotation.
+
+## 2026-06-17 — sutra-from-rust: function-tail enum `if let E::V(x) = s { … } else { … }` ships (== 13)
+
+Phase 6, Rust item. An `if let` enum destructure as a function tail now lowers + runs. Key measured
+detail: an INLINE tag test `realvec(s.item("_tag")) == 0` defuzzes to the 50/50 blend at tag 0
+(measured **6.5** not 13 for `radius(Circle(12))`), the same non-crispness the variant `match` path
+avoids with an int-local. So `if let` is handled at the FUNCTION-TAIL level (where statements can be
+emitted): `int _vtag = realvec(s.item("_tag"))` snaps the noisy filler, then `(_vtag == tag)` is crisp;
+the `_val{i}` payload locals bind in the THEN arm; the else arm blends. `_if_let_parts` extracts the
+`tuple_struct_pattern` variant + payload vars + scrutinee. NESTED `if let` (in an expression position)
+surfaces UNSUPPORTED — it needs an int-local an expression can't emit (honest, not mislowered).
+
+Fixture `if_let_enum` (`if let Shape::Circle(r) = s { r+1 } else { 0 }; radius(Shape::Circle(12))`)
+runs on the substrate == **13** (Circle, tag matches → r+1); `radius(Shape::Square(7))` measured == **0**
+(else arm). Rust suite: 42 passed (lower-only clean + `if_let_enum`=13, `enum_match`=2 — match-tail
+path unregressed). Remaining on Rust: nested match inside a function-tail match arm; nested `if let`.
