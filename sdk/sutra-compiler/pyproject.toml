@@ -8,7 +8,7 @@ version = "0.7.0"
 description = "Compiler for the Sutra programming language — tensor ops on frozen-LLM embedding vectors."
 readme = "README.md"
 requires-python = ">=3.11"
-license = "Apache-2.0"
+license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 authors = [
   { name = "Emma Leonhart" },
