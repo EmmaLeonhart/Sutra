@@ -33,13 +33,6 @@ queue now"). Make the reasonable engineering choice where one is noted, build it
 substrate, measure, ship. Each: fixture-tested + RUN against ground truth; keep
 `transpilers-ci` green.
 
-- [ ] **0.1 — TS nested-interface support** (Yantra's gate; highest user-value). Two parts:
-  (a) recurse nested object-literal construction (`{ a: 5, inner: { v: 8 } }` — currently
-  `UNSUPPORTED-EXPR: object` for the inner object); (b) read nested member access
-  (`o.inner.v`) via an `Axon`-temp **hoist-prelude** — TS's `_lower_expression` is pure
-  expr→str and chained `.item().item()` fails at runtime (measured), so add a hoist modeled
-  on OCaml's `_hoist_aggregate_args_deep` (lift nested member chains into `Axon` temps before
-  the return). TS is regression-sensitive — verify the full TS suite + `transpilers-ci` green.
 - [ ] **0.2 — Nested-axon read robustness** (cross-talk finding
   `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`). Nested reads read WRONG at
   the default `runtime_dim` 50 when keys repeat across levels (measured: Haskell
@@ -144,7 +137,8 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   the global RAM list, which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented
   limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
-  when two interfaces share a field name with different types. (Nested-interface support is §0.1.)
+  when two interfaces share a field name with different types. (Nested-interface support shipped
+  2026-06-18 — recursive object-literal construction + member-access hoist-prelude.)
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
   distinct from the §2 wasm_core VM).
 

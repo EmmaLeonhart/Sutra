@@ -11389,3 +11389,25 @@ SAFE (git log is the safety net). Three changes:
   strikethrough completed sub-items, keeping only the OPEN per-frontend work.
 Also corrected the `crossing-items-off-is-unsafe` memory (I'd recorded the interpretation
 backwards). No code change this tick; queue/docs only.
+
+## 2026-06-18 — sutra-from-ts: NESTED interface support (queue §0.1, Yantra's gate)
+
+TS frontend now lowers nested-interface programs (`o.inner.v` over
+`interface Outer { a; inner: Inner }`) — runs on the substrate == **13**
+(`o.a + o.inner.v` for `{a:5, inner:{v:8}}`). Two parts:
+- Construction: `_lower_object_literal_into_axon` now recurses for a nested
+  object-literal field value (`{ inner: { v: 8 } }`) — builds the inner object
+  into a temp Axon (`x_1`), then `x.add("inner", x_1)` (was `UNSUPPORTED-EXPR:
+  object`). Mirrors the OCaml record-construction recursion.
+- Access: added a **hoist-prelude** mechanism TS lacked. `_lower_expression` is
+  pure expr→str, and chained `.item().item()` fails at runtime (the inner read
+  returns a raw tensor), so a member access whose object is itself an Axon-typed
+  member access hoists that object into a typed `Axon` temp (`Axon _np0 =
+  o.item("inner");`) deposited in `ctx.prelude` and drained before the enclosing
+  statement (return / expression / if-blend / lexical-decl / function-body
+  blend). `_expr_type` gained a `member_expression` case so a nested axon field
+  resolves level by level (`field_types["inner"]="Axon"`, `["v"]="int"`). Modeled
+  on OCaml's `_hoist_aggregate_args_deep`.
+Clean at the default dim 50 (distinct field-name keys). New fixture
+`nested_interface` (input.ts + expected.su + runnable=13). FULL TS suite: **42
+passed, 1 xfailed** (pre-existing) — no regression on Yantra's gate frontend.

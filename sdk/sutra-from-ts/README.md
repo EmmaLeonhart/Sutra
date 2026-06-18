@@ -8,7 +8,9 @@ The CLI ships valid `.su` output for the **17 fixtures under `tests/fixtures/`**
 
 - Function declarations (incl. arrow-as-`const`, closure-free capture via param lifting)
 - Classes (fields + methods + static + constructors + `new`)
-- Interfaces and type aliases (erased; only register "this name is Axon-shaped")
+- Interfaces and type aliases (erased; only register "this name is Axon-shaped"), including
+  NESTED interfaces — a nested object literal (`{ inner: { v: 8 } }`) builds a nested axon, and
+  nested member access (`o.inner.v`) reads through a hoisted `Axon` temp (shipped 2026-06-18)
 - Discriminated unions
 - `while` / `for` / `do-while` loops hoisted into Sutra `while_loop` decls with auto-detected state vars
 - `async` / `await` / `Promise<T>` (uses Sutra's first-class promise vocabulary, shipped 2026-05-13)
