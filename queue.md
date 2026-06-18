@@ -253,11 +253,17 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   ~~MIXED tuple/record nesting (`let (a, { x; y }) = t`, `let { pos = (x, y) } = r`)~~ DONE 2026-06-18
   (`_ocaml_tuple_paths` now cross-calls `_ocaml_record_paths` on a record element, the reverse direction
   already worked, so tuple- and record-patterns mix both ways; `record_in_tuple`=16, `tuple_in_record`=16
-  on the substrate). Remaining: **scalable RAM device for the 10MB linear memory** (`Bytes.make` /
-  loop-carried arrays use the global RAM list, which doesn't scale to 10MB); non-zero `Array.make` fill
-  for int-dict arrays (slots start at 0 — documented limit, not a bug). **OCaml nested-pattern
-  destructure fully drained** (tuple/record/variant + MIXED, flat + nested); only the RAM/array-fill
-  items + general breadth remain.
+  on the substrate). Remaining: **aggregate payload in an `option`/variant MATCH arm**
+  (`match s with Some { x; y } -> x + y | None -> 0` — the option-match codegen binds the payload as a
+  SCALAR `int _oval = realvec(s.item("_val"))`, so a record/tuple payload's fields are unbound and
+  `Some { record }` construction surfaces UNSUPPORTED; measured 2026-06-18. Needs the option/variant
+  MATCH path to descend an aggregate payload the way the variant-`let` path now does — a non-trivial
+  rework of the scalar-payload assumption, NOT a clean cross-call); **scalable RAM device for the 10MB
+  linear memory** (`Bytes.make` / loop-carried arrays use the global RAM list, which doesn't scale to
+  10MB); non-zero `Array.make` fill for int-dict arrays (slots start at 0 — documented limit, not a
+  bug). **OCaml nested-pattern destructure fully drained for `let` bindings** (tuple/record/variant +
+  MIXED, flat + nested); the MATCH-arm aggregate payload above is the one nested gap left, plus the
+  RAM/array-fill items + general breadth.
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
   when two interfaces share a field name with different types.
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
