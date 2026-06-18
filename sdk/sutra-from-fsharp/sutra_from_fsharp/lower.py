@@ -573,6 +573,12 @@ def _lower_expr(node, src: bytes) -> str:
                     for field, fval in rec_fields:
                         _PRELUDE.append(f'    {name}.add("{field}", {_lower_field_value(fval, src)});\n')
                     _AXON_VARS.add(name)
+                    # Infer the record type from the literal's field set so a later
+                    # `{ name with … }` over this LET-BOUND source knows which fields to
+                    # copy (the field set uniquely identifies a declared record type).
+                    inferred = _infer_record_type([f for f, _ in rec_fields])
+                    if inferred is not None:
+                        _PARAM_RECORD_TYPE[name] = inferred
                     return _lower_expr(kids[1], src)
                 va = _variant_application(val_node, src)
                 if va is not None:
@@ -815,6 +821,15 @@ def _record_fields(node, src: bytes):
         field = _text(fi.named_children[0], src).strip()
         fields.append((field, fi.named_children[-1]))
     return fields if fields else None
+
+
+def _infer_record_type(field_names):
+    """The declared record type whose field set is EXACTLY `field_names`, else None.
+    F#'s `{ … }` literal and `{ r with … }` update do not name the type, so it is
+    recovered from the field set — unique when no two record types share a field set."""
+    want = set(field_names)
+    matches = [t for t, fields in _RECORD_FIELDS.items() if set(fields) == want]
+    return matches[0] if len(matches) == 1 else None
 
 
 def _record_with_fields(node, src: bytes):

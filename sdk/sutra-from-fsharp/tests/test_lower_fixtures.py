@@ -51,6 +51,7 @@ _RUNNABLE = {
     "nullary_variant": 20.0,  # type Dir=North|South; code (d) = match d with North->10|South->20; main = code South  (nullary DU variant in value position -> {_tag} axon)
     "nullary_variant_return": 10.0,  # let getNorth () = North; main = code (getNorth ())  (function RETURNING a nullary variant -> ret type Axon + {_tag} axon; zero-arg call drops unit arg)
     "record_update": 17.0,  # type Point={x;y}; bump (p) = let q = { p with x = 9 } in q.x+q.y; main = bump {x=1;y=8}  (record functional-update -> override x, copy y from p)
+    "record_update_let": 17.0,  # bump () = let b={x=1;y=8} in let q={b with x=9} in q.x+q.y  (record-update over a LET-BOUND source -> type inferred from b's field set)
 }
 
 

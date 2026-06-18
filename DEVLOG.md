@@ -10648,3 +10648,19 @@ variant-related substrate fixtures (`nullary_variant`=20, `nullary_variant_retur
 blended `if` branch (`if c then North else South`) remains a later item — that needs an axon-valued
 blend + return-type inference over both branches. Remaining on F#: that + mixed tuple/record nesting +
 let-bound record-update.
+
+## 2026-06-17 — F# frontend: record-update over a LET-BOUND source `let q = { b with x = 9 }` ships (== 17)
+
+Phase 6, F# item. `{ r with … }` previously resolved the source's field set only for record-typed
+PARAMS (`_PARAM_RECORD_TYPE`). Now a LET-BOUND record literal registers its inferred type too: new
+`_infer_record_type(field_names)` returns the declared record type whose field set is EXACTLY the
+literal's (unique when no two record types share a field set — F# `{ … }` and `{ r with … }` do not
+name the type, so it is recovered from the fields), and the record-construction let path registers
+`_PARAM_RECORD_TYPE[name] = inferred`. So `{ b with x = 9 }` over a let-bound `b` now knows to copy
+`y` from `b`.
+
+Fixture `record_update_let` (`bump () = let b={x=1;y=8} in let q={b with x=9} in q.x+q.y`) runs on
+the substrate == **17** (override x=9, copy y=8 from b). Verified: all 23 F# lower-only fixtures clean
++ the 5 record-related substrate fixtures (`record_update`=17, `record_update_let`=17, `record_axon`=13,
+`record_destructure`=13, `nested_record_destructure`=13) pass (28 passed / 18 substrate-deselected for
+speed; CI runs all). Remaining on F#: mixed tuple/record nesting + a variant in a blended `if` branch.
