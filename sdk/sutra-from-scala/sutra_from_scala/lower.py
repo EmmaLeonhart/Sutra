@@ -162,6 +162,12 @@ def _lower_expr(node, src: bytes) -> str:
         return _SUBST.get(text, text)
     if t == "boolean_literal":
         return _text(node, src)
+    if t == "string":
+        # A plain Scala string literal `"…"` → a Sutra string literal (a string-flag
+        # codepoint array). `_text` keeps the surrounding quotes, which is exactly the
+        # Sutra surface form. Interpolated strings (`s"$x"`) are a later item — they
+        # parse as `interpolated_string_expression`, not `string`, so they fall through.
+        return _text(node, src)
     if t == "parenthesized_expression":
         inner = node.named_children[0] if node.named_children else None
         return f"({_lower_expr(inner, src)})" if inner is not None else "0"

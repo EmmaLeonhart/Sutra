@@ -81,8 +81,9 @@ CLAUDE.md). Each: fixture-tested + RUN on the substrate against ground truth; mo
 `sutra-from-ocaml` (the reference); keep `transpilers-ci.yml` green. The nested + MIXED
 destructure sweep is complete for all 5 ML-family frontends; what's left:
 
-- [ ] **F# / Scala** — nested/mixed destructure fully drained; only general breadth remains
-  (closures, generics, traits/instance classes, String ops), modelled on OCaml as needs arise.
+- [ ] **F# / Scala** — nested/mixed destructure + string literals (`"…"` → Sutra string, `==`/`=`
+  via eq_synthetic; fixtures `string_eq` RUN == 30) done; general breadth remains (closures,
+  generics, traits/instance classes, more String ops), modelled on OCaml as needs arise.
 - **Haskell** (`sutra-from-haskell/`): native-recursion surface DONE 2026-06-18 (tail, non-tail
   CPS fold, >2-guard multibase, explicit-condition recursive guard — `otherwise` or `| n>1 = f…`).
   The few remaining native-lowering edge cases are MOVED to the bottom of the queue (they run via the
@@ -193,11 +194,11 @@ Work top-to-bottom; do not reorder.
   `sdk/*/README.md`, `planning/sutra-spec/`): contradictions, stale claims, dead website refs,
   business framing, undocumented capabilities. Plan into per-surface steps when reached; grep, don't
   trust memory. Do NOT start until the phases above are clear unless Emma re-prioritizes.
-- **Haskell native-lowering edge cases (deferred — work via the tier-5 WASM fallback, per Emma):**
-  >2-guard NON-tail multibase (CPS fold seed-selection over multiple bases); mutually-recursive /
-  forward `where`/`let`; a VARIANT `case` in expression position (the int-local-in-expression-position
-  codegen limit, shared with the dropped Rust variant-match). Native lowering is non-trivial; low
-  priority because WASM already covers them. Laziness out of scope.
+- **Transpiler edge cases on the WASM fallback (catalogue: `planning/wasm-fallback-edge-cases.md`):**
+  per-frontend constructs that don't lower natively yet but run via tier-5 WASM (Haskell non-tail
+  multibase / mutual `where`-`let` / variant-case-in-expr; OCaml option-match aggregate; Clojure
+  maps-in-recursion; Elixir/Erlang non-tail/guarded multibase; F# no-paren application; etc.).
+  Low value — **few cycles each**, leave on WASM if not clean; do these LAST (todo.md tail).
 - **Parked / longer-horizon (in `todo.md`):** C→Sutra transpiler (parked, keep in tree); Promises
   Stage-3 / container-method-dispatch / multi-statement try-catch; TS transpiler closeout; website
   visual remake; Yantra migration tail; NTM/attention-on-RAM breadth backlog.
