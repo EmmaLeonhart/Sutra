@@ -46,4 +46,6 @@ Multi-clause recursion (Erlang's other idiom — `f(0) -> …; f(N) -> … f(N-1
 base-case-pattern clause + a recursive clause; currently `UNSUPPORTED-RECURSION`);
 maps/records/tuples → axons; list comprehensions; `div`/`rem` via complex rotation.
 (Map-PATTERN params `getx(#{x := X, y := Y}) -> X + Y` — each field binds its `var`
-to `realvec(M.item("key"))` — shipped 2026-06-17.)
+to `realvec(M.item("key"))` — shipped 2026-06-17. Multi-clause bodies with `=` destructure
+bindings + a Bool atom `case B of true -> … ; false -> … end` [`(B == true)`/`(B == false)`]
+shipped 2026-06-18.)
