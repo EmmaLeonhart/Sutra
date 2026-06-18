@@ -46,6 +46,7 @@ _RUNNABLE = {
     "multiclause_tailsum": 15.0,  # def sum(0, acc), do: acc; def sum(n, acc), do: sum(n-1, acc+n); main = sum(5, 0)  (multi-PARAM multi-clause tail recursion -> while_loop)
     "guarded_fact": 120.0,  # def fac(n) when n == 0, do: 1; def fac(n), do: n * fac(n-1); main = fac(5)  (GUARDED-base multi-clause recursion -> guard as cond -> CPS fold loop)
     "multibase_tailsum": 105.0,  # def f(0,acc),do: acc; def f(1,acc),do: acc+100; def f(n,acc),do: f(n-1,acc+n); f(3,0)=105  (>2-CLAUSE multi-literal-base tail recursion: continue = (n!=0)&&(n!=1) compound halt [§0.3], post-loop = nested blend of base bodies on final state)
+    "guarded_rec_clause": 15.0,  # def f(n,acc) when n>0,do: f(n-1,acc+n); def f(_,acc),do: acc; f(5,0)=15  (Mode C: GUARDED RECURSIVE clause + catch-all base -> continue = the recursive guard, base is post-loop value)
 }
 
 
