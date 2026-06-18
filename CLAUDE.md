@@ -73,6 +73,8 @@ This project is vibe-coded — decisions get made in chat, partially implemented
 
 `todo.md` is longer-horizon. `queue.md` is the next active session. Items migrate `todo.md` → `queue.md` → deleted on completion.
 
+**⭐ VERY IMPORTANT (Emma 2026-06-18) — removing items as they are done is the SAFE option.** When a queue item is finished, **delete it from `queue.md` entirely** in the same commit that ships it. Do NOT leave it behind as a crossed-off / `~~struck-through~~` / "DONE" / "SHIPPED" marker — *that* is the unsafe option. Crossed-off completed items are the bloat that buries the open work and confuses the next session (it confused this agent into dumping a low-level decision-fork on Emma instead of just working). The queue holds only not-yet-done work; "done" lives in `git log`, `DEVLOG.md`, and `planning/findings/`. Removing-as-done keeps the queue an honest ordered execution list; accumulating crossed-off items destroys that. The git history is the safety net — nothing is truly lost by deleting a completed line, so delete it.
+
 ### Barrel through specified work; verify against spec; don't add false caution
 
 **Counterbalance to §"Integrity and correctness".** Safety-critical means *don't fake results / don't fake substrate purity* — it does NOT mean treat every queue item as needing a multi-session gated approach. When the design is already in `planning/sutra-spec/*.md`:
