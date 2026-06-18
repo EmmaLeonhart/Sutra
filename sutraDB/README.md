@@ -249,4 +249,4 @@ docker run -p 3030:3030 -v sutra-data:/data sutradb
 
 ## License
 
-Apache 2.0
+AGPL-3.0-only

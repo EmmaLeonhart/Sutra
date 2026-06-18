@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Transpile a typed core of TypeScript (and JavaScript-as-untyped-TS) into Sutra (.su) source."
 readme = "README.md"
 requires-python = ">=3.11"
-license = "Apache-2.0"
+license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 authors = [
   { name = "Emma Leonhart" },

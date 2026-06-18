@@ -56,4 +56,4 @@ print(f"Inserted {result['inserted']} vectors")
 
 ## License
 
-Apache-2.0
+AGPL-3.0-only

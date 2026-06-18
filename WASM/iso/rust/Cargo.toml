@@ -3,7 +3,7 @@ name = "neural-wasm-iso"
 version = "0.1.0"
 edition = "2021"
 description = "Rust isomorph of transformer-vm's wasm/reference.py — the deterministic 35-opcode stack machine the autoregressive transformer is isomorphic to."
-license = "Apache-2.0"
+license = "AGPL-3.0-only"
 
 [lib]
 name = "neural_wasm_iso"

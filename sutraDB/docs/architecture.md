@@ -603,4 +603,4 @@ These are unresolved architecture decisions that must be answered before or duri
 - **HNSW compaction**: lazy deletion degrades index quality over time. What threshold triggers a background compaction pass to clean deleted nodes?
 - **SPARQL property paths** (`+`, `*`, `?`): traversal strategy for cycles on large graphs — what prevents unbounded recursion?
 - **IRI encoding**: Our current sequential interning vs. Oxigraph's hash-based approach (128-bit SipHash, no collision issues at scale, eliminates need for string→ID index).
-- ~~**License**: Apache 2.0 vs MIT?~~ **Resolved: Apache 2.0.**
+- ~~**License**: Apache 2.0 vs MIT?~~ **Resolved: AGPL-3.0-only** (changed 2026-06-18; was Apache 2.0).

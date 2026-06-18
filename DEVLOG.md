@@ -11543,3 +11543,27 @@ POST-LOOP value at its exact boundary (the continue rounds the tie to halt via h
 blend reads raw fuzzy truth) — the known `<=` boundary limitation (finding 2026-06-13). Use `==`
 for an exact base; equality bases are crisp after §0.3. Full Haskell suite 50 passed (no
 regression). Elixir/Erlang port the same transform next (Haskell is the family reference).
+
+## 2026-06-18 — queue §9: first-party Apache → AGPLv3 (license consistency)
+
+The root LICENSE is AGPLv3 but first-party SDK components still declared Apache-2.0. Converted
+all FIRST-PARTY licensing to AGPL-3.0-only to match:
+- LICENSE files (Apache→AGPLv3 full text): sdk/sutra-compiler, sdk/sutra-from-c,
+  sdk/sutra-from-ocaml, sdk/sutra-from-ts, sutraDB.
+- Package metadata `license = "Apache-2.0"` → `"AGPL-3.0-only"`: all 8 sdk/sutra-from-*/
+  + sutra-compiler pyproject.toml, WASM/iso/rust/Cargo.toml, sutraDB/Cargo.toml + sdks/python
+  (incl. the OSI classifier), sdks/rust, sdks/typescript package.json, sdks/dotnet csproj
+  (PackageLicenseExpression), sdks/java build.gradle.kts (pom license name+url), and the
+  generated manifest in scripts/build_supplementary_zip.py.
+- README/website license sections → AGPL-3.0-only: the three sdk READMEs, all six sutraDB SDK
+  READMEs, sutraDB/README.md, sutraDB/pages/*.html (badge + "open source under ... license"),
+  paper/supplementary/README.md, and the sutraDB CLAUDE.md/architecture.md decision records.
+
+Left untouched per Emma's §9: third-party/vendored Apache licenses (external/thrml/LICENSE,
+WASM/replication_target/transformer-vm/LICENSE), the Gradle wrapper, all "Apache Jena"/
+"DataFusion (Apache)" project references (comparisons, not our license), and WASM research notes
+describing external reference repos' licenses. external/Yantra/LICENSE was already AGPLv3.
+
+CONFLICT FLAGGED (not edited): paper/neurips/supplementary/README.md:126 states the sutraDB
+crates are Apache-2.0. It is under the permanent NeurIPS freeze, so it now contradicts the
+relicense — surfaced to Emma, not silently amended.

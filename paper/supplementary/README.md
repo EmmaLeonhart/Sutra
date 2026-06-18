@@ -136,5 +136,5 @@ and runtime expectations.
 ## License
 
 The compiler and example sources are MIT-licensed. SutraDB
-(the Rust crates in `sutraDB/`) is Apache-2.0; see
+(the Rust crates in `sutraDB/`) is AGPL-3.0-only; see
 `sutraDB/LICENSE`.
