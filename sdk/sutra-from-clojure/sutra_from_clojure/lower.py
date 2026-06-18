@@ -54,6 +54,39 @@ _AH_COUNTER = [0]
 # positional-key axon. Data vectors `[a b]` (in value position) lower to axons.
 _BINDING_VECS: set = set()
 
+# Per-function destructure-prelude: NESTED `let [[a b] c]` destructuring needs an
+# `Axon` temp per non-leaf prefix (chaining `.item()` on a raw tensor fails — the
+# compiler returns a tensor from `axon_item`). The let lowering is substitution-only
+# (no statements), so the temps accumulate here and the function emitter appends them
+# after the map-hoist prelude. Cleared at the start of each function emission.
+_DESTRUCTURE_PRELUDE: list = []
+
+# Param names that are VECTOR-destructured in the body (`let [a b] = param`) — they are
+# axons, so the function emitter must type them `Axon` (collected during lowering, since
+# the destructure is reached through `_lower_expr`). Cleared per function.
+_DESTRUCTURE_AXON_PARAMS: set = set()
+
+
+def _collect_clj_vec_paths(vec, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) Clojure binding `vec_lit` into `[(path_keys, name), …]`,
+    where `path_keys` is the chain of 0-based positional axon keys (`_0`, `_1`, …) reaching
+    the bound symbol (Clojure vectors are 0-indexed, like `(nth v j)`). A nested `vec_lit`
+    element recurses (`[[a b] c]` → `[(("_0","_0"),"a"), (("_0","_1"),"b"), (("_1",),"c")]`);
+    any non-symbol/non-vector element is a later item (→ None)."""
+    out: list = []
+    for j, e in enumerate(vec.named_children):
+        key = f"_{j}"
+        if e.type == "sym_lit":
+            out.append((prefix + (key,), _text(e, src)))
+        elif e.type == "vec_lit":
+            sub = _collect_clj_vec_paths(e, src, prefix + (key,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None
+    return out
+
 
 def grammar_available() -> bool:
     return _DLL.exists()
@@ -529,19 +562,33 @@ def _lower_expr(node, src: bytes) -> str:
                     # `[a b]` vector destructuring: each element substitutes to the
                     # positional axon field read `realvec(val.item("_j"))` (the same
                     # projection `(nth v j)` uses). The value must be a bare name (a
-                    # vector param or a hoisted data-vector temp); only plain-symbol
-                    # elements are in scope (nested destructure is a later item).
-                    elems = pat.named_children
+                    # vector param or a hoisted data-vector temp). NESTED patterns
+                    # (`[[a b] c]`) read through an `Axon` temp per non-leaf prefix
+                    # (appended to `_DESTRUCTURE_PRELUDE`) — chaining `.item()` on a raw
+                    # tensor fails.
                     val_src = _lower_expr(pairs[i + 1], src)
-                    if (not elems or any(e.type != "sym_lit" for e in elems)
-                            or not val_src.isidentifier()):
+                    paths = _collect_clj_vec_paths(pat, src, ())
+                    if paths is None or not val_src.isidentifier():
                         for nm in bound:
                             _SUBST.pop(nm, None)
                         return ("/* UNSUPPORTED-EXPR: vector destructuring shape "
-                                "(nested pattern / non-name value — later item) */")
-                    for j, e in enumerate(elems):
-                        nm = _text(e, src)
-                        _SUBST[nm] = f'realvec({val_src}.item("_{j}"))'
+                                "(non-symbol element / non-name value — later item) */")
+                    _DESTRUCTURE_AXON_PARAMS.add(val_src)   # type the RHS param `Axon`
+                    prefix_temp = {(): val_src}
+
+                    def _vec_temp_for(prefix):
+                        if prefix in prefix_temp:
+                            return prefix_temp[prefix]
+                        parent = _vec_temp_for(prefix[:-1])
+                        tmp = f"_np{len(_DESTRUCTURE_PRELUDE)}"
+                        _DESTRUCTURE_PRELUDE.append(
+                            f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+                        prefix_temp[prefix] = tmp
+                        return tmp
+
+                    for keys, nm in paths:
+                        holder = _vec_temp_for(keys[:-1])
+                        _SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
                         bound.append(nm)
                     continue
                 if pat.type == "map_lit":
@@ -716,15 +763,25 @@ def _lower_defn(list_lit, src: bytes) -> str:
     # keyword-accessed param as `Axon` (it is a map, not a number).
     _ARG_HOIST.clear()
     _BINDING_VECS.clear()
+    _DESTRUCTURE_PRELUDE.clear()
+    _DESTRUCTURE_AXON_PARAMS.clear()
     _collect_binding_vecs(body, src)   # mark let/loop binding vecs (not data vectors)
     prelude = _hoist_maps(body, src)
     axon_params = _kwd_accessed_params(body, set(params), src)
-    params_src = ", ".join(
-        f"{'Axon' if p in axon_params else _TYPE} {p}" for p in params)
     body_src = _lower_expr(body, src)
+    # NESTED-destructure `Axon` temps (e.g. `let [[a b] c]`) emitted during lowering,
+    # after the map-hoist prelude (they may read a hoisted vector) and before the return.
+    destr_prelude = "".join(_DESTRUCTURE_PRELUDE)
+    # `params_src` is built AFTER lowering so a vector-destructured param is typed `Axon`.
+    all_axon = axon_params | (_DESTRUCTURE_AXON_PARAMS & set(params))
+    params_src = ", ".join(
+        f"{'Axon' if p in all_axon else _TYPE} {p}" for p in params)
     _ARG_HOIST.clear()
+    _DESTRUCTURE_PRELUDE.clear()
+    _DESTRUCTURE_AXON_PARAMS.clear()
     return (f"function {_TYPE} {name}({params_src}) {{\n"
             f"{prelude}"
+            f"{destr_prelude}"
             f"    return {body_src};\n"
             f"}}\n")
 
