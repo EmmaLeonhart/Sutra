@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-17: SIREN sin-activation decoder on the substrate — runs, does NOT beat cubic+Fourier
+
+Used the new `sin_buf` primitive to build a SIREN-style sin-activation decoder (`dense_sin` =
+`sin_buf(matmul+b)`, `siren_forward`/`init_siren`) — the first time sin-activations are expressible
+on the substrate (the D1 finding had forced the cubic-hadamard workaround). It runs, trains, and is
+differentiable end-to-end (gradients flow through `dense_sin` to the weights). **But it does not
+win.** Measured PSNR vs the cubic+Fourier decoder, same targets/budget: on **CPU** (the
+reproducible/CI target) cubic+Fourier beats SIREN on BOTH — 1-D wave 50.1 vs 44.7 dB, 2-D checker
+30.6 vs 12.1 dB (SIREN essentially failed the checker at these hyperparameters). On CUDA it's mixed
+(SIREN wins the wave 49 vs 35, cubic wins the checker 64 vs 36) — i.e. the head-to-head **reverses
+between hardware**, so it is NOT a robust claim. `test_siren.py` (3) therefore asserts only the
+robust facts (runs NaN-free / fits the wave >35 dB / differentiable) and deliberately ships no
+"SIREN beats cubic" test. Per integrity rule 4 (negative result → mark it, don't wire downstream):
+cubic+Fourier stays the default decoder; SIREN remains as a working, tested substrate-pure
+alternative + the validation of `sin_buf`, not a replacement. SIREN's CPU underperformance is
+likely the well-known ω0/lr sensitivity — deliberately NOT tuned-until-it-won (that would doctor
+the comparison). Finding: `planning/findings/2026-06-17-siren-sin-activation-decoder.md`.
+
 ## 2026-06-17: compiler primitive — elementwise-buffer transcendentals (`sin_buf`/`cos_buf`)
 
 Emma: "Make the compiler primitive." Built the elementwise transcendental over a field buffer that
