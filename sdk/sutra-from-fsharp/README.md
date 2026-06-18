@@ -68,4 +68,6 @@ else South` → branches hoist to `{_tag}` axon temps, the blend selects the mat
 (`let (a, { x = b }) = t`, `let { pos = (x, y) } = r`) shipped 2026-06-18 — a shared
 `_collect_element_paths` dispatcher lets the tuple- and record-path collectors cross-call.
 A Bool `match b with | true -> … | false -> …` [`(b == true)`/`(b == false)`; bool const
-→ `true`/`false`] shipped 2026-06-18.)
+→ `true`/`false`] shipped 2026-06-18. NESTED DU-`let` (`let (Wrap { v = vv }) = w` — a DU
+wrapping a record/tuple; `_du_pattern_binding` returns `_val{i}` path keys via
+`_collect_element_paths`, read through the shared `_emit_nested_reads`) shipped 2026-06-18.)
