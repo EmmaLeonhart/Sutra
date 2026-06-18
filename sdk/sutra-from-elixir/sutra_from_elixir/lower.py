@@ -771,6 +771,9 @@ def _lower_defs(def_calls, src: bytes) -> list:
             multi_rec = _try_lower_multiclause_recursion(key[0], members, src)
             if multi_rec is not None:
                 out.append(multi_rec)
+            elif (mb := _try_lower_multibase_multiclause_recursion(
+                    key[0], members, src)) is not None:
+                out.append(mb)
             else:
                 # Clause bodies may carry leading `=` destructure bindings (m[4]);
                 # `_lower_def_clauses` applies them per clause via `_apply_match_binding`.
@@ -854,6 +857,112 @@ def _try_lower_multiclause_recursion(name: str, members, src: bytes):
         for bn in renames:
             _SUBST.pop(bn, None)
     return out
+
+
+def _try_lower_multibase_multiclause_recursion(name: str, members, src: bytes):
+    """N >= 2 integer-literal base clauses + one all-identifier TAIL-recursive clause
+    — the >2-clause generalisation of `_try_lower_multiclause_recursion` Mode A:
+
+        def f(0, acc), do: acc
+        def f(1, acc), do: acc + 100
+        def f(n, acc), do: f(n - 1, acc + n)
+
+    lowers to a `while_loop` whose continue is the `&&` of the negated literal tests
+    (`(n != 0) && (n != 1)` — the substrate compound halt §0.3, 2026-06-18, which made
+    a compound `&&` halt actually fire); the body is the recursive step; and the
+    post-loop value is a nested defuzz-blend of the base bodies keyed by their
+    `(n == k)` tests on the FINAL loop state (at exit the continue is false, so exactly
+    one literal test holds). Each base clause distinguishes itself by exactly ONE
+    integer-literal param at the SAME position (the recursion variable; the rest are
+    identifiers, no guard); the recursive clause is all-identifier with a TAIL
+    self-call. Haskell `_try_lower_multibase_tail_recursion` is the family reference.
+
+    Caveat: bases are integer-literal patterns, so the `(n == k)` tests are crisp
+    (eq_synthetic, §0.3). Returns Sutra or None (not this shape)."""
+    if len(members) <= 2:
+        return None  # 0/1 base is the existing 2-clause path
+    parsed = []
+    for _dc, param_nodes, body, guard, prelude in members:
+        if prelude or not param_nodes or guard is not None:
+            return None  # guarded / prelude clauses out of scope for literal multibase
+        parsed.append((param_nodes, body))
+    arity = len(parsed[0][0])
+    if any(len(p[0]) != arity for p in parsed):
+        return None
+    rec = None
+    bases: list = []  # (lit_pos, k_str, base_params, body)
+    for params, body in parsed:
+        sc = _contains_self_call(body, name, src)
+        if all(p.type == "identifier" for p in params) and sc:
+            if rec is not None:
+                return None  # more than one recursive clause — out of scope
+            rec = (params, body)
+        elif not sc:
+            lit_positions = [i for i, p in enumerate(params) if p.type == "integer"]
+            if len(lit_positions) != 1:
+                return None  # base must distinguish by exactly one literal param
+            li = lit_positions[0]
+            if any(params[i].type != "identifier" for i in range(arity) if i != li):
+                return None
+            bases.append((li, _text(params[li], src).replace("_", ""), params, body))
+        else:
+            return None
+    if rec is None or len(bases) < 2:
+        return None
+    li = bases[0][0]
+    if any(b[0] != li for b in bases):
+        return None  # all bases must distinguish at the same (recursion) position
+    rec_params, rec_body = rec
+    rec_names = [_text(p, src) for p in rec_params]
+    rec_args = _self_call_args(rec_body, name, arity, src)
+    if rec_args is None:
+        return None  # non-tail recursive clause — later item
+    cont = " && ".join(f"({rec_names[li]} != {k})" for _li, k, _bp, _bd in bases)
+    # Post-loop blend of base bodies keyed by `(n == k)` on the final state. Each base
+    # body's identifier params are renamed to rec_names by position (so it references
+    # the loop state). Source order; the last base is the bare else.
+    rendered: list = []
+    for _li2, k, base_params, body in bases:
+        renames: list = []
+        for i in range(arity):
+            if i == li:
+                continue
+            bn = _text(base_params[i], src)
+            if bn != rec_names[i]:
+                _SUBST[bn] = rec_names[i]
+                renames.append(bn)
+        try:
+            bsrc = _lower_expr(body, src)
+        finally:
+            for bn in renames:
+                _SUBST.pop(bn, None)
+        if "UNSUPPORTED" in bsrc:
+            return None
+        rendered.append((f"({rec_names[li]} == {k})", bsrc))
+    base_src = rendered[-1][1]
+    for csrc, bsrc in reversed(rendered[:-1]):
+        base_src = _blend(csrc, bsrc, base_src)
+    ty = _TYPE
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {p} = 0" for p in rec_names)
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
+                         for i, arg in enumerate(rec_args))
+    assigns = "".join(f"    {p} = _t{i};\n" for i, p in enumerate(rec_names))
+    loop_decl = (f"while_loop {loop_name}({cont}, {state_decls}) "
+                 f"{{\n{temp_decls}{assigns}}}\n")
+    slot_lines = "".join(f"    slot {ty} _{p}_r = {p};\n" for p in rec_names)
+    slot_args = ", ".join(f"_{p}_r" for p in rec_names)
+    writeback = "".join(f"    {p} = _{p}_r;\n" for p in rec_names)
+    params_src = ", ".join(f"{ty} {p}" for p in rec_names)
+    fn = (
+        f"function {ty} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
 
 
 def _lower_def(def_call, src: bytes) -> str:
