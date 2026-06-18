@@ -89,9 +89,11 @@ Per-frontend remaining edge cases. Each: fixture-tested + RUN on the substrate a
 truth. New frontends model on `sutra-from-ocaml` (the reference). `transpilers-ci.yml` runs all 9
 frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
 
-- [ ] **F#** (`sutra-from-fsharp/`): nested tuple/record patterns (`let (a,(b,c))=t`); nullary
-  variant as a direct function RETURN (`let f () = North`); record-update from a LET-BOUND
-  (non-param) source (`let q = {b with …}`, needs literal-type inference).
+- [ ] **F#** (`sutra-from-fsharp/`): ~~nested TUPLE patterns (`let (a,(b,c))=t`)~~ DONE 2026-06-17
+  (nested-axon construction via `_lower_field_value` hoist + an `Axon` temp per non-leaf prefix so
+  reads dispatch as `axon_item`; `nested_tuple_destructure` runs == 16); remaining: nested RECORD
+  patterns; nullary variant as a direct function RETURN (`let f () = North`); record-update from a
+  LET-BOUND (non-param) source (`let q = {b with …}`, needs literal-type inference).
 - [ ] **Scala** (`sutra-from-scala/`): nested patterns; case-class pattern PARAMS (`def f(Point(x,y))`).
 - [ ] **Elixir** (`sutra-from-elixir/`): multi-clause/guarded bodies with `=` bindings; >2-clause
   recursion (2-clause base+rec only now); `is_integer`-style type-test guards.
