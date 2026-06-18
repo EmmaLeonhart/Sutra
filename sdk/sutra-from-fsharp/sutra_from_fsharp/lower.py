@@ -660,34 +660,40 @@ def _emit_nested_reads(val_src: str, paths):
     return out
 
 
+def _collect_element_paths(el, src: bytes, key_prefix: tuple):
+    """Flatten ONE pattern element (already keyed at `key_prefix`) into [(path_keys,
+    name), …], dispatching by node type so tuple- and record-patterns can MIX (a record
+    inside a tuple, a tuple inside a record): an `identifier_pattern` is a leaf; a
+    `paren_pattern` wrapping a `repeat_pattern` is a nested tuple; a `record_pattern` is a
+    nested record. Any other shape → None (a later item)."""
+    if el.type == "identifier_pattern" and el.named_children:
+        return [(key_prefix, _text(el.named_children[0], src).strip())]
+    if el.type == "paren_pattern":
+        rep = next((c for c in el.named_children if c.type == "repeat_pattern"), None)
+        if rep is not None:
+            return _collect_tuple_paths(rep, src, key_prefix)
+        # `(a)` — a parenthesised single identifier, not a nested tuple
+        ip = next((c for c in el.named_children
+                   if c.type == "identifier_pattern"), None)
+        if ip is not None and ip.named_children:
+            return [(key_prefix, _text(ip.named_children[0], src).strip())]
+        return None
+    if el.type == "record_pattern":
+        return _collect_record_paths(el, src, key_prefix)
+    return None
+
+
 def _collect_tuple_paths(rep, src: bytes, prefix: tuple):
-    """Flatten a (possibly NESTED) tuple `repeat_pattern` into [(path_keys, name), …],
-    where `path_keys` is the chain of positional axon keys (`_0`, `_1`, …) reaching the
-    bound name. A nested `paren_pattern` element recurses (so `(a, (b, c))` →
-    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); any non-identifier /
-    non-tuple element is a later item (→ None)."""
+    """Flatten a (possibly NESTED, possibly MIXED) tuple `repeat_pattern` into
+    [(path_keys, name), …], where `path_keys` is the chain of positional axon keys
+    (`_0`, `_1`, …). Each element dispatches through `_collect_element_paths`, so a record
+    element (`(a, { x = b })`) recurses; any unrecognized element is a later item (→ None)."""
     out: list[tuple[tuple, str]] = []
     for i, el in enumerate(rep.named_children):
-        key = f"_{i}"
-        if el.type == "identifier_pattern" and el.named_children:
-            out.append((prefix + (key,), _text(el.named_children[0], src).strip()))
-        elif el.type == "paren_pattern":
-            sub = next((c for c in el.named_children if c.type == "repeat_pattern"), None)
-            if sub is None:
-                # `(a)` — a parenthesised single identifier, not a nested tuple
-                ip = next((c for c in el.named_children
-                           if c.type == "identifier_pattern"), None)
-                if ip is not None and ip.named_children:
-                    out.append((prefix + (key,), _text(ip.named_children[0], src).strip()))
-                else:
-                    return None
-            else:
-                subpaths = _collect_tuple_paths(sub, src, prefix + (key,))
-                if subpaths is None:
-                    return None
-                out.extend(subpaths)
-        else:
+        sub = _collect_element_paths(el, src, prefix + (f"_{i}",))
+        if sub is None:
             return None
+        out.extend(sub)
     return out
 
 
@@ -714,11 +720,11 @@ def _tuple_pattern_binding(fovd, src: bytes):
 
 
 def _collect_record_paths(rp, src: bytes, prefix: tuple):
-    """Flatten a (possibly NESTED) `record_pattern` into `[(path_keys, local), …]`, where
-    `path_keys` is the chain of FIELD names reaching the bound local. A field whose value
-    is itself a `record_pattern` recurses (so `{ a = aa; inner = { v = vv } }` →
-    `[(("a",),"aa"), (("inner","v"),"vv")]`); a field that is neither `field = local-name`
-    nor `field = { … }` is a later item (→ None) — e.g. a nested TUPLE inside a record."""
+    """Flatten a (possibly NESTED, possibly MIXED) `record_pattern` into `[(path_keys,
+    local), …]`, where `path_keys` is the chain of FIELD names reaching the bound local.
+    Each field's value dispatches through `_collect_element_paths`, so a field whose value
+    is a nested record (`{ inner = { v = vv } }`) OR a nested tuple (`{ pos = (x, y) }`)
+    recurses; any other field shape is a later item (→ None)."""
     out: list[tuple[tuple, str]] = []
     for fp in rp.named_children:
         if fp.type != "field_pattern":
@@ -728,19 +734,15 @@ def _collect_record_paths(rp, src: bytes, prefix: tuple):
         if field_node is None:
             return None
         field = _text(field_node, src).strip()
-        local_pat = next((c for c in fp.named_children
-                          if c.type == "identifier_pattern"), None)
-        nested_rp = next((c for c in fp.named_children
-                          if c.type == "record_pattern"), None)
-        if local_pat is not None and local_pat.named_children:
-            out.append((prefix + (field,), _text(local_pat.named_children[0], src).strip()))
-        elif nested_rp is not None:
-            sub = _collect_record_paths(nested_rp, src, prefix + (field,))
-            if sub is None:
-                return None
-            out.extend(sub)
-        else:
-            return None   # nested tuple-in-record / other shapes — a later item
+        value = next((c for c in fp.named_children
+                      if c.type in ("identifier_pattern", "record_pattern", "paren_pattern")),
+                     None)
+        if value is None:
+            return None
+        sub = _collect_element_paths(value, src, prefix + (field,))
+        if sub is None:
+            return None
+        out.extend(sub)
     return out
 
 
