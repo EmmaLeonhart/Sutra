@@ -90,10 +90,11 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
 - [ ] **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (needs an int-local
   an expression can't emit). (Loop bounds must use strict `<`/`>`; `<=` drops the boundary iteration
   — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
-- [ ] **Elixir / Erlang** — >2-clause / multi-literal-base recursion: port Haskell's
-  `_try_lower_multibase_tail_recursion` (shipped 2026-06-18 — the family reference: compound
-  `&&`-of-negated-base continue + nested-blend post-loop value over the final state). Erlang list
-  comprehensions. (Erlang `div`/`rem` + Elixir `is_integer` guards shipped/deferred 2026-06-18.)
+- [ ] **Elixir / Erlang** — multi-literal-base TAIL recursion DONE 2026-06-18
+  (`_try_lower_multibase_multiclause_recursion` in both, `multibase_tailsum` fixtures RUN == 105).
+  Remaining: >2-clause NON-tail multibase (CPS fold); GUARDED >2-clause multibase (mixed literal +
+  `when` bases); Erlang list comprehensions. (Erlang `div`/`rem` + Elixir `is_integer` guards
+  shipped/deferred 2026-06-18.)
 - [ ] **Clojure** — maps/vectors in recursive bodies. (Symbol/keyword-as-value rep is §0.5.)
 - [ ] **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH**
   arm (`match s with Some { x; y } -> … | None -> …` — the option-match codegen binds the payload as a

@@ -636,6 +636,105 @@ def _try_lower_multiclause_recursion(name: str, clauses, src: bytes):
     return out
 
 
+def _try_lower_multibase_multiclause_recursion(name: str, clauses, src: bytes):
+    """N >= 2 integer-literal base clauses + one all-var TAIL-recursive clause — the
+    >2-clause generalisation of `_try_lower_multiclause_recursion` Mode A:
+
+        f(0, Acc) -> Acc;
+        f(1, Acc) -> Acc + 100;
+        f(N, Acc) -> f(N - 1, Acc + N).
+
+    lowers to a `while_loop` whose continue is the `&&` of the negated literal tests
+    (`(N != 0) && (N != 1)` — the substrate compound halt §0.3, 2026-06-18), body =
+    the recursive step, post-loop value = a nested defuzz-blend of the base bodies
+    keyed by their `(N == K)` tests on the FINAL loop state (at exit the continue is
+    false, so exactly one literal test holds). Each base clause distinguishes itself by
+    exactly ONE integer-literal param at the SAME position (the recursion variable;
+    rest all-var, no guard); the recursive clause is all-var with a TAIL self-call.
+    Haskell `_try_lower_multibase_tail_recursion` is the family reference. Integer-
+    literal `(N == K)` tests are crisp (eq_synthetic, §0.3). Returns Sutra or None."""
+    if len(clauses) <= 2:
+        return None
+    parsed = []
+    for fc in clauses:
+        cp = _clause_parts(fc, src)
+        if cp is None:
+            return None
+        _nm, params, guard, body, prelude = cp
+        if prelude or not params or guard is not None:
+            return None
+        parsed.append((params, body))
+    arity = len(parsed[0][0])
+    if any(len(p[0]) != arity for p in parsed):
+        return None
+    rec = None
+    bases: list = []  # (lit_pos, k_str, base_params, body)
+    for params, body in parsed:
+        sc = _contains_self_call(body, name, src)
+        if all(p.type == "var" for p in params) and sc:
+            if rec is not None:
+                return None
+            rec = (params, body)
+        elif not sc:
+            lit_positions = [i for i, p in enumerate(params) if p.type == "integer"]
+            if len(lit_positions) != 1:
+                return None
+            li = lit_positions[0]
+            if any(params[i].type != "var" for i in range(arity) if i != li):
+                return None
+            bases.append((li, _text(params[li], src).strip(), params, body))
+        else:
+            return None
+    if rec is None or len(bases) < 2:
+        return None
+    li = bases[0][0]
+    if any(b[0] != li for b in bases):
+        return None
+    rec_params, rec_body = rec
+    rec_names = [_text(p, src) for p in rec_params]
+    rec_args = _self_call_args(rec_body, name, arity, src)
+    if rec_args is None:
+        return None
+    cont = " && ".join(f"({rec_names[li]} != {k})" for _li, k, _bp, _bd in bases)
+    rendered: list = []
+    for _li2, k, base_params, body in bases:
+        renames: list = []
+        for i in range(arity):
+            if i == li:
+                continue
+            bn = _text(base_params[i], src)
+            if bn != rec_names[i]:
+                _SUBST[bn] = rec_names[i]
+                renames.append(bn)
+        try:
+            bsrc = _lower_expr(body, src)
+        finally:
+            for bn in renames:
+                _SUBST.pop(bn, None)
+        if "UNSUPPORTED" in bsrc:
+            return None
+        rendered.append((f"({rec_names[li]} == {k})", bsrc))
+    base_src = rendered[-1][1]
+    for csrc, bsrc in reversed(rendered[:-1]):
+        base_src = _blend(csrc, bsrc, base_src)
+    ty = _TYPE
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {p} = 0" for p in rec_names)
+    temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(a, src)};\n"
+                         for i, a in enumerate(rec_args))
+    assigns = "".join(f"    {p} = _t{i};\n" for i, p in enumerate(rec_names))
+    loop_decl = (f"while_loop {loop_name}({cont}, {state_decls}) "
+                 f"{{\n{temp_decls}{assigns}}}\n")
+    slot_lines = "".join(f"    slot {ty} _{p}_r = {p};\n" for p in rec_names)
+    slot_args = ", ".join(f"_{p}_r" for p in rec_names)
+    writeback = "".join(f"    {p} = _{p}_r;\n" for p in rec_names)
+    params_src = ", ".join(f"{ty} {p}" for p in rec_names)
+    fn = (f"function {ty} {name}({params_src}) {{\n{slot_lines}"
+          f"    loop {loop_name}({cont}, {slot_args});\n{writeback}"
+          f"    return {base_src};\n}}\n")
+    return loop_decl + fn
+
+
 # ----- function declarations -----
 
 def _clause_parts(fc, src: bytes):
@@ -849,6 +948,9 @@ def _lower_function(name: str, clauses, src: bytes) -> str:
     multi_rec = _try_lower_multiclause_recursion(name, clauses, src)
     if multi_rec is not None:
         return multi_rec
+    mb = _try_lower_multibase_multiclause_recursion(name, clauses, src)
+    if mb is not None:
+        return mb
     return _lower_dispatch(name, clauses, src)
 
 

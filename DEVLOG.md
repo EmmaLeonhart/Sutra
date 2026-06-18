@@ -11567,3 +11567,22 @@ describing external reference repos' licenses. external/Yantra/LICENSE was alrea
 CONFLICT FLAGGED (not edited): paper/neurips/supplementary/README.md:126 states the sutraDB
 crates are Apache-2.0. It is under the permanent NeurIPS freeze, so it now contradicts the
 relicense — surfaced to Emma, not silently amended.
+
+## 2026-06-18 — queue §4: Elixir + Erlang multi-literal-base TAIL recursion
+
+Ported Haskell's multibase tail-recursion transform (the family reference) to the BEAM pair.
+Both use multi-CLAUSE definitions with integer-literal base patterns rather than Haskell's
+`| guard =` syntax:
+    def f(0, acc), do: acc            f(0, Acc) -> Acc;
+    def f(1, acc), do: acc + 100      f(1, Acc) -> Acc + 100;
+    def f(n, acc), do: f(n-1, acc+n)  f(N, Acc) -> f(N - 1, Acc + N).
+
+`_try_lower_multibase_multiclause_recursion` (in both frontends) generalises the existing
+2-clause path: N>=2 integer-literal base clauses (each distinguishing by one literal at the SAME
+position) + one all-identifier/all-var TAIL-recursive clause. Continue = `&&` of the negated
+literal tests (`(n != 0) && (n != 1)` — the substrate compound halt §0.3 made fire), body = the
+recursive step, post-loop value = nested defuzz-blend of the base bodies keyed by `(n == k)` on
+the final loop state. Fixtures `multibase_tailsum` f(3,0)=105, RUN on the substrate; base
+selection verified across cases (measured): f(0,5)→5, f(1,9)→109, f(5,0)→114 in both. Full suites
+green: Elixir 50, Erlang 40 (no regression). The §4 multi-literal-base recursion item is done for
+Haskell + Elixir + Erlang; non-tail / guarded-mixed multibase remain.
