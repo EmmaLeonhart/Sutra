@@ -10680,3 +10680,20 @@ runs on the substrate == **16** (== ground truth). Full Rust suite: 38 passed (a
 + the selected substrate fixtures including `nested_tuple_destructure`=16, `tuple_destructure`=13,
 `struct_destructure`=13). Remaining on Rust: nested match inside a tail-match arm; enum/`Some(x)`-pattern
 `let` destructuring.
+
+## 2026-06-17 — sutra-from-rust: nested STRUCT destructure `let Outer { a, inner: Inner { v } } = o` ships (== 13)
+
+Phase 6, Rust item. Companion to the Rust nested-tuple work earlier today. The Axon-temp read
+machinery was extracted into a shared `_emit_rust_nested_reads(val_src, paths)` (one `Axon` temp per
+non-leaf prefix + an `int local = realvec(<holder>.item("<leaf>"));` per leaf); both the tuple- and
+struct-destructure blocks now use it (the tuple refactor is behaviour-preserving). New
+`_collect_rust_struct_paths` recursively flattens a `struct_pattern` to field-name key-paths —
+shorthand `{ x }` → field→x, renamed `{ x: a }` → field x→a, and a field whose value is itself a
+`struct_pattern` recurses (`{ inner: Inner { v } }` → `[(("a",),"a"), (("inner","v"),"v")]`).
+
+Fixture `nested_struct_destructure` (`struct Inner{v}; struct Outer{a;inner}; f(o)=let Outer{a,
+inner:Inner{v}}=o; a+v; f(Outer{a:5,inner:Inner{v:8}})`) runs on the substrate == **13** (== ground
+truth). Rust suite: 40 passed (lower-only + tuple/struct destructure, both flat and nested:
+`nested_struct_destructure`=13, `struct_destructure`=13, `nested_tuple_destructure`=16,
+`tuple_destructure`=13). Remaining on Rust: nested match in a tail-match arm; enum/`Some(x)`-pattern
+`let` destructuring.

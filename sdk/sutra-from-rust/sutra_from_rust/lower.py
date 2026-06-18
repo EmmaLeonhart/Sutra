@@ -150,6 +150,65 @@ def _collect_rust_tuple_paths(tp, src: bytes, prefix: tuple):
     return out
 
 
+def _collect_rust_struct_paths(sp, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) `struct_pattern` into `[(path_keys, local), …]`, where
+    `path_keys` is the chain of FIELD names reaching the bound local. Shorthand `{ x }`
+    binds field→x; renamed `{ x: a }` binds field x→a; a field whose value is itself a
+    `struct_pattern` (`{ inner: Inner { v } }`) recurses. Any other field shape → None."""
+    out: list = []
+    for fp in sp.named_children:
+        if fp.type != "field_pattern":
+            continue
+        short = next((c for c in fp.named_children
+                      if c.type == "shorthand_field_identifier"), None)
+        if short is not None:
+            nm = _text(short, src)
+            out.append((prefix + (nm,), nm))
+            continue
+        fid = next((c for c in fp.named_children if c.type == "field_identifier"), None)
+        if fid is None:
+            return None
+        field = _text(fid, src)
+        inner = next((c for c in fp.named_children if c.type == "identifier"), None)
+        nested = next((c for c in fp.named_children if c.type == "struct_pattern"), None)
+        if inner is not None:
+            out.append((prefix + (field,), _text(inner, src)))       # renamed `{ x: a }`
+        elif nested is not None:
+            sub = _collect_rust_struct_paths(nested, src, prefix + (field,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None
+    return out
+
+
+def _emit_rust_nested_reads(val_src: str, paths):
+    """Given a base axon `val_src` and `[(path_keys, local), …]`, return
+    `(temp_lines, bind_lines)`: one `Axon` temp per non-leaf prefix (shared across
+    siblings) plus an `int local = realvec(<holder>.item("<leaf>"));` per leaf. Chaining
+    `.item()` on a raw tensor fails (the compiler returns a tensor from `axon_item`), so
+    non-leaf hops go through an `Axon` temp. Shared by the nested tuple/struct destructure."""
+    prefix_temp = {(): val_src}
+    temp_lines: list = []
+
+    def _temp_for(prefix):
+        if prefix in prefix_temp:
+            return prefix_temp[prefix]
+        parent = _temp_for(prefix[:-1])
+        tmp = f"_np{len(temp_lines)}"
+        temp_lines.append(f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+        prefix_temp[prefix] = tmp
+        return tmp
+
+    bind_lines: list = []
+    for keys, local in paths:
+        holder = _temp_for(keys[:-1])
+        bind_lines.append(f'    {_DEFAULT_TYPE} {local} = '
+                          f'realvec({holder}.item("{keys[-1]}"));\n')
+    return temp_lines, bind_lines
+
+
 def _emit_struct_construction(name, fields, base, src: bytes, var: str, indent: str) -> str:
     """Axon-construction statements for a struct bound to `var` (named keys). With a
     `..base` spread, every declared struct field NOT given explicitly is copied from
@@ -957,50 +1016,21 @@ def _lower_function(item, src: bytes) -> str:
             if "UNSUPPORTED" in val_src:
                 return (f"// UNSUPPORTED-FN: '{name}' tuple-pattern let value "
                         f"out of shape\n")
-            prefix_temp = {(): val_src}
-            temp_lines: list = []
-
-            def _tuple_temp_for(prefix):
-                if prefix in prefix_temp:
-                    return prefix_temp[prefix]
-                parent = _tuple_temp_for(prefix[:-1])
-                tmp = f"_np{len(temp_lines)}"
-                temp_lines.append(f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
-                prefix_temp[prefix] = tmp
-                return tmp
-
-            bind_lines: list = []
-            for keys, nm in paths:
-                holder = _tuple_temp_for(keys[:-1])
-                bind_lines.append(f'    {_DEFAULT_TYPE} {nm} = '
-                                  f'realvec({holder}.item("{keys[-1]}"));\n')
+            temp_lines, bind_lines = _emit_rust_nested_reads(val_src, paths)
             stmts += "".join(temp_lines) + "".join(bind_lines)
             continue
         if ld_kids and ld_kids[0].type == "struct_pattern":
-            # `let Point { x, y } = p;` — destructure a struct axon into named
-            # locals reading the named axon fields via `realvec` (the same
-            # projection `p.x` uses). Shorthand `{ x }` binds the field name; the
-            # renamed form `{ x: a }` binds the inner identifier to field `x`.
+            # `let Point { x, y } = p;` — destructure a struct axon into named locals
+            # reading the named axon fields via `realvec` (the same projection `p.x`
+            # uses). Shorthand `{ x }` binds the field name; renamed `{ x: a }` binds the
+            # inner identifier to field `x`; a NESTED struct pattern
+            # (`{ inner: Inner { v } }`) reads through an `Axon` temp per non-leaf prefix.
             sp = ld_kids[0]
-            binds: list[tuple[str, str]] = []  # (field, local_name)
-            for fp in sp.named_children:
-                if fp.type != "field_pattern":
-                    continue
-                short = next((c for c in fp.named_children
-                              if c.type == "shorthand_field_identifier"), None)
-                if short is not None:
-                    nm = _text(short, src)
-                    binds.append((nm, nm))
-                    continue
-                fid = next((c for c in fp.named_children
-                            if c.type == "field_identifier"), None)
-                inner = next((c for c in fp.named_children
-                              if c.type == "identifier"), None)
-                if fid is None or inner is None:
-                    return (f"// UNSUPPORTED-FN: '{name}' struct-pattern field is "
-                            f"not a shorthand/renamed identifier (later item)\n")
-                binds.append((_text(fid, src), _text(inner, src)))
-            if not binds:
+            paths = _collect_rust_struct_paths(sp, src, ())
+            if paths is None:
+                return (f"// UNSUPPORTED-FN: '{name}' struct-pattern field is "
+                        f"not a shorthand/renamed/nested-struct pattern (later item)\n")
+            if not paths:
                 return (f"// UNSUPPORTED-FN: '{name}' struct pattern with no "
                         f"field bindings (later item)\n")
             value = ld_kids[-1]
@@ -1015,9 +1045,8 @@ def _lower_function(item, src: bytes) -> str:
             if "UNSUPPORTED" in val_src:
                 return (f"// UNSUPPORTED-FN: '{name}' struct-pattern let value "
                         f"out of shape\n")
-            for field, local in binds:
-                stmts += (f'    {_DEFAULT_TYPE} {local} = '
-                          f'realvec({val_src}.item("{field}"));\n')
+            temp_lines, bind_lines = _emit_rust_nested_reads(val_src, paths)
+            stmts += "".join(temp_lines) + "".join(bind_lines)
             continue
         if len(ld_kids) < 2 or ld_kids[0].type != "identifier":
             return f"// UNSUPPORTED-FN: '{name}' has a pattern let (later item)\n"
