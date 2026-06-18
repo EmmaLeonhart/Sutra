@@ -11509,3 +11509,16 @@ Shipped honesty change: the Elixir frontend no longer emits a call to a nonexist
 runtime function (silently broken, looked like it might work). A type-test guard now produces a
 clear UNSUPPORTED-GUARD marker (→ UNSUPPORTED-DEF), grep-able, via `_TYPE_TEST_GUARDS`. Elixir
 suite 48 passed (no regression).
+
+## 2026-06-18 — String/Character `==` routes to eq_synthetic (latent bug found during §0.5)
+
+`_SYNTHETIC_AXIS_TYPES` (the set that routes `==`/`!=` to eq_synthetic vs cosine) had lowercase
+`"string"`/`"char"` but not the user-facing class spellings `String`/`Character`. So a var
+explicitly typed `String` fell to the cosine `eq` path, which cannot separate two short strings
+(cos("foo","bar")=0.998) — string equality silently mis-blended (measured
+`classify("foo")+classify("bar")` = 20, want 30). Added `"String"`/`"Character"` to the set
+(the codegen already treats `("string","String","Character")` together for return types; this
+set was the one place missing them). Regression test tests/test_string_equality.py RUNs → 30.
+No regression: compiler codegen/string/int_dict/vector 101 passed, TS frontend 46+1xfail.
+
+Also confirmed: queue §0.6 transpilers-CI GREEN — all of §0 (0.2–0.6) is complete and CI-verified.
