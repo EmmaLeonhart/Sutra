@@ -254,3 +254,30 @@ def test_multiarg_dp_binomial_runs_natively(N, K, tmp_path):
     attempt at the complicated form. (Loop bound (N+1)(N+2)/2 ≤ the default unroll cap for N ≤ 8.)"""
     got = _run_su(_pascal_su(N, K), tmp_path)
     assert got == _gt_binom(N, K), f"native C({N},{K}) -> {got}, expected {_gt_binom(N, K)}"
+
+
+# ---- AUTO-SYNTHESIS of multi-arg DP: a *recursive* 2-arg `.su` (if/else + self-recursion, which V1
+# codegen rejects) is detected by `detect_2arg_dp` and rewritten to the proven RAM-memo while_loop by
+# the default-on tabulation pass, BEFORE codegen — so it compiles and runs natively. This is the step
+# beyond the hand-written loop above: the COMPILER does the detect-and-rewrite. (Rectangular (N+1)^2
+# fill, so N ≤ 6 stays under the default unroll cap of 50.)
+def _binom_recursive_su(N, K):
+    return f"""\
+function int C(int n, int k) {{
+    if (k == 0) {{ return 1; }}
+    if (k == n) {{ return 1; }}
+    return C(n - 1, k - 1) + C(n - 1, k);
+}}
+function int main() {{
+    return C({N}, {K});
+}}
+"""
+
+
+@pytest.mark.parametrize("N,K", [(0, 0), (2, 1), (4, 2), (5, 0), (5, 5), (6, 3)])
+def test_multiarg_dp_binomial_auto_synthesized_runs_natively(N, K, tmp_path):
+    """A genuinely RECURSIVE binomial `.su` is auto-detected + auto-tabulated into the RAM-memo
+    while_loop and runs on the substrate == ground truth — the compiler now synthesizes the
+    multi-arg DP loop itself, not just executes a hand-written one."""
+    got = _run_su(_binom_recursive_su(N, K), tmp_path)
+    assert got == _gt_binom(N, K), f"auto C({N},{K}) -> {got}, expected {_gt_binom(N, K)}"

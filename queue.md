@@ -100,9 +100,18 @@ cheap); `--preeval` raises to a deep cap (128), `--max-preeval-depth N` sets it 
     (2-D memo flattened `100+row*W+col`, row/col as loop counters with NO Math.mod, edge base-cases via
     substrate blends [`(2*col)<1` even/odd + crisp `col==row`], interior via `ramRead` of the prior row,
     row advance via a blend wrap) runs natively == ground truth across `C(0,0)..C(8,4)`
-    (`test_native_recursion.py` 7 multi-arg cases). All building blocks confirmed. Remaining:
-    AUTO-SYNTHESIS (a 2-arg shape detector + this loop generator — the hand-written pattern is proven;
-    automate it), then (iii) the explicit RAM-agenda + RAM-memo work-stack loop for irregular recursion.
+    (`test_native_recursion.py` 7 multi-arg cases). **AUTO-SYNTHESIS DONE 2026-06-17 (v0.8.0 serious
+    attempt):** `tabulate.py::detect_2arg_dp` + `synthesize_2arg_dp_source`, wired default-on in
+    `tabulate_module` — a genuinely RECURSIVE 2-arg `.su` (`if (k==0)/if (k==n)` + `C(n-1,k-1)+C(n-1,k)`,
+    which V1 codegen rejects) is detected and rewritten BEFORE codegen into a rectangular `(n+1)^2`
+    RAM-memo `while_loop` (boundaries → nested blends, col wrap via even/odd, recurrence reads RAM),
+    so the compiler synthesizes the DP loop itself. Verified `C(0,0)..C(6,3)` == ground truth
+    (`test_native_recursion.py::test_multiarg_dp_binomial_auto_synthesized_runs_natively`, 6 cases) +
+    `test_tabulate.py` detector tests (8 new). Conservative: every term must decrease the first param
+    (row-major well-founded), col offsets ≥ 0; cap `(n+1)^2 ≤ loop_max_iterations` (default 50 → n ≤ 6).
+    Remaining: **(iii) irregular (non-grid) recursion** — an explicit RAM-agenda + RAM-memo work-stack
+    loop (no index structure to tabulate); the last sub-step of the serious attempt before the WASM
+    fallback (per Emma's rule: serious attempt, else fall back to tier-5 WASM).
 - Tier 5 (`wasm_core`, §2) is NOT the recursion fallback — only genuinely imperative / `eval` / FFI.
   (The `wasm_core` running recursive `fib` was the interim proof; tier 4 makes the fib-family native.)
 
