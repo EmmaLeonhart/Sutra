@@ -11096,3 +11096,17 @@ substrate == **10** (and `f(false)` measured == 20). Elixir suite: 48 passed (lo
 `bool_case`=10, `case_literal`=200, `case_bind`=60 — the integer-literal + name-binding case paths
 unregressed). Remaining on Elixir: multi-clause heads with recursion; `is_integer` type-test guards
 (dubious on the substrate — needs a design call).
+
+## 2026-06-18 — sutra-from-erlang: Bool atom `case B of true -> … ; false -> … end` ships (== 10)
+
+Phase 6, Erlang item — completing today's bool-pattern sweep (Haskell/Rust/Elixir/Erlang). A bool
+`case` previously surfaced UNSUPPORTED ("case pattern (literals/vars only)"; the bool VALUE `f(true)`
+already worked). `_lower_case_clauses` now handles an `atom` pattern whose text is `true`/`false` —
+test the bool subject directly (`(B == true)`/`(B == false)`, the crisp literal-dispatch shape, no
+`_tag`). Gated to `true`/`false` only — a general atom (`ok`, `error`, …) still needs an atom-as-value
+representation (a later item).
+
+Fixture `bool_case` (`f(B) -> case B of true -> 10; false -> 20 end; main() -> f(true)`) runs on the
+substrate == **10** (and `f(false)` measured == 20). Erlang suite: 36 passed (lower-only clean +
+`bool_case`=10, `case_dispatch`=119 — the integer-case path unregressed). Remaining on Erlang:
+general atom-as-value rep; list comprehensions; `div`/`rem` via complex rotation (modulus library).

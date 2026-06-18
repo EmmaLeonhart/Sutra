@@ -380,6 +380,11 @@ def _lower_case_clauses(subject, clauses, src: bytes) -> str:
         bind = None
         if pat.type == "integer":
             test = f"({e_src} == {_text(pat, src)})"
+        elif pat.type == "atom" and _text(pat, src) in ("true", "false"):
+            # Bool atom pattern (`case B of true -> …; false -> …`): test the bool subject
+            # directly (`B == true`/`B == false`). Erlang `true`/`false` match the Sutra
+            # `true`/`false`; a general atom (`ok`, …) still needs an atom-as-value rep.
+            test = f"({e_src} == {_text(pat, src)})"
         elif pat.type == "var":
             nm = _text(pat, src)
             test = None  # variable / `_` pattern is a catch-all
