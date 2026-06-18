@@ -11643,3 +11643,16 @@ continue directly (`n > 1`), while `otherwise` keeps the `&&`-of-negated-bases c
 f(0,1)=100, f(0,5)=114. Full Haskell suite 54 passed (no regression). Completes the
 explicit-recursive-guard story (single 2-guard + >2-guard multibase). Prior commit's transpilers
 CI confirmed green before this.
+
+## 2026-06-18 — Elixir + Erlang guarded recursive clause (Mode C)
+
+The BEAM analog of the Haskell explicit-recursive-guard. The existing 2-clause path handled a
+guarded BASE + catch-all recursive (Mode B); now a guarded RECURSIVE clause + catch-all base
+(Mode C) lowers too:
+  def f(n, acc) when n > 0, do: f(n-1, acc+n)   f(N, Acc) when N > 0 -> f(N-1, Acc+N);
+  def f(_, acc), do: acc                         f(_, Acc) -> Acc.
+`_try_lower_multiclause_recursion` (both frontends) now identifies the recursive clause by
+self-call (its guard may be None or explicit); an explicit recursive guard becomes the loop
+continue directly, the catch-all base is the post-loop value. Fixtures `guarded_rec_clause`
+f(5,0)=15, RUN on the substrate; base selection verified f(0,7)=7, f(3,0)=6 in both. Suites:
+Elixir 52, Erlang 42 (no regression). No hoist-globals / no codegen-limit risk.
