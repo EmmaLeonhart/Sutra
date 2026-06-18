@@ -10440,3 +10440,28 @@ chase the clawRxiv bot on percepta-ntm.
 ## 2026-06-17 — daily audit: clean (end-to-end, including semantic await tests)
 
 73 .su compiled, 0 user-program + 0 runtime-prelude leaks (`experiments/substrate_leak_sweep.py`); `scripts/check_promise_await_fit_to_spec.py` returns `EXIT=0` with `[2/2] regression tests  PASS (4/4 expected)`. Same shape as 06-13/06-14: after installing `numpy`, `torch`, `pytest`, the `ollama` Python pkg, the `sutra_compiler` editable install, and the Ollama daemon (`apt-get install zstd && bash <(curl -fsSL https://ollama.com/install.sh)` then `ollama serve` + `ollama pull nomic-embed-text`), the 2 semantic-preservation tests (`test_await_semantics_preserved_{torch,numpy}`) DID run and PASS to 3 places against the fixture's expected 3.0; end-to-end promise/await verification is CLEAN. `test_no_host_readout.py` (5/5) + `test_substrate_leak_sweep.py` (1/1) + `test_await_substrate_pure.py` (4/4) = 10/10 PASS. `await_value` body at `codegen_pytorch.py:935–966` is still the spec-compliant `return self.value(p)` reduction per Audit REAL LEAK #3 (FIXED 2026-05-17) — no `for _ in range(100)` / `if self.isPending` signature anywhere; the prior body is referenced only in the leak-history docstring (lines 937–963, phrased without the literal old signature so the sweep doesn't false-positive). Audit.md REAL LEAK #1–#10 all still FIXED/NOT-A-LEAK at cited codegen sites; #4 (`_TorchVSA.loop` fixed-T unroll) reconfirmed at `codegen_pytorch.py:2988`. Spot-checked every `_emit(...float(...))` / `_emit(...item()...)` / `_emit(...for ... in range(...))` hit against Audit.md taxonomy + `experiments/substrate_leak_sweep.py::_PRELUDE_LEAK_EXEMPT_METHODS` — every site is documented BORDERLINE (Promise inspectors lines 903–933, `make_real`/`make_truth`/`make_char` literal entry, `array_from_literal`, `load_matrix` CSV text parse, JS-interop equality/promotion + `_js_str_cmp` at `:2357–2358` per CLAUDE.md carve-out, `_argmax_cosine` / `_vector_map_lookup` terminal index at `:3073`/`:3106`, `string_to_python` substrate→host terminal decode at `:2617–2622`, `defuzzify_trit` structural-iters loop at `:2658` per Audit #4, `digit_array_add` structural-N loop at `:2740` per Audit #4, `_js_str_cmp` lex compare at `:2435–2441` per JS-interop carve-out documented inline 2417–2424, RAM address-decode I/O wire at `:1925–1947` per ram-pointers.md "RAM is not differentiable" Emma 2026-06-01) or LEGITIMATE (compile-time constants PI/TAU at `:324–325`); no new sites since 2026-06-14. 14 open-question dossiers in `planning/open-questions/` + `sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record, not "resolved-elsewhere drift"); `2026-06-13-sutra-to-thrml-mapping.md` is an active exploration loop (Emma 2026-06-13) and is correctly outside the resolved/stale axis; spec-index strikethroughs (`types §"scalars as results"`, `control-flow §"loop unroll for"`, `binding §"surface syntax"`) unchanged. No code regression detected in any scope.
+
+## 2026-06-17 — phase 5.5 tier 4: multi-arg DP (binomial C(n,k)) PROVEN native on the substrate (v0.8.0 serious attempt)
+
+The v0.8.0 "serious attempt" at the complicated native-recursion form advances:
+**multi-argument dynamic programming runs natively as a single RAM-memo `while_loop`,
+verified against ground truth.** Binomial `C(n,k) = C(n-1,k-1) + C(n-1,k)` (Pascal's
+triangle, a genuine 2-argument recurrence) compiles to one substrate `while_loop` that
+fills an `(N+1)`-wide row-major table in RAM and reads out `ramRead(100 + n*(N+1) + k)`.
+The body uses only substrate primitives: blend conditionals
+`(((1+flag)*a) + ((1-flag)*b))/2` for the boundary cases (col==0 and col==row both → 1),
+even/odd boundary-clean comparisons `truth_axis(defuzzy((2*col) < 1))`, and mod-free
+row/col counters that wrap via a blend on `fdiag`. No dict slot, no host recursion, no
+`.real()` extraction — the recurrence and the table live entirely on the substrate across
+`while_loop` iterations. Verified: `C(0,0)..C(8,4)` all `== math.comb(...)` ground truth
+(`C(5,2)=10`, `C(6,3)=20`, `C(8,4)=70`), 7/7 new parametrized tests in
+`tests/test_native_recursion.py::test_multiarg_dp_binomial_runs_natively`.
+
+This closes the "can the substrate do multi-arg DP at all?" question with a measured YES.
+Building blocks now all confirmed on-substrate: RAM-memo-in-loop, blend conditionals in a
+`while_loop` body, even/odd boundary-clean comparisons, mod-free blend-wrap counters.
+Remaining for the serious attempt: AUTO-SYNTHESIS — a 2-arg shape detector + a generator
+that emits this proven Pascal RAM-memo loop (the hand-written pattern is proven; the
+compiler does not yet detect-and-rewrite it), then irregular (non-grid) recursion via an
+explicit RAM-agenda + RAM-memo work-stack loop. The 8h cron (`073302bf`) removes the
+todo item + cuts a follow-up release if/when the auto-synthesis lands.
