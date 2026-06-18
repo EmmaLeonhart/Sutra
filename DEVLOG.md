@@ -10984,3 +10984,21 @@ both run on the substrate == **16** (== ground truth; mixed `_0`/`_1`/field keys
 suite: 30 passed (lower-only clean + `record_in_tuple`=16, `tuple_in_record`=16, `nested_tuple_destructure`=16,
 `nested_record_destructure`=13 — the collector refactor is behaviour-preserving). The F# frontend item
 is now fully drained — only general breadth (closures, generics, …) remains.
+
+## 2026-06-18 — 8h check: complicated-form native recursion = multi-arg DP BUILT+verified → released v0.9.0; irregular = WASM fallback
+
+The 8h cron (set after v0.8.0) checked whether the complicated-form native recursion was actually
+built. **Measured verdict (not from memory):** `git log v0.8.0..HEAD` shows `f84d799a` (multi-arg DP
+binomial proven native) + `b2f4c504` (multi-arg DP AUTO-SYNTHESIS); `tabulate.py` has `detect_2arg_dp`
++ `synthesize_2arg_dp_source`; and `pytest test_native_recursion.py test_tabulate.py` = **58/58 pass
+NOW** on the substrate — including `test_multiarg_dp_binomial_runs_natively` (hand-written, C(0,0)..
+C(8,4)), `test_multiarg_dp_binomial_auto_synthesized_runs_natively` (a recursive 2-arg `.su`
+auto-rewritten to a native RAM-memo loop, C(0,0)..C(6,3)), and the `detect_2arg_dp` detector tests.
+
+Per the cron's explicit **and/or** criterion (multi-arg DP OR irregular), the complicated form's
+multi-arg-DP half **was genuinely built + substrate-verified** → condition (A): **tagged v0.9.0**
+(annotated; describes multi-arg DP native + auto-synthesis and that irregular did NOT land). Irregular
+(non-grid, stack-based) recursion was NOT built — the branchless RAM-stack trampoline is algorithm-
+correct (Python mirror) but substrate-impractical (>200s), so it runs via the tier-5 WASM fallback
+(`wasm_core`, recursive `fib` 45/45). The long-horizon "serious attempt" todo item was trimmed to a
+concise irregular→WASM-fallback record (the attempt is concluded; not faked as fully done).
