@@ -11167,3 +11167,19 @@ Fixture `record_destructure` (`type point={x;y}; sum (p) = let { x; y } = p in x
 runs on the substrate == **13** (the renamed form `{ x = a; y = b }` also measured == 13). The FULL
 OCaml suite passed: **134 passed** — no regression. Remaining on OCaml: scalable RAM device (10MB
 linear memory); non-zero `Array.make` fill; nested tuple/record-let patterns.
+
+## 2026-06-18 — sutra-from-ocaml: variant-`let` destructure `let (Box x) = b in …` ships (== 13) — let-pattern family complete
+
+Phase 6, OCaml reference frontend — completes the let-pattern family (tuple + record + variant). A
+single-constructor variant `let` binding previously emitted invalid `int (Box x) = b;`. The
+`let_expression` body lowering now detects a `constructor_pattern` binding via `_ocaml_variant_let`
+(unwrapping the `parenthesized_pattern`) and substitutes each payload local to the tagged-axon field
+read. KEY detail (measured): the construction stores a SINGLE payload at `_val` but a multi-arg (tuple)
+payload at `_val0`/`_val1`/… — the destructure matches that convention (single → `_val`; tuple →
+`_val{i}`). Irrefutable single-constructor destructure (the `_tag` is not re-checked, as OCaml's
+refutable-let allows).
+
+Fixture `du_destructure` (`type box = Box of int; unbox (b) = let (Box x) = b in x + 1; unbox (Box
+12)`) runs on the substrate == **13** (and the tuple-payload `let (Wrap (a, b)) = w` measured == 13).
+The FULL OCaml suite passed: **135 passed** — no regression. Remaining on OCaml: scalable RAM device
+(10MB linear memory); non-zero `Array.make` fill; nested tuple/record-let patterns.

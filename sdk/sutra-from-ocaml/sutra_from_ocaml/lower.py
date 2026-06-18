@@ -1411,6 +1411,42 @@ def _ocaml_record_let(vd, source: bytes):
     return (binds, kids[-1]) if binds else None
 
 
+def _ocaml_variant_let(vd, source: bytes):
+    """If `vd` is a single-constructor variant binding `let (Wrap a) = w` or
+    `let (Wrap (a, b)) = w` (a `constructor_pattern`, optionally paren-wrapped), return
+    ([payload_local, …], value_node); else None. The constructor's payload maps
+    positionally to `_val0`, `_val1`, … (the construction spreads a tuple payload the
+    same way). Irrefutable single-constructor destructure (the `_tag` is not re-checked)."""
+    lb = next((c for c in vd.named_children if c.type == "let_binding"), None)
+    if lb is None or not lb.named_children:
+        return None
+    kids = lb.named_children
+    if kids[-1] is kids[0]:
+        return None
+    pat = kids[0]
+    if pat.type == "parenthesized_pattern" and pat.named_children:
+        pat = pat.named_children[0]
+    if pat.type != "constructor_pattern":
+        return None
+    if not any(c.type == "constructor_path" for c in pat.named_children):
+        return None
+    payload: list = []
+    for c in pat.named_children:
+        if c.type == "constructor_path":
+            continue
+        if c.type == "value_name":
+            payload.append(_node_text(c, source))
+        elif (c.type == "parenthesized_pattern" and c.named_children
+              and c.named_children[0].type == "tuple_pattern"):
+            tp = c.named_children[0]
+            if any(e.type != "value_name" for e in tp.named_children):
+                return None
+            payload.extend(_node_text(e, source) for e in tp.named_children)
+        else:
+            return None
+    return (payload, kids[-1]) if payload else None
+
+
 def _lower_local_binding(vd, source: bytes, indent: str,
                          record_types=frozenset(), refs: Optional[dict] = None) -> str:
     """Lower one `value_definition` from a `let … in` into a Sutra local
@@ -1655,6 +1691,23 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
                                 saved = _MATCH_SUBST.get(local, _MISSING)
                                 _MATCH_SUBST[local] = f'realvec({val_src}.item("{field}"))'
                                 popped.append((local, saved))
+                            continue
+                    # `let (Wrap a) = w in …` / `let (Wrap (a, b)) = w in …` — destructure
+                    # a single-constructor variant axon: each payload local substitutes to
+                    # `realvec(w.item("_val{i}"))` (the `match`-arm payload-bind shape).
+                    vl = _ocaml_variant_let(b, source)
+                    if vl is not None:
+                        vnames, val_node = vl
+                        val_src = _lower_expression(val_node, source)
+                        if val_src.isidentifier():
+                            # Construction stores a SINGLE payload at `_val` and a
+                            # multi-arg (tuple) payload at `_val0`/`_val1`/… — match it.
+                            keys = (["_val"] if len(vnames) == 1
+                                    else [f"_val{i}" for i in range(len(vnames))])
+                            for nm, key in zip(vnames, keys):
+                                saved = _MATCH_SUBST.get(nm, _MISSING)
+                                _MATCH_SUBST[nm] = f'realvec({val_src}.item("{key}"))'
+                                popped.append((nm, saved))
                             continue
                     out += _lower_local_binding(b, source, indent, record_types, refs)
                 else:
