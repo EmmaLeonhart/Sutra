@@ -666,11 +666,6 @@ def _lower_dispatch(name: str, clauses, src: bytes) -> str:
         _nm, params, guard, body, prelude = cp
         if len(params) != arity:
             return f"// UNSUPPORTED-DECL: '{name}' clause arity mismatch\n"
-        if prelude:
-            # A multi-clause body with leading `=` bindings is a later item —
-            # surface rather than silently drop the binding statements.
-            return (f"// UNSUPPORTED-DECL: '{name}' multi-clause body with binding "
-                    f"statements (later item)\n")
         if _contains_self_call(body, name, src):
             return (f"// UNSUPPORTED-RECURSION: '{name}' multi-clause dispatch with "
                     f"recursion (later item)\n")
@@ -747,10 +742,21 @@ def _lower_dispatch(name: str, clauses, src: bytes) -> str:
                         f"{p.type} (later item)\n")
         for nm, sub in binds:
             _SUBST[nm] = sub
+        # Leading `=` destructure bindings in this clause body (`{A, B} = T`, …) bind
+        # via `_SUBST` on top of the param binds (so a destructure of a param resolves
+        # through `_ai`, typing it `Axon` via `axon_args`).
+        pre_names: list = []
+        pre_ok = all(_apply_match_binding(st, src, pre_names, axon_args)
+                     for st in prelude)
         try:
+            if not pre_ok:
+                return (f"// UNSUPPORTED-DECL: '{name}' clause body binding statement "
+                        f"is not a supported `=` destructure (later item)\n")
             res = _lower_expr(body, src)
             gtest = _guard_test(guard, src) if guard is not None else None
         finally:
+            for nm in pre_names:
+                _SUBST.pop(nm, None)
             for nm, _s in binds:
                 _SUBST.pop(nm, None)
         if "UNSUPPORTED" in res or (gtest and "UNSUPPORTED" in gtest):

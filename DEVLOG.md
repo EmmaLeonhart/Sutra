@@ -10837,3 +10837,19 @@ Fixture `caseclass_match` (`def sum(p) = p match { case Point(a, b) => a + b }; 
 runs on the substrate == **13** (== ground truth). Scala suite: 28 passed (lower-only clean +
 `caseclass_match`=13, `caseclass_destructure`=13, `match_literal`=200 — match path unregressed).
 Remaining on Scala: nested case-class/record patterns; further breadth as needs arise.
+
+## 2026-06-17 — sutra-from-erlang: multi-clause bodies with `=` destructure bindings ship (== 13)
+
+Phase 6, Erlang item — the Erlang analogue of today's Elixir fix. A multi-clause function whose
+clause body has leading `=` destructure bindings (`sel(Flag, T) when Flag > 0 -> {A, B} = T, A + B;
+sel(_, _) -> 0.`) previously surfaced UNSUPPORTED (the dispatch dropped them). Now the clause dispatch
+threads each clause's prelude `=` bindings through `_apply_match_binding` (on top of the param binds,
+so a destructure of a param resolves via `_ai` and types it `Axon`), then lowers the clause result
+with the bindings active. The upfront prelude rejection is removed; the recursion check stays before
+it, so recursion-with-bindings still surfaces UNSUPPORTED-RECURSION honestly.
+
+Fixture `multiclause_bind_body` (`sel(Flag, T) when Flag>0 -> {A,B}=T, A+B; sel(_,_) -> 0; sel(1,{5,8})`)
+runs on the substrate == **13** (guard `Flag>0` blends `A+B` vs base 0; `_a1` typed Axon). Erlang
+suite: 34 passed (lower-only clean + `multiclause_bind_body`=13, `match_bind_body`=13,
+`multiclause_fact`=120 — recursion path unregressed). Remaining on Erlang: >2-clause recursion
+(single-condition-halt blocker); list comprehensions; `div`/`rem` via complex rotation.
