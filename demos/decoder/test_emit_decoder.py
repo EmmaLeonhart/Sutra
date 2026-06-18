@@ -100,3 +100,51 @@ def test_decoder_su_source_shapes_to_layer_count():
     assert "Tensor.MatrixMul" in src and "hadamard" in src
     # last layer linear (no cube wrapping the final MatrixMul)
     assert "layer_lin(W2" in src
+
+
+def test_baked_decoder_runs_the_fourier_encoding_on_the_substrate(tmp_path):
+    """w2c follow-on #2 (unblocked by sin_buf): bake a decoder so the emitted standalone `.su`
+    takes RAW (x,y) coordinates and runs the Fourier ENCODING on the substrate (sin_buf/cos_buf)
+    as well as the decode — a fully self-contained coords→pixels Sutra program.
+
+    Faithfulness reference = the SAME substrate computation via the python callables
+    (`fourier_features_substrate` + `mlp_forward`): the baked `.su` must reproduce THAT to <1e-4,
+    proving the W0-column-fold + CSV-weight bake is exact. (Against the exact-`torch.sin` host
+    render the gap is larger — ~0.05 — because `sin_buf` is a table readout whose ~8e-5 error is
+    amplified by the two cubic layers; that is a documented property of the encoding, separately
+    tested in test_encoding.py, NOT a bake defect. The bake's job is to reproduce the substrate
+    computation faithfully, which it does.)"""
+    import torch
+    pytest.importorskip("torch")
+    nn = _load("substrate_nn", "substrate_nn.py")
+    emit = _load("emit_decoder", "emit_decoder.py")
+    _d, _c, vsa = nn.dense_layers()
+    dt, dev = vsa.dtype, vsa.device
+
+    nf = 4
+    params = nn.init_mlp([nn.decoder_input_dim(nf), 16, 16, 1], dt, dev, seed=0)
+    size = 12
+    lin = torch.linspace(-1, 1, size, dtype=dt, device=dev)
+    yy, xx = torch.meshgrid(lin, lin, indexing="ij")
+    target = torch.exp(-6.0 * (xx ** 2 + yy ** 2)).detach()
+    nn.fit_decoder(params, target, size, num_freqs=nf, steps=50, lr=0.01)
+
+    su_path = emit.bake_decoder_with_encoding(params, nf, tmp_path, coord_dim=2, name="dec_enc")
+    fn = emit.compile_baked(su_path, name="dec_enc")
+
+    coords = nn.coord_grid(size, dt, dev)                         # (N², 2)
+    baked = fn(coords.T.contiguous()).reshape(size, size)         # RAW coords in; NO host encoding
+    baked = baked.real if baked.is_complex() else baked
+
+    # reference: identical substrate computation (substrate encoding + decode) via python
+    sub_feats = nn.fourier_features_substrate(coords, nf).to(dt)
+    ref = nn.mlp_forward(params, sub_feats.T.contiguous()).reshape(size, size)
+
+    max_abs = float((baked.detach() - ref.detach()).abs().max())
+    assert max_abs < 1e-4, f"baked coords->pixels .su != substrate-encoding reference: {max_abs:.2e}"
+
+    # the emitted .su really runs sin/cos on the substrate and loads only its own weights.
+    src = su_path.read_text(encoding="utf-8")
+    assert "sin_buf(" in src and "cos_buf(" in src, "encoding not emitted as substrate sin_buf/cos_buf"
+    assert "function matrix dec_enc(matrix coords)" in src, "baked fn does not take raw coords"
+    assert "load_matrix(" in src, "weights not file-backed"
