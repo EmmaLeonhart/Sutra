@@ -948,9 +948,10 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
         binds: list[tuple[str, str]] = []
         if inner is None or inner.type == "wildcard_pattern":
             test = None  # `_` — the base arm
-        elif inner.type == "integer_literal":
-            # `0 => …` literal-pattern arm: dispatch the scrutinee value DIRECTLY
-            # (`scrut == k`) — a plain-number scrutinee is crisp, no `_tag` read.
+        elif inner.type in ("integer_literal", "boolean_literal"):
+            # `0 => …` / `true => …` literal-pattern arm: dispatch the scrutinee value
+            # DIRECTLY (`scrut == k`, `scrut == true`) — a plain-number/bool scrutinee is
+            # crisp, no `_tag` read. Rust `true`/`false` match the Sutra `true`/`false`.
             test = f"({scrut_src} == {_text(inner, src)})"
         elif inner.type == "tuple_struct_pattern":
             scoped = next((c for c in inner.named_children
