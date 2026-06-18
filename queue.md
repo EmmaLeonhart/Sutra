@@ -83,11 +83,12 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
 
 - [ ] **F# / Scala** — nested/mixed destructure fully drained; only general breadth remains
   (closures, generics, traits/instance classes, String ops), modelled on OCaml as needs arise.
-- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard multibase TAIL recursion DONE 2026-06-18
-  (`_try_lower_multibase_tail_recursion` + `multibase_tailsum` fixture, RUN == 105). Remaining:
-  >2-guard NON-tail multibase (CPS fold over multiple bases); explicit-condition (non-`otherwise`)
-  recursive guard; mutually-recursive / forward `where`/`let`; a VARIANT `case` in expression
-  position (needs an int-local an expression can't emit). Laziness out of scope.
+- [ ] **Haskell** (`sutra-from-haskell/`): multibase TAIL recursion + explicit-condition recursive
+  guard DONE 2026-06-18 (single + >2-guard, `otherwise` or explicit `| n>1 = f…`; fixtures
+  `multibase_tailsum`/`guarded_explicit_rec`/`multibase_explicit_rec`). Remaining: >2-guard NON-tail
+  multibase (CPS fold over multiple bases); mutually-recursive / forward `where`/`let`; a VARIANT
+  `case` in expression position (the int-local-in-expression-position codegen limit — shared with the
+  dropped Rust variant-match; non-trivial). Laziness out of scope.
 - [ ] **Elixir / Erlang** — multi-literal-base TAIL recursion DONE 2026-06-18
   (`_try_lower_multibase_multiclause_recursion` in both, `multibase_tailsum` fixtures RUN == 105).
   Remaining: >2-clause NON-tail multibase (CPS fold); GUARDED >2-clause multibase (mixed literal +
