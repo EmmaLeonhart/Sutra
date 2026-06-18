@@ -11671,3 +11671,14 @@ Per Emma: the per-frontend constructs that don't lower natively but run via the 
 fallback are now catalogued in `planning/wasm-fallback-edge-cases.md`, with the policy — attempt
 each, but **few cycles each, low value**; leave on WASM if not clean; never fake. Added a tail
 entry in `todo.md` and consolidated the queue's LAST-section bullet to point at the catalogue.
+
+## 2026-06-18 — Scala + F# string concat (builds on the string-literal fix)
+
+Now that string literals lower, `String + String` works end-to-end: the Sutra `+` operator
+dispatches to substrate string concat for string-typed operands (verified directly:
+`"foo"+"bar" == "foobar"` → truth 1.0). Scala and F# emit `(a + b)` for string params, which
+concatenates. Measurable fixtures `string_concat` (both): `cat(a,b)=a+b; f(s)=if s=="foobar"
+then 100 else 200; f(cat("foo","bar"))` = 100, RUN on the substrate. Scala 40, F# 60.
+A few-cycles foundational win — string equality + concat now work in Scala/F# (joining
+OCaml/TS/Clojure). (F# return-type inference still types `cat` as int not String — cosmetic; the
+concat is correct because `+` dispatches on the operand types.)
