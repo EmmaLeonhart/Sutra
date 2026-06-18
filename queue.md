@@ -206,10 +206,14 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   `_val`/`_val{i}` path keys and descends a record/tuple payload via `_ocaml_record_paths`/
   `_ocaml_tuple_paths`; the variant-let branch joins the shared `_emit_nested_subst` helper;
   `nested_variant_destructure`=13 on the substrate, all flat-variant fixtures unregressed).
-  Remaining: **scalable RAM device for the 10MB linear memory** (`Bytes.make` / loop-carried arrays use
-  the global RAM list, which doesn't scale to 10MB); non-zero `Array.make` fill for int-dict arrays
-  (slots start at 0 — documented limit, not a bug). **OCaml nested-pattern destructure fully drained**
-  (tuple/record/variant, flat + nested); only the RAM/array-fill items + general breadth remain.
+  ~~MIXED tuple/record nesting (`let (a, { x; y }) = t`, `let { pos = (x, y) } = r`)~~ DONE 2026-06-18
+  (`_ocaml_tuple_paths` now cross-calls `_ocaml_record_paths` on a record element, the reverse direction
+  already worked, so tuple- and record-patterns mix both ways; `record_in_tuple`=16, `tuple_in_record`=16
+  on the substrate). Remaining: **scalable RAM device for the 10MB linear memory** (`Bytes.make` /
+  loop-carried arrays use the global RAM list, which doesn't scale to 10MB); non-zero `Array.make` fill
+  for int-dict arrays (slots start at 0 — documented limit, not a bug). **OCaml nested-pattern
+  destructure fully drained** (tuple/record/variant + MIXED, flat + nested); only the RAM/array-fill
+  items + general breadth remain.
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
   when two interfaces share a field name with different types.
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;

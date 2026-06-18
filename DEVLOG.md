@@ -11252,3 +11252,18 @@ nested tuple/record paths. New fixture `nested_du_destructure` runs on the
 substrate == **13** (== ground truth 12 + 1). FULL F# suite: **56 passed**
 (was 55); flat `du_destructure` unregressed (the path rewrite is a strict
 superset). F# nested-pattern destructure now covers tuple/record/DU + mixed.
+
+## 2026-06-18 — sutra-from-ocaml: MIXED tuple/record nesting in `let` destructure (Phase 3)
+
+OCaml reference frontend now lowers MIXED nested `let` patterns both ways:
+record-inside-tuple (`let (a, { x; y }) = t`) and tuple-inside-record
+(`let { a; pos = (x, y) } = r`). The reverse direction already worked
+(`_ocaml_record_paths` recursed into a `tuple_pattern` value); this adds the
+missing direction — `_ocaml_tuple_paths` now recurses into a `record_pattern`
+element via `_ocaml_record_paths`, so the two path collectors cross-call (the
+OCaml analog of F#'s `_collect_element_paths` dispatcher). Construction already
+recursed via `_aggregate_arg_emitter`. New fixtures `record_in_tuple` and
+`tuple_in_record` both run on the substrate == **16** (== ground truth 5+8+3).
+FULL OCaml suite: **140 passed** (was 138). OCaml nested-pattern destructure is
+now complete (tuple/record/variant + MIXED, flat + nested); only the
+scalable-RAM-device and non-zero-`Array.make`-fill items remain.
