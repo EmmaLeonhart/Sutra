@@ -2788,34 +2788,15 @@ to that implementation — not before it.
 
 ---
 
-## [After the v0.8.0 release] Complicated-form native recursion — the serious attempt (Emma 2026-06-17)
+## Irregular (non-grid) recursion → tier-5 WASM fallback (serious attempt concluded; Emma 2026-06-17)
 
-**Status after the serious attempt (2026-06-17):** native recursion via memoization SHIPS for the
-practical core AND for **multi-argument DP**. Linear recurrences (fib/Pell/Lucas/tribonacci;
-coefficients; identity or literal base) auto-tabulate to a native rolling-window `while_loop`, general
-single-index DP runs natively via a RAM-backed memo loop (`synthesize_ram_memo_source`), and
-**multi-arg DP is now native + auto-synthesized**: `sutra_compiler/tabulate.py::detect_2arg_dp` +
-`synthesize_2arg_dp_source` auto-rewrite a genuinely RECURSIVE 2-arg `.su` (e.g.
-`C(n,k)=C(n-1,k-1)+C(n-1,k)`, base `C(n,0)=C(n,n)=1`) into a rectangular `(n+1)^2` RAM-memo
-`while_loop` (boundaries → nested blends, col wrap via even/odd — no `Math.mod`, recurrence reads RAM)
-before codegen, running == ground truth `C(0,0)..C(6,3)` (58/58 tabulate+native-recursion tests).
-What remains is **only genuinely irregular (non-grid, stack-based) recursion**.
-
-**Irregular recursion — attempted, deferred (the one part that did not land).** The general mechanism
-is an explicit **RAM-agenda stack** (the call stack, now a value) + a RAM-memo, driven by one
-`while_loop`: a fully branchless **RAM-stack post-order evaluator** (frame nodeid/phase in RAM, `sp`
-as loop state with a `(2*sp)>1` halt, per-frame phase machine pushing one child per iteration, all
-control via ±1-flag blends). This was BUILT and its algorithm **verified correct in a Python mirror**
-of the exact blend ops (7-node sum-tree → 100, 3-node → 30, == real recursion). But it **does not
-execute practically on the substrate**: 7-node times out >200s, even a 3-node tree at unroll-cap 8
-pins the GPU for minutes with no output (the proven Pascal loop — same primitives, same machine —
-runs in ~1.5s, so it is a per-step pathology in the larger branchless body, un-root-caused). Finding:
-`planning/findings/2026-06-17-tier4-irregular-recursion-trampoline-substrate-too-slow.md`.
-
-**Per Emma's rule (2026-06-17):** the serious attempt was made; multi-arg DP succeeded and is kept;
-irregular recursion is the part that **did not land**, so it **stays on this to-do for later** and
-runs meanwhile via the **tier-5 WASM fallback** (`wasm_core`, which already runs recursive `fib` via
-its RAM call stack, 45/45). Later work, if revisited: root-cause the trampoline's per-step substrate
-cost (why a ~2× larger branchless body is ≥100× slower in the recurrent `loop` unroll), or accept WASM
-as the permanent path for non-tabulable recursion. NOT a default-on lowering (no auto-detection) until
-it runs.
+The "serious attempt" at the complicated native-recursion form CONCLUDED: **multi-arg DP landed**
+(native + auto-synthesized, `tabulate.py::detect_2arg_dp` + `synthesize_2arg_dp_source`, verified
+`C(0,0)..C(6,3)` == ground truth, 58/58 tests) and shipped in **v0.9.0**. The only part that did NOT
+land is **genuinely irregular (non-grid, stack-based) recursion**: the branchless RAM-stack
+post-order trampoline is algorithm-correct (Python mirror) but substrate-impractical (7-node times
+out >200s; finding `planning/findings/2026-06-17-tier4-irregular-recursion-trampoline-substrate-too-slow.md`).
+Per Emma's rule it runs via the **tier-5 WASM fallback** (`wasm_core`, recursive `fib` 45/45) — this is
+the ACCEPTED state, not an open task. Revisit ONLY if someone root-causes why the larger branchless
+body is ≥100× slower in the recurrent `loop` unroll; otherwise WASM is the permanent path for
+non-tabulable recursion.
