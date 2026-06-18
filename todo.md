@@ -2785,3 +2785,37 @@ Deliverable: an analysis doc (and any resulting per-language/per-context routing
 to use the WASM compatibility layer vs lower directly, grounded in how the real-WASM-bytecode core
 actually executes these cases on the substrate. This lands AFTER the WASM core work, as a reaction
 to that implementation — not before it.
+
+---
+
+## [After the v0.8.0 release] Complicated-form native recursion — the serious attempt (Emma 2026-06-17)
+
+**Status at v0.8.0:** native recursion via memoization SHIPS for the practical core — linear
+recurrences (fib/Pell/Lucas/tribonacci; coefficients; identity or literal base) auto-tabulate to a
+native rolling-window `while_loop` by default (`sutra_compiler/tabulate.py`), and general
+single-index DP runs natively via a RAM-backed memo loop (`synthesize_ram_memo_source`; verified
+`fib(13)=233`, large offsets). What remains is the **complicated form**: multi-argument DP and
+genuinely irregular recursion.
+
+**How it needs to be done (the design, grounded in the verified building blocks).** Sutra has no
+native runtime recursion; memoization-as-a-loop is the mechanism that gives it (recursion-execution-
+model spec). The memo table is realized with the **RAM device** (`ramRead`/`ramWrite`) carried across
+a `while_loop` — measured to work (`2026-06-17-tier4-ram-memo-in-loop.md`); a `dict` slot does NOT.
+The two remaining shapes:
+- **Multi-arg DP** (e.g. `C(n,k) = C(n-1,k-1) + C(n-1,k)`, base `C(n,0)=C(n,n)=1`): a RAM memo with a
+  **flattened index** (`ramRead(base + a*stride + b)`) filled by a loop over the flattened domain.
+  The hard parts: per-cell **base-case conditionals** in the loop body (Sutra's V1 codegen rejects
+  `if/else` — must use a substrate **blend** `is_base*base + (1-is_base)*combine`, as the JVM/WASM
+  cores did), and **mod-free index management** (decode flattened → (row,col) without `Math.mod`,
+  which is banned — carry row/col as separate loop counters with a blend-based wrap, or pre-seed the
+  base cells in a separate loop).
+- **Irregular recursion** (multi-shape, data-dependent branching): an explicit **RAM-agenda stack**
+  (the call stack, now a value) + a RAM-memo, driven by a single `while_loop` (push subproblems,
+  combine when children are ready). Same blend-based conditional + mod-free machinery.
+
+**Emma's rule (2026-06-17): make a VERY VERY serious attempt at actually building this.** If it
+succeeds, great — it completes "memoize everything → native." **If it fails, give up on the
+complicated native form** and accept the shipped state: the core is native, and genuinely-complicated
+recursion runs via the **tier-5 WASM fallback** (`wasm_core`, which already runs recursive `fib` via
+its RAM call stack). A `CronCreate` (8h) checks whether this got built: if done, it removes this item
+and cuts a follow-up release; if not, this item stays and WASM remains the fallback for these cases.
