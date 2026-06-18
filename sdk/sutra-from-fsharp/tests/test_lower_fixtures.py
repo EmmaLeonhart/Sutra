@@ -49,6 +49,7 @@ _RUNNABLE = {
     "du_destructure": 13.0,  # type Shape=Circle of int|...; radius (s) = let (Circle r) = s in r + 1; main = radius (Circle 12)  (let-DU-pattern -> realvec(item _val0))
     "tuple_arg": 13.0,  # addPair (p: int*int) = fst p + snd p; main = addPair (5, 8)  (tuple construction DIRECTLY as arg -> hoisted to _ahN temp, F# arg-hoist parity)
     "nullary_variant": 20.0,  # type Dir=North|South; code (d) = match d with North->10|South->20; main = code South  (nullary DU variant in value position -> {_tag} axon)
+    "nullary_variant_return": 10.0,  # let getNorth () = North; main = code (getNorth ())  (function RETURNING a nullary variant -> ret type Axon + {_tag} axon; zero-arg call drops unit arg)
     "record_update": 17.0,  # type Point={x;y}; bump (p) = let q = { p with x = 9 } in q.x+q.y; main = bump {x=1;y=8}  (record functional-update -> override x, copy y from p)
 }
 

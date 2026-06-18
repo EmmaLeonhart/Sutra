@@ -59,4 +59,6 @@ literal + name-binding `match` patterns shipped 2026-06-13; NESTED tuple AND
 record destructure (`let (a,(b,c)) = t`, `let { inner = { v = vv } } = r`) shipped
 2026-06-17 — nested-axon construction + an `Axon` temp per non-leaf prefix (shared
 `_emit_nested_reads`) so reads dispatch as `axon_item`, since chaining `.item()` on
-a raw tensor fails. Mixed tuple-in-record / record-in-tuple nesting still a later item.)
+a raw tensor fails. Function RETURNING a nullary variant (`let f () = North` → return
+type `Axon` + `{_tag}` axon; zero-arg call `f ()` drops the unit arg) shipped 2026-06-17.
+Mixed tuple/record nesting + a variant in a blended `if` branch still later items.)
