@@ -10935,3 +10935,18 @@ f(E::A(5), 0)`) runs on the substrate == **5** (A arm → inner literal match `n
 44 passed (lower-only clean + `nested_match_tail_arm`=5, `enum_match`=2, `if_let_enum`=13 — the
 variant-match paths I touched are unregressed). Remaining on Rust: a VARIANT match nested in an
 expression / tail-arm; nested `if let`.
+
+## 2026-06-18 — sutra-from-haskell: nested tuple `let` patterns `let (a, (b, c)) = t` ship (== 16)
+
+Phase 6, Haskell item. A nested let-tuple pattern previously left `a`/`b`/`c` UNBOUND (the old code
+`continue`d on any non-`variable` element — a silent defect, not even an UNSUPPORTED marker). Now
+`_collect_hs_tuple_paths` recursively flattens a `tuple` pattern to 0-based positional key-paths, and
+since Haskell's `let` bind is substitution-only, the `Axon` temps a nested read needs accumulate in a
+new per-equation `_DESTRUCTURE_PRELUDE` (Clojure's shape), emitted after the hoist prelude. Each leaf
+substitutes to `realvec(holder.item("_j"))`; `_0`/`_1` keys are clean at dim 50 (no dim bump).
+
+Fixture `nested_tuple_let` (`f t = let (a, (b, c)) = t in a+b+c; f (5, (8, 3))`) runs on the substrate
+== **16** (== ground truth). Haskell suite: 38 passed (lower-only clean + `nested_tuple_let`=16,
+`tuple_destructure`=13, `ctor_destructure`=13 — flat let-tuple/ctor paths unregressed). Remaining on
+Haskell: nested CONSTRUCTOR `let` patterns; nested/non-variable `case` patterns; multi-equation/guarded
+recursion (the >2-guard form is blocked by the single-condition halt); mutually-recursive `where`/`let`.
