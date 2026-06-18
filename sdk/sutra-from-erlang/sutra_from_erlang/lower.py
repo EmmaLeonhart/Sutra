@@ -32,13 +32,17 @@ _DLL = _HERE.parent / "_grammar" / (
 _TYPE = "number"
 
 # Erlang operator → Sutra operator. Erlang spells some comparisons differently
-# (`=<` not `<=`, `/=` not `!=`, `=:=` exact-equal). `div`/`rem` omitted (rem would
-# need Math.mod, which is forbidden — a later item via complex rotation).
+# (`=<` not `<=`, `/=` not `!=`, `=:=` exact-equal). `rem` (truncation remainder,
+# sign of the dividend) maps to Sutra `%` → `_VSA.fmod` — exactly OCaml `mod`'s
+# lowering; NOT `Math.mod` (the eigenrotation floor-mod, a landmine for vector
+# collapse). `div` (truncated integer division) is handled separately as
+# `Math.trunc(A / B)` in the binary-op lowering — it is not an infix Sutra op.
 _OP_MAP = {
     "+": "+", "-": "-", "*": "*",
     "==": "==", "=:=": "==", "/=": "!=", "=/=": "!=",
     "<": "<", ">": ">", "=<": "<=", ">=": ">=",
     "andalso": "&&", "orelse": "||", "and": "&&", "or": "||",
+    "rem": "%",
 }
 
 # Bound names (params / case-binds) → their Sutra substitution (the `_SUBST` shape
@@ -314,6 +318,14 @@ def _lower_expr(node, src: bytes) -> str:
         if b is None:
             return "/* UNSUPPORTED-EXPR: malformed binary op */"
         left, op, right = b
+        # `A div B` — truncated integer division — is not an infix Sutra
+        # operator; lower it to `Math.trunc(A / B)` (the stdlib/modulus.su
+        # trunc instruction, a single substrate rounding op). Truncates
+        # toward zero, matching Erlang `div` (and `A = (A div B)*B + (A rem B)`,
+        # with `rem` = `%` = _VSA.fmod also sign-of-dividend).
+        if op == "div":
+            return (f"Math.trunc(({_lower_expr(left, src)}) "
+                    f"/ ({_lower_expr(right, src)}))")
         sop = _OP_MAP.get(op)
         if sop is None:
             return f"/* UNSUPPORTED-OP: {op} */"
