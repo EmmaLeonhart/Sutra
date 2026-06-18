@@ -33,7 +33,9 @@ constructs are visible in the output. Type inference is not attempted
 yet (OCaml is globally Hindley–Milner inferred); the MVP defaults
 unannotated types to `int` and relies on annotations otherwise. The
 agenda — `if/then/else`, `let … in`, `let rec`, tuples/records/variants,
-`match … with` — is tracked in the repo work queue.
+`match … with` — is tracked in the repo work queue. (Flat tuple-`let`
+destructure `let (a, b) = t in …` → `realvec(t.item("_0"))` substitution
+shipped 2026-06-18.)
 
 ## Use
 

@@ -11137,3 +11137,19 @@ Fixture `bool_match` (`let f (b: bool) = match b with | true -> 10 | false -> 20
 on the substrate == **10** (and `f false` measured == 20). F# suite: 30 passed (lower-only clean +
 `bool_match`=10, `match_literal`=200, `if_classify`=100 — the literal-match + if-blend paths
 unregressed). The bool-literal pattern is now uniform across every non-reference frontend.
+
+## 2026-06-18 — sutra-from-ocaml (reference frontend): flat tuple-`let` destructure `let (a, b) = t in …` ships (== 13)
+
+Phase 6, OCaml item — a real gap fixed in the REFERENCE frontend. `let (a, b) = t in a + b` previously
+emitted INVALID Sutra (`int (a, b) = t;` — a non-identifier binder reaching the local-let emitter; it
+would fail to compile). Now the `let_expression` body lowering (`_lower_body_to_statements`) detects a
+tuple-pattern binding via `_ocaml_flat_tuple_let` and substitutes each element to the positional field
+read `realvec(t.item("_i"))` (no Sutra local to declare for a tuple binder), restoring the
+substitutions after the body so they don't leak. The binder parses as `parenthesized_pattern` wrapping
+the `tuple_pattern` (the initial cut missed the paren and fell through to the broken path). The value
+must be a bare name (param / axon-bound local); `_0`/`_1` keys are clean at dim 50.
+
+Fixture `tuple_destructure` (`add_pair (t: int*int) = let (a, b) = t in a + b; add_pair (5, 8)`) runs
+on the substrate == **13** (== ground truth). The FULL OCaml suite passed: **133 passed** — no
+regression across the reference frontend's widely-used let-in path. Remaining on OCaml: scalable RAM
+device (10MB linear memory); non-zero `Array.make` fill; nested/record tuple-let patterns.
