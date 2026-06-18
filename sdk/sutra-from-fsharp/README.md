@@ -61,4 +61,6 @@ record destructure (`let (a,(b,c)) = t`, `let { inner = { v = vv } } = r`) shipp
 `_emit_nested_reads`) so reads dispatch as `axon_item`, since chaining `.item()` on
 a raw tensor fails. Function RETURNING a nullary variant (`let f () = North` → return
 type `Axon` + `{_tag}` axon; zero-arg call `f ()` drops the unit arg) shipped 2026-06-17.
-Mixed tuple/record nesting + a variant in a blended `if` branch still later items.)
+Record-update over a LET-BOUND source (`let q = { b with x = 9 }` — type inferred from
+`b`'s field set) shipped 2026-06-17. Mixed tuple/record nesting + a variant in a blended
+`if` branch still later items.)

@@ -95,9 +95,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   `nested_tuple_destructure`=16, `nested_record_destructure`=13 on the substrate). ~~Nullary variant
   as a direct function RETURN (`let f () = North`)~~ DONE 2026-06-17 (body-is-a-DU-variant → return
   type `Axon` + `{_tag}` axon; zero-arg call `f ()` drops the unit arg; `nullary_variant_return`=10
-  on the substrate). Remaining: mixed tuple-in-record / record-in-tuple nesting; variant in a blended
-  `if` branch (`if c then North else South`); record-update from a LET-BOUND (non-param) source
-  (`let q = {b with …}`, needs literal-type inference).
+  on the substrate). ~~Record-update from a LET-BOUND (non-param) source (`let q = {b with …}`)~~
+  DONE 2026-06-17 (`_infer_record_type` recovers the type from the literal's field set; a let-bound
+  record registers into `_PARAM_RECORD_TYPE`; `record_update_let`=17 on the substrate). Remaining:
+  mixed tuple-in-record / record-in-tuple nesting; variant in a blended `if` branch
+  (`if c then North else South`, needs an axon-valued blend + return-type inference over both branches).
 - [ ] **Scala** (`sutra-from-scala/`): nested patterns; case-class pattern PARAMS (`def f(Point(x,y))`).
 - [ ] **Elixir** (`sutra-from-elixir/`): multi-clause/guarded bodies with `=` bindings; >2-clause
   recursion (2-clause base+rec only now); `is_integer`-style type-test guards.
