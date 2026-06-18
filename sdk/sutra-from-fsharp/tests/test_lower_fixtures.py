@@ -50,6 +50,7 @@ _RUNNABLE = {
     "tuple_arg": 13.0,  # addPair (p: int*int) = fst p + snd p; main = addPair (5, 8)  (tuple construction DIRECTLY as arg -> hoisted to _ahN temp, F# arg-hoist parity)
     "nullary_variant": 20.0,  # type Dir=North|South; code (d) = match d with North->10|South->20; main = code South  (nullary DU variant in value position -> {_tag} axon)
     "nullary_variant_return": 10.0,  # let getNorth () = North; main = code (getNorth ())  (function RETURNING a nullary variant -> ret type Axon + {_tag} axon; zero-arg call drops unit arg)
+    "variant_if_branch": 10.0,  # pick (n) = if n > 0 then North else South; main = code (pick 5)  (variant in a blended if branch -> ret Axon, branches hoist to {_tag} temps, blend selects)
     "record_update": 17.0,  # type Point={x;y}; bump (p) = let q = { p with x = 9 } in q.x+q.y; main = bump {x=1;y=8}  (record functional-update -> override x, copy y from p)
     "record_update_let": 17.0,  # bump () = let b={x=1;y=8} in let q={b with x=9} in q.x+q.y  (record-update over a LET-BOUND source -> type inferred from b's field set)
 }

@@ -62,5 +62,6 @@ record destructure (`let (a,(b,c)) = t`, `let { inner = { v = vv } } = r`) shipp
 a raw tensor fails. Function RETURNING a nullary variant (`let f () = North` → return
 type `Axon` + `{_tag}` axon; zero-arg call `f ()` drops the unit arg) shipped 2026-06-17.
 Record-update over a LET-BOUND source (`let q = { b with x = 9 }` — type inferred from
-`b`'s field set) shipped 2026-06-17. Mixed tuple/record nesting + a variant in a blended
-`if` branch still later items.)
+`b`'s field set) shipped 2026-06-17. A variant in a blended `if` branch (`if c then North
+else South` → branches hoist to `{_tag}` axon temps, the blend selects the matched axon at
+`f = ±1`, return type `Axon`) shipped 2026-06-17. Mixed tuple/record nesting still a later item.)

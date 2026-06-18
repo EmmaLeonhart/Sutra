@@ -362,8 +362,12 @@ def _lower_expr(node, src: bytes) -> str:
         if len(kids) < 2:
             return "/* UNSUPPORTED-EXPR: malformed if */"
         cond_src = _lower_expr(kids[0], src)
-        then_src = _lower_expr(kids[1], src)
-        else_src = _lower_expr(kids[2], src) if len(kids) >= 3 else "0"
+        # Branches go through `_lower_field_value` so a DU-variant branch
+        # (`if c then North else South`) hoists to its `{_tag}` axon temp and the blend
+        # cleanly selects it (`((1+f)*northAxon + (1-f)*southAxon)/2` = the matched axon
+        # at f=±1); a plain numeric branch falls through to `_lower_expr` unchanged.
+        then_src = _lower_field_value(kids[1], src)
+        else_src = _lower_field_value(kids[2], src) if len(kids) >= 3 else "0"
         return _blend(cond_src, then_src, else_src)
     if t == "application_expression":
         head, args = _flatten_apply(node)
@@ -957,6 +961,23 @@ def _nullary_variant_name(node, src: bytes):
     return None
 
 
+def _if_returns_variant(node, src: bytes) -> bool:
+    """True if `node` is an `if_expression` whose THEN and ELSE branches are both DU
+    variants (nullary or applied) — so the `if` returns a `{_tag}` / tagged axon
+    (`if c then North else South`). The branches hoist to axon temps in the blend (via
+    `_lower_field_value` in the if-handler)."""
+    if node.type != "if_expression" or len(node.named_children) < 3:
+        return False
+
+    def _is_variant(b):
+        bi = (b.named_children[0]
+              if b.type == "paren_expression" and b.named_children else b)
+        return (_nullary_variant_name(bi, src) is not None
+                or _variant_application(bi, src) is not None)
+
+    return _is_variant(node.named_children[1]) and _is_variant(node.named_children[2])
+
+
 def _emit_nullary_variant(name: str, var: str) -> None:
     """Emit a nullary tagged-axon construction (`Axon var; var.add("_tag", k);`) for
     variant `name` bound to `var`, to `_PRELUDE`."""
@@ -1178,8 +1199,10 @@ def _lower_defn(defn, src: bytes) -> str:
             _AXON_VARS.add(p)
     # A function whose body IS directly a DU variant (`let f () = North`, `let g () =
     # Circle 4`) returns the `{_tag}` / tagged AXON, not the default int — hoist the
-    # construction to a prelude temp and set the return type to Axon. (A variant inside a
-    # blended `if` branch — `if c then North else South` — is a later item.)
+    # construction to a prelude temp and set the return type to Axon. A variant inside a
+    # blended `if` branch (`if c then North else South`) likewise returns an Axon — the
+    # branches hoist to temps in the blend (`_lower_field_value`), which cleanly selects
+    # the matched axon at `f = ±1`.
     _body_inner = (body.named_children[0]
                    if body.type == "paren_expression" and body.named_children else body)
     if ret == _DEFAULT_TYPE and (
@@ -1187,6 +1210,9 @@ def _lower_defn(defn, src: bytes) -> str:
             or _variant_application(_body_inner, src) is not None):
         body_src = _hoist_construction_arg(body, src)
         ret = "Axon"
+    elif ret == _DEFAULT_TYPE and _if_returns_variant(_body_inner, src):
+        ret = "Axon"
+        body_src = _lower_expr(body, src)
     else:
         body_src = _lower_expr(body, src)
     prelude_src = "".join(_PRELUDE)
