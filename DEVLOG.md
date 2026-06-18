@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-17: todo.md §GUI — record the decoder + Yantra integration as SHIPPED (flow-forward)
+
+Housekeeping mandated by the workflow rule "items only ever flow forward; do not leave done items
+behind in `todo.md`". The two GUI items still listed there as deferred were both actually complete:
+the **learned decoder** (D1–D14, ungated by Emma 2026-06-17) and **Yantra GUI integration** (Y0–Y3,
+vendored in-tree). Left as "DEFERRED / pick the approach with Emma before a large build" they would
+mislead a future session into re-opening finished work. Rewrote the §GUI block to mark both ✅ SHIPPED
+with pointers (`demos/decoder/`, `emit_decoder.bake_decoder`, `external/Yantra/apps/gui-button/button_surface.py`,
+the two 2026-06-17 findings) and to record that the only remaining decoder follow-ons are GATED, not
+autonomous (on-substrate Fourier encoding needs a new compiler primitive; w2c corpus is a research line).
+All cited paths/symbols verified to exist. Doc-only; no code/test impact.
+
 ## 2026-06-17: B3 — annealed steering so the live button SETTLES like Adam
 
 Emma's feedback on the live demo: the learning "is kinda all over the place and doesn't feel like

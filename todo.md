@@ -817,15 +817,25 @@ The GUI block + its near-term extensions shipped 2026-06-11/12 (Emma's top-prior
 click-gated / colour RGB / two-widget layout), the `hadamard` elementwise/buffer primitive,
 the `docs/gui.md` page. GUI #8 (2026-06-12, Emma's pick) shipped the real window event loop
 (`live_frame.su`/`live_demo.py` — live tkinter window, all state on the substrate, complex-
-rotation animation wrap) and the checker / diagonal / four-quadrant shapes. These remain
-(deferred, autonomous when the loop reaches them):
+rotation animation wrap) and the checker / diagonal / four-quadrant shapes.
 
-- [ ] **Learned decoder / arbitrary-image generation** — DEFERRED (Emma 2026-06-12,
-  research-scale): a trained nonlinear decoder from a latent to an arbitrary frame (the
-  constrain-train "every op trainable" vision meets GUI; the analytic whole-frame render is
-  the fixed-weight base case). Likely ties into the weight→code / constrain-train work
-  (`experiments/w2c_*`). Pick the approach with Emma before a large build.
-- [ ] **Yantra GUI integration** — the window living in the orchestrator, per the Yantra OS.
+The two items that were deferred here **both shipped on the `gui` branch (2026-06-16/17)** —
+recorded so a future session does NOT re-open completed work:
+
+- **Learned decoder / arbitrary-image generation — ✅ SHIPPED (D1–D14, gui branch, Emma
+  ungated it 2026-06-17 "barrel through").** SIREN-style coordinate-MLP decoder rendered
+  whole-frame on the substrate (matmul + hadamard cubic; Fourier-feature input encoding);
+  reconstructs arbitrary gray/colour frames, scales with capacity, generates from a latent,
+  is preference-steerable (`LatentSteer`), handles high-frequency content (checkerboard
+  30.6 dB), and emits back to standalone `.su` (`emit_decoder.bake_decoder`). See `DEVLOG.md`
+  + `demos/decoder/`. Remaining follow-ons are GATED, not autonomous: on-substrate Fourier
+  encoding needs a new elementwise-buffer transcendental compiler primitive (finding
+  `planning/findings/2026-06-17-substrate-transcendentals-canonical-only.md`); the w2c
+  decompiler corpus is a separate research line (`planning/findings/2026-06-17-decoder-weight-to-code.md`).
+- **Yantra GUI integration — ✅ SHIPPED (Y0–Y3, gui branch).** Yantra vendored in-tree at
+  `external/Yantra/`; `apps/gui-button/button_surface.py` is a host surface that spawns the
+  Sutra substrate-server (`demos/gui/button_substrate_server.py`) and paints its output — "the
+  window living in the orchestrator". See `DEVLOG.md` + queue.md §"Yantra GUI integration".
 
 HARD RAILS (CLAUDE.md): every pixel on the substrate; stateful widgets are substrate-RNNs;
 verify the rendered frame against a reference, measured.
