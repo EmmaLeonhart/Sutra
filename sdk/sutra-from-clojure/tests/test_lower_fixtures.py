@@ -30,6 +30,7 @@ _REPO = HERE.parents[2]
 # Fixtures with a callable `main` and a known substrate result.
 _RUNNABLE = {
     "add_main": 16.0,  # (defn add [a b] (+ a b)); (main) = (add 7 9)
+    "kwd_value": 30.0,  # (defn classify [k] (if (= k :foo) 10 20)); (main) = (classify :foo)+(classify :bar) = 10+20  (keyword-as-value -> string-flag codepoint array ":foo"; = routes to eq_synthetic, finding 2026-06-18)
     "multi_arity": 17.0,  # (defn add ([a] (add a 10)) ([a b] (+ a b))); (add 7)=add__1(7)=add__2(7,10)=17  (multi-arity defn -> name__{arity} mangling + call-site arg-count dispatch)
     "if_classify": 100.0,  # (if (> n 0) 100 200); (classify 5)  (if -> defuzz blend)
     "nary_sum": 16.0,  # (+ a b c d) n-ary left-fold; (sum4 1 2 3 (* 2 5))

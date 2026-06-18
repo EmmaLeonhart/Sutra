@@ -531,6 +531,34 @@ def _lower_expr(node, src: bytes) -> str:
         return _SUBST.get(text, text)
     if t == "bool_lit":
         return _text(node, src)
+    if t == "kwd_lit":
+        # A keyword in VALUE position (e.g. `(= k :foo)`, a keyword arg, a
+        # `case` member) → a Sutra string literal: a string-flag codepoint
+        # array (the axon-IPC value rep). The leading ':' is kept so a keyword
+        # string-compares DISTINCT from a plain string or a symbol. Equality
+        # routes to eq_synthetic (Euclidean on codepoints) — which separates
+        # ":foo" from ":bar" cleanly; cosine `==` reads ~0.998 for any two
+        # short strings and cannot. It MUST be a string LITERAL (a StringLiteral
+        # AST node) so `_is_synthetic_axis_expr` routes `==` to eq_synthetic —
+        # a `String.make_string(...)` Call would fall to cosine and fail. The
+        # accessor head `(:k m)` is handled in the list_lit branch, not here.
+        # See planning/findings/2026-06-18-clojure-symbol-keyword-as-value-rep.md.
+        name = _kwd_name(node, src)
+        if name is None:
+            return "/* UNSUPPORTED-EXPR: malformed keyword */"
+        return f'":{name}"'
+    if t == "str_lit":
+        # A plain string literal value → Sutra string literal (codepoint array).
+        return _text(node, src)
+    if t == "quoting_lit":
+        # A quoted symbol `'sym` as a value → string-flag codepoint array (the
+        # symbol's NAME, no sigil). A quoted symbol and a plain string with the
+        # same characters share this rep — the substrate value domain does not
+        # distinguish them (documented limitation; the use cases don't need it).
+        inner = next((c for c in node.named_children if c.type == "sym_lit"), None)
+        if inner is None:
+            return "/* UNSUPPORTED-EXPR: malformed quoted value */"
+        return f'"{_text(inner, src)}"'
     if t == "list_lit":
         kids = node.named_children
         head = _head_symbol(node, src)
@@ -544,6 +572,13 @@ def _lower_expr(node, src: bytes) -> str:
                     return f'realvec({_lower_expr(kids[1], src)}.item("{key}"))'
             return "/* UNSUPPORTED-EXPR: non-symbol list head */"
         args = kids[1:]
+        if head == "quote":
+            # `(quote sym)` as a value → the symbol's name as a string-flag
+            # codepoint array (same rep as the reader form `'sym`). See the
+            # quoting_lit branch above.
+            if len(args) == 1 and args[0].type == "sym_lit":
+                return f'"{_text(args[0], src)}"'
+            return "/* UNSUPPORTED-EXPR: malformed quote */"
         if head == "if":
             if len(args) < 2:
                 return "/* UNSUPPORTED-EXPR: malformed if */"
