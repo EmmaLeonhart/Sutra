@@ -24,16 +24,6 @@ migrate `todo.md` → `queue.md` → deleted on completion.
 
 ---
 
-## 1. Daily substrate-honesty audit (recurring — discharge then delete)
-
-Auto-prepended by `.github/workflows/daily-audit.yml`. First action of the next autonomous
-session: review every commit since the previous daily audit against CLAUDE.md §"Subtler
-substrate breaches": (a) `.su`/compile-path commits — `runtime_dim` matches what the `.su`
-needs (count `basis_vector` calls; none → tiny dim); (b) any "recurrent"/"RNN"/"substrate-pure"/
-"verified" claim — checked against measurement, not earlier framing; (c) any substrate classifier/
-decision function — measured `gap = min(positive) − max(negative)` is in the commit or a planning
-doc. If anything is amiss, write a finding + a fix item here BEFORE other work, then delete this.
-
 ## 2. Phase 5 — real-WASM-bytecode core (COMPLETE; only follow-ups remain)
 
 WebAssembly is the VM direction (Emma 2026-06-17; JVM done + parked).
