@@ -83,12 +83,10 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
 
 - [ ] **F# / Scala** — nested/mixed destructure fully drained; only general breadth remains
   (closures, generics, traits/instance classes, String ops), modelled on OCaml as needs arise.
-- [ ] **Haskell** (`sutra-from-haskell/`): multibase TAIL recursion + explicit-condition recursive
-  guard DONE 2026-06-18 (single + >2-guard, `otherwise` or explicit `| n>1 = f…`; fixtures
-  `multibase_tailsum`/`guarded_explicit_rec`/`multibase_explicit_rec`). Remaining: >2-guard NON-tail
-  multibase (CPS fold over multiple bases); mutually-recursive / forward `where`/`let`; a VARIANT
-  `case` in expression position (the int-local-in-expression-position codegen limit — shared with the
-  dropped Rust variant-match; non-trivial). Laziness out of scope.
+- **Haskell** (`sutra-from-haskell/`): native-recursion surface DONE 2026-06-18 (tail, non-tail
+  CPS fold, >2-guard multibase, explicit-condition recursive guard — `otherwise` or `| n>1 = f…`).
+  The few remaining native-lowering edge cases are MOVED to the bottom of the queue (they run via the
+  tier-5 WASM fallback per Emma, so not urgent) — see the LAST section.
 - [ ] **Elixir / Erlang** — multi-literal-base TAIL recursion + GUARDED RECURSIVE clause (Mode C:
   `f(N,Acc) when N>0 -> f(...); f(_,Acc) -> Acc`) DONE 2026-06-18 (both; fixtures `multibase_tailsum`
   / `guarded_rec_clause` RUN == 105 / 15). Remaining: >2-clause NON-tail multibase (CPS fold);
@@ -195,6 +193,11 @@ Work top-to-bottom; do not reorder.
   `sdk/*/README.md`, `planning/sutra-spec/`): contradictions, stale claims, dead website refs,
   business framing, undocumented capabilities. Plan into per-surface steps when reached; grep, don't
   trust memory. Do NOT start until the phases above are clear unless Emma re-prioritizes.
+- **Haskell native-lowering edge cases (deferred — work via the tier-5 WASM fallback, per Emma):**
+  >2-guard NON-tail multibase (CPS fold seed-selection over multiple bases); mutually-recursive /
+  forward `where`/`let`; a VARIANT `case` in expression position (the int-local-in-expression-position
+  codegen limit, shared with the dropped Rust variant-match). Native lowering is non-trivial; low
+  priority because WASM already covers them. Laziness out of scope.
 - **Parked / longer-horizon (in `todo.md`):** C→Sutra transpiler (parked, keep in tree); Promises
   Stage-3 / container-method-dispatch / multi-statement try-catch; TS transpiler closeout; website
   visual remake; Yantra migration tail; NTM/attention-on-RAM breadth backlog.
