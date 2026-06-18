@@ -186,10 +186,12 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   to `realvec(t.item("_i"))` and pops after the body; the binder parses as `parenthesized_pattern →
   tuple_pattern`; `tuple_destructure`=13 on the substrate, full 133-test suite green); ~~record-`let`
   destructure (`let { x; y } = p in …`, punned + renamed)~~ DONE 2026-06-18 (`_ocaml_record_let` +
-  same substitute-and-pop; `record_destructure`=13 on the substrate). Remaining: **scalable RAM device
-  for the 10MB linear memory** (`Bytes.make` / loop-carried arrays use the global RAM list, which
-  doesn't scale to 10MB); non-zero `Array.make` fill for int-dict arrays (slots start at 0 — documented
-  limit, not a bug); nested tuple/record-let patterns.
+  same substitute-and-pop; `record_destructure`=13 on the substrate); ~~variant-`let` destructure
+  (`let (Box x) = b`, `let (Wrap (a, b)) = w`)~~ DONE 2026-06-18 (`_ocaml_variant_let`: single payload →
+  `_val`, tuple payload → `_val0`/`_val1` matching the construction convention; `du_destructure`=13 on
+  the substrate). Remaining: **scalable RAM device for the 10MB linear memory** (`Bytes.make` /
+  loop-carried arrays use the global RAM list, which doesn't scale to 10MB); non-zero `Array.make` fill
+  for int-dict arrays (slots start at 0 — documented limit, not a bug); nested tuple/record-let patterns.
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
   when two interfaces share a field name with different types.
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
