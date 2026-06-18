@@ -11284,3 +11284,20 @@ default dim 50 (finding 2026-06-17-nested-axon-readout-crosstalk-is-dim-
 dependent.md). Shipped at the measured-correct dim, NOT doctored: the test
 harness gained an `(expected, dim)` spec tuple (Scala precedent) and runs
 `ctor_in_tuple` at dim 128. FULL Haskell suite: **48 passed** (was 46).
+
+## 2026-06-18 — sutra-from-rust: MIXED tuple/struct nesting in `let` destructure (Phase 3)
+
+Rust frontend now lowers MIXED nested `let` patterns both ways:
+struct-inside-tuple (`let (a, Inner { v }) = t`) and tuple-inside-struct
+(`let Outer { a, pos: (x, y) } = o`). `_collect_rust_tuple_paths` and
+`_collect_rust_struct_paths` previously recursed only into their own kind;
+they now cross-call (a tuple element that is a `struct_pattern` descends via
+the struct collector, a struct field whose value is a `tuple_pattern` descends
+via the tuple collector) — the Rust analog of today's OCaml/F#/Haskell
+mixed-nesting work. Construction already built the nested axons; the gap was
+the explicit UNSUPPORTED-FN destructure. Both directions verified on the
+substrate: `struct_in_tuple`=**13**, `tuple_in_struct`=**16**; both clean at
+the default dim 50 (the distinctive field-name keys `v`/`pos` avoid the
+`_1`/`_val0`-style cross-talk Haskell's mixed case hit), so no per-fixture dim
+bump. FULL Rust suite: **50 passed** (was 48). Rust nested-pattern destructure
+now covers tuple/struct + MIXED.

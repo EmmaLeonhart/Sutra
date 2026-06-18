@@ -93,4 +93,7 @@ AND struct patterns (`let (a, (b, c)) = t`, `let Outer { a, inner: Inner { v } }
 shipped 2026-06-17 — a shared `_emit_rust_nested_reads` emits an `Axon` temp per non-leaf
 prefix so reads dispatch as `axon_item`, since chaining `.item()` on a raw tensor fails.
 Function-tail enum `if let E::V(x) = s { … } else { … }` shipped 2026-06-17 — an
-`int _vtag` round-trip makes the tag test crisp at tag 0.)
+`int _vtag` round-trip makes the tag test crisp at tag 0. MIXED tuple/struct nesting
+(`let (a, Inner { v }) = t`, `let Outer { a, pos: (x, y) } = o`) shipped 2026-06-18 —
+the tuple- and struct-path collectors cross-call; distinctive field-name keys read clean
+at the default dim 50.)

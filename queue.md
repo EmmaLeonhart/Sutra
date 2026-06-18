@@ -183,7 +183,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   patterns (`let (a,(b,c))=t`, `let Outer { a, inner: Inner { v } } = o`)~~ DONE 2026-06-17
   (`_collect_rust_tuple_paths` / `_collect_rust_struct_paths` + shared `_emit_rust_nested_reads`: an
   `Axon` temp per non-leaf prefix so reads dispatch as `axon_item`; `nested_tuple_destructure`=16,
-  `nested_struct_destructure`=13 on the substrate); ~~enum `if let` destructuring
+  `nested_struct_destructure`=13 on the substrate); ~~MIXED tuple/struct nesting (`let (a, Inner { v }) = t`,
+  `let Outer { a, pos: (x, y) } = o`)~~ DONE 2026-06-18 (`_collect_rust_tuple_paths` and
+  `_collect_rust_struct_paths` now cross-call so a struct nests in a tuple and vice-versa;
+  `struct_in_tuple`=13, `tuple_in_struct`=16 on the substrate — distinctive field-name keys clean at
+  dim 50, no per-fixture dim bump needed); ~~enum `if let` destructuring
   (`if let E::V(x) = s { … } else { … }`)~~ DONE 2026-06-17 (function-tail form: `int _vtag =
   realvec(s.item("_tag"))` for a CRISP tag test [inline `realvec(...)==0` defuzzes to 50/50 at tag 0
   — measured 6.5 not 13; the int-local round-trip fixes it] + `_val{i}` payload binds in the THEN arm;

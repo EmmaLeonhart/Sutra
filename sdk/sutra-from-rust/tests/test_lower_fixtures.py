@@ -42,6 +42,8 @@ _RUNNABLE = {
     "nested_tuple_destructure": 16.0,  # f(t: (i64,(i64,i64))) { let (a,(b,c)) = t; a+b+c }; main = f((5,(8,3)))  (NESTED tuple pattern -> Axon temp for the _1 prefix, then realvec(item _0/_1))
     "struct_destructure": 13.0,  # sum(p: Point) { let Point { x, y } = p; x + y }; main = sum(Point{5,8})  (let-struct-pattern -> realvec(item x/y))
     "nested_struct_destructure": 13.0,  # f(o: Outer) { let Outer { a, inner: Inner { v } } = o; a + v }; main = f(Outer{a:5,inner:Inner{v:8}})  (NESTED struct pattern -> Axon temp for the inner-struct prefix)
+    "struct_in_tuple": 13.0,  # f(t: (i64,Inner)) { let (a, Inner { v }) = t; a+v }; main = f((5, Inner{v:8}))  (MIXED: struct nested in a tuple pattern; _collect_rust_tuple_paths cross-calls _collect_rust_struct_paths; _1/v keys clean at dim 50)
+    "tuple_in_struct": 16.0,  # g(o: Outer) { let Outer { a, pos: (x, y) } = o; a+x+y }; main = g(Outer{a:5,pos:(8,3)})  (MIXED: tuple nested in a struct pattern; _collect_rust_struct_paths cross-calls _collect_rust_tuple_paths; pos/_0/_1 keys clean at dim 50)
     "nullary_variant": 20.0,  # enum Dir{North,South}; code(d) = match d { Dir::North=>10, Dir::South=>20 }; main = code(Dir::South)  (nullary variant value -> {_tag} axon; scoped match patterns NOT mis-hoisted)
     "nullary_variant_let": 20.0,  # ... main = { let d = Dir::South; code(d) }  (nullary variant let-value -> Axon-typed local, not int-bound-to-axon)
 }
