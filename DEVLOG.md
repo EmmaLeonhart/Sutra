@@ -10788,3 +10788,21 @@ the substrate == **13** (== ground truth). Erlang suite: 32 passed (lower-only c
 `record_param`=13, `map_axon`=13 on the substrate). Remaining on Erlang: multi-clause bodies with `=`
 bindings; >2-clause recursion (multi-literal-base hits the single-condition-halt blocker per the
 finding); list comprehensions; `div`/`rem` via complex rotation.
+
+## 2026-06-17 — sutra-from-elixir: multi-clause/guarded bodies with `=` destructure bindings ship (== 13)
+
+Phase 6, Elixir item. A multi-clause function whose clause body has leading `=` destructure bindings
+(`def sel(flag, t) when flag > 0 do {a, b} = t; a + b end`) previously surfaced UNSUPPORTED (the
+dispatch dropped the binding statements). Now `_lower_def_clauses` threads each clause's prelude `=`
+bindings through `_apply_match_binding` (on top of the param binds, so a destructure of a param
+resolves via `_ai` and types that param `Axon`), then lowers the clause result with the bindings
+active — the same destructure mechanism the single-clause path uses, lifted into the dispatch blend.
+The upfront `any(m[4])` rejection is removed; `_try_lower_multiclause_recursion` already bails on
+prelude (so recursion-with-bindings still surfaces honestly).
+
+Fixture `multiclause_bind_body` (`def sel(flag, t) when flag>0 do {a,b}=t; a+b end; def sel(_,_) do 0;
+sel(1, {5,8})`) runs on the substrate == **13** (guard `flag>0` blends `a+b` vs base 0; `_a1` typed
+Axon). Elixir suite: 44 passed (lower-only clean + `multiclause_bind_body`=13, `match_bind_body`=13,
+`multiclause`=120, `multiclause_fact`, `tuple_param`=13 — recursion path unregressed). Remaining on
+Elixir: arrow-map non-atom keys; >2-clause multi-literal-base recursion (single-condition-halt
+blocker); `is_integer` type-test guards (dubious on the substrate, needs a design call).

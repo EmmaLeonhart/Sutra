@@ -610,16 +610,18 @@ def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
     clause is the base (Elixir's first-match-wins, lifted to the blend). A `when`
     GUARD lowers to a test ANDed with the clause's pattern tests (the guard
     references the params, which are bound to `_ai` while it is lowered). `clauses`
-    is a list of (param_pattern_nodes, body_node, guard_node_or_None)."""
+    is a list of (param_pattern_nodes, body_node, guard_node_or_None, prelude_stmts).
+    `prelude_stmts` are leading `=` destructure bindings in the clause body (`{a, b} =
+    t`, `%{x: a} = m`, `x = name`) — applied per clause via `_apply_match_binding`."""
     arity = len(clauses[0][0])
-    for _pn, body, _gd in clauses:
+    for _pn, body, _gd, _pre in clauses:
         if _contains_self_call(body, name, src):
             return (f"// UNSUPPORTED-RECURSION: '{name}' multi-clause dispatch with "
                     f"recursion (later item)\n")
     argnames = [f"_a{i}" for i in range(arity)]
     axon_args: set = set()  # argnames bound by a tuple PATTERN param (axon-typed)
     parsed = []  # (test_src_or_None, result_src)
-    for param_nodes, body, guard in clauses:
+    for param_nodes, body, guard, prelude_stmts in clauses:
         if len(param_nodes) != arity:
             return f"// UNSUPPORTED-DEF: '{name}' clause arity mismatch\n"
         tests: list[str] = []
@@ -674,10 +676,21 @@ def _lower_def_clauses(name: str, clauses, src: bytes) -> str:
                         f"{p.type} (later item)\n")
         for nm, sub in binds:
             _SUBST[nm] = sub
+        # Leading `=` destructure bindings in this clause body (`{a, b} = t`, …) bind
+        # via `_SUBST` on top of the param binds (so a destructure of a param resolves
+        # through `_ai`). The RHS param is typed `Axon` (added to `axon_args`).
+        pre_names: list = []
+        pre_ok = all(_apply_match_binding(st, src, pre_names, axon_args)
+                     for st in prelude_stmts)
         try:
+            if not pre_ok:
+                return (f"// UNSUPPORTED-DEF: '{name}' clause body binding statement "
+                        f"is not a supported `=` destructure (later item)\n")
             res_src = _lower_expr(body, src)
             guard_src = _lower_expr(guard, src) if guard is not None else None
         finally:
+            for nm in pre_names:
+                _SUBST.pop(nm, None)
             for nm, _sub in binds:
                 _SUBST.pop(nm, None)
         if "UNSUPPORTED" in res_src or (guard_src and "UNSUPPORTED" in guard_src):
@@ -722,18 +735,15 @@ def _lower_defs(def_calls, src: bytes) -> list:
                        and all(p.type == "identifier" for p in members[0][1]))
         if bare_single:
             out.append(_lower_def(members[0][0], src))
-        elif any(m[4] for m in members):
-            # A multi-clause / pattern-param clause with leading `=` bindings is a
-            # later item — surface rather than silently drop the binding statements.
-            out.append(f"// UNSUPPORTED-DEF: '{key[0]}' multi-clause body with "
-                       f"binding statements (later item)\n")
         else:
             multi_rec = _try_lower_multiclause_recursion(key[0], members, src)
             if multi_rec is not None:
                 out.append(multi_rec)
             else:
+                # Clause bodies may carry leading `=` destructure bindings (m[4]);
+                # `_lower_def_clauses` applies them per clause via `_apply_match_binding`.
                 out.append(_lower_def_clauses(
-                    key[0], [(pn, bd, gd) for _dc, pn, bd, gd, _pre in members], src))
+                    key[0], [(pn, bd, gd, pre) for _dc, pn, bd, gd, pre in members], src))
     return out
 
 

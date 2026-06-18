@@ -65,7 +65,9 @@ Dependency: `tree-sitter-elixir` (`pip install tree-sitter-elixir`).
 
 ## Next
 
-The `%{"k" => v}` arrow-map form + non-atom keys; maps/structs in multi-clause/recursive
-bodies; multi-clause heads with recursion (currently `UNSUPPORTED-RECURSION`);
-`is_integer`-style type-test guards (`and`/`or` chains already lower via `_OP_MAP`).
-(Atom-key maps + struct literals → axons shipped 2026-06-15.)
+The `%{"k" => v}` arrow-map form + non-atom keys; multi-clause heads with recursion
+(currently `UNSUPPORTED-RECURSION`); `is_integer`-style type-test guards (`and`/`or`
+chains already lower via `_OP_MAP`). (Atom-key maps + struct literals → axons shipped
+2026-06-15. Multi-clause/guarded clause bodies with leading `=` destructure bindings
+[`def sel(flag, t) when flag > 0 do {a, b} = t; a + b end`] shipped 2026-06-17 — each
+clause's `=` bindings thread through `_apply_match_binding` into the dispatch blend.)

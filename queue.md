@@ -110,8 +110,12 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
     luck of their `_0`/`_1`/field-name keys; for robustness consider running ALL nested-axon fixtures at
     `runtime_dim ≥ 128`, or use distinct depth-prefixed nested keys. Decision pending (see the finding's
     options). Not blocking — shipped fixtures are measured-correct + CI-green.
-- [ ] **Elixir** (`sutra-from-elixir/`): multi-clause/guarded bodies with `=` bindings; >2-clause
-  recursion (2-clause base+rec only now); `is_integer`-style type-test guards.
+- [ ] **Elixir** (`sutra-from-elixir/`): ~~multi-clause/guarded bodies with `=` bindings~~ DONE
+  2026-06-17 (`_lower_def_clauses` now threads each clause's leading `=` destructure bindings via
+  `_apply_match_binding`, typing the destructured param `Axon`; `multiclause_bind_body`=13 on the
+  substrate); >2-clause recursion with multiple LITERAL bases (hits the single-condition-halt blocker,
+  finding `2026-06-17-while-loop-halt-is-single-condition-only.md`); `is_integer`-style type-test
+  guards (dubious on the substrate — everything is a vector; needs a design call).
 - [ ] **Erlang** (`sutra-from-erlang/`): ~~map PATTERN params (`#{x := X}` in a head)~~ DONE 2026-06-17
   (`map_expr` param case: each `map_field` binds its `var` to `realvec(_ai.item("key"))`, the
   `maps:get` projection; `map_param`=13 on the substrate); multi-clause bodies with `=` bindings;
