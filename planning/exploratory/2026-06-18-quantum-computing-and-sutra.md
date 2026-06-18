@@ -17,9 +17,14 @@ produce a correct Bell state (`experiments/quantum/emulator_sweep.py`):
 | **Cirq** | 1.6.1 | statevector: ~50/50 over \|00⟩/\|11⟩ |
 
 - **Quirk** is browser-only (visual circuit builder) — not scriptable here; noted, not run.
-- **Q# / Silq**: `dotnet 9.0.203` IS present, so Q# is plausible via the `qsharp`
-  Python package or the .NET Q# SDK. Not yet exercised (Q3). Silq has its own toolchain
-  (assess accessibility separately).
+- **Q#** — accessible + RUN (`experiments/quantum/qsharp_fp_native.py`, via the `qsharp`
+  pip package / Azure QDK sparse simulator). Bell and a 3-qubit **GHZ** both give the correct
+  entangled distribution (only |00⟩/|11⟩, only |000⟩/|111⟩). Q# is the most FP-native of the set
+  (strong typing, immutable mid-circuit state, operations as values). Caveat: the `qsharp`
+  package warns it is superseded by `qdk` — `import qsharp` still works.
+- **Silq** — NOT pip-installable (confirmed: not on PyPI). It ships as a standalone compiler
+  binary / VS Code extension (D-language toolchain, ETH Zurich), so it was not exercised — the
+  documented blocker per "as long as the software is accessible."
 
 ## The FP ↔ quantum relationship (Emma's framing, confirmed against what ran)
 
@@ -66,7 +71,7 @@ next genuine experiment, listed as a queue task.
 
 - **Q1 emulator sweep** — DONE (PennyLane/Qiskit/Cirq accessible + verified).
 - **Q2 differentiable circuit + training** — DONE (PennyLane, measured above).
-- **Q3 Q# / Silq** — open (dotnet present; assess `qsharp` pkg / Silq).
+- **Q3 Q# / Silq** — Q# DONE (Bell + GHZ run via the `qsharp` pkg); Silq not accessible (no pip).
 - **Q4 writeup** — this doc (first pass; extend as Q3 + the "VQE-to-Sutra" experiment land).
 - **Q5 (proposed) VQE-to-Sutra** — express + train a 1–2 parameter variational circuit on
   Sutra's own complex substrate (eigenrotation + AXIS_REAL/IMAG), compare to PennyLane.
