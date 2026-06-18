@@ -11002,3 +11002,19 @@ multi-arg-DP half **was genuinely built + substrate-verified** → condition (A)
 correct (Python mirror) but substrate-impractical (>200s), so it runs via the tier-5 WASM fallback
 (`wasm_core`, recursive `fib` 45/45). The long-horizon "serious attempt" todo item was trimmed to a
 concise irregular→WASM-fallback record (the attempt is concluded; not faked as fully done).
+
+## 2026-06-18 — sutra-from-scala: nested case-class `val` patterns `val Outer(Inner(a, b), c) = o` ship (== 16) — Scala item drained
+
+Phase 6, the last Scala item. A nested case-class pattern in a `val` destructure now flattens + runs.
+`_collect_caseclass_paths` recursively maps each pattern element POSITIONALLY to the case class's
+declared field (`_CASE_CLASSES[Outer]=[inner,z]`), recursing into a nested `case_class_pattern` element
+(`Outer(Inner(a, b), c)` → `[(("inner","x"),"a"), (("inner","y"),"b"), (("z",),"c")]`); the destructure
+emits one `Axon` temp per non-leaf prefix via the shared `_emit_scala_nested_reads`. Done in the `val`
+(statement) context — a nested case-class MATCH is expression-position (no statement prelude), a later
+item. Field names are distinct across levels, so the keys read CLEAN at dim 50 (measured == 16 at both
+dim 50 and 128 — no dim bump, unlike Scala's 1-based `_1`/`_2` tuple keys).
+
+Fixture `nested_caseclass_destructure` (`case class Inner(x,y), Outer(inner,z); sum(o)={val Outer(Inner
+(a,b),c)=o; a+b+c}; sum(Outer(Inner(5,8),3))`) runs == **16**. Scala suite: 18 passed (lower-only clean
++ `nested_caseclass_destructure`=16, `caseclass_destructure`=13, `caseclass_match`=13 — flat case-class
+paths unregressed). The Scala frontend item is now fully drained — only general breadth remains.
