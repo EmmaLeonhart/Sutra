@@ -10587,3 +10587,26 @@ permanently); the **tier-5 WASM fallback** (`wasm_core`, recursive `fib(0..6)`, 
 path for non-tabulable recursion. The DP tiers stay native + auto-synthesized. queue.md tier-4 block
 removed (work done / deferred); the 8h cron (`073302bf`) will find the full complicated form not
 built and correctly leave the todo item.
+
+## 2026-06-17 — F# frontend: nested TUPLE destructure `let (a,(b,c)) = t` ships (runs == 16 on substrate)
+
+Phase 6 transpiler long-tail, top F# item. A nested tuple pattern now lowers AND runs natively.
+Two fixes in `sutra-from-fsharp/sutra_from_fsharp/lower.py`:
+- **Construction:** new `_lower_field_value` — a tuple/record/DU/nullary-variant literal in a field
+  position hoists to its own `_ahN` axon temp (recursively, via `_hoist_construction_arg`), so
+  `(5, (8, 3))` builds a nested axon (`p._1` → a temp axon with `_0=8, _1=3`). Wired into every
+  aggregate field-emission site (tuple/record/variant construction + the hoist-arg internals).
+- **Destructure:** new `_collect_tuple_paths` flattens a nested tuple `repeat_pattern` to positional
+  key-paths (`(a,(b,c))` → `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); the binding site
+  binds each non-leaf prefix to an `Axon` temp (`Axon _np0 = t.item("_1");`) and reads the leaf off
+  it. MEASURED: chaining `.item()` on a raw tensor fails (`TensorBase.item() takes no arguments`) —
+  the compiler returns a tensor from `axon_item`, so the next `.item()` is torch's; an `Axon`-typed
+  temp makes the second read dispatch as `axon_item` again (`Axon t1 = t.item("_1"); t1.item("_0")`
+  → 8.0). Prefixes are shared across siblings (`b`/`c` reuse one `t.item("_1")` temp).
+
+Fixture `nested_tuple_destructure` (`f (t: int*(int*int)) = let (a,(b,c))=t in a+b+c`; `f (5,(8,3))`)
+runs on the substrate == **16** (== ground truth). Verified: all 20 F#  lower-only fixtures still
+lower clean (no UNSUPPORTED), and the two substrate fixtures on the changed destructure path
+(`tuple_destructure`=13, `nested_tuple_destructure`=16) pass (22 passed / 18 substrate-deselected for
+speed — per-subprocess CUDA init makes the full 20-run substrate suite slow; CI runs it in full).
+Nested RECORD patterns + nullary-variant-return + let-bound record-update remain on the F# item.
