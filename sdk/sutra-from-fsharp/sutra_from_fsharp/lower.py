@@ -473,29 +473,12 @@ def _lower_expr(node, src: bytes) -> str:
                 if not val_src.isidentifier():
                     return ("/* UNSUPPORTED-LET: tuple-pattern binding value is "
                             "not a simple name (later item) */")
-                # For NESTED paths, bind each non-leaf prefix to an `Axon` temp so the
-                # next `.item()` dispatches as `axon_item` again — chaining `.item()` on
-                # a raw tensor fails (the compiler returns a tensor from axon_item;
-                # measured: `Axon t1 = t.item("_1"); t1.item("_0")` works, the chain does
-                # not). Prefixes are shared across siblings (`b` and `c` of `(a,(b,c))`
-                # reuse the one `t.item("_1")` temp).
-                prefix_temp: dict[tuple, str] = {(): val_src}
-
-                def _temp_for(prefix):
-                    if prefix in prefix_temp:
-                        return prefix_temp[prefix]
-                    parent = _temp_for(prefix[:-1])
-                    tmp = f"_np{_AH_N[0]}"
-                    _AH_N[0] += 1
-                    _PRELUDE.append(f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
-                    prefix_temp[prefix] = tmp
-                    return tmp
-
+                # Nested tuple paths read through an `Axon` temp per non-leaf prefix
+                # (`_emit_nested_reads`) — `b`/`c` of `(a,(b,c))` share one `t.item("_1")`.
                 subs: list[str] = []
-                for keys, nm in paths:
-                    holder = _temp_for(keys[:-1])   # axon reaching the leaf's parent
-                    _SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
-                    subs.append(nm)
+                for local, expr in _emit_nested_reads(val_src, paths):
+                    _SUBST[local] = expr
+                    subs.append(local)
                 try:
                     return _lower_expr(kids[1], src)
                 finally:
@@ -505,16 +488,18 @@ def _lower_expr(node, src: bytes) -> str:
             if rpb is not None:
                 # `let { x = a; y = b } = p` — destructure a record axon: each bound
                 # local reads the named axon field `realvec(p.item("x"))` (the `p.x`
-                # projection). The value must be a bare name (a record param or a
-                # let-bound record temp).
-                binds, val_node = rpb
+                # projection). NESTED record patterns (`{ inner = { v = vv } }`) read
+                # through an `Axon` temp per non-leaf prefix (`_emit_nested_reads`, the
+                # same mechanism the nested tuple path uses). The value must be a bare
+                # name (a record param or a let-bound record temp).
+                paths, val_node = rpb
                 val_src = _lower_expr(val_node, src)
                 if not val_src.isidentifier():
                     return ("/* UNSUPPORTED-LET: record-pattern binding value is "
                             "not a simple name (later item) */")
                 subs = []
-                for field, local in binds:
-                    _SUBST[local] = f'realvec({val_src}.item("{field}"))'
+                for local, expr in _emit_nested_reads(val_src, paths):
+                    _SUBST[local] = expr
                     subs.append(local)
                 try:
                     return _lower_expr(kids[1], src)
@@ -629,6 +614,33 @@ def _value_binding(fovd, src: bytes):
     return _text(ip, src).strip(), kids[-1]
 
 
+def _emit_nested_reads(val_src: str, paths):
+    """Given a base axon name `val_src` and `[(path_keys, local), …]` (each `path_keys`
+    a chain of axon keys reaching `local`), emit one `Axon` temp per non-leaf prefix to
+    `_PRELUDE` (shared across siblings) and return `[(local, read_expr), …]` where
+    `read_expr` is `realvec(<holder>.item("<leaf>"))`. Every non-leaf hop goes through an
+    `Axon` temp because chaining `.item()` on a raw tensor fails (the compiler returns a
+    tensor from `axon_item`); the typed temp makes the next read dispatch as `axon_item`.
+    Shared by the nested tuple- and record-pattern destructure paths."""
+    prefix_temp: dict[tuple, str] = {(): val_src}
+
+    def _temp_for(prefix):
+        if prefix in prefix_temp:
+            return prefix_temp[prefix]
+        parent = _temp_for(prefix[:-1])
+        tmp = f"_np{_AH_N[0]}"
+        _AH_N[0] += 1
+        _PRELUDE.append(f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+        prefix_temp[prefix] = tmp
+        return tmp
+
+    out = []
+    for keys, local in paths:
+        holder = _temp_for(keys[:-1])   # axon reaching the leaf's parent
+        out.append((local, f'realvec({holder}.item("{keys[-1]}"))'))
+    return out
+
+
 def _collect_tuple_paths(rep, src: bytes, prefix: tuple):
     """Flatten a (possibly NESTED) tuple `repeat_pattern` into [(path_keys, name), …],
     where `path_keys` is the chain of positional axon keys (`_0`, `_1`, …) reaching the
@@ -682,11 +694,43 @@ def _tuple_pattern_binding(fovd, src: bytes):
     return (paths, kids[-1]) if paths else None
 
 
+def _collect_record_paths(rp, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) `record_pattern` into `[(path_keys, local), …]`, where
+    `path_keys` is the chain of FIELD names reaching the bound local. A field whose value
+    is itself a `record_pattern` recurses (so `{ a = aa; inner = { v = vv } }` →
+    `[(("a",),"aa"), (("inner","v"),"vv")]`); a field that is neither `field = local-name`
+    nor `field = { … }` is a later item (→ None) — e.g. a nested TUPLE inside a record."""
+    out: list[tuple[tuple, str]] = []
+    for fp in rp.named_children:
+        if fp.type != "field_pattern":
+            continue
+        field_node = next((c for c in fp.named_children
+                           if c.type == "long_identifier"), None)
+        if field_node is None:
+            return None
+        field = _text(field_node, src).strip()
+        local_pat = next((c for c in fp.named_children
+                          if c.type == "identifier_pattern"), None)
+        nested_rp = next((c for c in fp.named_children
+                          if c.type == "record_pattern"), None)
+        if local_pat is not None and local_pat.named_children:
+            out.append((prefix + (field,), _text(local_pat.named_children[0], src).strip()))
+        elif nested_rp is not None:
+            sub = _collect_record_paths(nested_rp, src, prefix + (field,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None   # nested tuple-in-record / other shapes — a later item
+    return out
+
+
 def _record_pattern_binding(fovd, src: bytes):
     """If `fovd` is a record-pattern value binding `let { x = a; y = b } = expr`
-    (`value_declaration_left → record_pattern → field_pattern[long_identifier field,
-    identifier_pattern local]`), return ([(field, local), …], value_node); else None.
-    A field pattern that is not a plain `field = local-name` is a later item (→ None)."""
+    (`value_declaration_left → record_pattern`), return `([(path_keys, local), …],
+    value_node)`; else None. Supports NESTED record patterns (`let { inner = { v = vv } }
+    = r`) via `_collect_record_paths` — each local carries its chain of field names. A
+    field pattern that is not `field = local-name` or `field = { … }` is a later item."""
     kids = fovd.named_children
     if not kids or kids[0].type != "value_declaration_left":
         return None
@@ -696,19 +740,8 @@ def _record_pattern_binding(fovd, src: bytes):
     rp = next((c for c in vdl.named_children if c.type == "record_pattern"), None)
     if rp is None:
         return None
-    binds: list[tuple[str, str]] = []
-    for fp in rp.named_children:
-        if fp.type != "field_pattern":
-            continue
-        field_node = next((c for c in fp.named_children
-                           if c.type == "long_identifier"), None)
-        local_pat = next((c for c in fp.named_children
-                          if c.type == "identifier_pattern"), None)
-        if field_node is None or local_pat is None or not local_pat.named_children:
-            return None
-        binds.append((_text(field_node, src).strip(),
-                      _text(local_pat.named_children[0], src).strip()))
-    return (binds, kids[-1]) if binds else None
+    paths = _collect_record_paths(rp, src, ())
+    return (paths, kids[-1]) if paths else None
 
 
 def _du_pattern_binding(fovd, src: bytes):
