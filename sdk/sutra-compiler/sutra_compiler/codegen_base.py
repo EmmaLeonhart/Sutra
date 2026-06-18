@@ -319,6 +319,23 @@ def _builtin_hadamard(args: List[str]) -> str:
     return f"_VSA.hadamard({args[0]}, {args[1]})"
 
 
+def _builtin_sin_buf(args: List[str]) -> str:
+    # Elementwise sin over a length-N field BUFFER, via `_VSA.sin_buf`. The
+    # buffer counterpart to Math.sin (which acts on a single canonical complex
+    # number and raises a dim-mismatch on a length-N buffer). Same substrate-
+    # pure table readout as the scalar trig, broadcast over the N elements;
+    # periodic, autograd-preserving. Unblocks an on-substrate Fourier-feature
+    # encoding + SIREN sin-activations (finding 2026-06-17-substrate-
+    # transcendentals-canonical-only.md).
+    return f"_VSA.sin_buf({args[0]})"
+
+
+def _builtin_cos_buf(args: List[str]) -> str:
+    # Elementwise cos over a length-N field BUFFER, via `_VSA.cos_buf` — the
+    # cos counterpart to sin_buf, same broadcast soft-index table readout.
+    return f"_VSA.cos_buf({args[0]})"
+
+
 def _builtin_real(args: List[str]) -> str:
     # Substrate-pure real-axis read -> 0-d tensor via `_VSA._re`. This is
     # the SUBSTRATE-PURE extractor (dot with the real one-hot), distinct
@@ -419,6 +436,12 @@ BUILTINS = {
     # (complex_mul, single-number real/imag-axis product). Used by the GUI whole-frame
     # render to compute all pixels in one op: `1 - hadamard(X,X) - hadamard(Y,Y)`.
     "hadamard": (_builtin_hadamard, 2),
+    # Elementwise transcendentals over a length-N field buffer (`_VSA.sin_buf`/
+    # `_VSA.cos_buf`). The buffer counterparts to Math.sin/cos (which act on the
+    # canonical d-dim complex number and dim-mismatch on a buffer). Periodic,
+    # autograd-preserving; the on-substrate Fourier-encoding / SIREN primitive.
+    "sin_buf": (_builtin_sin_buf, 1),
+    "cos_buf": (_builtin_cos_buf, 1),
     # Substrate-pure canonical-axis reads as free functions: real(v)/imag(v)
     # -> 0-d tensor (_VSA._re/_im). The SUBSTRATE-PURE form (NOT the
     # host-float `.real()` accessor), safe to use inside operations such as

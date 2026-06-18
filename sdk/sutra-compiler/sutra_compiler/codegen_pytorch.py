@@ -1647,6 +1647,49 @@ class PyTorchCodegen(Codegen):
         self._emit("return self._mk(self._sin_s(x), 0.0)")
         self._indent -= 1
         self._emit()
+        # ===================================================================
+        # Elementwise transcendentals over a FIELD BUFFER (Emma 2026-06-17
+        # "Make the compiler primitive"). The scalar sin/cos above act on the
+        # canonical d-dim complex NUMBER (one angle in / one number out); they
+        # do NOT map elementwise over an arbitrary length-N activation buffer
+        # — `cexp`/`complex_mul` evaluate against the canonical dim and raise a
+        # dim-mismatch on a length-N buffer (finding 2026-06-17-substrate-
+        # transcendentals-canonical-only.md). `sin_buf`/`cos_buf` are the
+        # buffer counterparts: the SAME substrate-pure table readout the scalar
+        # trig uses (wrap to (-π,π] then a triangular soft-index crosstalk
+        # matmul against the cached sin/cos table), but BROADCAST over the N
+        # elements — the exact (N, T) weight-matrix pattern sawtooth_mod already
+        # ships. One fused tensor op, autograd-preserving, PERIODIC by
+        # construction (no polynomial high-frequency divergence — a length-N
+        # `cos = realvec(cexp(iθ))` was the blocked path). Unblocks an
+        # on-substrate Fourier-feature encoding and SIREN-style sin activations.
+        # ===================================================================
+        self._emit("def sin_buf(self, x):")
+        self._indent += 1
+        self._emit('"""Elementwise sin over a length-N field buffer (the buffer')
+        self._emit('counterpart to scalar sin). Wrap each element to (-π,π], then a')
+        self._emit('triangular soft-index crosstalk readout of the cached sin table,')
+        self._emit('broadcast over the N elements (the (N, T) matmul sawtooth_mod uses).')
+        self._emit('Substrate-pure, periodic, autograd-preserving; length-N in/out."""')
+        self._emit("xt = self._st(x)")
+        self._emit("ar = xt - self._TWO_PI * _torch.round(xt / self._TWO_PI)")
+        self._emit("d = (self._TRIG_XS.unsqueeze(0) - ar.unsqueeze(-1)).abs() / self._TRIG_DX")
+        self._emit("w = (1.0 - d).clamp(min=0.0)")
+        self._emit("return _torch.matmul(w, self._SIN_VALUES)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cos_buf(self, x):")
+        self._indent += 1
+        self._emit('"""Elementwise cos over a length-N field buffer — the cos counterpart')
+        self._emit('to sin_buf, same broadcast soft-index readout against the cached cos')
+        self._emit('table. Substrate-pure, periodic, autograd-preserving; length-N in/out."""')
+        self._emit("xt = self._st(x)")
+        self._emit("ar = xt - self._TWO_PI * _torch.round(xt / self._TWO_PI)")
+        self._emit("d = (self._TRIG_XS.unsqueeze(0) - ar.unsqueeze(-1)).abs() / self._TRIG_DX")
+        self._emit("w = (1.0 - d).clamp(min=0.0)")
+        self._emit("return _torch.matmul(w, self._COS_VALUES)")
+        self._indent -= 1
+        self._emit()
         self._emit("def pow(self, x, y):")
         self._indent += 1
         self._emit('"""x^y = exp(y*ln x) - change-of-base identity. 0-d tensor."""')
