@@ -25,6 +25,7 @@ _RUNNABLE = {
     "if_classify": 100.0,  # if (n>0) 100 else 200; classify(5)  (if -> defuzz blend)
     "val_block": 17.0,  # { val y=x+1; val z=y*2; z+x } at x=5  (block val bindings -> Sutra locals)
     "match_literal": 200.0,  # n match {1=>100; 2=>200; _=>300} at n=2  (literal match -> nested blend)
+    "bool_match": 10.0,  # f(b: Boolean) = b match { case true => 10; case false => 20 }; f(true)  (Bool match pattern -> (b == true/false) blend)
     "case_class": 12.0,  # case class Point -> axon; getx(mk(7,9))=7 + sum2(Point(2,3))=5
     "tuple_axon": 13.0,  # def fst(p: (Int,Int)) = p._1 + p._2; main = fst((5, 8))  (tuple -> positional-key axon, 1-based _1/_2 to match ._1 access)
     "tuple_destructure": 13.0,  # def addPair(t: (Int,Int)) = { val (a, b) = t; a + b }; main = addPair((5, 8))  (val-tuple-pattern -> realvec(item _1/_2), 1-based)
