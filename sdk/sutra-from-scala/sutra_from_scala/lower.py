@@ -204,6 +204,7 @@ def _lower_expr(node, src: bytes) -> str:
             pat, res = ck[0], ck[-1]
             guard = next((c for c in ck if c.type == "guard"), None)
             binding = None
+            cc_binds = None  # [(local, field), …] for a case-class pattern
             if pat.type == "wildcard":
                 test = None
             elif pat.type == "integer_literal":
@@ -213,10 +214,30 @@ def _lower_expr(node, src: bytes) -> str:
                 # scrutinee in this clause's guard + result.
                 binding = _text(pat, src)
                 test = None
+            elif pat.type == "case_class_pattern":
+                # `case Point(a, b) => …` — irrefutable positional destructure: each
+                # pattern identifier binds to the case class's declared field
+                # (`_CASE_CLASSES[Point] = [x, y]`) read via `realvec(scrut.item("x"))`
+                # (the `p.x` projection), the same as the `val Point(a, b) = p` path. A
+                # multi-VARIANT case-class match (needing `_tag` tests) is a later item.
+                tid = next((c for c in pat.named_children
+                            if c.type == "type_identifier"), None)
+                elems = [e for e in pat.named_children if e.type == "identifier"]
+                cname = _text(tid, src) if tid is not None else None
+                if (cname is None or cname not in _CASE_CLASSES or not elems
+                        or len(elems) != len(_CASE_CLASSES[cname])):
+                    return ("/* UNSUPPORTED-MATCH-PATTERN: case_class_pattern "
+                            "(unknown class / non-identifier element / arity) */")
+                cc_binds = list(zip([_text(e, src) for e in elems],
+                                    _CASE_CLASSES[cname]))
+                test = None
             else:
                 return f"/* UNSUPPORTED-MATCH-PATTERN: {pat.type} */"
             if binding is not None:
                 _SUBST[binding] = f"({scrut_src})"
+            if cc_binds is not None:
+                for loc, field in cc_binds:
+                    _SUBST[loc] = f'realvec({scrut_src}.item("{field}"))'
             try:
                 if guard is not None and guard.named_children:
                     guard_src = f"({_lower_expr(guard.named_children[0], src)})"
@@ -225,6 +246,9 @@ def _lower_expr(node, src: bytes) -> str:
             finally:
                 if binding is not None:
                     _SUBST.pop(binding, None)
+                if cc_binds is not None:
+                    for loc, _field in cc_binds:
+                        _SUBST.pop(loc, None)
             parsed.append((test, res_src))
         if not parsed:
             return "/* UNSUPPORTED-EXPR: empty match */"
