@@ -179,7 +179,11 @@ Remaining:
 
 ---
 
-## Background / not active work
+## LAST — do these ONLY after every section above is cleared
+
+**This is the literal bottom of the queue (Emma's strict ordering).** The work-loop reaches
+this section ONLY when §2 through §9 are fully drained — it is not "skip," it is "do dead last."
+Work top-to-bottom; do not reorder.
 
 - **W2C/corpus:** 7200 programs (submodule `corpus/` + HF mirror); baseline model PUBLISHED
   (exact 0.811 / IO 0.826). Scale = one-flag bump → push submodule → HF mirror → bump pointer.
