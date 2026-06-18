@@ -192,10 +192,14 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   the substrate); ~~NESTED tuple-`let` patterns (`let (a, (b, c)) = t`)~~ DONE 2026-06-18
   (`_emit_tuple_construction` recurses to build nested-tuple axons via `_aggregate_arg_emitter`;
   `_ocaml_tuple_paths` flattens the nested pattern + an `Axon` temp per non-leaf prefix in the let-in
-  `out`; `nested_tuple_destructure`=16 on the substrate). Remaining: **scalable RAM device for the 10MB
-  linear memory** (`Bytes.make` / loop-carried arrays use the global RAM list, which doesn't scale to
-  10MB); non-zero `Array.make` fill for int-dict arrays (slots start at 0 — documented limit, not a bug);
-  nested record/variant-let patterns.
+  `out`; `nested_tuple_destructure`=16 on the substrate); ~~NESTED record-`let` patterns
+  (`let { a; inr = { v } } = o`)~~ DONE 2026-06-18 (`_emit_record_construction` recurses for nested
+  aggregate field values; `_ocaml_record_paths` flattens the nested record/tuple pattern into
+  field-name path keys; the tuple- and record-let branches now share one `_emit_nested_subst` helper
+  that emits an `Axon` temp per non-leaf prefix; `nested_record_destructure`=13 on the substrate).
+  Remaining: **scalable RAM device for the 10MB linear memory** (`Bytes.make` / loop-carried arrays use
+  the global RAM list, which doesn't scale to 10MB); non-zero `Array.make` fill for int-dict arrays
+  (slots start at 0 — documented limit, not a bug); nested variant-let patterns.
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
   when two interfaces share a field name with different types.
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
