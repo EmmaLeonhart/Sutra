@@ -29,11 +29,21 @@ forward emitted as Sutra + the trained weights as data — not a single self-con
 **Follow-ons (spec).**
 1. **Bake weights to CSV + `load_matrix`** — ✅ DONE (D12): `bake_decoder` emits a fully
    standalone `.su` that loads its own weights; verified to reproduce the trained forward.
-2. **Emit the Fourier encoding** as substrate ops — **BLOCKED on a substrate primitive**
-   (`2026-06-17-substrate-transcendentals-canonical-only.md`): `cexp`/`sin`/`tanh` are
-   canonical-vector ops, not elementwise on field buffers, so sin/cos of a coordinate buffer
-   isn't directly computable. A hadamard-polynomial approx covers low frequencies only (degrades
-   the high bands); the clean fix is a new elementwise-buffer transcendental primitive in the
-   compiler. Left host-side (honestly labeled input geometry) until then — NOT faked.
+2. **Emit the Fourier encoding** as substrate ops — ✅ **DONE 2026-06-17** (was blocked on a
+   substrate primitive; `sin_buf`/`cos_buf` shipped and unblocked it —
+   `2026-06-17-substrate-transcendentals-canonical-only.md`).
+   `emit_decoder.bake_decoder_with_encoding` emits a FULLY self-contained `.su`
+   `dec_enc(matrix coords)` — raw (x,y) coordinates in, image out, the Fourier ENCODING
+   (`sin_buf`/`cos_buf`) AND the decode both on the substrate, weights from CSV. **No concat
+   primitive was needed:** since `W0 @ row_stack(blocks) = Σ_j W0[:, cols_j] @ block_j`, the
+   trained `W0` is split BY COLUMNS at bake time into the coords block + per-frequency sin/cos
+   blocks, and the first-layer pre-activation is emitted as a SUM of
+   `Tensor.MatrixMul(W0_block, sin_buf/cos_buf(f_k·coords))` — mathematically identical, using
+   only existing ops (`Tensor.MatrixMul`, `+`, scalar·buffer scaling — verified elementwise) plus
+   the new primitive. Verified (`test_emit_decoder.py`): the baked coords→pixels `.su` reproduces
+   the SAME substrate computation (`fourier_features_substrate` + `mlp_forward`) to **4.6e-5**.
+   (Against the exact-`torch.sin` host render the gap is ~0.05 — the `sin_buf` table readout's
+   ~8e-5 error amplified through the two cubic layers, a documented property of the encoding, not
+   a bake defect. The bake reproduces the substrate computation faithfully, which is its job.)
 3. **Feed the decompiler.** A trained decoder (weights + emitted code + IO) is a high-value
    weight↔code corpus triple; wire decoder emissions into `weight_to_code_corpus.py`.
