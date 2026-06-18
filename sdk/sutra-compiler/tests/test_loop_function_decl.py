@@ -187,6 +187,78 @@ function int main() {
         self.assertAlmostEqual(float(result), 15.0, places=2)
 
 
+class TestCompoundAndEqualityHalt(unittest.TestCase):
+    """Compound `&&`/`||` halts and equality (`==`/`!=`) halts in a loop
+    condition (queue §0.3; finding 2026-06-17-while-loop-halt-is-single-
+    condition-only.md).
+
+    Two root causes were fixed together:
+      1. `&&`/`||` inlined the [0,1] Zadeh polynomial, which gives the wrong
+         sign on SIGNED comparison truth ([-1,1]) — so a compound halt was
+         honored only on its first conjunct. The loop condition now composes
+         connectives as signed-truth min/max (`_VSA.truth_and`/`truth_or`).
+      2. `_as_any_vector` returned a 0-d scalar tensor as-is instead of
+         lifting it onto the real axis, so `eq_synthetic(loop_counter, k)`
+         (the counter is a 0-d tensor after the soft-mux) never read 0
+         distance even when equal — equality halts never fired.
+    """
+
+    def _counter_loop(self, cond: str, start: int = 0) -> float:
+        src = f"""
+while_loop _l({cond}, int i) {{
+    pass i + 1;
+}}
+
+function int main() {{
+    slot int i = {start};
+    loop _l({cond}, i);
+    return i;
+}}
+"""
+        return float(_run_main(src))
+
+    def test_compound_and_tighter_bound_wins(self):
+        # both ordered: keep while i<5 AND i<4 → halts at 4.
+        self.assertAlmostEqual(self._counter_loop("(i < 5) && (i < 4)"), 4.0, places=2)
+
+    def test_compound_and_honors_second_conjunct(self):
+        # the finding's exact repro: keep while i<5 AND i!=3 → halts at 3
+        # (was 5 before the fix — the i!=3 conjunct was ignored).
+        self.assertAlmostEqual(self._counter_loop("(i < 5) && (i != 3)"), 3.0, places=2)
+
+    def test_compound_and_second_conjunct_far(self):
+        self.assertAlmostEqual(self._counter_loop("(i < 10) && (i != 3)"), 3.0, places=2)
+
+    def test_single_inequality_halt(self):
+        # equality-halt root cause: i!=3 alone must halt at 3 (previously
+        # never halted — the 0-d-tensor counter broke eq_synthetic).
+        self.assertAlmostEqual(self._counter_loop("(i != 3)"), 3.0, places=2)
+
+    def test_compound_or_looser_bound_wins(self):
+        # keep while i<5 OR i<2 → the looser bound dominates, halts at 5.
+        self.assertAlmostEqual(self._counter_loop("(i < 5) || (i < 2)"), 5.0, places=2)
+
+    def test_multibase_recursion_compound_halt(self):
+        # The multibase-tail-recursion shape (Haskell/Elixir/Erlang >2-guard):
+        # continue while NO base matches, `(n > 0) && (n != 1)`, counting down.
+        # f acc n | n<=0=acc | n==1=... | otherwise=f (acc+n) (n-1); n from 3:
+        # acc accumulates 3 then 2 (n: 3→2→1), halting at n==1 with acc=5.
+        src = """
+while_loop _l((n > 0) && (n != 1), int acc, int n) {
+    acc = acc + n;
+    pass acc, n - 1;
+}
+
+function int main() {
+    slot int acc = 0;
+    slot int n = 3;
+    loop _l((n > 0) && (n != 1), acc, n);
+    return acc;
+}
+"""
+        self.assertAlmostEqual(float(_run_main(src)), 5.0, places=2)
+
+
 class TestIterativeLoop(unittest.TestCase):
     """iterative_loop: runs body N times; iterator keyword for tick number."""
 

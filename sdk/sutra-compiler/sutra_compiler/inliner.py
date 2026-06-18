@@ -439,17 +439,55 @@ def _lower_operators_to_stdlib_calls(
         _lower_ops_top_level(item, inlineable)
 
 
+def _lower_loop_condition_ops(cond, kind, inlineable):
+    """Operator-lower a loop's halt condition, KEEPING top-level `&&`/`||`
+    connectives as raw operators for a while_loop/do_while.
+
+    The general `&&`/`||` lowering inlines the Zadeh POLYNOMIAL, which is
+    only correct on [0, 1] truth. A loop halt composes SIGNED comparison
+    truth ([-1, 1], positive = true) and thresholds it at 0 — there `&&`/
+    `||` are min/max, not the polynomial; fed signed truth the polynomial
+    gives the wrong sign, so a compound `(a) && (b)` halt was honored only
+    on its first conjunct (finding 2026-06-17-while-loop-halt-is-single-
+    condition-only.md). Keeping the connectives un-lowered lets codegen's
+    `_translate_loop_condition` emit `_VSA.truth_and`/`truth_or` (min/max).
+    The connectives' OPERANDS are still lowered normally (so `i < 5` →
+    `5 > i`, `i != 3` → `neq(...)`); only the `&&`/`||` nodes survive.
+    Other loop kinds (iterative_loop / foreach_loop) lower as before."""
+    if kind not in ("while_loop", "do_while"):
+        return _lower_ops_expr(cond, inlineable)
+    return _lower_ops_keep_logic(cond, inlineable)
+
+
+def _lower_ops_keep_logic(expr, inlineable):
+    """Lower operators in `expr` but leave top-level `&&`/`||` connectives
+    (and parens around them) as raw operators, recursing through them so
+    nested connectives also survive; everything else lowers normally."""
+    if isinstance(expr, ast.Parenthesized):
+        expr.inner = _lower_ops_keep_logic(expr.inner, inlineable)
+        return expr
+    if isinstance(expr, ast.BinaryOp) and expr.op in ("&&", "||"):
+        expr.left = _lower_ops_keep_logic(expr.left, inlineable)
+        expr.right = _lower_ops_keep_logic(expr.right, inlineable)
+        return expr
+    return _lower_ops_expr(expr, inlineable)
+
+
 def _lower_ops_top_level(item, inlineable) -> None:
     if isinstance(item, (ast.FunctionDecl, ast.MethodDecl)):
         _lower_ops_block(item.body, inlineable)
     elif isinstance(item, ast.LoopFunctionDecl):
-        item.condition = _lower_ops_expr(item.condition, inlineable)
+        item.condition = _lower_loop_condition_ops(
+            item.condition, item.kind, inlineable
+        )
         _lower_ops_block(item.body, inlineable)
     elif isinstance(item, ast.ClassDecl):
         for m in item.methods:
             _lower_ops_block(m.body, inlineable)
         for lf in item.loop_functions:
-            lf.condition = _lower_ops_expr(lf.condition, inlineable)
+            lf.condition = _lower_loop_condition_ops(
+                lf.condition, lf.kind, inlineable
+            )
             _lower_ops_block(lf.body, inlineable)
     elif isinstance(item, ast.VarDecl):
         if item.initializer is not None:

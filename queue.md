@@ -33,16 +33,6 @@ queue now"). Make the reasonable engineering choice where one is noted, build it
 substrate, measure, ship. Each: fixture-tested + RUN against ground truth; keep
 `transpilers-ci` green.
 
-- [ ] **0.3 — Single-condition-halt blocker** (finding
-  `2026-06-17-while-loop-halt-is-single-condition-only.md`). `while_loop` ignores a compound
-  `&&` continue condition past the first conjunct, blocking >2-clause / multi-base native
-  recursion in Haskell, Elixir, Erlang. Fix the substrate loop to honor a compound halt
-  (then the multibase-recursion transforms land natively); if the substrate genuinely can't,
-  document the precise blocker and leave those on the tier-5 WASM fallback.
-- [ ] **0.4 — Erlang `div`/`rem`** via complex rotation (NOT `Math.mod` — landmine, finding
-  `2026-06-12-rotation-mod-vector-collapse-…`). `rem` maps to the existing `%`/`_VSA.fmod`
-  (as OCaml `mod` does — `modulo`=2); `div` (truncated integer division) via the existing
-  `stdlib/modulus.su` trunc machinery. Fixture + RUN on the substrate.
 - [ ] **0.5 — Clojure symbol/keyword-as-value rep** — unblocks symbol map keys + `case`
   symbol/keyword members. Needs a representation for a bare symbol/keyword as a Sutra value
   (likely a string-flag codepoint array, per the axon-IPC-payload model). Spec it, then build.
@@ -110,14 +100,18 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
 
 - [ ] **F# / Scala** — nested/mixed destructure fully drained; only general breadth remains
   (closures, generics, traits/instance classes, String ops), modelled on OCaml as needs arise.
-- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard / multi-equation guarded recursion (BLOCKED on
-  the single-condition-halt blocker, §0.3); mutually-recursive / forward `where`/`let`; a VARIANT
-  `case` in expression position (needs an int-local an expression can't emit). Laziness out of scope.
+- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard / multi-equation guarded recursion (the
+  substrate compound-halt blocker is FIXED — §0.3 shipped 2026-06-18; the frontend transform that
+  emits a `(c1) && (c2)` continue condition still needs writing); mutually-recursive / forward
+  `where`/`let`; a VARIANT `case` in expression position (needs an int-local an expression can't
+  emit). Laziness out of scope.
 - [ ] **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (needs an int-local
   an expression can't emit). (Loop bounds must use strict `<`/`>`; `<=` drops the boundary iteration
   — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
-- [ ] **Elixir / Erlang** — >2-clause / multi-literal-base recursion (BLOCKED on §0.3); Erlang list
-  comprehensions. (Erlang `div`/`rem` is §0.4; Elixir `is_integer` guards is §0.6.)
+- [ ] **Elixir / Erlang** — >2-clause / multi-literal-base recursion (substrate compound-halt
+  blocker FIXED §0.3 2026-06-18; the frontend multi-base→`&&`-continue transform still needs
+  writing); Erlang list comprehensions. (Erlang `div`/`rem` shipped 2026-06-18; Elixir `is_integer`
+  guards is §0.6.)
 - [ ] **Clojure** — maps/vectors in recursive bodies. (Symbol/keyword-as-value rep is §0.5.)
 - [ ] **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH**
   arm (`match s with Some { x; y } -> … | None -> …` — the option-match codegen binds the payload as a

@@ -11431,3 +11431,39 @@ TS harnesses (Haskell/Scala already had it) and marked every nested-axon fixture
 Verified: nested-axon pytest selection green across all 7 frontends at 256 — ocaml 11,
 fsharp 10, rust 12, haskell 10, scala 8, clojure 2, ts 3 (56 tests). Finding doc updated
 with the non-monotonic table and the 256 decision.
+
+## 2026-06-18 — queue §0.3: compound `&&`/`||` AND equality loop halts (two root causes)
+
+The "compound halt honored only past the first conjunct" blocker (finding 2026-06-17-
+while-loop-halt-is-single-condition-only.md) was TWO bugs the repro `(i<5) && (i!=3)`
+combined; both fixed. Substrate now honors a general compound halt — verified
+`(i<5)&&(i!=3)=3`, `(i<5)&&(i<4)=4`, `(i<5)||(i<2)=5`, single `(i!=3)=3`, and the
+multibase shape `(n>0)&&(n!=1)` counting down → acc 5.
+
+1. **`&&`/`||` composed on the wrong truth domain.** Comparison ops return SIGNED truth
+   ([-1,1], positive=true); the halt thresholds at 0 (heaviside). But `&&`/`||` inlined the
+   [0,1] Zadeh POLYNOMIAL, wrong-signed on signed truth. On signed truth Zadeh AND/OR ARE
+   min/max. Fix: while_loop/do_while conditions keep `&&`/`||`/`!` un-inlined
+   (inliner `_lower_loop_condition_ops`); codegen `_translate_loop_condition` lowers them to
+   `_VSA.truth_and`/`truth_or`/`truth_not` (min/max/negate). `truth_axis` made 0-d-safe.
+2. **Equality halts NEVER fired (root-caused).** The loop soft-mux turns the counter into a
+   0-d tensor; `_as_any_vector` (used by `eq_synthetic`) returned it as-is instead of lifting
+   onto the real axis (as `_as_complex_vector`, used by `gt`, already did). So
+   `eq_synthetic(counter, k)` broadcast the scalar across all axes → never read 0 distance →
+   `!= k` never halted. (`!= 0` worked by luck: `make_real(0)` is the zero vector.) Fixed
+   `_as_any_vector` to scatter a 0-d tensor onto the real axis, on-device (no `float()`).
+   This is the real content of the loop-desugar "equality bounds may not terminate crisply"
+   caveat — a representation bug, not inherent fuzziness.
+
+Regression tests: test_loop_function_decl.py::TestCompoundAndEqualityHalt (6). No regression:
+loop/desugar/native-recursion/inliner/no-host-readout 115, FV+await 23, OCaml 25 / Erlang 12
+/ Haskell 14 recursion+loop fixtures. UNBLOCKS the §4 Haskell/Elixir/Erlang >2-guard /
+multi-base native recursion (separate items).
+
+## 2026-06-18 — queue §0.4: Erlang `div`/`rem`
+
+`A rem B` (truncation remainder, sign of dividend) → Sutra `%` → `_VSA.fmod` (same lowering
+as OCaml `mod`; NOT `Math.mod`, the eigenrotation floor-mod landmine). `A div B` (truncated
+integer division) → `Math.trunc(A / B)` (stdlib/modulus.su trunc instruction; truncates
+toward zero, matching Erlang). New fixture `div_rem`: `(17 div 5) + (17 rem 5)` = 3 + 2 = 5,
+RUN on the substrate == ground truth. Erlang fixture suite 12 passed.
