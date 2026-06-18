@@ -51,7 +51,13 @@ def dense_layers():
 def fourier_features(coords, num_freqs: int = 4):
     """Encode `coords` (N, d) in [-1,1] as `[coords, sin(πf·coords), cos(πf·coords)]` for
     f ∈ {2^0..2^(num_freqs-1)} → (N, d·(1+2·num_freqs)). Host-built input geometry (not a
-    substrate computation; the trainable decoder forward is the substrate part)."""
+    substrate computation; the trainable decoder forward is the substrate part).
+
+    HISTORICAL NOTE: the sin/cos here are host `torch.sin/cos` because, until 2026-06-17, the
+    substrate had no elementwise transcendental over a field buffer (finding 2026-06-17-
+    substrate-transcendentals-canonical-only.md). `fourier_features_substrate` below now runs
+    the sin/cos ON THE SUBSTRATE via the `sin_buf`/`cos_buf` compiler primitive; this host
+    version is kept as the reference the substrate one is measured against."""
     import math
     import torch
     feats = [coords]
@@ -59,6 +65,27 @@ def fourier_features(coords, num_freqs: int = 4):
         f = float(2 ** k) * math.pi
         feats.append(torch.sin(f * coords))
         feats.append(torch.cos(f * coords))
+    return torch.cat(feats, dim=-1)
+
+
+def fourier_features_substrate(coords, num_freqs: int = 4):
+    """On-substrate Fourier-feature encoding — identical to `fourier_features` but the sin/cos
+    of the (frequency-scaled) coordinate buffers run on the SUBSTRATE via the `sin_buf`/`cos_buf`
+    primitive (Emma 2026-06-17 "Make the compiler primitive"), not host `torch.sin/cos`. The
+    frequency scaling `f·coords` is an affine input transform (a tensor scale, same op class as
+    the grid geometry) and the final `cat` is layout; the transcendental — the part that
+    genuinely had to leave the substrate before — is now a substrate op (a periodic table
+    readout, autograd-preserving end to end, so a SIREN-style sin-activation is now expressible
+    too). Closes the on-substrate-encoding follow-on in the 2026-06-17 transcendentals finding."""
+    import math
+    import torch
+    _dense, _cube, vsa = dense_layers()
+    feats = [coords]
+    for k in range(num_freqs):
+        f = float(2 ** k) * math.pi
+        scaled = f * coords                       # affine input scaling (tensor mul, like the grid)
+        feats.append(vsa.sin_buf(scaled))         # SUBSTRATE sin (sin_buf)
+        feats.append(vsa.cos_buf(scaled))         # SUBSTRATE cos (cos_buf)
     return torch.cat(feats, dim=-1)
 
 
