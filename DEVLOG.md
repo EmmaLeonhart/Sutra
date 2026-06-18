@@ -10465,3 +10465,34 @@ that emits this proven Pascal RAM-memo loop (the hand-written pattern is proven;
 compiler does not yet detect-and-rewrite it), then irregular (non-grid) recursion via an
 explicit RAM-agenda + RAM-memo work-stack loop. The 8h cron (`073302bf`) removes the
 todo item + cuts a follow-up release if/when the auto-synthesis lands.
+
+## 2026-06-17 — phase 5.5 tier 4: multi-arg DP AUTO-SYNTHESIS landed (v0.8.0 serious attempt)
+
+The compiler now AUTO-DETECTS and AUTO-REWRITES multi-arg DP into the proven native RAM-memo
+loop — the step beyond the hand-written loop. `tabulate.py` gains `detect_2arg_dp` (general
+2-arg binomial/Pascal-family detector: 2 int params, ≥1 leading boundary `if (cond) return
+<int const>;`, a final return summing recursive terms where EVERY term decreases the first
+param by ≥1 so the row-major fill is well-founded) and `synthesize_2arg_dp_source` (emits a
+rectangular `(n+1)×(n+1)` RAM-memo `while_loop`: base 100, cell (row,col) at `100+row*W+col`,
+row outer / col inner, col wrapped by an even/odd substrate blend — no Math.mod — each boundary
+applied as a nested blend `(((1+flag)*const)+((1-flag)*else))/2`, the recurrence reading RAM).
+Wired default-on in `tabulate_module` (after the single-index `detect_tabulable_recursion`).
+
+A genuinely RECURSIVE 2-arg `.su` — `function int C(int n,int k){ if(k==0){return 1;}
+if(k==n){return 1;} return C(n-1,k-1)+C(n-1,k); }`, which V1 codegen normally rejects for
+`if/else` + self-recursion — is now detected and rewritten BEFORE codegen, so it compiles and
+runs natively on the substrate == ground truth across `C(0,0)..C(6,3)` (`C(6,3)=20`). New tests:
+`test_native_recursion.py::test_multiarg_dp_binomial_auto_synthesized_runs_natively` (6 cases)
++ 8 detector tests in `test_tabulate.py` (detects binomial / `k<1` edge / weighted coeffs;
+rejects row-non-decreasing / no-boundary / non-recursive). Full `test_tabulate.py` +
+`test_native_recursion.py` = 58/58 PASS.
+
+Fix found in the build: the synthesized loop's state vars must avoid the codegen's reserved
+single-letter underscore names (the unroll counter `_t`) — a `_t` loop-state var produced
+`SyntaxError: duplicate argument '_t'`; all synthesized vars now carry a `_dp_` prefix.
+
+Conservative + capped: every recursive term must decrease the first param, col offsets ≥ 0;
+the rectangular fill is `(n+1)^2` cells, so practical to `loop_max_iterations` (default 50 →
+n ≤ 6; larger n needs `[project.compile] loop_max_iterations` raised). Remaining for the serious
+attempt: (iii) irregular (non-grid) recursion via an explicit RAM-agenda + RAM-memo work-stack
+loop. The 8h cron (`073302bf`) cuts a follow-up release if/when the full complicated form lands.

@@ -62,3 +62,64 @@ def test_rejects_extra_statements():
     # an intervening statement breaks the strict 2-statement shape (conservative)
     s = _detect("function int f(int n) { if (n < 2) { return n; } int x = n; return f(n-1) + f(n-2); }")
     assert s is None
+
+
+# ---- 2-arg DP detector (`detect_2arg_dp`, the binomial/Pascal family) ----
+def _detect2(src):
+    repo = pathlib.Path(__file__).resolve().parents[3]
+    compiler_src = repo / "sdk" / "sutra-compiler"
+    if str(compiler_src) not in sys.path:
+        sys.path.insert(0, str(compiler_src))
+    from sutra_compiler.lexer import Lexer
+    from sutra_compiler.parser import Parser
+    from sutra_compiler.tabulate import detect_2arg_dp
+    lx = Lexer(src, file="<t>")
+    module = Parser(lx.tokenize(), file="<t>", diagnostics=lx.diagnostics).parse_module()
+    assert not lx.diagnostics.has_errors(), list(lx.diagnostics)
+    return detect_2arg_dp(module.items[0])
+
+
+_BINOM = ("function int C(int n, int k) {"
+          " if (k == 0) { return 1; }"
+          " if (k == n) { return 1; }"
+          " return C(n-1, k-1) + C(n-1, k); }")
+
+
+def test_detects_binomial():
+    s = _detect2(_BINOM)
+    assert s is not None
+    assert s.p0 == "n" and s.p1 == "k"
+    assert s.coeffs == (1, 1) and s.offsets == ((1, 1), (1, 0))
+    assert len(s.boundaries) == 2          # k==0 and k==n
+
+
+def test_detects_binomial_with_k_lt_1_edge():
+    # `k < 1` is the same col==0 edge expressed as a strict comparison
+    s = _detect2(_BINOM.replace("k == 0", "k < 1"))
+    assert s is not None and s.offsets == ((1, 1), (1, 0))
+
+
+def test_detects_2arg_coefficients():
+    # a weighted 2-arg recurrence: 2*f(n-1,k-1) + f(n-1,k)
+    s = _detect2("function int f(int n, int k) {"
+                 " if (k == 0) { return 1; } if (k == n) { return 1; }"
+                 " return 2*f(n-1,k-1) + f(n-1,k); }")
+    assert s is not None and s.coeffs == (2, 1) and s.offsets == ((1, 1), (1, 0))
+
+
+def test_rejects_2arg_when_row_not_decreasing():
+    # a term that does not decrease the first param (f(n,k-1)) makes the row-major fill ill-founded
+    assert _detect2("function int f(int n, int k) {"
+                    " if (k == 0) { return 1; } if (k == n) { return 1; }"
+                    " return f(n-1,k-1) + f(n,k-1); }") is None
+
+
+def test_rejects_2arg_no_boundary():
+    # no base case -> nothing to seed -> reject
+    assert _detect2("function int f(int n, int k) { return f(n-1,k-1) + f(n-1,k); }") is None
+
+
+def test_rejects_2arg_non_recursive():
+    assert _detect2("function int f(int n, int k) {"
+                    " if (k == 0) { return 1; } if (k == n) { return 1; }"
+                    " return n + k; }") is None
