@@ -1626,6 +1626,35 @@ class BaseCodegen:
     # without going through __init__.
     _LOOP_T = 50
 
+    def _translate_loop_condition(self, expr) -> str:
+        """Translate a while_loop / do_while halt condition, composing any
+        `&&`/`||`/`!` connectives on SIGNED truth ([-1,1], positive=true) as
+        min/max/negate rather than the general operators' [0,1] Zadeh
+        polynomial. The polynomial gives the wrong sign on signed comparison
+        truth, so a compound `(a) && (b)` halt was honored only on its first
+        conjunct (finding 2026-06-17-while-loop-halt-is-single-condition-
+        only.md). On signed truth, Zadeh AND/OR ARE min/max, which threshold
+        correctly at 0: min(a,b) > 0 iff both > 0; max(a,b) > 0 iff either.
+
+        The inliner deliberately leaves these connectives un-lowered inside
+        loop conditions (`_lower_loop_condition_ops`), so they reach codegen
+        as raw operators; their comparison OPERANDS are already lowered the
+        usual way (`i < 5` → `_VSA.gt(5, i)`), reached here via the
+        `_translate_expr` leaf. A non-compound condition (a bare comparison)
+        is unchanged — it falls straight through to `_translate_expr`."""
+        e = expr
+        while isinstance(e, ast.Parenthesized):
+            e = e.inner
+        if isinstance(e, ast.BinaryOp) and e.op == "&&":
+            return (f"_VSA.truth_and({self._translate_loop_condition(e.left)}, "
+                    f"{self._translate_loop_condition(e.right)})")
+        if isinstance(e, ast.BinaryOp) and e.op == "||":
+            return (f"_VSA.truth_or({self._translate_loop_condition(e.left)}, "
+                    f"{self._translate_loop_condition(e.right)})")
+        if isinstance(e, ast.UnaryOp) and e.op == "!":
+            return f"_VSA.truth_not({self._translate_loop_condition(e.operand)})"
+        return self._translate_expr(expr)
+
     def _translate_loop_function_decl(
         self, decl: "ast.LoopFunctionDecl", *, class_name: Optional[str] = None
     ) -> None:
@@ -1771,7 +1800,15 @@ class BaseCodegen:
             self._emit(f"_pre_{state_name} = {state_name}")
         # Evaluate condition (semantics depend on kind).
         if decl.kind in ("do_while", "while_loop"):
-            cond_src = self._translate_expr(decl.condition)
+            # A compound `&&`/`||`/`!` halt must compose on SIGNED truth
+            # ([-1,1], positive=true) as min/max/negate — NOT the general
+            # `&&` operator's [0,1] Zadeh polynomial, which gives the wrong
+            # sign on signed comparison truth and so honored only the first
+            # conjunct (finding 2026-06-17-while-loop-halt-is-single-
+            # condition-only.md). _translate_loop_condition recurses through
+            # `&&`/`||`/`!` to _VSA.truth_and/truth_or/truth_not; a leaf
+            # (a comparison) lowers exactly as before.
+            cond_src = self._translate_loop_condition(decl.condition)
             self._emit(f"_cond = {cond_src}")
             self._emit(f"_cond_truth = _VSA.truth_axis(_cond)")
             self._emit(f"_keep = _VSA.heaviside(_cond_truth)")
