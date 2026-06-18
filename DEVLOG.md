@@ -11467,3 +11467,23 @@ as OCaml `mod`; NOT `Math.mod`, the eigenrotation floor-mod landmine). `A div B`
 integer division) → `Math.trunc(A / B)` (stdlib/modulus.su trunc instruction; truncates
 toward zero, matching Erlang). New fixture `div_rem`: `(17 div 5) + (17 rem 5)` = 3 + 2 = 5,
 RUN on the substrate == ground truth. Erlang fixture suite 12 passed.
+
+## 2026-06-18 — queue §0.5: Clojure keyword/symbol as a Sutra value
+
+A bare keyword (`:foo`), quoted symbol (`'foo` / `(quote foo)`), or string literal in VALUE
+position had no rep (`/* UNSUPPORTED-EXPR: kwd_lit */`), blocking keyword/symbol equality and
+args. Now lowered to a Sutra string literal — a string-flag codepoint array (axon-IPC value
+rep): keyword `:foo` → `":foo"` (colon sigil kept so keyword ≠ string ≠ symbol), symbol →
+its name, string → itself. Decision + measured foundation in
+planning/findings/2026-06-18-clojure-symbol-keyword-as-value-rep.md.
+
+Equality works because it must (and now does) route to `eq_synthetic`: measured cosine
+`eq("foo","bar")=0.998` (useless) vs `eq_synthetic=-1.0` (clean). The keyword lowers to a
+StringLiteral (not a make_string Call) so `_is_synthetic_axis_expr` routes `==` to
+eq_synthetic; params stay `number`-typed (also synthetic-axis). Fixture `kwd_value`:
+`(defn classify [k] (if (= k :foo) 10 20)); (classify :foo)+(classify :bar)` = 10+20 = 30,
+RUN on the substrate == ground truth. Full Clojure suite 42 passed (no regression).
+
+Noted separately (not fixed): `_SYNTHETIC_AXIS_TYPES` has lowercase `"string"`/`"char"` but
+the class types are `String`/`Character`, so a hand-written `String x` equality falls to
+cosine. The Clojure path sidesteps it (params are `number`). Follow-up candidate.

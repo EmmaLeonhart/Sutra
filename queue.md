@@ -33,9 +33,6 @@ queue now"). Make the reasonable engineering choice where one is noted, build it
 substrate, measure, ship. Each: fixture-tested + RUN against ground truth; keep
 `transpilers-ci` green.
 
-- [ ] **0.5 — Clojure symbol/keyword-as-value rep** — unblocks symbol map keys + `case`
-  symbol/keyword members. Needs a representation for a bare symbol/keyword as a Sutra value
-  (likely a string-flag codepoint array, per the axon-IPC-payload model). Spec it, then build.
 - [ ] **0.6 — Elixir `is_integer`-style type-test guards** — everything is a vector on the
   substrate, so define what a type test means here (e.g. a tag/axis check) before building, or
   defer to `todo.md` with the reason recorded. Spec-first.
@@ -168,6 +165,23 @@ Completed WASM items live in `WASM/devlog.md`. Overview `docs/neural-webassembly
   step done: `GibbsMathlib.lean` machine-checks reversibility⟹stationarity + the gadget kernel +
   2-state uniqueness, `lake build` green). Do the spectral-gap contraction to the Gibbs measure for
   the gadget chain. Fill-in only — when nothing above is actionable. Local-verified (heavy toolchain).
+
+## 9. License consistency — first-party Apache → AGPLv3 (Emma 2026-06-18, remote)
+
+The top-level project license is **AGPLv3** (`Sutra/LICENSE`), but several first-party SDK
+components still carry **Apache 2.0** — a license mismatch buried deep in the tree. Replace the
+Apache `LICENSE` with AGPLv3 (matching the root copyright line) in each FIRST-PARTY component:
+- [ ] `sdk/sutra-compiler/LICENSE`
+- [ ] `sdk/sutra-from-c/LICENSE`
+- [ ] `sdk/sutra-from-ts/LICENSE`
+- [ ] `sdk/sutra-from-ocaml/LICENSE`
+- [ ] `sutraDB/LICENSE`
+
+**Do NOT touch the third-party / vendored Apache licenses** — those belong to upstream code and
+must keep their original license: `external/thrml/LICENSE` and
+`WASM/replication_target/transformer-vm/LICENSE`. Also grep each component's `pyproject.toml` /
+package metadata for `Apache` / `license =` classifiers and update those to AGPL-3.0 in the same
+commit so the package metadata doesn't contradict the LICENSE file.
 
 ---
 
