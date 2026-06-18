@@ -1,22 +1,20 @@
-# NeurIPS 2026 — frozen submission archive
+# NeurIPS 2026 — submission archive
 
-This directory holds the **frozen, immutable** version of the Sutra
-paper as it was submitted to NeurIPS 2026. NeurIPS does not accept
-post-deadline edits, so the files here are treated as a permanent
-snapshot of the camera-ready submission.
+This directory holds the version of the Sutra paper as it was
+submitted to NeurIPS 2026 — the camera-ready snapshot used to build
+the downloadable artifacts. The permanent, immutable record is the
+git commit `ea6f8a01` (history never changes); the files here track
+it as a working copy.
 
-**Do not edit these files.** If a later result contradicts a claim in
-the paper, the right move is one of:
-- Stop and tell Emma (the user decides whether to file an erratum at
-  the next venue).
-- Draft a separate revision in `paper/paper.md` (the live, evolving
-  copy at the parent directory) — that file is now free to receive
-  updates.
-- Accept the discrepancy.
-
-The freeze rule applies to `paper/neurips/` only, not to the rest of
-the `paper/` directory. See `CLAUDE.md` § "Paper is FROZEN" for the
-full rule.
+**The edit-freeze was retired 2026-06-18** (Emma: "give up on the
+NeurIPS freeze, it's been causing more harm than good"). These files
+may now be edited to fix factual drift — license, identity, stale
+descriptions, broken references — keeping the archive honest rather
+than frozen-wrong. Substantive corrections are logged as errata on
+the website page (`docs/neurips-2026.md`). Do **not** rewrite the
+submitted science to look better; do correct things that are now
+factually false. `paper/paper.md` remains the separate next-venue
+revision target. See `CLAUDE.md` § "NeurIPS freeze is LIFTED".
 
 ## What's in here
 

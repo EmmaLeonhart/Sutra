@@ -1,13 +1,17 @@
-# NeurIPS 2026 — frozen submission archive
+# NeurIPS 2026 — submission archive
 
-This page links to the **frozen, immutable** version of the Sutra
-paper as submitted to NeurIPS 2026. Use these artifacts when you
-want the camera-ready record of what was actually submitted, not
-the live revision-in-progress.
+This page links to the version of the Sutra paper as submitted to
+NeurIPS 2026. Use these artifacts when you want the camera-ready
+record of what was actually submitted, not the live
+revision-in-progress.
 
-The live `paper/paper.md` in the repository may evolve toward the
-next venue or other revisions. The archive linked here stays
-permanent.
+The permanent, immutable record is the **git commit `ea6f8a01`**
+below — history never changes, so that snapshot is the canonical
+"what the reviewers saw." The working copy under `paper/neurips/`
+tracks it but may carry small factual-correction errata over time
+(e.g. a license or contact-detail fix); substantive errata are
+listed at the bottom of this page. The live `paper/paper.md` is the
+separate next-venue revision target.
 
 ## The exact commit the NeurIPS submission was based on
 
@@ -90,16 +94,15 @@ that was actually submitted to NeurIPS 2026 is preserved here as a
 permanent snapshot for citation, audit, and reviewer-trail purposes.
 
 In-repo notes:
-- [`paper/neurips/README.md`](https://github.com/EmmaLeonhart/Sutra/blob/main/paper/neurips/README.md) — what's in the frozen archive and why
-- The freeze rule in [`CLAUDE.md`](https://github.com/EmmaLeonhart/Sutra/blob/main/CLAUDE.md) (§ "🔒 NeurIPS submission is FROZEN") — the policy that the contents of `paper/neurips/` are never edited
+- [`paper/neurips/README.md`](https://github.com/EmmaLeonhart/Sutra/blob/main/paper/neurips/README.md) — what's in the archive and why
 - [`paper-pdf.yml`](https://github.com/EmmaLeonhart/Sutra/blob/main/.github/workflows/paper-pdf.yml) — CI that builds the PDFs
 
 ## Errata
 
-Errata to the frozen submission archive. None of these change the
-empirical results or the paper's headline claims; they're
-corrections to descriptions in the supplementary material plus one
-known spec-vs-code drift discovered after the freeze.
+Errata to the submission archive. None of these change the empirical
+results or the paper's headline claims; they're corrections to
+descriptions in the supplementary material plus one known
+spec-vs-code drift discovered after submission.
 
 ### `map<K, V>` vs `dict<K, V>` description (supplementary SYNTAX.md)
 
@@ -144,6 +147,20 @@ supplementary smoke check) uses. The bug was on a parallel
 code path that the paper does not describe and does not depend
 on. `examples/hello_world.su` still prints exactly `"hello world"`
 post-fix.
+
+### License: Apache-2.0 → AGPL-3.0-only (supplementary README)
+
+**Applied:** 2026-06-18.
+
+The supplementary `README.md` § "License" stated the compiler/example
+sources were MIT and SutraDB (the `sutraDB/` Rust crates) was
+Apache-2.0. The project's top-level `LICENSE` was already AGPLv3, and
+on 2026-06-18 all first-party components were relicensed to
+**AGPL-3.0-only** for consistency. This is a factual licensing
+correction, not a change to any result or claim. With the
+`paper/neurips/` edit-freeze retired the same day, the archived
+supplementary `README.md` was updated in place to state AGPL-3.0-only
+(rather than leaving a now-false license line for the record).
 
 ### What we know is NOT broken
 

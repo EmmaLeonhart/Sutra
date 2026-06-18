@@ -204,9 +204,9 @@ behavioural tests (formal verification later). Worked strictly in order:
 >
 > **`paper/paper.md` is on arXiv.** The arXiv-fitting abstract trim
 > landed 2026-05-19 at commit `e7cca673`; the current repo state is
-> the version that was uploaded. `paper/neurips/` stays frozen
-> per CLAUDE.md §"NeurIPS submission is FROZEN." Live `paper/paper.md`
-> may continue to evolve toward the next venue. **`DEVLOG.md` was
+> the version that was uploaded. (`paper/neurips/`'s edit-freeze was
+> retired 2026-06-18 — see CLAUDE.md §"NeurIPS freeze is LIFTED".) Live
+> `paper/paper.md` may continue to evolve toward the next venue. **`DEVLOG.md` was
 > refreshed 2026-05-20** with a comprehensive entry covering everything
 > from the 2026-05-06 NeurIPS sprint through the arXiv upload (Stage A/B
 > §3.6 integrity fix, anisotropy spine, site rebuild, master→main
