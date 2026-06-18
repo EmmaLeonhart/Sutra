@@ -10697,3 +10697,24 @@ truth). Rust suite: 40 passed (lower-only + tuple/struct destructure, both flat 
 `nested_struct_destructure`=13, `struct_destructure`=13, `nested_tuple_destructure`=16,
 `tuple_destructure`=13). Remaining on Rust: nested match in a tail-match arm; enum/`Some(x)`-pattern
 `let` destructuring.
+
+## 2026-06-17 — sutra-from-scala: nested TUPLE destructure (at dim 128) + nested-axon cross-talk finding
+
+Phase 6, Scala item — and a substrate-correctness finding the Scala port surfaced. Ported the nested
+tuple destructure to Scala (`_collect_scala_tuple_paths` 1-based keys + shared `_emit_scala_nested_reads`,
+an `Axon` temp per non-leaf prefix). BUT it returned **24, not 16** at the CLI default `runtime_dim=50`.
+
+**Finding (`planning/findings/2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`):** nested
+axons that REUSE key names across levels cross-talk at low dim. The SAME nested-axon program returns 16
+with keys `_0`/`_1` but 24 with `_1`/`_2` at dim 50 (the inner level's `_1`=8 leaks into the outer `_1`
+read); at `runtime_dim ≥ 100` both key sets are clean (measured 16 at dim 100/200/400). The lowering is
+correct — the substrate readout needs the dimension (bundling-capacity / VSA superposition cross-talk).
+Scala tuples are 1-based (`_1`/`_2`), i.e. exactly the leaky set, so per the integrity rules the fixture
+is NOT shipped at the wrong-answer dim: the Scala harness now supports a per-fixture `(expected, dim)`
+value and runs `nested_tuple_destructure` at **dim 128** (== 16). Flat Scala fixtures stay at dim 50.
+
+Consequence noted in queue: the shipped F#/Rust nested fixtures pass at dim 50 only by luck of their
+`_0`/`_1`/field-name keys (measured-correct + CI-green, but thin margin). A cross-cutting decision —
+run all nested-axon fixtures at dim ≥ 128, or use distinct depth-prefixed nested keys — is pending (see
+the finding's options); not blocking. Scala suite: 26 passed (lower-only + `tuple_destructure`=13 at
+dim 50 + `nested_tuple_destructure`=16 at dim 128).

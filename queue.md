@@ -100,7 +100,16 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   record registers into `_PARAM_RECORD_TYPE`; `record_update_let`=17 on the substrate). Remaining:
   mixed tuple-in-record / record-in-tuple nesting; variant in a blended `if` branch
   (`if c then North else South`, needs an axon-valued blend + return-type inference over both branches).
-- [ ] **Scala** (`sutra-from-scala/`): nested patterns; case-class pattern PARAMS (`def f(Point(x,y))`).
+- [ ] **Scala** (`sutra-from-scala/`): ~~nested tuple patterns (`val (a,(b,c))=t`)~~ DONE 2026-06-17
+  (`_collect_scala_tuple_paths` + shared `_emit_scala_nested_reads`, 1-based keys; `nested_tuple_destructure`=16
+  but ONLY at `runtime_dim ≥ 100` — Scala's `_1`/`_2` keys cross-talk at the default dim 50, finding
+  `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`; the harness now runs it at dim 128 via a
+  per-fixture `(expected, dim)` value); nested case-class/record patterns; case-class pattern PARAMS
+  (`def f(Point(x,y))`).
+  - [ ] **(cross-cutting) nested-axon cross-talk** — F#/Rust nested fixtures pass at the default dim 50 by
+    luck of their `_0`/`_1`/field-name keys; for robustness consider running ALL nested-axon fixtures at
+    `runtime_dim ≥ 128`, or use distinct depth-prefixed nested keys. Decision pending (see the finding's
+    options). Not blocking — shipped fixtures are measured-correct + CI-green.
 - [ ] **Elixir** (`sutra-from-elixir/`): multi-clause/guarded bodies with `=` bindings; >2-clause
   recursion (2-clause base+rec only now); `is_integer`-style type-test guards.
 - [ ] **Erlang** (`sutra-from-erlang/`): map PATTERN params (`#{x := X}` in a head); multi-clause

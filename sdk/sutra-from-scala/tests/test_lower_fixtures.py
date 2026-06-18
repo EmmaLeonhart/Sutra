@@ -28,6 +28,9 @@ _RUNNABLE = {
     "case_class": 12.0,  # case class Point -> axon; getx(mk(7,9))=7 + sum2(Point(2,3))=5
     "tuple_axon": 13.0,  # def fst(p: (Int,Int)) = p._1 + p._2; main = fst((5, 8))  (tuple -> positional-key axon, 1-based _1/_2 to match ._1 access)
     "tuple_destructure": 13.0,  # def addPair(t: (Int,Int)) = { val (a, b) = t; a + b }; main = addPair((5, 8))  (val-tuple-pattern -> realvec(item _1/_2), 1-based)
+    # NESTED tuple pattern. (expected, runtime_dim): nested axons reusing 1-based keys (_1/_2)
+    # cross-talk at the default dim 50 and need dim >= 100 — finding 2026-06-17-nested-axon-readout-crosstalk.
+    "nested_tuple_destructure": (16.0, 128),  # def f(t: (Int,(Int,Int))) = { val (a,(b,c)) = t; a+b+c }; f((5,(8,3)))
     "caseclass_destructure": 13.0,  # case class Point(x,y); sum(p) = { val Point(a, b) = p; a + b }; main = sum(Point(5, 8))  (val-case-class-pattern -> realvec(item x/y) positionally)
     "tail_rec": 15.0,  # def sumTo(acc,n) = if (n==0) acc else sumTo(acc+n, n-1); sumTo(0,5)
     "match_guard": 60.0,  # case 0 => 100; case x if x > 0 => x*10; case _ => 300; classify(6)
@@ -54,13 +57,21 @@ def test_lowers_without_unsupported(name, fix):
                          sorted(_RUNNABLE.items()), ids=sorted(_RUNNABLE))
 def test_runs_on_substrate(name, expected, tmp_path):
     pytest.importorskip("torch", reason="substrate run needs torch")
+    # A fixture value may be `expected` or `(expected, runtime_dim)` — nested-axon
+    # fixtures need a higher dim than the CLI default (finding 2026-06-17).
+    dim = None
+    if isinstance(expected, tuple):
+        expected, dim = expected
     fix = FIXTURE_DIR / name / "input.scala"
     su = lower(fix.read_text(encoding="utf-8"))
     su_path = tmp_path / f"{name}.su"
     su_path.write_text(su, encoding="utf-8")
+    cmd = [sys.executable, "-m", "sutra_compiler", "--run"]
+    if dim is not None:
+        cmd += ["--runtime-dim", str(dim)]
+    cmd.append(str(su_path))
     proc = subprocess.run(
-        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
-        capture_output=True, text=True, cwd=str(_REPO),
+        cmd, capture_output=True, text=True, cwd=str(_REPO),
     )
     out = (proc.stdout + proc.stderr).strip()
     assert proc.returncode == 0, out

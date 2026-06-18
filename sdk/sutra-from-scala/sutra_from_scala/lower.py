@@ -270,6 +270,57 @@ def _lower_expr(node, src: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
+def _collect_scala_tuple_paths(pat, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) Scala `tuple_pattern` into `[(path_keys, name), …]`,
+    where `path_keys` is the chain of 1-based positional axon keys (`_1`, `_2`, …)
+    reaching the bound name (Scala tuple selectors are 1-based: `t._1`). A nested
+    `tuple_pattern` element recurses; any non-identifier/non-tuple element → None.
+
+    NOTE (finding 2026-06-17): nested axons that reuse key names across levels cross-talk
+    at low `runtime_dim` — Scala's `_1`/`_2` keys read WRONG at the default dim 50 and
+    need `runtime_dim ≥ 100`. The lowering is correct; the substrate readout needs the
+    dimension. The Scala nested-tuple fixture runs at dim 128 for this reason."""
+    out: list = []
+    for i, el in enumerate(pat.named_children, start=1):
+        key = f"_{i}"
+        if el.type == "identifier":
+            out.append((prefix + (key,), _text(el, src)))
+        elif el.type == "tuple_pattern":
+            sub = _collect_scala_tuple_paths(el, src, prefix + (key,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None
+    return out
+
+
+def _emit_scala_nested_reads(val_src: str, paths):
+    """Given a base axon `val_src` and `[(path_keys, name), …]`, return
+    `(temp_lines, bind_lines)`: one `Axon` temp per non-leaf prefix (shared across
+    siblings) + an `int name = realvec(<holder>.item("<leaf>"));` per leaf. Chaining
+    `.item()` on a raw tensor fails (the compiler returns a tensor from `axon_item`), so
+    non-leaf hops go through an `Axon` temp."""
+    prefix_temp = {(): val_src}
+    temp_lines: list = []
+
+    def _temp_for(prefix):
+        if prefix in prefix_temp:
+            return prefix_temp[prefix]
+        parent = _temp_for(prefix[:-1])
+        tmp = f"_np{len(temp_lines)}"
+        temp_lines.append(f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+        prefix_temp[prefix] = tmp
+        return tmp
+
+    bind_lines: list = []
+    for keys, nm in paths:
+        holder = _temp_for(keys[:-1])
+        bind_lines.append(f'    {_DEFAULT_TYPE} {nm} = '
+                          f'realvec({holder}.item("{keys[-1]}"));\n')
+    return temp_lines, bind_lines
+
+
 def _lower_block(node, src: bytes) -> str:
     """A `{ val a = …; val b = …; finalExpr }` block body → Sutra local declarations
     + a `return` of the final expression. `val a = e` → `<ty> a = <e>;` (ty from a
@@ -282,14 +333,16 @@ def _lower_block(node, src: bytes) -> str:
             if len(kids) < 2:
                 continue
             if kids[0].type == "tuple_pattern":
-                # `val (a, b) = t` — destructure a tuple axon into named locals.
-                # Scala tuple selectors are 1-based (`t._1`), so read `_1`/`_2`/…
-                # via `realvec` (the same projection `._1` uses). Only identifier
-                # elements are in scope; the value is hoisted first so
+                # `val (a, b) = t` — destructure a tuple axon into named locals. Scala
+                # tuple selectors are 1-based (`t._1`), so read `_1`/`_2`/… via `realvec`
+                # (the same projection `._1` uses). NESTED patterns (`val (a, (b, c)) =
+                # t`) read through an `Axon` temp per non-leaf prefix — chaining `.item()`
+                # on a raw tensor fails. (Nested axons need `runtime_dim ≥ 100` for the
+                # `_1`/`_2` keys — finding 2026-06-17.) The value is hoisted first so
                 # `val (a, b) = (5, 8)` works too (the tuple binds to a temp axon).
                 pat = kids[0]
-                elems = [e for e in pat.named_children if e.type == "identifier"]
-                if not elems or len(elems) != len(pat.named_children):
+                paths = _collect_scala_tuple_paths(pat, src, ())
+                if paths is None:
                     stmts += ("    /* UNSUPPORTED-VAL: non-identifier tuple "
                               "pattern element (later item) */\n")
                     continue
@@ -302,9 +355,8 @@ def _lower_block(node, src: bytes) -> str:
                 val_src = _lower_expr(val_expr, src)
                 for nid in added:
                     _ARG_HOIST.pop(nid, None)
-                for i, el in enumerate(elems, start=1):
-                    stmts += (f'    {_DEFAULT_TYPE} {_text(el, src)} = '
-                              f'realvec({val_src}.item("_{i}"));\n')
+                temp_lines, bind_lines = _emit_scala_nested_reads(val_src, paths)
+                stmts += "".join(temp_lines) + "".join(bind_lines)
                 continue
             if kids[0].type == "case_class_pattern":
                 # `val Point(a, b) = p` — destructure a case-class axon: the pattern
