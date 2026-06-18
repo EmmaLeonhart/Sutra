@@ -130,11 +130,12 @@ def _struct_construction(node, src: bytes):
 
 
 def _collect_rust_tuple_paths(tp, src: bytes, prefix: tuple):
-    """Flatten a (possibly NESTED) `tuple_pattern` into `[(path_keys, name), …]`, where
-    `path_keys` is the chain of positional axon keys (`_0`, `_1`, …) reaching the bound
-    name. A nested `tuple_pattern` element recurses (so `(a, (b, c))` →
-    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); any non-identifier /
-    non-tuple element is a later item (→ None)."""
+    """Flatten a (possibly NESTED, possibly MIXED) `tuple_pattern` into `[(path_keys, name),
+    …]`, where `path_keys` is the chain of positional axon keys (`_0`, `_1`, …) reaching the
+    bound name. A nested `tuple_pattern` element recurses (so `(a, (b, c))` →
+    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); a `struct_pattern` element
+    (`(a, Inner { v })`) recurses via `_collect_rust_struct_paths`, so tuple- and
+    struct-patterns can MIX. Any other element is a later item (→ None)."""
     out: list = []
     for i, el in enumerate(tp.named_children):
         key = f"_{i}"
@@ -145,16 +146,23 @@ def _collect_rust_tuple_paths(tp, src: bytes, prefix: tuple):
             if sub is None:
                 return None
             out.extend(sub)
+        elif el.type == "struct_pattern":
+            sub = _collect_rust_struct_paths(el, src, prefix + (key,))
+            if sub is None:
+                return None
+            out.extend(sub)
         else:
             return None
     return out
 
 
 def _collect_rust_struct_paths(sp, src: bytes, prefix: tuple):
-    """Flatten a (possibly NESTED) `struct_pattern` into `[(path_keys, local), …]`, where
-    `path_keys` is the chain of FIELD names reaching the bound local. Shorthand `{ x }`
-    binds field→x; renamed `{ x: a }` binds field x→a; a field whose value is itself a
-    `struct_pattern` (`{ inner: Inner { v } }`) recurses. Any other field shape → None."""
+    """Flatten a (possibly NESTED, possibly MIXED) `struct_pattern` into `[(path_keys,
+    local), …]`, where `path_keys` is the chain of FIELD names reaching the bound local.
+    Shorthand `{ x }` binds field→x; renamed `{ x: a }` binds field x→a; a field whose value
+    is itself a `struct_pattern` (`{ inner: Inner { v } }`) recurses; a field whose value is
+    a `tuple_pattern` (`{ pos: (x, y) }`) recurses via `_collect_rust_tuple_paths`, so
+    struct- and tuple-patterns can MIX. Any other field shape → None."""
     out: list = []
     for fp in sp.named_children:
         if fp.type != "field_pattern":
@@ -171,10 +179,17 @@ def _collect_rust_struct_paths(sp, src: bytes, prefix: tuple):
         field = _text(fid, src)
         inner = next((c for c in fp.named_children if c.type == "identifier"), None)
         nested = next((c for c in fp.named_children if c.type == "struct_pattern"), None)
+        nested_tup = next((c for c in fp.named_children
+                           if c.type == "tuple_pattern"), None)
         if inner is not None:
             out.append((prefix + (field,), _text(inner, src)))       # renamed `{ x: a }`
         elif nested is not None:
             sub = _collect_rust_struct_paths(nested, src, prefix + (field,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        elif nested_tup is not None:
+            sub = _collect_rust_tuple_paths(nested_tup, src, prefix + (field,))
             if sub is None:
                 return None
             out.extend(sub)
