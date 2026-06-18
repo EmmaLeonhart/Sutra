@@ -11631,3 +11631,15 @@ identifies base vs recursive by self-call (recursive guard's cond, if explicit, 
 continue; otherwise → negated base cond as before). Fixture `guarded_explicit_rec` sumTo 0 5 = 15,
 RUN on the substrate. Full Haskell suite 52 passed (no regression on the `otherwise` / multibase
 paths).
+
+## 2026-06-18 — Haskell multibase recursion: explicit recursive guard
+
+Extended `_try_lower_multibase_tail_recursion` so the recursive guard in a >2-guard multibase
+may be an EXPLICIT condition, not just `otherwise`:
+  f acc n | n == 0 = acc | n == 1 = acc + 100 | n > 1 = f (acc + n) (n - 1)
+The recursive clause is identified by self-call; an explicit recursive guard becomes the loop
+continue directly (`n > 1`), while `otherwise` keeps the `&&`-of-negated-bases continue. Fixture
+`multibase_explicit_rec` f 0 3 = 105, RUN on the substrate; base selection verified f(0,0)=0,
+f(0,1)=100, f(0,5)=114. Full Haskell suite 54 passed (no regression). Completes the
+explicit-recursive-guard story (single 2-guard + >2-guard multibase). Prior commit's transpilers
+CI confirmed green before this.

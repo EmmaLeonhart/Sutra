@@ -930,8 +930,9 @@ def _try_lower_multibase_tail_recursion(name: str, typed_params, ret: str, match
     continue is false, so exactly one base condition holds). The 2-guard case
     (one base + one `otherwise`) is the existing `_try_lower_guarded_recursion`;
     this is the >2-guard generalisation. Scope (anything else → None, a later
-    item): single-comparison base guards (so each negates cleanly), the recursive
-    guard is `otherwise` and a TAIL call. Returns Sutra or None.
+    item): single-comparison base guards (so each negates cleanly); the recursive
+    guard is a TAIL call whose guard is `otherwise` (continue = `&&` of negated
+    bases) OR an explicit condition (continue = that condition). Returns Sutra/None.
 
     Caveat — base conditions should be CRISP at their boundary. Equality bases
     (`n == 0`, `n == 1`) are crisp (§0.3 made `==`/`!=` halts crisp), and a strict
@@ -945,6 +946,7 @@ def _try_lower_multibase_tail_recursion(name: str, typed_params, ret: str, match
     arity = len(typed_params)
     bases: list = []   # (cond_inner_node, result_node) — explicit-condition bases
     rec_result = None
+    rec_cond = None    # the recursive guard's explicit condition node, or None (otherwise)
     for m in matches:
         guards = next((c for c in m.named_children if c.type == "guards"), None)
         if guards is None or not m.named_children:
@@ -956,27 +958,37 @@ def _try_lower_multibase_tail_recursion(name: str, typed_params, ret: str, match
         result = m.named_children[-1]
         is_otherwise = inner.type == "variable" and _text(inner, src) == "otherwise"
         has_rec = _contains_self_call(result, name, src)
-        if is_otherwise:
-            if not has_rec or rec_result is not None:
-                return None  # `otherwise` must be the single recursive step
+        if has_rec:
+            # The single recursive step — its guard may be `otherwise` OR an
+            # explicit condition (`| n > 1 = f …`).
+            if rec_result is not None:
+                return None
             rec_result = result
-        else:
-            if has_rec:
-                return None  # explicit-condition recursive guard — later item
+            rec_cond = None if is_otherwise else inner
+        elif not is_otherwise:
             bases.append((inner, result))
+        else:
+            return None  # an `otherwise` base with no recursion is not this shape
     if rec_result is None or len(bases) < 2:
         return None
     rec_args = _self_call_args(rec_result, name, arity, src)
     if rec_args is None:
-        return None  # non-tail `otherwise` — later item
-    # Continue condition: AND of the negated base conditions.
-    neg_terms: list = []
-    for cond_inner, _r in bases:
-        neg = _negate_cond(cond_inner, src)
-        if "UNSUPPORTED" in neg:
+        return None  # non-tail recursive guard — later item
+    # Continue condition: an explicit recursive guard IS the continue
+    # (`| n > 1 = f …` → continue while `n > 1`); an `otherwise` recursive guard
+    # continues while NO base matches (the `&&` of the negated base conditions).
+    if rec_cond is not None:
+        cont = _lower_expr(rec_cond, src)
+        if "UNSUPPORTED" in cont:
             return None
-        neg_terms.append(f"({neg})")
-    cont = " && ".join(neg_terms)
+    else:
+        neg_terms: list = []
+        for cond_inner, _r in bases:
+            neg = _negate_cond(cond_inner, src)
+            if "UNSUPPORTED" in neg:
+                return None
+            neg_terms.append(f"({neg})")
+        cont = " && ".join(neg_terms)
     # Post-loop value: nested blend of base RHSs keyed by their conditions on the
     # final state, in source order. The last base is the bare `else` (at loop exit
     # exactly one base condition holds, so if no earlier one matched the last does).
