@@ -11320,3 +11320,28 @@ reuse — unlike the pure nested-tuple fixture, which needs dim 128). FULL Scala
 suite: **36 passed** (was 34). Scala nested-pattern destructure now covers
 tuple/case-class + MIXED. MIXED nesting is now drained across all five
 ML-family frontends (OCaml, F#, Haskell, Rust, Scala).
+
+## 2026-06-18 — daily substrate-honesty audit: CLEAN (commits 7fb479d7..279a0616)
+
+Discharged the §1 daily audit. Reviewed every commit since the last audit-clean
+marker (7fb479d7) — the bool-literal `case`/`match` sweep across all frontends
+plus the nested/MIXED `let`/`val` destructure work (OCaml/F#/Haskell/Rust/Scala)
+— against CLAUDE.md §"Subtler substrate breaches":
+- (a) Dimension: all new `.su` fixtures are pure arithmetic over axons with ZERO
+  `basis_vector` calls (no LLM embeddings); they run at dim 50 (CLI default) or
+  128. Dim is driven by readout-correctness (the nested-axon cross-talk finding),
+  not by silently paying embedding capacity cost. No 96×-cost breach.
+- (b) Claims vs measurement: every "== N on the substrate" in these commits is an
+  actual `sutrac --run` reading. Exemplary case: Haskell `ctor_in_tuple` MEASURED
+  26 at dim 50 and was NOT claimed correct there — shipped at dim 128 (measured
+  13), with the dim-50 failure documented in the commit, DEVLOG, and the
+  2026-06-17 cross-talk finding. No "verified" claim made without running. No
+  RNN/recurrent/substrate-pure claims in this (stateless-destructure) batch.
+- (c) Signal-separation: no classifiers in this batch — the destructure/blend
+  tests have exact integer ground truth (13/16/10/…) measured exactly, so the
+  "gap table" rule is N/A (no decision function shipped).
+Observation (not a breach): verification rigor was slightly uneven — Rust/Scala/
+Haskell mixed cases were dim-swept (50/100/128), while the OCaml/F# field-name-
+keyed cases were single-run at dim 50, relying on the finding's established
+"distinct/field-name keys read clean at dim 50" result. No measured-wrong result
+was shipped as right. Audit clean; §1 deleted (workflow re-prepends daily).
