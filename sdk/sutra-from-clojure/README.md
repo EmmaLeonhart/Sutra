@@ -69,9 +69,10 @@ map keys and maps in recursive bodies are later items.
 
 ## Next
 
-Symbol map keys; multi-arity `defn` (needs call-site arity rewriting); `case`
-symbol/keyword test members (currently number/bool literals only); maps in
-recursive bodies. (Multi-constant test lists, keyword/string-key maps → axons, and
+Symbol map keys; `case` symbol/keyword test members (currently number/bool literals
+only); maps in recursive bodies. (Multi-arity `defn` `(defn add ([a] …) ([a b] …))`
+shipped 2026-06-18 — each arity emits a mangled `name__{arity}` function and call
+sites dispatch by arg count; same-arity self-recursion in a clause is a later item.) (Multi-constant test lists, keyword/string-key maps → axons, and
 `(get m :k)` access shipped 2026-06-15. NESTED vector destructuring `(let [[[a b] c] t] …)`
 shipped 2026-06-17 — an `Axon` temp per non-leaf prefix in a function-level destructure
 prelude [Clojure's `let` is substitution-only], since chaining `.item()` on a raw tensor fails.)

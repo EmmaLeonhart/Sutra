@@ -10902,3 +10902,20 @@ Fixture `case_nontail` (`f n = 1 + (case n of 0 -> 100; _ -> 200); f 0`) runs on
 Remaining on Haskell: variant `case` in expression position; nested/non-variable case payload patterns;
 multi-equation/guarded recursion (the >2-guard form is blocked by the single-condition halt);
 mutually-recursive `where`/`let`.
+
+## 2026-06-18 — sutra-from-clojure: multi-arity `defn` `(defn add ([a] …) ([a b] …))` ships (== 17)
+
+Phase 6, Clojure item. Sutra has no arity overload, so multi-arity `defn` lowers via name-mangling +
+call-site dispatch. A prepass registers every multi-arity defn name (no direct params `vec_lit` — each
+arity is a `list_lit` clause) in `_MULTI_ARITY`. `_lower_defn` emits one `function name__{arity}` per
+arity (the body path extracted into a shared `_emit_function_body`), and every call site mangles a
+multi-arity callee to `name__{len(args)}` (`(add 7)` → `add__1(7)`; inside `add__1`, `(add a 10)` →
+`add__2(a, 10)`). Same-arity self-recursion in a clause (which would mangle to its own name and not
+terminate) surfaces UNSUPPORTED-RECURSION via `_has_self_call_at_arity` — cross-arity delegation is the
+supported shape.
+
+Fixture `multi_arity` (`(defn add ([a] (add a 10)) ([a b] (+ a b))); (add 7)`) runs on the substrate
+== **17** (`add(7)` → `add__1(7)` → `add__2(7, 10)` → 17). Clojure suite: 40 passed (lower-only clean
++ `multi_arity`=17, `add_main`=16, recursion fixtures `nary_sum`/`tail_rec` — the single-arity path
+refactor onto `_emit_function_body` is behaviour-preserving). Remaining on Clojure: symbol map keys;
+`case` symbol/keyword members; maps in recursive bodies.

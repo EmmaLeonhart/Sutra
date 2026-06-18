@@ -66,6 +66,11 @@ _DESTRUCTURE_PRELUDE: list = []
 # the destructure is reached through `_lower_expr`). Cleared per function.
 _DESTRUCTURE_AXON_PARAMS: set = set()
 
+# Multi-arity `defn` names (`(defn add ([a] …) ([a b] …))`): Sutra has no arity overload,
+# so each arity emits a mangled function `name__{arity}` and every call site dispatches by
+# arg count (`(add 7)` → `add__1(7)`). Populated by a prepass over the module's defns.
+_MULTI_ARITY: set = set()
+
 
 def _collect_clj_vec_paths(vec, src: bytes, prefix: tuple):
     """Flatten a (possibly NESTED) Clojure binding `vec_lit` into `[(path_keys, name), …]`,
@@ -719,28 +724,102 @@ def _lower_expr(node, src: bytes) -> str:
                 expr = f"({expr} {sop} {_lower_expr(a, src)})"
             return expr
         arg_srcs = [_lower_expr(a, src) for a in args]
-        return f"{head}({', '.join(arg_srcs)})"
+        # A MULTI-ARITY callee dispatches by arg count to the mangled `name__{arity}`.
+        callee = f"{head}__{len(args)}" if head in _MULTI_ARITY else head
+        return f"{callee}({', '.join(arg_srcs)})"
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
-def _lower_defn(list_lit, src: bytes) -> str:
-    """(defn name [p1 p2] body) → a Sutra function."""
-    kids = list_lit.named_children
-    if len(kids) < 4 and not (len(kids) == 3 and kids[2].type == "list_lit"):
-        # (defn name [] body) has 4 kids too (empty vec_lit is named)
-        pass
-    name_node = kids[1] if len(kids) > 1 else None
-    vec = next((c for c in kids if c.type == "vec_lit"), None)
-    if name_node is None or name_node.type != "sym_lit" or vec is None:
-        return "// UNSUPPORTED-DEFN: unrecognized defn shape\n"
-    name = _text(name_node, src)
-    params: list[str] = []
+def _emit_function_body(emit_name: str, params, body, src: bytes) -> str:
+    """Emit `function {_TYPE} {emit_name}(params) { … return body; }` — the non-recursion
+    body path (map-hoist prelude, nested-destructure temps, `Axon` typing). `emit_name`
+    may be a mangled multi-arity name (`add__2`)."""
+    _ARG_HOIST.clear()
+    _BINDING_VECS.clear()
+    _DESTRUCTURE_PRELUDE.clear()
+    _DESTRUCTURE_AXON_PARAMS.clear()
+    _collect_binding_vecs(body, src)   # mark let/loop binding vecs (not data vectors)
+    prelude = _hoist_maps(body, src)
+    axon_params = _kwd_accessed_params(body, set(params), src)
+    body_src = _lower_expr(body, src)
+    destr_prelude = "".join(_DESTRUCTURE_PRELUDE)
+    all_axon = axon_params | (_DESTRUCTURE_AXON_PARAMS & set(params))
+    params_src = ", ".join(
+        f"{'Axon' if p in all_axon else _TYPE} {p}" for p in params)
+    _ARG_HOIST.clear()
+    _DESTRUCTURE_PRELUDE.clear()
+    _DESTRUCTURE_AXON_PARAMS.clear()
+    return (f"function {_TYPE} {emit_name}({params_src}) {{\n"
+            f"{prelude}"
+            f"{destr_prelude}"
+            f"    return {body_src};\n"
+            f"}}\n")
+
+
+def _has_self_call_at_arity(node, name: str, arity: int, src: bytes) -> bool:
+    """Does `node` contain a call `(name a1 … a_arity)` at exactly `arity` args? Used to
+    detect SAME-arity self-recursion in a multi-arity clause (which would mangle to its
+    own name and not terminate)."""
+    if node.type == "list_lit" and node.named_children:
+        h = node.named_children[0]
+        if (h.type == "sym_lit" and _text(h, src) == name
+                and len(node.named_children) - 1 == arity):
+            return True
+    return any(_has_self_call_at_arity(c, name, arity, src) for c in node.named_children)
+
+
+def _defn_param_names(vec, src: bytes):
+    """A params `vec_lit` → [name, …] or None if it has a non-symbol (destructuring) param."""
+    out = []
     for p in vec.named_children:
         if p.type != "sym_lit":
-            return (f"// UNSUPPORTED-DEFN: '{name}' has a non-symbol parameter "
-                    f"({p.type}) — destructuring is a later item\n")
-        params.append(_text(p, src))
-    body_nodes = [c for c in kids[2:] if c is not vec]
+            return None
+        out.append(_text(p, src))
+    return out
+
+
+def _lower_defn(list_lit, src: bytes) -> str:
+    """(defn name [p1 p2] body) → a Sutra function. A MULTI-ARITY defn
+    (`(defn add ([a] …) ([a b] …))`) emits one mangled `name__{arity}` function per
+    arity; call sites dispatch by arg count (handled in `_lower_expr`)."""
+    kids = list_lit.named_children
+    name_node = kids[1] if len(kids) > 1 else None
+    if name_node is None or name_node.type != "sym_lit":
+        return "// UNSUPPORTED-DEFN: unrecognized defn shape\n"
+    name = _text(name_node, src)
+    direct_vec = next((c for c in kids if c.type == "vec_lit"), None)
+    if direct_vec is None:
+        # MULTI-ARITY: each clause is a `list_lit` of (params-vec, body…).
+        clauses = [c for c in kids[2:]
+                   if c.type == "list_lit" and c.named_children
+                   and c.named_children[0].type == "vec_lit"]
+        if not clauses:
+            return "// UNSUPPORTED-DEFN: unrecognized defn shape\n"
+        out = []
+        for cl in clauses:
+            pvec = cl.named_children[0]
+            cparams = _defn_param_names(pvec, src)
+            if cparams is None:
+                return (f"// UNSUPPORTED-DEFN: '{name}' arity-{len(pvec.named_children)} "
+                        f"clause has a destructuring param (later item)\n")
+            cbodies = [c for c in cl.named_children[1:]]
+            if not cbodies:
+                return f"// UNSUPPORTED-DEFN: '{name}' empty arity clause\n"
+            cbody = cbodies[-1]
+            if _has_self_call_at_arity(cbody, name, len(cparams), src):
+                # SAME-arity self-recursion in a multi-arity clause would mangle to its
+                # own name and not terminate — a later item (cross-arity delegation is
+                # the supported shape).
+                return (f"// UNSUPPORTED-RECURSION: '{name}' arity-{len(cparams)} clause "
+                        f"recurses at its own arity (later item)\n")
+            out.append(_emit_function_body(f"{name}__{len(cparams)}", cparams, cbody, src))
+        return "".join(out)
+    # SINGLE-ARITY (the original path).
+    params = _defn_param_names(direct_vec, src)
+    if params is None:
+        return (f"// UNSUPPORTED-DEFN: '{name}' has a non-symbol parameter "
+                f"— destructuring is a later item\n")
+    body_nodes = [c for c in kids[2:] if c is not direct_vec]
     if not body_nodes:
         return f"// UNSUPPORTED-DEFN: '{name}' has no body\n"
     body = body_nodes[-1]  # multi-form bodies (side effects) are later items
@@ -759,31 +838,7 @@ def _lower_defn(list_lit, src: bytes) -> str:
         # plain self-call would not terminate through the fuzzy-if blend.
         return (f"// UNSUPPORTED-RECURSION: '{name}' is recursive but not the "
                 f"tail-accumulator or foldable non-tail shape\n")
-    # Maps -> axons: hoist any `{:k v}` literals to prelude temps, and type any
-    # keyword-accessed param as `Axon` (it is a map, not a number).
-    _ARG_HOIST.clear()
-    _BINDING_VECS.clear()
-    _DESTRUCTURE_PRELUDE.clear()
-    _DESTRUCTURE_AXON_PARAMS.clear()
-    _collect_binding_vecs(body, src)   # mark let/loop binding vecs (not data vectors)
-    prelude = _hoist_maps(body, src)
-    axon_params = _kwd_accessed_params(body, set(params), src)
-    body_src = _lower_expr(body, src)
-    # NESTED-destructure `Axon` temps (e.g. `let [[a b] c]`) emitted during lowering,
-    # after the map-hoist prelude (they may read a hoisted vector) and before the return.
-    destr_prelude = "".join(_DESTRUCTURE_PRELUDE)
-    # `params_src` is built AFTER lowering so a vector-destructured param is typed `Axon`.
-    all_axon = axon_params | (_DESTRUCTURE_AXON_PARAMS & set(params))
-    params_src = ", ".join(
-        f"{'Axon' if p in all_axon else _TYPE} {p}" for p in params)
-    _ARG_HOIST.clear()
-    _DESTRUCTURE_PRELUDE.clear()
-    _DESTRUCTURE_AXON_PARAMS.clear()
-    return (f"function {_TYPE} {name}({params_src}) {{\n"
-            f"{prelude}"
-            f"{destr_prelude}"
-            f"    return {body_src};\n"
-            f"}}\n")
+    return _emit_function_body(name, params, body, src)
 
 
 def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
@@ -801,6 +856,16 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     _SUBST.clear()
     _ARG_HOIST.clear()
     _AH_COUNTER[0] = 0
+    # Prepass: register MULTI-ARITY defn names (no direct params `vec_lit` — each arity is
+    # a `list_lit` clause) so call sites mangle to `name__{arity}`.
+    _MULTI_ARITY.clear()
+    for child in tree.root_node.named_children:
+        if child.type == "list_lit" and _head_symbol(child, src) == "defn":
+            ck = child.named_children
+            nm = ck[1] if len(ck) > 1 else None
+            if (nm is not None and nm.type == "sym_lit"
+                    and not any(c.type == "vec_lit" for c in ck)):
+                _MULTI_ARITY.add(_text(nm, src))
 
     out = ["// Generated by sutra-from-clojure. See sdk/sutra-from-clojure/README.md.\n"]
     for child in tree.root_node.named_children:
