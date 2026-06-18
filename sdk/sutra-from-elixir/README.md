@@ -70,4 +70,6 @@ type-test guards (`and`/`or` chains already lower via `_OP_MAP`). (Atom-key maps
 literals → axons shipped 2026-06-15. Multi-clause/guarded clause bodies with leading `=`
 destructure bindings [`def sel(flag, t) when flag > 0 do {a, b} = t; a + b end`] shipped
 2026-06-17. STRING-key arrow-map PATTERN params [`def sum2(%{"x" => a, "y" => b})`] shipped
-2026-06-18 — reuse `_map_fields`, which handles both atom-shorthand and string-key forms.)
+2026-06-18 — reuse `_map_fields`, which handles both atom-shorthand and string-key forms.
+A Bool `case b do true -> … ; false -> … end` dispatches `(b == true)`/`(b == false)`,
+shipped 2026-06-18.)

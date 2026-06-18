@@ -11082,3 +11082,17 @@ Fixture `bool_match` (`fn f(b: bool) -> i64 { match b { true => 10, false => 20 
 the substrate == **10** (and `f(false)` measured == 20). Rust suite: 46 passed (lower-only clean +
 `bool_match`=10, `enum_match`=2, `nested_match_tail_arm`=5 — the variant + nested-match paths
 unregressed). Remaining on Rust: a VARIANT match nested in an expression / tail-arm; nested `if let`.
+
+## 2026-06-18 — sutra-from-elixir: Bool `case b do true -> … ; false -> … end` ships (== 10)
+
+Phase 6, Elixir item — the Elixir companion to today's Haskell/Rust bool patterns. A bool `case`
+previously surfaced UNSUPPORTED-CASE-PATTERN ("boolean"; the bool VALUE `f(true)` already worked). The
+case-pattern dispatch now treats a `boolean` pattern like an `integer` one — `(scrut == true)` /
+`(scrut == false)` (Elixir `true`/`false` match the Sutra `true`/`false`, the crisp literal-dispatch
+shape, no `_tag`).
+
+Fixture `bool_case` (`def f(b) do case b do true -> 10; false -> 20 end end; f(true)`) runs on the
+substrate == **10** (and `f(false)` measured == 20). Elixir suite: 48 passed (lower-only clean +
+`bool_case`=10, `case_literal`=200, `case_bind`=60 — the integer-literal + name-binding case paths
+unregressed). Remaining on Elixir: multi-clause heads with recursion; `is_integer` type-test guards
+(dubious on the substrate — needs a design call).
