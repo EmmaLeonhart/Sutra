@@ -184,10 +184,12 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
 - [ ] **OCaml** (`sutra-from-ocaml/`, the reference frontend): ~~flat tuple-`let` destructure
   (`let (a, b) = t in …`)~~ DONE 2026-06-18 (the `let_expression` body lowering substitutes each element
   to `realvec(t.item("_i"))` and pops after the body; the binder parses as `parenthesized_pattern →
-  tuple_pattern`; `tuple_destructure`=13 on the substrate, full 133-test suite green). Remaining:
-  **scalable RAM device for the 10MB linear memory** (`Bytes.make` / loop-carried arrays use the global
-  RAM list, which doesn't scale to 10MB); non-zero `Array.make` fill for int-dict arrays (slots start
-  at 0 — documented limit, not a bug); nested/record tuple-let patterns.
+  tuple_pattern`; `tuple_destructure`=13 on the substrate, full 133-test suite green); ~~record-`let`
+  destructure (`let { x; y } = p in …`, punned + renamed)~~ DONE 2026-06-18 (`_ocaml_record_let` +
+  same substitute-and-pop; `record_destructure`=13 on the substrate). Remaining: **scalable RAM device
+  for the 10MB linear memory** (`Bytes.make` / loop-carried arrays use the global RAM list, which
+  doesn't scale to 10MB); non-zero `Array.make` fill for int-dict arrays (slots start at 0 — documented
+  limit, not a bug); nested tuple/record-let patterns.
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
   when two interfaces share a field name with different types.
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
