@@ -55,8 +55,10 @@ clean number-vector locals, then a nested defuzz blend tests `_vtag == tag`;
 payload names substitute to the `_val{i}` locals (the last constructor arm, or a
 bare-variable/`_` pattern, is the base). Substrate-verified: `data_adt` = 2
 (`data Expr = Lit Int | Neg Int`; `evalE` via `case`; `evalE (Lit 7) + evalE (Neg
-5)` = 7 + (−5)). Non-variable case scrutinees, nested payload patterns, and `case`
-in non-tail expression position are later items.
+5)` = 7 + (−5)). A LITERAL `case` in NON-TAIL expression position (`1 + (case n of
+0 -> 100; _ -> 200)`) inlines as a nested blend (`case_nontail` = 101, shipped
+2026-06-17). Non-variable case scrutinees, nested payload patterns, and a VARIANT
+`case` in expression position (needs an int-local) are later items.
 
 Multi-equation/guarded **recursion** surfaces as `UNSUPPORTED-*` markers (until
 the relevant transforms are ported — never a silent self-call).

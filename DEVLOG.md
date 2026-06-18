@@ -10886,3 +10886,19 @@ with North->10 | South->20; main = code (pick 5)`) runs on the substrate == **10
 `code`'s int-local `_vtag` makes the tag test crisp both ways). F# suite: 29 passed (lower-only clean +
 `variant_if_branch`=10, `nullary_variant`=20, `nullary_variant_return`=10, `union_axon`=48,
 `if_classify`=100). Remaining on F#: mixed tuple-in-record / record-in-tuple nesting.
+
+## 2026-06-17 — sutra-from-haskell: LITERAL `case` in non-tail expression position ships (== 101)
+
+Phase 6, Haskell item. A `case` nested in a larger expression (`f n = 1 + (case n of 0 -> 100; _ ->
+200)`) previously surfaced UNSUPPORTED (only a function-tail `case` worked). `_lower_expr` now handles
+`case` by reusing `_lower_case_stmts`: a LITERAL/wildcard case returns NO prelude (a plain-number
+scrutinee `n == 0` is crisp inline — unlike an axon `_tag` read), so it inlines as a parenthesized
+nested defuzz blend. A VARIANT case in expression position returns a non-empty prelude (it needs an
+`int _vtag` an expression can't emit) → it stays UNSUPPORTED with a clear marker (use it as the
+function tail), not mislowered.
+
+Fixture `case_nontail` (`f n = 1 + (case n of 0 -> 100; _ -> 200); f 0`) runs on the substrate ==
+**101** (`1 + 100`). Haskell suite: 36 passed (lower-only clean + `case_nontail`=101, `case_literal`=300).
+Remaining on Haskell: variant `case` in expression position; nested/non-variable case payload patterns;
+multi-equation/guarded recursion (the >2-guard form is blocked by the single-condition halt);
+mutually-recursive `where`/`let`.
