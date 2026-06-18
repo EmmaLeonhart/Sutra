@@ -152,7 +152,7 @@ def test_fixture_compiles(name, input_path, expected_path):
 _RUNNABLE_FIXTURES = {
     "interface_pass": 25.0,       # distance_squared({x:3, y:4})
     "discriminated_union": 25.0,  # area({kind:"circle", r:5})
-    "nested_interface": 13.0,     # f({a:5, inner:{v:8}}) = o.a + o.inner.v  (NESTED interface: recursive object-literal construction + member-access hoist-prelude `Axon _np0 = o.item("inner")`; distinct field-name keys clean at dim 50)
+    "nested_interface": (13.0, 256),     # f({a:5, inner:{v:8}}) = o.a + o.inner.v  (NESTED interface: recursive object-literal construction + member-access hoist-prelude `Axon _np0 = o.item("inner")`; dim>=256, finding 2026-06-17)
 }
 
 
@@ -166,21 +166,30 @@ def _extract_result(out: str) -> float:
     return float(m.group(1))
 
 
-@pytest.mark.parametrize("fixture_name,expected", sorted(_RUNNABLE_FIXTURES.items()))
-def test_fixture_runs_on_substrate(tmp_path, fixture_name, expected):
+@pytest.mark.parametrize("fixture_name,spec", sorted(_RUNNABLE_FIXTURES.items()))
+def test_fixture_runs_on_substrate(tmp_path, fixture_name, spec):
     """Transpile -> run on the real substrate via `sutrac --run` -> assert
     the decoded result. Skipped without torch so CI without the runtime
-    stays green."""
+    stays green.
+
+    A spec is either a bare expected float (default runtime_dim) or an
+    (expected, runtime_dim) tuple. Nested-axon fixtures run at runtime_dim
+    >= 256 so reads don't depend on key sets reading clean at the default
+    dim 50 by luck (finding 2026-06-17-nested-axon-readout-crosstalk-...)."""
     pytest.importorskip("torch")
     import subprocess
 
+    expected, dim = spec if isinstance(spec, tuple) else (spec, None)
     fixture = sorted((FIXTURE_DIR / fixture_name).glob("input.*"))[0]
     sutra_src = lower(fixture.read_text(encoding="utf-8"), source_path=fixture)
     su_path = tmp_path / f"{fixture_name}.su"
     su_path.write_text(sutra_src, encoding="utf-8")
 
+    cmd = [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)]
+    if dim is not None:
+        cmd += ["--runtime-dim", str(dim)]
     proc = subprocess.run(
-        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
+        cmd,
         capture_output=True,
         text=True,
     )

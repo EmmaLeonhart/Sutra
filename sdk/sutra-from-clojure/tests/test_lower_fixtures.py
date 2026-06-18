@@ -46,7 +46,7 @@ _RUNNABLE = {
     "vector_axon": 13.0,  # (defn fst [v] (+ (nth v 0) (nth v 1))); (let [w [5 8]] (fst w))  (data vector -> positional-key axon; let binding-vec NOT hoisted as data)
     "vector_first_second": 13.0,  # (defn fst [v] (+ (first v) (second v))); (let [w [5 8]] (fst w))  (first/second -> _0/_1 vector accessors)
     "let_destructure": 13.0,  # (let [[a b] [5 8]] (+ a b))  (vector destructuring bind -> realvec(item _0/_1); inner pattern vec NOT hoisted)
-    "nested_vec_destructure": 16.0,  # (defn f [t] (let [[[a b] c] t] (+ (+ a b) c))); (f [[5 8] 3])  (NESTED vector destructure -> Axon temp for the _0 prefix; _0/_1 keys clean at dim 50)
+    "nested_vec_destructure": (16.0, 256),  # (defn f [t] (let [[[a b] c] t] (+ (+ a b) c))); (f [[5 8] 3])  (NESTED vector destructure -> Axon temp for the _0 prefix; dim>=256, finding 2026-06-17)
     "map_destructure_keys": 13.0,  # (let [{:keys [a b]} {:a 5 :b 8}] (+ a b))  (:keys map destructuring -> realvec(item a/b); pattern map+vec NOT hoisted)
     "map_destructure_named": 13.0,  # (let [{a :x b :y} {:x 5 :y 8}] (+ a b))  ({local :field} map destructuring -> realvec(item x/y))
 }
@@ -66,16 +66,24 @@ def test_lowers_without_unsupported(name, fix):
     assert "UNSUPPORTED" not in out, f"{name} lowered with UNSUPPORTED:\n{out}"
 
 
-@pytest.mark.parametrize("name,expected",
+@pytest.mark.parametrize("name,spec",
                          sorted(_RUNNABLE.items()), ids=sorted(_RUNNABLE))
-def test_runs_on_substrate(name, expected, tmp_path):
+def test_runs_on_substrate(name, spec, tmp_path):
     pytest.importorskip("torch", reason="substrate run needs torch")
+    # A spec is either a bare expected float (default runtime_dim) or an
+    # (expected, runtime_dim) tuple. Nested-axon fixtures run at runtime_dim
+    # >= 256 so reads don't depend on key sets reading clean at the default
+    # dim 50 by luck (finding 2026-06-17-nested-axon-readout-crosstalk-...).
+    expected, dim = spec if isinstance(spec, tuple) else (spec, None)
     fix = FIXTURE_DIR / name / "input.clj"
     su = lower(fix.read_text(encoding="utf-8"))
     su_path = tmp_path / f"{name}.su"
     su_path.write_text(su, encoding="utf-8")
+    cmd = [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)]
+    if dim is not None:
+        cmd += ["--runtime-dim", str(dim)]
     proc = subprocess.run(
-        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
+        cmd,
         capture_output=True, text=True, cwd=str(_REPO),
     )
     out = (proc.stdout + proc.stderr).strip()

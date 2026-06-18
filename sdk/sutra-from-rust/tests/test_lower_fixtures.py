@@ -39,11 +39,11 @@ _RUNNABLE = {
     "struct_spread": 17.0,  # let q = Point { x: 9, ..base }; q.x+q.y; base={1,8} -> q={9,8} = 17  (..base functional-update copies y)
     "tuple_axon": 13.0,  # fst(p: (i64,i64)) = p.0 + p.1; main = fst((5, 8))  (tuple -> positional-key axon, p.0 -> realvec(item _0))
     "tuple_destructure": 13.0,  # add_pair(t) { let (a, b) = t; a + b }; main = add_pair((5, 8))  (let-tuple-pattern -> realvec(item _0/_1))
-    "nested_tuple_destructure": 16.0,  # f(t: (i64,(i64,i64))) { let (a,(b,c)) = t; a+b+c }; main = f((5,(8,3)))  (NESTED tuple pattern -> Axon temp for the _1 prefix, then realvec(item _0/_1))
+    "nested_tuple_destructure": (16.0, 256),  # f(t: (i64,(i64,i64))) { let (a,(b,c)) = t; a+b+c }; main = f((5,(8,3)))  (NESTED tuple pattern -> Axon temp for the _1 prefix, then realvec(item _0/_1); dim>=256, finding 2026-06-17)
     "struct_destructure": 13.0,  # sum(p: Point) { let Point { x, y } = p; x + y }; main = sum(Point{5,8})  (let-struct-pattern -> realvec(item x/y))
-    "nested_struct_destructure": 13.0,  # f(o: Outer) { let Outer { a, inner: Inner { v } } = o; a + v }; main = f(Outer{a:5,inner:Inner{v:8}})  (NESTED struct pattern -> Axon temp for the inner-struct prefix)
-    "struct_in_tuple": 13.0,  # f(t: (i64,Inner)) { let (a, Inner { v }) = t; a+v }; main = f((5, Inner{v:8}))  (MIXED: struct nested in a tuple pattern; _collect_rust_tuple_paths cross-calls _collect_rust_struct_paths; _1/v keys clean at dim 50)
-    "tuple_in_struct": 16.0,  # g(o: Outer) { let Outer { a, pos: (x, y) } = o; a+x+y }; main = g(Outer{a:5,pos:(8,3)})  (MIXED: tuple nested in a struct pattern; _collect_rust_struct_paths cross-calls _collect_rust_tuple_paths; pos/_0/_1 keys clean at dim 50)
+    "nested_struct_destructure": (13.0, 256),  # f(o: Outer) { let Outer { a, inner: Inner { v } } = o; a + v }; main = f(Outer{a:5,inner:Inner{v:8}})  (NESTED struct pattern -> Axon temp for the inner-struct prefix; dim>=256, finding 2026-06-17)
+    "struct_in_tuple": (13.0, 256),  # f(t: (i64,Inner)) { let (a, Inner { v }) = t; a+v }; main = f((5, Inner{v:8}))  (MIXED: struct nested in a tuple pattern; _collect_rust_tuple_paths cross-calls _collect_rust_struct_paths; dim>=256, finding 2026-06-17)
+    "tuple_in_struct": (16.0, 256),  # g(o: Outer) { let Outer { a, pos: (x, y) } = o; a+x+y }; main = g(Outer{a:5,pos:(8,3)})  (MIXED: tuple nested in a struct pattern; _collect_rust_struct_paths cross-calls _collect_rust_tuple_paths; dim>=256, finding 2026-06-17)
     "nullary_variant": 20.0,  # enum Dir{North,South}; code(d) = match d { Dir::North=>10, Dir::South=>20 }; main = code(Dir::South)  (nullary variant value -> {_tag} axon; scoped match patterns NOT mis-hoisted)
     "nullary_variant_let": 20.0,  # ... main = { let d = Dir::South; code(d) }  (nullary variant let-value -> Axon-typed local, not int-bound-to-axon)
 }
@@ -63,16 +63,24 @@ def test_lowers_without_unsupported(name, fix):
     assert "UNSUPPORTED" not in out, f"{name} lowered with UNSUPPORTED:\n{out}"
 
 
-@pytest.mark.parametrize("name,expected",
+@pytest.mark.parametrize("name,spec",
                          sorted(_RUNNABLE.items()), ids=sorted(_RUNNABLE))
-def test_runs_on_substrate(name, expected, tmp_path):
+def test_runs_on_substrate(name, spec, tmp_path):
     pytest.importorskip("torch", reason="substrate run needs torch")
+    # A spec is either a bare expected float (default runtime_dim) or an
+    # (expected, runtime_dim) tuple. Nested-axon fixtures run at runtime_dim
+    # >= 256 so reads don't depend on key sets reading clean at the default
+    # dim 50 by luck (finding 2026-06-17-nested-axon-readout-crosstalk-...).
+    expected, dim = spec if isinstance(spec, tuple) else (spec, None)
     fix = FIXTURE_DIR / name / "input.rs"
     su = lower(fix.read_text(encoding="utf-8"))
     su_path = tmp_path / f"{name}.su"
     su_path.write_text(su, encoding="utf-8")
+    cmd = [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)]
+    if dim is not None:
+        cmd += ["--runtime-dim", str(dim)]
     proc = subprocess.run(
-        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
+        cmd,
         capture_output=True, text=True, cwd=str(_REPO),
     )
     out = (proc.stdout + proc.stderr).strip()

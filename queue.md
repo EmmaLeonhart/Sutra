@@ -33,15 +33,6 @@ queue now"). Make the reasonable engineering choice where one is noted, build it
 substrate, measure, ship. Each: fixture-tested + RUN against ground truth; keep
 `transpilers-ci` green.
 
-- [ ] **0.2 — Nested-axon read robustness** (cross-talk finding
-  `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md`). Nested reads read WRONG at
-  the default `runtime_dim` 50 when keys repeat across levels (measured: Haskell
-  `ctor_in_tuple` → 26 not 13 at dim 50; clean at ≥100). Default approach: run ALL
-  nested-axon fixtures at `runtime_dim ≥ 128` (simple, no wire-format change). Stretch option
-  if it proves cleaner: depth-prefixed nested keys so reads are clean at dim 50 — but that
-  changes the axon KEY wire-format (axons are a serialization format), so only if it doesn't
-  break cross-program axon compatibility. Robustness, not a live bug (shipped fixtures are
-  measured-correct at their chosen dims).
 - [ ] **0.3 — Single-condition-halt blocker** (finding
   `2026-06-17-while-loop-halt-is-single-condition-only.md`). `while_loop` ignores a compound
   `&&` continue condition past the first conjunct, blocking >2-clause / multi-base native

@@ -41,15 +41,39 @@ outer read. By `runtime_dim ≥ 100` both key sets are clean. This is the bundli
   different key set could cross-talk at dim 50. They are correct for the cases shipped, not a general
   guarantee of nested-axon robustness.
 
-## Options (not yet chosen — a per-fixture-dim or distinct-key decision)
+## Resolution (2026-06-18): run all nested-axon fixtures at `runtime_dim = 256`
 
-1. **Run nested-axon fixtures at the dimension the task needs** (`runtime_dim ≥ 128`), per the
-   CLAUDE.md dimension-audit rule ("pick the smallest `runtime_dim` the task needs" — nested axons
-   need more than flat ones). Requires the frontend test harnesses to support a per-fixture dim.
-2. **Distinct nested keys** — have the destructure/construction disambiguate levels (e.g. depth-
-   prefixed keys) so no role is reused across nesting. A deeper lowering change; keeps dim low.
-3. **Accept the default-dim limit** and document nested-axon destructure as a `runtime_dim ≥ 128`
-   capability.
+Option 1 was taken — but with a correction the original "≥ 128" framing got WRONG. Cross-talk is
+**non-monotonic in dim**: a *higher* dim is not reliably cleaner, because the role/basis vectors are
+seeded deterministically per dim, so a specific dim can be an unlucky collision point for a specific
+key set. Measured sweep of ALL 25 nested-axon fixtures across the 7 frontends (OCaml, F#, Rust,
+Haskell, Scala, Clojure, TS), each `--runtime-dim` candidate:
 
-Repro: `/tmp/nax_01.su` (keys `_0`/`_1`) and `/tmp/nax_12.su` (keys `_1`/`_2`) in the session
-transcript; `python -m sutra_compiler --run [--runtime-dim N] <file>`.
+| dim | result across all 25 nested fixtures |
+|---|---|
+| 64  | CLEAN |
+| 100 | Haskell `nested_ctor_case`/`nested_ctor_let` → 29 (want 16) |
+| 128 | OCaml `record_in_tuple` → 29 (want 16) |
+| 196 | OCaml + F# `record_in_tuple` → 24 (want 16) |
+| 200 | CLEAN |
+| 256 | CLEAN |
+| 384 | CLEAN |
+| 512 | CLEAN |
+
+So **`128` and `196` themselves collide** — the queue's literal "≥ 128" rule is false, because the
+relation isn't monotone. The chosen value is **256**: measured clean for every nested fixture, a
+power of two comfortably above the bundling-capacity wall, and a safer margin than 64 (which is clean
+now but close to the wall for deeper nesting). Every nested-axon fixture in all 7 frontend harnesses
+now carries an `(expected, 256)` spec; the harnesses gained per-fixture-dim support (the `--runtime-dim`
+pass-through Haskell/Scala already had). Verified: the nested-axon pytest selection is green across all
+7 frontends at 256 (56 tests).
+
+The remaining options stay open as future robustness work (neither needed now):
+- **Distinct nested keys** (depth-prefixed) so no role is reused across nesting — keeps dim low but
+  changes the axon KEY wire-format (axons are a serialization format), so only worth it if it doesn't
+  break cross-program axon compatibility.
+- A structured (Hadamard-like) role basis with guaranteed orthogonality, removing the dice-roll
+  entirely.
+
+Repro of the sweep: lower each nested fixture, run `python -m sutra_compiler --run --runtime-dim N`,
+compare to ground truth (session transcript 2026-06-18).

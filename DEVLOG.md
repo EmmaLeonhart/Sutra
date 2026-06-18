@@ -11411,3 +11411,23 @@ TS frontend now lowers nested-interface programs (`o.inner.v` over
 Clean at the default dim 50 (distinct field-name keys). New fixture
 `nested_interface` (input.ts + expected.su + runnable=13). FULL TS suite: **42
 passed, 1 xfailed** (pre-existing) — no regression on Yantra's gate frontend.
+
+## 2026-06-18 — queue §0.2: nested-axon read robustness (all frontends → runtime_dim 256)
+
+Nested-axon field reads cross-talk at low `runtime_dim` when bundled `bind(role,value)`
+terms aren't separated enough (finding `2026-06-17-nested-axon-readout-crosstalk-is-dim-
+dependent.md`). Resolved by running every nested-axon fixture at a measured-clean dim.
+
+**Key correction to the queue's plan:** the "≥ 128" rule was WRONG — cross-talk is
+**non-monotonic** in dim (roles are seeded deterministically per dim, so a given dim can
+be an unlucky collision point for a given key set). Swept all 25 nested-axon fixtures ×
+{64,100,128,196,200,256,384,512}: **128 and 196 themselves collide** (128: OCaml
+`record_in_tuple`→29; 196: OCaml+F# `record_in_tuple`→24; 100: Haskell
+`nested_ctor_*`→29), while 64/200/256/384/512 are clean for all. Chose **256** (clean,
+power-of-two well above the bundling-capacity wall).
+
+Added per-fixture-dim support `(expected, runtime_dim)` to the F#, Rust, OCaml, Clojure,
+TS harnesses (Haskell/Scala already had it) and marked every nested-axon fixture at 256.
+Verified: nested-axon pytest selection green across all 7 frontends at 256 — ocaml 11,
+fsharp 10, rust 12, haskell 10, scala 8, clojure 2, ts 3 (56 tests). Finding doc updated
+with the non-monotonic table and the 256 decision.
