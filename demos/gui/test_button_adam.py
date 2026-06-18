@@ -95,3 +95,34 @@ def test_alpha_knob_trades_off_owner_vs_ctr():
     # ...and the CTR-driven button has the higher CTR.
     assert ctr["ctr1"] > owner["ctr1"] + 0.05, \
         f"CTR-driven not higher CTR than owner: ctr={ctr['ctr1']:.3f} owner={owner['ctr1']:.3f}"
+
+
+def test_steering_settles_over_time_like_adam():
+    """The proposal exploration AND the per-round policy step shrink as preferences accumulate,
+    so the design SETTLES instead of jittering forever (Emma 2026-06-17: the live demo "doesn't
+    slow down over time like Adam"). We measure the actual θ movement per round under a fixed
+    synthetic owner and assert late rounds move far less than early ones, while still converging."""
+    pytest.importorskip("torch")
+    ha = _button_adam()
+    ctl = ha.ButtonAdam(size=24, seed=0, alpha=1.0)
+
+    # current_explore() must be monotonically non-increasing round to round.
+    explores = []
+    early, late = [], []
+    for r in range(70):
+        explores.append(ctl.current_explore())
+        cur, var = ctl.propose()
+        before = ctl.current_theta()
+        ctl.choose(prefer_variant=_owner_prefers_bluer(cur, var))
+        after = ctl.current_theta()
+        step = sum(abs(after[k] - before[k]) for k in after)
+        (early if r < 10 else late if r >= 40 else []).append(step)
+
+    assert all(b >= a - 1e-9 for a, b in zip(explores[1:], explores)), \
+        "exploration did not monotonically anneal"
+    assert explores[-1] < explores[0], "exploration never shrank"
+    mean_early, mean_late = sum(early) / len(early), sum(late) / len(late)
+    assert mean_late < 0.5 * mean_early, \
+        f"steering did not settle: early step {mean_early:.4f} vs late {mean_late:.4f}"
+    # ...and it still converged toward the owner's blue taste despite settling.
+    assert _blueness(ctl.current_image()) > 0.1, "settled but never reached the owner's blue taste"

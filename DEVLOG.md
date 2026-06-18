@@ -1351,6 +1351,70 @@ ACTIVE DIRECTIVE the top active work, and **removed the GUI agenda entirely** (c
 note (do NOT re-add GUI here). The GUI demo code + paper stay built/merged on main; only the
 not-yet-done GUI *agenda* left this queue. Crons made more aggressive for the sprint
 (work-loop + auto-flush + status all advance a bounded increment).
+
+## 2026-06-17: compiler primitive — elementwise-buffer transcendentals (`sin_buf`/`cos_buf`)
+
+Emma: "Make the compiler primitive." Built the elementwise transcendental over a field buffer that
+the 2026-06-17 transcendentals finding flagged as the clean fix for on-substrate Fourier encoding +
+SIREN sin-activations. The substrate's scalar `sin`/`cos`/`cexp` act on the canonical d-dim complex
+NUMBER and dim-mismatch on a length-N buffer; `sin_buf`/`cos_buf` are the buffer counterparts.
+
+- **`codegen_pytorch.py`** — `sin_buf(x)`/`cos_buf(x)` runtime methods. Same substrate-pure
+  mechanism as the scalar trig (wrap each element to (−π,π] then a triangular soft-index crosstalk
+  matmul against the cached sin/cos table), BROADCAST over the N elements — the exact `(N,T)`
+  weight-matrix pattern `sawtooth_mod` already ships. One fused tensor op, autograd-preserving,
+  **periodic by construction** (no high-frequency polynomial divergence — the failure mode of the
+  rejected polynomial path).
+- **`codegen_base.py`** — registered `sin_buf`/`cos_buf` builtins so `.su` can call them.
+- **Measured:** matches `math.sin/cos` to ~8e-5 at arguments 0.5 … 100.0 (incl. far outside
+  [−π,π], the high-freq Fourier-band range), and `d/dx sin_buf ≈ cos` to 5e-3 (differentiable end
+  to end → SIREN sin-activations now expressible). `sdk/sutra-compiler/tests/test_buffer_transcendentals.py`
+  (5), green; existing `test_transcendentals.py` (8) still green.
+- **Decoder wiring (closes the finding):** `fourier_features_substrate` in `demos/decoder/substrate_nn.py`
+  runs the encoding's sin/cos on the substrate via `sin_buf`/`cos_buf` (the `f·coords` scaling is an
+  affine input transform, the `cat` is layout). Reproduces the host `fourier_features` to max |Δ|
+  6.9e-5, stays differentiable, and a decoder built on it fits the wave. `demos/decoder/test_encoding.py`
+  (+3), green. Finding `2026-06-17-substrate-transcendentals-canonical-only.md` marked RESOLVED.
+
+The decoder forward (matmul + hadamard cubic) was always on the substrate; now the *input
+transcendental* is too — the one host-Python part of the encoding that genuinely had to leave the
+substrate. The host `fourier_features` is kept as the reference the substrate version is measured against.
+
+## 2026-06-17: todo.md §GUI — record the decoder + Yantra integration as SHIPPED (flow-forward)
+
+Housekeeping mandated by the workflow rule "items only ever flow forward; do not leave done items
+behind in `todo.md`". The two GUI items still listed there as deferred were both actually complete:
+the **learned decoder** (D1–D14, ungated by Emma 2026-06-17) and **Yantra GUI integration** (Y0–Y3,
+vendored in-tree). Left as "DEFERRED / pick the approach with Emma before a large build" they would
+mislead a future session into re-opening finished work. Rewrote the §GUI block to mark both ✅ SHIPPED
+with pointers (`demos/decoder/`, `emit_decoder.bake_decoder`, `external/Yantra/apps/gui-button/button_surface.py`,
+the two 2026-06-17 findings) and to record that the only remaining decoder follow-ons are GATED, not
+autonomous (on-substrate Fourier encoding needs a new compiler primitive; w2c corpus is a research line).
+All cited paths/symbols verified to exist. Doc-only; no code/test impact.
+
+## 2026-06-17: B3 — annealed steering so the live button SETTLES like Adam
+
+Emma's feedback on the live demo: the learning "is kinda all over the place and doesn't feel like
+it slows down over time like Adam". Root cause: `ButtonAdam.propose()` used a FIXED exploration
+magnitude (0.12) and `choose()` a fixed policy lr, so proposals jittered forever and the design
+never settled. Added an annealing schedule keyed to the preference round: `decay(r)=1/(1+anneal·r)`,
+with both the proposal exploration (floored at `explore_floor`) and the Adam policy lr (floored at
+`lr_floor` of its initial value) scaled by it, so steps shrink as preferences accumulate while
+staying mildly responsive to a late change of taste.
+
+**CPU/CUDA gotcha (caught by CI, not local):** the first cut (anneal=0.06, explore_floor=0.12,
+lr_floor=0.25) settled beautifully on CUDA but **failed on CI's CPU** — the decay starts at round 0,
+while the owner reward head is still learning what the owner likes, so too-aggressive decay shrinks
+the policy lr before the policy can act on the now-trained reward and the design never converges
+(measured on real CPU: owner-prefers-blue gave fb-rise +0.5→0.48, rendered centre-blue rise only
++0.05). Re-tuned to **anneal=0.02, explore_floor=0.3, lr_floor=0.7** by sweeping BOTH affected
+scenarios on real CPU (CUDA disabled): now `test_button_server`'s 50-round owner steering gives
+fb-rise **+0.29** and `test_button_adam`'s 60-round centre-render blue rise **+0.56** (both well
+over the +0.1 thresholds), while still settling ~**4×** (mean per-round θ step 0.50 early → 0.12
+late). New regression `test_steering_settles_over_time_like_adam` asserts exploration anneals
+monotonically and late steps are <½ early steps yet it still reaches the blue taste. Full
+`demos/gui` suite 94/94 green on real CPU. Live server restarted with the annealed controller.
+
 ## 2026-06-17: learned decoder D14 — high-frequency reconstruction + Fourier-band scaling
 
 D4/D5 used smooth gaussian blobs; D14 confirms the decoder handles genuinely HIGH-FREQUENCY

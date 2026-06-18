@@ -91,7 +91,8 @@ class ButtonAdam:
     def __init__(self, size: int = 48, seed: int = 0, alpha: float = 0.5,
                  lr_theta: float = 0.05, lr_reward: float = 0.3,
                  theta_steps: int = 2, explore: float = 0.12, pool: int = 4,
-                 live_ctr: bool = False):
+                 live_ctr: bool = False, anneal: float = 0.02,
+                 explore_floor: float = 0.3, lr_floor: float = 0.7):
         import torch
         torch.manual_seed(seed)
         self.wf = _load("gui_whole_frame", "whole_frame.py")
@@ -101,6 +102,22 @@ class ButtonAdam:
         self.theta_steps = int(theta_steps)
         self.explore = float(explore)
         self.alpha = float(alpha)
+        # Annealing: as preferences accumulate, shrink the proposal exploration AND the policy
+        # step so the design SETTLES instead of jittering forever (Emma 2026-06-17: the live demo
+        # "doesn't slow down over time like Adam"). decay(r)=1/(1+anneal·r), floored so it stays
+        # mildly responsive to a late change of preference rather than freezing. The floors are
+        # generous (lr ≥ 0.7·lr0, explore ≥ 0.3·explore0) because the decay starts at round 0 —
+        # while the OWNER REWARD HEAD is still learning what the owner likes — so a too-aggressive
+        # decay (the original 0.06/0.12/0.25) shrinks the policy lr before the policy can act on
+        # the now-trained reward and the design never converges (measured on CPU: fb-rise 0.5→0.48
+        # in 50 rounds; rendered centre-blue rise only 0.05). 0.02/0.3/0.7 converges strongly on
+        # CPU (server fb-rise +0.29, rendered centre-blue rise +0.56) while still settling ~4×
+        # (per-round θ step 0.50 early → 0.12 late). Measured both scenarios; see DEVLOG.
+        self.anneal = float(anneal)
+        self.explore_floor = float(explore_floor)
+        self.lr_floor = float(lr_floor)
+        self.lr_theta0 = float(lr_theta)
+        self._round = 0
         self.axes = BUTTON_AXES
         self.theta = {name: torch.nn.Parameter(
             torch.tensor(center, dtype=self.dt, device=self.dev))
@@ -222,17 +239,28 @@ class ButtonAdam:
                 lo, hi = self._bounds[name]
                 p.clamp_(lo, hi)
 
+    def _anneal_factor(self) -> float:
+        """Round-decayed step multiplier 1/(1+anneal·round) — drives the settling."""
+        return 1.0 / (1.0 + self.anneal * self._round)
+
+    def current_explore(self) -> float:
+        """The current (annealed) proposal exploration magnitude."""
+        return self.explore * max(self.explore_floor, self._anneal_factor())
+
     # --- interactive pairwise step ---
     def propose(self):
         """Render the current θ and a perturbed variant θ′; return `(current, variant)` numpy
-        frames for the owner to compare; stash the (detached) renders for `choose`."""
+        frames for the owner to compare; stash the (detached) renders for `choose`. The
+        perturbation magnitude is annealed (`current_explore`) so proposals shrink as the design
+        converges."""
         import torch
+        explore = self.current_explore()
         with torch.no_grad():
             saved = {k: v.clone() for k, v in self.theta.items()}
             for name, p in self.theta.items():
                 lo, hi = self._bounds[name]
-                p.add_(self.explore * torch.randn((), generator=self._gen,
-                                                  dtype=self.dt, device=self.img_dev))
+                p.add_(explore * torch.randn((), generator=self._gen,
+                                             dtype=self.dt, device=self.img_dev))
                 p.clamp_(lo, hi)
             var_theta = {k: float(v.detach()) for k, v in self.theta.items()}
             var_img = self._render().detach()
@@ -269,6 +297,10 @@ class ButtonAdam:
         self.owner_opt.step()
 
         # 2) POLICY UPDATE — Adam ascends the BLENDED reward THROUGH the substrate render.
+        # Anneal the policy lr alongside exploration so the steps shrink as it converges.
+        lr = self.lr_theta0 * max(self.lr_floor, self._anneal_factor())
+        for g in self.theta_opt.param_groups:
+            g["lr"] = lr
         for _ in range(self.theta_steps):
             self.theta_opt.zero_grad()
             self.owner_opt.zero_grad()
@@ -287,5 +319,6 @@ class ButtonAdam:
                 frame = self._render()
                 rewards = [float(self._reward(frame, c).detach()) for c in range(self.n_copy)]
                 self.copy = int(max(range(self.n_copy), key=lambda c: rewards[c]))
+        self._round += 1                                 # advance the anneal schedule
         self._pending = None
         return float(bt.detach())
