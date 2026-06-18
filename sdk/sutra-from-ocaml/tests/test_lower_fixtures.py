@@ -133,6 +133,7 @@ _RUNNABLE_FIXTURES = {
     "floatarith": 6.5,   # main () = addf 2.5 4.0
     "max": 5.0,          # main () = maxi 5 3  (if/then/else defuzz blend)
     "let_in": 10.0,      # main () = f 4  (let x = a+1 in x*2)
+    "tuple_destructure": 13.0,  # add_pair (t: int*int) = let (a, b) = t in a + b; main = add_pair (5, 8)  (let-tuple-pattern -> realvec(item _0/_1))
     "tail_rec_sum": 15.0,  # main () = sum_to 0 5  (tail rec -> while_loop)
     "tail_rec_swap": 7.0,  # main () = swaploop 7 9 2  (simultaneous update via temps)
     "match_lit": 200.0,    # main () = classify 1  (match -> nested defuzz blend)
