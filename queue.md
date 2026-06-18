@@ -24,21 +24,6 @@ migrate `todo.md` → `queue.md` → deleted on completion.
 
 ---
 
-## 0. Next work items — barrel in this sequence (Emma 2026-06-18: just do them)
-
-The clean nested + MIXED destructure ports across all 5 ML-family frontends (OCaml, F#,
-Haskell, Rust, Scala) are done. These are the next things to build — work them in order, do
-NOT ask Emma which to pick (her call: "all of those things are just the first things in the
-queue now"). Make the reasonable engineering choice where one is noted, build it on the
-substrate, measure, ship. Each: fixture-tested + RUN against ground truth; keep
-`transpilers-ci` green.
-
-- [ ] **0.6 — Elixir `is_integer`-style type-test guards** — everything is a vector on the
-  substrate, so define what a type test means here (e.g. a tag/axis check) before building, or
-  defer to `todo.md` with the reason recorded. Spec-first.
-
----
-
 ## 2. Phase 5 — real-WASM-bytecode core (COMPLETE; only follow-ups remain)
 
 WebAssembly is the VM direction (Emma 2026-06-17; JVM done + parked).
