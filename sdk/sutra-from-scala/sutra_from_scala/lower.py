@@ -301,7 +301,9 @@ def _collect_scala_tuple_paths(pat, src: bytes, prefix: tuple):
     """Flatten a (possibly NESTED) Scala `tuple_pattern` into `[(path_keys, name), …]`,
     where `path_keys` is the chain of 1-based positional axon keys (`_1`, `_2`, …)
     reaching the bound name (Scala tuple selectors are 1-based: `t._1`). A nested
-    `tuple_pattern` element recurses; any non-identifier/non-tuple element → None.
+    `tuple_pattern` element recurses; a `case_class_pattern` element (`(a, Box(v))`)
+    recurses via `_collect_caseclass_paths`, so tuple- and case-class patterns can MIX;
+    any other element → None.
 
     NOTE (finding 2026-06-17): nested axons that reuse key names across levels cross-talk
     at low `runtime_dim` — Scala's `_1`/`_2` keys read WRONG at the default dim 50 and
@@ -317,6 +319,11 @@ def _collect_scala_tuple_paths(pat, src: bytes, prefix: tuple):
             if sub is None:
                 return None
             out.extend(sub)
+        elif el.type == "case_class_pattern":
+            sub = _collect_caseclass_paths(el, src, prefix + (key,))
+            if sub is None:
+                return None
+            out.extend(sub)
         else:
             return None
     return out
@@ -326,16 +333,18 @@ def _collect_caseclass_paths(pat, src: bytes, prefix: tuple):
     """Flatten a (possibly NESTED) `case_class_pattern` into [(field_path, local), …]:
     each pattern element binds POSITIONALLY to the case class's declared field
     (`_CASE_CLASSES[Point] = [x, y]`); a nested `case_class_pattern` element recurses
-    (`Outer(Inner(a, b), c)` → `[(("inner","x"),"a"), (("inner","y"),"b"), (("z",),"c")]`).
-    Field names are distinct across levels, so the keys read clean at dim 50. Any other
-    element shape → None (a later item)."""
+    (`Outer(Inner(a, b), c)` → `[(("inner","x"),"a"), (("inner","y"),"b"), (("z",),"c")]`);
+    a nested `tuple_pattern` element (`Outer(a, (x, y))`) recurses via
+    `_collect_scala_tuple_paths`, so case-class and tuple patterns can MIX. Field names are
+    distinct across levels, so the keys read clean at dim 50 (a nested tuple's `_1`/`_2` keys
+    may still need dim ≥ 100). Any other element shape → None (a later item)."""
     tid = next((c for c in pat.named_children if c.type == "type_identifier"), None)
     cname = _text(tid, src) if tid is not None else None
     if cname is None or cname not in _CASE_CLASSES:
         return None
     fields = _CASE_CLASSES[cname]
     elems = [c for c in pat.named_children
-             if c.type in ("identifier", "case_class_pattern")]
+             if c.type in ("identifier", "case_class_pattern", "tuple_pattern")]
     if len(elems) != len(fields):
         return None
     out: list = []
@@ -344,6 +353,11 @@ def _collect_caseclass_paths(pat, src: bytes, prefix: tuple):
             out.append((prefix + (field,), _text(el, src)))
         elif el.type == "case_class_pattern":
             sub = _collect_caseclass_paths(el, src, prefix + (field,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        elif el.type == "tuple_pattern":
+            sub = _collect_scala_tuple_paths(el, src, prefix + (field,))
             if sub is None:
                 return None
             out.extend(sub)

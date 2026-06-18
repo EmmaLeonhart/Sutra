@@ -118,8 +118,12 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   case-class match needing `_tag` tests is a later item); ~~nested case-class patterns
   (`val Outer(Inner(a, b), c) = o`)~~ DONE 2026-06-18 (`_collect_caseclass_paths` recurses into nested
   case_class_pattern elements over declared field names + shared `_emit_scala_nested_reads`;
-  `nested_caseclass_destructure`=16 on the substrate — distinct field keys clean at dim 50). **Scala
-  item drained** — only general breadth remains.
+  `nested_caseclass_destructure`=16 on the substrate — distinct field keys clean at dim 50); ~~MIXED
+  tuple/case-class nesting (`val (a, Box(v)) = t`, `val Outer(a, (x, y)) = o`)~~ DONE 2026-06-18
+  (`_collect_scala_tuple_paths` and `_collect_caseclass_paths` now cross-call so a case class nests in
+  a tuple and vice-versa; `caseclass_in_tuple`=13, `tuple_in_caseclass`=16 on the substrate — the
+  `_1`/`_2` keys appear at only one level so no cross-level reuse, clean at dim 50). **Scala item
+  drained** — only general breadth remains.
   - [ ] **(cross-cutting) nested-axon cross-talk** — F#/Rust nested fixtures pass at the default dim 50 by
     luck of their `_0`/`_1`/field-name keys; for robustness consider running ALL nested-axon fixtures at
     `runtime_dim ≥ 128`, or use distinct depth-prefixed nested keys. Decision pending (see the finding's
