@@ -10496,3 +10496,30 @@ the rectangular fill is `(n+1)^2` cells, so practical to `loop_max_iterations` (
 n ≤ 6; larger n needs `[project.compile] loop_max_iterations` raised). Remaining for the serious
 attempt: (iii) irregular (non-grid) recursion via an explicit RAM-agenda + RAM-memo work-stack
 loop. The 8h cron (`073302bf`) cuts a follow-up release if/when the full complicated form lands.
+
+## 2026-06-17 — phase 5.5 tier 4: serious attempt CLOSED — DP tiers native+auto, irregular deferred to WASM
+
+The v0.8.0 "serious attempt" at the complicated native-recursion form is closed with a measured,
+honest split (Emma's rule: serious attempt; keep what reliably runs; defer what doesn't):
+
+**Landed (kept):** single-index DP (rolling-window + RAM-memo) and **multi-arg DP** (binomial,
+AUTO-SYNTHESIZED — `detect_2arg_dp` + `synthesize_2arg_dp_source`, default-on) run natively on the
+substrate == ground truth. These are the "memoize everything" DP forms Emma emphasized; they work.
+
+**Attempted, NOT landed (deferred to `todo.md`):** genuinely irregular (non-grid, stack-based)
+recursion. Built the general mechanism — a fully branchless explicit **RAM-stack post-order
+evaluator** (call stack in RAM, `sp` as `while_loop` state with a `(2*sp)>1` halt, per-frame phase
+machine pushing one child per iteration, all control via ±1-flag blends, no `if/else`, no `Math.mod`).
+Its algorithm is **verified correct in a Python mirror** of the exact blend ops (7-node sum-tree →
+100, 3-node → 30, == real recursion). But it **does not execute practically on the substrate**:
+7-node timed out >200s (twice); a 3-node tree at unroll-cap 8 pinned the GPU for minutes with no
+output. The proven Pascal DP loop — same primitives, same machine — runs in ~1.5s, so this is a
+per-step pathology in the larger branchless body inside the recurrent `loop` unroll (un-root-caused;
+deep substrate-perf debugging out of scope per the fallback rule). Finding:
+`planning/findings/2026-06-17-tier4-irregular-recursion-trampoline-substrate-too-slow.md`.
+
+**Outcome:** irregular recursion stays on `todo.md` for later (root-cause the perf, or keep WASM
+permanently); the **tier-5 WASM fallback** (`wasm_core`, recursive `fib(0..6)`, 45/45) is the shipped
+path for non-tabulable recursion. The DP tiers stay native + auto-synthesized. queue.md tier-4 block
+removed (work done / deferred); the 8h cron (`073302bf`) will find the full complicated form not
+built and correctly leave the todo item.
