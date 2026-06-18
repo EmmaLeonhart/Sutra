@@ -136,6 +136,7 @@ _RUNNABLE_FIXTURES = {
     "tuple_destructure": 13.0,  # add_pair (t: int*int) = let (a, b) = t in a + b; main = add_pair (5, 8)  (let-tuple-pattern -> realvec(item _0/_1))
     "record_destructure": 13.0,  # type point={x;y}; sum (p) = let { x; y } = p in x + y; main = sum {x=5;y=8}  (let-record-pattern, punned -> realvec(item x/y))
     "du_destructure": 13.0,  # type box = Box of int; unbox (b) = let (Box x) = b in x + 1; main = unbox (Box 12)  (let-DU-pattern, single payload -> realvec(item _val))
+    "nested_tuple_destructure": 16.0,  # f (t: int*(int*int)) = let (a, (b, c)) = t in a+b+c; f (5, (8, 3))  (NESTED tuple let: nested-axon construction + Axon temp for the _1 prefix)
     "tail_rec_sum": 15.0,  # main () = sum_to 0 5  (tail rec -> while_loop)
     "tail_rec_swap": 7.0,  # main () = swaploop 7 9 2  (simultaneous update via temps)
     "match_lit": 200.0,    # main () = classify 1  (match -> nested defuzz blend)
