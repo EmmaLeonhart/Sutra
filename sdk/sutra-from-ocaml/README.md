@@ -39,7 +39,9 @@ record-`let` destructure `let { x; y } = p in …` [punned + renamed `{ x = a }`
 → `realvec(p.item("x"))`, and variant-`let` destructure `let (Box x) = b in …` /
 `let (Wrap (a, b)) = w in …` [single payload → `_val`, tuple payload → `_val0`/`_val1`],
 and NESTED tuple-`let` `let (a, (b, c)) = t in …` [nested-axon construction + an `Axon`
-temp per non-leaf prefix] shipped 2026-06-18.)
+temp per non-leaf prefix], and NESTED record-`let` `let { a; inr = { v } } = o in …`
+[recursive record construction + field-name path keys, same shared `Axon`-temp machinery]
+shipped 2026-06-18.)
 
 ## Use
 
