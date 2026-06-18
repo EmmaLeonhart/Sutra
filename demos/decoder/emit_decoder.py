@@ -146,3 +146,113 @@ def compile_baked(su_path, name: str = "decoder_baked"):
     from sutra_compiler import compile_su
     mod = compile_su(su_path, llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
     return getattr(mod, name)
+
+
+# --- emit the Fourier ENCODING on-substrate too (w2c finding follow-on #2, unblocked by sin_buf) ---
+#
+# `bake_decoder` above bakes the decoder FORWARD but still expects the host to Fourier-encode the
+# coordinates first. Follow-on #2 of planning/findings/2026-06-17-decoder-weight-to-code.md was
+# BLOCKED on an elementwise-buffer transcendental; `sin_buf`/`cos_buf` (2026-06-17) unblocked it.
+# `bake_decoder_with_encoding` emits a FULLY self-contained `name(matrix coords)` — raw (x,y)
+# coordinates in, image out, the Fourier encoding AND the decode both on the substrate.
+#
+# No concat primitive is needed. The host encoding is `feats = [coords, sin(f0·c), cos(f0·c), …]`
+# (row-blocks of `coord_dim` rows each) and the first layer computes `W0 @ feats`. Since
+# `W0 @ row_stack(blocks) = Σ_j W0[:, cols_j] @ block_j`, we split the trained `W0` (H×F) BY
+# COLUMNS into per-block matrices (H×coord_dim) at bake time and emit a SUM of
+# `Tensor.MatrixMul(W0_blk, <block>)` terms, where `<block>` is `coords`, `sin_buf(f_k·coords)`,
+# or `cos_buf(f_k·coords)` — mathematically identical, all existing substrate ops + the new
+# primitive. The frequencies f_k = 2^k·π are compile-time constants (scalar·buffer scales
+# elementwise on the substrate, verified).
+
+_ENC_HELPERS = """\
+// Emitted by emit_decoder.bake_decoder_with_encoding (w2c follow-on #2, STANDALONE + on-substrate
+// Fourier encoding). Raw coordinates in, image out: the Fourier encoding (sin_buf/cos_buf) AND the
+// decode (Tensor.MatrixMul + hadamard cubic) both run on the substrate; weights load from CSV.
+function matrix lc(matrix W, matrix x, matrix b) {
+    matrix h = Tensor.MatrixMul(W, x) + b;
+    return hadamard(hadamard(h, h), h);
+}
+function matrix ll(matrix W, matrix x, matrix b) {
+    return Tensor.MatrixMul(W, x) + b;
+}
+"""
+
+
+def bake_decoder_with_encoding(params, num_freqs, out_dir, coord_dim: int = 2,
+                               name: str = "decoder_enc"):
+    """Bake a trained decoder (whose first layer consumes `fourier_features(coords, num_freqs)`)
+    to a STANDALONE `.su` `name(matrix coords)` that runs the Fourier ENCODING on the substrate
+    too (via `sin_buf`/`cos_buf`), not just the decode. `params` = [(W0,b0),…] with W0 of shape
+    (H, coord_dim·(1+2·num_freqs)) — the host-encoded input dim. Returns the `.su` path.
+
+    W0 is split by columns into the coords block + per-frequency sin/cos blocks (each H×coord_dim,
+    matching the `fourier_features` row layout [coords, sin(f0·c), cos(f0·c), sin(f1·c), …]); the
+    first-layer pre-activation is emitted as the SUM of `Tensor.MatrixMul(block, enc_block)` + b0,
+    enc_block ∈ {coords, sin_buf(f_k·coords), cos_buf(f_k·coords)}. Remaining layers are the same
+    cubic/linear stack as `bake_decoder`."""
+    import math
+    import pathlib
+    out_dir = pathlib.Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    n = len(params)
+    W0, b0 = params[0]
+    F = W0.shape[1]
+    expected = coord_dim * (1 + 2 * num_freqs)
+    if F != expected:
+        raise ValueError(f"W0 in-dim {F} != coord_dim·(1+2·num_freqs) = {expected}")
+
+    decls = []
+    # --- first-layer column blocks (the encoding fold) ---
+    # block order matches fourier_features: [coords, sin(f0), cos(f0), sin(f1), cos(f1), …]
+    blocks = []                                  # (decl_var, su_expr_for_enc_block)
+    col = 0
+    # coords block
+    wc = out_dir / f"{name}_W0_coords.csv"
+    _write_csv(wc, W0[:, col:col + coord_dim])
+    decls.append(f'    matrix W0c = load_matrix("{str(wc).replace(chr(92), "/")}");')
+    blocks.append(("W0c", "coords"))
+    col += coord_dim
+    for k in range(num_freqs):
+        f = float(2 ** k) * math.pi
+        for trig in ("sin", "cos"):
+            wk = out_dir / f"{name}_W0_{trig}{k}.csv"
+            _write_csv(wk, W0[:, col:col + coord_dim])
+            var = f"W0{trig}{k}"
+            decls.append(f'    matrix {var} = load_matrix("{str(wk).replace(chr(92), "/")}");')
+            blocks.append((var, f"{trig}_buf({f!r} * coords)"))
+            col += coord_dim
+    # b0
+    b0p = out_dir / f"{name}_b0.csv"
+    _write_csv(b0p, b0.reshape(b0.shape[0], 1))
+    decls.append(f'    matrix b0 = load_matrix("{str(b0p).replace(chr(92), "/")}");')
+    # remaining layers (1..n-1), same as bake_decoder
+    for i in range(1, n):
+        W, b = params[i]
+        wp, bp = out_dir / f"{name}_W{i}.csv", out_dir / f"{name}_b{i}.csv"
+        _write_csv(wp, W)
+        _write_csv(bp, b.reshape(b.shape[0], 1))
+        decls.append(f'    matrix W{i} = load_matrix("{str(wp).replace(chr(92), "/")}");')
+        decls.append(f'    matrix b{i} = load_matrix("{str(bp).replace(chr(92), "/")}");')
+
+    # first-layer pre-activation = Σ MatrixMul(block, enc_block) + b0; bind it so the cubic
+    # doesn't re-emit (and re-compute) the whole sum three times.
+    sum_terms = " + ".join(f"Tensor.MatrixMul({var}, {enc})" for var, enc in blocks)
+    body = [f"    matrix h0pre = ({sum_terms}) + b0;"]
+    if n > 1:
+        expr = "hadamard(hadamard(h0pre, h0pre), h0pre)"        # layer 0 is hidden → cubic
+        for i in range(1, n - 1):
+            expr = f"lc(W{i}, {expr}, b{i})"
+        expr = f"ll(W{n - 1}, {expr}, b{n - 1})"
+    else:
+        expr = "h0pre"                                          # single linear layer
+
+    src = (_ENC_HELPERS
+           + f"\nfunction matrix {name}(matrix coords) {{\n"
+           + "\n".join(decls) + "\n"
+           + "\n".join(body)
+           + f"\n    return {expr};\n}}\n"
+           + 'function string main() { return "ok"; }\n')
+    su_path = out_dir / f"{name}.su"
+    su_path.write_text(src, encoding="utf-8")
+    return su_path
