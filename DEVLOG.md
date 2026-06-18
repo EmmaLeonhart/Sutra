@@ -10610,3 +10610,22 @@ lower clean (no UNSUPPORTED), and the two substrate fixtures on the changed dest
 (`tuple_destructure`=13, `nested_tuple_destructure`=16) pass (22 passed / 18 substrate-deselected for
 speed — per-subprocess CUDA init makes the full 20-run substrate suite slow; CI runs it in full).
 Nested RECORD patterns + nullary-variant-return + let-bound record-update remain on the F# item.
+
+## 2026-06-17 — F# frontend: nested RECORD destructure `let { inner = { v = vv } } = r` ships (runs == 13)
+
+Phase 6, F# item. Companion to the nested-tuple work earlier today: a nested RECORD pattern now
+lowers AND runs natively. The Axon-temp read machinery was extracted into a shared
+`_emit_nested_reads(val_src, paths)` (one `Axon` temp per non-leaf prefix, shared across siblings,
+each leaf read as `realvec(<holder>.item("<leaf>"))`), and both the tuple- and record-destructure
+sites now use it. `_collect_record_paths` recursively flattens a `record_pattern` to field-name
+key-paths (`{ a = aa; inner = { v = vv } }` → `[(("a",),"aa"), (("inner","v"),"vv")]`), recursing
+into a `field_pattern` whose value is itself a `record_pattern`.
+
+Fixture `nested_record_destructure` (`type Inner={v}; type Outer={a;inner}; f (o)=let {a=aa;
+inner={v=vv}}=o in aa+vv; f {a=5;inner={v=8}}`) runs on the substrate == **13** (== ground truth).
+Verified: all 21 F# lower-only fixtures still clean + the 4 substrate fixtures on the shared
+destructure path (`record_destructure`=13, `nested_record_destructure`=13, `tuple_destructure`=13,
+`nested_tuple_destructure`=16) pass (25 passed / 17 substrate-deselected for speed; CI runs all).
+The tuple refactor onto `_emit_nested_reads` is behaviour-preserving (tuple fixtures unchanged).
+Remaining on the F# item: mixed tuple-in-record / record-in-tuple nesting; nullary-variant-return;
+let-bound record-update.
