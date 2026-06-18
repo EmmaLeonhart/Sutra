@@ -42,6 +42,7 @@ _RUNNABLE = {
     "match_guard": 60.0,  # case 0 => 100; case x if x > 0 => x*10; case _ => 300; classify(6)
     "nontail_fact": 120.0,  # def fact(n) = if (n==0) 1 else n * fact(n-1); fact(5)  (CPS fold)
     "object_dispatch": 26.0,  # object Calc { add, twice }; Calc.add(7,9)=16 + Calc.twice(5)=10
+    "string_eq": 30.0,  # classify(s) = if (s == "foo") 10 else 20; classify("foo")+classify("bar") = 10+20  (Scala string LITERAL -> Sutra string; == routes to eq_synthetic via the String type)
 }
 
 

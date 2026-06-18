@@ -11656,3 +11656,18 @@ self-call (its guard may be None or explicit); an explicit recursive guard becom
 continue directly, the catch-all base is the post-loop value. Fixtures `guarded_rec_clause`
 f(5,0)=15, RUN on the substrate; base selection verified f(0,7)=7, f(3,0)=6 in both. Suites:
 Elixir 52, Erlang 42 (no regression). No hoist-globals / no codegen-limit risk.
+
+## 2026-06-18 — Scala + F# string literals (+ WASM-fallback edge-case policy)
+
+Scala and F# didn't lower string LITERALS at all (`"hello"` → UNSUPPORTED). Added the
+string-literal case to each frontend's expression/const lowering → a Sutra string literal
+(string-flag codepoint array). Combined with the earlier String-type eq_synthetic fix, `==`/`=`
+on strings now discriminates correctly. Measurable fixtures `string_eq` (both):
+`classify(s) = if s == "foo" then 10 else 20; classify("foo")+classify("bar")` = 30, RUN on the
+substrate. Suites: Scala 38, F# 58 (no regression). (F# no-paren curried application as an infix
+operand still needs parens — logged as an edge case.)
+
+Per Emma: the per-frontend constructs that don't lower natively but run via the tier-5 WASM
+fallback are now catalogued in `planning/wasm-fallback-edge-cases.md`, with the policy — attempt
+each, but **few cycles each, low value**; leave on WASM if not clean; never fake. Added a tail
+entry in `todo.md` and consolidated the queue's LAST-section bullet to point at the catalogue.
