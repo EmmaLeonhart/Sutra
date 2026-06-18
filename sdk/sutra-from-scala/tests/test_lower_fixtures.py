@@ -33,6 +33,7 @@ _RUNNABLE = {
     "nested_tuple_destructure": (16.0, 128),  # def f(t: (Int,(Int,Int))) = { val (a,(b,c)) = t; a+b+c }; f((5,(8,3)))
     "caseclass_destructure": 13.0,  # case class Point(x,y); sum(p) = { val Point(a, b) = p; a + b }; main = sum(Point(5, 8))  (val-case-class-pattern -> realvec(item x/y) positionally)
     "caseclass_match": 13.0,  # case class Point(x,y); sum(p) = p match { case Point(a, b) => a + b }; main = sum(Point(5, 8))  (case-class MATCH pattern -> positional realvec(item x/y))
+    "nested_caseclass_destructure": 16.0,  # case class Inner(x,y), Outer(inner,z); sum(o) = { val Outer(Inner(a, b), c) = o; a+b+c }; sum(Outer(Inner(5,8),3))  (NESTED case-class val pattern -> Axon temp for the inner prefix)
     "tail_rec": 15.0,  # def sumTo(acc,n) = if (n==0) acc else sumTo(acc+n, n-1); sumTo(0,5)
     "match_guard": 60.0,  # case 0 => 100; case x if x > 0 => x*10; case _ => 300; classify(6)
     "nontail_fact": 120.0,  # def fact(n) = if (n==0) 1 else n * fact(n-1); fact(5)  (CPS fold)

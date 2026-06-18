@@ -111,7 +111,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   per-fixture `(expected, dim)` value); ~~case-class MATCH patterns (`case Point(a, b) => …`)~~ DONE
   2026-06-17 (irrefutable positional destructure to declared fields via `realvec(scrut.item("x"))`,
   mirroring the `val Point(a,b)=p` path; `caseclass_match`=13 on the substrate; multi-VARIANT
-  case-class match needing `_tag` tests is a later item); nested case-class/record patterns.
+  case-class match needing `_tag` tests is a later item); ~~nested case-class patterns
+  (`val Outer(Inner(a, b), c) = o`)~~ DONE 2026-06-18 (`_collect_caseclass_paths` recurses into nested
+  case_class_pattern elements over declared field names + shared `_emit_scala_nested_reads`;
+  `nested_caseclass_destructure`=16 on the substrate — distinct field keys clean at dim 50). **Scala
+  item drained** — only general breadth remains.
   - [ ] **(cross-cutting) nested-axon cross-talk** — F#/Rust nested fixtures pass at the default dim 50 by
     luck of their `_0`/`_1`/field-name keys; for robustness consider running ALL nested-axon fixtures at
     `runtime_dim ≥ 128`, or use distinct depth-prefixed nested keys. Decision pending (see the finding's

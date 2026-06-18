@@ -37,4 +37,6 @@ instance classes, String operations) models on the OCaml frontend's
 verified-running patterns as needs arise. (NESTED tuple destructure [at
 `runtime_dim ≥ 100` — finding 2026-06-17] and case-class MATCH patterns
 [`case Point(a, b) => …` → positional `realvec(scrut.item("x"))`] shipped 2026-06-17;
-multi-variant case-class match needing `_tag` tests is a later item.)
+NESTED case-class `val` patterns [`val Outer(Inner(a, b), c) = o` → an `Axon` temp per
+non-leaf prefix over declared field names] shipped 2026-06-18; multi-variant case-class
+match needing `_tag` tests is a later item.)
