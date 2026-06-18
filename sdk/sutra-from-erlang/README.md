@@ -45,3 +45,5 @@ Substrate-verified (compile AND run vs ground truth; suite 12/12): `add_main` = 
 Multi-clause recursion (Erlang's other idiom — `f(0) -> …; f(N) -> … f(N-1).`, a
 base-case-pattern clause + a recursive clause; currently `UNSUPPORTED-RECURSION`);
 maps/records/tuples → axons; list comprehensions; `div`/`rem` via complex rotation.
+(Map-PATTERN params `getx(#{x := X, y := Y}) -> X + Y` — each field binds its `var`
+to `realvec(M.item("key"))` — shipped 2026-06-17.)

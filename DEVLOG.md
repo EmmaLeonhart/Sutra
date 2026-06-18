@@ -10735,3 +10735,18 @@ the existing 2-guard scope), and the limitation is recorded:
 recursion is blocked unless the base conditions algebraically merge to one comparison (`n<=0 || n==1`
 → `n<=1`, case-specific). Queue Haskell item annotated BLOCKED with the finding + options (algebraic
 merge / derived single-flag halt / accept the limit). 2-guard guarded recursion is unaffected.
+
+## 2026-06-17 — sutra-from-erlang: map-PATTERN params `getx(#{x := X, y := Y})` ship (== 13)
+
+Phase 6, Erlang item. A map pattern in a function head (`#{x := X, y := Y}`) now destructures into
+named locals — the single-level analogue of the existing tuple/record pattern params (no nesting, so
+no nested-axon cross-talk). Added a `map_expr` case to the clause-pattern-param handling: each
+`map_field` (atom key + `var` local) binds the local to `realvec(_ai.item("key"))` (the `maps:get`
+projection), mirroring the `record_expr` param path. The map VALUE construction (`#{x => 5}` → an
+axon) already worked.
+
+Fixture `map_param` (`getx(#{x := X, y := Y}) -> X + Y; main() -> getx(#{x => 5, y => 8})`) runs on
+the substrate == **13** (== ground truth). Erlang suite: 32 passed (lower-only clean + `map_param`=13,
+`record_param`=13, `map_axon`=13 on the substrate). Remaining on Erlang: multi-clause bodies with `=`
+bindings; >2-clause recursion (multi-literal-base hits the single-condition-halt blocker per the
+finding); list comprehensions; `div`/`rem` via complex rotation.
