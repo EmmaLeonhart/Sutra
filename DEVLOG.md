@@ -10823,3 +10823,17 @@ Fixture `nested_vec_destructure` (`(defn f [t] (let [[[a b] c] t] (+ (+ a b) c))
 runs on the substrate == **16** (== ground truth). Clojure suite: 38 passed (lower-only clean + flat
 `let_destructure`=13 [unregressed], `nested_vec_destructure`=16, `vector_axon`=13). Remaining on
 Clojure: symbol map keys; multi-arity `defn` (call-site arity rewriting); `case` symbol/keyword members.
+
+## 2026-06-17 — sutra-from-scala: case-class MATCH patterns `case Point(a, b) => …` ship (== 13)
+
+Phase 6, Scala item. A case-class pattern in a `match` arm now destructures (previously only the
+`val Point(a, b) = p` binding form worked). Added a `case_class_pattern` case to the match handler:
+it binds each pattern identifier POSITIONALLY to the case class's declared field
+(`_CASE_CLASSES[Point] = [x, y]`) via `realvec(scrut.item("x"))` — the same `p.x` projection the val
+path uses — substituted into the arm's result; the pattern is irrefutable (single constructor), so it
+contributes no `_tag` test. A multi-VARIANT case-class match (needing tag tests) is a later item.
+
+Fixture `caseclass_match` (`def sum(p) = p match { case Point(a, b) => a + b }; sum(Point(5, 8))`)
+runs on the substrate == **13** (== ground truth). Scala suite: 28 passed (lower-only clean +
+`caseclass_match`=13, `caseclass_destructure`=13, `match_literal`=200 — match path unregressed).
+Remaining on Scala: nested case-class/record patterns; further breadth as needs arise.
