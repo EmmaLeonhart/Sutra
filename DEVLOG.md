@@ -11198,3 +11198,21 @@ Fixture `nested_tuple_destructure` (`f (t: int*(int*int)) = let (a, (b, c)) = t 
 3))`) runs on the substrate == **16** (== ground truth). The FULL OCaml suite passed: **136 passed** —
 no regression (flat tuple/record/variant let all still green). Remaining on OCaml: scalable RAM device
 (10MB linear memory); non-zero `Array.make` fill; nested record/variant-let patterns.
+
+## 2026-06-18 — sutra-from-ocaml: NESTED record-`let` destructure (Phase 3)
+
+OCaml reference frontend now lowers nested record-pattern `let` bindings
+(`let { a; inr = { v } } = o in a + v`). Two sides: (1) construction —
+`_emit_record_construction` recurses for nested aggregate field values
+(via `_unwrap_parens` + `_aggregate_arg_emitter`), so `{ a = 5; inr = { v = 8 } }`
+builds a nested axon (`_arg0.add("inr", _arg0_1)`); (2) destructure —
+new `_ocaml_record_paths` flattens a possibly-nested `record_pattern` into
+field-name path keys (recursing into nested record/tuple values), and the
+tuple- and record-let branches in the let-in body lowering now share one
+`_emit_nested_subst` helper that emits an `Axon` temp per non-leaf prefix
+(`Axon _np0 = o.item("inr");`) and registers `realvec(holder.item(k))`
+substitutions. Field-name keys read clean at the CLI default `runtime_dim=50`.
+New fixture `nested_record_destructure` runs on the substrate == **13**
+(== ground truth `5 + 8`). FULL OCaml suite: **137 passed** (was 136) — no
+regression. Remaining on OCaml: scalable RAM device (10MB linear memory);
+non-zero `Array.make` fill; nested variant-let patterns.

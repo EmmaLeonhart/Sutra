@@ -1122,14 +1122,23 @@ def _emit_record_construction(body, source: bytes, indent: str, var: str) -> str
     (`Axon var; var.add("f", e); …`) — WITHOUT a trailing return, so it can be
     reused both as a function body and as a hoisted call argument."""
     lines = f"{indent}Axon {var};\n"
-    for fe in body.named_children:
+    for idx, fe in enumerate(body.named_children):
         if fe.type != "field_expression":
             continue
         fp = next((c for c in fe.named_children if c.type == "field_path"), None)
         val = next((c for c in fe.named_children if c.type != "field_path"), None)
         fname = _node_text(fp, source) if fp is not None else ""
-        val_src = _lower_expression(val, source) if val is not None else "0"
-        lines += f'{indent}{var}.add("{fname}", {val_src});\n'
+        # A NESTED aggregate field value (a record, tuple, or variant) is built into its
+        # own temp axon first, then stored — so nested records become nested axons.
+        ua = _unwrap_parens(val) if val is not None else None
+        nested = (_aggregate_arg_emitter(ua, source, indent, f"{var}_{idx}")
+                  if ua is not None else None)
+        if nested is not None:
+            lines += nested
+            lines += f'{indent}{var}.add("{fname}", {var}_{idx});\n'
+        else:
+            val_src = _lower_expression(val, source) if val is not None else "0"
+            lines += f'{indent}{var}.add("{fname}", {val_src});\n'
     return lines
 
 
@@ -1415,18 +1424,14 @@ def _ocaml_flat_tuple_let(vd, source: bytes):
     return (paths, kids[-1]) if paths else None
 
 
-def _ocaml_record_let(vd, source: bytes):
-    """If `vd` is a record-pattern value binding `let { x; y } = expr` (or the renamed
-    `let { x = a; y = b } = expr`), return ([(field, local), …], value_node); else None.
-    Punned `{ x }` binds local `x` to field `x`; `{ x = a }` binds local `a` to field `x`."""
-    lb = next((c for c in vd.named_children if c.type == "let_binding"), None)
-    if lb is None or not lb.named_children:
-        return None
-    kids = lb.named_children
-    if kids[-1] is kids[0] or kids[0].type != "record_pattern":
-        return None
-    binds: list = []
-    for fp in kids[0].named_children:
+def _ocaml_record_paths(rec_pat, source: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) OCaml `record_pattern` into [(path_keys, local), …]
+    over field-name axon keys. Punned `{ x }` → local `x` at key `x`; renamed `{ x = a }`
+    → local `a` at key `x`; a nested record value `{ inr = { v } }` recurses
+    (`[(("inr","v"),"v")]`); a nested tuple value `{ p = (a, b) }` recurses via
+    `_ocaml_tuple_paths`. Any unsupported field value → None."""
+    out: list = []
+    for fp in rec_pat.named_children:
         if fp.type != "field_pattern":
             continue
         fpath = next((c for c in fp.named_children if c.type == "field_path"), None)
@@ -1434,11 +1439,44 @@ def _ocaml_record_let(vd, source: bytes):
             return None
         fname = next((c for c in fpath.named_children if c.type == "field_name"), None)
         field = _node_text(fname if fname is not None else fpath, source).strip()
-        local_pat = next((c for c in fp.named_children
-                          if c.type in ("value_name", "value_pattern")), None)
-        local = _node_text(local_pat, source).strip() if local_pat is not None else field
-        binds.append((field, local))
-    return (binds, kids[-1]) if binds else None
+        # The field VALUE pattern is the non-`field_path` child (None when punned).
+        val_pat = next((c for c in fp.named_children if c.type != "field_path"), None)
+        vp = val_pat
+        if vp is not None and vp.type == "parenthesized_pattern" and vp.named_children:
+            vp = vp.named_children[0]
+        if vp is None:
+            out.append((prefix + (field,), field))           # punned leaf
+        elif vp.type in ("value_name", "value_pattern"):
+            local = _node_text(vp, source).strip()
+            out.append((prefix + (field,), local))           # renamed leaf
+        elif vp.type == "record_pattern":
+            sub = _ocaml_record_paths(vp, source, prefix + (field,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        elif vp.type == "tuple_pattern":
+            sub = _ocaml_tuple_paths(vp, source, prefix + (field,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None
+    return out
+
+
+def _ocaml_record_let(vd, source: bytes):
+    """If `vd` is a record-pattern value binding `let { x; y } = expr` (or the renamed
+    `let { x = a; y = b } = expr`, or NESTED `let { a; inr = { v } } = expr`), return
+    ([(path_keys, local), …], value_node); else None. A flat field `x` yields path
+    `("x",)`; a nested record/tuple value recurses via `_ocaml_record_paths`."""
+    lb = next((c for c in vd.named_children if c.type == "let_binding"), None)
+    if lb is None or not lb.named_children:
+        return None
+    kids = lb.named_children
+    if kids[-1] is kids[0] or kids[0].type != "record_pattern":
+        return None
+    paths = _ocaml_record_paths(kids[0], source, ())
+    return (paths, kids[-1]) if paths else None
 
 
 def _ocaml_variant_let(vd, source: bytes):
@@ -1694,6 +1732,33 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
             out = ""
             popped: list = []  # (name, saved) tuple-let substitutions to restore
             np_ctr = [0]       # shared `_np{N}` counter for nested-tuple Axon temps
+
+            def _emit_nested_subst(paths, val_src):
+                """Given [(path_keys, name), …] over bare axon `val_src`, emit an `Axon`
+                temp per non-leaf prefix, register each leaf as a `realvec(holder.item(k))`
+                substitution in `_MATCH_SUBST` (saved into `popped`), and return the
+                temp-decl lines. Shared by tuple-, record-, and nested-mixed-let."""
+                prefix_temp = {(): val_src}
+                temp_lines: list = []
+
+                def _holder(prefix):
+                    if prefix in prefix_temp:
+                        return prefix_temp[prefix]
+                    parent = _holder(prefix[:-1])
+                    tmp = f"_np{np_ctr[0]}"
+                    np_ctr[0] += 1
+                    temp_lines.append(
+                        f'{indent}Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+                    prefix_temp[prefix] = tmp
+                    return tmp
+
+                for keys, nm in paths:
+                    holder = _holder(keys[:-1])
+                    saved = _MATCH_SUBST.get(nm, _MISSING)
+                    _MATCH_SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
+                    popped.append((nm, saved))
+                return "".join(temp_lines)
+
             for b in bindings:
                 if b.type == "value_definition":
                     # `let (a, b) = t in …` — destructure a tuple axon: each element
@@ -1707,38 +1772,18 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
                         paths, val_node = tl
                         val_src = _lower_expression(val_node, source)
                         if val_src.isidentifier():
-                            prefix_temp = {(): val_src}
-                            temp_lines: list = []
-
-                            def _tup_temp(prefix):
-                                if prefix in prefix_temp:
-                                    return prefix_temp[prefix]
-                                parent = _tup_temp(prefix[:-1])
-                                tmp = f"_np{np_ctr[0]}"
-                                np_ctr[0] += 1
-                                temp_lines.append(
-                                    f'{indent}Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
-                                prefix_temp[prefix] = tmp
-                                return tmp
-
-                            for keys, nm in paths:
-                                holder = _tup_temp(keys[:-1])
-                                saved = _MATCH_SUBST.get(nm, _MISSING)
-                                _MATCH_SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
-                                popped.append((nm, saved))
-                            out += "".join(temp_lines)
+                            out += _emit_nested_subst(paths, val_src)
                             continue
                     # `let { x; y } = p in …` — destructure a record axon: each local
-                    # substitutes to the named field read `realvec(p.item("x"))`.
+                    # substitutes to the named field read `realvec(p.item("x"))`. A NESTED
+                    # record/tuple value (`let { a; inr = { v } } = o`) reads through an
+                    # `Axon` temp per non-leaf prefix, the same machinery as nested tuples.
                     rl = _ocaml_record_let(b, source)
                     if rl is not None:
-                        rbinds, val_node = rl
+                        paths, val_node = rl
                         val_src = _lower_expression(val_node, source)
                         if val_src.isidentifier():
-                            for field, local in rbinds:
-                                saved = _MATCH_SUBST.get(local, _MISSING)
-                                _MATCH_SUBST[local] = f'realvec({val_src}.item("{field}"))'
-                                popped.append((local, saved))
+                            out += _emit_nested_subst(paths, val_src)
                             continue
                     # `let (Wrap a) = w in …` / `let (Wrap (a, b)) = w in …` — destructure
                     # a single-constructor variant axon: each payload local substitutes to
