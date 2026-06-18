@@ -40,6 +40,14 @@ def dense_layers():
     return mod.dense, mod.dense_cube, mod._VSA
 
 
+def dense_sin_layer():
+    """The SIREN-style sin-activated substrate layer `dense_sin(W,x,b) = sin(matmul(W,x)+b)`,
+    now expressible because `sin_buf` runs sin elementwise over an activation buffer (compiler
+    primitive, 2026-06-17 — the D1 finding had blocked this). Returns (dense_sin, _VSA)."""
+    mod = compile_dense()
+    return mod.dense_sin, mod._VSA
+
+
 # --- D2: Fourier-feature input encoding + the substrate-MLP recipe ---
 #
 # The decoder's expressivity comes from a Fourier-feature encoding of the input coordinates
@@ -114,6 +122,55 @@ def mlp_forward(params, X):
     h = X
     for W, b in params[:-1]:
         h = dense_cube(W, h, b)
+    W, b = params[-1]
+    return dense(W, h, b)
+
+
+# --- SIREN-style sin-activation decoder (unblocked by the sin_buf primitive, 2026-06-17) ---
+#
+# SIREN (Sitzmann et al. 2020): a coordinate MLP with sin activations on every hidden layer,
+# `h = sin(ω·(W·h + b))`, with a principled init that keeps the pre-activation distribution
+# stable so the high frequencies the sin unlocks are usable. Until 2026-06-17 the substrate
+# could not run sin elementwise over an activation buffer (D1), so the decoder used a cubic
+# activation + a Fourier-feature INPUT encoding instead. With `sin_buf` the SIREN form is now
+# expressible directly — the sin runs on the substrate. ω is folded into the first layer's
+# weights at init (the standard trick), so `dense_sin` itself is just sin of the affine map.
+
+def init_siren(sizes, dtype, device, seed: int = 0, omega0: float = 30.0):
+    """Principled SIREN init (Sitzmann et al. §3.2): first layer weights ~ U(-1/in, 1/in) (the
+    ω0 frequency is folded into W by scaling, so the first pre-activation spans ~[-ω0, ω0]);
+    hidden layers ~ U(-√(6/in)/ω0, √(6/in)/ω0) so sin stays in its well-behaved range; final
+    layer the same uniform bound (linear readout). Biases zero. Leaf tensors with requires_grad
+    — trained by a host optimizer through the compiled substrate sin/ matmul."""
+    import math
+    import torch
+    torch.manual_seed(seed)
+    params = []
+    n_layers = len(sizes) - 1
+    for i in range(n_layers):
+        in_d, out_d = sizes[i], sizes[i + 1]
+        if i == 0:
+            bound = 1.0 / in_d
+            W = (torch.rand(out_d, in_d, dtype=dtype, device=device) * 2 - 1) * bound * omega0
+        else:
+            bound = math.sqrt(6.0 / in_d) / omega0
+            W = (torch.rand(out_d, in_d, dtype=dtype, device=device) * 2 - 1) * bound
+        W = W.detach().requires_grad_(True)
+        b = torch.zeros(out_d, 1, dtype=dtype, device=device, requires_grad=True)
+        params.append((W, b))
+    return params
+
+
+def siren_forward(params, X):
+    """Batched substrate SIREN forward. Hidden layers use the substrate sin activation
+    (`dense_sin` = sin_buf(matmul+b)); the final layer is linear. The sin and the matmul run on
+    the substrate; the host only chains the layers (named orchestration). `X` is (in, N).
+    Returns (out, N)."""
+    dense, _cube, _vsa = dense_layers()
+    dense_sin, _vsa2 = dense_sin_layer()
+    h = X
+    for W, b in params[:-1]:
+        h = dense_sin(W, h, b)
     W, b = params[-1]
     return dense(W, h, b)
 
