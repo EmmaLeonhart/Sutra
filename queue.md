@@ -144,9 +144,13 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   patterns (`let (a,(b,c))=t`, `let Outer { a, inner: Inner { v } } = o`)~~ DONE 2026-06-17
   (`_collect_rust_tuple_paths` / `_collect_rust_struct_paths` + shared `_emit_rust_nested_reads`: an
   `Axon` temp per non-leaf prefix so reads dispatch as `axon_item`; `nested_tuple_destructure`=16,
-  `nested_struct_destructure`=13 on the substrate); enum/`Some(x)`-pattern `let` destructuring.
-  (Loop bounds need strict `<`/`>`; `<=` drops the boundary iteration — finding
-  `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
+  `nested_struct_destructure`=13 on the substrate); ~~enum `if let` destructuring
+  (`if let E::V(x) = s { … } else { … }`)~~ DONE 2026-06-17 (function-tail form: `int _vtag =
+  realvec(s.item("_tag"))` for a CRISP tag test [inline `realvec(...)==0` defuzzes to 50/50 at tag 0
+  — measured 6.5 not 13; the int-local round-trip fixes it] + `_val{i}` payload binds in the THEN arm;
+  `if_let_enum`=13 [Circle] / 0 [Square] on the substrate; NESTED if-let surfaces UNSUPPORTED — needs
+  an int-local an expression can't emit). (Loop bounds need strict `<`/`>`; `<=` drops the boundary
+  iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
 - [ ] **OCaml arrays — scalable RAM device for the 10MB linear memory.** `Bytes.make` / loop-carried
   arrays use the global RAM list, which doesn't scale to 10MB. Also: non-zero `Array.make` fill for
   int-dict arrays (slots start at 0 — documented limit, not a bug).
