@@ -10806,3 +10806,20 @@ Axon). Elixir suite: 44 passed (lower-only clean + `multiclause_bind_body`=13, `
 `multiclause`=120, `multiclause_fact`, `tuple_param`=13 — recursion path unregressed). Remaining on
 Elixir: arrow-map non-atom keys; >2-clause multi-literal-base recursion (single-condition-halt
 blocker); `is_integer` type-test guards (dubious on the substrate, needs a design call).
+
+## 2026-06-17 — sutra-from-clojure: nested vector destructuring `(let [[[a b] c] t] …)` ships (== 16)
+
+Phase 6, Clojure item. A nested vector binding now destructures + runs natively. Clojure's `let` is
+substitution-only (no statements), so the `Axon` temps a nested read needs go in a new function-level
+`_DESTRUCTURE_PRELUDE` accumulator, appended after the map-hoist prelude. `_collect_clj_vec_paths`
+recursively flattens a binding `vec_lit` to 0-based positional key-paths (`[[a b] c]` →
+`[(("_0","_0"),"a"), (("_0","_1"),"b"), (("_1",),"c")]`); the destructure emits one `Axon` temp per
+non-leaf prefix (`Axon _np0 = t.item("_0");`) and substitutes each leaf to `realvec(holder.item("_j"))`.
+A vector-destructured PARAM is now typed `Axon` (tracked in `_DESTRUCTURE_AXON_PARAMS`, with the
+param list built AFTER lowering). `_0`/`_1` keys are clean at dim 50 (finding
+`2026-06-17-nested-axon-readout-crosstalk`), so no dim bump is needed.
+
+Fixture `nested_vec_destructure` (`(defn f [t] (let [[[a b] c] t] (+ (+ a b) c))); (f [[5 8] 3])`)
+runs on the substrate == **16** (== ground truth). Clojure suite: 38 passed (lower-only clean + flat
+`let_destructure`=13 [unregressed], `nested_vec_destructure`=16, `vector_axon`=13). Remaining on
+Clojure: symbol map keys; multi-arity `defn` (call-site arity rewriting); `case` symbol/keyword members.
