@@ -357,6 +357,19 @@ def _lower_expr(node, src: bytes) -> str:
         finally:
             for nm in bound:
                 _SUBST.pop(nm, None)
+    if t == "case":
+        # `case` in NON-TAIL expression position (`1 + (case n of 0 -> 100; _ -> 200)`).
+        # A LITERAL/wildcard case is a pure nested blend (`_lower_case_stmts` returns no
+        # prelude — a plain-number scrutinee `n == 0` is crisp), so it inlines. A VARIANT
+        # case needs an `int _vtag` prelude an expression can't emit → a later item (use
+        # it as the function tail, where `_lower_case_stmts` emits the locals).
+        stmts, expr = _lower_case_stmts(node, src)
+        if stmts is None:
+            return expr  # an UNSUPPORTED-CASE marker
+        if stmts:
+            return ("/* UNSUPPORTED-EXPR: variant `case` in expression position "
+                    "(needs an int-local; use as the function tail) */")
+        return f"({expr})"
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 

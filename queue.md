@@ -140,8 +140,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   gate one loop unless they algebraically merge to one comparison; the multibase transform was
   written, measured wrong [`f 0 3`→6 not 105], and reverted); multi-equation guarded recursion
   (`f 0 acc | …; f n acc | …`); mutually-recursive/forward `where`/`let`; nested/non-variable
-  constructor `case` patterns; nested tuple/constructor `let` patterns; `case` in non-tail expression
-  position. (Laziness out of scope.)
+  constructor `case` patterns; nested tuple/constructor `let` patterns; ~~`case` in non-tail expression
+  position~~ DONE 2026-06-17 for LITERAL cases (`_lower_expr` reuses `_lower_case_stmts`: a literal
+  case has no `int _vtag` prelude so it inlines as a nested blend; `case_nontail`=101 on the substrate;
+  a VARIANT case in expression position still needs an int-local an expression can't emit → later item).
+  (Laziness out of scope.)
 - [ ] **Rust** (`sutra-from-rust/`): nested match inside a tail-match arm; ~~nested tuple AND struct
   patterns (`let (a,(b,c))=t`, `let Outer { a, inner: Inner { v } } = o`)~~ DONE 2026-06-17
   (`_collect_rust_tuple_paths` / `_collect_rust_struct_paths` + shared `_emit_rust_nested_reads`: an
