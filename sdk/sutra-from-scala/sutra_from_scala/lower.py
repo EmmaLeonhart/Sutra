@@ -319,6 +319,36 @@ def _collect_scala_tuple_paths(pat, src: bytes, prefix: tuple):
     return out
 
 
+def _collect_caseclass_paths(pat, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) `case_class_pattern` into [(field_path, local), …]:
+    each pattern element binds POSITIONALLY to the case class's declared field
+    (`_CASE_CLASSES[Point] = [x, y]`); a nested `case_class_pattern` element recurses
+    (`Outer(Inner(a, b), c)` → `[(("inner","x"),"a"), (("inner","y"),"b"), (("z",),"c")]`).
+    Field names are distinct across levels, so the keys read clean at dim 50. Any other
+    element shape → None (a later item)."""
+    tid = next((c for c in pat.named_children if c.type == "type_identifier"), None)
+    cname = _text(tid, src) if tid is not None else None
+    if cname is None or cname not in _CASE_CLASSES:
+        return None
+    fields = _CASE_CLASSES[cname]
+    elems = [c for c in pat.named_children
+             if c.type in ("identifier", "case_class_pattern")]
+    if len(elems) != len(fields):
+        return None
+    out: list = []
+    for el, field in zip(elems, fields):
+        if el.type == "identifier":
+            out.append((prefix + (field,), _text(el, src)))
+        elif el.type == "case_class_pattern":
+            sub = _collect_caseclass_paths(el, src, prefix + (field,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None
+    return out
+
+
 def _emit_scala_nested_reads(val_src: str, paths):
     """Given a base axon `val_src` and `[(path_keys, name), …]`, return
     `(temp_lines, bind_lines)`: one `Axon` temp per non-leaf prefix (shared across
@@ -383,24 +413,17 @@ def _lower_block(node, src: bytes) -> str:
                 stmts += "".join(temp_lines) + "".join(bind_lines)
                 continue
             if kids[0].type == "case_class_pattern":
-                # `val Point(a, b) = p` — destructure a case-class axon: the pattern
-                # binds its identifiers POSITIONALLY to the case class's declared
-                # field names (`_CASE_CLASSES[Point] = [x, y]`), each read via
-                # `realvec(p.item("x"))` (the `p.x` projection). The value is hoisted
-                # first so `val Point(a, b) = Point(5, 8)` works too.
+                # `val Point(a, b) = p` — destructure a case-class axon: each pattern
+                # element binds POSITIONALLY to the case class's declared field
+                # (`_CASE_CLASSES[Point] = [x, y]`), read via `realvec(p.item("x"))` (the
+                # `p.x` projection). NESTED patterns (`val Outer(Inner(a, b), c) = o`) read
+                # through an `Axon` temp per non-leaf prefix. The value is hoisted first so
+                # `val Point(a, b) = Point(5, 8)` works too.
                 pat = kids[0]
-                tid = next((c for c in pat.named_children
-                            if c.type == "type_identifier"), None)
-                elems = [e for e in pat.named_children if e.type == "identifier"]
-                cname = _text(tid, src) if tid is not None else None
-                if cname is None or cname not in _CASE_CLASSES or not elems:
-                    stmts += ("    /* UNSUPPORTED-VAL: case-class pattern (unknown "
-                              "class or non-identifier element, later item) */\n")
-                    continue
-                fields = _CASE_CLASSES[cname]
-                if len(elems) != len(fields):
-                    stmts += ("    /* UNSUPPORTED-VAL: case-class pattern arity "
-                              "mismatch (later item) */\n")
+                paths = _collect_caseclass_paths(pat, src, ())
+                if paths is None:
+                    stmts += ("    /* UNSUPPORTED-VAL: case-class pattern (unknown class "
+                              "/ non-identifier element / arity mismatch, later item) */\n")
                     continue
                 val_expr = kids[-1]
                 deep = _hoist_constructions(val_expr, src, "    ")
@@ -411,9 +434,8 @@ def _lower_block(node, src: bytes) -> str:
                 val_src = _lower_expr(val_expr, src)
                 for nid in added:
                     _ARG_HOIST.pop(nid, None)
-                for el, field in zip(elems, fields):
-                    stmts += (f'    {_DEFAULT_TYPE} {_text(el, src)} = '
-                              f'realvec({val_src}.item("{field}"));\n')
+                temp_lines, bind_lines = _emit_scala_nested_reads(val_src, paths)
+                stmts += "".join(temp_lines) + "".join(bind_lines)
                 continue
             name = _text(kids[0], src)
             val_expr = kids[-1]
