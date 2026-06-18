@@ -164,7 +164,8 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   position~~ DONE 2026-06-17 for LITERAL cases (`_lower_expr` reuses `_lower_case_stmts`: a literal
   case has no `int _vtag` prelude so it inlines as a nested blend; `case_nontail`=101 on the substrate;
   a VARIANT case in expression position still needs an int-local an expression can't emit → later item).
-  (Laziness out of scope.)
+  **Bool literal case `case b of True -> … | False -> …`** DONE 2026-06-18 (`(b == true)`/`(b == false)`
+  blend, `True`/`False` values → `true`/`false`; `bool_case`=10 on the substrate). (Laziness out of scope.)
 - [ ] **Rust** (`sutra-from-rust/`): ~~nested match inside a tail-match arm~~ DONE 2026-06-18 for a
   LITERAL inner match (`_lower_match_stmts` gains integer-literal patterns + only emits the `_vtag`
   prelude for VARIANT matches, so a literal match has no prelude and `_lower_expr` inlines it as a
