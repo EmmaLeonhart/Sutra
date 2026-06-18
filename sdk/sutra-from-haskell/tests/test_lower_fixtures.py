@@ -45,6 +45,7 @@ _RUNNABLE = {
     "multiclause_tailsum": 15.0,  # sum 0 acc = acc; sum n acc = sum (n-1) (acc+n); main = sum 5 0  (multi-PARAM multi-equation tail recursion -> while_loop)
     "guarded_fact": 120.0,  # fac n | n == 0 = 1 | otherwise = n * fac (n-1); main = fac 5  (GUARDED recursion -> cond from guard -> CPS fold loop)
     "guarded_tailsum": 15.0,  # sumTo n acc | n == 0 = acc | otherwise = sumTo (n-1) (acc+n); main = sumTo 5 0  (multi-PARAM guarded tail recursion -> while_loop)
+    "guarded_explicit_rec": 15.0,  # sumTo acc n | n==0=acc | n>0=sumTo (acc+n) (n-1); sumTo 0 5 = 15  (the recursive guard is an EXPLICIT condition n>0, not `otherwise` -> continue = that condition)
     "multibase_tailsum": 105.0,  # f n acc | n==0=acc | n==1=acc+100 | otherwise=f (n-1) (acc+n); f 3 0 = 105  (>2-GUARD multi-base tail recursion: continue = (n!=0)&&(n!=1) compound halt [§0.3], post-loop = nested blend of the base RHSs on final state)
 }
 # (regression guards for the cond_src/neg_src recursion refactor: tail_rec, nontail_fact above)

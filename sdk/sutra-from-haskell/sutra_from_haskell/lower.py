@@ -879,19 +879,33 @@ def _try_lower_guarded_recursion(name: str, typed_params, ret: str, matches, src
     parts = [guard_parts(m) for m in matches]
     if any(p is None for p in parts):
         return None
-    cond_m = other_m = None
+    # One non-recursive BASE guard + one recursive guard. The recursive guard may
+    # be `otherwise` OR an explicit condition (`| n > 0 = f …`). The base guard is
+    # always an explicit condition.
+    base_m = rec_m = None
     for inner, result in parts:
         is_otherwise = inner.type == "variable" and _text(inner, src) == "otherwise"
-        if not is_otherwise and not _contains_self_call(result, name, src):
-            cond_m = (inner, result)
-        elif is_otherwise and _contains_self_call(result, name, src):
-            other_m = (inner, result)
-    if cond_m is None or other_m is None:
+        if _contains_self_call(result, name, src):
+            rec_m = (None if is_otherwise else inner, result)  # cond None ⇒ otherwise
+        elif not is_otherwise:
+            base_m = (inner, result)
+    if base_m is None or rec_m is None:
         return None
-    cond_node, then_e = cond_m  # base (non-recursive) result
-    _otherwise, else_e = other_m  # recursive result
-    cond_src = _lower_expr(cond_node, src)
-    neg_src = _negate_cond(cond_node, src)
+    cond_node, then_e = base_m  # base (non-recursive): condition + result
+    rec_cond, else_e = rec_m    # recursive: result, + explicit cond or None (otherwise)
+    if rec_cond is None:
+        # Recursive = `otherwise`: continue while NOT the base condition.
+        cond_src = _lower_expr(cond_node, src)
+        neg_src = _negate_cond(cond_node, src)
+    else:
+        # Explicit recursive condition (`| n > 0 = f …`): continue = that condition.
+        # `_try_lower_tail_recursive`/`_try_lower_foldable_nontail` take then_e=base,
+        # else_e=rec, so the recursive branch is `else` and the continue is `neg_src`
+        # — feed the recursive condition there (cond_src is unused for an else-recursive
+        # call but must be non-UNSUPPORTED). Strict `<`/`>` halt crisply at the
+        # boundary (tie → heaviside 0); the base guard matches at exit.
+        cond_src = _negate_cond(rec_cond, src)
+        neg_src = _lower_expr(rec_cond, src)
     if "UNSUPPORTED" in cond_src or "UNSUPPORTED" in neg_src:
         return None
     rec = _try_lower_tail_recursive(name, typed_params, ret, cond_src, neg_src,
