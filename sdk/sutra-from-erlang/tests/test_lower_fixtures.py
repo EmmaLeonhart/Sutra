@@ -30,6 +30,7 @@ _REPO = HERE.parents[2]
 # Fixtures with a callable `main` and a known substrate result.
 _RUNNABLE = {
     "add_main": 16.0,  # add(A, B) -> A + B; main() -> add(7, 9)
+    "div_rem": 5.0,  # main() -> (17 div 5) + (17 rem 5) = 3 + 2  (div -> Math.trunc(A/B); rem -> % -> _VSA.fmod, sign of dividend)
     "if_classify": 100.0,  # classify(N) -> if N > 0 -> 100; true -> 200 end; classify(5)
     "tail_rec": 15.0,  # sum_to(Acc, N) -> if N == 0 -> Acc; true -> sum_to(Acc+N, N-1) end; sum_to(0, 5)
     "nontail_fact": 120.0,  # fac(N) -> if N == 0 -> 1; true -> N * fac(N-1) end; fac(5)  (CPS fold)
