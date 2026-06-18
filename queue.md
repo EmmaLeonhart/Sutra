@@ -13,8 +13,9 @@ migrate `todo.md` → `queue.md` → deleted on completion.
 
 ## Context (read first, do not work on)
 
-- **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07) — live revision target. `paper/neurips/`
-  stays **permanently frozen** (do NOT touch). Measured numbers only; no overclaiming.
+- **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07) — live revision target. The `paper/neurips/`
+  edit-freeze was **RETIRED 2026-06-18** (Emma: "give up on the NeurIPS freeze") — it is now editable
+  for factual fixes; the immutable record is git commit `ea6f8a01`. Measured numbers only; no overclaiming.
 - **NEVER use `Math.mod`** (worst-implemented; measured vector-collapse/NaN). Use complex
   rotation for wrap/periodic (finding `2026-06-12-rotation-mod-vector-collapse-…`).
 - **GUI is on Emma's SEPARATE branch** — OUT of this queue. The Adam-RLHF GUI demo + paper
