@@ -11345,3 +11345,14 @@ Haskell mixed cases were dim-swept (50/100/128), while the OCaml/F# field-name-
 keyed cases were single-run at dim 50, relying on the finding's established
 "distinct/field-name keys read clean at dim 50" result. No measured-wrong result
 was shipped as right. Audit clean; §1 deleted (workflow re-prepends daily).
+
+## 2026-06-18 — queue.md: ASK-EMMA-FIRST block prepended (§0); decisions sequenced
+
+Per Emma 2026-06-18: the clean frontend nesting/mixed-destructure ports are done across
+all 5 ML-family frontends, so the queue hit a genuine fork. Rather than dump a low-level
+choice mid-sprint, prepended a §0 "ASK EMMA FIRST" block listing the five gating decisions
+(overall direction; nested-axon dim policy; TS member-access architecture; design-gated
+frontend items; the single-condition-halt blocker) IN SEQUENCE, to be drained via
+AskUserQuestion at the START of next session. PURELY ADDITIVE — Emma's call: "crossing
+items off is the unsafe option," so nothing existing was removed (an earlier destructive
+de-bloat rewrite was reverted via `git checkout`).
