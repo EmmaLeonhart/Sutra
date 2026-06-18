@@ -345,6 +345,13 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
         elif pat.type == "constructor" and _text(pat, src) in _VARIANTS:
             test = f"(_vtag == {_VARIANTS[_text(pat, src)][1]})"
             uses_variant = True
+        elif pat.type == "constructor" and _text(pat, src) in ("True", "False"):
+            # Bool literal pattern (`case b of True -> …; False -> …`): test the bool
+            # scrutinee directly (`b == true` / `b == false`) — no `_tag` read, the
+            # number/literal dispatch shape.
+            lit = "true" if _text(pat, src) == "True" else "false"
+            test = f"({scrut_src} == {lit})"
+            uses_literal = True
         elif pat.type == "literal":
             # Integer/float literal pattern (`case n of 0 -> …`): dispatch the
             # scrutinee value DIRECTLY — the Clojure/Elixir `case` equality-blend
@@ -406,6 +413,9 @@ def _lower_expr(node, src: bytes) -> str:
     if _ARG_HOIST and node.id in _ARG_HOIST:
         return _ARG_HOIST[node.id]  # a hoisted ADT construction — emit its temp
     t = node.type
+    if t == "constructor" and _text(node, src) in ("True", "False"):
+        # Bool literal value `True`/`False` → the Sutra `true`/`false` literal.
+        return "true" if _text(node, src) == "True" else "false"
     if t == "constructor" and _text(node, src) in _VARIANTS:
         # A construction reaching here was not hoisted — surface the gap.
         return "/* UNSUPPORTED-CONSTRUCTION: ADT value outside a hoistable position */"

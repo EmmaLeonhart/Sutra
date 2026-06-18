@@ -11054,3 +11054,18 @@ Fixture `nested_ctor_case` (`data Inner=Inner Int Int; data Outer=Outer Inner In
 clean + `nested_ctor_case`=16, `data_adt`=2, `case_literal`=300, `case_nontail`=101 — the flat variant
 + literal case paths are unregressed). Remaining on Haskell: multi-equation/guarded recursion (>2-guard
 blocked by the single-condition halt); mutually-recursive `where`/`let`; non-integer literal patterns.
+
+## 2026-06-18 — sutra-from-haskell: Bool literal `case` `case b of True -> … | False -> …` ships (== 10)
+
+Phase 6, Haskell item. A bool `case` previously surfaced UNSUPPORTED (`True`/`False` are `constructor`
+nodes not in `_VARIANTS`). Now `_lower_case_stmts` recognizes the `True`/`False` constructor patterns
+and tests the bool scrutinee directly — `(b == true)` / `(b == false)`, the number/literal dispatch
+shape (no `_tag` read, `uses_literal`) — and `_lower_expr` lowers a `True`/`False` VALUE to the Sutra
+`true`/`false` literal. Measured: Sutra has working bool literals (`bool b = true`, `truth_axis(defuzzy
+(b))` → ±1) and `(b == true)`/`(b == false)` both project crisply.
+
+Fixture `bool_case` (`f b = case b of True -> 10; False -> 20; main = f True`) runs on the substrate ==
+**10** (and `f False` measured == 20). Haskell suite: 44 passed (lower-only clean + `bool_case`=10,
+`data_adt`=2, `case_literal`=300 — the variant + integer-literal case paths unregressed). Remaining on
+Haskell: multi-equation/guarded recursion (>2-guard blocked by the single-condition halt);
+mutually-recursive `where`/`let`.
