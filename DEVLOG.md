@@ -11356,3 +11356,19 @@ frontend items; the single-condition-halt blocker) IN SEQUENCE, to be drained vi
 AskUserQuestion at the START of next session. PURELY ADDITIVE — Emma's call: "crossing
 items off is the unsafe option," so nothing existing was removed (an earlier destructive
 de-bloat rewrite was reverted via `git checkout`).
+
+## 2026-06-18 — queue.md: documented OCaml option/variant-MATCH aggregate-payload gap (additive)
+
+Captured a measured gap as a concrete queue item rather than rushing the impl
+(the "write the spec/queue item when you shouldn't rush" rail). Probed this
+session: `match s with Some { x; y } -> … | None -> …` lowers the option-match
+payload as a SCALAR (`int _oval = realvec(s.item("_val"))`), so a record/tuple
+payload's fields are unbound and `Some { record }` construction surfaces
+UNSUPPORTED. Distinct from the variant-`let` path (which now descends aggregate
+payloads): the option/variant MATCH codegen assumes a scalar payload and needs a
+non-trivial rework, not a clean cross-call. Added to the OCaml frontend item.
+Note: no other clean autonomous step this tick — the remaining frontend work is
+gated on the §0 ASK-EMMA decisions (staged), and the post-frontend phases are
+blocked locally (clang/wat2wasm absent → WASM builds; thrml mapping is an open
+question; FV §7 is a spectral-gap proof not to be faked). Not re-asking the §0
+fork this tick — Emma just saw it and asked for it at the START of next session.
