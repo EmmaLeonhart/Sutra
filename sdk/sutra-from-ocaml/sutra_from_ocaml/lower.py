@@ -1385,6 +1385,32 @@ def _ocaml_flat_tuple_let(vd, source: bytes):
     return [_node_text(e, source) for e in elems], kids[-1]
 
 
+def _ocaml_record_let(vd, source: bytes):
+    """If `vd` is a record-pattern value binding `let { x; y } = expr` (or the renamed
+    `let { x = a; y = b } = expr`), return ([(field, local), …], value_node); else None.
+    Punned `{ x }` binds local `x` to field `x`; `{ x = a }` binds local `a` to field `x`."""
+    lb = next((c for c in vd.named_children if c.type == "let_binding"), None)
+    if lb is None or not lb.named_children:
+        return None
+    kids = lb.named_children
+    if kids[-1] is kids[0] or kids[0].type != "record_pattern":
+        return None
+    binds: list = []
+    for fp in kids[0].named_children:
+        if fp.type != "field_pattern":
+            continue
+        fpath = next((c for c in fp.named_children if c.type == "field_path"), None)
+        if fpath is None:
+            return None
+        fname = next((c for c in fpath.named_children if c.type == "field_name"), None)
+        field = _node_text(fname if fname is not None else fpath, source).strip()
+        local_pat = next((c for c in fp.named_children
+                          if c.type in ("value_name", "value_pattern")), None)
+        local = _node_text(local_pat, source).strip() if local_pat is not None else field
+        binds.append((field, local))
+    return (binds, kids[-1]) if binds else None
+
+
 def _lower_local_binding(vd, source: bytes, indent: str,
                          record_types=frozenset(), refs: Optional[dict] = None) -> str:
     """Lower one `value_definition` from a `let … in` into a Sutra local
@@ -1617,6 +1643,18 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
                                 saved = _MATCH_SUBST.get(nm, _MISSING)
                                 _MATCH_SUBST[nm] = f'realvec({val_src}.item("_{i}"))'
                                 popped.append((nm, saved))
+                            continue
+                    # `let { x; y } = p in …` — destructure a record axon: each local
+                    # substitutes to the named field read `realvec(p.item("x"))`.
+                    rl = _ocaml_record_let(b, source)
+                    if rl is not None:
+                        rbinds, val_node = rl
+                        val_src = _lower_expression(val_node, source)
+                        if val_src.isidentifier():
+                            for field, local in rbinds:
+                                saved = _MATCH_SUBST.get(local, _MISSING)
+                                _MATCH_SUBST[local] = f'realvec({val_src}.item("{field}"))'
+                                popped.append((local, saved))
                             continue
                     out += _lower_local_binding(b, source, indent, record_types, refs)
                 else:

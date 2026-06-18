@@ -11153,3 +11153,17 @@ Fixture `tuple_destructure` (`add_pair (t: int*int) = let (a, b) = t in a + b; a
 on the substrate == **13** (== ground truth). The FULL OCaml suite passed: **133 passed** — no
 regression across the reference frontend's widely-used let-in path. Remaining on OCaml: scalable RAM
 device (10MB linear memory); non-zero `Array.make` fill; nested/record tuple-let patterns.
+
+## 2026-06-18 — sutra-from-ocaml: record-`let` destructure `let { x; y } = p in …` ships (== 13)
+
+Phase 6, OCaml reference frontend — companion to today's tuple-let. A record-pattern `let` binding
+previously emitted invalid `int { x; y } = p;`. The `let_expression` body lowering now also detects a
+`record_pattern` binding via `_ocaml_record_let` and substitutes each local to the named field read
+`realvec(p.item("x"))`, restoring the substitutions after the body. Handles both the punned form
+(`{ x; y }` → local `x` = field `x`) and the renamed form (`{ x = a }` → local `a` = field `x`); the
+binder is a bare `record_pattern` (not paren-wrapped like the tuple).
+
+Fixture `record_destructure` (`type point={x;y}; sum (p) = let { x; y } = p in x + y; sum {x=5;y=8}`)
+runs on the substrate == **13** (the renamed form `{ x = a; y = b }` also measured == 13). The FULL
+OCaml suite passed: **134 passed** — no regression. Remaining on OCaml: scalable RAM device (10MB
+linear memory); non-zero `Array.make` fill; nested tuple/record-let patterns.

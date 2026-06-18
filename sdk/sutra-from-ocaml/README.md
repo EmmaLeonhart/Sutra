@@ -35,7 +35,8 @@ unannotated types to `int` and relies on annotations otherwise. The
 agenda — `if/then/else`, `let … in`, `let rec`, tuples/records/variants,
 `match … with` — is tracked in the repo work queue. (Flat tuple-`let`
 destructure `let (a, b) = t in …` → `realvec(t.item("_0"))` substitution
-shipped 2026-06-18.)
+and record-`let` destructure `let { x; y } = p in …` [punned + renamed `{ x = a }`]
+→ `realvec(p.item("x"))` shipped 2026-06-18.)
 
 ## Use
 
