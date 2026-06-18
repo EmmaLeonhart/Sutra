@@ -37,6 +37,7 @@ _RUNNABLE = {
     "tuple_axon": 13.0,  # fst(p)=elem(p,0)+elem(p,1); main=fst({5,8})  (tuple -> positional-key axon, elem -> realvec(item))
     "tuple_param": 13.0,  # add_pair({a, b}) = a + b; main = add_pair({5, 8})  (tuple-PATTERN param -> axon, a/b -> realvec(item _0/_1))
     "map_param": 13.0,  # sum2(%{x: a, y: b}) = a + b; main = sum2(%{x: 5, y: 8})  (map-PATTERN param -> axon, a/b -> realvec(item x/y))
+    "string_map_param": 13.0,  # sum2(%{"x" => a, "y" => b}) = a + b; main = sum2(%{"x" => 5, "y" => 8})  (STRING-key arrow-map PATTERN param -> realvec(item x/y), via _map_fields)
     "match_bind_body": 13.0,  # sum2(t) = ( {a, b} = t; a + b ); main = sum2({5, 8})  (do-block = pattern-match destructure -> realvec(item _0/_1))
     "multiclause_bind_body": 13.0,  # def sel(flag,t) when flag>0 do {a,b}=t; a+b end; def sel(_,_) do 0; sel(1,{5,8})  (MULTI-CLAUSE guarded body with a = destructure binding)
     "multiclause_fact": 120.0,  # def fac(0), do: 1; def fac(n), do: n * fac(n-1); main = fac(5)  (multi-clause pattern recursion -> synthesized (n==0) cond -> CPS fold loop)
