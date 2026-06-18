@@ -1228,13 +1228,21 @@ class PyTorchCodegen(Codegen):
         self._emit("Returns a torch 0-dim tensor; substrate-pure loop halt checks consume")
         self._emit("the result without crossing the Python boundary.")
         self._emit('"""')
+        # A torch tensor: a 0-d truth scalar (e.g. from truth_and/truth_or on
+        # a compound loop halt) passes straight through; a full fuzzy-vector
+        # (dim >= 1) yields AXIS_TRUTH. Check is_tensor BEFORE len() because
+        # len() of a 0-d tensor raises.
+        self._emit("if _torch.is_tensor(vec_or_scalar):")
+        self._indent += 1
+        self._emit("if vec_or_scalar.dim() == 0:")
+        self._indent += 1
+        self._emit("return vec_or_scalar")
+        self._indent -= 1
+        self._emit("return vec_or_scalar[self.semantic_dim + self.AXIS_TRUTH]")
+        self._indent -= 1
         self._emit("if hasattr(vec_or_scalar, '__len__') and len(vec_or_scalar) > 1:")
         self._indent += 1
         self._emit("return vec_or_scalar[self.semantic_dim + self.AXIS_TRUTH]")
-        self._indent -= 1
-        self._emit("if _torch.is_tensor(vec_or_scalar):")
-        self._indent += 1
-        self._emit("return vec_or_scalar")
         self._indent -= 1
         self._emit("return _torch.tensor(vec_or_scalar, dtype=self.dtype, device=self.device)")
         self._indent -= 1
@@ -1259,6 +1267,40 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit("one = _torch.ones((), dtype=self.dtype, device=self.device)")
         self._emit("return _torch.minimum(x, one)")
+        self._indent -= 1
+        self._emit()
+        # ── Signed-truth Zadeh AND/OR/NOT for compound loop halts ──────────
+        # Comparison ops (gt, eq_synthetic, neq_synthetic) return SIGNED
+        # truth in [-1, 1] (positive = true) and the loop halt thresholds
+        # that at 0 via heaviside. The general `&&`/`||` operator inlines to
+        # the Zadeh POLYNOMIAL, which is only correct on [0, 1] truth — fed
+        # signed truth it gives the wrong sign, so a compound `(a) && (b)`
+        # loop halt was honored only on its first conjunct (finding
+        # 2026-06-17-while-loop-halt-is-single-condition-only.md). On signed
+        # truth, Zadeh AND/OR ARE min/max: min(a, b) > 0 iff a > 0 and b > 0;
+        # max(a, b) > 0 iff a > 0 or b > 0 — exactly the right halt. The
+        # while_loop / do_while condition lowers `&&`/`||`/`!` through these
+        # (see _translate_loop_condition); each returns a 0-d truth tensor
+        # that truth_axis passes straight to heaviside.
+        self._emit("def truth_and(self, a, b):")
+        self._indent += 1
+        self._emit('"""Signed-truth Zadeh AND = element-wise minimum of the two')
+        self._emit('truth-axis values. 0-d tensor; min(a,b) > 0 iff both > 0."""')
+        self._emit("return _torch.minimum(self.truth_axis(a), self.truth_axis(b))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def truth_or(self, a, b):")
+        self._indent += 1
+        self._emit('"""Signed-truth Zadeh OR = element-wise maximum of the two')
+        self._emit('truth-axis values. 0-d tensor; max(a,b) > 0 iff either > 0."""')
+        self._emit("return _torch.maximum(self.truth_axis(a), self.truth_axis(b))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def truth_not(self, a):")
+        self._indent += 1
+        self._emit('"""Signed-truth NOT = negate the truth-axis value. 0-d tensor;')
+        self._emit('(-a) > 0 iff a < 0 — flips the heaviside-at-0 decision."""')
+        self._emit("return -self.truth_axis(a)")
         self._indent -= 1
         self._emit()
         self._emit("def rotate_slot(self, state, slot_idx, angle):")
@@ -2932,6 +2974,22 @@ class PyTorchCodegen(Codegen):
         self._emit('projects" §"intentional compatibility code")."""')
         self._emit("if isinstance(x, _torch.Tensor):")
         self._indent += 1
+        self._emit("if x.dim() == 0:")
+        self._indent += 1
+        self._emit("# 0-d scalar tensor (e.g. a loop counter after the soft-")
+        self._emit("# mux freeze turns it into a 0-d tensor, or a slot-loaded")
+        self._emit("# int): a NUMBER, so lift it onto the real axis like")
+        self._emit("# make_real does for a Python scalar — but on-device, no")
+        self._emit("# float() readout. Mirrors _as_complex_vector. Without this")
+        self._emit("# `diff = scalar - number_vector` broadcasts the scalar")
+        self._emit("# across every axis, so eq_synthetic(loop_counter, k) never")
+        self._emit("# reads 0 distance even when equal — equality halts in")
+        self._emit("# loops then never fire (finding 2026-06-17-while-loop-")
+        self._emit("# halt-is-single-condition-only.md, equality-halt root cause).")
+        self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("v[self.semantic_dim + self.AXIS_REAL] = x")
+        self._emit("return v")
+        self._indent -= 1
         self._emit("return x")
         self._indent -= 1
         self._emit("if isinstance(x, bool):")
