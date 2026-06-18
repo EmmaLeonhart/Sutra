@@ -88,9 +88,6 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   >2-guard NON-tail multibase (CPS fold over multiple bases); explicit-condition (non-`otherwise`)
   recursive guard; mutually-recursive / forward `where`/`let`; a VARIANT `case` in expression
   position (needs an int-local an expression can't emit). Laziness out of scope.
-- [ ] **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (needs an int-local
-  an expression can't emit). (Loop bounds must use strict `<`/`>`; `<=` drops the boundary iteration
-  — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
 - [ ] **Elixir / Erlang** — multi-literal-base TAIL recursion DONE 2026-06-18
   (`_try_lower_multibase_multiclause_recursion` in both, `multibase_tailsum` fixtures RUN == 105).
   Remaining: >2-clause NON-tail multibase (CPS fold); GUARDED >2-clause multibase (mixed literal +
