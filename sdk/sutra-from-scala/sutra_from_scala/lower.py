@@ -207,7 +207,10 @@ def _lower_expr(node, src: bytes) -> str:
             cc_binds = None  # [(local, field), …] for a case-class pattern
             if pat.type == "wildcard":
                 test = None
-            elif pat.type == "integer_literal":
+            elif pat.type in ("integer_literal", "boolean_literal"):
+                # `case 0 =>` / `case true =>` literal: dispatch the scrutinee value
+                # directly (`scrut == k`, `scrut == true`) — Scala `true`/`false` match
+                # the Sutra `true`/`false`, the crisp literal shape.
                 test = f"({scrut_src} == {_text(pat, src)})"
             elif pat.type == "identifier":
                 # Name-binding pattern: irrefutable; the name substitutes to the
