@@ -82,22 +82,18 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
 
 - [ ] **F# / Scala** — nested/mixed destructure fully drained; only general breadth remains
   (closures, generics, traits/instance classes, String ops), modelled on OCaml as needs arise.
-- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard / multi-equation guarded recursion. Substrate
-  compound-halt blocker FIXED (§0.3 2026-06-18). Frontend extension point: `_try_lower_guarded_
-  recursion` is hard-scoped to EXACTLY 2 guards (one base + one `otherwise`-recursive). The N-base
-  case needs (a) a compound continue = `&&` of the negated base conditions (now substrate-honored),
-  (b) the loop body from the recursive guard, (c) a post-loop value = nested defuzz-blend of the base
-  RHSs keyed by their conditions, evaluated on the FINAL loop state (`_try_lower_tail_recursive` takes
-  a single base today). Substantial; replicate to Elixir/Erlang after Haskell (the family reference).
-  Also: mutually-recursive / forward `where`/`let`; a VARIANT `case` in expression position (needs an
-  int-local an expression can't emit). Laziness out of scope.
+- [ ] **Haskell** (`sutra-from-haskell/`): >2-guard multibase TAIL recursion DONE 2026-06-18
+  (`_try_lower_multibase_tail_recursion` + `multibase_tailsum` fixture, RUN == 105). Remaining:
+  >2-guard NON-tail multibase (CPS fold over multiple bases); explicit-condition (non-`otherwise`)
+  recursive guard; mutually-recursive / forward `where`/`let`; a VARIANT `case` in expression
+  position (needs an int-local an expression can't emit). Laziness out of scope.
 - [ ] **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (needs an int-local
   an expression can't emit). (Loop bounds must use strict `<`/`>`; `<=` drops the boundary iteration
   — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
-- [ ] **Elixir / Erlang** — >2-clause / multi-literal-base recursion (substrate compound-halt
-  blocker FIXED §0.3 2026-06-18; the frontend multi-base→`&&`-continue transform still needs
-  writing); Erlang list comprehensions. (Erlang `div`/`rem` shipped 2026-06-18; Elixir `is_integer`
-  guards is §0.6.)
+- [ ] **Elixir / Erlang** — >2-clause / multi-literal-base recursion: port Haskell's
+  `_try_lower_multibase_tail_recursion` (shipped 2026-06-18 — the family reference: compound
+  `&&`-of-negated-base continue + nested-blend post-loop value over the final state). Erlang list
+  comprehensions. (Erlang `div`/`rem` + Elixir `is_integer` guards shipped/deferred 2026-06-18.)
 - [ ] **Clojure** — maps/vectors in recursive bodies. (Symbol/keyword-as-value rep is §0.5.)
 - [ ] **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH**
   arm (`match s with Some { x; y } -> … | None -> …` — the option-match codegen binds the payload as a
