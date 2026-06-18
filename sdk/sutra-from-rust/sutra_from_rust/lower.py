@@ -885,10 +885,18 @@ def _lower_expr(node, src: bytes) -> str:
                 for a in (args_node.named_children if args_node is not None else [])]
         return f"{_text(fn, src)}({', '.join(args)})"
     if t == "match_expression":
-        # A match only lowers as a function-body tail (it needs the `_vtag` /
-        # `_val{i}` binding statements — see `_lower_match_stmts`). Nested in a
-        # larger expression it would need those bindings hoisted: a later item.
-        return "/* UNSUPPORTED-MATCH: match nested in an expression (use as the function tail) */"
+        # A LITERAL match nested in an expression (e.g. an inner `match n { 0 => …, _ =>
+        # … }` in a tail-match arm) is a pure blend — `_lower_match_stmts` returns no
+        # prelude (a plain-number scrutinee `n == k` is crisp), so it inlines. A VARIANT
+        # match needs the `_vtag`/`_val{i}` locals an expression can't emit → a later item
+        # (use it as the function tail).
+        m_stmts, m_expr = _lower_match_stmts(node, src)
+        if m_stmts is None:
+            return m_expr  # an UNSUPPORTED-MATCH marker
+        if m_stmts:
+            return ("/* UNSUPPORTED-MATCH: variant match nested in an expression "
+                    "(needs int-locals; use as the function tail) */")
+        return f"({m_expr})"
     if t == "field_expression":
         # Struct field read `p.x` -> the axon item read, projected to a clean
         # number-vector (realvec — raw fillers carry crosstalk, finding 2026-06-05).
@@ -927,16 +935,24 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
         return None, "/* UNSUPPORTED-MATCH: no match block */"
     parsed = []
     max_arity = 0
+    uses_variant = False
     for arm in block.named_children:
         if arm.type != "match_arm":
             continue
         pat = next((c for c in arm.named_children if c.type == "match_pattern"), None)
         res = arm.named_children[-1]
-        if pat is None or not pat.named_children:
+        if pat is None:
             return None, "/* UNSUPPORTED-MATCH: malformed arm */"
-        inner = pat.named_children[0]
+        # A `_` wildcard `match_pattern` may have no named child — treat it as the base.
+        inner = pat.named_children[0] if pat.named_children else None
         binds: list[tuple[str, str]] = []
-        if inner.type == "tuple_struct_pattern":
+        if inner is None or inner.type == "wildcard_pattern":
+            test = None  # `_` — the base arm
+        elif inner.type == "integer_literal":
+            # `0 => …` literal-pattern arm: dispatch the scrutinee value DIRECTLY
+            # (`scrut == k`) — a plain-number scrutinee is crisp, no `_tag` read.
+            test = f"({scrut_src} == {_text(inner, src)})"
+        elif inner.type == "tuple_struct_pattern":
             scoped = next((c for c in inner.named_children
                            if c.type == "scoped_identifier"), None)
             if scoped is None:
@@ -951,6 +967,7 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
             for i, p in enumerate(payload):
                 binds.append((_text(p, src), f"{valv}{i}"))
             test = f"({tagv} == {tag})"
+            uses_variant = True
         elif inner.type == "scoped_identifier":
             # `Dir::North` — a NULLARY variant pattern (no payload): test the tag.
             ids = [c for c in inner.named_children if c.type == "identifier"]
@@ -958,10 +975,12 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
             if variant not in _VARIANTS:
                 return None, f"/* UNSUPPORTED-MATCH: unknown variant {variant} */"
             test = f"({tagv} == {_VARIANTS[variant][1]})"
+            uses_variant = True
         elif inner.type == "identifier" and _text(inner, src) in _VARIANTS:
             test = f"({tagv} == {_VARIANTS[_text(inner, src)][1]})"
-        elif inner.type in ("wildcard_pattern", "identifier"):
-            test = None  # `_` (or a catch-all binding) — the base
+            uses_variant = True
+        elif inner.type == "identifier":
+            test = None  # a catch-all binding — the base
         else:
             return None, f"/* UNSUPPORTED-MATCH: pattern {inner.type} */"
         for nm, sub in binds:
@@ -974,9 +993,14 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
         parsed.append((test, res_src))
     if not parsed:
         return None, "/* UNSUPPORTED-MATCH: no arms */"
-    stmts = f'{indent}int {tagv} = realvec({scrut_src}.item("_tag"));\n'
-    for i in range(max_arity):
-        stmts += f'{indent}int {valv}{i} = realvec({scrut_src}.item("_val{i}"));\n'
+    # The `_tag`/`_val` locals are only meaningful for a VARIANT scrutinee; a LITERAL
+    # (plain-number) match dispatches the scrutinee directly with no prelude — so it
+    # inlines as a pure blend in expression position (`_lower_expr`).
+    stmts = ""
+    if uses_variant:
+        stmts = f'{indent}int {tagv} = realvec({scrut_src}.item("_tag"));\n'
+        for i in range(max_arity):
+            stmts += f'{indent}int {valv}{i} = realvec({scrut_src}.item("_val{i}"));\n'
     expr = parsed[-1][1]  # last arm = base (exhaustive)
     for test, res in reversed(parsed[:-1]):
         expr = res if test is None else _blend(test, res, expr)

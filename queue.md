@@ -148,7 +148,11 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   case has no `int _vtag` prelude so it inlines as a nested blend; `case_nontail`=101 on the substrate;
   a VARIANT case in expression position still needs an int-local an expression can't emit → later item).
   (Laziness out of scope.)
-- [ ] **Rust** (`sutra-from-rust/`): nested match inside a tail-match arm; ~~nested tuple AND struct
+- [ ] **Rust** (`sutra-from-rust/`): ~~nested match inside a tail-match arm~~ DONE 2026-06-18 for a
+  LITERAL inner match (`_lower_match_stmts` gains integer-literal patterns + only emits the `_vtag`
+  prelude for VARIANT matches, so a literal match has no prelude and `_lower_expr` inlines it as a
+  blend; `nested_match_tail_arm`=5 on the substrate; a VARIANT inner match still needs int-locals an
+  expression can't emit → later item); ~~nested tuple AND struct
   patterns (`let (a,(b,c))=t`, `let Outer { a, inner: Inner { v } } = o`)~~ DONE 2026-06-17
   (`_collect_rust_tuple_paths` / `_collect_rust_struct_paths` + shared `_emit_rust_nested_reads`: an
   `Axon` temp per non-leaf prefix so reads dispatch as `axon_item`; `nested_tuple_destructure`=16,

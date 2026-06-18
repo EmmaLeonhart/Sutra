@@ -82,9 +82,10 @@ Dependency: `tree-sitter-rust` (`pip install tree-sitter-rust`).
 
 ## Next
 
-Statement-bearing if-arms; nullary-variant values; struct `..base` spread; nested
-match inside a function-tail match arm; NESTED `if let` (needs an int-local an
-expression can't emit). (Unbounded `loop { … break }`, struct field-init shorthand,
+Statement-bearing if-arms; nullary-variant values; struct `..base` spread; a VARIANT
+match nested in an expression / tail-arm (needs int-locals an expression can't emit);
+NESTED `if let`. (A LITERAL match nested in a tail-match arm `A(x) => match n { 0 => x,
+_ => x+1 }` inlines as a blend — `nested_match_tail_arm` = 5, shipped 2026-06-18.) (Unbounded `loop { … break }`, struct field-init shorthand,
 and nested/non-tail `match` in expression position all shipped 2026-06-15. NESTED tuple
 AND struct patterns (`let (a, (b, c)) = t`, `let Outer { a, inner: Inner { v } } = o`)
 shipped 2026-06-17 — a shared `_emit_rust_nested_reads` emits an `Axon` temp per non-leaf
