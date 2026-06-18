@@ -54,9 +54,36 @@ _AH_COUNTER = [0]
 # `_MATCH_SUBST` / Elixir / Rust shape).
 _SUBST: dict[str, str] = {}
 
+# Per-equation destructure prelude: a NESTED `let (a, (b, c)) = t` needs an `Axon` temp
+# per non-leaf prefix (chaining `.item()` on a raw tensor fails). The let bind is
+# substitution-only, so the temps accumulate here and the equation emitter appends them
+# after the hoist prelude. Cleared per equation. (Clojure's `_DESTRUCTURE_PRELUDE` shape.)
+_DESTRUCTURE_PRELUDE: list = []
+
 
 def _text(node, src: bytes) -> str:
     return src[node.start_byte:node.end_byte].decode("utf-8")
+
+
+def _collect_hs_tuple_paths(tup, src: bytes, prefix: tuple):
+    """Flatten a (possibly NESTED) Haskell `tuple` pattern into [(path_keys, name), …],
+    where `path_keys` is the chain of 0-based positional axon keys (`_0`, `_1`, …). A
+    nested `tuple` element recurses (`(a, (b, c))` →
+    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); any non-variable/non-tuple
+    element → None (a later item)."""
+    out: list = []
+    for i, e in enumerate(tup.named_children):
+        key = f"_{i}"
+        if e.type == "variable":
+            out.append((prefix + (key,), _text(e, src)))
+        elif e.type == "tuple":
+            sub = _collect_hs_tuple_paths(e, src, prefix + (key,))
+            if sub is None:
+                return None
+            out.extend(sub)
+        else:
+            return None
+    return out
 
 
 def _blend(test_src: str, then_src: str, else_src: str) -> str:
@@ -560,26 +587,35 @@ def _apply_local_binds(local_binds, src: bytes) -> list[str]:
             continue
         first = b.named_children[0] if b.named_children else None
         if first is not None and first.type == "tuple":
-            # `(a, b) = t` — tuple-pattern destructure: each element reads the
-            # positional axon field of the bound value via `realvec` (the same
-            # projection `fst`/`snd` use). Only identifier elements are in scope;
-            # a nested pattern (a non-`variable` element) is a later item.
-            elems = first.named_children
-            if any(e.type != "variable" for e in elems):
-                continue
+            # `(a, b) = t` — tuple-pattern destructure: each element reads the positional
+            # axon field of the bound value via `realvec` (the same projection `fst`/`snd`
+            # use). NESTED patterns (`(a, (b, c)) = t`) read through an `Axon` temp per
+            # non-leaf prefix (appended to `_DESTRUCTURE_PRELUDE`) — chaining `.item()` on
+            # a raw tensor fails.
+            paths = _collect_hs_tuple_paths(first, src, ())
             val = _match_body(b, src)
-            if val is None:
+            if paths is None or val is None:
                 continue
             val_src = _lower_expr(val, src)
-            # The bound value is a bare name (a variable, or a hoisted tuple temp);
-            # `name.item(...)` is the axon-method form the compiler dispatches —
-            # a parenthesised `(expr).item(...)` falls through to the tensor op,
-            # so only a simple-identifier value is in scope here.
+            # The bound value must be a bare name (a variable, or a hoisted tuple temp);
+            # `name.item(...)` is the axon-method form the compiler dispatches.
             if not val_src.isidentifier():
                 continue
-            for i, el in enumerate(elems):
-                nm = _text(el, src)
-                _SUBST[nm] = f'realvec({val_src}.item("_{i}"))'
+            prefix_temp = {(): val_src}
+
+            def _tup_temp_for(prefix):
+                if prefix in prefix_temp:
+                    return prefix_temp[prefix]
+                parent = _tup_temp_for(prefix[:-1])
+                tmp = f"_np{len(_DESTRUCTURE_PRELUDE)}"
+                _DESTRUCTURE_PRELUDE.append(
+                    f'    Axon {tmp} = {parent}.item("{prefix[-1]}");\n')
+                prefix_temp[prefix] = tmp
+                return tmp
+
+            for keys, nm in paths:
+                holder = _tup_temp_for(keys[:-1])
+                _SUBST[nm] = f'realvec({holder}.item("{keys[-1]}"))'
                 bound.append(nm)
             continue
         # `(Ctor a b) = w` — single-constructor ADT destructure: each payload
@@ -944,6 +980,7 @@ def _lower_equation(decl, src: bytes) -> str:
         # temps, then lower. A `case` body lowers to binding statements + a nested
         # blend (the Rust match-at-tail shape).
         _ARG_HOIST.clear()
+        _DESTRUCTURE_PRELUDE.clear()
         prelude = _hoist_constructions(body, src)
         if body.type == "case":
             case_stmts, case_expr = _lower_case_stmts(body, src)
@@ -956,9 +993,15 @@ def _lower_equation(decl, src: bytes) -> str:
                     f"    return {case_expr};\n"
                     f"}}\n")
         body_src = _lower_expr(body, src)
+        # NESTED-destructure `Axon` temps (e.g. `let (a, (b, c)) = t`) emitted during
+        # lowering, after the hoist prelude (they may read a hoisted tuple) and before the
+        # return.
+        destr_prelude = "".join(_DESTRUCTURE_PRELUDE)
         _ARG_HOIST.clear()
+        _DESTRUCTURE_PRELUDE.clear()
         return (f"function {ret} {name}({params_src}) {{\n"
                 f"{prelude}"
+                f"{destr_prelude}"
                 f"    return {body_src};\n"
                 f"}}\n")
     finally:

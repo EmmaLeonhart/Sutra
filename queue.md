@@ -143,7 +143,10 @@ frontend suites on push/PR to `sdk/sutra-from-**`; keep it green.
   gate one loop unless they algebraically merge to one comparison; the multibase transform was
   written, measured wrong [`f 0 3`→6 not 105], and reverted); multi-equation guarded recursion
   (`f 0 acc | …; f n acc | …`); mutually-recursive/forward `where`/`let`; nested/non-variable
-  constructor `case` patterns; nested tuple/constructor `let` patterns; ~~`case` in non-tail expression
+  constructor `case` patterns; ~~nested tuple `let` patterns (`let (a, (b, c)) = t`)~~ DONE 2026-06-18
+  (`_collect_hs_tuple_paths` + a `_DESTRUCTURE_PRELUDE` accumulator for the `Axon` temps [the let bind
+  is substitution-only]; `nested_tuple_let`=16 on the substrate — `_0`/`_1` keys clean at dim 50);
+  nested CONSTRUCTOR `let` patterns; ~~`case` in non-tail expression
   position~~ DONE 2026-06-17 for LITERAL cases (`_lower_expr` reuses `_lower_case_stmts`: a literal
   case has no `int _vtag` prelude so it inlines as a nested blend; `case_nontail`=101 on the substrate;
   a VARIANT case in expression position still needs an int-local an expression can't emit → later item).

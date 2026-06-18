@@ -34,6 +34,7 @@ _RUNNABLE = {
     "case_nontail": 101.0,  # f n = 1 + (case n of 0 -> 100; _ -> 200); f 0 = 1 + 100  (literal case in NON-TAIL expression position -> inline nested blend)
     "tuple_axon": 13.0,  # addPair :: (Int,Int) -> Int; addPair p = fst p + snd p; main = addPair (5, 8)  (tuple -> positional-key axon, fst/snd -> _0/_1)
     "tuple_destructure": 13.0,  # addPair t = let (a, b) = t in a + b; main = addPair (5, 8)  (let-tuple-pattern -> realvec(item _0/_1))
+    "nested_tuple_let": 16.0,  # f t = let (a, (b, c)) = t in a+b+c; main = f (5, (8, 3))  (NESTED let-tuple pattern -> Axon temp for the _1 prefix)
     "ctor_destructure": 13.0,  # data Wrap = Wrap Int Int; addw w = let (Wrap a b) = w in a + b; main = addw (Wrap 5 8)  (let-ctor-pattern -> realvec(item _val0/_val1))
     "multiclause_fact": 120.0,  # fac 0 = 1; fac n = n * fac (n-1); main = fac 5  (multi-equation pattern recursion -> synthesized (n==0) cond -> CPS fold loop)
     "multiclause_tailsum": 15.0,  # sum 0 acc = acc; sum n acc = sum (n-1) (acc+n); main = sum 5 0  (multi-PARAM multi-equation tail recursion -> while_loop)

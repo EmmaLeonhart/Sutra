@@ -68,5 +68,7 @@ Dependency: `tree-sitter-haskell` (`pip install tree-sitter-haskell`).
 ## Next
 
 Guarded/multi-equation recursion; non-integer literal patterns; mutually-recursive
-`where`/`let` bindings; nested/non-variable `case` patterns. (`data` ADTs → tagged
-axons shipped 2026-06-15.)
+`where`/`let` bindings; nested/non-variable `case` patterns; nested CONSTRUCTOR `let`
+patterns. (`data` ADTs → tagged axons shipped 2026-06-15. A LITERAL `case` in non-tail
+position [`1 + (case n of 0 -> 100; _ -> 200)`] and NESTED tuple `let` patterns
+[`let (a, (b, c)) = t` → an `Axon` temp per non-leaf prefix] shipped 2026-06-17/18.)
