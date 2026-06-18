@@ -11267,3 +11267,20 @@ recursed via `_aggregate_arg_emitter`. New fixtures `record_in_tuple` and
 FULL OCaml suite: **140 passed** (was 138). OCaml nested-pattern destructure is
 now complete (tuple/record/variant + MIXED, flat + nested); only the
 scalable-RAM-device and non-zero-`Array.make`-fill items remain.
+
+## 2026-06-18 — sutra-from-haskell: MIXED tuple/ctor nesting in `let` destructure (Phase 3)
+
+Haskell frontend now lowers MIXED nested `let` patterns both ways:
+ctor-inside-tuple (`let (a, Box b) = t`) and tuple-inside-ctor
+(`let (Wrap (a, b)) = w`). The two path collectors `_collect_hs_tuple_paths`
+and `_collect_hs_ctor_paths` previously recursed only into their own kind;
+they now cross-call (a tuple element that is a constructor `apply` descends
+via the ctor collector, a ctor payload that is a `tuple` descends via the
+tuple collector) — the Haskell analog of today's OCaml/F# mixed-nesting work.
+Construction already built the nested axons. Both directions verified on the
+substrate: `tuple_in_ctor`=**13** clean at dim 50; `ctor_in_tuple`=**13** but
+ONLY at runtime_dim≥100 — the `_1`/`_val0` key mix CROSS-TALKS to 26 at the
+default dim 50 (finding 2026-06-17-nested-axon-readout-crosstalk-is-dim-
+dependent.md). Shipped at the measured-correct dim, NOT doctored: the test
+harness gained an `(expected, dim)` spec tuple (Scala precedent) and runs
+`ctor_in_tuple` at dim 128. FULL Haskell suite: **48 passed** (was 46).

@@ -73,4 +73,7 @@ axons shipped 2026-06-15. A LITERAL `case` in non-tail position [`1 + (case n of
 0 -> 100; _ -> 200)`], NESTED tuple `let` patterns [`let (a, (b, c)) = t`], and NESTED
 CONSTRUCTOR `let` patterns [`let (Outer (Inner a b) c) = w`], and NESTED CONSTRUCTOR
 `case` patterns [`case w of Outer (Inner a b) c -> …`] shipped 2026-06-17/18 — each via
-an `Axon` temp per non-leaf prefix (a per-equation destructure prelude / the case prelude).)
+an `Axon` temp per non-leaf prefix (a per-equation destructure prelude / the case prelude).
+MIXED tuple/ctor `let` nesting [`let (a, Box b) = t`, `let (Wrap (a, b)) = w`] shipped
+2026-06-18 — the tuple- and ctor-path collectors cross-call; `ctor_in_tuple` runs at
+runtime_dim 128 because its `_1`/`_val0` key mix cross-talks at the default dim 50.)

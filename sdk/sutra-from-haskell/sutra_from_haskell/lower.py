@@ -89,11 +89,13 @@ def _emit_hs_nested_reads(val_src: str, paths, bound: list) -> None:
 
 
 def _collect_hs_ctor_paths(cpat, src: bytes, prefix: tuple):
-    """Flatten a (possibly NESTED) constructor pattern `(Ctor p…)` into [(path_keys,
-    name), …] over `_val{i}` keys. A `variable` payload is a leaf; a payload that is a
-    nested constructor `(Inner a b)` (a `parens`-wrapped `apply`) recurses
+    """Flatten a (possibly NESTED, possibly MIXED) constructor pattern `(Ctor p…)` into
+    [(path_keys, name), …] over `_val{i}` keys. A `variable` payload is a leaf; a payload
+    that is a nested constructor `(Inner a b)` (a `parens`-wrapped `apply`) recurses
     (`(Outer (Inner a b) c)` → `[(("_val0","_val0"),"a"), (("_val0","_val1"),"b"),
-    (("_val1",),"c")]`). Any other payload shape → None. `cpat` is the `apply` spine."""
+    (("_val1",),"c")]`); a payload that is a tuple `(a, b)` recurses via
+    `_collect_hs_tuple_paths` (so a ctor wrapping a tuple, `Wrap (a, b)`, mixes). Any other
+    payload shape → None. `cpat` is the `apply` spine."""
     chead, pargs = _flatten_apply(cpat, src)
     if chead.type != "constructor" or _text(chead, src) not in _VARIANTS or not pargs:
         return None
@@ -108,20 +110,23 @@ def _collect_hs_ctor_paths(cpat, src: bytes, prefix: tuple):
                 inner = inner.named_children[0]
             if inner.type == "apply":
                 sub = _collect_hs_ctor_paths(inner, src, prefix + (key,))
-                if sub is None:
-                    return None
-                out.extend(sub)
+            elif inner.type == "tuple":
+                sub = _collect_hs_tuple_paths(inner, src, prefix + (key,))
             else:
                 return None
+            if sub is None:
+                return None
+            out.extend(sub)
     return out
 
 
 def _collect_hs_tuple_paths(tup, src: bytes, prefix: tuple):
-    """Flatten a (possibly NESTED) Haskell `tuple` pattern into [(path_keys, name), …],
-    where `path_keys` is the chain of 0-based positional axon keys (`_0`, `_1`, …). A
-    nested `tuple` element recurses (`(a, (b, c))` →
-    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); any non-variable/non-tuple
-    element → None (a later item)."""
+    """Flatten a (possibly NESTED, possibly MIXED) Haskell `tuple` pattern into
+    [(path_keys, name), …], where `path_keys` is the chain of 0-based positional axon keys
+    (`_0`, `_1`, …). A nested `tuple` element recurses (`(a, (b, c))` →
+    `[(("_0",),"a"), (("_1","_0"),"b"), (("_1","_1"),"c")]`); a constructor element
+    `Box b` (an `apply`, optionally `parens`-wrapped) recurses via `_collect_hs_ctor_paths`
+    (so a tuple containing a ctor, `(a, Box b)`, mixes). Any other element → None."""
     out: list = []
     for i, e in enumerate(tup.named_children):
         key = f"_{i}"
@@ -133,7 +138,18 @@ def _collect_hs_tuple_paths(tup, src: bytes, prefix: tuple):
                 return None
             out.extend(sub)
         else:
-            return None
+            inner = e
+            if inner.type == "parens" and inner.named_children:
+                inner = inner.named_children[0]
+            if inner.type == "apply":
+                sub = _collect_hs_ctor_paths(inner, src, prefix + (key,))
+            elif inner.type == "tuple":
+                sub = _collect_hs_tuple_paths(inner, src, prefix + (key,))
+            else:
+                return None
+            if sub is None:
+                return None
+            out.extend(sub)
     return out
 
 

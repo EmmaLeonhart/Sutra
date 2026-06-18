@@ -39,6 +39,8 @@ _RUNNABLE = {
     "nested_tuple_let": 16.0,  # f t = let (a, (b, c)) = t in a+b+c; main = f (5, (8, 3))  (NESTED let-tuple pattern -> Axon temp for the _1 prefix)
     "ctor_destructure": 13.0,  # data Wrap = Wrap Int Int; addw w = let (Wrap a b) = w in a + b; main = addw (Wrap 5 8)  (let-ctor-pattern -> realvec(item _val0/_val1))
     "nested_ctor_let": 16.0,  # f w = let (Outer (Inner a b) c) = w in a+b+c; main = f (Outer (Inner 5 8) 3)  (NESTED ctor let -> Axon temp for the _val0 prefix; _val0/_val1 clean at dim 50)
+    "ctor_in_tuple": (13.0, 128),  # f t = let (a, Box b) = t in a+b; main = f (5, Box 8)  (MIXED: ctor nested in a tuple pattern; _collect_hs_tuple_paths cross-calls _collect_hs_ctor_paths. The _1/_val0 key mix cross-talks at dim 50 -> 26; clean at dim>=100, finding 2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent.md)
+    "tuple_in_ctor": 13.0,  # g w = let (Wrap (a, b)) = w in a+b; main = g (Wrap (5, 8))  (MIXED: tuple nested in a ctor pattern; _collect_hs_ctor_paths cross-calls _collect_hs_tuple_paths. _val0/_0/_1 keys MEASURED clean at dim 50)
     "multiclause_fact": 120.0,  # fac 0 = 1; fac n = n * fac (n-1); main = fac 5  (multi-equation pattern recursion -> synthesized (n==0) cond -> CPS fold loop)
     "multiclause_tailsum": 15.0,  # sum 0 acc = acc; sum n acc = sum (n-1) (acc+n); main = sum 5 0  (multi-PARAM multi-equation tail recursion -> while_loop)
     "guarded_fact": 120.0,  # fac n | n == 0 = 1 | otherwise = n * fac (n-1); main = fac 5  (GUARDED recursion -> cond from guard -> CPS fold loop)
@@ -61,17 +63,23 @@ def test_lowers_without_unsupported(name, fix):
     assert "UNSUPPORTED" not in out, f"{name} lowered with UNSUPPORTED:\n{out}"
 
 
-@pytest.mark.parametrize("name,expected",
+@pytest.mark.parametrize("name,spec",
                          sorted(_RUNNABLE.items()), ids=sorted(_RUNNABLE))
-def test_runs_on_substrate(name, expected, tmp_path):
+def test_runs_on_substrate(name, spec, tmp_path):
     pytest.importorskip("torch", reason="substrate run needs torch")
+    # A spec is either a bare expected float (default runtime_dim) or an
+    # (expected, runtime_dim) tuple for fixtures whose nested-axon key mix
+    # cross-talks at the default dim 50 (finding 2026-06-17-nested-axon-...).
+    expected, dim = spec if isinstance(spec, tuple) else (spec, None)
     fix = FIXTURE_DIR / name / "input.hs"
     su = lower(fix.read_text(encoding="utf-8"))
     su_path = tmp_path / f"{name}.su"
     su_path.write_text(su, encoding="utf-8")
+    cmd = [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)]
+    if dim is not None:
+        cmd += ["--runtime-dim", str(dim)]
     proc = subprocess.run(
-        [sys.executable, "-m", "sutra_compiler", "--run", str(su_path)],
-        capture_output=True, text=True, cwd=str(_REPO),
+        cmd, capture_output=True, text=True, cwd=str(_REPO),
     )
     out = (proc.stdout + proc.stderr).strip()
     assert proc.returncode == 0, out
