@@ -51,6 +51,8 @@ _RUNNABLE = {
     "nested_vec_destructure": (16.0, 256),  # (defn f [t] (let [[[a b] c] t] (+ (+ a b) c))); (f [[5 8] 3])  (NESTED vector destructure -> Axon temp for the _0 prefix; dim>=256, finding 2026-06-17)
     "map_destructure_keys": 13.0,  # (let [{:keys [a b]} {:a 5 :b 8}] (+ a b))  (:keys map destructuring -> realvec(item a/b); pattern map+vec NOT hoisted)
     "map_destructure_named": 13.0,  # (let [{a :x b :y} {:x 5 :y 8}] (+ a b))  ({local :field} map destructuring -> realvec(item x/y))
+    "map_in_recursion": (3.0, 256),  # (defn f [n] (if (= n 0) {:x 1 :y 2} (f (- n 1)))); (sum (f 3)) = 1+2  (MAP literal in a TAIL-recursive base -> hoisted to an Axon temp post-loop, fn return type Axon; consumed via a param-reading fn since .item() on a call-result is a separate compiler limit; dim>=256)
+    "vec_in_recursion": (60.0, 256),  # (defn f [n] (if (= n 0) [10 20 30] (f (- n 1)))); (sum3 (f 2)) = 10+20+30  (data-VECTOR literal in a tail-recursive base -> positional-key Axon, same hoist; dim>=256)
 }
 
 

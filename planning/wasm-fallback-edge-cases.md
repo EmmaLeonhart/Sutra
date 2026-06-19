@@ -41,9 +41,13 @@ record it in `DEVLOG.md`.
   selection problem as Haskell); GUARDED >2-clause multibase (a mix of integer-literal and `when`
   bases — the literal-only multibase + the guarded-recursive-clause are done); Erlang list
   comprehensions.
-- **Clojure** (`sutra-from-clojure/`): maps/vectors literals inside a recursive body (the fold
-  transform lowers the leaf/base without running the map-hoist pass, so a map/vector literal there
-  reads UNSUPPORTED; needs the hoist prelude threaded into the loop body).
+- **Clojure** (`sutra-from-clojure/`): map/vector literal in a TAIL-recursive base — **DONE
+  2026-06-18** (`_try_lower_tail_recursive` now runs `_hoist_maps` on the base and types the fn
+  return `Axon`; fixtures `map_in_recursion` RUN == 3, `vec_in_recursion` RUN == 60). Residual,
+  orthogonal: an Axon-returning fn whose result is field-read INLINE (`(:k (f …))`) hits a
+  compiler limit — `.item()` on a call-result, not recursion-specific; see finding
+  `2026-06-18-axon-item-on-call-result-not-supported.md`. (Map/vector in a non-tail FOLD base is
+  nonsensical — you cannot `acc * map` — so not applicable there.)
 - **F#** (`sutra-from-fsharp/`): no-parens curried application as an infix operand
   (`classify "foo" + classify "bar"` → application-precedence error; parenthesise as
   `(classify "foo") + (classify "bar")` to work today).
@@ -54,4 +58,5 @@ record it in `DEVLOG.md`.
 
 - The recursion families that DO lower natively (tail, single non-tail CPS fold, literal/guard
   multibase TAIL recursion, explicit/guarded recursive guard) — shipped, not here.
-- String literals + `==`/`<>` dispatch — now native in OCaml/TS/Clojure/Scala/F# (2026-06-18).
+- String literals + `==`/`<>`/`++` dispatch — now native in OCaml/TS/Clojure/Scala/F#/Elixir/Erlang
+  (2026-06-18; Elixir `<>` and Erlang `++` concat via String-param inference).
