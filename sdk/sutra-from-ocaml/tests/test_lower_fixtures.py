@@ -170,6 +170,8 @@ _RUNNABLE_FIXTURES = {
     "variant_toplevel_value": 16.0,  # let z = Zero  let p = Pair (7,9)  ... sum_e z + sum_e p = 0 + 16  (ctor value binding at MODULE scope -> top-level axon)
     "option_some": 42.0,  # get_or (mk 42) 0  (option Some/None -> tagged axon; match binds payload via int locals)
     "option_some_inline": 6.0,  # f (Some 5) where f (s : int option) = match s with Some v -> v+1 | None -> 0  (INLINE Some in ARG position -> hoisted {_tag,_val} axon via _emit_option_construction; gap 2)
+    "option_some_unannotated": 6.0,  # f s = match s with Some v -> v+1 | None -> 0; f (Some 5)  (UNANNOTATED option scrutinee param -> typed Axon via _axon_scrutinee_param_names; gap 1)
+    "variant_arg_unannotated": 2.0,  # eval e = match e with Lit n -> n | Neg n -> 0-n; eval (Lit 7) + eval (Neg 5) = 7 + (-5)  (UNANNOTATED variant scrutinee param -> typed Axon; gap 1)
     "let_in_expr": 20.0,  # (let x = 5 in x + x) + 10  (let..in in expression position via substitution)
     "modulo": 2.0,  # 17 mod 5  (OCaml mod -> Sutra %)
     "string_concat": 100.0,  # cat a b = a ^ b; classify s = if s = "foobar" then 100 else 200; classify (cat "foo" "bar")  (OCaml `^` string concat -> Sutra `+` -> substrate string concat; eq_synthetic match)
