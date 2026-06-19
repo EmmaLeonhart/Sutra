@@ -3486,6 +3486,20 @@ class BaseCodegen:
                 arg_srcs = [self._translate_expr(a) for a in call.args]
                 all_args = [obj_src] + arg_srcs
                 return f"_VSA.{callee.member}({', '.join(all_args)})"
+            # `.item(key)` on a NON-identifier receiver — a call result
+            # (`make().item("k")`) or a nested read (`a.item("v").item("0")`) —
+            # is an axon field read. A bare-identifier receiver is routed by the
+            # axon/class dispatch above; a non-identifier receiver previously fell
+            # through to a literal `.item(key)` that dispatches as the tensor's
+            # `.item()` (no args) and fails at runtime. Route it to the runtime
+            # accessor instead. `.item(<key>)` is unambiguously the axon read (a
+            # tensor `.item()` takes no args). Finding
+            # 2026-06-18-axon-item-on-call-result-not-supported.md.
+            if (callee.member == "item" and len(call.args) == 1
+                    and not isinstance(callee.obj, ast.Identifier)):
+                obj_src = self._translate_expr(callee.obj)
+                key_src = self._translate_expr(call.args[0])
+                return f"_VSA.axon_item({obj_src}, {key_src})"
             if isinstance(callee.obj, ast.Identifier):
                 # General instance dispatch: when `obj` is a typed
                 # local whose declared type is a known class with the
