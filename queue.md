@@ -98,7 +98,11 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   pattern (`string_case` RUN == 60) and `++` charlist concat (`++`-operand params inferred String;
   `string_concat` RUN == 100). Remaining: >2-clause NON-tail multibase (CPS fold); GUARDED
   >2-clause multibase (mixed literal + `when` bases); Erlang list comprehensions.
-- [ ] **Clojure** — maps/vectors in recursive bodies. (Symbol/keyword-as-value rep is §0.5.)
+- [ ] **Clojure** — map/vector literal in a TAIL-recursive base DONE 2026-06-18 (`_hoist_maps`
+  threaded into `_try_lower_tail_recursive` + `Axon` return type; fixtures `map_in_recursion` RUN
+  == 3, `vec_in_recursion` RUN == 60). Residual (orthogonal, pre-existing): `.item()` on a
+  call-result blocks inline `(:k (f …))` reads — finding `2026-06-18-axon-item-on-call-result-...`.
+  (Symbol/keyword-as-value rep is §0.5.)
 - [ ] **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH**
   arm (`match s with Some { x; y } -> … | None -> …` — the option-match codegen binds the payload as a
   SCALAR `int _oval = realvec(s.item("_val"))`, so a record/tuple payload's fields are unbound and

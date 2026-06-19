@@ -11787,3 +11787,21 @@ was implementable locally (the wat2wasm cross-check stays CI-gated — no toolch
   still resolves). Full suite 50 passed (45 existing + 5 new), no regression.
 Note: values 64..127 are NOT valid single-byte LEB128 (bit6 = sign), so they require
 their own 2-byte encoding — documented in the compose fixture.
+
+## 2026-06-18 — Clojure: map/vector literal in a tail-recursive base (native)
+`sutra-from-clojure` `_try_lower_tail_recursive` now hoists a map/data-vector literal
+in the recursive BASE to an `Axon` temp prelude (post-loop, after the param write-back,
+since base field values may reference final params) and types the function return `Axon`
+when the base is itself the hoisted literal. Previously the recursion transform bypassed
+`_emit_function_body`'s map-hoist pass, so a `{:x 1 :y 2}` / `[10 20 30]` base read
+`UNSUPPORTED-CONSTRUCTION: map value outside a hoistable position` -> tier-5 WASM fallback.
+- Fixtures: `map_in_recursion` ((defn f [n] (if (= n 0) {:x 1 :y 2} (f (- n 1)))); (sum (f 3)))
+  RUN == 3; `vec_in_recursion` ([10 20 30] base; (sum3 (f 2))) RUN == 60. Both runtime_dim 256
+  (nested-axon convention). Full Clojure suite 48 passed (46 + 2), no regression.
+- The Axon result is consumed by passing it to a field-reading fn (`(sum (f 3))`, fields read
+  off the PARAM). Reading a field INLINE off the call (`(:k (f …))`) hits a separate, pre-
+  existing compiler limit — `.item()` dispatches as torch `.item()` on a call-result rather
+  than the Axon field read; works only off an Axon VARIABLE. Logged in finding
+  `2026-06-18-axon-item-on-call-result-not-supported.md` (affects all Axon-returning fns, not
+  recursion-specific). The Elixir/Erlang >2-clause NON-tail + guarded multibase stay on the
+  WASM fallback (seed-selection analysis; not a few-cycles native lowering).

@@ -328,12 +328,25 @@ def _try_lower_tail_recursive(name: str, params: list, body, src: bytes):
     slot_args = ", ".join(f"_{p}_r" for p in params)
     writeback = "".join(f"    {p} = _{p}_r;\n" for p in params)
     params_src = ", ".join(f"{ty} {p}" for p in params)
+    # The BASE is returned post-loop (after the param write-back). A map/data-vector
+    # literal there must be hoisted to an `Axon` temp prelude FIRST — this transform
+    # bypasses `_emit_function_body`'s map-hoist pass, so without this the literal reads
+    # `UNSUPPORTED-CONSTRUCTION` (catalogue: Clojure maps/vectors inside a recursive
+    # body). Hoist before lowering `base` so the literal resolves to its temp; emit the
+    # prelude after write-back since the field values may reference the final params.
+    base_prelude = _hoist_maps(base, src)
     base_src = _lower_expr(base, src)
+    # When the base IS a map/vector literal it returns an `Axon`, so the function's
+    # return type must be `Axon` (not the default number) for a caller's field read
+    # `(:k (f …))` → `realvec(f(…).item("k"))` to dispatch — the F# nullary-variant-
+    # return shape.
+    ret_ty = "Axon" if base.id in _ARG_HOIST else ty
     fn = (
-        f"function {ty} {name}({params_src}) {{\n"
+        f"function {ret_ty} {name}({params_src}) {{\n"
         f"{slot_lines}"
         f"    loop {loop_name}({cont}, {slot_args});\n"
         f"{writeback}"
+        f"{base_prelude}"
         f"    return {base_src};\n"
         f"}}\n"
     )
