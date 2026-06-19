@@ -40,8 +40,10 @@ follow-ups remain:
 - [ ] **wat2wasm cross-check:** the factorial bytes were HAND-ASSEMBLED to the WASM spec encoding
   (`wat2wasm`/`wasm-tools` absent here). When a toolchain is available (CI), assemble the same `.wat`
   with real `wat2wasm` and assert the function-body bytes are byte-identical to `_WASM_FACT`.
-- [ ] **Multi-byte LEB128** (deferred from step 1): when a fixture needs a constant/index > 127,
-  decode continuation-byte LEB128 (operand length becomes data-dependent → affects pc advance).
+  (Still blocked locally — no toolchain; a CI-only item.)
+  - [ ] **3+ byte LEB128** (deferred): the substrate decode + host `_ilen` now handle 2-byte
+    (14-bit) operands; a 3rd continuation byte is asserted-against, not decoded. Needs a substrate
+    loop (or fixed 3/4-byte unroll) for full 32-bit operands — low value (no fixture needs it yet).
 
 ## 3. Phase 5.5 — recursion lowering (per the recursion-execution-model spec)
 
