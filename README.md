@@ -23,7 +23,7 @@ Two backends, both produce a self-contained Python module:
 
 The CLI is `python -m sutra_compiler`. Validate a file: `sutrac path/to/file.su`. Emit the generated torch module to stdout: `sutrac --emit path/to/file.su`. Compile and run: `sutrac --run path/to/file.su`.
 
-The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 10 of them end-to-end:
+The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 11 of them end-to-end:
 
 | `.su` program | What it exercises |
 |---|---|
@@ -37,6 +37,7 @@ The demo programs live in [`examples/`](examples/). The smoke test [`examples/_s
 | `fuzzy_dispatch.su` | N-way dispatch returning structured records |
 | `nearest_phrase.su` | 20-phrase codebook, clean and noisy retrieval |
 | `sequence.su` | position-bound 5-token sequence, decode any position |
+| `content_addressed_read.su` | NTM-style content-addressed read head: associative recall |
 
 Loops use the declared-function form (`do_while_adder.su`), exercised by the `test_loop_function_decl.py` suite. See [`docs/loops.md`](docs/loops.md) for the shape.
 
@@ -95,4 +96,4 @@ To open the repo in an IDE with syntax support, run [`sdk/intellij-sutra/editor.
 
 ## License
 
-Open source. Same license across the language, the compiler, the IntelliJ plugin, and the runtime.
+**GNU AGPL-3.0-only** (see [`LICENSE`](LICENSE)) — the same license across the language, the compiler, the IntelliJ plugin, and the runtime.

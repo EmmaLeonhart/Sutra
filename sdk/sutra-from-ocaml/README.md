@@ -14,9 +14,14 @@ dynamic, mutation-heavy JavaScript surface that the TypeScript frontend
 ML-family syntax + algebraic data types + pattern matching are the
 closest structural match to Sutra's axon/record model.
 
-## Status: alpha (first frontend tick)
+## Status: the reference frontend (broadest coverage)
 
-The lowering pass currently handles:
+OCaml is the **reference frontend** — the most complete of the nine `sutra-from-*`
+lowering passes (61 substrate-verified fixtures as of 2026-06-19), and the model the
+others are built against. Coverage includes the native-recursion family (tail,
+non-tail CPS fold, literal/guarded multibase), records/tuples/variants as axons with
+nested + mixed destructure, and the full `option`/variant payload (scalar and
+aggregate, annotated or not). The lowering pass handles:
 
 - Top-level `let name p1 p2 … = body` definitions with ≥ 1 parameter →
   Sutra `function` declarations. `let main () = …` (a `unit` parameter)
