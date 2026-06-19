@@ -390,9 +390,15 @@ for (int i = 0; i < 10; i++) {
 
 cannot stay in its imperative shape on a Sutra substrate — Sutra has
 no host-side mutation, no host-side `for`. The transpiler lowers it to
-a tail-recursive function whose state is an axon:
+a tail-recursive function whose state is an axon. The sketch below is
+**schematic pseudocode** for the recurrence (not literal `.su`): real
+Sutra has no `if` statement (it is codegen-rejected — see
+`control-flow.md`; conditionals are `select` / strong-defuzz blends) and
+no item-assignment statement; the actual lowering threads the updated
+fields through a `while_loop` / loop-function form. The shape it conveys:
 
 ```
+// schematic — illustrates the recurrence, not valid surface syntax
 function axon loop_body(axon a) {
     if (a.item("i") >= 10) return a;
     a.item("sum") = a.item("sum") + a.item("i");

@@ -182,9 +182,10 @@ are semantic.
   rotation binding in a dedicated synthetic subspace, which
   strictly dominates it (zero cross-talk by construction, ordered
   structure, reversibility, natural fit for imperative-style
-  state). Sign-flip remains as a legacy implementation detail in
-  `codegen_numpy.py` pending migration; it is not the design
-  going forward.
+  state). Sign-flip was retired from the codegen on 2026-04-22 (both
+  backends compile `bind` to rotation; see `binding.md`); `permute` /
+  `compose` are retained only as explicit legacy ±1 ops. It is not the
+  design going forward.
 
 ## Why this matters for the papers
 
