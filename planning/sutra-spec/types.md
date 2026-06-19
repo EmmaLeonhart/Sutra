@@ -13,33 +13,41 @@ not enforced constraints.
 Three base types at the bottom of the user-framed hierarchy:
 
 - **`vector`** — the default. Almost everything in Sutra programs
-  is a vector. At runtime a `vector` is a `numpy.ndarray` of
-  shape `(dim,)` where `dim` is the substrate's dimension (768 on
-  nomic-embed-text, 1024 on mxbai, etc.).
+  is a vector. On the canonical PyTorch backend (`codegen_pytorch.py`)
+  a `vector` is a `torch.Tensor` of shape `(dim,)` where `dim` is the
+  runtime dimension (the semantic sub-block — 768 on nomic-embed-text —
+  plus the synthetic subspace; default total ~868). The deprecated numpy
+  backend (`codegen.py`) used a `numpy.ndarray`.
 - **`matrix`** — two-dimensional; the user-framed base type for
   learned role matrices, rotation matrices, and defuzz matrices.
   Not yet a first-class declaration form (`matrix X = …` isn't
   accepted); matrices exist today only as rotation matrices
   inside the rotation-binding runtime.
-- **`scalar`** — the base type for numbers. A `scalar` at runtime
-  is a Python `float`.
+- **`scalar`** — the base type for numbers. A number **is a vector**
+  (the value on the synthetic number axis, zeros elsewhere) — resolved
+  2026-05-16, see §"number axis" below and `open-questions.md`. On the
+  canonical PyTorch backend it is a substrate `torch.Tensor`, NOT a host
+  `float` — the language has no scalar host-readout (substrate purity).
+  The deprecated numpy backend represented it as a Python `float`.
 
 ### Subtypes of `vector`
 
 - **`fuzzy`** — a vector representing a quantity between `true`
   and `false`. Per the spec design, a fuzzy is a scalar on the
   canonical truth axis of the synthetic subspace (the extended-
-  state-vector design). **Implementation status**: deferred. The
-  current runtime treats a `fuzzy` declared via `var x : fuzzy;`
-  as a plain Python `float` zero, because the synthetic subspace
-  isn't yet a runtime concept.
+  state-vector design). **Implementation status**: the *dedicated
+  truth axis* is deferred. On the canonical PyTorch backend a
+  `fuzzy` declared via `var x : fuzzy;` zero-initializes to a
+  substrate zero-vector (a `torch.Tensor`), not a host `float`;
+  the `fuzzy`/`bool` distinction is compile-time metadata. (The
+  deprecated numpy backend used a placeholder Python `float` zero.)
 - **`bool`** — a subtype of `fuzzy`. Per design, a bool carries a
   defuzzification counter as compile-time metadata so the
   compiler can distinguish values that have been defuzzed N
   times from values that have been defuzzed M times. There is
   no crisp-boolean form in Sutra; `bool` is always still a fuzzy.
-  Implementation is currently the same placeholder `float` zero
-  as `fuzzy`.
+  Same runtime representation as `fuzzy` (a substrate zero-vector
+  on the canonical backend).
 - **`BigInt` / `BigInt<MAX>`** — arbitrary-precision integer as a
   fixed-width little-endian digit array (base-10) held as a 1-d
   substrate vector; `BigInt<256>` carries the max width in the type.
@@ -74,9 +82,10 @@ Three base types at the bottom of the user-framed hierarchy:
   source; new code should use `Character`.
 - **`int`**, **`number`**, **`scalar`** — numeric types. All live
   on the canonical *number axis* of the synthetic subspace (see
-  §"The number axis and the integer class" below). At runtime
-  they are all Python floats; the distinction between them is
-  compile-time metadata.
+  §"The number axis and the integer class" below). At runtime, on
+  the canonical PyTorch backend, they are all substrate vectors (the
+  value on the number axis, a `torch.Tensor`) — not host floats; the
+  distinction between them is compile-time metadata.
 
 ### The number axis and the integer class
 
