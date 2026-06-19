@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-19: sutra-from-erlang — MIXED literal + `when`-guard >2-clause multibase (tail)
+
+Ported the same-day Elixir mixed literal+guard multibase generalisation to the Erlang frontend.
+`_try_lower_multibase_multiclause_recursion` collects bases in SOURCE ORDER tagged `"lit"`/`"guard"`
+(may be mixed); each renders to `(cont_test, blend_cond, body)` — literal `(N!=K)`/`(N==K)`, guard
+`negate(guard)`/`guard` via `_guard_cond_node` (Erlang wraps the guard condition in a `when` node, so
+the cond node is extracted before lowering, unlike Elixir). Loop continue = `&&` of the cont_tests;
+post-loop value = source-ordered nested defuzz blend.
+
+Fixture `guarded_multibase` (`f(0,Acc)->Acc; f(1,Acc)->Acc+100; f(N,Acc) when N>50 -> Acc+9000;
+f(N,Acc)->f(N-1,Acc+N); f(5,0)+f(60,0)`) RUN on the substrate == **9114.0** — same compound `&&` halt
+with a guard `<=` term firing correctly as the Elixir companion. Full Erlang suite 50/50 green.
+
 ## 2026-06-19: sutra-from-elixir — MIXED literal + `when`-guard >2-clause multibase (tail)
 
 `_try_lower_multibase_multiclause_recursion` previously rejected any clause with a guard

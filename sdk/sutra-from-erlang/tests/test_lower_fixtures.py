@@ -51,6 +51,7 @@ _RUNNABLE = {
     "multibase_tailsum": 105.0,  # f(0,Acc)->Acc; f(1,Acc)->Acc+100; f(N,Acc)->f(N-1,Acc+N); f(3,0)=105  (>2-CLAUSE multi-literal-base tail recursion: continue = (N!=0)&&(N!=1) compound halt [§0.3], post-loop = nested blend of base bodies on final state)
     "guarded_rec_clause": 15.0,  # f(N,Acc) when N>0 -> f(N-1,Acc+N); f(_,Acc) -> Acc; f(5,0)=15  (Mode C: GUARDED RECURSIVE clause + catch-all base -> continue = the recursive guard, base is post-loop value)
     "multibase_nontail_fact": 600.0,  # f(0)->1; f(1)->5; f(N)->N*f(N-1); f(5)=5*4*3*2*f(1)=120*5=600  (>2-CLAUSE multi-literal-base NON-TAIL recursion -> CPS fold: acc seeded to OP identity, leaf folded each step, post-loop acc*base_blend on final state)
+    "guarded_multibase": 9114.0,  # f(0,Acc)->Acc; f(1,Acc)->Acc+100; f(N,Acc) when N>50 -> Acc+9000; f(N,Acc)->f(N-1,Acc+N); f(5,0)+f(60,0)=114+9000  (MIXED literal + `when`-guard >2-clause multibase tail recursion: continue = (N!=0)&&(N!=1)&&(N<=50) compound halt with guard term, post-loop = source-order blend keyed by (N==K)/guard)
     "string_case": 60.0,  # classify(S) -> case S of "foo"->10; "bar"->20; _->30 end; classify("foo")+("bar")+("baz") = 60  (Erlang string literal + case string pattern -> eq_synthetic)
     "string_concat": 100.0,  # cat(A,B) -> A ++ B; classify(S) -> case S of "foobar"->100; _->200; classify(cat("foo","bar"))  (`++` over charlists -> substrate string concat; `++`-operand params inferred String)
 }
