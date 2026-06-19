@@ -102,6 +102,16 @@ class Context:
     # comparisons). On a name collision with conflicting types the field
     # is marked non-numeric to stay safe.
     field_types: dict[str, str] = field(default_factory=dict)
+    # interface_field_types maps an interface/alias NAME -> its OWN {field: type}
+    # map (NOT merged). When a variable's declared interface is known, a member
+    # access resolves the field type here EXACTLY — even when two interfaces share
+    # a field name with conflicting types (which collapses the merged `field_types`
+    # entry to "JavaScriptObject"). Global state, shared across scopes.
+    interface_field_types: dict[str, dict] = field(default_factory=dict)
+    # var_interfaces maps a LOCAL variable name -> its declared interface/alias
+    # name (when annotated `x: A` with `A` Axon-shaped). Per-scope, like
+    # local_types — lets `x.field` look up `field` in A's own map above.
+    var_interfaces: dict[str, str] = field(default_factory=dict)
     # Prelude lines (e.g. `Axon _np0 = o.item("inner");`) hoisted out of a
     # nested member-access chain, drained before the statement that uses them:
     # chaining `.item().item()` fails at runtime (the inner read returns a raw
@@ -155,6 +165,8 @@ class Context:
             loop_counter=self.loop_counter,
             arrow_captures=self.arrow_captures,
             field_types=self.field_types,
+            interface_field_types=self.interface_field_types,
+            var_interfaces={},
             prelude=[],
             temp_counter=self.temp_counter,
         )
@@ -221,6 +233,34 @@ def _ts_type_to_sutra(annotation_node, source: bytes, ctx: Context) -> str:
     return "JavaScriptObject"
 
 
+def _annotation_interface(type_node, source: bytes, ctx: Context) -> Optional[str]:
+    """If a `type_annotation` is a bare interface/alias name (`x: A`), return that
+    name; else None. Used to record `var -> interface` so a later `x.field` resolves
+    the field type in A's OWN map rather than the merged global `field_types`."""
+    if type_node is None:
+        return None
+    inner = type_node.named_children[0] if type_node.named_children else None
+    if inner is not None and inner.type == "type_identifier":
+        nm = _node_text(inner, source)
+        if nm in ctx.interface_names or nm in ctx.type_alias_names:
+            return nm
+    return None
+
+
+def _resolve_field_type(obj_node, prop_text: str, ctx: Context,
+                        source: bytes) -> Optional[str]:
+    """Field type of `obj.prop`. When `obj` is a bare identifier bound to a known
+    interface, use that interface's OWN field map (exact under cross-interface field-
+    name collisions); otherwise fall back to the merged global `field_types`."""
+    if obj_node is not None and obj_node.type == "identifier":
+        iface = ctx.var_interfaces.get(_node_text(obj_node, source))
+        if iface is not None:
+            per = ctx.interface_field_types.get(iface)
+            if per is not None and prop_text in per:
+                return per[prop_text]
+    return ctx.field_types.get(prop_text)
+
+
 def _expr_type(node, source: bytes, ctx: Context) -> Optional[str]:
     """Best-effort type of an expression. Returns None when the type
     cannot be determined locally."""
@@ -243,7 +283,7 @@ def _expr_type(node, source: bytes, ctx: Context) -> Optional[str]:
         prop = node.child_by_field_name("property")
         if (obj is not None and prop is not None
                 and _expr_type(obj, source, ctx) == "Axon"):
-            return ctx.field_types.get(_node_text(prop, source))
+            return _resolve_field_type(obj, _node_text(prop, source), ctx, source)
         return None
     return None
 
@@ -494,7 +534,7 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
             # must NOT get `realvec` (they feed string comparisons). The
             # field's type comes from the global interface/alias field-type
             # map; unknown fields default to no projection (safe for strings).
-            if ctx.field_types.get(prop_text) in ("int", "float"):
+            if _resolve_field_type(obj, prop_text, ctx, source) in ("int", "float"):
                 return f'realvec({obj_src}.item("{prop_text}"))'
             return f'{obj_src}.item("{prop_text}")'
         # Array-typed `arr.length` → `array_length(arr)` (a Sutra
@@ -779,6 +819,9 @@ def _lower_lexical_declaration(
         name = _node_text(name_node, source)
         if type_node is not None:
             sutra_type = _ts_type_to_sutra(type_node, source, ctx)
+            iface = _annotation_interface(type_node, source, ctx)
+            if iface is not None:
+                ctx.var_interfaces[name] = iface
         else:
             # No explicit annotation — infer from the initializer if it's
             # a primitive literal. Falls back to JavaScriptObject.
@@ -1017,6 +1060,9 @@ def _lower_arrow_as_function(
                 ptype = _ts_type_to_sutra(ann, source, ctx)
                 param_parts.append(f"{ptype} {pname}")
                 fn_ctx.local_types[pname] = ptype
+                iface = _annotation_interface(ann, source, ctx)
+                if iface is not None:
+                    fn_ctx.var_interfaces[pname] = iface
                 own_param_names.add(pname)
             elif p.type == "identifier":
                 pname = _node_text(p, source)
@@ -1084,6 +1130,9 @@ def _lower_function(node, source: bytes, ctx: Context) -> str:
                 ptype = _ts_type_to_sutra(ann, source, ctx)
                 param_parts.append(f"{ptype} {pname}")
                 fn_ctx.local_types[pname] = ptype
+                iface = _annotation_interface(ann, source, ctx)
+                if iface is not None:
+                    fn_ctx.var_interfaces[pname] = iface
             elif p.type == "identifier":
                 pname = _node_text(p, source)
                 param_parts.append(f"JavaScriptObject {pname}")
@@ -1222,6 +1271,9 @@ def _lower_method(
                 ptype = _ts_type_to_sutra(ann, source, ctx)
                 param_parts.append(f"{ptype} {pname}")
                 method_ctx.local_types[pname] = ptype
+                iface = _annotation_interface(ann, source, ctx)
+                if iface is not None:
+                    method_ctx.var_interfaces[pname] = iface
     params_src = ", ".join(param_parts)
     body_src = _lower_function_body(body_node, source, method_ctx)
     static_kw = "static " if is_static else ""
@@ -1243,10 +1295,13 @@ def _record_field(ctx: Context, name: str, sutra_type: str) -> None:
         ctx.field_types[name] = "JavaScriptObject"
 
 
-def _collect_fields_from_type(node, source: bytes, ctx: Context) -> None:
+def _collect_fields_from_type(node, source: bytes, ctx: Context,
+                              into: Optional[dict] = None) -> None:
     """Walk an interface body or a type-alias value (object_type,
     union_type of object_types, …) and record each `property_signature`
-    field's Sutra type into ctx.field_types."""
+    field's Sutra type into ctx.field_types (the merged global map). When
+    `into` is given, ALSO record the field there RAW (no collision-collapse) —
+    that is this interface's own per-name map for exact field-type resolution."""
     if node is None:
         return
     t = node.type
@@ -1268,9 +1323,11 @@ def _collect_fields_from_type(node, source: bytes, ctx: Context) -> None:
                 else "JavaScriptObject"
             )
             _record_field(ctx, _node_text(pid, source), sutra_t)
+            if into is not None:
+                into[_node_text(pid, source)] = sutra_t
     elif t in ("union_type", "intersection_type", "parenthesized_type"):
         for c in node.named_children:
-            _collect_fields_from_type(c, source, ctx)
+            _collect_fields_from_type(c, source, ctx, into)
 
 
 def _prepass(root, source: bytes, ctx: Context) -> None:
@@ -1295,18 +1352,22 @@ def _prepass(root, source: bytes, ctx: Context) -> None:
         child = _unwrap_export(raw)
         if child.type == "interface_declaration":
             name_node = child.child_by_field_name("name")
+            own: dict = {}
             if name_node is not None:
                 ctx.interface_names.add(_node_text(name_node, source))
+                ctx.interface_field_types[_node_text(name_node, source)] = own
             body = next(
                 (c for c in child.named_children if c.type == "interface_body"), None
             )
-            _collect_fields_from_type(body, source, ctx)
+            _collect_fields_from_type(body, source, ctx, own)
         elif child.type == "type_alias_declaration":
             name_node = child.child_by_field_name("name")
+            own = {}
             if name_node is not None:
                 ctx.type_alias_names.add(_node_text(name_node, source))
+                ctx.interface_field_types[_node_text(name_node, source)] = own
             value = child.child_by_field_name("value")
-            _collect_fields_from_type(value, source, ctx)
+            _collect_fields_from_type(value, source, ctx, own)
         elif child.type == "class_declaration":
             name_node = child.child_by_field_name("name")
             if name_node is not None:

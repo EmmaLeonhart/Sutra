@@ -11825,3 +11825,23 @@ rules this is NOT a work-loop tick — it stays on the tier-5 WASM fallback. Fin
 future deliberate session starts from them. No compiler change this tick (investigation +
 triage only). (User-defined `Circle of int` variants DO work — they use the `_VARIANT_CTORS`
 path; the built-in `option` is only half-wired to it.)
+
+## 2026-06-19 — TS: per-variable interface typing (field-name collisions)
+`sutra-from-ts` member access `x.field` now resolves the field's type in the variable's
+OWN interface map, exact even when two interfaces share a field NAME with conflicting
+types. Previously `field_types` was a single merged-by-field-name map; on a conflict
+`_record_field` collapsed the entry to "JavaScriptObject", which denied a numeric field
+its `realvec` real-axis projection -> `a.v + 1` mis-lowered to `JavaScriptObject.js_add`
+(a deferred stdlib piece that doesn't run end-to-end).
+- Additive fix (no disturbance to the pervasive `== "Axon"` sentinel): new
+  `Context.interface_field_types` (interface NAME -> its own {field: type}, raw, no collapse)
+  built in the prepass; `Context.var_interfaces` (local var -> declared interface name)
+  populated at all three param sites (function decl, arrow, method) + typed-var declarators.
+  `_resolve_field_type(obj, prop)` uses the per-interface map when `obj` is an identifier bound
+  to a known interface; else falls back to the global merged map (nested chains, unannotated).
+- Fixture `interface_field_collision`: A.v number, B.v string; `fa(a:A)` -> `realvec(a.item("v"))`,
+  `fb(b:B)` -> raw `b.item("v")` (eq_synthetic). RUN main = fa({v:5}) == 6 (was js_add/broken).
+  Full TS suite 48 passed + 1 xfailed, no regression.
+- Subtlety caught mid-fix: THREE param-binding sites set local_types; the first patch only hit
+  the arrow path, so `fa`'s param-bound `a.v` still mis-resolved (trace showed var_interfaces={})
+  until the function-decl + method sites were patched too.
