@@ -10,7 +10,7 @@ The fuller story is in `CLAUDE.md` §"Project Overview". The full empirical and 
 
 ## Read these first, in order
 
-1. **`CLAUDE.md`** — the rules of engagement. Safety constraints, math discipline (no shortcuts, no numpy at runtime), paper-frozen status, planning-folder conventions, audience split.
+1. **`CLAUDE.md`** — the rules of engagement. Safety constraints, math discipline (no shortcuts, no numpy at runtime), paper workflow + clawRxiv submission, planning-folder conventions, audience split.
 2. **`queue.md`** — what is being worked on right now. Top of stack. Always update in the same commit as the work.
 3. **`todo.md`** — longer-horizon agenda. Items migrate `todo.md` → `queue.md` → deleted on completion.
 4. **`planning/sutra-spec/`** — the canonical language spec. Read the file relevant to the operation you are touching before you touch it. `planning/sutra-spec/README.md` is the entry point.
@@ -35,8 +35,8 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 | Path | What's there |
 |---|---|
 | `sdk/sutra-compiler/` | The compiler. `sutra_compiler/` is the Python package; `tests/` is the test suite; `stdlib/` holds the `.su` standard library that gets inlined into user code. |
-| `sdk/sutra-from-ts/` | The TypeScript→Sutra transpiler — the most-developed frontend and Yantra's downstream gate (19 fixtures). |
-| `sdk/sutra-from-{ocaml,rust,scala,clojure,elixir,erlang,fsharp,haskell,c}/` | Additional language frontends, in active development — each a fixture-tested lowering pass that compiles AND runs its fixtures on the substrate against ground truth. Maturity (fixtures, 2026-06-15): OCaml 45 (the reference frontend), Rust 10, Scala/Clojure/Elixir 9, Fsharp/Haskell 8, Erlang 6, C 2 (parked). All nine share the same lowering shapes — functions → `function`, `if`/`match` → defuzz blend, tail recursion → `while_loop`, foldable non-tail recursion → CPS accumulator trampoline. The "TS is the sole transpiler" framing is retired. |
+| `sdk/sutra-from-ts/` | The TypeScript→Sutra transpiler — Yantra's downstream gate (21 fixtures). |
+| `sdk/sutra-from-{ocaml,rust,scala,clojure,elixir,erlang,fsharp,haskell,c}/` | Additional language frontends, in active development — each a fixture-tested lowering pass that compiles AND runs its fixtures on the substrate against ground truth. Maturity (fixtures, 2026-06-19; counts churn — see each frontend's README/tests): OCaml 61 (the reference frontend), Fsharp 31, Elixir 31, Haskell 28, Rust 25, Erlang 25, Clojure 24, Scala 21, C 2 (parked). All nine share the same lowering shapes — functions → `function`, `if`/`match` → defuzz blend, tail recursion → `while_loop`, foldable non-tail recursion → CPS accumulator trampoline. The "TS is the sole transpiler" framing is retired. |
 | `sdk/intellij-sutra/` | IntelliJ plugin (syntax highlighting, completion, external annotator, settings). |
 | `sdk/vscode-sutra/` | VS Code extension (TextMate grammar, snippets). |
 | `examples/` | `.su` programs. The smoke-tested ten plus reference material. `examples/_smoke_test.py` is the end-to-end driver. |
@@ -88,7 +88,6 @@ The full rules are in `CLAUDE.md` §"Workflow Rules". Short version:
 
 ## What this repo is *not* for
 
-- Editing the paper. It is frozen.
 - Reading the website. The website is for humans at `sutra.topazcomputing.com`; agents read the repo Markdown directly.
 - Implementing Yantra (the Sutra-based OS). That has its own repo at `../Yantra/`. Yantra is downstream of Sutra and of the TypeScript transpiler (its GUI gate) — it does not live here.
 
