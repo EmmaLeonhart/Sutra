@@ -23,5 +23,11 @@ Verified versions: PennyLane 0.45.0, Qiskit 2.4.2, Cirq 1.6.1.
   expectation `<Z>(θ)=cos θ` has an exact analytic gradient `-sin θ`, trained by gradient
   descent (θ→π, `<Z>`→−1). The variational/VQE paradigm = Sutra's differentiable forward
   pass, on a unitarity-constrained graph.
+- `vqe_to_sutra.py` (Q5, the genuinely novel test) — expresses + trains the SAME
+  `RY(θ)|0>`/`<Z>` circuit on Sutra's OWN complex substrate (amplitudes packed on
+  `AXIS_REAL`/`AXIS_IMAG`; `RY` = the substrate eigenrotation `cexp(i·θ/2)`; `<Z> = Re(z²)`
+  via `complex_mul`). Trains to PennyLane's fixed point (θ→π, `<Z>`→−1; value/gradient match
+  the closed form to ~1e-4 / ~1e-6). Scope: Sutra can express+train a VQE-shaped graph — NOT
+  a claim it is a quantum computer or that its ops are unitary; single-qubit toy only.
 
 Run any script directly: `python experiments/quantum/<name>.py`.
