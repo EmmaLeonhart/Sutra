@@ -48,9 +48,10 @@ surfaced, in priority order:
 - [ ] **Dimension auto-minimize.** 18 zero-`basis_vector` `examples/` run at 768/868 (silent cost).
   Make codegen auto-minimize semantic_dim when no `basis_vector`/`embed`/axon-string-key is present,
   or add per-file dim directives. Bounded, verifiable.
-- [ ] **calc operator-select gap table.** `demos/calc/switch.su` ships no
-  `gap = min(selected) − max(wrong)` table; add a `measure_select_gap` sweep (operator codepoints ×
-  targets), mirroring `experiments/iso5_substrate_dispatch/measure_dispatch_gap.py`. Bounded.
+- calc operator-select gap table — **DONE 2026-06-19**: `demos/calc/measure_select_gap.py` +
+  `test_calc.py::test_operator_select_signal_separation_gap` measure gap = 1000 (matched op scores 0,
+  every wrong op ≤ −1000; tightest pair `+`/`*`, one codepoint apart). The substrate genuinely
+  separates the four operators.
 
 ---
 
