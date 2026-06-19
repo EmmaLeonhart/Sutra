@@ -108,12 +108,17 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   == 3, `vec_in_recursion` RUN == 60). Residual (orthogonal, pre-existing): `.item()` on a
   call-result blocks inline `(:k (f …))` reads — finding `2026-06-18-axon-item-on-call-result-...`.
   (Symbol/keyword-as-value rep is §0.5.)
-- [ ] **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload — NOT just aggregate;
-  `Some 5` (scalar) is unsupported too. FIVE precise interlocking gaps root-caused 2026-06-19
-  (param typed `int` not `Axon`; arg-position construction not hoisted by `_aggregate_arg_emitter`;
-  `mk ()` unit-arg; aggregate-payload descent; a `.real()` violation in `_lower_option_body`) — see
-  finding `2026-06-19-ocaml-option-payload-five-gaps.md`. A deliberate session, not a few-cycles
-  tick (the gaps interlock → can't RUN-verify a partial fix); runs on WASM meanwhile. Plus: scalable
+- [ ] **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload — five gaps root-caused
+  in finding `2026-06-19-ocaml-option-payload-five-gaps.md`. PROGRESS 2026-06-19: **gap 2 DONE** —
+  inline `Some e` in ARG position now hoists to a `{_tag,_val}` axon via new `_emit_option_construction`
+  + `_aggregate_arg_emitter` branch (the emitter also descends an aggregate payload, so the
+  construction side of gap 4 is covered); `_lower_option_body` refactored to reuse it (behavior-
+  preserving). **gap 5 DONE** — it was only a stale `.real()` docstring (no live readout), corrected.
+  Fixture `option_some_inline` (`f (Some 5)`, annotated param) RUN == 6; full OCaml suite 147/147.
+  REMAINING: gap 1 (UNANNOTATED option/variant match-scrutinee param still typed `int` not `Axon` —
+  `_lower_param` line ~1112 needs body-scrutinee inference threaded in); gap 4 MATCH-side aggregate
+  descent (`_lower_option_match_body` reads `_oval` as a scalar; a `Some {record}` arm must descend
+  the nested axon); gap 3 (`mk ()` unit-arg → `UNSUPPORTED-EXPR: unit`). Plus: scalable
   RAM device for the 10MB linear memory (`Bytes.make` / loop-carried arrays use the global RAM list,
   which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing DONE 2026-06-19 — a member

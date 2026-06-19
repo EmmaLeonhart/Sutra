@@ -1234,6 +1234,9 @@ def _aggregate_arg_emitter(ua, source: bytes, indent: str, var: str):
     vk = _variant_value_kind(ua, source)
     if vk is not None:
         return _emit_variant_construction(vk, source, indent, var)
+    ok = _option_kind(ua, source)
+    if ok is not None:
+        return _emit_option_construction(ok, source, indent, var)
     return None
 
 
@@ -1309,21 +1312,38 @@ def _option_kind(node, source: bytes):
     return None
 
 
+def _emit_option_construction(kind, source: bytes, indent: str, var: str) -> str:
+    """Statement-based `{_tag, _val}` construction of an option value into `var`
+    (no trailing return) — the arg-hoist / nested-slot analog of
+    `_lower_option_body`, and the option counterpart of `_emit_variant_construction`
+    (an option is an arity-1 tagged axon). `Some e` -> tag 1 + `_val` = e; `None` ->
+    tag 0, `_val` 0. A scalar payload is emitted inline; an aggregate payload (record /
+    tuple / nested variant) is built via `_aggregate_arg_emitter` into a nested slot."""
+    lines = f"{indent}Axon {var};\n"
+    if kind[0] == "some":
+        lines += f'{indent}{var}.add("_tag", 1);\n'
+        payload = _unwrap_parens(kind[1])
+        nested = _aggregate_arg_emitter(payload, source, indent, f"{var}_val")
+        if nested is not None:
+            lines += nested
+            lines += f'{indent}{var}.add("_val", {var}_val);\n'
+        else:
+            lines += f'{indent}{var}.add("_val", {_lower_expression(kind[1], source)});\n'
+    else:
+        lines += f'{indent}{var}.add("_tag", 0);\n'
+        lines += f'{indent}{var}.add("_val", 0);\n'
+    return lines
+
+
 def _lower_option_body(kind, source: bytes, indent: str) -> str:
     """Lower an option value (`None` / `Some e`) in function-body position
     to a tagged axon `{_tag, _val}`: `None` -> tag 0, `Some e` -> tag 1 +
-    value e. `match … with Some x -> … | None -> …` reads them back. Same
-    body-position constraint as records/tuples. MVP: numeric `Some`
-    payloads (read via `.real()`)."""
-    lines = f"{indent}Axon _opt;\n"
-    if kind[0] == "some":
-        lines += f'{indent}_opt.add("_tag", 1);\n'
-        lines += f'{indent}_opt.add("_val", {_lower_expression(kind[1], source)});\n'
-    else:
-        lines += f'{indent}_opt.add("_tag", 0);\n'
-        lines += f'{indent}_opt.add("_val", 0);\n'
-    lines += f"{indent}return _opt;\n"
-    return lines
+    value e. `match … with Some x -> … | None -> …` reads them back (substrate-pure
+    via `realvec`, no readout accessor). Same body-position constraint as
+    records/tuples. Construction is shared with the arg-hoist path via
+    `_emit_option_construction`."""
+    return (_emit_option_construction(kind, source, indent, "_opt")
+            + f"{indent}return _opt;\n")
 
 
 def _variant_value_kind(node, source: bytes):

@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-19: sutra-from-ocaml — option payload gap 2 (inline `Some` in arg position)
+
+First slice of the OCaml option/variant-payload deliberate session (finding
+`2026-06-19-ocaml-option-payload-five-gaps.md`). The existing `option_some` fixture already worked
+(option built by a function `mk x = Some x`, annotated scrutinee), but an INLINE `Some 5` in argument
+position (`f (Some 5)`) emitted `UNSUPPORTED-EXPR: constructor Some` because `_aggregate_arg_emitter`
+hoisted record/tuple/user-variant literals but not the built-in option constructor.
+
+Gap 2 fixed: added `_emit_option_construction(kind, source, indent, var)` — the statement-based
+`{_tag,_val}` construction (option = arity-1 tagged axon; `Some e` -> tag 1 + `_val` e, descending an
+aggregate payload via `_aggregate_arg_emitter` so `Some {record}` construction works too) — and a
+`_option_kind` branch in `_aggregate_arg_emitter`. Refactored `_lower_option_body` (body position) to
+reuse the new emitter (behavior-preserving). Gap 5 was only a stale `.real()` docstring in
+`_lower_option_body` (no live readout — the emitter and the match readback already use `realvec`);
+corrected the docstring.
+
+Fixture `option_some_inline` (`f (s : int option) = match s with Some v -> v+1 | None -> 0`;
+`f (Some 5)`) RUN on the substrate == **6.0**. Full OCaml suite 147/147 green (no regression from the
+`_lower_option_body` refactor). REMAINING gaps: 1 (unannotated scrutinee param typed `int` not `Axon`),
+4 (match-side aggregate `_val` descent), 3 (`mk ()` unit-arg). The guarded-multibase commits
+`4386adcc`/`c0d0b9fa` are CI-green (the all-frontend run `27844610332`).
+
 ## 2026-06-19: sutra-from-erlang — MIXED literal + `when`-guard >2-clause multibase (tail)
 
 Ported the same-day Elixir mixed literal+guard multibase generalisation to the Erlang frontend.
