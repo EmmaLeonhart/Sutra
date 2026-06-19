@@ -103,14 +103,14 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   == 3, `vec_in_recursion` RUN == 60). Residual (orthogonal, pre-existing): `.item()` on a
   call-result blocks inline `(:k (f …))` reads — finding `2026-06-18-axon-item-on-call-result-...`.
   (Symbol/keyword-as-value rep is §0.5.)
-- [ ] **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH**
-  arm (`match s with Some { x; y } -> … | None -> …` — the option-match codegen binds the payload as a
-  SCALAR `int _oval = realvec(s.item("_val"))`, so a record/tuple payload's fields are unbound and
-  `Some { record }` construction is UNSUPPORTED; measured 2026-06-18; needs the MATCH path to descend
-  an aggregate payload like the variant-`let` path now does — a non-trivial rework, not a clean
-  cross-call); scalable RAM device for the 10MB linear memory (`Bytes.make` / loop-carried arrays use
-  the global RAM list, which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented
-  limit, not a bug).
+- [ ] **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload — NOT just aggregate;
+  `Some 5` (scalar) is unsupported too. FIVE precise interlocking gaps root-caused 2026-06-19
+  (param typed `int` not `Axon`; arg-position construction not hoisted by `_aggregate_arg_emitter`;
+  `mk ()` unit-arg; aggregate-payload descent; a `.real()` violation in `_lower_option_body`) — see
+  finding `2026-06-19-ocaml-option-payload-five-gaps.md`. A deliberate session, not a few-cycles
+  tick (the gaps interlock → can't RUN-verify a partial fix); runs on WASM meanwhile. Plus: scalable
+  RAM device for the 10MB linear memory (`Bytes.make` / loop-carried arrays use the global RAM list,
+  which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
   when two interfaces share a field name with different types. (Nested-interface support shipped
   2026-06-18 — recursive object-literal construction + member-access hoist-prelude.)
