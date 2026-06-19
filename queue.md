@@ -111,9 +111,13 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   tick (the gaps interlock → can't RUN-verify a partial fix); runs on WASM meanwhile. Plus: scalable
   RAM device for the 10MB linear memory (`Bytes.make` / loop-carried arrays use the global RAM list,
   which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented limit, not a bug).
-- [ ] **TS follow-on (low priority):** per-variable interface typing so field-type lookup is exact
-  when two interfaces share a field name with different types. (Nested-interface support shipped
-  2026-06-18 — recursive object-literal construction + member-access hoist-prelude.)
+- [ ] **TS follow-on (low priority):** per-variable interface typing DONE 2026-06-19 — a member
+  access `x.field` now resolves the field type in the variable's OWN interface map
+  (`interface_field_types` + `var_interfaces`), exact even when two interfaces share a field name
+  with conflicting types (which collapsed the merged map to "JavaScriptObject" and denied a numeric
+  field its `realvec`). Fixture `interface_field_collision` (A.v number → realvec, B.v string → raw;
+  RUN == 6). Falls back to the global map for non-identifier receivers (nested chains). (Nested-
+  interface support shipped 2026-06-18.)
 - [ ] **WASM source frontend** — the `WASM/`-subtree-tied source→Sutra path (Phase 3 in `todo.md`;
   distinct from the §2 wasm_core VM).
 
