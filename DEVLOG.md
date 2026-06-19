@@ -11764,3 +11764,26 @@ mirroring the Elixir work earlier today:
   `String` type for any param used as a `++` operand, so `+` routes to substrate concat
   not numeric add. `string_concat` RUN == 100 (`classify(cat("foo","bar"))`).
 Full Erlang suite 46 passed. No regressions.
+
+## 2026-06-18 — wasm_core: multi-byte (2-byte / 14-bit) LEB128
+`experiments/iso5_substrate_dispatch/wasm_core.su` `step()` now decodes 2-byte
+LEB128 operands (values/indices > 7 bits), the last open §2 Phase-5 follow-up that
+was implementable locally (the wat2wasm cross-check stays CI-gated — no toolchain here).
+- **Substrate decode (branchless tensor arithmetic):** `cont0 = (imm >= 128)` via the
+  boundary-clean `2*imm < 255` trick; `imm1 = ram[pc+2]`. Unsigned value `mb_uval =
+  imm_low + 128*cont0*imm1` (used for local/call/label indices). Signed value `leb_val`
+  sign-extends from bit 6 of the LAST byte (byte0 single / byte1 two-byte), subtracting
+  2^7 or 2^14. Both collapse EXACTLY to the old single-byte values when cont0=0, so all
+  45 existing 1-byte programs are byte-for-byte unchanged.
+- **Data-dependent pc advance:** `pc_seq = pc + 1 + two_byte + two_byte*cont0` — an
+  operand-bearing op whose first operand byte continues skips one extra byte; a
+  non-operand op's garbage `imm` cannot inflate the advance (`two_byte` gates it).
+- **Host loader (`test_wasm_core.py::_ilen`):** now continuation-aware (length 3 when the
+  operand byte sets 0x80), so the pre-resolved branch-target table offsets stay correct
+  across a 2-byte operand. A 3rd continuation byte is ASSERTED against (not silently
+  mislowered) — substrate decode is 2-byte/14-bit; 3+ byte (full 32-bit) deferred.
+- **5 new fixtures:** i32.const 200 / 300 / -200 (2-byte signed+unsigned); 200+50 compose
+  with arithmetic; i32.const 1000 inside a block before `br 0` (offsets shift, target table
+  still resolves). Full suite 50 passed (45 existing + 5 new), no regression.
+Note: values 64..127 are NOT valid single-byte LEB128 (bit6 = sign), so they require
+their own 2-byte encoding — documented in the compose fixture.

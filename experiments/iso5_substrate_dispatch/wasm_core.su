@@ -55,6 +55,26 @@ function int step(scalar d) {
     int obase = fp + nloc;
     int op = ramRead(pc);
     int imm = ramRead(pc + 1);
+    // ---- Multi-byte (2-byte / 14-bit) LEB128 decode ----
+    // The operand of a 2-byte op may be a TWO-byte LEB128 when the value/index
+    // exceeds 7 bits: byte0 carries its low 7 bits with the 0x80 continuation bit
+    // set, byte1 carries bits 7..13. `cont0` = byte0 has the continuation bit.
+    // Boundary-clean detection: 2*imm < 255 (255 is odd, 2*imm even -> never equal)
+    // is exactly imm <= 127, so cont0 = NOT that = (imm >= 128). 3+ byte operands
+    // are out of scope (the host loader asserts none appear) -> branchless, no loop.
+    int imm1 = ramRead(pc + 2);                                       // second operand byte (used iff cont0)
+    int cont0 = 1 - ((truth_axis(defuzzy((2 * imm) < 255)) + 1) / 2); // 1 iff imm >= 128
+    int imm_low = imm - (128 * cont0);                               // byte0 low 7 bits
+    // UNSIGNED value (local/call/label index): byte0_low + (byte1 << 7) when cont0;
+    // exactly `imm` when single-byte (cont0=0 -> imm_low=imm, extra term zeroed).
+    int mb_uval = imm_low + (128 * cont0 * imm1);
+    // SIGNED value (i32.const). The LEB sign is bit 6 of the LAST byte: byte0 when
+    // single-byte, byte1 when two-byte. (2*b < 127 <=> b <= 63 = bit6 clear.)
+    int sign1 = 1 - ((truth_axis(defuzzy((2 * imm) < 127)) + 1) / 2);   // bit6 of byte0
+    int sign2 = 1 - ((truth_axis(defuzzy((2 * imm1) < 127)) + 1) / 2);  // bit6 of byte1
+    int mb_sign = (cont0 * sign2) + ((1 - cont0) * sign1);
+    // Sign-extend: subtract 2^7 (single-byte) or 2^14 (two-byte) when the sign bit is set.
+    int leb_val = mb_uval - (((1 - cont0) * 128 + cont0 * 16384) * mb_sign);
     int top1 = ramRead(obase + sp - 1);
     int top2 = ramRead(obase + sp - 2);
     // Real-axis unit vector (make_complex(1,0)). i32.const's opcode-following
@@ -90,13 +110,10 @@ function int step(scalar d) {
     // i32.const `imm` is instead the signed LEB value, decoded below.) loc_cur is the
     // local's current value — used to PUSH it (local.get) and as the no-op write-back
     // base when the op is not local.set/tee.
-    int loc_cur = ramRead(fp + imm);
-    // Signed single-byte LEB128 decode for i32.const (value in [-64,63]): a byte
-    // b<0x80 is complete; signed value = b - 128*sign, sign = (b>=64) = bit 6.
-    // Detect via (2*b) < 127 == (b<=63): 2*b is even, 127 is odd, so they're never
-    // equal -> no equality-boundary case, no gate (same trick as the JVM offset sign).
-    int leb_sign = 1 - ((truth_axis(defuzzy((2 * imm) < 127)) + 1) / 2);  // 1 iff negative
-    int leb_val = imm - (128 * leb_sign);
+    int loc_cur = ramRead(fp + mb_uval);
+    // (i32.const's value `leb_val` and the unsigned index `mb_uval` were decoded above
+    // by the multi-byte LEB128 block; both collapse to the old single-byte values when
+    // the operand fits in 7 bits, so existing 1-byte programs are byte-for-byte unchanged.)
     // Comparisons as 0/1 values (copies of the JVM gated idiom). WASM i32 compares
     // pop value1 (=top2, deeper) and value2 (=top1, top) and push (value1 <cond> value2):
     //   eq: top2==top1  ne: top2!=top1  lt_s: top2<top1  gt_s: top2>top1
@@ -129,7 +146,7 @@ function int step(scalar d) {
     // actually local.set/local.tee (where `imm` is a small index < nloc, staying in the
     // locals region). The read of `loc_cur` above is harmless (a read can't corrupt).
     int set01 = ((is_set + 1) / 2) + ((is_tee + 1) / 2);
-    int loc_addr = (set01 * (fp + imm)) + ((1 - set01) * (5));
+    int loc_addr = (set01 * (fp + mb_uval)) + ((1 - set01) * (5));
     ramWrite(loc_addr, new_loc);
     // 98+sp (binary result): add/sub/mul write here; net sp -1 collapses the top so
     // the result lands at the new top (99+(sp-1) = 98+sp). Else keep top2.
@@ -154,12 +171,16 @@ function int step(scalar d) {
     int new_99 = (((1 + is_eqz) * (v_eqz * one)) + ((1 - is_eqz) * (top1))) / 2;
     ramWrite(obase + sp - 1, new_99);
     // pc advancement + branch target (needed by both the branch chain and the
-    // function-return detection). 2-byte ops skip their 1 operand byte (call too).
+    // function-return detection). 2-byte ops skip their 1 operand byte (call too);
+    // a 2-byte LEB128 operand (cont0=1) skips ONE MORE byte. `two_byte` is 0/1 (the
+    // opcodes are mutually exclusive), so `two_byte * cont0` adds the continuation
+    // byte ONLY for an operand-bearing op whose first operand byte continues — a
+    // non-operand op's garbage `imm` cannot inflate the advance.
     int two_byte = ((is_const + 1) / 2) + ((is_get + 1) / 2) + ((is_set + 1) / 2)
                  + ((is_tee + 1) / 2) + ((is_block + 1) / 2) + ((is_loop + 1) / 2)
                  + ((is_if + 1) / 2) + ((is_br + 1) / 2) + ((is_br_if + 1) / 2)
                  + ((is_call + 1) / 2);
-    int pc_seq = pc + 1 + two_byte;
+    int pc_seq = pc + 1 + two_byte + (two_byte * cont0);
     int pc_tgt = ramRead(390 + pc);   // pre-resolved branch/halt target (load-time table)
     // ---- NORMAL sp chain (the no-call/return case) ----
     int sp_binop = sp - 1;
@@ -190,7 +211,7 @@ function int step(scalar d) {
     // Callee descriptor from the host-built function table (RAM 2000 + idx*3 =
     // [start_pc, nargs, nlocals]). For non-call ops `imm` is a garbage index -> harmless
     // reads (the call branch is not taken).
-    int ft = 2000 + (imm * 3);
+    int ft = 2000 + (mb_uval * 3);
     int ce_pc = ramRead(ft);
     int ce_na = ramRead(ft + 1);
     int ce_nl = ramRead(ft + 2);
