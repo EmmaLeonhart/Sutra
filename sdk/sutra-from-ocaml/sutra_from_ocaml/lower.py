@@ -861,22 +861,38 @@ def _lower_option_match_body(node, source: bytes, indent: str) -> str:
     """Lower `match o with Some x -> e1 | None -> e2` in FUNCTION-BODY
     position. The scrutinee is a tagged axon `{_tag,_val}`; its fields are
     bound to `int` locals FIRST, then the blend tests `_otag`. This is
-    required, not cosmetic: an inline axon field read `o.item("_tag").real()
-    == 1` does NOT coerce to a clean boolean (measured: defuzzes to truth 0
-    for the false branch), but the same comparison off an `int` local
-    defuzzes to -1 correctly. So option matches are only supported as a
-    function body (where the locals can be emitted), not nested in an
-    expression."""
+    required, not cosmetic: an inline axon field-read tag comparison does NOT
+    coerce to a clean boolean (measured: defuzzes to truth 0 for the false
+    branch), but the same comparison off an `int` local defuzzes to -1
+    correctly. So option matches are only supported as a function body (where
+    the locals can be emitted), not nested in an expression. An AGGREGATE
+    payload (`Some (a, b)` / `Some {x; y}`) is a nested axon under `_val`,
+    descended via an `Axon _oval_ax` local (`_some_aggregate_fields`)."""
     kids = node.named_children
     scrut_src = _lower_expression(kids[0], source)
     cases = [c for c in kids[1:] if c.type == "match_case"]
     if not cases:
         return f"{indent}// UNSUPPORTED-MATCH: no cases\n"
-    # Substrate-pure: the tag and payload come back as number-VECTORS (no
-    # `.real()` — removed from the language). The tag drives the match dispatch
-    # numerically; the payload is used in vector arithmetic.
+    # An AGGREGATE `Some` payload (`Some (a, b)` / `Some {x; y}`) is stored as a NESTED
+    # axon under `_val` (tuple -> fields `_0`,`_1`; record -> named fields), so the arm
+    # must descend it. Detect the aggregate payload pattern and its (field, binder) list.
+    agg_fields = _some_aggregate_fields(cases, source)  # [(field, binder)] or None
+    # Substrate-pure: the tag and payload come back as number-VECTORS (no `.real()` —
+    # removed from the language). The tag drives the match dispatch numerically; the
+    # payload is used in vector arithmetic.
     out = f'{indent}int _otag = realvec({scrut_src}.item("_tag"));\n'
-    out += f'{indent}int _oval = realvec({scrut_src}.item("_val"));\n'
+    field_subst: dict = {}  # binder name -> field local
+    if agg_fields is not None:
+        # Bind the nested payload axon to an `Axon` local first — a chained
+        # `scrut.item("_val").item(field)` fails (the inner `.item` returns a flat
+        # tensor, not a navigable axon), so descend via the local.
+        out += f'{indent}Axon _oval_ax = {scrut_src}.item("_val");\n'
+        for i, (field, binder) in enumerate(agg_fields):
+            out += f'{indent}int _of{i} = realvec(_oval_ax.item("{field}"));\n'
+            if binder != "_":
+                field_subst[binder] = f"_of{i}"
+    else:
+        out += f'{indent}int _oval = realvec({scrut_src}.item("_val"));\n'
     parsed: list[tuple[Optional[str], str]] = []  # (test_or_None, res_src)
     for c in cases:
         cc = c.named_children
@@ -888,21 +904,24 @@ def _lower_option_match_body(node, source: bytes, indent: str) -> str:
                        if k.type == "constructor_path"), None)
             if cp is None or _node_text(cp, source) != "Some":
                 return f"{indent}// UNSUPPORTED-MATCH-PATTERN: only option Some/None\n"
-            argpat = next((k for k in pat.named_children
-                           if k.type == "value_pattern"), None)
-            if argpat is not None and _node_text(argpat, source) != "_":
-                bound = _node_text(argpat, source)
-                saved = _MATCH_SUBST.get(bound, _MISSING)
-                _MATCH_SUBST[bound] = "_oval"
-                try:
-                    res_src = _lower_expression(res, source)
-                finally:
-                    if saved is _MISSING:
-                        _MATCH_SUBST.pop(bound, None)
-                    else:
-                        _MATCH_SUBST[bound] = saved
+            if agg_fields is not None:
+                subst = field_subst
             else:
+                argpat = next((k for k in pat.named_children
+                               if k.type == "value_pattern"), None)
+                bound = (_node_text(argpat, source) if argpat is not None
+                         and _node_text(argpat, source) != "_" else None)
+                subst = {bound: "_oval"} if bound is not None else {}
+            saved = {nm: _MATCH_SUBST.get(nm, _MISSING) for nm in subst}
+            _MATCH_SUBST.update(subst)
+            try:
                 res_src = _lower_expression(res, source)
+            finally:
+                for nm, sv in saved.items():
+                    if sv is _MISSING:
+                        _MATCH_SUBST.pop(nm, None)
+                    else:
+                        _MATCH_SUBST[nm] = sv
             parsed.append(("_otag == 1", res_src))
         elif pat.type == "constructor_path" and _node_text(pat, source) == "None":
             parsed.append(("_otag == 0", _lower_expression(res, source)))
@@ -915,6 +934,36 @@ def _lower_option_match_body(node, source: bytes, indent: str) -> str:
         expr = _blend(test, res, expr)
     out += f"{indent}return {expr};\n"
     return out
+
+
+def _some_aggregate_fields(cases, source: bytes):
+    """For an option match whose `Some` arm binds an AGGREGATE payload (a tuple or
+    record pattern, possibly parenthesised), return [(field_name, binder_name)] —
+    tuple components map to positional fields `_0`,`_1`,… ; record fields use their
+    own names. Returns None if the `Some` arm binds a scalar (`Some v`) or nothing."""
+    for c in cases:
+        cc = c.named_children
+        if len(cc) != 2:
+            continue
+        pat = cc[0]
+        if pat.type != "constructor_pattern":
+            continue
+        cp = next((k for k in pat.named_children
+                   if k.type == "constructor_path"), None)
+        if cp is None or _node_text(cp, source) != "Some":
+            continue
+        ap = next((k for k in pat.named_children
+                   if k.type != "constructor_path"), None)
+        if ap is not None and ap.type == "parenthesized_pattern" and ap.named_children:
+            ap = ap.named_children[0]
+        if ap is None:
+            continue
+        if ap.type == "tuple_pattern":
+            binders = [vp for vp in ap.named_children if vp.type == "value_pattern"]
+            return [(f"_{i}", _node_text(vp, source)) for i, vp in enumerate(binders)]
+        if ap.type == "record_pattern":
+            return _record_pattern_fields(ap, source)
+    return None
 
 
 def _or_pattern_leaves(pat) -> list:

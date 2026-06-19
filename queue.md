@@ -118,9 +118,13 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   option/variant match scrutinee carries a tagged axon and types it `Axon` (threaded into
   `_lower_param` via `axon_params`); fixtures `option_some_unannotated` RUN == 6 and
   `variant_arg_unannotated` RUN == 2 (covers both option and variant). Full OCaml suite 149/149.
-  REMAINING: gap 4 MATCH-side aggregate descent (`_lower_option_match_body` reads `_oval` as a
-  scalar; a `Some {record}` arm must descend the nested axon — construction side already works);
-  gap 3 (`mk ()` unit-arg → `UNSUPPORTED-EXPR: unit`). Plus: scalable
+  **gap 4 DONE** — `_lower_option_match_body` now descends an AGGREGATE `Some` payload: a tuple
+  (`Some (a,b)`) or record (`Some {x;y}`) pattern reads the nested `_val` axon via an `Axon _oval_ax`
+  local (`_some_aggregate_fields`; a chained `.item().item()` fails — the inner item returns a flat
+  tensor). Fixtures `option_some_tuple` RUN == 13 and `option_some_record` RUN == 13. Full OCaml suite
+  151/151. So the option/variant payload (scalar AND aggregate, annotated or not) now works
+  end-to-end. REMAINING: only gap 3 (`mk ()` unit-arg → `UNSUPPORTED-EXPR: unit` — a small isolated
+  gap). Plus: scalable
   RAM device for the 10MB linear memory (`Bytes.make` / loop-carried arrays use the global RAM list,
   which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing DONE 2026-06-19 — a member
