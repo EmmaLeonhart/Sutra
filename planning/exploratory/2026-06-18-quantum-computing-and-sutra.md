@@ -61,11 +61,29 @@ no-cloning, measurement collapse) is what's quantum-specific.
 **Honest scope:** this is a conceptual + structural parallel, demonstrated on toy
 circuits. It is NOT a claim that Sutra *is* a quantum system or that Sutra ops are
 unitary (they are not — bundling is lossy superposition, not a reversible unitary).
-The interesting, testable direction (not yet done) is whether Sutra's complex-axis
-machinery (`AXIS_REAL`/`AXIS_IMAG`, the eigenrotation primitives) can express a small
-unitary / VQE-shaped circuit on its own substrate and train it the same way — i.e.
-compile a variational circuit *to Sutra* rather than to `default.qubit`. That is the
-next genuine experiment, listed as a queue task.
+The interesting, testable direction is whether Sutra's complex-axis machinery
+(`AXIS_REAL`/`AXIS_IMAG`, the eigenrotation primitives) can express a small unitary /
+VQE-shaped circuit on its own substrate and train it the same way — i.e. compile a
+variational circuit *to Sutra* rather than to `default.qubit`. **Done 2026-06-19**
+(`experiments/quantum/vqe_to_sutra.py`): the single-qubit `RY(θ)|0>`/`<Z>` circuit is
+expressed on the substrate by packing the amplitudes `(α, β)` as one complex number
+`z = α + iβ` on `AXIS_REAL`/`AXIS_IMAG`; `RY(θ)` is the substrate eigenrotation
+`cexp(i·θ/2)` acting on `z₀ = 1+0i`, and `<Z> = |α|² − |β|² = Re(z²)` via `complex_mul`
++ `_re`. With `θ` a torch parameter, gradient descent (start 0.1, 40 steps, stepsize
+0.4 — the same schedule as the PennyLane run) trains it to PennyLane's fixed point.
+Measured on the real `_TorchVSA` substrate:
+
+- `<Z>(0.5)` = **0.877473** (cos 0.5 = 0.877583; ~1e-4).
+- `d<Z>/dθ(0.5)` = **−0.479424** (−sin 0.5 = −0.479426; ~1e-6 — the eigenrotation
+  gradient is essentially exact, flowing through the `_cos0`/`_sin0` trig leaves).
+- trained `θ → 3.1411` (π = 3.1416), `<Z> → −0.999895` (−1).
+
+So Sutra's substrate can **express and train** a VQE-shaped differentiable graph to the
+same trained parameter and expectation as PennyLane's `default.qubit`. This is the
+direct confirmation of the "quantum circuit = constrained differentiable graph = Sutra
+forward pass" parallel — measured, not hand-waved. **Still NOT claimed:** that Sutra is
+a quantum computer or that its ops are unitary (bundling is lossy); and only the
+single-qubit, non-entangling toy — multi-qubit entangling circuits are out of scope.
 
 ## Status of the exploration tasks
 
@@ -73,6 +91,8 @@ next genuine experiment, listed as a queue task.
 - **Q2 differentiable circuit + training** — DONE (PennyLane, measured above).
 - **Q3 Q# / Silq** — Q# DONE (Bell + GHZ run via the `qsharp` pkg); Silq not accessible (no pip).
 - **Q4 writeup** — this doc (first pass; extend as Q3 + the "VQE-to-Sutra" experiment land).
-- **Q5 (proposed) VQE-to-Sutra** — express + train a 1–2 parameter variational circuit on
-  Sutra's own complex substrate (eigenrotation + AXIS_REAL/IMAG), compare to PennyLane.
-  The genuinely novel test of the parallel; only worth claiming once it runs.
+- **Q5 VQE-to-Sutra** — DONE 2026-06-19 (`experiments/quantum/vqe_to_sutra.py`): expressed
+  + trained the `RY(θ)|0>`/`<Z>` circuit on Sutra's own complex substrate (eigenrotation +
+  AXIS_REAL/IMAG), reaching PennyLane's fixed point (θ→π, `<Z>`→−1; value/gradient match the
+  closed form to ~1e-4 / ~1e-6). The genuinely novel test of the parallel — see the measured
+  results in the §"Sutra angle" section above.
