@@ -20,11 +20,6 @@ lives here.
 
 ## RAM pointers (`ram-pointers.md`, 2026-06-01)
 
-- ~~**Differentiable / soft addressing.**~~ RESOLVED (Emma 2026-06-01):
-  RAM is NOT differentiable — I/O is outside that realm. The address is
-  hard; a pointer between two cells rounds to the nearest. No soft
-  attention. A trainable NTM trains its controller, not the discrete RAM
-  access. (Implementation already rounds: `int(round(real(ptr)))`.)
 - **Write-ack / ordering.** Is `ramWrite` fire-and-forget, or does it
   return a `Promise<void>` to `await` for read-after-write ordering?
 - **What "RAM" physically is.** Flat host buffer for now; OS pages /
@@ -37,73 +32,16 @@ lives here.
 
 ---
 
-## Triage (2026-05-16, task #15 — part 2 of the open-question sweep)
-
-Frank finding: unlike the `planning/open-questions/` dossiers
-(triaged in that folder's README — ~half RESOLVED/STALE), **most
-entries in THIS file are genuinely-open spec decisions**, not
-"secretly decided elsewhere." This file is the spec's own
-deliberate list of decisions the language has chosen not to make
-yet; that is different from a dossier rotting after the decision
-got made. So there is no inflated "90% resolved" here — that figure
-was about the dossier folder. What IS decided elsewhere and should
-be pruned from this file + its inline spec section (rule above),
-verified this pass:
-
-- **Binding § "Surface syntax for binding-kind choice"** — already
-  struck-through here; resolved 2026-04-21 (`sutra-spec/binding.md`,
-  role=semantic / var=rotation-bound). Safe to delete the line.
-- **Control flow § "When `loop[N]` can't be unrolled … host-Python
-  `for`. Is that acceptable, or should it error?"** — DECIDED
-  (corrected 2026-05-17): the runtime loop (`_TorchVSA.loop`) is a
-  fixed-T tensor-op eigenrotation unroll with a branchless soft
-  halt — **not** a substrate leak (the earlier "Audit REAL LEAK #4"
-  call was reclassified as not-a-leak; see `Audit.md` #4). The
-  `for _t in range(max_iters)` counter is a structural unroll
-  index, not data control flow; spelling it as a runtime `range()`
-  vs. a straight-line codegen unroll is a compile-time optimization
-  choice. So this is "acceptable" as-is on substrate-purity
-  grounds; any change is an optimization, not a correctness fix.
-- **Control flow § "Fate of parsed-but-rejected control forms:
-  if/else"** — DECIDED in `sutra-spec/control-flow.md` itself
-  (`select` is the only runtime branching primitive; if/else is
-  design-rejected). The line is a resolved restatement; keep only
-  the genuinely-open part (`try-catch` status → `queue.md` /
-  `todo.md`).
-- **Axons** — the two struck items are correctly marked resolved
-  2026-05-07; the "Still open" list under it is genuinely open.
-
-**RESOLVED 2026-05-16 — Types §"scalars as results"
-(`types.md:507`).** Emma's ruling (recorded in
-`planning/findings/2026-05-16-scalar-is-not-an-open-question.md`):
-a number IS a vector — the value on the number axis, zeros
-elsewhere, the same ontology as a string (hypervector + flag).
-Returning a "scalar" is returning that vector; the only residue is
-a cosmetic `scalar`→`number` keyword rename + dropping the 0-d
-projection (call-site/test migration), neither a design decision.
-Strike this line from the index and update `types.md` to state the
-ontology. NOT an open question; was mis-framed as one.
-
-Genuinely open (a representative few, NOT decided elsewhere — the
-spec really hasn't picked): Operations §"which similarity is the
-default", §"bundle semantics", §"static type checking", Binding
-§"fitting procedure", Concurrency §"convergence test", most of
-Promises. These are real undecided design; leave them.
-
-Action when picked up: delete the three DECIDED lines above from
-this file *and* their inline spec sections in the same commit
-(per the rule at the top). Cross-reference:
-`planning/open-questions/README.md` triage table for the dossiers.
-
----
+> **Note on this file's nature.** Unlike the `planning/open-questions/`
+> dossiers (a doc per question, which can rot after a decision is made),
+> most entries here are genuinely-open spec decisions — the language's
+> own deliberate list of choices it has not yet made. Do not assume an
+> entry is "secretly decided elsewhere"; if you resolve one, delete it
+> per the rule at the top.
 
 ## Types — `types.md`
 
 - Whether `bool`'s defuzz counter has a ceiling.
-- ~~Whether scalars can appear as function results~~ — **RESOLVED
-  2026-05-16**: a number IS a vector; returning one returns that
-  vector. See `types.md` §"Open questions" + `planning/findings/
-  2026-05-16-scalar-is-not-an-open-question.md`.
 - Whether other subtypes of vector (`probability`, `angle`,
   `unit_vector`) are needed.
 - Whether matrices have first-class subtypes
@@ -131,9 +69,6 @@ this file *and* their inline spec sections in the same commit
 
 ## Binding — `binding.md`
 
-- ~~**Surface syntax for binding-kind choice**~~ — **resolved
-  2026-04-21**. `role` for semantic bindings, `var` for rotation-
-  bound storage.
 - Which fitting procedure for semantic role matrices (lstsq,
   ridge, Procrustes, low-rank).
 - Whether learned matrices need to be orthogonal for clean
@@ -158,29 +93,14 @@ this file *and* their inline spec sections in the same commit
 
 - Multi-option `select` firing threshold and `select ... else`
   score formula (tracked in `todo.md` too).
-- ~~When `loop[N]` can't be unrolled (non-literal N) … host-Python
-  `for`. acceptable or error?~~ — **DECIDED (corrected
-  2026-05-17): acceptable.** The runtime loop is a fixed-T
-  tensor-op eigenrotation unroll with a branchless soft halt
-  (`_TorchVSA.loop`/`_step`); the `for _t in range(max_iters)`
-  counter is a structural unroll index, not data control flow — it
-  IS the spec's substrate loop. The earlier "Audit REAL LEAK #4"
-  classification was reclassified as not-a-leak (`Audit.md` #4,
-  Emma 2026-05-17). Spelling the unroll as a runtime `range()` vs.
-  a straight-line codegen unroll is a compile-time optimization,
-  not a substrate-purity fix. Not an open design choice.
 - Exact rotation operator for `loop(cond)` eigenrotation (Haar-
   random today; substrate-specific / per-site alternatives?).
 - Whether `loop(cond)` can terminate on non-similarity conditions.
-- Fate of parsed-but-rejected control forms: ~~`if/else`~~
-  **DECIDED** — design-rejected in `control-flow.md` (`select` is
-  the only runtime branching primitive); not open. `try-catch`
-  (unimplemented — see todo.md) is the only still-open part.
-  `do-while` was in this list until 2026-04-22 when it
-  was implemented by desugaring to body + while. `foreach` over
-  a compile-time-known array literal was also implemented on
-  2026-04-22; the dynamic-foreach case (named collections,
-  runtime-computed iterables) remains future work in todo.md.
+- `try-catch` (parsed-but-unimplemented — see `todo.md`); and the
+  dynamic-`foreach` case (named collections, runtime-computed
+  iterables — the compile-time-known-array-literal form is already
+  implemented). (`if/else` is design-rejected in `control-flow.md` —
+  `select` is the only runtime branching primitive.)
 
 ## Program structure — `program-structure.md`
 
@@ -196,21 +116,6 @@ this file *and* their inline spec sections in the same commit
   operator overloads, generic functions).
 
 ## Axons — `axons.md`
-
-Resolved 2026-05-07 (second cut):
-
-- ~~Surface syntax for axon types (record-shaped, inline annotations,
-  inferred)~~ — **none of those. There is no axon type with a
-  declared key set; `Axon` is a single non-generic class. The
-  compiler does dataflow analysis (for lazy evaluation) but does
-  not type-check key sets.**
-- ~~How `R_x` / `F_x` shorthand maps onto surface syntax~~ —
-  **string-literal keys (`a.add("cat", c)`, `a.item("cat")`)
-  syntactically, with property-style access (`a.cat`) preferred when
-  ergonomic. Both forms compile to the same operation. The `R_x`
-  notation is substrate-implementation shorthand only.**
-
-Still open:
 
 - How the per-entry type tag is represented and resolved (runtime
   cast vs. compile-time-erased static check, with what failure mode).
