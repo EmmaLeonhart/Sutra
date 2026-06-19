@@ -25,6 +25,28 @@ migrate `todo.md` → `queue.md` → deleted on completion.
 
 ---
 
+## 1. CURRENT PRIORITIES (Emma 2026-06-19) — do these next, in order
+
+The bounded transpiler long-tail + the repo doc audit + the Q1–Q5 quantum exploration are all
+DONE this session (see `DEVLOG.md`). Emma's next two, in order:
+
+- [ ] **FV paper review — toward arXiv.** Emma: the formal-verification paper (`paper/formal-
+  verification/paper.md`) is "nearly good enough to publish on arXiv." Do another review pass:
+  read it against ground truth (`planning/sutra-spec/formal-verification.md`, the FV checkers/tests
+  under `sdk/sutra-compiler/`, `fv-lean/`), check every claimed obligation/number is measured and
+  current, apply the integrity + writing discipline (measured numbers only, no overclaiming, no
+  "honest"-style buzzwords, no em-dashes), fix what's stale, and report arXiv-readiness. Editing
+  `paper/formal-verification/paper.md` auto-submits via `fv-paper-ci.yml` (clawRxiv) — that is the
+  designed behavior.
+- [ ] **Comprehensive substrate audit (after the FV review).** A full audit of substrate purity /
+  representation. Includes the **direct-RAM rework**: the RAM/linear-memory device must be a DIRECT
+  memory object (flat tensor / WASM linear memory), NOT a Python `list`/`dict` (finding
+  `2026-06-19-ram-device-scaling-limit.md`). Reconcile with the orchestrator contract (iso5 /
+  ntm_ram), the attention-on-RAM VRAM-vector path, and the WASM linear-memory model. Substrate-to-
+  substrate verified on every path. Plan into concrete steps when reached.
+
+---
+
 ## 2. Phase 5 — real-WASM-bytecode core (COMPLETE; only follow-ups remain)
 
 WebAssembly is the VM direction (Emma 2026-06-17; JVM done + parked).
@@ -117,12 +139,11 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   substrate-verified; scalar AND aggregate payload, annotated or not, works end-to-end (fixtures
   `option_some_{inline,unannotated,tuple,record,thunk}` + `variant_arg_unannotated`; OCaml suite
   152/152). Remaining OCaml work is unrelated to payloads: **scalable RAM device for the 10MB linear
-  memory** — root-caused 2026-06-19 in finding `2026-06-19-ram-device-scaling-limit.md` (the runtime
-  `self.ram` Python list pre-grows to the max address AND stores a full d-dim vector per cell → ~35GB
-  for 10M cells; fix needs lazy/sparse alloc + compact per-cell scalar storage WITHOUT breaking the
-  attention-on-RAM vector path). A deliberate, safety-critical session on the shared RAM device — do
-  NOT rearchitect autonomously without a green light. Plus non-zero `Array.make` fill (slots start at
-  0 — documented limit, not a bug).
+  memory** — root-caused 2026-06-19 (finding `2026-06-19-ram-device-scaling-limit.md`). Emma's call
+  (2026-06-19): the RAM **cannot be a Python container** (the list-of-d-vectors AND a dict-of-floats
+  are both wrong) — it needs a **DIRECT memory device (flat tensor / WASM linear memory)**. This is
+  now part of the **comprehensive substrate audit** (see the top of this queue), NOT a frontend tick.
+  Plus non-zero `Array.make` fill (slots start at 0 — documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing DONE 2026-06-19 — a member
   access `x.field` now resolves the field type in the variable's OWN interface map
   (`interface_field_types` + `var_interfaces`), exact even when two interfaces share a field name

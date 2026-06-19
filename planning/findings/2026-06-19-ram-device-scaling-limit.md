@@ -35,22 +35,22 @@ self.ram[addr] = val_vec
 Either cost alone makes a 10MB buffer infeasible; together they are ~35 GB + a 10M-element Python
 list.
 
-## What a fix needs (and why it is not a few-cycles edit)
+## What a fix needs — DIRECT RAM, not Python (Emma 2026-06-19)
 
-- **Compact per-cell storage for scalar cells.** A `Bytes`/numeric RAM cell is one scalar; store a
-  flat real-axis tensor (1 float/cell → ~40 MB for 10M) and reconstruct `make_real(scalar)` on read,
-  instead of a d-vector per cell. BUT the attention-on-RAM path stores genuine VRAM *vectors* in RAM
-  (number-vectors with content beyond the real axis), so the device cannot blanket-assume scalar
-  cells — it needs a per-cell or per-region representation discriminator.
-- **Lazy/sparse allocation.** Replace pre-grow-to-`addr` with a sparse map or a sized-on-declare
-  tensor, so a high base address does not pre-allocate everything below it.
+**The RAM device cannot be a Python container.** A first cut tried a sparse Python `dict` storing
+host floats for scalar cells — rejected: that is still Python host storage (a host `dict` of host
+`float`s), the exact thing RAM must not be. Emma's direction: **RAM needs to be a DIRECT memory
+device — a flat tensor as real linear memory, WASM-backed if necessary** — not a `list`/`dict` of
+per-cell vectors. The per-cell-d-vector list AND the dict-of-floats are both wrong; the linear
+memory should be one contiguous tensor (or a WASM linear-memory region) addressed directly.
 
-This is a careful change to the **shared, safety-critical** RAM device (every program with RAM uses
-it, including the "hard attention-on-RAM parsers" the OCaml comment flags). Getting the
-representation discriminator wrong silently corrupts either the byte-buffer or the VRAM-vector path.
-Per the integrity rules (substrate correctness is non-negotiable), this is a deliberate session with
-substrate-to-substrate verification on BOTH the byte-buffer and attention-on-RAM cases — not a
-work-loop tick, and not to be rearchitected autonomously without a green light.
+This is no longer a localized frontend/runtime tweak: it is part of the **comprehensive substrate
+audit** Emma scoped (2026-06-19), which runs **after the FV paper review**. The audit must settle how
+RAM/linear-memory is represented as a direct substrate object, reconciled with: the external
+orchestrator contract (iso5 / ntm_ram attach `self.ram` and index it — see `test_ntm_ram.py`), the
+attention-on-RAM VRAM-vector path, and the WASM linear-memory model. Getting it wrong silently
+corrupts either the byte-buffer or the VRAM-vector path, so it ships with substrate-to-substrate
+verification on BOTH — and it is NOT to be rearchitected autonomously as a Python container.
 
 Related: the separate `non-zero Array.make fill` item (slots start at 0) is a documented limit, not a
 bug, and orthogonal to this scaling rework.
