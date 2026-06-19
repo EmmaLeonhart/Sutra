@@ -4,7 +4,7 @@ Transpile a typed core of TypeScript — and JavaScript treated as untyped TypeS
 
 ## Status: working
 
-The CLI ships valid `.su` output for the **17 fixtures under `tests/fixtures/`**. As of v0.1.0, coverage includes:
+The CLI ships valid `.su` output for the **21 fixtures under `tests/fixtures/`** (compiled AND run on the substrate against ground truth). Coverage includes:
 
 - Function declarations (incl. arrow-as-`const`, closure-free capture via param lifting)
 - Classes (fields + methods + static + constructors + `new`)
