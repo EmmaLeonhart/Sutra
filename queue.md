@@ -116,9 +116,13 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   five gaps from finding `2026-06-19-ocaml-option-payload-five-gaps.md` (now marked RESOLVED) fixed +
   substrate-verified; scalar AND aggregate payload, annotated or not, works end-to-end (fixtures
   `option_some_{inline,unannotated,tuple,record,thunk}` + `variant_arg_unannotated`; OCaml suite
-  152/152). Remaining OCaml work is unrelated to payloads: scalable RAM device for the 10MB linear
-  memory (`Bytes.make` / loop-carried arrays use the global RAM list, which doesn't scale); non-zero
-  `Array.make` fill (slots start at 0 — documented limit, not a bug).
+  152/152). Remaining OCaml work is unrelated to payloads: **scalable RAM device for the 10MB linear
+  memory** — root-caused 2026-06-19 in finding `2026-06-19-ram-device-scaling-limit.md` (the runtime
+  `self.ram` Python list pre-grows to the max address AND stores a full d-dim vector per cell → ~35GB
+  for 10M cells; fix needs lazy/sparse alloc + compact per-cell scalar storage WITHOUT breaking the
+  attention-on-RAM vector path). A deliberate, safety-critical session on the shared RAM device — do
+  NOT rearchitect autonomously without a green light. Plus non-zero `Array.make` fill (slots start at
+  0 — documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing DONE 2026-06-19 — a member
   access `x.field` now resolves the field type in the variable's OWN interface map
   (`interface_field_types` + `var_interfaces`), exact even when two interfaces share a field name
