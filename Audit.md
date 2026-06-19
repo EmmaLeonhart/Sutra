@@ -99,13 +99,15 @@ Result: the substrate is clean on the differentiable hot path; the FV §4.5
   and `compile_su` (required kwarg) already avoid it; `translate_module` does
   not. Fix direction: codegen auto-minimize, or per-file dim directives. Small
   absolute cost (tiny one-shot demos) but the exact pattern CLAUDE.md flags.
-- **Signal-separation — calc operator-select lacks a gap table.**
+- **Signal-separation — calc operator-select gap table — ✅ ADDED 2026-06-19.**
   `demos/calc/switch.su` decides which of four ops fires via `select`;
-  `test_calc.py` checks only end-to-end results, no
-  `gap = min(selected) − max(wrong)` table. iso5 dispatch
-  (`measure_dispatch_gap.py`) and font (lit/unlit, cycle) DO ship gap tables.
-  Fix direction: add a `measure_select_gap` sweep (operator codepoints ×
-  targets).
+  previously `test_calc.py` checked only end-to-end results, no gap table.
+  Added `demos/calc/measure_select_gap.py` +
+  `test_calc.py::test_operator_select_signal_separation_gap`: measured
+  gap = 1000 (matched-operator score 0, every wrong op ≤ −1000; tightest pair
+  `+`/`*`, one codepoint apart), stable at runtime_dim 8 and 50. The substrate
+  genuinely separates the four operators. iso5 dispatch and font already had
+  gap tables.
 - **Numpy — clean.** The deprecated `codegen.py` numpy backend is base-class-
   only, never a runtime path; emitted-runtime numpy (`_rotation_for`,
   `_axon_permutation_for`, `make_random_rotation`) is cached compile-time

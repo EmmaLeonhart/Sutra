@@ -85,3 +85,18 @@ def test_calc_is_kernel_free():
     assert "compile_su" in src
     for forbidden in ("import kernel", "from kernel"):
         assert forbidden not in src, f"kernel import found: {forbidden!r}"
+
+
+def test_operator_select_signal_separation_gap():
+    """The four-operator select is a real substrate decision, not a host artifact:
+    the score for the matched operator is exactly 0 and every wrong operator scores
+    <= -1000 (CLAUDE.md "Subtler substrate breaches" #3 signal-separation rule).
+    See demos/calc/measure_select_gap.py."""
+    spec = importlib.util.spec_from_file_location(
+        "measure_select_gap", os.path.join(HERE, "measure_select_gap.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    r = mod.measure(runtime_dim=8)
+    assert abs(r["min_selected"]) < 1e-3, r           # matched operator scores 0
+    assert r["max_leaked"] <= -1000.0 + 1e-3, r       # wrong operators <= -1000
+    assert r["gap"] >= 1000.0 - 1e-3, r               # clean separation, gap ~1000
