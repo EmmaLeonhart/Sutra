@@ -1,8 +1,9 @@
 """Build the Sutra website — a multi-page static site on the shared
 emmaleonhart.com identity (web/identity.css). No MkDocs.
 
-Every `docs/**/*.md` (except `docs/interactive/**`) is rendered to a
-static page, plus `paper/paper.md` -> `/paper/`:
+Every `docs/**/*.md` (except `docs/interactive/**` and the agent-only
+`docs/superpowers/**`) is rendered to a static page, plus
+`paper/paper.md` -> `/paper/`:
 
     /                 docs/index.md          — what Sutra is (home)
     /<name>/          docs/<name>.md         — a conceptual page
@@ -530,10 +531,13 @@ def main() -> int:
     out = repo / args.output
     out.mkdir(parents=True, exist_ok=True)
 
-    # Discover every doc page except the interactive ones.
+    # Discover every doc page except the interactive ones and the agent-only
+    # `superpowers/` subtree (session design specs / skill scratchpad — not
+    # human website content; keeps repo-internal refs off the public site).
+    _SKIP_DIRS = {"interactive", "superpowers"}
     sources = [
         p for p in sorted(docs.rglob("*.md"))
-        if "interactive" not in p.relative_to(docs).parts
+        if not _SKIP_DIRS & set(p.relative_to(docs).parts)
     ]
     titles: dict[str, str] = {}
 
