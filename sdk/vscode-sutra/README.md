@@ -63,9 +63,9 @@ Snippets for the things you type most often:
 ### Diagnostics
 
 Run the `sutrac` compiler (from `sdk/sutra-compiler`) and surface
-its diagnostics in the Problems panel. Supports every diagnostic code
-the compiler emits (SUT0001..SUT0113 at the time of writing),
-including:
+its diagnostics in the Problems panel. Supports the compiler's full
+`SUT####` diagnostic range (lexer/parser/validator codes through the
+`SUT2xxx` substrate-validation range), including:
 
 - `SUT0002` unterminated string literal
 - `SUT0100` missing `;`, missing `)`, unexpected token
