@@ -361,6 +361,32 @@ def _try_lower_tail_recursive(name: str, params, cond_src, neg_src, then_e, else
 
 # Associative + commutative combine ops for the non-tail fold transform.
 _FOLD_OPS = {"+", "*"}
+# Multiplicative/additive identity for seeding a non-tail fold accumulator
+# (both `_FOLD_OPS` ops are commutative + associative with a known identity, so a
+# post-loop `acc OP base` combine reproduces the call-stack order).
+_FOLD_IDENTITY = {"+": "0", "*": "1"}
+
+
+def _foldable_step(node, name: str, src: bytes):
+    """For a single non-tail fold step `LEAF <OP> f(REC)` (or `f(REC) <OP> LEAF`),
+    with OP in `_FOLD_OPS` and exactly ONE side an arity-1 self-call to `name`:
+    return `(op_text, leaf_node, rec_arg_node)`, else None. Shared by the single-base
+    `_try_lower_foldable_nontail` and the multibase non-tail fold path."""
+    if node.type != "binary_operator":
+        return None
+    op = node.child_by_field_name("operator")
+    left = node.child_by_field_name("left")
+    right = node.child_by_field_name("right")
+    if op is None or left is None or right is None:
+        return None
+    op_text = _text(op, src)
+    if op_text not in _FOLD_OPS:
+        return None
+    lc = _self_call_args(left, name, 1, src)
+    rc = _self_call_args(right, name, 1, src)
+    if (lc is None) == (rc is None):
+        return None
+    return (op_text, right, lc[0]) if lc is not None else (op_text, left, rc[0])
 
 
 def _contains_identifier_node(node, ident: str, src: bytes) -> bool:
@@ -382,24 +408,8 @@ def _try_lower_foldable_nontail(name: str, params, cond_src, neg_src, then_e, el
     if len(params) != 1:
         return None
 
-    def foldable(node):
-        if node.type != "binary_operator":
-            return None
-        op = node.child_by_field_name("operator")
-        left = node.child_by_field_name("left")
-        right = node.child_by_field_name("right")
-        if op is None or left is None or right is None:
-            return None
-        op_text = _text(op, src)
-        if op_text not in _FOLD_OPS:
-            return None
-        lc = _self_call_args(left, name, 1, src)
-        rc = _self_call_args(right, name, 1, src)
-        if (lc is None) == (rc is None):
-            return None
-        return (op_text, right, lc[0]) if lc is not None else (op_text, left, rc[0])
-
-    fold_then, fold_else = foldable(then_e), foldable(else_e)
+    fold_then = _foldable_step(then_e, name, src)
+    fold_else = _foldable_step(else_e, name, src)
     if (fold_else is None) == (fold_then is None):
         return None
     if fold_else is not None:
@@ -931,6 +941,12 @@ def _try_lower_multibase_multiclause_recursion(name: str, members, src: bytes):
     identifiers, no guard); the recursive clause is all-identifier with a TAIL
     self-call. Haskell `_try_lower_multibase_tail_recursion` is the family reference.
 
+    A NON-TAIL recursive clause (arity 1) — `def f(n), do: n * f(n - 1)` with two
+    literal bases — is also handled: it lowers via a CPS fold (seed acc = OP identity,
+    fold the leaf each step, combine `acc OP base_blend` on the final state). See the
+    `if rec_args is None` branch below; the single-base analog is
+    `_try_lower_foldable_nontail`.
+
     Caveat: bases are integer-literal patterns, so the `(n == k)` tests are crisp
     (eq_synthetic, §0.3). Returns Sutra or None (not this shape)."""
     if len(members) <= 2:
@@ -968,9 +984,8 @@ def _try_lower_multibase_multiclause_recursion(name: str, members, src: bytes):
         return None  # all bases must distinguish at the same (recursion) position
     rec_params, rec_body = rec
     rec_names = [_text(p, src) for p in rec_params]
+    # TAIL self-call → accumulator loop; non-tail → CPS fold (handled below).
     rec_args = _self_call_args(rec_body, name, arity, src)
-    if rec_args is None:
-        return None  # non-tail recursive clause — later item
     cont = " && ".join(f"({rec_names[li]} != {k})" for _li, k, _bp, _bd in bases)
     # Post-loop blend of base bodies keyed by `(n == k)` on the final state. Each base
     # body's identifier params are renamed to rec_names by position (so it references
@@ -998,6 +1013,45 @@ def _try_lower_multibase_multiclause_recursion(name: str, members, src: bytes):
         base_src = _blend(csrc, bsrc, base_src)
     ty = _TYPE
     loop_name = f"_rec_{name}"
+    if rec_args is None:
+        # Non-tail multibase fold (arity 1 only): the recursive clause is a fold step
+        # `LEAF <OP> f(REC)` rather than a tail call. Seed `_acc` with the OP identity,
+        # fold the leaf each iteration, then combine with the base blend keyed on the
+        # FINAL loop state (`acc OP base`). `_FOLD_OPS` are commutative + associative,
+        # so this reproduces the call-stack order. Single-base analog:
+        # `_try_lower_foldable_nontail`. Multi-arg non-tail stays on the WASM fallback.
+        if arity != 1:
+            return None
+        step = _foldable_step(rec_body, name, src)
+        if step is None:
+            return None
+        op_text, leaf, rec_arg = step
+        sutra_op = _OP_MAP.get(op_text, op_text)
+        identity = _FOLD_IDENTITY[op_text]
+        leaf_src = _lower_expr(leaf, src)
+        rec_src = _lower_expr(rec_arg, src)
+        if "UNSUPPORTED" in leaf_src or "UNSUPPORTED" in rec_src:
+            return None
+        n = rec_names[0]
+        loop_decl = (
+            f"while_loop {loop_name}({cont}, {ty} {n} = 0, {ty} _acc = 0) {{\n"
+            f"    {ty} _t_n = {rec_src};\n"
+            f"    {ty} _t_acc = _acc {sutra_op} {leaf_src};\n"
+            f"    {n} = _t_n;\n"
+            f"    _acc = _t_acc;\n"
+            f"}}\n"
+        )
+        fn = (
+            f"function {ty} {name}({ty} {n}) {{\n"
+            f"    {ty} _acc = {identity};\n"
+            f"    slot {ty} _{n}_r = {n};\n"
+            f"    slot {ty} _acc_r = _acc;\n"
+            f"    loop {loop_name}({cont}, _{n}_r, _acc_r);\n"
+            f"    {n} = _{n}_r;\n"
+            f"    return _acc_r {sutra_op} {base_src};\n"
+            f"}}\n"
+        )
+        return loop_decl + fn
     state_decls = ", ".join(f"{ty} {p} = 0" for p in rec_names)
     temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
                          for i, arg in enumerate(rec_args))

@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-19: sutra-from-elixir — >2-clause NON-TAIL multibase recursion (CPS fold)
+
+Closed the Elixir half of the §4 queue item ">2-clause NON-tail multibase (CPS fold)".
+`_try_lower_multibase_multiclause_recursion` previously handled N≥2 integer-literal bases only
+when the recursive clause was a TAIL call (`def f(0,acc); def f(1,acc); def f(n,acc), do: f(n-1,…)`),
+bailing to `None` ("non-tail recursive clause — later item") when the self-call sat inside an
+arithmetic step. Added the non-tail branch: for arity 1, when the recursive body is a fold step
+`LEAF <OP> f(REC)` (OP in `{+,*}`), seed `_acc` to the OP identity (`1`/`0`), fold the leaf each
+iteration in a `while_loop` with the compound `(n != k1) && (n != k2)` halt, then combine
+`_acc OP base_blend` where `base_blend` is the nested defuzz blend of the base bodies keyed on the
+FINAL loop state. Both fold ops are commutative + associative, so the post-loop combine reproduces
+the call-stack order. Extracted the foldable-step detector to a module-level `_foldable_step`
+shared with the single-base `_try_lower_foldable_nontail` (no behavior change there).
+
+Fixture `multibase_nontail_fact` (`def f(0),do: 1; def f(1),do: 5; def f(n),do: n*f(n-1); f(5)`):
+RUN on the substrate == **600.0** (5·4·3·2·f(1) = 120·5). Full Elixir suite 60/60 green
+(107s) — no regression from the refactor. Multi-arg non-tail multibase and Erlang's analog stay
+on the WASM fallback for now (Erlang follow-up).
+
 ## 2026-06-17: Phase 5.5 tier 4 — general single-index DP via a RAM-memo loop (step i)
 
 Built the RAM-memo synthesis backend (the verified building block from the prior finding):
