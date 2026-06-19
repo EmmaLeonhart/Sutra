@@ -90,8 +90,10 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   tier-5 WASM fallback per Emma, so not urgent) — see the LAST section.
 - [ ] **Elixir / Erlang** — multi-literal-base TAIL recursion + GUARDED RECURSIVE clause (Mode C:
   `f(N,Acc) when N>0 -> f(...); f(_,Acc) -> Acc`) DONE 2026-06-18 (both; fixtures `multibase_tailsum`
-  / `guarded_rec_clause` RUN == 105 / 15). Remaining: >2-clause NON-tail multibase (CPS fold);
-  GUARDED >2-clause multibase (mixed literal + `when` bases); Erlang list comprehensions.
+  / `guarded_rec_clause` RUN == 105 / 15). String surface complete: literal + `==` eq_synthetic
+  (`string_eq` RUN == 30) and `<>` concat (`<>`-operand params inferred String; `string_concat`
+  RUN == 100) DONE 2026-06-18. Remaining: >2-clause NON-tail multibase (CPS fold); GUARDED
+  >2-clause multibase (mixed literal + `when` bases); Erlang list comprehensions; Erlang `++` concat.
 - [ ] **Clojure** — maps/vectors in recursive bodies. (Symbol/keyword-as-value rep is §0.5.)
 - [ ] **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH**
   arm (`match s with Some { x; y } -> … | None -> …` — the option-match codegen binds the payload as a

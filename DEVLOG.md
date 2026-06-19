@@ -11735,3 +11735,18 @@ homepages, AGENTS.md, CLAUDE.md, web/identity.css. Removed the domain-move item 
 Pushing triggers pages.yml → rebuild → deploy with the new CNAME. DNS (sutra.topazcomputing.com →
 GitHub Pages) + GitHub domain verification are Emma's side; old domain redirects via the
 sutra.noldor.tech-redirect repo.
+
+## 2026-06-18 — Elixir string parity: `==` eq_synthetic + `<>` concat
+Elixir frontend (`sdk/sutra-from-elixir`) gained its foundational string surface
+beyond the existing `case`-dispatch (`string_case`):
+- **`string_eq`** (`if s == "foo" do 10 else 20`): the string literal operand routes
+  `==` to `eq_synthetic`; RUN == 30 (`classify("foo")+classify("bar")` = 10+20). The
+  one-line `if cond, do:, else:` form mis-parses ("malformed if") — multi-line `if/do/end`
+  is the supported shape (documented in the fixture comment).
+- **`<>` string concat**: added `"<>": "+"` to `_OP_MAP` (substrate codepoint-array
+  append, same as OCaml `^`). Because Elixir params are dynamically typed (default
+  `number`), a function like `cat(a, b) -> a <> b` would mislower `+` to numeric add.
+  Added `_concat_operand_params`: any param used as a `<>` operand is provably a `String`
+  (Elixir `<>` is string concat only), so it types as `String` and the compiler routes the
+  `+` to substrate concat. `string_concat` RUN == 100 (`classify(cat("foo","bar"))`).
+Full Elixir suite 58 passed. No regressions.
