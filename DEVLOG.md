@@ -11690,3 +11690,11 @@ the substrate `+` dispatches to string concat for string-typed operands (same as
 `string_concat`: `cat a b = a ^ b; classify s = if s = "foobar" then 100 else 200;
 classify (cat "foo" "bar")` = 100, RUN on the substrate. A one-line few-cycles win for the reference
 frontend; string literals + equality + concat now work in OCaml/TS/Clojure/Scala/F#.
+
+## 2026-06-18 — OCaml + Scala string-literal match patterns
+
+`match s with "foo" -> 10 | "bar" -> 20 | _ -> 30` was UNSUPPORTED-MATCH-PATTERN: string. Added a
+`string` pattern case to `_lower_match` mirroring the integer-literal case — dispatch via
+`scrut == "lit"` (string equality routes to eq_synthetic, separating strings cleanly), nested into
+the defuzz blend. Fixture `string_match`: classify "foo"+"bar"+"baz" = 10+20+30 = 60, RUN on the
+substrate. Same one-case add to Scala (`case "foo" =>`) — both RUN == 60. Builds directly on the string-literal/equality work.
