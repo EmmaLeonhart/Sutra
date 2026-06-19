@@ -11805,3 +11805,23 @@ when the base is itself the hoisted literal. Previously the recursion transform 
   `2026-06-18-axon-item-on-call-result-not-supported.md` (affects all Axon-returning fns, not
   recursion-specific). The Elixir/Erlang >2-clause NON-tail + guarded multibase stay on the
   WASM fallback (seed-selection analysis; not a few-cycles native lowering).
+
+## 2026-06-19 — OCaml option/variant payload: precise five-gap root-cause (stays on WASM)
+Investigated the §4 OCaml option/variant-payload edge case (reference frontend). Root-
+caused it far past the catalogue's "2-sided rework": FIVE interlocking gaps, measured.
+`Some 5` (scalar) is unsupported too — not just the aggregate `Some { x; y }`.
+1. Option-matched param typed `int` not `Axon` -> `s.item("_tag")` fails (built-in `option`
+   isn't in `record_types` like user axon-variants are).
+2. Arg-position construction not hoisted: `_aggregate_arg_emitter` handles record/tuple/
+   `_variant_value_kind` but not `_option_kind`, so `f (Some 5)` falls through to
+   "only nullary variants lower".
+3. `mk ()` unit-arg -> `UNSUPPORTED-EXPR: unit`.
+4. Aggregate-payload descent (the catalogue item) — `_val` must be a nested axon + the MATCH
+   arm must descend it.
+5. `_lower_option_body` docstring references `.real()` (a removed NO-introspection accessor).
+The gaps interlock (can't RUN-verify a partial fix), so per the few-cycles policy + integrity
+rules this is NOT a work-loop tick — it stays on the tier-5 WASM fallback. Finding
+`2026-06-19-ocaml-option-payload-five-gaps.md`; catalogue + queue updated with the gaps so a
+future deliberate session starts from them. No compiler change this tick (investigation +
+triage only). (User-defined `Circle of int` variants DO work — they use the `_VARIANT_CTORS`
+path; the built-in `option` is only half-wired to it.)

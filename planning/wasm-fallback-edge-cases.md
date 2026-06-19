@@ -32,10 +32,12 @@ record it in `DEVLOG.md`.
 - **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (the int-local limit).
   Dropped from active §4 per Emma — Rust is low priority. (Loop bounds: use strict `<`/`>`; `<=`
   drops the boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
-- **OCaml** (`sutra-from-ocaml/`, reference): aggregate payload in an `option`/variant **MATCH** arm
-  (`match s with Some { x; y } -> …`) — the match binds the payload as a SCALAR `_oval` and the
-  record fields stay unbound, AND `Some { record }` construction is UNSUPPORTED; needs the match
-  path to descend an aggregate payload like the variant-`let` path does (a 2-sided rework).
+- **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload support — NOT just the
+  aggregate case; `Some 5` (scalar) is unsupported too. Five precise interlocking gaps measured
+  2026-06-19 (param typed `int` not `Axon`; arg-position construction not hoisted via
+  `_aggregate_arg_emitter`; `mk ()` unit-arg; aggregate-payload descent; a `.real()` violation in
+  `_lower_option_body`) — see finding `2026-06-19-ocaml-option-payload-five-gaps.md`. A deliberate
+  session, not a few-cycles tick; runs on WASM meanwhile.
   Scalable RAM device for the 10MB linear memory; non-zero `Array.make` fill (slots start at 0).
 - **Elixir / Erlang** (`sutra-from-{elixir,erlang}/`): >2-clause NON-tail multibase (same seed-
   selection problem as Haskell); GUARDED >2-clause multibase (a mix of integer-literal and `when`
