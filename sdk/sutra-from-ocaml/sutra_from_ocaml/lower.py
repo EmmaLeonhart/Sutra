@@ -75,6 +75,9 @@ _OP_MAP = {
     "=": "==", "<>": "!=",
     "<": "<", ">": ">", "<=": "<=", ">=": ">=",
     "mod": "%", "&&": "&&", "||": "||",
+    # `^` is OCaml string concatenation; the substrate `+` dispatches to string
+    # concat for string-typed operands (same as Scala/F# `+`), so `a ^ b` -> `a + b`.
+    "^": "+",
 }
 
 # OCaml bitwise operators -> the substrate Bits stdlib (stdlib/bitwise.su).
