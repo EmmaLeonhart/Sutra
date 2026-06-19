@@ -28,6 +28,11 @@ _OP_MAP = {
     "+": "+", "-": "-", "*": "*", "/": "/",
     "==": "==", "!=": "!=", "<": "<", ">": ">", "<=": "<=", ">=": ">=",
     "and": "&&", "or": "||", "&&": "&&", "||": "||",
+    # `<>` is Elixir binary/string concatenation; on the substrate string concat
+    # is the same `+` codepoint-array append OCaml's `^` lowers to (the result
+    # eq_synthetic-matches the concatenated literal). The compiler routes `+` to
+    # substrate concat when the operands are String-typed.
+    "<>": "+",
 }
 
 
@@ -166,6 +171,27 @@ def _dot_accessed_params(body, params: set, src: bytes) -> set:
                 obj = an[0]
         if obj is not None and obj.type == "identifier" and _text(obj, src) in params:
             found.add(_text(obj, src))
+        for c in n.named_children:
+            walk(c)
+
+    walk(body)
+    return found
+
+
+def _concat_operand_params(body, params: set, src: bytes) -> set:
+    """Param names used as an operand of `<>` anywhere in `body`. In Elixir `<>` is
+    binary/string concatenation only, so such a param is provably a `String` — it
+    types as `String` (not the default `number`) so the compiler routes the `<>`-
+    lowered `+` to substrate string concat rather than numeric add."""
+    found: set = set()
+
+    def walk(n):
+        if n.type == "binary_operator" and len(n.named_children) == 2:
+            op = next((c for c in n.children if not c.is_named), None)
+            if op is not None and _text(op, src) == "<>":
+                for side in n.named_children:
+                    if side.type == "identifier" and _text(side, src) in params:
+                        found.add(_text(side, src))
         for c in n.named_children:
             walk(c)
 
@@ -1037,8 +1063,11 @@ def _lower_def(def_call, src: bytes) -> str:
     prelude = _hoist_maps(body, src)
     axon_params = _dot_accessed_params(body, set(params), src) | (
         axon_destructured & set(params))
+    # `<>`-operand params are Strings (Elixir `<>` is string concat only).
+    string_params = _concat_operand_params(body, set(params), src) - axon_params
     params_src = ", ".join(
-        f"{'Axon' if p in axon_params else _TYPE} {p}" for p in params)
+        f"{'Axon' if p in axon_params else 'String' if p in string_params else _TYPE} {p}"
+        for p in params)
     body_src = _lower_expr(body, src)
     for nm in sub_names:
         _SUBST.pop(nm, None)
