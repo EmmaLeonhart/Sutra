@@ -924,22 +924,25 @@ def _try_lower_multiclause_recursion(name: str, members, src: bytes):
 
 
 def _try_lower_multibase_multiclause_recursion(name: str, members, src: bytes):
-    """N >= 2 integer-literal base clauses + one all-identifier TAIL-recursive clause
-    — the >2-clause generalisation of `_try_lower_multiclause_recursion` Mode A:
+    """N >= 2 base clauses + one recursive clause — the >2-clause generalisation of
+    `_try_lower_multiclause_recursion` Modes A/B. Each base is either an integer-literal
+    base (one literal param at the recursion position) OR a `when`-guarded base
+    (all-identifier params), and the two MAY be mixed:
 
         def f(0, acc), do: acc
         def f(1, acc), do: acc + 100
+        def f(n, acc) when n > 50, do: acc + 9000   # guarded base (early exit)
         def f(n, acc), do: f(n - 1, acc + n)
 
-    lowers to a `while_loop` whose continue is the `&&` of the negated literal tests
-    (`(n != 0) && (n != 1)` — the substrate compound halt §0.3, 2026-06-18, which made
-    a compound `&&` halt actually fire); the body is the recursive step; and the
-    post-loop value is a nested defuzz-blend of the base bodies keyed by their
-    `(n == k)` tests on the FINAL loop state (at exit the continue is false, so exactly
-    one literal test holds). Each base clause distinguishes itself by exactly ONE
-    integer-literal param at the SAME position (the recursion variable; the rest are
-    identifiers, no guard); the recursive clause is all-identifier with a TAIL
-    self-call. Haskell `_try_lower_multibase_tail_recursion` is the family reference.
+    lowers to a `while_loop` whose continue is the `&&` of each base's negated condition
+    (`(n != 0) && (n != 1) && (n <= 50)` — the substrate compound halt §0.3, 2026-06-18,
+    which made a compound `&&` halt actually fire — verified to still fire with a guard
+    comparison term mixed in, 2026-06-19); the body is the recursive step; and the
+    post-loop value is a nested defuzz-blend of the base bodies keyed by their conditions
+    (`(n == k)` for a literal base, the lowered guard for a guarded base) on the FINAL
+    loop state, in source order (first-match priority). The recursive clause is
+    all-identifier with a TAIL self-call. Haskell `_try_lower_multibase_tail_recursion`
+    is the family reference.
 
     A NON-TAIL recursive clause (arity 1) — `def f(n), do: n * f(n - 1)` with two
     literal bases — is also handled: it lowers via a CPS fold (seed acc = OP identity,
@@ -953,48 +956,55 @@ def _try_lower_multibase_multiclause_recursion(name: str, members, src: bytes):
         return None  # 0/1 base is the existing 2-clause path
     parsed = []
     for _dc, param_nodes, body, guard, prelude in members:
-        if prelude or not param_nodes or guard is not None:
-            return None  # guarded / prelude clauses out of scope for literal multibase
-        parsed.append((param_nodes, body))
+        if prelude or not param_nodes:
+            return None  # prelude (leading destructure) out of scope for multibase
+        parsed.append((param_nodes, body, guard))
     arity = len(parsed[0][0])
     if any(len(p[0]) != arity for p in parsed):
         return None
     rec = None
-    bases: list = []  # (lit_pos, k_str, base_params, body)
-    for params, body in parsed:
+    # Bases in SOURCE ORDER (first-match priority drives the post-loop blend nesting).
+    # Each base is ("lit", params, body, (li, k)) — exactly one integer-literal param at
+    # position li — or ("guard", params, body, guard_node) — all-identifier params + a
+    # `when` guard. The two kinds may be mixed (mixed literal + guarded multibase).
+    bases: list = []
+    for params, body, guard in parsed:
         sc = _contains_self_call(body, name, src)
-        if all(p.type == "identifier" for p in params) and sc:
+        if guard is None and all(p.type == "identifier" for p in params) and sc:
             if rec is not None:
                 return None  # more than one recursive clause — out of scope
             rec = (params, body)
-        elif not sc:
+        elif not sc and guard is None:
             lit_positions = [i for i, p in enumerate(params) if p.type == "integer"]
             if len(lit_positions) != 1:
-                return None  # base must distinguish by exactly one literal param
+                return None  # literal base must distinguish by exactly one literal param
             li = lit_positions[0]
             if any(params[i].type != "identifier" for i in range(arity) if i != li):
                 return None
-            bases.append((li, _text(params[li], src).replace("_", ""), params, body))
+            bases.append(("lit", params, body,
+                          (li, _text(params[li], src).replace("_", ""))))
+        elif not sc and guard is not None and all(p.type == "identifier" for p in params):
+            bases.append(("guard", params, body, guard))  # `when`-guarded base
         else:
             return None
     if rec is None or len(bases) < 2:
         return None
-    li = bases[0][0]
-    if any(b[0] != li for b in bases):
-        return None  # all bases must distinguish at the same (recursion) position
+    if len({extra[0] for kind, _p, _b, extra in bases if kind == "lit"}) > 1:
+        return None  # all LITERAL bases must distinguish at the same recursion position
     rec_params, rec_body = rec
     rec_names = [_text(p, src) for p in rec_params]
     # TAIL self-call → accumulator loop; non-tail → CPS fold (handled below).
     rec_args = _self_call_args(rec_body, name, arity, src)
-    cont = " && ".join(f"({rec_names[li]} != {k})" for _li, k, _bp, _bd in bases)
-    # Post-loop blend of base bodies keyed by `(n == k)` on the final state. Each base
-    # body's identifier params are renamed to rec_names by position (so it references
-    # the loop state). Source order; the last base is the bare else.
-    rendered: list = []
-    for _li2, k, base_params, body in bases:
+
+    # Render each base → (cont_test, blend_cond, body_src). A literal base contributes
+    # `(n != k)` / `(n == k)`; a guard base contributes negate(guard) / guard. The base
+    # clause's identifier params are renamed to the loop-state names by position so the
+    # body, guard and tests all reference the loop state.
+    def _render_base(kind, base_params, body, extra):
+        skip = extra[0] if kind == "lit" else None
         renames: list = []
         for i in range(arity):
-            if i == li:
+            if i == skip:
                 continue
             bn = _text(base_params[i], src)
             if bn != rec_names[i]:
@@ -1002,15 +1012,31 @@ def _try_lower_multibase_multiclause_recursion(name: str, members, src: bytes):
                 renames.append(bn)
         try:
             bsrc = _lower_expr(body, src)
+            if kind == "lit":
+                li_, k = extra
+                cont_test, blend_cond = f"({rec_names[li_]} != {k})", f"({rec_names[li_]} == {k})"
+            else:
+                cont_test, blend_cond = _negate_cond(extra, src), _lower_expr(extra, src)
         finally:
             for bn in renames:
                 _SUBST.pop(bn, None)
-        if "UNSUPPORTED" in bsrc:
+        if any("UNSUPPORTED" in s for s in (bsrc, cont_test, blend_cond)):
             return None
-        rendered.append((f"({rec_names[li]} == {k})", bsrc))
-    base_src = rendered[-1][1]
-    for csrc, bsrc in reversed(rendered[:-1]):
-        base_src = _blend(csrc, bsrc, base_src)
+        return (cont_test, blend_cond, bsrc)
+
+    rendered = []
+    for kind, base_params, body, extra in bases:
+        r = _render_base(kind, base_params, body, extra)
+        if r is None:
+            return None
+        rendered.append(r)
+    # continue = halt unless SOME base condition holds (compound `&&` halt, §0.3).
+    cont = " && ".join(ct for ct, _bc, _bs in rendered)
+    # Post-loop blend keyed by each base condition on the FINAL loop state, in source
+    # order; the last base is the bare else (innermost).
+    base_src = rendered[-1][2]
+    for _ct, bc, bs in reversed(rendered[:-1]):
+        base_src = _blend(bc, bs, base_src)
     ty = _TYPE
     loop_name = f"_rec_{name}"
     if rec_args is None:

@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-06-19: sutra-from-elixir — MIXED literal + `when`-guard >2-clause multibase (tail)
+
+`_try_lower_multibase_multiclause_recursion` previously rejected any clause with a guard
+(`guard is not None: return None`), so a `>2`-clause recursion mixing integer-literal bases with a
+`when`-guarded early-exit base fell through to the generic dispatcher and emitted
+`UNSUPPORTED-RECURSION`. Generalised the multibase transform: bases are now collected in SOURCE
+ORDER, each tagged `"lit"` (one integer-literal param at the recursion position) or `"guard"`
+(all-identifier params + a `when` guard), and the two may be mixed. Each base renders to
+`(cont_test, blend_cond, body)` — a literal contributes `(n != k)` / `(n == k)`, a guard
+contributes `negate(guard)` / `guard` (params renamed to the loop-state names). The loop continue is
+the `&&` of all cont_tests; the post-loop value is the source-ordered nested defuzz blend
+(first-match priority).
+
+Substrate risk checked, not assumed: the §0.3 compound `&&` halt was previously only verified for
+literal `!=` tests; here the continue is `(n != 0) && (n != 1) && (n <= 50)` with a guard comparison
+term. Fixture `guarded_multibase` (`f(0,acc)->acc; f(1,acc)->acc+100; f(n,acc) when n>50 ->
+acc+9000; f(n,acc)->f(n-1,acc+n); f(5,0)+f(60,0)`) RUN on the substrate == **9114.0** (114 from the
+n==1 literal base after summing 5+4+3+2; 9000 from the guard base firing immediately at n=60). The
+compound halt fires correctly with the mixed guard term. Full Elixir suite 62/62 green. Erlang port
+is the next item; Elixir companion non-tail commits `0bf788dd`/`2611102f` are CI-green.
+
 ## 2026-06-19: sutra-from-erlang — >2-clause NON-TAIL multibase recursion (CPS fold)
 
 Ported the same-day Elixir non-tail multibase CPS fold to the Erlang frontend (the two share the

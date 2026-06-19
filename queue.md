@@ -98,9 +98,11 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   pattern (`string_case` RUN == 60) and `++` charlist concat (`++`-operand params inferred String;
   `string_concat` RUN == 100). >2-clause NON-tail multibase (CPS fold) DONE 2026-06-19 for BOTH
   Elixir and Erlang (`_try_lower_multibase_multiclause_recursion` non-tail branch + shared
-  `_foldable_step`; fixtures `multibase_nontail_fact` RUN == 600 each). Remaining: GUARDED >2-clause
-  multibase (mixed literal + `when` bases); Erlang list comprehensions; multi-arg non-tail multibase
-  (stays on WASM fallback).
+  `_foldable_step`; fixtures `multibase_nontail_fact` RUN == 600 each). Elixir MIXED literal +
+  `when`-guard >2-clause multibase (tail) DONE 2026-06-19 (generalised the multibase parse to
+  source-ordered lit/guard bases; continue = compound `&&` halt with a guard `<=` term — verified to
+  fire on the substrate; fixture `guarded_multibase` RUN == 9114). Remaining: port that guarded
+  multibase to Erlang; Erlang list comprehensions; multi-arg non-tail multibase (stays on WASM).
 - [ ] **Clojure** — map/vector literal in a TAIL-recursive base DONE 2026-06-18 (`_hoist_maps`
   threaded into `_try_lower_tail_recursive` + `Axon` return type; fixtures `map_in_recursion` RUN
   == 3, `vec_in_recursion` RUN == 60). Residual (orthogonal, pre-existing): `.item()` on a
