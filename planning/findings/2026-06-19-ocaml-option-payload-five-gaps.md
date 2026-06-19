@@ -1,9 +1,12 @@
 # OCaml `option`/variant payload support — the five precise gaps
 
 **Date:** 2026-06-19
-**Status:** root-caused, NOT fixed — stays on the tier-5 WASM fallback (a substantial
-rework, not a few-cycles edge case; logged so a future dedicated session starts from
-the precise gaps rather than the catalogue's vague "2-sided rework").
+**Status:** RESOLVED 2026-06-19 — all five gaps fixed and substrate-verified in the same
+session that root-caused them (commits `3f9ea2c0` gap 2, `272d483c` gap 1, `db5ddde7` gap 4,
+plus gap 3 + gap 5). The OCaml option/variant payload (scalar AND aggregate, annotated or not)
+now works end-to-end; fixtures `option_some_inline`/`option_some_unannotated`/`variant_arg_unannotated`/
+`option_some_tuple`/`option_some_record`/`option_some_thunk` RUN on the substrate. The gap analysis
+below is kept as the historical root-cause record.
 
 ## Symptom
 
