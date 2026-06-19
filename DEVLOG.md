@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-19: sutra-from-ocaml — option payload gap 3 (unit-arg) — FINDING CLOSED (5/5 gaps)
+
+Last of the five OCaml option-payload gaps. A unit-argument call `mk ()` lowered the `()` argument via
+`_lower_expression` to `UNSUPPORTED-EXPR: unit`, even though the callee's unit parameter is dropped by
+`_lower_param`. Fixed by dropping a `unit` argument from the application lowering (filter
+`_unwrap_parens(a).type != "unit"`), matching the param side. Fixture `option_some_thunk`
+(`mk () = Some 5`; `f (mk ())`) RUN on the substrate == **6.0**. Full OCaml suite 152/152 green.
+
+With this, finding `2026-06-19-ocaml-option-payload-five-gaps.md` is RESOLVED — all five gaps fixed and
+substrate-verified in the same session that root-caused them. The OCaml option/variant payload now
+works end-to-end across scalar/aggregate payload and annotated/unannotated scrutinees, six fixtures
+RUN-verified. The finding header is updated to RESOLVED; the gap analysis is kept as the historical
+root-cause record.
+
 ## 2026-06-19: sutra-from-ocaml — option payload gap 4 (aggregate payload match descent)
 
 Final substantive slice of the OCaml option-payload session. The CONSTRUCTION side of an aggregate

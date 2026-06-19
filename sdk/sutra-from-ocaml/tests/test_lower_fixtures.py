@@ -174,6 +174,7 @@ _RUNNABLE_FIXTURES = {
     "variant_arg_unannotated": 2.0,  # eval e = match e with Lit n -> n | Neg n -> 0-n; eval (Lit 7) + eval (Neg 5) = 7 + (-5)  (UNANNOTATED variant scrutinee param -> typed Axon; gap 1)
     "option_some_tuple": 13.0,  # f (Some (5,8)) where f matches Some (a,b) -> a+b  (AGGREGATE tuple payload: _val nested axon {_0,_1}, match descends via Axon _oval_ax local; gap 4)
     "option_some_record": 13.0,  # f (Some {x=5;y=8}) where f matches Some {x;y} -> x+y  (AGGREGATE record payload: _val nested axon, match descends named fields via Axon _oval_ax local; gap 4)
+    "option_some_thunk": 6.0,  # mk () = Some 5; f (mk ())  (UNIT-arg call mk () -> the () arg matches the dropped unit param, so it is dropped from the call rather than lowered to UNSUPPORTED; gap 3)
     "let_in_expr": 20.0,  # (let x = 5 in x + x) + 10  (let..in in expression position via substitution)
     "modulo": 2.0,  # 17 mod 5  (OCaml mod -> Sutra %)
     "string_concat": 100.0,  # cat a b = a ^ b; classify s = if s = "foobar" then 100 else 200; classify (cat "foo" "bar")  (OCaml `^` string concat -> Sutra `+` -> substrate string concat; eq_synthetic match)

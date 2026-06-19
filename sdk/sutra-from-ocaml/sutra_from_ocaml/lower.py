@@ -556,7 +556,11 @@ def _lower_expression(node, source: bytes) -> str:
             # field read.
             return f'realvec({_lower_expression(kids[1], source)}.item("{field}"))'
         fn_src = _lower_expression(kids[0], source)
-        arg_srcs = [_lower_expression(a, source) for a in kids[1:]]
+        # A `unit` argument (`mk ()`) matches a unit PARAMETER, which `_lower_param`
+        # drops — so drop the call argument too rather than lowering `()` to an
+        # UNSUPPORTED expression.
+        arg_srcs = [_lower_expression(a, source) for a in kids[1:]
+                    if _unwrap_parens(a).type != "unit"]
         return f"{fn_src}({', '.join(arg_srcs)})"
     if t == "if_expression":
         # OCaml `if c then a else b` is an *expression*. Lower it to the

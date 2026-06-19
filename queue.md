@@ -108,25 +108,13 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   == 3, `vec_in_recursion` RUN == 60). Residual (orthogonal, pre-existing): `.item()` on a
   call-result blocks inline `(:k (f …))` reads — finding `2026-06-18-axon-item-on-call-result-...`.
   (Symbol/keyword-as-value rep is §0.5.)
-- [ ] **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload — five gaps root-caused
-  in finding `2026-06-19-ocaml-option-payload-five-gaps.md`. PROGRESS 2026-06-19: **gap 2 DONE** —
-  inline `Some e` in ARG position now hoists to a `{_tag,_val}` axon via new `_emit_option_construction`
-  + `_aggregate_arg_emitter` branch (the emitter also descends an aggregate payload, so the
-  construction side of gap 4 is covered); `_lower_option_body` refactored to reuse it (behavior-
-  preserving). **gap 5 DONE** — it was only a stale `.real()` docstring (no live readout), corrected.
-  **gap 1 DONE** — `_axon_scrutinee_param_names` infers that an UNANNOTATED param used as an
-  option/variant match scrutinee carries a tagged axon and types it `Axon` (threaded into
-  `_lower_param` via `axon_params`); fixtures `option_some_unannotated` RUN == 6 and
-  `variant_arg_unannotated` RUN == 2 (covers both option and variant). Full OCaml suite 149/149.
-  **gap 4 DONE** — `_lower_option_match_body` now descends an AGGREGATE `Some` payload: a tuple
-  (`Some (a,b)`) or record (`Some {x;y}`) pattern reads the nested `_val` axon via an `Axon _oval_ax`
-  local (`_some_aggregate_fields`; a chained `.item().item()` fails — the inner item returns a flat
-  tensor). Fixtures `option_some_tuple` RUN == 13 and `option_some_record` RUN == 13. Full OCaml suite
-  151/151. So the option/variant payload (scalar AND aggregate, annotated or not) now works
-  end-to-end. REMAINING: only gap 3 (`mk ()` unit-arg → `UNSUPPORTED-EXPR: unit` — a small isolated
-  gap). Plus: scalable
-  RAM device for the 10MB linear memory (`Bytes.make` / loop-carried arrays use the global RAM list,
-  which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented limit, not a bug).
+- [ ] **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload is DONE 2026-06-19 — all
+  five gaps from finding `2026-06-19-ocaml-option-payload-five-gaps.md` (now marked RESOLVED) fixed +
+  substrate-verified; scalar AND aggregate payload, annotated or not, works end-to-end (fixtures
+  `option_some_{inline,unannotated,tuple,record,thunk}` + `variant_arg_unannotated`; OCaml suite
+  152/152). Remaining OCaml work is unrelated to payloads: scalable RAM device for the 10MB linear
+  memory (`Bytes.make` / loop-carried arrays use the global RAM list, which doesn't scale); non-zero
+  `Array.make` fill (slots start at 0 — documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing DONE 2026-06-19 — a member
   access `x.field` now resolves the field type in the variable's OWN interface map
   (`interface_field_types` + `var_interfaces`), exact even when two interfaces share a field name
