@@ -716,14 +716,17 @@ def _lower_expr(node, src: bytes) -> str:
             parsed = []
             for i in range(0, len(pair_clauses), 2):
                 const_node, res_node = pair_clauses[i], pair_clauses[i + 1]
-                if const_node.type in ("num_lit", "bool_lit"):
+                if const_node.type in ("num_lit", "bool_lit", "str_lit"):
+                    # number / bool / string constant. A string `==` routes to
+                    # eq_synthetic (Euclidean on the codepoint array), separating
+                    # strings cleanly; `_lower_expr` of a str_lit is its quoted form.
                     test = f"({e_src} == {_lower_expr(const_node, src)})"
                 elif const_node.type == "list_lit":
                     consts = const_node.named_children
                     if not consts or any(
-                            c.type not in ("num_lit", "bool_lit") for c in consts):
+                            c.type not in ("num_lit", "bool_lit", "str_lit") for c in consts):
                         return ("/* UNSUPPORTED-EXPR: case test list "
-                                "(number/bool literal members only) */")
+                                "(number/bool/string literal members only) */")
                     ors = " || ".join(
                         f"({e_src} == {_lower_expr(c, src)})" for c in consts)
                     test = f"({ors})"

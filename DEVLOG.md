@@ -11698,3 +11698,18 @@ frontend; string literals + equality + concat now work in OCaml/TS/Clojure/Scala
 `scrut == "lit"` (string equality routes to eq_synthetic, separating strings cleanly), nested into
 the defuzz blend. Fixture `string_match`: classify "foo"+"bar"+"baz" = 10+20+30 = 60, RUN on the
 substrate. Same one-case add to Scala (`case "foo" =>`) — both RUN == 60. Builds directly on the string-literal/equality work.
+
+## 2026-06-18 — string match/case dispatch across the BEAM + Lisp + Haskell frontends
+
+Extended the string-literal-pattern dispatch (OCaml/Scala shipped earlier) to the rest:
+- **Elixir**: added the general string-literal lowering (`"foo"` was UNSUPPORTED-EXPR like
+  Scala/F# — now lowers to a Sutra string literal; enables string eq/concat too) + `string` in the
+  `case` pattern handler.
+- **Clojure**: added `str_lit` to the `case` constant types (single + multi-constant test lists).
+- **Haskell**: string `case` patterns already lowered correctly — locked with a fixture.
+
+All dispatch via `scrut == "lit"` → eq_synthetic (Euclidean on the codepoint array), crisp at the
+default dim 50 (codepoints are exact, not bundled). Fixtures `string_case` (all three):
+`classify "foo"+"bar"+"baz"` = 10+20+30 = 60, RUN on the substrate. String literal/equality/concat/
+match-dispatch now work across OCaml/TS/Scala/F#/Clojure/Elixir/Haskell. (Erlang strings are
+char-lists, a different model — deferred; F# match-with-string has a separate parser issue.)
