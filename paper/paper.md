@@ -871,7 +871,8 @@ axons used for bundled records. A new frontend is mostly the work of
 recognizing each source language's spelling of these shapes.
 
 These are fixture-tested lowering passes of varying maturity (OCaml is
-the reference at 45 fixtures; the others range from 6 to 19), not
+the reference at 61 fixtures; the other functional frontends range from
+21 to 31, with a parked C frontend), not
 production compilers, and each fixture is compiled **and run** on the
 substrate with its output compared to the source language's own
 ground-truth result — a lowering that parses but computes the wrong
