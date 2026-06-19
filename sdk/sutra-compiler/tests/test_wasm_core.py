@@ -57,8 +57,22 @@ def _machine_ns():
 _LEN2 = {65, 32, 33, 34, 2, 3, 4, 12, 13, 16}
 
 
-def _ilen(op):
-    return 2 if op in _LEN2 else 1
+def _ilen(op, body=None, off=None):
+    """Instruction length in bytes. 1-byte ops are 1; operand-bearing (2-byte) ops are
+    opcode + LEB128 operand. The operand is normally 1 byte, but a value/index > 7 bits
+    uses a 2-byte LEB128 (first byte has the 0x80 continuation bit) -> length 3. This
+    core supports up to 2 operand bytes (14-bit); a 3rd continuation byte is asserted
+    against rather than silently mislowered (the substrate decode is 2-byte). When
+    body/off are omitted the single-byte-operand default (2) is returned."""
+    if op not in _LEN2:
+        return 1
+    if body is None or off is None or off + 1 >= len(body):
+        return 2
+    if body[off + 1] >= 0x80:               # first operand byte continues -> 2-byte LEB
+        assert off + 2 >= len(body) or body[off + 2] < 0x80, (
+            "3+ byte LEB128 operand not supported (wasm_core decodes 2-byte/14-bit)")
+        return 3
+    return 2
 
 
 def _build_targets(body):
@@ -73,7 +87,7 @@ def _build_targets(body):
     off = 0
     while off < n:
         op = body[off]
-        L = _ilen(op)
+        L = _ilen(op, body, off)
         instrs.append((off, op, L))
         tgt[off] = off + L   # default: sequential next
         off += L
@@ -237,6 +251,21 @@ _CASES = [
     # if WITHOUT else (blocktype empty = 0x40=64): local0=5; if (cond) { local0=9 }; get local0
     ([65, 5, 33, 0, 65, 0, 4, 64, 65, 9, 33, 0, 11, 32, 0, 11], 5, 14, 100),  # cond 0 -> skip -> 5
     ([65, 5, 33, 0, 65, 1, 4, 64, 65, 9, 33, 0, 11, 32, 0, 11], 9, 14, 100),  # cond 1 -> run  -> 9
+    # ---- multi-byte (2-byte / 14-bit) LEB128 constants (operand > 7 bits) ----
+    # i32.const 200 (LEB 0xC8 0x01); end -> 200. The continuation byte makes the
+    # i32.const instruction 3 bytes; the data-dependent pc advance must skip both.
+    ([65, 0xC8, 0x01, 11], 200, 10, 100),
+    # i32.const 300 (LEB 0xAC 0x02); end -> 300
+    ([65, 0xAC, 0x02, 11], 300, 10, 100),
+    # i32.const -200 (signed LEB 0xB8 0x7E); end -> -200 (sign bit = bit6 of byte1)
+    ([65, 0xB8, 0x7E, 11], -200, 10, 100),
+    # 2-byte const composes with arithmetic + a following 1-byte op: 200 + 50 -> 250
+    # (50 <= 63 is a valid single-byte LEB128; 100 would NOT be — it sets bit6 and
+    # decodes as -28, so values 64..127 require their own 2-byte encoding).
+    ([65, 0xC8, 0x01, 65, 50, 106, 11], 250, 12, 100),
+    # 2-byte const BEFORE a branch (offsets shift): block { i32.const 1000; br 0 };
+    # the unreachable i32.const 7 after br is skipped -> top = 1000
+    ([2, 64, 65, 0xE8, 0x07, 12, 0, 65, 7, 11, 11], 1000, 10, 100),
 ]
 
 
