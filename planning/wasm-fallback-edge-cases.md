@@ -32,29 +32,25 @@ record it in `DEVLOG.md`.
 - **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (the int-local limit).
   Dropped from active §4 per Emma — Rust is low priority. (Loop bounds: use strict `<`/`>`; `<=`
   drops the boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
-- **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload support — NOT just the
-  aggregate case; `Some 5` (scalar) is unsupported too. Five precise interlocking gaps measured
-  2026-06-19 (param typed `int` not `Axon`; arg-position construction not hoisted via
-  `_aggregate_arg_emitter`; `mk ()` unit-arg; aggregate-payload descent; a `.real()` violation in
-  `_lower_option_body`) — see finding `2026-06-19-ocaml-option-payload-five-gaps.md`. A deliberate
-  session, not a few-cycles tick; runs on WASM meanwhile.
-  Scalable RAM device for the 10MB linear memory; non-zero `Array.make` fill (slots start at 0).
-- **Elixir / Erlang** (`sutra-from-{elixir,erlang}/`): >2-clause NON-tail multibase (same seed-
-  selection problem as Haskell); GUARDED >2-clause multibase (a mix of integer-literal and `when`
-  bases — the literal-only multibase + the guarded-recursive-clause are done); Erlang list
-  comprehensions.
+- **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload support is **DONE 2026-06-19**
+  — all five gaps from finding `2026-06-19-ocaml-option-payload-five-gaps.md` fixed + substrate-
+  verified (scalar AND aggregate payload, annotated or not); the finding is RESOLVED. Still open and
+  unrelated to payloads: scalable RAM device for the 10MB linear memory; non-zero `Array.make` fill
+  (slots start at 0).
+- **Elixir / Erlang** (`sutra-from-{elixir,erlang}/`): >2-clause NON-tail multibase (CPS fold) and
+  GUARDED >2-clause multibase (mixed integer-literal + `when` bases) are **DONE 2026-06-19** for BOTH
+  (fixtures `multibase_nontail_fact` RUN == 600, `guarded_multibase` RUN == 9114 each). Still open:
+  Erlang list comprehensions (needs a list abstraction the substrate lacks); multi-arg non-tail
+  multibase.
 - **Clojure** (`sutra-from-clojure/`): map/vector literal in a TAIL-recursive base — **DONE
   2026-06-18** (`_try_lower_tail_recursive` now runs `_hoist_maps` on the base and types the fn
-  return `Axon`; fixtures `map_in_recursion` RUN == 3, `vec_in_recursion` RUN == 60). Residual,
-  orthogonal: an Axon-returning fn whose result is field-read INLINE (`(:k (f …))`) hits a
-  compiler limit — `.item()` on a call-result, not recursion-specific; see finding
-  `2026-06-18-axon-item-on-call-result-not-supported.md`. (Map/vector in a non-tail FOLD base is
-  nonsensical — you cannot `acc * map` — so not applicable there.)
+  return `Axon`; fixtures `map_in_recursion` RUN == 3, `vec_in_recursion` RUN == 60). The residual
+  `.item()`-on-call-result limit that blocked inline `(:k (f …))` reads is **DONE 2026-06-19** by the
+  COMPILER fix (`_translate_call` routes `.item(key)` on a non-identifier receiver to `axon_item`;
+  finding `2026-06-18-axon-item-on-call-result-not-supported.md` RESOLVED).
 - **F#** (`sutra-from-fsharp/`): no-parens curried application as an infix operand
   (`classify "foo" + classify "bar"` → application-precedence error; parenthesise as
   `(classify "foo") + (classify "bar")` to work today).
-- **TS** (`sutra-from-ts/`): per-variable interface typing so a field-type lookup is exact when two
-  interfaces share a field name with different types (low priority).
 
 ## Not on this list (genuinely done or out of scope)
 
