@@ -729,6 +729,33 @@ def _is_variant_match(node, source: bytes) -> bool:
     return False
 
 
+def _axon_scrutinee_param_names(node, source: bytes) -> set:
+    """Names of simple-identifier scrutinees of option/variant `match` expressions
+    anywhere in `node` (a function body). Such a scrutinee carries a `{_tag,_val}`
+    tagged axon, so an UNANNOTATED param of that name must be typed `Axon` (not the
+    `int` default) for the match read `s.item("_tag")` to type-check — the inference
+    that lets `let f s = match s with Some v -> … | None -> …` work without an explicit
+    `(s : int option)` annotation (which would reach `Axon` via `_map_type`). Only a
+    bare-identifier scrutinee is inferred; `match f x with …` is left alone."""
+    names: set = set()
+
+    def visit(n):
+        if n is None:
+            return
+        if n.type == "match_expression" and (_is_option_match(n, source)
+                                             or _is_variant_match(n, source)):
+            scrut = n.named_children[0] if n.named_children else None
+            if scrut is not None:
+                txt = _node_text(scrut, source).strip()
+                if _is_identifier(txt):
+                    names.add(txt)
+        for c in n.named_children:
+            visit(c)
+
+    visit(node)
+    return names
+
+
 def _lower_variant_match_body(node, source: bytes, indent: str) -> str:
     """Lower `match v with C1 x -> … | C2 -> … | _ -> …` for an axon-mode
     variant, in FUNCTION-BODY position. Same shape as the option match: read the
@@ -1099,17 +1126,20 @@ def _lower_match(node, source: bytes) -> str:
 
 
 def _lower_param(param_node, source: bytes,
-                 record_types=frozenset()) -> Optional[tuple[str, str]]:
+                 record_types=frozenset(),
+                 axon_params=frozenset()) -> Optional[tuple[str, str]]:
     """Lower one `parameter` node → (name, sutra_type), or None for the
     `unit` parameter (`let main () = …`), which contributes no Sutra
-    parameter."""
+    parameter. `axon_params` is the set of param names the body uses as an
+    option/variant match scrutinee — an unannotated such param is typed `Axon`."""
     child = param_node.named_children[0] if param_node.named_children else None
     if child is None:
         return None
     if child.type == "unit":
         return None
     if child.type == "value_pattern":
-        return (_node_text(child, source), _DEFAULT_TYPE)
+        nm = _node_text(child, source)
+        return (nm, "Axon" if nm in axon_params else _DEFAULT_TYPE)
     if child.type == "typed_pattern":
         vp = None
         tp = None
@@ -2186,9 +2216,12 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
 
     params: list[tuple[str, str]] = []
     ret_type: Optional[str] = None
+    # Unannotated params used as an option/variant match scrutinee carry a tagged
+    # axon → type them `Axon` (gap 1; `let f s = match s with Some v -> …`).
+    axon_scrut = _axon_scrutinee_param_names(body, source)
     for k in middle:
         if k.type == "parameter":
-            p = _lower_param(k, source, record_types)
+            p = _lower_param(k, source, record_types, axon_scrut)
             if p is not None:
                 params.append(p)
         elif _is_type_node(k):
