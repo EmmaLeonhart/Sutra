@@ -9,8 +9,7 @@ available.
 
 This is the reference IDE for **Sutra** — the fuzzy-by-default vector
 programming language whose primitives are hypervectors in embedding space.
-See [`planning/sutra-spec/20-ide-architecture.md`](../../planning/sutra-spec/20-ide-architecture.md)
-for why the reference IDE targets the IntelliJ Platform instead of a VS
+The reference IDE targets the IntelliJ Platform instead of a VS
 Code extension, and for the much larger design this scaffold is the
 foundation of.
 
@@ -34,7 +33,7 @@ foundation of.
   `.su` files only.
 - **External annotator** that runs `python -m sutra_compiler --json` on
   the current file and surfaces the resulting diagnostics (including the
-  `AKA####` codes) in the editor and Problems panel.
+  `SUT####` codes) in the editor and Problems panel.
 
 ## What v0.2 adds on top of v0.1
 
@@ -68,8 +67,7 @@ later scaffolds:
 - Runtime MCP server hosting.
 - The IntelliJ MCP server exposing `.su` PSI to external agents.
 - Embedding-space visualizer pane (3D hyperplane with user-chosen
-  composite basis — see
-  [`planning/sutra-spec/20-ide-architecture.md`](../../planning/sutra-spec/20-ide-architecture.md)).
+  composite basis).
 - Debugger integration, workspace/project system, scaffolding templates,
   bundled vertical stack installer.
 
@@ -84,13 +82,12 @@ Prereqs:
 cd sdk/intellij-sutra
 gradle wrapper           # first time only
 ./gradlew runIde         # launches a sandbox IntelliJ IDEA Community
-./gradlew buildPlugin    # produces build/distributions/Sutra-0.1.0.zip
+./gradlew buildPlugin    # produces build/distributions/Sutra-<version>.zip
 ```
 
 The sandbox instance opens with the Sutra plugin installed; drop any
-`.su` file into it (e.g. anything from `examples/` or
-`examples/_legacy_syntax_tour.su` for a full syntax tour) to
-smoke-test highlighting, completion, live templates, and diagnostics.
+`.su` file into it (e.g. anything from `examples/`) to smoke-test
+highlighting, completion, live templates, and diagnostics.
 
 ## Compiler path configuration
 
@@ -180,9 +177,9 @@ different parts of the toolchain:
    and `SutraCompletionContributor.kt` — this plugin.
 
 If you add a keyword, a primitive type, or a builtin to the language,
-update all three, plus `planning/sutra-spec/21-builtins.md` if it's a
-VSA builtin.
+update all three, plus the relevant `planning/sutra-spec/` file
+(`operations.md` / `axons.md`) if it's a VSA builtin.
 
 ## License
 
-Same as the rest of the Sutra repository.
+GNU AGPL-3.0-only — same as the rest of the Sutra repository.
