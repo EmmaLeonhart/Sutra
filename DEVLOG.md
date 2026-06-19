@@ -11682,3 +11682,11 @@ then 100 else 200; f(cat("foo","bar"))` = 100, RUN on the substrate. Scala 40, F
 A few-cycles foundational win — string equality + concat now work in Scala/F# (joining
 OCaml/TS/Clojure). (F# return-type inference still types `cat` as int not String — cosmetic; the
 concat is correct because `+` dispatches on the operand types.)
+
+## 2026-06-18 — OCaml `^` string concat (reference frontend)
+
+OCaml's `^` (string concatenation) was UNSUPPORTED-OP. Added `"^": "+"` to the OCaml `_OP_MAP` —
+the substrate `+` dispatches to string concat for string-typed operands (same as Scala/F#). Fixture
+`string_concat`: `cat a b = a ^ b; classify s = if s = "foobar" then 100 else 200;
+classify (cat "foo" "bar")` = 100, RUN on the substrate. A one-line few-cycles win for the reference
+frontend; string literals + equality + concat now work in OCaml/TS/Clojure/Scala/F#.
