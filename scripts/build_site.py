@@ -277,7 +277,7 @@ def shell(title: str, inner: str, mermaid: bool = False, math: bool = False,
   <meta property="og:type" content="website">
   <meta property="og:title" content="{title}">
   <meta property="og:description" content="Sutra — a geometrically compiled language where logical operations over vector spaces resolve at compile time into matrix multiplications.">
-  <meta property="og:url" content="https://sutra.noldor.tech">
+  <meta property="og:url" content="https://sutra.topazcomputing.com">
   <title>{title}</title>
 
   <script>(function(){{try{{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);}}catch(e){{document.documentElement.setAttribute('data-theme','dark');}}}})();</script>
@@ -303,7 +303,7 @@ def shell(title: str, inner: str, mermaid: bool = False, math: bool = False,
 {inner}
     </div>
   </main>
-  <footer>sutra.noldor.tech</footer>
+  <footer>sutra.topazcomputing.com</footer>
   {GH_JS}{extra}
   <script>
     (function(){{
