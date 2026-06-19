@@ -443,6 +443,14 @@ def _lower_expr(node, src: bytes) -> str:
         return _text(node, src).replace("_", "")
     if t == "float":
         return _text(node, src).replace("_", "")
+    if t == "string":
+        # A plain Elixir string literal `"…"` → a Sutra string literal (string-flag
+        # codepoint array); `_text` keeps the quotes. `==` / a `case`/`when` string
+        # pattern routes to eq_synthetic. Interpolated strings (`"#{x}"`) carry an
+        # `interpolation` child and are a later item — they fall through.
+        if not any(c.type == "interpolation" for c in node.named_children):
+            return _text(node, src)
+        return "/* UNSUPPORTED-EXPR: interpolated string */"
     if t == "identifier":
         text = _text(node, src)
         return _SUBST.get(text, text)
@@ -508,10 +516,11 @@ def _lower_expr(node, src: bytes) -> str:
                         or not bd.named_children:
                     return "/* UNSUPPORTED-CASE: malformed clause */"
                 pat = pa.named_children[0]
-                if pat.type in ("integer", "boolean"):
-                    # `0 -> …` / `true -> …` literal pattern: dispatch the scrutinee value
-                    # directly (`scrut == k`, `scrut == true`) — Elixir `true`/`false`
-                    # match the Sutra `true`/`false`.
+                if pat.type in ("integer", "boolean", "string"):
+                    # `0 -> …` / `true -> …` / `"foo" -> …` literal pattern: dispatch the
+                    # scrutinee directly (`scrut == k`). For a string, `==` routes to
+                    # eq_synthetic (Euclidean on the codepoint array), which separates
+                    # strings cleanly; `_text` keeps the quotes (the Sutra literal form).
                     res_src = _lower_expr(bd.named_children[-1], src)
                     parsed.append((f"({scrut_src} == {_text(pat, src)})", res_src))
                 elif pat.type == "identifier":
