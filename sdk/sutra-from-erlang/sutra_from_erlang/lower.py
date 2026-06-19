@@ -43,6 +43,11 @@ _OP_MAP = {
     "<": "<", ">": ">", "=<": "<=", ">=": ">=",
     "andalso": "&&", "orelse": "||", "and": "&&", "or": "||",
     "rem": "%",
+    # `++` is Erlang list/string append; an Erlang string `"foo"` is a charlist, so
+    # `A ++ B` over two strings is codepoint-array concat — the same substrate `+`
+    # the Elixir `<>` and OCaml `^` lower to. `++`-operand params infer as String so
+    # the compiler routes `+` to substrate concat (not numeric add).
+    "++": "+",
 }
 
 # Bound names (params / case-binds) → their Sutra substitution (the `_SUBST` shape
@@ -217,6 +222,27 @@ def _maps_get_params(body, params: set, src: bytes) -> set:
     return found
 
 
+def _concat_operand_params(body, params: set, src: bytes) -> set:
+    """Param names used as an operand of `++` anywhere in `body`. Over strings, `++`
+    is charlist (codepoint-array) concat, so such a param types as `String` (not the
+    default `number`) — the compiler then routes the `++`-lowered `+` to substrate
+    string concat. The Elixir `<>` `_concat_operand_params` shape."""
+    found: set = set()
+
+    def walk(n):
+        if n.type == "binary_op_expr":
+            b = _binop(n, src)
+            if b is not None and b[1] == "++":
+                for side in (b[0], b[2]):
+                    if side.type == "var" and _text(side, src) in params:
+                        found.add(_text(side, src))
+        for c in n.named_children:
+            walk(c)
+
+    walk(body)
+    return found
+
+
 def grammar_available() -> bool:
     return _DLL.exists()
 
@@ -299,6 +325,11 @@ def _lower_expr(node, src: bytes) -> str:
         # A map/tuple/record literal reaching here was not hoisted — surface the gap.
         return "/* UNSUPPORTED-CONSTRUCTION: aggregate outside a hoistable position */"
     if t == "integer":
+        return _text(node, src)
+    if t == "string":
+        # An Erlang string literal `"foo"` → a Sutra string (synthetic-axis codepoint
+        # array). The node text is already double-quoted, matching Sutra's string
+        # literal surface; `==` against it routes to eq_synthetic via the String operand.
         return _text(node, src)
     if t == "var":
         text = _text(node, src)
@@ -391,6 +422,11 @@ def _lower_case_clauses(subject, clauses, src: bytes) -> str:
             return "/* UNSUPPORTED-EXPR: malformed case clause */"
         bind = None
         if pat.type == "integer":
+            test = f"({e_src} == {_text(pat, src)})"
+        elif pat.type == "string":
+            # String-literal case pattern (`case S of "foo" -> …`) → `(S == "foo")`,
+            # routed to eq_synthetic by the String literal operand (the Elixir
+            # `string_case` shape).
             test = f"({e_src} == {_text(pat, src)})"
         elif pat.type == "atom" and _text(pat, src) in ("true", "false"):
             # Bool atom pattern (`case B of true -> …; false -> …`): test the bool subject
@@ -958,8 +994,11 @@ def _lower_function(name: str, clauses, src: bytes) -> str:
         prelude = _hoist_maps(body, src)
         axon_params = _maps_get_params(body, set(pnames), src) | (
             axon_destructured & set(pnames))
+        # `++`-operand params are Strings (charlist concat).
+        string_params = _concat_operand_params(body, set(pnames), src) - axon_params
         params_src = ", ".join(
-            f"{'Axon' if p in axon_params else _TYPE} {p}" for p in pnames)
+            f"{'Axon' if p in axon_params else 'String' if p in string_params else _TYPE} {p}"
+            for p in pnames)
         body_src = (f"function {_TYPE} {name}({params_src}) {{\n"
                     f"{prelude}    return {_lower_expr(body, src)};\n}}\n")
         for nm in sub_names:
