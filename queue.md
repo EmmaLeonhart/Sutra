@@ -212,6 +212,14 @@ Work top-to-bottom; do not reorder.
   2026-06-18). DNS is Emma's. Queued at the END so it does NOT disrupt active transpiler/substrate
   work; part of the noldor.tech → topazcomputing.com domain migration (2026-06-18).
 
+## Papers — add a Background section at the beginning (Emma 2026-06-18)
+
+- [ ] Add a **Background** section to the BEGINNING of the papers (lead-in before the main body):
+  `paper/paper.md` (live, unfrozen) and `paper/formal-verification/paper.md` (live). Do **NOT** touch
+  the FROZEN `paper/neurips/` snapshot. Keep the integrity + writing discipline (measured numbers
+  only, no overclaiming, no "honest"-style buzzwords, no em-dashes). Requested across all Sutra
+  checkouts; this is the canonical Sutra repo queue, so it propagates to the vendored copies on sync.
+
 ## Pinned tail (always present — bracket every session)
 
 - **A. Ensure the crons run** (`CronList`; re-create work-loop :03, auto-flush :15, status-report
