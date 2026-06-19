@@ -11750,3 +11750,17 @@ beyond the existing `case`-dispatch (`string_case`):
   (Elixir `<>` is string concat only), so it types as `String` and the compiler routes the
   `+` to substrate concat. `string_concat` RUN == 100 (`classify(cat("foo","bar"))`).
 Full Elixir suite 58 passed. No regressions.
+
+## 2026-06-18 — Erlang string surface: case-pattern eq + `++` concat
+Erlang frontend (`sdk/sutra-from-erlang`) gained its foundational string surface,
+mirroring the Elixir work earlier today:
+- **String literals**: `_lower_expr` now lowers a `string` node to the Sutra string
+  literal (the node text is already double-quoted).
+- **`string_case`** (`case S of "foo" -> 10; "bar" -> 20; _ -> 30 end`): string-literal
+  case patterns lower to `(S == "lit")`, routed to eq_synthetic by the String operand.
+  RUN == 60. (Erlang dispatches strings via `case`, not `if` — `if` needs guards.)
+- **`++` concat**: added `"++": "+"` to `_OP_MAP` (charlist/codepoint-array append,
+  same substrate `+` as Elixir `<>` / OCaml `^`). New `_concat_operand_params` infers
+  `String` type for any param used as a `++` operand, so `+` routes to substrate concat
+  not numeric add. `string_concat` RUN == 100 (`classify(cat("foo","bar"))`).
+Full Erlang suite 46 passed. No regressions.
