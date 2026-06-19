@@ -446,8 +446,8 @@ and cannot fail to halt on any input. The loop count depends only on the width,
 never on a digit value — the same "the trusted base does not pose the halting
 problem" property as §3.3, here because the bound is a shape, not a soft-halt
 signal. End-to-end the shipped intrinsic is bit-exact on the worked cases
-(`12345 + 67891 = 80236`; `"99999" + "1" = "100000"`; overflow saturates at
-`max_digits = 16`; `experiments/bigint_worked_example.py`, nine cases).
+(`"12345678" + "87654321" = "99999999"`; `"99999" + "1" = "100000"`; overflow
+saturates at `max_digits = 16`; `experiments/bigint_worked_example.py`, nine cases).
 
 What §3.4 does *not* yet cover: signed digit arrays (v1 is unsigned), and
 expressing these bounds in the §3.2 polynomial-Kleene style rather than as a
@@ -1023,6 +1023,44 @@ it on the specific thermodynamic hardware we are building toward; carrying the �
 framework fully onto that hardware is, in our view, the more consequential direction
 this work opens — correctness established at the level of the physics, not only the
 software.
+
+---
+
+## References
+
+de Moura, L. and Bjørner, N. (2008). Z3: An Efficient SMT Solver. In *Tools and Algorithms for the Construction and Analysis of Systems (TACAS)*.
+
+Frady, E. P., Kleyko, D. and Sommer, F. T. (2018). A Theory of Sequence Indexing and Working Memory in Recurrent Neural Networks. *Neural Computation*, 30(6).
+
+Futamura, Y. (1971). Partial Evaluation of Computation Process: An Approach to a Compiler-Compiler. *Systems, Computers, Controls*, 2(5). Reprinted in *Higher-Order and Symbolic Computation*, 12(4), 1999.
+
+Gao, S., Kong, S. and Clarke, E. M. (2013). dReal: An SMT Solver for Nonlinear Theories over the Reals. In *International Conference on Automated Deduction (CADE)*.
+
+Gayler, R. W. (2003). Vector Symbolic Architectures Answer Jackendoff's Challenges for Cognitive Neuroscience. In *Joint International Conference on Cognitive Science (ICCS/ASCS)*.
+
+Gehr, T., Mirman, M., Drachsler-Cohen, D., Tsankov, P., Chaudhuri, S. and Vechev, M. (2018). AI2: Safety and Robustness Certification of Neural Networks with Abstract Interpretation. In *IEEE Symposium on Security and Privacy (S&P)*.
+
+Groth, J. (2016). On the Size of Pairing-Based Non-interactive Arguments. In *Advances in Cryptology (EUROCRYPT)*.
+
+Kanerva, P. (2009). Hyperdimensional Computing: An Introduction to Computing in Distributed Representation with High-Dimensional Random Vectors. *Cognitive Computation*, 1(2).
+
+Katz, G., Barrett, C., Dill, D. L., Julian, K. and Kochenderfer, M. J. (2017). Reluplex: An Efficient SMT Solver for Verifying Deep Neural Networks. In *Computer Aided Verification (CAV)*.
+
+Katz, G., Huang, D. A., Ibeling, D., Julian, K., Lazarus, C., Lim, R., Shah, P., Thakoor, S., Wu, H., Zeljić, A., Dill, D. L., Kochenderfer, M. J. and Barrett, C. (2019). The Marabou Framework for Verification and Analysis of Deep Neural Networks. In *Computer Aided Verification (CAV)*.
+
+Kleyko, D., Rachkovskij, D. A., Osipov, E. and Rahimi, A. (2023). A Survey on Hyperdimensional Computing aka Vector Symbolic Architectures. *ACM Computing Surveys*, 55(6).
+
+Leroy, X. (2009). Formal Verification of a Realistic Compiler. *Communications of the ACM*, 52(7).
+
+Parno, B., Howell, J., Gentry, C. and Raykova, M. (2013). Pinocchio: Nearly Practical Verifiable Computation. In *IEEE Symposium on Security and Privacy (S&P)*.
+
+Plate, T. A. (1995). Holographic Reduced Representations. *IEEE Transactions on Neural Networks*, 6(3).
+
+RTCA (2011). *DO-178C: Software Considerations in Airborne Systems and Equipment Certification.*
+
+Taha, W. and Sheard, T. (2000). MetaML and Multi-stage Programming with Explicit Annotations. *Theoretical Computer Science*, 248(1–2).
+
+Wang, S., Zhang, H., Xu, K., Lin, X., Jana, S., Hsieh, C.-J. and Kolter, J. Z. (2021). Beta-CROWN: Efficient Bound Propagation with Per-neuron Split Constraints for Neural Network Robustness Verification. In *Advances in Neural Information Processing Systems (NeurIPS)*.
 
 ---
 
