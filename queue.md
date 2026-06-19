@@ -105,9 +105,13 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   Erlang list comprehensions; multi-arg non-tail multibase (stays on WASM fallback).
 - [ ] **Clojure** — map/vector literal in a TAIL-recursive base DONE 2026-06-18 (`_hoist_maps`
   threaded into `_try_lower_tail_recursive` + `Axon` return type; fixtures `map_in_recursion` RUN
-  == 3, `vec_in_recursion` RUN == 60). Residual (orthogonal, pre-existing): `.item()` on a
-  call-result blocks inline `(:k (f …))` reads — finding `2026-06-18-axon-item-on-call-result-...`.
-  (Symbol/keyword-as-value rep is §0.5.)
+  == 3, `vec_in_recursion` RUN == 60). The `.item()`-on-call-result residual (inline `(:k (f …))`
+  reads) is RESOLVED 2026-06-19 by the COMPILER fix (`_translate_call` routes `.item(key)` on a
+  non-identifier receiver to `axon_item`; finding `2026-06-18-axon-item-on-call-result-...` marked
+  RESOLVED; `tests/test_axon_item_call_result.py`). A Clojure end-to-end `(:k (f …))` fixture is
+  deferred — the local Clojure grammar DLL won't build (MSVC error) on this clone, so add+verify it
+  on a clone where the grammar builds (CI exercises the path via the repo compiler). (Symbol/keyword-
+  as-value rep is §0.5.)
 - [ ] **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload is DONE 2026-06-19 — all
   five gaps from finding `2026-06-19-ocaml-option-payload-five-gaps.md` (now marked RESOLVED) fixed +
   substrate-verified; scalar AND aggregate payload, annotated or not, works end-to-end (fixtures

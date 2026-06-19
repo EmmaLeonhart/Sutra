@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-19: compiler — `.item(key)` on a call-result receiver routes to `axon_item`
+
+General compiler fix for finding `2026-06-18-axon-item-on-call-result-not-supported.md` (the Clojure
+`(:k (f args))` residual; same class as the OCaml aggregate-payload descent). `_translate_call` routed
+`a.item(k)`/`a.add(k,v)` to the runtime `axon_item`/`axon_add` only when the receiver was an
+axon-declared IDENTIFIER. A call-result receiver (`mk().item("x")`) or a nested read
+(`box.item("_val").item("_0")`) fell through to a literal `.item(key)` that dispatches as PyTorch's
+tensor `.item()` (no args) and crashes. Added a branch in `codegen_base._translate_call`: `.item(<key>)`
+on a NON-identifier receiver routes to `_VSA.axon_item(<obj>, <key>)`. `.item(<key>)` is unambiguously
+the axon read (a tensor `.item()` takes no args), so this is safe; and it is zero-regression by
+construction — the only programs affected previously crashed at runtime, so no passing program depends
+on the old behavior.
+
+Verified against THIS clone's compiler (the editable `sutra_compiler` install points at a different
+clone — 4 clones on the machine, intentional): `realvec(mk().item("x"))` RUN == 1.0 and the nested
+`box.item("_val").item("_0")` RUN == 5.0 (`tests/test_axon_item_call_result.py`, 2 tests). Unblocks the
+Clojure keyword accessor across all frontends; CI validates the full integration. (A Clojure end-to-end
+fixture is deferred — the local Clojure grammar DLL won't build on this clone.)
+
 ## 2026-06-19: sutra-from-ocaml — option payload gap 3 (unit-arg) — FINDING CLOSED (5/5 gaps)
 
 Last of the five OCaml option-payload gaps. A unit-argument call `mk ()` lowered the `()` argument via
