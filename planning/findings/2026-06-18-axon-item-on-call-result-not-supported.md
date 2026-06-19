@@ -1,7 +1,13 @@
 # `.item("key")` works on an Axon variable, not on a call-result expression
 
 **Date:** 2026-06-18
-**Status:** measured limitation; orthogonal to the Clojure recursion-axon fix shipped the same day
+**Status:** RESOLVED 2026-06-19 (compiler fix, option 1 below) — `_translate_call` now routes
+`.item(<key>)` on a NON-identifier receiver (a call result, a nested `.item` read) to the runtime
+`axon_item`, instead of falling through to a literal `.item()` that dispatches as the tensor method
+and crashes. Verified at the compiler level: `realvec(mk().item("x"))` RUN == 1.0 and the nested
+`box.item("_val").item("_0")` RUN == 5.0 (`tests/test_axon_item_call_result.py`). This unblocks the
+Clojure keyword-accessor `(:k (f args))` path and matches the OCaml aggregate-payload descent. The
+analysis below is kept as the historical record.
 
 ## What
 
