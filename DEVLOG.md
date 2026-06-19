@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-19: sutra-from-ocaml — option payload gap 1 (unannotated scrutinee param → Axon)
+
+Second slice of the OCaml option/variant-payload session. An option/variant match-scrutinee param
+without an explicit annotation (`let f s = match s with Some v -> … | None -> …`) was typed `int`
+(the default), so the match read `s.item("_tag")` failed — only an explicit `(s : int option)`
+annotation reached `Axon` (via `_map_type`). Added `_axon_scrutinee_param_names(body, source)`, which
+walks the function body for `match_expression` nodes that are option or variant matches and collects
+the bare-identifier scrutinee names; threaded that set into `_lower_param` (new `axon_params` arg) so
+an unannotated param of such a name is typed `Axon`. `match f x with …` (non-identifier scrutinee) is
+left alone.
+
+Fixtures: `option_some_unannotated` (`f s = match s with Some v -> v+1 | None -> 0`; `f (Some 5)`) RUN
+== **6.0**, and `variant_arg_unannotated` (`eval e = match e with Lit n -> n | Neg n -> 0-n`;
+`eval (Lit 7) + eval (Neg 5)`) RUN == **2.0** — the inference covers both option and user-variant
+scrutinees. Full OCaml suite 149/149 green. With gap 2 (construction) + gap 1 (param typing), the
+SCALAR option payload now works end-to-end with or without an annotation. REMAINING: gap 4 (match-side
+aggregate `_val` descent for `Some {record}`), gap 3 (`mk ()` unit-arg).
+
 ## 2026-06-19: sutra-from-ocaml — option payload gap 2 (inline `Some` in arg position)
 
 First slice of the OCaml option/variant-payload deliberate session (finding

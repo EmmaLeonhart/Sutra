@@ -114,11 +114,13 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   + `_aggregate_arg_emitter` branch (the emitter also descends an aggregate payload, so the
   construction side of gap 4 is covered); `_lower_option_body` refactored to reuse it (behavior-
   preserving). **gap 5 DONE** — it was only a stale `.real()` docstring (no live readout), corrected.
-  Fixture `option_some_inline` (`f (Some 5)`, annotated param) RUN == 6; full OCaml suite 147/147.
-  REMAINING: gap 1 (UNANNOTATED option/variant match-scrutinee param still typed `int` not `Axon` —
-  `_lower_param` line ~1112 needs body-scrutinee inference threaded in); gap 4 MATCH-side aggregate
-  descent (`_lower_option_match_body` reads `_oval` as a scalar; a `Some {record}` arm must descend
-  the nested axon); gap 3 (`mk ()` unit-arg → `UNSUPPORTED-EXPR: unit`). Plus: scalable
+  **gap 1 DONE** — `_axon_scrutinee_param_names` infers that an UNANNOTATED param used as an
+  option/variant match scrutinee carries a tagged axon and types it `Axon` (threaded into
+  `_lower_param` via `axon_params`); fixtures `option_some_unannotated` RUN == 6 and
+  `variant_arg_unannotated` RUN == 2 (covers both option and variant). Full OCaml suite 149/149.
+  REMAINING: gap 4 MATCH-side aggregate descent (`_lower_option_match_body` reads `_oval` as a
+  scalar; a `Some {record}` arm must descend the nested axon — construction side already works);
+  gap 3 (`mk ()` unit-arg → `UNSUPPORTED-EXPR: unit`). Plus: scalable
   RAM device for the 10MB linear memory (`Bytes.make` / loop-carried arrays use the global RAM list,
   which doesn't scale); non-zero `Array.make` fill (slots start at 0 — documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing DONE 2026-06-19 — a member
