@@ -28,22 +28,29 @@ migrate `todo.md` → `queue.md` → deleted on completion.
 ## 1. CURRENT PRIORITIES (Emma 2026-06-19) — do these next, in order
 
 The bounded transpiler long-tail + the repo doc audit + the Q1–Q5 quantum exploration are all
-DONE this session (see `DEVLOG.md`). Emma's next two, in order:
+DONE this session (see `DEVLOG.md`). The FV paper review and the substrate-audit PASS are also done
+2026-06-19; the remaining substrate items are below.
 
-- [ ] **FV paper review — toward arXiv.** Emma: the formal-verification paper (`paper/formal-
-  verification/paper.md`) is "nearly good enough to publish on arXiv." Do another review pass:
-  read it against ground truth (`planning/sutra-spec/formal-verification.md`, the FV checkers/tests
-  under `sdk/sutra-compiler/`, `fv-lean/`), check every claimed obligation/number is measured and
-  current, apply the integrity + writing discipline (measured numbers only, no overclaiming, no
-  "honest"-style buzzwords, no em-dashes), fix what's stale, and report arXiv-readiness. Editing
-  `paper/formal-verification/paper.md` auto-submits via `fv-paper-ci.yml` (clawRxiv) — that is the
-  designed behavior.
-- [ ] **Comprehensive substrate audit (after the FV review).** A full audit of substrate purity /
-  representation. Includes the **direct-RAM rework**: the RAM/linear-memory device must be a DIRECT
-  memory object (flat tensor / WASM linear memory), NOT a Python `list`/`dict` (finding
-  `2026-06-19-ram-device-scaling-limit.md`). Reconcile with the orchestrator contract (iso5 /
-  ntm_ram), the attention-on-RAM VRAM-vector path, and the WASM linear-memory model. Substrate-to-
-  substrate verified on every path. Plan into concrete steps when reached.
+**FV paper review — DONE 2026-06-19** (References section added, a non-measured bigint example fixed,
+all 179 em-dashes removed, FV tests 30/30). Pending Emma: spot-check the compiled References details +
+read the em-dash diff. arXiv-ready in review.
+
+**Comprehensive substrate audit PASS — DONE 2026-06-19** (all four lenses; see `Audit.md`
+§"Comprehensive substrate audit — 2026-06-19" + `DEVLOG.md`). The differentiable hot path is clean;
+REAL LEAK #11 (`js_strict_eq` host-arithmetic) fixed + substrate-verified. Concrete follow-ups it
+surfaced, in priority order:
+
+- [ ] **Direct-RAM rework** (the big one; needs Emma's green light — safety-critical shared device).
+  The RAM/linear-memory device must be a DIRECT memory object (flat tensor / WASM linear memory), NOT
+  a Python `list`/`dict` (finding `2026-06-19-ram-device-scaling-limit.md`). Reconcile with the
+  orchestrator contract (iso5 / ntm_ram attach `self.ram` as a list), the attention-on-RAM
+  VRAM-vector path, and the WASM linear-memory model. Substrate-to-substrate verified on every path.
+- [ ] **Dimension auto-minimize.** 18 zero-`basis_vector` `examples/` run at 768/868 (silent cost).
+  Make codegen auto-minimize semantic_dim when no `basis_vector`/`embed`/axon-string-key is present,
+  or add per-file dim directives. Bounded, verifiable.
+- [ ] **calc operator-select gap table.** `demos/calc/switch.su` ships no
+  `gap = min(selected) − max(wrong)` table; add a `measure_select_gap` sweep (operator codepoints ×
+  targets), mirroring `experiments/iso5_substrate_dispatch/measure_dispatch_gap.py`. Bounded.
 
 ---
 

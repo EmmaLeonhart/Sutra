@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-19: comprehensive substrate audit + REAL LEAK #11 fix (js_strict_eq)
+
+Emma-scoped full substrate-purity audit across all four lenses (dispatch host-readout, state-locus,
+dimension, signal-separation) via three fan-out auditors over `codegen_pytorch.py`, the frontends,
+`examples/`, `demos/`, `experiments/`. The differentiable hot path is clean: the FV §4.5 `eq()` fix
+holds and no sibling autograd-sever survived in `eq_synthetic`/`defuzzify_trit`/`gt`/`similarity`/
+`dot`/the loop.
+
+Fixed REAL LEAK #11: `js_strict_eq` (the JS `===` surface) computed `diff_norm =
+float(torch.linalg.norm(av-bv))` then host `math.tanh` then `make_truth(host_scalar)` — the same
+autograd-severing host-arithmetic shape as the fixed #9, shielded by the JS-interop carve-out but a
+truth-axis write done on the host. Fixed to keep `diff_norm`/`tanh` as 0-d tensors and scatter into
+`AXIS_TRUTH` directly (the eq/eq_synthetic shape). Verified on the substrate: `5===5`→+0.9999,
+`5===6`→−1.0, output on-graph (`grad_fn` present), gradient flows in the non-saturated region (mag
+0.99); 5/5 JS-interop tests green.
+
+The audit also catalogued (in `Audit.md`): the RAM list as the one state-locus container leak (known,
+direct-RAM rework); 18 zero-`basis_vector` examples silently running at dim 768/868 (dimension
+auto-minimize follow-up); the calc operator-select missing a signal-separation gap table; numpy clean
+(deprecated backend base-class-only, emitted-runtime numpy is cached compile-time Haar precompute).
+Concrete follow-ups queued under §1.
+
 ## 2026-06-19: Q5 — VQE-to-Sutra (variational circuit trained on the complex substrate)
 
 The genuinely novel quantum test (queue §9 Q5), greenlit by Emma. `experiments/quantum/

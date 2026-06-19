@@ -65,6 +65,60 @@ the sufficient set. Future entries adding to this file should reference
 which of the four (dispatch + the three measurement audits) a given
 breach falls under.
 
+## Comprehensive substrate audit — 2026-06-19 (Emma-scoped, all four lenses)
+
+A full pass across the four lenses (dispatch host-readout, state-locus,
+dimension, signal-separation), three fan-out auditors over
+`codegen_pytorch.py`, the frontends, `examples/`, `demos/`, `experiments/`.
+Result: the substrate is clean on the differentiable hot path; the FV §4.5
+`eq()` fix holds and no sibling autograd-sever survived in `eq_synthetic`,
+`defuzzify_trit`, `gt`, `similarity`, `dot`, or the loop. Findings:
+
+- **REAL LEAK #11 (dispatch) — `js_strict_eq` host-arithmetic — ✅ FIXED
+  2026-06-19.** Was `diff_norm = float(_torch.linalg.norm(av-bv))` then host
+  `math.tanh` then `make_truth(host_scalar)` — same shape as #9 (host readout
+  severs autograd, host arithmetic, host scalar written back), shielded by the
+  JS-interop carve-out but a truth-axis WRITE done on the host. Fixed: keep
+  `diff_norm`/`tanh` as 0-d tensors and scatter into `AXIS_TRUTH` directly
+  (the eq/eq_synthetic shape). Verified on the substrate: `5===5`→+0.9999,
+  `5===6`→−1.0, output on-graph (`grad_fn` present), gradient flows in the
+  non-saturated region (mag 0.99); 5/5 JS-interop tests green.
+- **State-locus — only the RAM list.** `self.ram` (`codegen_pytorch.py`
+  2041/2049/2051/2014) is the one Python-container runtime-state violation, a
+  list of per-cell d-vectors mutated by `ramWrite`. KNOWN: finding
+  `2026-06-19-ram-device-scaling-limit.md`; needs the DIRECT-memory (tensor /
+  WASM) rework, not a Python container (Emma 2026-06-19). No second container
+  leak; no fake-RNN / host-loop-extraction state-locus leaks — every
+  "recurrent"/RNN claim in demos/experiments carries its state as a substrate
+  tensor (recur slot / loop slot), host reads only at the display/IO boundary.
+- **Dimension — silent oversizing in `examples/`.** 18 zero-`basis_vector`
+  example `.su` run at semantic_dim 768 (+100 → 868) because
+  `examples/atman.toml` sets `dim = 768` directory-wide and codegen does NOT
+  auto-minimize when no `basis_vector`/`embed`/axon-string-key is present
+  (root: `codegen.py` default 768 on `runtime_dim=None`). The CLI (default 50)
+  and `compile_su` (required kwarg) already avoid it; `translate_module` does
+  not. Fix direction: codegen auto-minimize, or per-file dim directives. Small
+  absolute cost (tiny one-shot demos) but the exact pattern CLAUDE.md flags.
+- **Signal-separation — calc operator-select lacks a gap table.**
+  `demos/calc/switch.su` decides which of four ops fires via `select`;
+  `test_calc.py` checks only end-to-end results, no
+  `gap = min(selected) − max(wrong)` table. iso5 dispatch
+  (`measure_dispatch_gap.py`) and font (lit/unlit, cycle) DO ship gap tables.
+  Fix direction: add a `measure_select_gap` sweep (operator codepoints ×
+  targets).
+- **Numpy — clean.** The deprecated `codegen.py` numpy backend is base-class-
+  only, never a runtime path; emitted-runtime numpy (`_rotation_for`,
+  `_axon_permutation_for`, `make_random_rotation`) is cached compile-time
+  Haar/permutation precompute, the sanctioned role. Host-side VSA-theory
+  experiments are external analysis, honestly scoped.
+- **NEEDS-JUDGMENT (left as documented boundaries):** `axon_add`
+  `make_real(float(value))` fires only for a host int/float literal filler
+  (entry lift, defensible); `js_str_cmp` host lexicographic compare and the
+  promise inspectors (`isPending`/…) are off the differentiable path / JS
+  carve-out. Stale Audit refs corrected: `similarity`/`dot` no longer
+  `return float(...)` (0-d tensors now); the `_js_coerce_real` raise neutralizes
+  the `js_add`/`js_loose_eq`/`js_truthy` float-readouts (dead paths).
+
 ---
 
 ## REAL LEAK — host scalar arithmetic / control flow inside a runtime op
