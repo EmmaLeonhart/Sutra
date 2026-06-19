@@ -203,15 +203,6 @@ Work top-to-bottom; do not reorder.
   Stage-3 / container-method-dispatch / multi-statement try-catch; TS transpiler closeout; website
   visual remake; Yantra migration tail; NTM/attention-on-RAM breadth backlog.
 
-## Domain move — sutra.noldor.tech → sutra.topazcomputing.com (low priority; do LAST, after active work)
-
-- [ ] Change Sutra's published-site domain from `sutra.noldor.tech` to `sutra.topazcomputing.com`:
-  update the Pages custom-domain `CNAME` in the built/published site and replace `sutra.noldor.tech`
-  references across the repo (`docs/`, `README.md`, `scripts/build_site.py`, paper framing, scripts).
-  The old domain keeps working via the `EmmaLeonhart/sutra.noldor.tech-redirect` repo (created
-  2026-06-18). DNS is Emma's. Queued at the END so it does NOT disrupt active transpiler/substrate
-  work; part of the noldor.tech → topazcomputing.com domain migration (2026-06-18).
-
 ## Papers — add a Background section at the beginning (Emma 2026-06-18)
 
 - [ ] Add a **Background** section to the BEGINNING of the papers (lead-in before the main body):

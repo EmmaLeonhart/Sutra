@@ -11723,3 +11723,15 @@ earlier F# const-string fix made string consts lower. So F# string match works w
 (`match n with 0 -> 10 | 1 -> 20 | _ -> 30`) mis-parses at the tree-sitter-fsharp grammar level
 (the `| … -> …` slurps into the first rule's body as infix `->`) — use the multi-line `|`-prefixed
 form. String match-dispatch now spans all ML frontends: OCaml/Scala/F#/Haskell + Clojure/Elixir.
+
+## 2026-06-18 — GitHub Pages domain → sutra.topazcomputing.com (Emma, pulled forward)
+
+Changed Sutra's published-site custom domain from sutra.noldor.tech to sutra.topazcomputing.com
+(Emma asked to do it immediately, ahead of its end-of-queue slot). `web/CNAME` (the file
+build_site.py copies into the Pages deploy artifact, which sets the custom domain) now reads
+`sutra.topazcomputing.com`. Swept every other `sutra.noldor.tech` reference → topazcomputing across
+the site generator (og:url + footer), workflows (pages.yml, paper-pdf.yml), READMEs, pyproject
+homepages, AGENTS.md, CLAUDE.md, web/identity.css. Removed the domain-move item from queue.md.
+Pushing triggers pages.yml → rebuild → deploy with the new CNAME. DNS (sutra.topazcomputing.com →
+GitHub Pages) + GitHub domain verification are Emma's side; old domain redirects via the
+sutra.noldor.tech-redirect repo.

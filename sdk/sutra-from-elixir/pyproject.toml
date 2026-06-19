@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://sutra.noldor.tech"
+Homepage = "https://sutra.topazcomputing.com"
 Repository = "https://github.com/EmmaLeonhart/Sutra"
 
 [tool.setuptools.packages.find]

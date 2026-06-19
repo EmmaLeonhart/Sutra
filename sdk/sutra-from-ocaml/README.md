@@ -1,7 +1,7 @@
 # sutra-from-ocaml
 
 Transpile a functional core of [OCaml](https://ocaml.org) into
-[Sutra](https://sutra.noldor.tech) (`.su`) source.
+[Sutra](https://sutra.topazcomputing.com) (`.su`) source.
 
 ## Why OCaml first
 
