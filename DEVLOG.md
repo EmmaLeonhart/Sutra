@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-19: sutra-from-ocaml — option payload gap 4 (aggregate payload match descent)
+
+Final substantive slice of the OCaml option-payload session. The CONSTRUCTION side of an aggregate
+payload already worked (gap 2's `_emit_option_construction` descends a record/tuple into a nested
+`_val` axon — `Some (5,8)` builds `_val` = `{_0:5,_1:8}`), but the MATCH side did not:
+`_lower_option_match_body` read `_oval` as a single scalar, so a `Some (a,b) -> a+b` arm emitted
+unbound `a`/`b`. Added `_some_aggregate_fields(cases, source)` (detects a tuple/record `Some` pattern
+and returns its [(field, binder)] list — tuple components map to positional `_0`,`_1`, record fields
+keep their names) and taught the match body to descend: bind the nested payload to an `Axon _oval_ax`
+local, then read each field `int _ofi = realvec(_oval_ax.item(field))` and substitute the binders.
+
+Measured, not assumed: a chained `scrut.item("_val").item(field)` FAILS at runtime
+(`TensorBase.item() takes no arguments` — the inner `.item` returns a flat tensor, not a navigable
+axon, the same class as the `.item()`-on-call-result limit), so the intermediate `Axon _oval_ax` local
+is required. Fixtures `option_some_tuple` (`f (Some (5,8))` -> `a+b`) RUN == **13.0** and
+`option_some_record` (`f (Some {x=5;y=8})` -> `x+y`) RUN == **13.0**. Full OCaml suite 151/151 green.
+Also removed the last stale `.real()` mention from the match-body docstring.
+
+With gaps 1, 2, 4, 5 done, the OCaml option/variant payload (scalar AND aggregate, annotated or not)
+works end-to-end. Only gap 3 (`mk ()` unit-arg) remains — a small isolated gap. Gap-1/gap-2 commits
+`272d483c`/`3f9ea2c0` are CI-green.
+
 ## 2026-06-19: sutra-from-ocaml — option payload gap 1 (unannotated scrutinee param → Axon)
 
 Second slice of the OCaml option/variant-payload session. An option/variant match-scrutinee param
