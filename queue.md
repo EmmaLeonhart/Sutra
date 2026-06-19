@@ -182,20 +182,14 @@ Exploratory, not a priority. Q1–Q3 were done early by misreading the placement
 Emma's braindump (quantum ↔ FP, emulators worth trying, the Sutra differentiable-circuit
 angle) is organized here as executable tasks; the conceptual content + measured results live
 in `planning/exploratory/2026-06-18-quantum-computing-and-sutra.md` and runnable code in
-`experiments/quantum/`. Q1 (emulator sweep) and Q2 (PennyLane differentiable training) are
-DONE 2026-06-18 (Qiskit/Cirq/PennyLane all installed + verified on the substrate; see DEVLOG).
-Remaining:
-
-- [ ] **Q4 — extend the writeup** as Q5 lands (keep it grounded in measured runs, not
-  speculation; mirror the §"What we are not claiming" discipline). (Q3 done 2026-06-18: Q# Bell +
-  GHZ run via the `qsharp` pkg; Silq is not pip-accessible — documented blocker.)
-- [ ] **Q5 — VQE-to-Sutra (the genuinely novel test).** Express + train a 1–2-parameter
-  variational circuit on Sutra's OWN complex substrate (eigenrotation + `AXIS_REAL`/`AXIS_IMAG`)
-  and compare the trained parameter / expectation to PennyLane's `default.qubit`. This is the
-  real test of the "quantum circuit is a constrained differentiable graph = Sutra forward pass"
-  parallel — only claim the parallel once this runs. NOTE the scope limit: Sutra ops are NOT
-  unitary (bundling is lossy), so this is "can Sutra express + train a small VQE-shaped graph,"
-  not "Sutra is a quantum computer."
+`experiments/quantum/`. All of Q1–Q5 are DONE (Q1 emulator sweep, Q2 PennyLane differentiable training, Q3 Q# Bell/GHZ,
+Q4 writeup, all 2026-06-18; **Q5 VQE-to-Sutra DONE 2026-06-19**). Q5
+(`experiments/quantum/vqe_to_sutra.py`) — the genuinely novel test — expressed + trained the
+`RY(θ)|0>`/`<Z>` circuit on Sutra's OWN complex substrate (amplitudes on `AXIS_REAL`/`AXIS_IMAG`;
+`RY` = the eigenrotation `cexp(i·θ/2)`; `<Z> = Re(z²)` via `complex_mul`), reaching PennyLane's
+fixed point (θ→π, `<Z>`→−1; value/gradient match the closed form to ~1e-4 / ~1e-6). Scope held:
+Sutra can express+train a VQE-shaped graph — NOT a claim it is a quantum computer or that its ops
+are unitary; single-qubit toy only. Nothing actionable remains in this section.
 
 ---
 

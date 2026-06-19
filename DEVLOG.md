@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-06-19: Q5 — VQE-to-Sutra (variational circuit trained on the complex substrate)
+
+The genuinely novel quantum test (queue §9 Q5), greenlit by Emma. `experiments/quantum/
+vqe_to_sutra.py` expresses + trains the single-qubit `RY(θ)|0>`/`<Z>` variational circuit on
+Sutra's OWN complex substrate, not on PennyLane's `default.qubit`. Mapping: pack the amplitudes
+`(α, β)` as one complex number `z = α + iβ` on `AXIS_REAL`/`AXIS_IMAG`; `|0> = 1+0i`; `RY(θ)` is
+the substrate EIGENROTATION `cexp(i·θ/2)` acting on `z₀` (so `z = cos(θ/2) + i·sin(θ/2)`); and the
+observable `<Z> = |α|² − |β|² = Re(z²)` via `complex_mul` + `_re`. Every step is a real `_TorchVSA`
+op (the eigenrotation keystone built from the `_cos0`/`_sin0` trig leaves, the d-dim complex
+product, the real-axis dot). `θ` is a torch parameter; the graph is differentiable, trained by
+gradient descent with the same schedule as the PennyLane run (start 0.1, 40 steps, stepsize 0.4).
+
+Measured on the substrate: `<Z>(0.5) = 0.877473` (cos 0.5 = 0.877583, ~1e-4); `d<Z>/dθ(0.5) =
+−0.479424` (−sin 0.5 = −0.479426, ~1e-6 — the eigenrotation gradient flows essentially exactly
+through the trig leaves); trained `θ → 3.1411` (π), `<Z> → −0.999895` (−1) — PennyLane's fixed
+point. So Sutra's substrate can express AND train a VQE-shaped differentiable graph to the same
+trained parameter and expectation as a real quantum emulator — the "quantum circuit = constrained
+differentiable graph = Sutra forward pass" parallel, measured rather than hand-waved.
+
+Scope held (per the exploratory doc's discipline): NOT a claim that Sutra is a quantum computer or
+that its ops are unitary (bundling is lossy superposition, not a reversible unitary); only the
+single-qubit, non-entangling toy. Updated the exploratory writeup (Q4), the quantum README, and
+queue §9 (Q1–Q5 now all done).
+
 ## 2026-06-19: compiler — `.item(key)` on a call-result receiver routes to `axon_item`
 
 General compiler fix for finding `2026-06-18-axon-item-on-call-result-not-supported.md` (the Clojure
