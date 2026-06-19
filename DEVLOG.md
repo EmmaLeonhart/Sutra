@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-19: sutra-from-erlang — >2-clause NON-TAIL multibase recursion (CPS fold)
+
+Ported the same-day Elixir non-tail multibase CPS fold to the Erlang frontend (the two share the
+recursion-transform shape). `_try_lower_multibase_multiclause_recursion` now handles an arity-1
+NON-tail recursive clause (`f(0)->1; f(1)->5; f(N)->N*f(N-1)`): seed `_acc` to the OP identity,
+fold the leaf each iteration in a `while_loop` with the compound `(N!=0)&&(N!=1)` halt, then combine
+`_acc OP base_blend` on the FINAL loop state. Extracted the foldable-step detector to a module-level
+`_foldable_step` shared with the single-base `_try_lower_foldable_nontail`.
+
+Fixture `multibase_nontail_fact` RUN on the substrate == **600.0** (5·4·3·2·f(1)=120·5). Full Erlang
+suite 48/48 green (88s). Note: the Erlang tree-sitter grammar DLL was absent locally — built it via
+`build_grammar.py` (MSVC `cl.exe`) before the run; the DLL is gitignored (`_grammar/`), so only the
+lowering + fixture are committed. The Elixir companion commit `0bf788dd` is CI-verified green.
+
 ## 2026-06-19: sutra-from-elixir — >2-clause NON-TAIL multibase recursion (CPS fold)
 
 Closed the Elixir half of the §4 queue item ">2-clause NON-tail multibase (CPS fold)".
