@@ -172,6 +172,7 @@ _RUNNABLE_FIXTURES = {
     "let_in_expr": 20.0,  # (let x = 5 in x + x) + 10  (let..in in expression position via substitution)
     "modulo": 2.0,  # 17 mod 5  (OCaml mod -> Sutra %)
     "string_concat": 100.0,  # cat a b = a ^ b; classify s = if s = "foobar" then 100 else 200; classify (cat "foo" "bar")  (OCaml `^` string concat -> Sutra `+` -> substrate string concat; eq_synthetic match)
+    "string_match": 60.0,  # classify s = match s with "foo"->10 | "bar"->20 | _->30; classify "foo"+"bar"+"baz" = 10+20+30  (string-LITERAL match pattern -> scrut == "lit" nested blend; eq_synthetic dispatch)
     "tuple_local": 16.0,  # let p = pair 7 9 in fst p + snd p  (Axon-returning call -> local typed Axon)
     "array_int_dict": 72.0,  # ordinary straight-line OCaml arrays -> per-instance int-dict; f 3 42 + h 10 20 = 42 + 30
     "bitwise": 1043.0,  # (255 land 12)+((3 lsl 8) lor 7)+(1024 lsr 2)  (land/lor->Bits, lsl/lsr->arith)

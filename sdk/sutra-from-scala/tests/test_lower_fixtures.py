@@ -44,6 +44,7 @@ _RUNNABLE = {
     "object_dispatch": 26.0,  # object Calc { add, twice }; Calc.add(7,9)=16 + Calc.twice(5)=10
     "string_eq": 30.0,  # classify(s) = if (s == "foo") 10 else 20; classify("foo")+classify("bar") = 10+20  (Scala string LITERAL -> Sutra string; == routes to eq_synthetic via the String type)
     "string_concat": 100.0,  # cat(a,b)=a+b; f(s)=if (s=="foobar") 100 else 200; f(cat("foo","bar"))  (String `+` -> substrate string concat; result eq_synthetic-matches "foobar")
+    "string_match": 60.0,  # classify(s) = s match { case "foo" => 10; case "bar" => 20; case _ => 30 }; classify("foo")+("bar")+("baz") = 10+20+30  (string-LITERAL case pattern -> scrut == "lit" nested blend, eq_synthetic dispatch)
 }
 
 

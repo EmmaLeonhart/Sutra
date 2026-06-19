@@ -1043,6 +1043,12 @@ def _lower_match(node, source: bytes) -> str:
         res_src = _lower_expression(res, source)
         if pat.type == "number":
             parsed.append(("literal", f"{scrut_src} == {_node_text(pat, source)}", res_src))
+        elif pat.type == "string":
+            # A string-literal pattern `| "foo" -> r`: dispatch like a number literal
+            # via `scrut == "foo"`. Equality on a String-typed scrutinee routes to
+            # eq_synthetic (Euclidean on the codepoint array), which separates strings
+            # cleanly — `_node_text` keeps the quotes (the Sutra string-literal form).
+            parsed.append(("literal", f'{scrut_src} == {_node_text(pat, source)}', res_src))
         elif pat.type == "value_pattern" and _node_text(pat, source) == "_":
             parsed.append(("wild", None, res_src))
         elif pat.type == "constructor_path":
