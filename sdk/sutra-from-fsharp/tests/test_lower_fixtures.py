@@ -59,6 +59,7 @@ _RUNNABLE = {
     "record_update_let": 17.0,  # bump () = let b={x=1;y=8} in let q={b with x=9} in q.x+q.y  (record-update over a LET-BOUND source -> type inferred from b's field set)
     "string_eq": 30.0,  # classify (s) = if s = "foo" then 10 else 20; (classify "foo")+(classify "bar") = 10+20  (F# string LITERAL -> Sutra string; = routes to eq_synthetic via the String type)
     "string_concat": 100.0,  # cat a b = a + b; f s = if s = "foobar" then 100 else 200; f (cat "foo" "bar")  (String `+` -> substrate string concat; result eq_synthetic-matches "foobar")
+    "string_match": 60.0,  # classify s = match s with | "foo" -> 10 | "bar" -> 20 | _ -> 30; classify "foo"+"bar"+"baz" = 60  (multi-line F# match with string `const` patterns -> scrut == "lit" blend; one-line form mis-parses at the grammar level)
 }
 
 

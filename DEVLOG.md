@@ -11713,3 +11713,13 @@ default dim 50 (codepoints are exact, not bundled). Fixtures `string_case` (all 
 `classify "foo"+"bar"+"baz"` = 10+20+30 = 60, RUN on the substrate. String literal/equality/concat/
 match-dispatch now work across OCaml/TS/Scala/F#/Clojure/Elixir/Haskell. (Erlang strings are
 char-lists, a different model — deferred; F# match-with-string has a separate parser issue.)
+
+## 2026-06-18 — F# string match (already worked via the const-string fix; locked)
+
+F# `match s with | "foo" -> 10 | … | _ -> 30` already lowers correctly in the idiomatic
+multi-line form — the existing `match_expression` handler dispatches `const` patterns, and the
+earlier F# const-string fix made string consts lower. So F# string match works with no new code
+(verified RUN == 60). Locked with a `string_match` fixture. NOTE: the one-line form
+(`match n with 0 -> 10 | 1 -> 20 | _ -> 30`) mis-parses at the tree-sitter-fsharp grammar level
+(the `| … -> …` slurps into the first rule's body as infix `->`) — use the multi-line `|`-prefixed
+form. String match-dispatch now spans all ML frontends: OCaml/Scala/F#/Haskell + Clojure/Elixir.
