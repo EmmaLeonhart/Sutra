@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-06-20: FV — composed branch-range obligation: closed-form route walls at depth 2; composition discharges it
+
+Closed the todo.md branch-range remainder ("run the bounder on the *composed* polynomials of whole reduced
+programs; characterise the numerical cost"). Measured the direct closed-form route
+(`experiments/fv_composed_branch_range_cost.py`, timeout-guarded worker per case): the exact box bounder
+handles a single connective (`a&&b`, deg 4, 5 critical points, ~97 ms) but **walls at depth 2** —
+`(a&&b)||c` already times out >30 s, because the exact critical-point box search blows up the moment degree
+and arity climb past one connective. So "run the bounder on composed polynomials" was the wrong target: the
+whole-program obligation is discharged instead by **structural induction** (`range_sound_by_composition`,
+already built) — each connective maps [−1,+1]^k→[−1,+1] exactly (the per-connective lemma the closed-form
+bounder proves), so any composition is range-sound degree-insensitively at any depth. This matches the FV
+paper §3.2. New tests (`test_fv_poly_obligation_checker.py`): composition discharges depth-2..4 nestings;
+refuses non-connective operators (sound, not vacuous); agrees with the direct bound on the single-connective
+lemma (the only direct-tractable case). The measurement also caught a bug in my own first draft — I'd
+assumed `(a&&b)||c` was "tractable" for the direct bounder; the probe proved it isn't, so the anchor test
+now uses the single connective. FV paper strengthened with the measured wall (≈0.1 s single connective vs
+>30 s depth-2). todo.md updated; finding `planning/findings/2026-06-20-fv-composed-branch-range-cost.md`.
+
 ## 2026-06-20: MEASURED the fusion end-to-end — sequential ~3x faster; tick_all sharpened to ~0.4–0.6x
 
 Closed the loop on the fusion pass by measuring its effect (integrity rule: measure a perf claim, don't

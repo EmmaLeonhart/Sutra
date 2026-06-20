@@ -656,9 +656,20 @@ the lever that removes branch/path explosion.**
   bespoke checker — is built (`sutra_compiler/fv_poly_bound.py`,
   corners+edge+interior critical points, exact sympy) and proves `&&`/`||`/`!`
   have exact range [−1,+1], cross-checked against the compiled substrate
-  (`tests/test_fv_poly_obligation_checker.py`). **Remaining:** run the bounder
-  on the *composed* polynomials of whole reduced programs (degree grows with
-  branch-nesting; characterise the numerical cost there).
+  (`tests/test_fv_poly_obligation_checker.py`). **Composed/whole-program case —
+  RESOLVED 2026-06-20 (NOT by the direct bounder).** Measured the direct route's
+  cost (`experiments/fv_composed_branch_range_cost.py`): the closed-form bounder
+  handles a single connective (`a&&b`, deg 4, 5 crit-pts, ~97 ms) but **walls at
+  depth 2** — `(a&&b)||c` already TIMES OUT >30 s (the exact critical-point box
+  search blows up the moment degree/arity climb past one connective). So "run the
+  bounder on composed polynomials" was the wrong target. The whole-program
+  obligation is discharged instead by **structural induction**
+  (`range_sound_by_composition`): each connective maps [−1,+1]^k→[−1,+1] exactly
+  (the per-connective lemma above), so any composition is range-sound,
+  degree-insensitively, at any depth — already built and matching paper §3.2. New
+  tests pin it (composition discharges depth-2..4; refuses non-connective
+  operators; agrees with the direct bound where tractable). Finding:
+  `planning/findings/2026-06-20-fv-composed-branch-range-cost.md`.
 - **Termination obligation.** For a tail-recursive soft-halt loop, check the
   halt signal is monotone within bounded steps (§3.3) — far smaller than
   proving an arbitrary `while` terminates.
