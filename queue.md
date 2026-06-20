@@ -153,12 +153,9 @@ destructure sweep is complete for all 5 ML-family frontends; what's left:
   five gaps from finding `2026-06-19-ocaml-option-payload-five-gaps.md` (now marked RESOLVED) fixed +
   substrate-verified; scalar AND aggregate payload, annotated or not, works end-to-end (fixtures
   `option_some_{inline,unannotated,tuple,record,thunk}` + `variant_arg_unannotated`; OCaml suite
-  152/152). Remaining OCaml work is unrelated to payloads: **scalable RAM device for the 10MB linear
-  memory** — root-caused 2026-06-19 (finding `2026-06-19-ram-device-scaling-limit.md`). Emma's call
-  (2026-06-19): the RAM **cannot be a Python container** (the list-of-d-vectors AND a dict-of-floats
-  are both wrong) — it needs a **DIRECT memory device (flat tensor / WASM linear memory)**. This is
-  now part of the **comprehensive substrate audit** (see the top of this queue), NOT a frontend tick.
-  Plus non-zero `Array.make` fill (slots start at 0 — documented limit, not a bug).
+  152/152). The scalable RAM device for the 10MB linear memory is DONE 2026-06-19 (direct 1D tensor,
+  not Python; finding `2026-06-19-ram-device-scaling-limit.md` RESOLVED — see §1). The only OCaml
+  residual is non-zero `Array.make` fill (slots start at 0 — a documented limit, not a bug).
 - [ ] **TS follow-on (low priority):** per-variable interface typing DONE 2026-06-19 — a member
   access `x.field` now resolves the field type in the variable's OWN interface map
   (`interface_field_types` + `var_interfaces`), exact even when two interfaces share a field name
