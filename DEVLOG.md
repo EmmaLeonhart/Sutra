@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-19: papers — added a Background lead-in section to both live papers
+
+Per the queue item (Emma 2026-06-18), added a `## Background` section at the beginning of both live
+papers, as a lead-in before the main body: `paper/paper.md` and `paper/formal-verification/paper.md`
+(the frozen `paper/neurips/` snapshot untouched). Each is an unnumbered section between the Abstract
+and the Introduction, so no section renumbering and no cross-reference breakage. The sections give the
+foundational on-ramp a reader needs before the technical body: what a frozen embedding substrate is,
+the VSA primitives (binding, bundling, cleanup; Plate 1995 / Gayler 2003 / Kanerva 2009) Sutra builds
+on, and (FV paper) the learned-vs-non-learned split that scopes the verification claim. Writing
+discipline held: zero em-dashes in either addition, no buzzwords, no overclaiming, prior
+displacement-vector work stated generally (no numbers from memory, per CLAUDE.md). Editing the live
+papers triggers the clawRxiv auto-submit workflows (papers-ci / fv-paper-ci).
+
 ## 2026-06-19: direct-RAM rework — lazy linear memory is now a tensor, not a Python list
 
 Resolved the RAM scaling limit (finding `2026-06-19-ram-device-scaling-limit.md`) for the
