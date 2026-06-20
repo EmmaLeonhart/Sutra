@@ -59,6 +59,10 @@ _SUBST: dict[str, str] = {}
 # substitution-only, so the temps accumulate here and the equation emitter appends them
 # after the hoist prelude. Cleared per equation. (Clojure's `_DESTRUCTURE_PRELUDE` shape.)
 _DESTRUCTURE_PRELUDE: list = []
+# Monotonic id for naming the int-local prelude of a VARIANT `case` in EXPRESSION
+# position (`_c{uid}_vtag` / `_c{uid}_val{i}`), so multiple such cases in one expression
+# don't collide. Reset per equation (names only need to be unique within a function).
+_CASE_UID: list = [0]
 
 
 def _text(node, src: bytes) -> str:
@@ -294,17 +298,35 @@ def _hoist_constructions(node, src: bytes, indent: str = "    ") -> str:
     return prelude
 
 
-def _lower_case_stmts(node, src: bytes, indent: str = "    "):
+def _lower_case_stmts(node, src: bytes, indent: str = "    ", inline: bool = False):
     """`case scrut of (C x) -> r; …` → (binding statements, result expr), the Rust
     `_lower_match_stmts` shape. Binds `int _vtag = realvec(scrut.item("_tag"))` and
     `int _val{i} = realvec(scrut.item("_val{i}"))` to clean number-vector LOCALS,
     then a nested defuzz blend tests `_vtag == tag`; constructor-payload names
     substitute to the `_val{i}` locals. Last constructor arm is the base; a bare
-    `variable`/`_` pattern is also a base. Returns (stmts, expr) or (None, marker)."""
+    `variable`/`_` pattern is also a base. Returns (stmts, expr) or (None, marker).
+
+    `inline=True` (for a VARIANT `case` in EXPRESSION position, which can't emit its own
+    statements): the `int _vtag`/`int _val{i}` declarations are HOISTED to the equation's
+    `_DESTRUCTURE_PRELUDE` under unique `_c{uid}_…` names (so the `int` type-snap still
+    happens — an inline raw `realvec(scrut.item(…))` read is NOT equivalent, measured: it
+    skips the snap and the tag/payload compare wrong), and `stmts == ""` is returned. The
+    expression references those prelude locals. Nested constructor payloads still need
+    `Axon` statement temps, so they stay unsupported in inline mode (UNSUPPORTED marker)."""
     kids = node.named_children
     if not kids or kids[0].type != "variable":
         return None, "/* UNSUPPORTED-CASE: non-variable scrutinee (later item) */"
     scrut_src = _text(kids[0], src)
+    # In inline mode the int-locals get unique `_c{uid}_…` names (hoisted to the prelude);
+    # at the function tail they keep the plain `_vtag` / `_val{i}` names.
+    _pfx = ""
+    if inline:
+        _pfx = f"_c{_CASE_UID[0]}"
+        _CASE_UID[0] += 1
+    vtag_ref = f"{_pfx}_vtag" if inline else "_vtag"
+
+    def _val_ref(i: int) -> str:
+        return f"{_pfx}_val{i}" if inline else f"_val{i}"
     alts_node = next((c for c in kids if c.type == "alternatives"), None)
     if alts_node is None:
         return None, "/* UNSUPPORTED-CASE: no alternatives */"
@@ -342,16 +364,21 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
             if head.type != "constructor" or _text(head, src) not in _VARIANTS:
                 return None, "/* UNSUPPORTED-CASE: non-variant constructor pattern */"
             tag = _VARIANTS[_text(head, src)][1]
-            test = f"(_vtag == {tag})"
+            test = f"({vtag_ref} == {tag})"
             uses_variant = True
             if all(p.type == "variable" for p in pargs):
                 max_arity = max(max_arity, len(pargs))
                 for i, p in enumerate(pargs):
-                    binds.append((_text(p, src), f"_val{i}"))
+                    binds.append((_text(p, src), _val_ref(i)))
             else:
                 # NESTED ctor payload (`Outer (Inner a b) c`): read each leaf through an
                 # `Axon` temp per non-leaf prefix (`_collect_hs_ctor_paths` flattens the
                 # whole pattern to `_val{i}` key-paths; the test is still the OUTER tag).
+                if inline:
+                    # Nested payloads need `Axon` statement temps — not emittable in an
+                    # expression slot; leave on the WASM fallback.
+                    return None, ("/* UNSUPPORTED-CASE: nested variant payload in "
+                                  "expression position (later item) */")
                 paths = _collect_hs_ctor_paths(pat, src, ())
                 if paths is None:
                     return None, "/* UNSUPPORTED-CASE: non-variable payload pattern */"
@@ -359,7 +386,7 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
                     holder = _case_axon_temp_for(keys[:-1])
                     binds.append((nm, f'realvec({holder}.item("{keys[-1]}"))'))
         elif pat.type == "constructor" and _text(pat, src) in _VARIANTS:
-            test = f"(_vtag == {_VARIANTS[_text(pat, src)][1]})"
+            test = f"({vtag_ref} == {_VARIANTS[_text(pat, src)][1]})"
             uses_variant = True
         elif pat.type == "constructor" and _text(pat, src) in ("True", "False"):
             # Bool literal pattern (`case b of True -> …; False -> …`): test the bool
@@ -399,10 +426,16 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
     # literal/number case dispatches the scrutinee directly with no prelude.
     stmts = ""
     if uses_variant:
-        stmts = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
+        decls = f'{indent}int {vtag_ref} = realvec({scrut_src}.item("_tag"));\n'
         for i in range(max_arity):
-            stmts += f'{indent}int _val{i} = realvec({scrut_src}.item("_val{i}"));\n'
-        stmts += "".join(case_axon_temps)   # NESTED-payload `Axon` temps (read from scrut)
+            decls += f'{indent}int {_val_ref(i)} = realvec({scrut_src}.item("_val{i}"));\n'
+        decls += "".join(case_axon_temps)   # NESTED-payload `Axon` temps (read from scrut)
+        if inline:
+            # Hoist to the equation prelude (flushed before the return) — an expression
+            # slot can't carry the declarations itself.
+            _DESTRUCTURE_PRELUDE.append(decls)
+        else:
+            stmts = decls
     expr = parsed[-1][1]  # last arm = base (exhaustive ADT match / catch-all)
     for test, res in reversed(parsed[:-1]):
         expr = res if test is None else _blend(test, res, expr)
@@ -491,14 +524,13 @@ def _lower_expr(node, src: bytes) -> str:
         # `case` in NON-TAIL expression position (`1 + (case n of 0 -> 100; _ -> 200)`).
         # A LITERAL/wildcard case is a pure nested blend (`_lower_case_stmts` returns no
         # prelude — a plain-number scrutinee `n == 0` is crisp), so it inlines. A VARIANT
-        # case needs an `int _vtag` prelude an expression can't emit → a later item (use
-        # it as the function tail, where `_lower_case_stmts` emits the locals).
-        stmts, expr = _lower_case_stmts(node, src)
+        # case is lowered in INLINE mode: the `_tag`/`_val{i}` reads splice in as
+        # `realvec(scrut.item(…))` directly, so no `int _vtag` prelude is needed and the
+        # whole case is one pure expression. Nested-payload variant cases still need
+        # statement temps and stay on the fallback (an UNSUPPORTED-CASE marker).
+        stmts, expr = _lower_case_stmts(node, src, inline=True)
         if stmts is None:
             return expr  # an UNSUPPORTED-CASE marker
-        if stmts:
-            return ("/* UNSUPPORTED-EXPR: variant `case` in expression position "
-                    "(needs an int-local; use as the function tail) */")
         return f"({expr})"
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
@@ -1310,6 +1342,7 @@ def _lower_equation(decl, src: bytes) -> str:
         # blend (the Rust match-at-tail shape).
         _ARG_HOIST.clear()
         _DESTRUCTURE_PRELUDE.clear()
+        _CASE_UID[0] = 0  # unique case-prelude names start fresh per equation
         prelude = _hoist_constructions(body, src)
         if body.type == "case":
             case_stmts, case_expr = _lower_case_stmts(body, src)

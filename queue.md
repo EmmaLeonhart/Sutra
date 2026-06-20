@@ -15,21 +15,18 @@ pull it into this queue, attempt a NATIVE lowering within a few-cycles budget, a
 
 ## Active edge case
 
-### Shared codegen — int-local in expression position (unblocks Rust + Haskell)
+### Erlang — list comprehensions
 
-Open item from `planning/wasm-fallback-edge-cases.md` § "Shared codegen limitation". A VARIANT
-`match`/`case` nested in an EXPRESSION slot (not the function tail) needs to bind int-locals (the
-variant tag `_vtag`, payload `_valN`) as STATEMENTS, which an expression slot can't emit. Affects
-Rust (variant inner `match` / nested `if let`) and Haskell (VARIANT `case` in expression position).
-The doc's suggested general fix: hoist the inner match to a prelude temp.
+Open item from `planning/wasm-fallback-edge-cases.md` § Elixir/Erlang. Erlang list comprehensions
+(`[ X*2 || X <- L ]`). The doc notes this "needs a list abstraction the substrate lacks" — so the
+likely outcome is an assessment that it stays on the WASM fallback, not a native lowering.
 
 Steps:
-1. Inspect the compiler codegen for how expression-slot lowering handles statements/temps, and the
-   Rust + Haskell frontends' VARIANT case handling.
-2. Add a fixture exercising a VARIANT case in expression position; lower + substrate-run; measure.
-3. If the prelude-temp hoist is clean in budget, ship it (fixture RUN == ground truth).
-4. If NOT clean in a few cycles (the doc flags it non-trivial), record the assessment and move on —
-   leave it on the WASM fallback.
+1. Check what list abstraction the substrate/compiler currently offers (axon as positional store?
+   `dict<int,int>`? any iteration primitive?).
+2. Try a minimal list-comprehension fixture; lower; measure.
+3. If a clean bounded lowering is genuinely in budget, ship it; OTHERWISE record the assessment
+   (what the substrate is missing, why it stays on the fallback) in the edge-case doc and move on.
 
 ---
 

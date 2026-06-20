@@ -15,18 +15,23 @@ to lower natively, but they are **NOT high value added** — so:
 When one IS cleared natively (a fixture lands, RUN == ground truth), delete it from this list and
 record it in `DEVLOG.md`.
 
-## Shared codegen limitation (blocks several of the below)
+## Shared codegen limitation
 
 - **Int-local in expression position.** A VARIANT `match`/`case` nested in an *expression* (not the
   function tail) needs to bind int-locals (the variant tag `_vtag`, payload `_valN`) as
-  *statements*, which an expression slot can't emit. Affects Rust (variant inner `match` / nested
-  `if let`) and Haskell (VARIANT `case` in expression position). A general fix (hoist the inner
-  match to a prelude temp) would unblock both; non-trivial, low priority.
+  *statements*, which an expression slot can't emit. The fix is to hoist those int-local
+  declarations to a PRELUDE temp (NOT to inline the raw `realvec(scrut.item(…))` reads — measured:
+  the `int`-typed local performs a type-snap the raw read skips, so an inlined tag/payload compares
+  wrong). **DONE 2026-06-19 for Haskell** (`_lower_case_stmts(inline=True)` hoists `int _c{uid}_vtag`
+  / `_c{uid}_val{i}` to the equation's `_DESTRUCTURE_PRELUDE`; fixture `variant_case_nontail` RUN ==
+  4). **Rust** (variant inner `match` / nested `if let`) still on the fallback — Emma dropped Rust
+  from active (low priority); the same prelude-temp recipe applies if it is ever picked up.
 
 ## Per-frontend catalogue
 
-- **Haskell** (`sutra-from-haskell/`): only VARIANT `case` in expression position (the int-local
-  limit above) remains open. **>2-guard NON-tail multibase is DONE 2026-06-19** — the multibase
+- **Haskell** (`sutra-from-haskell/`): no open WASM-fallback items remain. **VARIANT `case` in
+  expression position is DONE 2026-06-19** (the shared int-local limit above — prelude-temp hoist;
+  fixture `variant_case_nontail` RUN == 4). **>2-guard NON-tail multibase is DONE 2026-06-19** — the multibase
   path now folds a non-tail recursive guard via a CPS accumulator (seed = OP identity, fold the leaf
   each step, post-combine `_acc OP base_blend` keyed on the FINAL state, so the seed is whichever
   base the recursion bottoms out at — the seed-selection that was the open analysis); both single-arg

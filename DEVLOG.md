@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-06-19: Haskell VARIANT `case` in expression position lowers natively (int-local hoist)
+
+Branch `wasm-fallback-edge-cases-native`, fifth edge case cleared — the shared "int-local in
+expression position" codegen limit, Haskell side. A VARIANT `case` nested in an expression
+(`evalE e = 1 + (case e of Lit n -> n; Neg n -> 0 - n)`) needs `int _vtag`/`int _val{i}` statement
+declarations an expression slot can't emit, so it was `UNSUPPORTED-EXPR`.
+
+First attempt — inline the reads as `realvec(scrut.item("_tag"))` everywhere instead of named
+locals — was MEASURED WRONG: RUN gave 1.0/2.0 instead of 8.0/4.0. The `int`-typed local performs a
+type-snap that the raw `realvec` read skips, so the inlined tag/payload compared wrong. Reverted to
+the doc's actual recipe: hoist the int-local declarations to the equation's `_DESTRUCTURE_PRELUDE`
+(the existing nested-destructure prelude mechanism) under unique `_c{uid}_vtag` / `_c{uid}_val{i}`
+names (`_lower_case_stmts(inline=True)` + `_CASE_UID`, reset per equation). The locals then get their
+proper snap and the expression references them. Nested-payload variant cases still need `Axon`
+statement temps and stay on the fallback.
+
+Fixture `variant_case_nontail` (`evalE(Lit 7)+evalE(Neg 5)` = 8+(-4)) RUN == 4.0 on the substrate ==
+ground truth. Haskell suite passed, no regressions. Removed the item from the edge-case doc — Haskell
+now has no open WASM-fallback items. Rust (the other half of the shared limit) stays on the fallback
+(Emma dropped it from active, low priority); the same prelude-temp recipe applies if picked up.
+
 ## 2026-06-19: Haskell >2-guard NON-tail multibase recursion lowers natively
 
 Branch `wasm-fallback-edge-cases-native`, fourth edge case cleared. `_try_lower_multibase_tail_recursion`
