@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-20: §1C genuine multi-process runtime — ProcessPoolRuntime + cross-process correctness gate
+
+Emma chose (over in-process GPU memory pools) the genuine multi-process runtime — separate OS processes,
+the throughput lever the tick_all finding identified (the current MultiProcessRuntime is single-process +
+GIL-bound). Wrote the design doc (`planning/sutra-spec/multi-process-runtime.md`: forks + verification plan)
+and decomposed §1C into 4 steps, then built steps 1 + 2b:
+
+`ProcessPoolRuntime` (sibling to `MultiProcessRuntime`, single-process path untouched): W worker OS
+processes (multiprocessing spawn; target is module-level `_pool_worker_main`, pickles without a `__main__`
+guard), round-robin program assignment, each worker compiles its programs and rebuilds its `_VSA` caches
+independently. Axons cross as CPU tensors (`_to_cpu`; CUDA tensors would need CUDA IPC, unsupported on
+Windows). `force_cpu=True` pins workers to CPU before the worker's torch import resolves `_DEVICE` —
+portable GIL-escape without a CUDA context per process.
+
+Correctness gate (`test_process_pool_runtime.py`, 3 pass in ~13s): two SEPARATE OS processes running the
+same program on the same input produce BIT-IDENTICAL output — this validates the core design bet, that
+rebuild-per-process needs no cross-process cache sharing for correctness (the §1B finding: caches are
+key-deterministic, not state). The output also decodes correctly across the boundary (x=5, y=8). No
+throughput CLAIM yet — that is step 2a (NEXT), and it needs a compute-heavy workload because the tiny
+make_real test program is IPC-bound (pickle + queue round-trip ≫ its compute). Steps 3/4 (per-process CUDA
+context isolation, CUDA-IPC codebook sharing) are CI/Linux-gated.
+
 ## 2026-06-20: FV — composed branch-range obligation: closed-form route walls at depth 2; composition discharges it
 
 Closed the todo.md branch-range remainder ("run the bounder on the *composed* polynomials of whole reduced

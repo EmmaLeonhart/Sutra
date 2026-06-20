@@ -154,20 +154,24 @@ multi-process runtime — separate OS processes**. The `tick_all` finding establ
 throughput lever AND deliver §1C's original per-process GPU memory isolation. One mechanism, both wins.
 Design doc (forks + verification plan): `planning/sutra-spec/multi-process-runtime.md`. Decomposed:
 
-1. **`ProcessPoolRuntime` prototype (portable, Windows-safe).** New sibling to `MultiProcessRuntime` (do
-   NOT rewrite it — the single-process path stays correct). W worker processes (`multiprocessing`, spawn-
-   safe under `if __name__ == "__main__"`); each worker compiles its assigned `ProgramSpec`s and rebuilds
-   its `_VSA` caches lazily (correct by determinism — §1B finding: caches are key-deterministic, not
-   state). Orchestrator dispatches `(program_name, axon_bytes)` over a queue, collects `axon_bytes` back.
-   Axons cross the boundary CPU-serialised (`tensor → cpu().numpy().tobytes()` + dtype/shape). No CUDA IPC
-   (unsupported on Windows).
-2. **Verification — measure the finding's prediction.** (a) Throughput: wall-clock N independent ticks via
-   the pool (W procs) vs single-process sequential `tick`×N — does the pool beat 1.0× once the GIL is no
-   longer serialising orchestration? Report the real number incl. spawn/serialise overhead (a negative
-   result if the round-trip eats the win at tiny per-program work is recorded, not hidden). (b)
-   Bit-identical: each worker rebuilds caches deterministically, so pool output == single-process `tick`
-   output (same seed → same Haar rotations). Pin both. Test on CPU tensors (portable, genuinely escapes
-   the GIL without CUDA).
+1. **`ProcessPoolRuntime` prototype (portable, Windows-safe) — DONE 2026-06-20.** New sibling to
+   `MultiProcessRuntime` (`multi_process.py`; the single-process path untouched). W worker processes
+   (`multiprocessing` spawn context, target is the module-level `_pool_worker_main` so it pickles without a
+   `__main__` guard); each worker compiles its round-robin-assigned `ProgramSpec`s and rebuilds its `_VSA`
+   caches lazily. Axons cross as CPU tensors (`_to_cpu`; CUDA tensors would need CUDA IPC, unsupported on
+   Windows). `force_cpu=True` pins workers to CPU (sets `CUDA_VISIBLE_DEVICES=""` before the worker's torch
+   import resolves `_DEVICE`) — portable GIL-escape without a CUDA context per process. Context-manager
+   lifecycle (`close()` joins workers).
+2. **Verification.** (b) **Bit-identical / determinism — DONE 2026-06-20.**
+   `tests/test_process_pool_runtime.py`: two separate OS processes running the same program on the same
+   input produce BIT-IDENTICAL output (rebuild-per-process is deterministic — validates the no-IPC-needed
+   design), and the output decodes correctly across the boundary (x=5, y=8). 3 tests pass.
+   (a) **Throughput — NEXT.** Wall-clock N independent ticks via the pool (W procs) vs single-process
+   sequential `tick`×N — does the pool beat 1.0× once the GIL no longer serialises orchestration? Needs a
+   REPRESENTATIVE workload: the tiny `make_real` test program is IPC-bound (pickle + queue round-trip ≫ its
+   compute), so it would show the pool LOSING — an honest but uninteresting result. Use a compute-heavy
+   per-tick program (many axon ops) so parallel compute can amortise the IPC, and report the real curve incl.
+   spawn/serialise overhead (a negative result at small work is recorded, not hidden).
 3. **CUDA-context isolation (CI/Linux-gated follow-on).** Per-process CUDA context = the §1C memory
    isolation; verify one worker's allocations aren't visible to another via per-process
    `torch.cuda.memory_stats`. Needs a CUDA box; gate behind capability check.
