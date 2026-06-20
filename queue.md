@@ -33,31 +33,22 @@ multibase, F# no-parens app-as-infix-operand, Haskell >2-guard non-tail multibas
 `case` in expr position, Rust variant-inner-`match` + nested `if let` (shared int-local limit fully
 closed across Haskell+Rust).
 
-## Active edge case (ONE at a time — Emma: add things to the queue one by one)
+## Active (Emma 2026-06-19): host the web-page-optimization sample at `/example`
 
-### Rust — multibase NON-tail recursion (nested if/else-if)
+The multibase-non-tail work is DONE across all 8 frontends (Elixir/Erlang/Haskell + OCaml/Scala/F#/Rust;
+finding `2026-06-19-multibase-nontail-gap-…` RESOLVED). Next, per Emma:
 
-Last of the four multibase non-tail ports (OCaml + Scala + F# DONE; recipe in finding
-`2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md` and DEVLOG 2026-06-19). Rust writes
-multibase as `if c0 { b0 } else if c1 { b1 } else { step }`.
+**Host the web-page-optimization thing as a sample page at `https://sutra.topazcomputing.com/example`.**
+Site is the static multi-page build (`scripts/build_site.py` over `docs/*.md` + `docs/tutorials/*.md`).
 
-Transform: flatten the nested-if chain into bases `[(cond_i, base_i), …]` + the recursive step
-`LEAF <OP> f(REC…)`; emit a `while_loop` carrying every recursion arg + a synthetic `_acc` seeded to
-the OP identity; fold the leaf each step; post-combine `_acc OP base_blend(final state)`. Add fixture
-`multiarg_nontail_multibase` (`f(3, 10) = 115`), substrate-verify RUN == 115, run the suite, commit+push.
-Rust uses `_block_value` to extract a block's tail value (`{ b0 }` → `b0`).
-
-After Rust: all four done → finding RESOLVED. Then the `/example` backlog item (below).
-
----
-
-## Backlog (do AFTER the multibase work — Emma 2026-06-19)
-
-- **Host the web-page-optimization sample at `https://sutra.topazcomputing.com/example`.** Emma wants
-  the web-page optimization thing hosted as a sample page on the Sutra site (`/example`). Site is the
-  static multi-page build (`scripts/build_site.py` over `docs/`); figure out the source of the
-  "web-page optimization" demo and wire a page for it. Pull into the active queue only after the
-  multibase frontends are done.
+Steps:
+1. Find the "web-page optimization" demo/source in the repo (search docs/, examples/, planning/,
+   demos/ — likely an existing `.su` example or write-up about optimizing a web page).
+2. Decide the page: a new `docs/example.md` (→ `/example`) authored for the website audience (no
+   repo-internal scratchpad refs per CLAUDE.md §Audiences), rendered by `scripts/build_site.py`.
+3. Wire it into the build/nav, build locally, verify `/example` renders. Commit+push.
+4. If the "web-page optimization thing" is ambiguous (which artifact Emma means), ASK via
+   AskUserQuestion before authoring — don't guess the wrong demo.
 
 ---
 

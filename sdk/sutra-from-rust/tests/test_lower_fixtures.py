@@ -32,6 +32,7 @@ _RUNNABLE = {
     "bool_match": 10.0,  # f(b: bool) = match b { true => 10, false => 20 }; main = f(true)  (Bool match pattern -> (b == true/false) blend)
     "tail_rec": 15.0,  # fn sum_to(acc, n) { if n==0 { acc } else { sum_to(acc+n, n-1) } }; sum_to(0, 5)
     "nontail_fact": 120.0,  # fn fact(n) { if n==0 { 1 } else { n * fact(n-1) } }; fact(5)  (CPS fold)
+    "multiarg_nontail_multibase": 115.0,  # fn f(a,b) { if a==0 {b} else if a==1 {b+100} else {a + f(a-1,b)} }; f(3,10)=3+2+(10+100)=115  (MULTIBASE non-tail via nested if/else-if + MULTI-arg fold: flatten else-clause chain (block tails) into bases + STEP, while_loop carries (a,b,_acc), base blend on final state; _try_lower_multibase_nontail)
     "struct_axon": 12.0,  # struct Point -> axon; getx(a{7,9})=7 + sum2(Point{2,3})=5
     "while_sum": 15.0,  # let mut acc/i; while i < n { i+=1; acc+=i }; sum_to(5)=15  (while -> substrate loop)
     "while_compound": 15.0,  # same via compound assignment: i += 1; acc += i  (op= desugars to x = x op rhs)
