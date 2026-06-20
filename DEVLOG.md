@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-19: Erlang list comprehensions — assessed, STAYS on the WASM fallback
+
+Branch `wasm-fallback-edge-cases-native`, sixth edge case — a negative/blocked result (integrity
+rule #4), no code change. The catalogue's stated reason ("needs a list abstraction the substrate
+lacks") is CORRECTED: the substrate has binding-arrays (`array_from_literal` / `array_get` /
+`array_length` / `foreach_loop`, used by the TS transpiler). The real blockers: (1) only
+`array_from_literal` builds an array and only from compile-time elements — no `array_map`/append/set,
+so a runtime-list comprehension can't build its result list (`foreach_loop` reduces to a scalar, can't
+produce a new list); (2) a compile-time-literal comprehension could unroll to `array_from_literal`,
+but no Erlang list-consumer (`lists:sum`/`hd`/`nth`) is wired to reduce it to a scalar, so there is no
+RUN==ground-truth path — an untested list-valued lowering can't be claimed working. Recorded in
+`planning/findings/2026-06-19-erlang-list-comprehension-stays-on-fallback.md`; corrected the
+edge-case doc. Re-attempt only with an array-builder primitive or a concrete `lists:*` reducer.
+
 ## 2026-06-19: Haskell VARIANT `case` in expression position lowers natively (int-local hoist)
 
 Branch `wasm-fallback-edge-cases-native`, fifth edge case cleared — the shared "int-local in

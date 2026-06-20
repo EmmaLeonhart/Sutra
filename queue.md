@@ -15,18 +15,22 @@ pull it into this queue, attempt a NATIVE lowering within a few-cycles budget, a
 
 ## Active edge case
 
-### Erlang — list comprehensions
+### F# / Scala — a concrete missing String op (modelled on OCaml)
 
-Open item from `planning/wasm-fallback-edge-cases.md` § Elixir/Erlang. Erlang list comprehensions
-(`[ X*2 || X <- L ]`). The doc notes this "needs a list abstraction the substrate lacks" — so the
-likely outcome is an assessment that it stays on the WASM fallback, not a native lowering.
+Open item from `planning/wasm-fallback-edge-cases.md` § F#/Scala "general breadth (… more String
+ops), modelled on OCaml as needs arise." The OCaml frontend is the reference; F#/Scala lag on some
+String ops. Pick ONE concrete, common String op OCaml supports that F#/Scala don't, attempt it.
 
 Steps:
-1. Check what list abstraction the substrate/compiler currently offers (axon as positional store?
-   `dict<int,int>`? any iteration primitive?).
-2. Try a minimal list-comprehension fixture; lower; measure.
-3. If a clean bounded lowering is genuinely in budget, ship it; OTHERWISE record the assessment
-   (what the substrate is missing, why it stays on the fallback) in the edge-case doc and move on.
+1. Compare the OCaml frontend's String-op support to F#/Scala (length, indexing, concat, slice,
+   `String.length`/`.Length`, etc.); find one concrete op F#/Scala miss.
+2. Add a fixture exercising it; lower + substrate-run; measure.
+3. If a clean native lowering is in budget, ship it (fixture RUN == ground truth, regression test).
+4. If not clean in budget, record the assessment in the edge-case doc and move on.
+
+(After this: the discrete actionable WASM-fallback edge cases are largely worked through — remaining
+items are open-ended breadth, assessed-stays (OCaml Array.make fill), or Emma-dropped (Rust). If this
+drains, report back rather than manufacturing vague tasks.)
 
 ---
 
