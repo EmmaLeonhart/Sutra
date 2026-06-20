@@ -19,11 +19,16 @@ What this is:
     re-fetch every `basis_vector("...")` from Ollama. The shared
     `_VSA` makes the codebook a connectome-wide thing — the cost
     that the v0.3.0 batched `embed_batch` was added to amortize.
-  - **CUDA-stream-level parallelism on independent compute.** When
-    multiple programs' `on_axon` calls are independent, the GPU's
-    own scheduler runs them in parallel on separate streams.
-    Sequential Python dispatch + parallel device execution is the
-    natural "multi-process on one GPU" shape today.
+  - **A concurrent dispatch point (`tick_all`).** Programs' independent
+    `on_axon` calls can be launched on separate CUDA streams so the GPU
+    overlaps their kernels. MEASURED CAVEAT (2026-06-20,
+    planning/findings/2026-06-20-tick-all-no-speedup-python-bound.md): on
+    today's runtime this delivers NO speedup (0.95x at N=8), because a
+    program's per-tick cost is ~98% GIL-bound Python orchestration and
+    only ~2% GPU kernel time — and streams overlap only the kernels.
+    `tick_all` is correct and is the right ABI shape; real throughput
+    needs the per-tick Python to shrink (the compile-time fusion pass) so
+    the GPU kernels dominate, or genuine parallel orchestration.
 
 What this is NOT:
 
@@ -203,10 +208,18 @@ class MultiProcessRuntime:
         this degrades to correct sequential execution.
 
         Results are IDENTICAL to calling `tick(name, input)` per program;
-        the only difference is wall-clock overlap on the device. Axon
-        routing between programs is still the caller's job — `tick_all`
-        fires one independent round, it does not thread one program's
-        output into another's input.
+        the only difference is the dispatch path. Axon routing between
+        programs is still the caller's job — `tick_all` fires one
+        independent round, it does not thread one program's output into
+        another's input.
+
+        THROUGHPUT CAVEAT (measured 2026-06-20): on the current runtime
+        `tick_all` gives NO speedup over sequential `tick` (0.95x at N=8) —
+        a program's per-tick cost is ~98% GIL-bound Python orchestration
+        and only ~2% GPU kernel time, so overlapping the kernels does not
+        help. See planning/findings/2026-06-20-tick-all-no-speedup-python-
+        bound.md. Use this for the correct concurrency SHAPE; the speedup
+        arrives when the per-tick Python shrinks (fusion pass).
         """
         for name in inputs:
             self._get(name)  # validate every name before launching anything
