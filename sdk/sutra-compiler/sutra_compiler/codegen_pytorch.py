@@ -271,6 +271,18 @@ class PyTorchCodegen(Codegen):
         self._emit("# first draw so repeated bind/unbind with the same role is a")
         self._emit("# lookup + one matmul, no transfer.")
         self._emit("self._rot_cache = {}")
+        self._emit("# Bound the d x d role-keyed caches (_rot_cache + _axon_op_cache)")
+        self._emit("# so a program with a pathologically large axon-key / role vocabulary")
+        self._emit("# cannot grow them without limit (each entry is a d x d tensor, ~6MB")
+        self._emit("# at d=868 float64). FIFO eviction (oldest-built first), NOT move-to-")
+        self._emit("# end LRU, to keep ZERO extra Python on the cache-hit hot path the")
+        self._emit("# perf work optimized (finding 2026-06-20). Eviction is correctness-")
+        self._emit("# safe: every value is a deterministic function of its key (seeded Haar")
+        self._emit("# rotation / fixed permutation), so a recomputed entry is bit-identical")
+        self._emit("# to the evicted one. The cap is generous: real programs use a handful")
+        self._emit("# to a few dozen distinct keys, far under it, so they never evict and")
+        self._emit("# are unaffected; only pathological key sets trade recompute for memory.")
+        self._emit("self._role_cache_cap = 1024")
         self._emit("# On-disk embedding cache. Keyed by (model, dim) so switching")
         self._emit("# embedding model OR changing the extended-state dim invalidates")
         self._emit("# automatically (different filename). Torch cache uses .pt so")
@@ -698,6 +710,11 @@ class PyTorchCodegen(Codegen):
         self._emit("Q = _torch.eye(self.dim, dtype=self.dtype, device=self.device)")
         self._emit("Q[:self.semantic_dim, :self.semantic_dim] = Q_sem")
         self._emit("self._rot_cache[key] = Q")
+        self._emit("if len(self._rot_cache) > self._role_cache_cap:")
+        self._indent += 1
+        self._emit("# FIFO evict the oldest-built rotation (deterministic recompute).")
+        self._emit("del self._rot_cache[next(iter(self._rot_cache))]")
+        self._indent -= 1
         self._indent -= 1
         self._emit("return self._rot_cache[key]")
         self._indent -= 1
@@ -1097,6 +1114,11 @@ class PyTorchCodegen(Codegen):
         self._emit("M[:sem, :sem] = Q[:sem, :sem]")
         self._emit("M[sem:, sem:] = P_perm")
         self._emit("self._axon_op_cache[key] = M")
+        self._emit("if len(self._axon_op_cache) > self._role_cache_cap:")
+        self._indent += 1
+        self._emit("# FIFO evict the oldest-built op (deterministic recompute).")
+        self._emit("del self._axon_op_cache[next(iter(self._axon_op_cache))]")
+        self._indent -= 1
         self._indent -= 1
         self._emit("return self._axon_op_cache[key]")
         self._indent -= 1

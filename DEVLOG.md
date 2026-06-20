@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-20: FUSION PASS — bounded cap on the d×d role-keyed caches (§1A complete)
+
+Closed the last §1A follow-on: the d×d role-keyed caches (`_rot_cache` holding Haar rotations, and the
+session's new `_axon_op_cache` holding the fused `M_key` operators — each ~6MB at d=868 float64) were
+unbounded, so a program with a pathologically large axon-key / role vocabulary could grow them without
+limit. Capping only `_axon_op_cache` would not have bounded memory, because `_axon_op_for` builds each
+`M_key` from a Q that persists in `_rot_cache` — both co-grow, so both are now capped. Added
+`self._role_cache_cap` (default 1024) and FIFO eviction (evict the oldest-built entry) at both cache
+writes. FIFO, not move-to-end LRU, deliberately: LRU's per-hit reorder would add Python to the cache-hit
+hot path the perf work optimized (finding 2026-06-20), whereas FIFO adds ZERO on hits (eviction only fires
+on the insert that overflows). Eviction is correctness-safe: every value is a deterministic function of its
+key (seeded Haar rotation / fixed permutation), so a recomputed entry is bit-identical to the evicted one.
+The cap is generous — real programs use a handful to a few dozen distinct keys, far under it, so they never
+evict and are unaffected; only pathological key sets trade recompute for bounded memory. Tests
+(`test_axon_build.py`): small-cap overflow keeps both caches ≤ cap and an evicted key recomputes
+bit-identically; an under-cap program evicts nothing and every key still reads back exactly. 182
+axon/bind/codegen/string tests green (the `_rotation_for` edit touches all bind/unbind). §1A (the
+fusion-pass leg) is now complete end to end; next big leg is §2 (WASM source frontend).
+
 ## 2026-06-20: Cross-repo health check — full Yantra suite green against the peephole compiler
 
 Ran the FULL vendored-Yantra suite (`external/Yantra/tests/` + `orchestrator/tests/`) against this repo's

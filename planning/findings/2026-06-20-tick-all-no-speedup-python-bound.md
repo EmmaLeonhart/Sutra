@@ -123,6 +123,19 @@ fixtures (62), compiler axon/codegen/bind/string/type-test (182). The cross-func
 were made fusion-aware (`assertMaterialized`: a key counts as kept whether emitted as `axon_add` or inside
 a batched `axon_build`) so they assert the no-over-prune property without pinning the per-add shape.
 
+**Cache memory bound — SHIPPED 2026-06-20 (closes §1A).** The fused operators live in d×d caches
+(`_axon_op_cache` for `M_key`, `_rot_cache` for the Haar Q each `M_key` is built from — both ~6MB at
+d=868 float64), previously unbounded. A pathologically large axon-key / role vocabulary could grow them
+without limit; and capping only `_axon_op_cache` would not bound memory, because the Q persists in
+`_rot_cache` (the two co-grow). Both are now FIFO-capped at `self._role_cache_cap` (default 1024).
+**FIFO, not move-to-end LRU**, is the deliberate choice: LRU's per-hit reorder reintroduces Python onto
+the cache-hit hot path this finding spent its effort removing, whereas FIFO adds ZERO on hits (eviction
+fires only on the overflowing insert). Eviction is correctness-safe — every value is a deterministic
+function of its key (seeded Haar rotation / fixed permutation), so a recomputed entry is bit-identical to
+the evicted one (pinned by a small-cap overflow test). The cap is generous: real programs use a handful
+to a few dozen distinct keys, far under it, so they never evict — only pathological key sets trade
+recompute for bounded memory.
+
 ---
 
 ## Original measurement (before the `_role_hash` fix)
