@@ -1370,12 +1370,9 @@ class BaseCodegen:
         if not decl.body.statements:
             self._emit("pass")
         else:
-            for stmt in decl.body.statements:
-                # RecurringDecl statements were handled above (the slot
-                # is initialized at the function top); skip inline.
-                if isinstance(stmt, ast.RecurringDecl):
-                    continue
-                self._translate_stmt(stmt)
+            # Fuse consecutive `<axon>.add(K,V)` runs into one `axon_build` (bmm).
+            # Bit-identical to the per-`.add` lowering; skips RecurringDecl inline.
+            self._translate_stmts_fused(decl.body.statements)
         self._slot_vars = outer_slot_vars
         self._current_return_type = outer_return_type
         self._axon_elide_keys = outer_axon_elide
@@ -2109,6 +2106,94 @@ class BaseCodegen:
         self._emit("_program_halt = _program_halt * _loopret_halt")
 
     # -- statements -------------------------------------------------------
+
+    def _axon_add_parts(self, stmt):
+        """If `stmt` is `<var>.add("K", V);` on an axon-declared var with a string-
+        literal key and exactly 2 args, return (var_name, key_str, value_expr); else
+        None. The fusion peephole (`_translate_stmts_fused`) uses this to batch runs."""
+        if not isinstance(stmt, ast.ExprStmt):
+            return None
+        e = stmt.expr
+        if (isinstance(e, ast.Call)
+                and isinstance(e.callee, ast.MemberAccess)
+                and isinstance(e.callee.obj, ast.Identifier)
+                and e.callee.obj.name in self._axon_declared
+                and e.callee.member == "add"
+                and len(e.args) == 2
+                and isinstance(e.args[0], ast.StringLiteral)):
+            return (e.callee.obj.name, e.args[0].value, e.args[1])
+        return None
+
+    def _expr_uses_var(self, node, var_name: str) -> bool:
+        """True if the AST subtree `node` references the identifier `var_name`.
+        Conservative: walks every child Node. Used to ensure an `.add` value does
+        NOT depend on the axon being built (else the batched `axon_build`, which
+        evaluates all values against the ORIGINAL axon, would differ from the
+        sequential fold)."""
+        if isinstance(node, ast.Identifier):
+            return node.name == var_name
+        if isinstance(node, ast.Node):
+            for v in vars(node).values():
+                if self._expr_uses_var(v, var_name):
+                    return True
+        elif isinstance(node, (list, tuple)):
+            for item in node:
+                if self._expr_uses_var(item, var_name):
+                    return True
+        return False
+
+    def _translate_stmts_fused(self, statements) -> None:
+        """Translate a statement list, FUSING maximal runs of consecutive
+        `<var>.add("K", V);` on the same axon var into ONE `_VSA.axon_build` (the
+        batched bmm) instead of N `_VSA.axon_add`s — the op-count reduction the
+        concurrent path wants (finding 2026-06-20). A run breaks at a different var,
+        a non-`.add` statement, a non-string-literal key, or a value that references
+        the axon var (order-dependent). Elided keys (`_axon_elide_keys`) are dropped
+        from the run, exactly as `_translate_stmt` would skip them. Bit-identical to
+        the per-`.add` lowering (`axon_build` == folded `axon_add`)."""
+        i, n = 0, len(statements)
+        while i < n:
+            stmt = statements[i]
+            # RecurringDecl is handled at the function top; skip inline.
+            if isinstance(stmt, ast.RecurringDecl):
+                i += 1
+                continue
+            parts = self._axon_add_parts(stmt)
+            if parts is None:
+                self._translate_stmt(stmt)
+                i += 1
+                continue
+            var_name = parts[0]
+            # Collect the maximal run of same-var `.add`s with var-safe values.
+            run, j = [], i
+            while j < n:
+                p = self._axon_add_parts(statements[j])
+                if p is None or p[0] != var_name or self._expr_uses_var(p[2], var_name):
+                    break
+                run.append((p[1], p[2]))  # (key_str, value_expr)
+                j += 1
+            if j == i:
+                # The first `.add`'s value references the axon var — can't batch.
+                self._translate_stmt(stmt)
+                i += 1
+                continue
+            # Drop elided keys, then emit batch (>=2) / single (1) / nothing (0).
+            elide = self._axon_elide_keys.get(var_name, set())
+            kept = [(k, v) for (k, v) in run if k not in elide]
+            if len(kept) >= 2:
+                keys_src = ", ".join(repr(k) for k, _ in kept)
+                vals_src = ", ".join(self._translate_expr(v) for _, v in kept)
+                self._emit(
+                    f"{var_name} = _VSA.axon_build({var_name}, "
+                    f"[{keys_src}], [{vals_src}])"
+                )
+            elif len(kept) == 1:
+                k, v = kept[0]
+                self._emit(
+                    f"{var_name} = _VSA.axon_add({var_name}, {k!r}, "
+                    f"{self._translate_expr(v)})"
+                )
+            i = j
 
     def _translate_stmt(self, stmt: ast.Stmt) -> None:
         # RecurStmt: write the current tick's value into the non-halting

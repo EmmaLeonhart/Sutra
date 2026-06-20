@@ -1231,6 +1231,24 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
     understand falls back to keeping ALL keys (no over-prune).
     """
 
+    def assertMaterialized(self, py, var, key):
+        """A key is materialized (not pruned) if it appears either as a
+        standalone `axon_add(var, 'key', ...)` OR inside a batched
+        `axon_build(var, [...'key'...], ...)` for the same axon var. The
+        fusion peephole (consecutive `.add` runs -> one `axon_build`)
+        changes the emission shape but not the kept-key property these
+        safety tests assert."""
+        single = "_VSA.axon_add(%s, '%s'" % (var, key)
+        if single in py:
+            return
+        marker = "_VSA.axon_build(%s, [" % var
+        idx = py.find(marker)
+        if idx != -1:
+            keys_blob = py[idx + len(marker):py.find("]", idx)]
+            if ("'%s'" % key) in keys_blob:
+                return
+        self.fail("key %r not materialized for axon %r in:\n%s" % (key, var, py))
+
     def test_prunes_keys_no_callee_reads(self):
         src = (
             'vector v_cat = basis_vector("cat");\n'
@@ -1314,8 +1332,8 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
         py = _compile(src)
         # Callee reads a runtime-computed key → caller cannot bound
         # demand → every key stays materialized.
-        self.assertIn("x = _VSA.axon_add(x, 'p', vp)", py)
-        self.assertIn("x = _VSA.axon_add(x, 'r', vr)", py)
+        self.assertMaterialized(py, "x", "p")
+        self.assertMaterialized(py, "x", "r")
 
     def test_callee_returns_bare_axon_keeps_all(self):
         src = (
@@ -1355,8 +1373,8 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
             '}\n'
         )
         py = _compile(src)
-        self.assertIn("x = _VSA.axon_add(x, 'k1', vk1)", py)
-        self.assertIn("x = _VSA.axon_add(x, 'k2', vk2)", py)
+        self.assertMaterialized(py, "x", "k1")
+        self.assertMaterialized(py, "x", "k2")
 
     def test_returned_bare_axon_still_keeps_all(self):
         # Regression guard: a function that builds an axon and
@@ -1373,8 +1391,8 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
             '}\n'
         )
         py = _compile(src)
-        self.assertIn("a = _VSA.axon_add(a, 's', vs)", py)
-        self.assertIn("a = _VSA.axon_add(a, 'o', vo)", py)
+        self.assertMaterialized(py, "a", "s")
+        self.assertMaterialized(py, "a", "o")
 
 
 if __name__ == "__main__":

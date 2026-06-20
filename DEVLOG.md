@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-20: FUSION PASS — codegen wiring: `axon_build` peephole batches consecutive `.add` runs
+
+Wired the batched `axon_build` primitive into the codegen (Emma's "extend the fusion pass"). New
+`_translate_stmts_fused` (in `codegen_base.py`, routed from the function-body statement loop) scans for a
+maximal run of consecutive `<var>.add(K, V)` statements on the SAME axon var with no intervening use of
+that var, and collapses them into one `<var> = _VSA.axon_build(<var>, [K…], [V…])` — one batched `bmm`
+instead of N separate `axon_add` matmuls. It composes with the existing cross-function elision: only the
+NON-elided keys in a run are batched (a run that reduces to 1 kept key falls back to a lone `axon_add`,
+0 keys to nothing). Records/tuples from every language frontend lower to direct `.add` sequences (not
+Sutra `class`/`new`), so this catches frontend record construction AND explicit `Axon a; a.add()×N`.
+Bit-identical to folding `axon_add` (the build primitive is pinned bit-identical by `test_axon_build.py`).
+Verified green: full OCaml suite (152), Scala/Haskell/Elixir/Erlang record/tuple/struct/map/nested/ctor
+fixtures (62), compiler axon/codegen/bind/string/type-test (182). The cross-function elision SAFETY tests
+were made fusion-aware — new `assertMaterialized` helper asserts a key is kept whether it lands in a lone
+`axon_add` or inside a batched `axon_build`, preserving the "no over-prune" property without pinning the
+per-add emission shape. §1A (the fusion-pass leg) is now essentially complete: axon write-path,
+read-path, and batched-build are all single-/batched-matmul and wired; only the `_axon_op_cache` LRU cap
+(robustness, not exercised by current fixtures) remains. See the finding.
+
 ## 2026-06-20: FUSION PASS — `M_key` operator fuses axon_add to one matmul (~2x sequential)
 
 First successful step of the fusion-pass leg (Emma's §1A). `axon_add` did bind (a full d×d matmul) +

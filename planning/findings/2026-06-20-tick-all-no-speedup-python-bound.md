@@ -107,12 +107,21 @@ diff 0.0; `test_axon_build.py`, 4 tests), collapsing N launches to 1. Measured (
 0.050 ms (~3x with the M-stack reused) / 0.108 ms (~1.4x stacking per call). Fewer ops, so it helps the
 concurrent path (the cat-fusion lesson applied — and validated here, unlike attempt 1).
 
-**Shipped:** the `axon_build` runtime primitive (additive, tested). **Queued (broad blast radius, fresh
-context):** wiring the codegen to EMIT it — the tractable target is the class/record factory
-(`_emit_class_factory`, codegen_base) which already has the full known field list, so it can emit one
-`axon_build` instead of the N-`axon_add` loop; the harder target is a compile-time peephole that detects
-a run of consecutive `a.add(k,v)` statements on the same Axon (no intervening use of `a`). Both must be
-verified bit-identical + that record-returning frontend fixtures stay green.
+**Shipped:** the `axon_build` runtime primitive (additive, tested).
+
+**Codegen wiring — SHIPPED 2026-06-20.** The class/record factory was a dead end: language frontends do
+NOT lower records/tuples to Sutra `class`/`new`; they emit direct `Axon _r; _r.add("x",a); _r.add("y",b);`
+sequences (verified on the OCaml `record` fixture). So `_emit_class_factory` would help almost nothing.
+The real target — and what shipped — is a statement-list **peephole** (`_translate_stmts_fused`,
+`codegen_base.py`, routed from the function-body loop): it collects a maximal run of consecutive
+`<var>.add(K,V)` on the same axon var (breaking the run if a later value expr uses `<var>`, or the next
+stmt is not a same-var `.add`), drops the keys the existing cross-function elision already elides, and
+emits one `<var> = _VSA.axon_build(<var>, [K…], [V…])` for the kept run (≥2 kept), a lone `axon_add` for
+1 kept, nothing for 0. Bit-identical (the primitive is pinned bit-identical; the peephole only changes op
+COUNT). Verified green: OCaml suite (152), Scala/Haskell/Elixir/Erlang record/tuple/struct/map/nested
+fixtures (62), compiler axon/codegen/bind/string/type-test (182). The cross-function elision safety tests
+were made fusion-aware (`assertMaterialized`: a key counts as kept whether emitted as `axon_add` or inside
+a batched `axon_build`) so they assert the no-over-prune property without pinning the per-add shape.
 
 ---
 

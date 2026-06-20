@@ -111,25 +111,16 @@ identical (max diff 0.0; 100 tests pass). Sequential tick ~2x (6.8→3.3ms); `ti
 M_key; the inverse is the transpose since Q is orthogonal + P_perm a permutation). Bit-identical, ~10x/
 op (0.343→0.033ms); 83 compiler + 99 Yantra axon tests pass. Both axon write+read are now single-matmul.
 
-**Fusion extension (Emma 2026-06-20: "extend the fusion pass").** `axon_build(axon, keys, values)` —
-the BATCHED fusion: stack the N cached `M_key` operators into one `(N,d,d)` bmm + sum instead of N
-separate matmuls. Bit-identical (max diff 0.0; `test_axon_build.py` 4 tests), ~3x (M-stack reused) /
-~1.4x (per-call stack); fewer ops → helps the concurrent path. **PRIMITIVE SHIPPED 2026-06-20.**
-Remaining — WIRE the codegen to emit `axon_build` (fresh context; investigated 2026-06-20):
-- **The class factory (`_emit_class_factory`) is NOT the target.** Frontend records/tuples do NOT lower
-  to Sutra `class`/`new`; they emit DIRECT `Axon _record; _record.add("x",a); _record.add("y",b);`
-  sequences (verified on the OCaml `record` fixture). The class factory is only for Sutra `class` decls
-  (rare). So wiring it would help almost nothing.
-- **The real target is a PEEPHOLE over consecutive `<var>.add(K,V);` statements** (catches frontend
-  records AND explicit `Axon a; a.add()×N`). `.add` lowers one-at-a-time in `_translate_stmt` to
-  `<var> = _VSA.axon_add(<var>, K, V)`. Collect a maximal run of consecutive `.add` on the SAME axon var
-  (no intervening use of the var) and emit one `<var> = _VSA.axon_build(<var>, [K…], [V…])`.
-- **Interacts with the existing elision** (`_axon_elide_keys`, `_compute_axon_elision`): some `.add(K,V)`
-  are already SKIPPED (key never read + axon doesn't escape). The peephole must batch only the
-  NON-elided adds in the run. Implementation: buffer consecutive same-var `.add` in `_translate_stmt`
-  (flush the buffer as one `axon_build` when the run ends), or a statement-list pre-pass.
-- Verify bit-identical + ALL record/tuple/struct frontend fixtures (OCaml/Scala/Rust/Haskell/Elixir/
-  Erlang/Clojure/F#) stay green.
+**Fusion extension (Emma 2026-06-20: "extend the fusion pass") — SHIPPED 2026-06-20.**
+`axon_build(axon, keys, values)` batches N axon_adds: stack the N cached `M_key` operators into one
+`(N,d,d)` bmm + sum instead of N separate matmuls. Bit-identical (max diff 0.0). **Primitive AND codegen
+wiring both shipped** — the wiring is a statement-list peephole (`_translate_stmts_fused` in
+`codegen_base.py`) that collapses a maximal run of consecutive same-axon `.add(K,V)` (no intervening use
+of the var) into one `axon_build`, batching only the NON-elided keys. Records/tuples lower to direct
+`.add` sequences, so this catches frontend record construction AND explicit `Axon a; a.add()×N`. Verified
+bit-identical across the full OCaml suite (152) + Scala/Haskell/Elixir/Erlang record/tuple fixtures (62) +
+compiler axon/codegen/elision (182). The cross-function elision safety tests were made fusion-aware
+(`assertMaterialized`: a key is kept whether it lands in `axon_add` or batched `axon_build`).
 
 **Remaining §1A robustness follow-on:** an LRU cap on `_axon_op_cache` for pathologically large key sets
 (not needed by current fixtures). §1B is RESOLVED (above); §1C (GPU arenas) deferred per Emma.
