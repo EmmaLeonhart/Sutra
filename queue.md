@@ -39,25 +39,7 @@ The session's big directed legs are done + validated:
 
 ## ACTIVE — barrel top to bottom
 
-### A. Object encapsulation — finish the language feature (`todo.md` §"Object encapsulation")
-
-The encapsulation design is partially shipped (class-as-namespace methods, `SUT0144`). Remaining pieces,
-in order. **First step each time: check the current state** — `22_class_with_fields.su` is already in the
-valid corpus, so parsing may be partly there; build on what exists, don't rebuild.
-
-1. **Field declarations (`field name: type;`) — immutable, axon-backed.** Design call (mine, consistent
-   with Sutra being purely functional + classes-as-axons): a field is an IMMUTABLE named slot set at
-   construction; an instance is an axon keyed by field name; `g.field` lowers to `axon_item(g, "field")`.
-   No mutable per-instance state (that would break the functional substrate). Steps: confirm/extend the
-   parser for `field` decls in class bodies; lower construction to `axon_add` per field; lower `g.field`
-   read to `axon_item`; fixture that constructs an instance, reads fields back (RUN, compare to ground
-   truth), substrate-verified.
-2. **Instance-syntax dispatch on typed variables (`g.method(args)` for `Greeter g`).** Needs variable
-   type tracking through codegen so `g.method(...)` resolves to the class method with `g` as `this`.
-3. **Non-static loops with `this` threading** (after fields land — `this` as an implicit state param on
-   non-static class loops).
-
-### B. First-class function values (`todo.md` §"First-class function values") — BIG leg, decompose first
+### A. First-class function values (`todo.md` §"First-class function values") — BIG leg, decompose first
 
 The single biggest unlock: it gates the full async/await Stage-1 desugar (multi-await chains,
 `try/await/catch`), higher-order list ops (`map`/`filter`/`reduce`), AND the NTM `ramRead`/`ramWrite`
@@ -66,7 +48,7 @@ position. **Before writing code: write a design/decomposition doc** (parser arro
 arrow type, codegen emitting Python closures / named-helper indirection) and split into bounded steps —
 this is explicitly "its own focused session," so prefer a worktree and small verified increments.
 
-### C. Measurement gates — state-locus + signal-separation (`todo.md` §"Promote the three measurement checks")
+### B. Measurement gates — state-locus + signal-separation (`todo.md` §"Promote the three measurement checks")
 
 Dimension gate SHIPPED (`experiments/dimension_audit_sweep.py`). The other two need a per-`.su` CLAIM
 annotation surface first (a way for a program to declare "I am an RNN" / "I am a classifier"), because —
