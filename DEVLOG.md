@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-19: Haskell forward (out-of-order) `where`/`let` references lower natively
+
+Branch `wasm-fallback-edge-cases-native` (off the main big-leg queue — Emma's exploratory
+edge-case-clearing pass over `planning/wasm-fallback-edge-cases.md`). First item cleared.
+
+`_apply_local_binds` substituted `where`/`let` binds in source order, single-level: a binding
+that referenced a *later* binding in the same group leaked the referenced name as a bare
+identifier (`a = b + 1; b = x * 2` lowered to `((b + 1)) + ((x*2))` — bare `b`). Added
+`_order_binds`, which dependency-orders each group (collect each bind's PATTERN-defined names and
+its value's referenced local names, then a stable fixpoint topo-sort) so every bind is lowered
+after the local binds it references. A true mutual-recursion CYCLE makes no progress and the
+remaining binds keep source order — it stays on the WASM fallback (laziness/fixpoint out of scope,
+not faked). Fixture `forward_where` (`f x = a + b where a = b+1; b = x*2; main = f 10`) RUN == 41.0
+on the substrate == ground truth (21+20). Full Haskell suite 58 passed, no regressions. Removed the
+forward-`where`/`let` item from the edge-case doc.
+
 ## 2026-06-19: Elixir/Erlang tag-checkable type-test guards (substrate type tests)
 
 Pulled the substrate-type-test item from `todo.md` (§ "Substrate type tests"; recipe in finding

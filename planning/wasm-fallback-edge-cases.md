@@ -26,9 +26,12 @@ record it in `DEVLOG.md`.
 ## Per-frontend catalogue
 
 - **Haskell** (`sutra-from-haskell/`): >2-guard NON-tail multibase (the CPS fold must pick its
-  seed from *which* base the recursion bottoms out at — a real compile-time analysis); mutually-
-  recursive / forward `where`/`let`; VARIANT `case` in expression position (the int-local limit
-  above). Laziness is out of scope entirely (not a WASM-fallback item — just unsupported).
+  seed from *which* base the recursion bottoms out at — a real compile-time analysis); VARIANT
+  `case` in expression position (the int-local limit above). **Forward (out-of-order) `where`/`let`
+  references are DONE 2026-06-19** — `_order_binds` topo-sorts each `where`/`let` group so a binding
+  is lowered after the local binds it references (fixture `forward_where` RUN == 41). Only a true
+  mutual-recursion CYCLE (binding A ↔ B) stays on the fallback — that needs laziness/fixpoint, which
+  is out of scope entirely (not a WASM-fallback item — just unsupported).
 - **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (the int-local limit).
   Dropped from active §4 per Emma — Rust is low priority. (Loop bounds: use strict `<`/`>`; `<=`
   drops the boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
