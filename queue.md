@@ -127,8 +127,13 @@ bit-identical across the full OCaml suite (152) + Scala/Haskell/Elixir/Erlang re
 compiler axon/codegen/elision (182). The cross-function elision safety tests were made fusion-aware
 (`assertMaterialized`: a key is kept whether it lands in `axon_add` or batched `axon_build`).
 
-**Remaining §1A robustness follow-on:** an LRU cap on `_axon_op_cache` for pathologically large key sets
-(not needed by current fixtures). §1B is RESOLVED (above); §1C (GPU arenas) deferred per Emma.
+**§1A is COMPLETE.** Write-path (`M_key`), read-path (`M_key^T`), batched build (`axon_build`), the
+codegen peephole wiring, AND the bounded-cache robustness follow-on are all shipped. The d×d role-keyed
+caches (`_rot_cache` + `_axon_op_cache`) are FIFO-capped (`_role_cache_cap`, default 1024) so a
+pathological key vocabulary can't grow them without limit; eviction is bit-identical (every value is a
+deterministic function of its key, so recompute == evicted). FIFO (not move-to-end LRU) keeps zero extra
+Python on the hit hot path the perf work optimized. §1B is RESOLVED (above); §1C (GPU arenas) deferred
+per Emma. **Next big leg: §2 (WASM source frontend).**
 
 ## 1B. Per-process state SERIALISATION — RESOLVED / NOT NEEDED (verified 2026-06-20)
 

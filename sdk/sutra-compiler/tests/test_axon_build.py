@@ -73,3 +73,48 @@ def test_axon_build_string_value():
         folded = v.axon_add(folded, k, val)
     built = v.axon_build(v.zero_vector(), keys, vals)
     assert torch.allclose(folded, built, atol=1e-5)
+
+
+def test_axon_op_cache_is_bounded_with_identical_recompute():
+    """The d x d role-keyed caches (_axon_op_cache + _rot_cache) are FIFO-
+    capped so a pathologically large key vocabulary can't grow them without
+    limit, and eviction is bit-identical (every entry is a deterministic
+    function of its key). Set a small cap, overflow it, and check (a) both
+    caches stay <= cap, (b) an evicted key recomputes to the SAME output."""
+    v = _vsa()
+    v._role_cache_cap = 4
+
+    # Build M_key for "k0" (also seeds _rot_cache via _axon_op_for).
+    out_before = v.axon_build(v.zero_vector(), ["k0"], [7.0])
+
+    # Overflow the cap with 8 fresh keys → "k0" is the oldest, evicted first.
+    for i in range(8):
+        v.axon_build(v.zero_vector(), ["k%d" % (i + 1)], [1.0])
+
+    assert len(v._axon_op_cache) <= 4, \
+        "axon_op_cache not bounded: %d > 4" % len(v._axon_op_cache)
+    assert len(v._rot_cache) <= 4, \
+        "rot_cache not bounded: %d > 4" % len(v._rot_cache)
+
+    # "k0" was evicted; re-building recomputes its M_key + Q from the seed.
+    # The output must be bit-identical to the pre-eviction build.
+    out_after = v.axon_build(v.zero_vector(), ["k0"], [7.0])
+    assert torch.equal(out_before, out_after), \
+        "recompute-after-evict not bit-identical (max diff %g)" % \
+        float((out_before - out_after).abs().max())
+
+
+def test_axon_op_cache_under_cap_never_evicts():
+    """A program whose key set is under the cap keeps every entry — the cap
+    is a pathological-case safety net, not something real programs hit."""
+    v = _vsa()
+    v._role_cache_cap = 64
+    keys = ["f%d" % i for i in range(10)]
+    for k in keys:
+        v.axon_build(v.zero_vector(), [k], [float(len(k))])
+    assert len(v._axon_op_cache) == 10
+    # Every key still reads back exactly — nothing was evicted/corrupted.
+    built = v.axon_build(v.zero_vector(), keys, [float(len(k)) for k in keys])
+    for k in keys:
+        got = float(torch.dot(v.axon_item(built, k), v.make_real(1.0)))
+        assert got == pytest.approx(float(len(k)), abs=1e-3)
