@@ -115,13 +115,16 @@ op (0.343→0.033ms); 83 compiler + 99 Yantra axon tests pass. Both axon write+r
 per-key matrices; not needed by current fixtures — a robustness follow-on). After it, §1A is done → §1B
 (per-process state serialisation).
 
-## 1B. Per-process state SERIALISATION — NEXT (after §1A)
+## 1B. Per-process state SERIALISATION — RESOLVED / NOT NEEDED (verified 2026-06-20)
 
-The Sutra primitive Yantra names as the blocker for Disc↔RAM↔GPU storage-tier moves: snapshot a
-process's substrate state to a portable blob and restore it (so eviction preserves running state, not
-just residency). Yantra's `kernel/checkpoint.py` + `SutraService.unload()` document the gap ("running
-state is NOT preserved across unload — needs the Sutra serialise-process-state primitive"). Decompose
-when §1A ships.
+§1B's premise is stale. Yantra's own audit `external/Yantra/planning/26-orchestrator-serialisation.md`
+§(b) (2026-05-25) concluded the Sutra-side `serialise-process-state` primitive is **not needed**:
+current Sutra is purely functional (concurrency.md: "No shared mutable state, no cross-path"), compiled
+programs carry no trainable weights, and the `_VSA` caches (`_rot_cache`/`_perm_cache`/`_codebook`, and
+now `_axon_op_cache`) are **deterministic from key strings** — they rebuild lazily on resume, they are
+not state. So "per-program substrate state is empty"; the orchestrator's own state is the whole game,
+and `kernel/checkpoint.py` already serialises it. **`Tier.RAM` cold-store SHIPPED 2026-05-25 without a
+Sutra primitive.** Nothing to build here unless Sutra gains persistent per-process mutable state.
 
 ## 1C. Per-process GPU ARENAS — LAST of the three (after §1B)
 
