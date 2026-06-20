@@ -183,6 +183,58 @@ class MultiProcessRuntime:
         prog = self._get(name)
         return prog.on_axon(input_axon)
 
+    def tick_all(self, inputs: dict[str, Any]) -> dict[str, Any]:
+        """Invoke MANY admitted programs CONCURRENTLY on one GPU.
+
+        `inputs` maps program name -> input axon. Returns name -> output
+        axon. This is the "run all admitted programs simultaneously on a
+        single GPU" primitive (concurrency.md: a concurrent program is two
+        or more simultaneous trajectories through the same embedding space;
+        every spawned path runs, none is discarded).
+
+        Mechanism: each program's `on_axon` is launched on its OWN CUDA
+        stream with no inter-stream synchronization, so the device's
+        scheduler overlaps their kernels; a single `torch.cuda.synchronize()`
+        then joins all paths before the outputs are read. The Python launch
+        loop runs sequentially under the GIL, so the shared `_VSA` lazy
+        caches (codebook / rotation / permutation dicts) are populated
+        without a data race — only the GPU kernels overlap, not the
+        cache-writing Python. On CPU (no CUDA) the streams are a no-op and
+        this degrades to correct sequential execution.
+
+        Results are IDENTICAL to calling `tick(name, input)` per program;
+        the only difference is wall-clock overlap on the device. Axon
+        routing between programs is still the caller's job — `tick_all`
+        fires one independent round, it does not thread one program's
+        output into another's input.
+        """
+        for name in inputs:
+            self._get(name)  # validate every name before launching anything
+
+        import torch as _torch
+
+        use_streams = (
+            _torch.cuda.is_available()
+            and getattr(self._shared_vsa, "device", None) is not None
+            and getattr(self._shared_vsa.device, "type", None) == "cuda"
+        )
+        if not use_streams:
+            # CPU (or non-CUDA device): correct sequential execution.
+            return {name: self._programs[name].on_axon(inp)
+                    for name, inp in inputs.items()}
+
+        # CUDA: one stream per program, launch without inter-stream sync,
+        # then a single device-wide synchronize joins every path.
+        outputs: dict[str, Any] = {}
+        streams: list[Any] = []
+        for name, inp in inputs.items():
+            s = _torch.cuda.Stream()
+            streams.append(s)
+            with _torch.cuda.stream(s):
+                outputs[name] = self._programs[name].on_axon(inp)
+        _torch.cuda.synchronize()
+        return outputs
+
     def axon_project(self, payload: Any, requested_keys: Iterable[str]) -> Any:
         """Delegate to the shared `_VSA.axon_project` (Sutra v0.3.5+)."""
         return self._shared_vsa.axon_project(payload, list(requested_keys))
