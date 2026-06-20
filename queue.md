@@ -93,11 +93,13 @@ axon programs) depend on. Steps:
       (`__iter__`→`unbind`, ~6.4ms/call). Fix: `.tolist()` (C++ bulk, not numpy), byte-identical →
       `_role_hash` 66x faster, the whole binding tick ~18x faster (347→18.8ms/8-prog round). Benefits
       EVERY binding Sutra program. CI green. See the finding.
-   Remaining follow-ons (queued, NOT urgent): (ii) per-process GPU-arena isolation; (iii) the NEXT
-   hot-spot — `_role_hash`'s `.cpu()` transfer (~1.5ms/tick), fixable by memoizing the hash by role KEY
-   (thread the key string through bind/_rotation_for/_axon_permutation_for) or stable-embed-objects
-   (codebook-mutation care); another ~2x. Both need fresh-context care — see the finding's "Next
-   hot-spot" section. The compile-time fusion pass is the deeper lever after that.
+   f. **DONE 2026-06-20 — memoized `_role_hash` by role key (the `.cpu()` hot-spot).** Threaded the
+      role KEY STRING through axon_add/axon_item → bind/unbind/_axon_permutation_for/_rotation_for →
+      _role_hash, memoizing the hash by key (deterministic `embed`, string-keyed so no collision risk;
+      `role_key=None` keeps the vector path). 18.8ms → 8.4ms (~2.2x more; **~41x total** from original).
+      `tick_all` now 1.33x. 85 + 37 tests pass. See the finding.
+   Remaining follow-ons (queued, NOT urgent): (ii) per-process GPU-arena isolation; the compile-time
+   FUSION PASS is the deeper lever for the remaining ~61% per-op orchestration (a bigger compiler leg).
 
 ---
 

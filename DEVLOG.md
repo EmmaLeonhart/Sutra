@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-20: PERF — memoize `_role_hash` by role key; ~41x total faster binding tick
+
+Fixed the next hot-spot after the `.tolist()` fix: `_role_hash`'s `.cpu()` GPU→CPU transfer, recomputed
+every tick because `embed` returns a `.clone()` (fresh object, nothing to memoize on). Threaded the
+role KEY STRING through `axon_add`/`axon_item` → `bind`/`unbind`/`_axon_permutation_for`/`_rotation_for`
+→ `_role_hash`, which memoizes the hash by the key string (`embed(key)` is deterministic, so the hash
+is a pure function of the key; memo keyed by string only, so no vector-collision risk). `role_key=None`
+(bare bind/bundle builtins) computes from the vector as before — fully backward-compatible. Measured:
+8-program tick round 18.8ms → 8.4ms (another ~2.2x; ~41x total from the original 347.6ms). `tick_all` is
+now 1.33x vs sequential (Python down to 61% of the round, so the GPU overlap finally pays). 85 axon/
+bind/rotation + 37 Yantra-kernel tests pass (byte-identical hashes). Updated the finding.
+
 ## 2026-06-20: PERF — `_role_hash` 66x faster (`bytes(tensor)` → `.tolist()`); ~18x faster binding tick
 
 Profiling the "98% Python" from the tick_all benchmark found the culprit: `_role_hash` (the rotation/

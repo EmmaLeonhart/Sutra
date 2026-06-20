@@ -609,7 +609,7 @@ class PyTorchCodegen(Codegen):
         self._emit("return _urllib_parse.unquote(labels[0])")
         self._indent -= 1
         self._emit()
-        self._emit("def _role_hash(self, role_vec):")
+        self._emit("def _role_hash(self, role_vec, role_key=None):")
         self._indent += 1
         self._emit('"""Deterministic uint32 seed from a role tensor.')
         self._emit('')
@@ -622,7 +622,29 @@ class PyTorchCodegen(Codegen):
         self._emit("bind() — including cache hits — to compute the rot_cache")
         self._emit("key), which violated the 'numpy is compile-and-monitor only,")
         self._emit("never on the runtime hot path' rule in CLAUDE.md.")
+        self._emit('')
+        self._emit("When the caller knows the role's KEY STRING (axon_add / axon_item")
+        self._emit("/ a keyed bind), pass `role_key` to MEMOIZE the hash by that")
+        self._emit("string: embed(key) is deterministic, so the hash is a pure")
+        self._emit("function of the key, and the memo skips the per-call .cpu()")
+        self._emit("transfer + tolist that otherwise dominates a binding tick (the")
+        self._emit("next hot-spot after the .tolist() fix; finding 2026-06-20).")
+        self._emit("role_key=None (bind/unbind builtins, bundle) computes from the")
+        self._emit("vector as before. The memo is keyed by string only, so a wrong")
+        self._emit("key cannot collide a different vector onto a cached hash.")
         self._emit('"""')
+        self._emit("if role_key is not None:")
+        self._indent += 1
+        self._emit("if not hasattr(self, '_role_hash_by_key'):")
+        self._indent += 1
+        self._emit("self._role_hash_by_key = {}")
+        self._indent -= 1
+        self._emit("_cached = self._role_hash_by_key.get(role_key)")
+        self._emit("if _cached is not None:")
+        self._indent += 1
+        self._emit("return _cached")
+        self._indent -= 1
+        self._indent -= 1
         self._emit("import hashlib")
         self._emit("# View as uint8 reinterprets the underlying bytes without copying,")
         self._emit("# then `.tolist()` (a torch C++ bulk conversion, NOT numpy and NOT")
@@ -638,10 +660,15 @@ class PyTorchCodegen(Codegen):
         self._emit("# pathologically slow per-element iteration `bytes(tensor)` introduced.")
         self._emit("b = bytes(role_vec.detach().cpu().contiguous().view(_torch.uint8).tolist())")
         self._emit("h = hashlib.blake2b(b, digest_size=8).digest()")
-        self._emit("return int.from_bytes(h, 'little') & 0xFFFFFFFF")
+        self._emit("_val = int.from_bytes(h, 'little') & 0xFFFFFFFF")
+        self._emit("if role_key is not None:")
+        self._indent += 1
+        self._emit("self._role_hash_by_key[role_key] = _val")
+        self._indent -= 1
+        self._emit("return _val")
         self._indent -= 1
         self._emit()
-        self._emit("def _rotation_for(self, role_vec):")
+        self._emit("def _rotation_for(self, role_vec, role_key=None):")
         self._indent += 1
         self._emit('"""Block-diagonal Haar rotation seeded by the role tensor.')
         self._emit('')
@@ -655,7 +682,7 @@ class PyTorchCodegen(Codegen):
         self._emit("Cached per role-hash so the same role always produces the same")
         self._emit("rotation — required for bind/unbind round-trip.")
         self._emit('"""')
-        self._emit("key = self._role_hash(role_vec)")
+        self._emit("key = self._role_hash(role_vec, role_key)")
         self._emit("if key not in self._rot_cache:")
         self._indent += 1
         self._emit("import numpy as _np_bridge")
@@ -675,11 +702,11 @@ class PyTorchCodegen(Codegen):
         self._emit("return self._rot_cache[key]")
         self._indent -= 1
         self._emit()
-        self._emit("def bind(self, role, filler):")
+        self._emit("def bind(self, role, filler, role_key=None):")
         self._indent += 1
         self._emit("# Rotation binding. bind(role, filler) = Q_role @ filler. Role-")
         self._emit("# first convention (matches numpy backend and the .su demos).")
-        self._emit("Q = self._rotation_for(role)")
+        self._emit("Q = self._rotation_for(role, role_key)")
         self._emit("# Defensively coerce filler to runtime device + dtype so a")
         self._emit("# host-side caller passing a CPU tensor doesn't device-mismatch")
         self._emit("# Q (which lives on self.device). No-op when filler is already")
@@ -688,11 +715,11 @@ class PyTorchCodegen(Codegen):
         self._emit("return Q @ filler")
         self._indent -= 1
         self._emit()
-        self._emit("def unbind(self, role, record):")
+        self._emit("def unbind(self, role, record, role_key=None):")
         self._indent += 1
         self._emit("# Q is orthogonal so unbind(role, record) = Q_role^T @ record.")
         self._emit("# Round-trip: unbind(r, bind(r, v)) = Q^T @ Q @ v = v exactly.")
-        self._emit("Q = self._rotation_for(role)")
+        self._emit("Q = self._rotation_for(role, role_key)")
         self._emit("# Same device-coherence defence as bind(): tolerate a CPU")
         self._emit("# record from a host-side caller without crashing.")
         self._emit("record = _torch.as_tensor(record, dtype=self.dtype, device=self.device)")
@@ -996,13 +1023,13 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
         self._indent -= 1
         self._emit()
-        self._emit("def _axon_permutation_for(self, role_vec):")
+        self._emit("def _axon_permutation_for(self, role_vec, role_key=None):")
         self._indent += 1
         self._emit('"""Per-key deterministic permutation of the synthetic block.')
         self._emit('Cached per role-hash, just like _rotation_for. Returns a')
         self._emit('long tensor of synthetic_dim indices on the device.')
         self._emit('"""')
-        self._emit("key = self._role_hash(role_vec)")
+        self._emit("key = self._role_hash(role_vec, role_key)")
         self._emit("if not hasattr(self, '_perm_cache'):")
         self._indent += 1
         self._emit("self._perm_cache = {}")
@@ -1082,8 +1109,13 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("value = self.make_string(value)")
         self._indent -= 1
-        self._emit("rotated = self.bind(key_vec, value)")
-        self._emit("perm = self._axon_permutation_for(key_vec)")
+        self._emit("# Memoize the rotation/permutation hash by the KEY STRING when we")
+        self._emit("# have it (a str key, embedded deterministically) — skips the")
+        self._emit("# per-call .cpu() hash. A non-str key (pre-embedded vector) has no")
+        self._emit("# stable string, so role_key=None falls back to hashing the vector.")
+        self._emit("_rk = key if isinstance(key, str) else None")
+        self._emit("rotated = self.bind(key_vec, value, role_key=_rk)")
+        self._emit("perm = self._axon_permutation_for(key_vec, role_key=_rk)")
         self._emit("return axon + self._axon_permute_synthetic(rotated, perm)")
         self._indent -= 1
         self._emit()
@@ -1138,9 +1170,10 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("self._fv_key_trace['read'].add(key if isinstance(key, str) else '<dynamic>')")
         self._indent -= 1
-        self._emit("perm = self._axon_permutation_for(key_vec)")
+        self._emit("_rk = key if isinstance(key, str) else None")
+        self._emit("perm = self._axon_permutation_for(key_vec, role_key=_rk)")
         self._emit("unpermuted = self._axon_unpermute_synthetic(axon, perm)")
-        self._emit("return self.unbind(key_vec, unpermuted)")
+        self._emit("return self.unbind(key_vec, unpermuted, role_key=_rk)")
         self._indent -= 1
         self._emit()
         # ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----

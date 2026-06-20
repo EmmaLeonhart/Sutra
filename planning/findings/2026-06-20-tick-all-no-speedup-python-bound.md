@@ -24,16 +24,17 @@ not just multi-process. 72 axon/bind/rotation/multi-process tests pass (byte-ide
 After the fix `tick_all` is 1.08x vs sequential (the concurrency finally shows a small benefit) and the
 round is 84% Python at the new, ~18x-lower absolute time (~3.1ms/tick).
 
-**Next hot-spot (re-profiled, NOT yet fixed — queued).** `_role_hash` is still ~68% of the (now tiny)
-tick, dominated by its `.cpu()` GPU→CPU transfer (~0.26ms × 6 calls/tick ≈ 1.5ms/tick). The hash is
-recomputed every tick because `embed`/`basis_vector` return a `.clone()` of the codebook entry (fresh
-object each call), so nothing is stable to memoize on. Eliminating it (another ~2x) needs one of: (a)
-thread the role KEY STRING through `bind`/`_rotation_for`/`_axon_permutation_for`/`_role_hash` so the
-hash memoizes by key (clean, but a multi-method signature change); or (b) make `embed` return the
-cached codebook object (no clone) so `_role_hash` can memoize by `id` — faster but risks codebook
-corruption if any caller mutates an embed result in place (today they appear read-only, but that
-contract isn't enforced). Both are careful changes, not done here. The compile-time fusion pass remains
-the deeper lever for the genuine per-op orchestration once this hash cost is gone.
+**Next hot-spot — FIXED (option a, the key-memo).** `_role_hash`'s `.cpu()` GPU→CPU transfer was the
+remaining ~68% of the (now tiny) tick, recomputed every tick because `embed` returns a `.clone()`
+(fresh object). Fixed by threading the role KEY STRING through `axon_add`/`axon_item` →
+`bind`/`unbind`/`_axon_permutation_for` → `_role_hash`, which memoizes the hash by the key string
+(`embed(key)` is deterministic, so the hash is a pure function of the key; the memo is keyed by string
+only, so it cannot collide a different vector onto a cached hash). `role_key=None` (the bare
+`bind`/`bundle` builtins) computes from the vector as before. Measured: 18.8ms → **8.4ms/8-prog round**
+(another ~2.2x; **~41x total** from the original 347.6ms). `tick_all` is now **1.33x** vs sequential —
+Python is down to 61% of the round, so the GPU overlap finally pays. 85 axon/bind/rotation +
+37 Yantra-kernel tests pass (byte-identical hashes). The compile-time fusion pass remains the deeper
+lever for the genuine per-op orchestration (the remaining 61%).
 
 ---
 
