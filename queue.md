@@ -107,9 +107,13 @@ identical (max diff 0.0; 100 tests pass). Sequential tick ~2x (6.8→3.3ms); `ti
 (5.9–6.6ms) — op-count reduction confirmed (vs the reverted attempt-1 cat-fusion). See the finding
 §"attempt 2".
 
-**Remaining §1A sub-steps:** (i) the symmetric `axon_item` READ-path fusion (an inverse fused operator,
-same shape); (ii) an LRU cap on `_axon_op_cache` for pathologically large key sets (the d×d-per-key
-matrices; not needed by current fixtures). Then §1A is done → §1B.
+**Read-path fusion — SHIPPED 2026-06-20.** `axon_item == M_key^T @ axon` (one matmul, reuses the cached
+M_key; the inverse is the transpose since Q is orthogonal + P_perm a permutation). Bit-identical, ~10x/
+op (0.343→0.033ms); 83 compiler + 99 Yantra axon tests pass. Both axon write+read are now single-matmul.
+
+**Remaining §1A sub-step:** an LRU cap on `_axon_op_cache` for pathologically large key sets (the d×d-
+per-key matrices; not needed by current fixtures — a robustness follow-on). After it, §1A is done → §1B
+(per-process state serialisation).
 
 ## 1B. Per-process state SERIALISATION — NEXT (after §1A)
 
