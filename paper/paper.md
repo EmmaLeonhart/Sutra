@@ -14,6 +14,35 @@ The same artifact is therefore both a logic program and a trainable neural netwo
 
 ---
 
+## Background
+
+A frozen embedding model is a pretrained neural network, a text encoder or a
+protein language model, that maps each input to a fixed point in a
+high-dimensional continuous vector space. The mapping is deterministic and is not
+retrained; the space and its geometry are given. This paper treats such a space as
+a computational substrate: a place to store, compose, and retrieve structured
+values, not only to measure similarity.
+
+The operations that make a vector space usable this way come from Vector Symbolic
+Architectures, also called hyperdimensional computing (Plate 1995; Gayler 2003;
+Kanerva 2009). Three are central. Binding composes a role with a filler into a
+single vector dissimilar to both. Bundling superposes several vectors into one that
+stays similar to each. Cleanup decodes a noisy or superposed vector back to the
+nearest stored item. Together these let a record, a sequence, or a graph be carried
+as one fixed-width vector and queried by vector arithmetic, the property a
+programming language can build data structures on.
+
+The textbook binding operators, the Hadamard product and circular convolution, were
+derived for hypervectors drawn from a controlled random distribution. Frozen
+embedding spaces do not meet that assumption: they are strongly anisotropic,
+concentrating in a narrow cone, so similarity is compressed even between unrelated
+items. Relational structure nonetheless persists in these spaces as consistent
+displacement directions, which prior work characterised by relational-displacement
+analysis of frozen embeddings. The question this raises, which operation actually
+binds reliably on a real frozen substrate, is where the paper begins.
+
+---
+
 ## Introduction
 
 A frozen embedding model maps strings (or amino-acid sequences,
