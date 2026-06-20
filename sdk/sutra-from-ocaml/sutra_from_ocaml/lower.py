@@ -2119,6 +2119,9 @@ def _try_lower_tail_recursive(
 # only for ops where order does not matter — `+` and `*`. NOT `-` / `/` (the
 # reversed fold would change the value): those stay UNSUPPORTED, not faked.
 _FOLD_OPS = {"+", "*"}
+# Identity element for seeding a non-tail fold accumulator (used by the multibase
+# non-tail fold, which post-combines `_acc OP base_blend` rather than pre-seeding BASE).
+_FOLD_IDENTITY = {"+": "0", "*": "1"}
 
 
 def _try_lower_foldable_nontail_recursive(
@@ -2219,6 +2222,131 @@ def _try_lower_foldable_nontail_recursive(
     return loop_decl + fn
 
 
+def _try_lower_multibase_nontail_recursive(
+    name: str, params: list[tuple[str, str]], ret: str, body, source: bytes,
+) -> Optional[str]:
+    """Multibase NON-tail recursion written as a nested if/else-if chain, e.g.
+    `let rec f a b = if a=0 then b else if a=1 then b+100 else a + f (a-1) b` (any arity,
+    >=2 bases). Flatten the chain into bases + the recursive fold STEP (the final else),
+    then emit a MULTI-arg CPS fold: a `while_loop` carrying every recursion arg + a
+    synthetic `_acc` seeded to the OP identity, folding the leaf at each step's current
+    state, with the post-loop value `_acc OP base_blend(final state)` (the base the
+    recursion bottoms out at IS the seed — the seed-selection). OP must be
+    associative+commutative (`+`/`*`). The single-base / single-if shape is handled by
+    `_try_lower_foldable_nontail_recursive`; this is the >=2-base generalisation. Returns
+    the emitted Sutra or None."""
+    if body.type != "if_expression" or not params:
+        return None
+    arity = len(params)
+
+    def _contains_self(n):
+        if _self_call_args(n, name, arity, source) is not None:
+            return True
+        return any(_contains_self(c) for c in n.named_children)
+
+    # Flatten the if/else-if chain into [(cond_or_None, value), …]; final else has cond None.
+    chain: list = []
+    node = body
+    while True:
+        if node.type != "if_expression":
+            return None
+        cond = node.child_by_field_name("condition")
+        then_c = next((c for c in node.named_children if c.type == "then_clause"), None)
+        else_c = next((c for c in node.named_children if c.type == "else_clause"), None)
+        if (cond is None or then_c is None or else_c is None
+                or not then_c.named_children or not else_c.named_children):
+            return None
+        chain.append((cond, then_c.named_children[0]))
+        else_e = else_c.named_children[0]
+        ue = _unwrap_parens(else_e)
+        if ue.type == "if_expression":
+            node = ue
+            continue
+        chain.append((None, else_e))
+        break
+    if len(chain) < 3:
+        return None  # <2 bases → the single-if foldable path handles it
+    # The recursive STEP must be the final else; all earlier (cond, value) are bases.
+    if chain[-1][0] is not None or not _contains_self(chain[-1][1]):
+        return None
+    bases = chain[:-1]
+    if any(_contains_self(v) for _c, v in bases):
+        return None  # a base contains recursion → not this shape
+
+    # STEP = LEAF OP f(REC…): exactly one operand is the arity-N self-call.
+    step = _unwrap_parens(chain[-1][1])
+    if step.type != "infix_expression":
+        return None
+    op = step.child_by_field_name("operator")
+    left = step.child_by_field_name("left")
+    right = step.child_by_field_name("right")
+    if op is None or left is None or right is None:
+        return None
+    op_text = _node_text(op, source)
+    if op_text not in _FOLD_OPS:
+        return None
+    lc = _self_call_args(_unwrap_parens(left), name, arity, source)
+    rc = _self_call_args(_unwrap_parens(right), name, arity, source)
+    if (lc is None) == (rc is None):
+        return None
+    leaf, rec_args = (right, lc) if lc is not None else (left, rc)
+
+    # continue = loop while NO base condition holds (`&&` of negated base conds).
+    neg_terms: list = []
+    for cond, _v in bases:
+        neg = _negate_cond(cond, source)
+        if neg is None or "UNSUPPORTED" in neg:
+            return None
+        neg_terms.append(f"({neg})")
+    cont = " && ".join(neg_terms)
+    # Post-loop base blend keyed by each base cond on the FINAL state (last base = bare else).
+    rendered: list = []
+    for cond, v in bases:
+        csrc = _lower_expression(cond, source)
+        vsrc = _lower_expression(v, source)
+        if "UNSUPPORTED" in csrc or "UNSUPPORTED" in vsrc:
+            return None
+        rendered.append((csrc, vsrc))
+    base_src = rendered[-1][1]
+    for csrc, vsrc in reversed(rendered[:-1]):
+        base_src = _blend(csrc, vsrc, base_src)
+
+    sutra_op = _OP_MAP.get(op_text, op_text)
+    identity = _FOLD_IDENTITY[op_text]
+    leaf_src = _lower_expression(leaf, source)
+    rec_srcs = [_lower_expression(a, source) for a in rec_args]
+    if "UNSUPPORTED" in leaf_src or any("UNSUPPORTED" in s for s in rec_srcs):
+        return None
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{t} {p} = 0" for p, t in params)
+    temp_decls = "".join(f"    {t} _t{i} = {rec_srcs[i]};\n"
+                         for i, (_p, t) in enumerate(params))
+    assigns = "".join(f"    {p} = _t{i};\n" for i, (p, _t) in enumerate(params))
+    slot_lines = "".join(f"    slot {t} _{p}_r = {p};\n" for p, t in params)
+    slot_args = ", ".join(f"_{p}_r" for p, _t in params)
+    writeback = "".join(f"    {p} = _{p}_r;\n" for p, _t in params)
+    params_src = ", ".join(f"{t} {p}" for p, t in params)
+    loop_decl = (
+        f"while_loop {loop_name}({cont}, {state_decls}, {ret} _acc = 0) {{\n"
+        f"{temp_decls}"
+        f"    {ret} _t_acc = _acc {sutra_op} {leaf_src};\n"
+        f"{assigns}"
+        f"    _acc = _t_acc;\n"
+        f"}}\n"
+    )
+    fn = (
+        f"function {ret} {name}({params_src}) {{\n"
+        f"    {ret} _acc = {identity};\n"
+        f"{slot_lines}"
+        f"    slot {ret} _acc_r = _acc;\n"
+        f"    loop {loop_name}({cont}, {slot_args}, _acc_r);\n"
+        f"{writeback}"
+        f"    return _acc_r {sutra_op} {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
                        is_rec: bool = False) -> str:
     kids = lb.named_children
@@ -2314,6 +2442,12 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
         fold = _try_lower_foldable_nontail_recursive(name, params, ret, body, source)
         if fold is not None:
             return fold
+        # MULTIBASE non-tail (>=2 bases via nested if/else-if, any arity) — the multi-arg
+        # CPS fold with the base seed selected from whichever base the recursion bottoms
+        # out at. The single-base/single-if case is handled by the fold above.
+        mb = _try_lower_multibase_nontail_recursive(name, params, ret, body, source)
+        if mb is not None:
+            return mb
         return (
             f"// UNSUPPORTED-LET-REC: recursive function '{name}' is not the "
             "tail-recursive accumulator shape nor a foldable (+/*) non-tail "
