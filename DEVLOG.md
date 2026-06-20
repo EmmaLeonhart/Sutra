@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-19: OCaml multibase NON-tail recursion (nested if/else-if) lowers natively
+
+Branch `wasm-fallback-edge-cases-native`. After the parity check found multibase non-tail recursion
+UNSUPPORTED across OCaml/Scala/F#/Rust (finding `2026-06-19-multibase-nontail-gap-…`), Emma chose to
+port the fold recipe to all four — done ONE frontend at a time. OCaml first (the reference):
+`_try_lower_multibase_nontail_recursive` flattens the nested `if/else if/else` chain into bases +
+the recursive fold STEP (the final else), then emits the multi-arg CPS fold (a `while_loop` carrying
+every recursion arg + `_acc` seeded to the OP identity, folding the leaf each step, post-combining
+`_acc OP base_blend(final state)` — the base the recursion bottoms out at is the seed). Added
+`_FOLD_IDENTITY`; wired after the single-base fold in the `let rec` dispatch.
+
+Fixture `multiarg_nontail_multibase` (`let rec f a b = if a=0 then b else if a=1 then b+100 else
+a + f (a-1) b; f 3 10`) RUN == 115.0 on the substrate == ground truth (3+2+(10+100)). OCaml suite
+passed (golden + run), no regressions. Scala/F#/Rust still pending (same recipe, pulled into the
+queue one at a time).
+
 ## 2026-06-19: Rust VARIANT inner `match` + nested `if let` in expression position lower natively
 
 Branch `wasm-fallback-edge-cases-native`, seventh edge case — the Rust half of the shared "int-local

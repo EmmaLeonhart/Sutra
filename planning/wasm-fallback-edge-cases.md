@@ -59,12 +59,14 @@ record it in `DEVLOG.md`.
   or a compiler-level change to the dict default — neither is clean in a few cycles, and the
   straight-line "write before read" pattern makes the fill moot in practice. Do not re-attempt
   without a concrete consumer that reads an unwritten slot expecting the fill.
-  - **NEW gap found 2026-06-19 (not yet fixed): multibase NON-tail recursion.** A parity check after
+  - **Multibase NON-tail recursion (found 2026-06-19; Emma: port to all 4).** A parity check after
     clearing the Elixir/Erlang/Haskell multibase-non-tail items showed OCaml, Scala, F#, AND Rust all
     `UNSUPPORTED` a ≥2-base non-tail recursion (`f a b = if a==0 then b else if a==1 then b+100 else
-    a + f (a-1) b`). The proven fold recipe ports, but their multibase is a nested `if/else if/else`
-    (needs else-if-chain flattening) + multi-arg carry — >few-cycles × 4 frontends. Surfaced to Emma
-    for a scope call; see finding `2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md`.
+    a + f (a-1) b`). The fold recipe ports; the wrinkle is their multibase is a nested `if/else if/else`
+    (needs else-if-chain flattening) + multi-arg carry. **OCaml DONE 2026-06-19**
+    (`_try_lower_multibase_nontail_recursive`; fixture `multiarg_nontail_multibase` RUN == 115).
+    Scala / F# / Rust still pending (same recipe, ported one at a time). Finding:
+    `2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md`.
 - **F# / Scala** (`sutra-from-{fsharp,scala}/`): general breadth (closures, generics, traits /
   instance classes, more String ops), modelled on OCaml as needs arise. F# additionally can't build
   its grammar DLL on the SutraDev clone (MSVC error), so F# work needs a clone where the grammar
