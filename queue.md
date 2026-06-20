@@ -48,15 +48,22 @@ axon programs) depend on. Steps:
    `_VSA`, but `tick(name, input)` dispatches SEQUENTIALLY (one program per call; relies on incidental
    CUDA scheduling). Concrete first step — true concurrent dispatch (the concurrency-spec "multiple
    paths through vector space, computed for each, splitting"):
-   a. `tick_all(inputs: dict[name, axon]) -> dict[name, axon]`: launch each program's `on_axon` on its
-      OWN `torch.cuda.Stream` (no inter-stream sync), then `torch.cuda.synchronize()` and collect, so
-      the GPU overlaps them. Python launch stays sequential under the GIL (so the shared-`_VSA` lazy
-      caches don't race); only the device kernels overlap. CPU fallback: plain sequential (streams are
-      a CPU no-op), correctness preserved.
-   b. Test (`test_multi_process_runtime.py`): `tick_all` results are IDENTICAL to per-program `tick`
-      (correctness first); N independent programs dispatch concurrently and all outputs are correct.
-   c. Wire Yantra's kernel router to `tick_all` for a round of admitted services (follow-on, after the
-      primitive lands + is tested).
+   a. **DONE (`eb9fcece`).** `tick_all(inputs: dict[name, axon]) -> dict[name, axon]`: per-program
+      `torch.cuda.Stream` launch + one `torch.cuda.synchronize()`; GPU overlaps the kernels, Python
+      launch sequential under the GIL so the shared-`_VSA` caches don't race; CPU-sequential fallback.
+   b. **DONE (`eb9fcece`).** Tests: `tick_all` == per-program `tick` (bit-identical), name-validation-
+      before-launch, empty round; 13/13 `test_multi_process_runtime.py`, compiler CI green.
+   c. **NEXT — Yantra `init.tick()` concurrent refactor.** `init.tick()` (external/Yantra/kernel/
+      init.py:330) loops GPU-resident services SEQUENTIALLY (`ap.service.tick()`), though its own
+      docstring says the production model "runs every GPU-resident process simultaneously". Real
+      refactor (not a one-liner): `SutraService.tick()` bundles inbox-drain + `on_axon` + route, and
+      `tick_all` needs the SHARED-runtime services grouped (Yantra already has optional
+      MultiProcessRuntime wiring — `services.py:163`, the `_runtime` field). Plan: for the subset of
+      GPU-resident services backed by ONE shared MultiProcessRuntime, split `service.tick()` into
+      (drain inbox → input) / (run) / (route output), gather inputs across that subset, one
+      `runtime.tick_all(inputs)`, then route each output. Per-service-`_VSA` services stay on the
+      sequential path. Verify Yantra's kernel tests still pass + the concurrent round is
+      result-identical to the sequential one. (Fresh-context chunk; tick_all primitive already landed.)
 
 ---
 
