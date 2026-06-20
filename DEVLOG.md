@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-19: direct-RAM rework — lazy linear memory is now a tensor, not a Python list
+
+Resolved the RAM scaling limit (finding `2026-06-19-ram-device-scaling-limit.md`) for the
+lazily-allocated path, per Emma's call that the device "can't be python, needs direct ram and wasm
+if necessary." The no-orchestrator RAM (Bytes.make / OCaml arrays / the attn number-tape) is now a
+DIRECT 1D `torch` tensor of real-axis scalars, grown by doubling: one scalar per cell instead of a
+pre-grown list of d-vectors. `ram_write` stores the value's real-axis scalar (`_vt` if the value is a
+0-d scalar, else `dot(val_vec, e_real)`); `ram_read` scatters the stored 0-d scalar onto AXIS_REAL (a
+tensor op, no host readout). The EXTERNAL orchestrator-attached path stays a list of vectors,
+unchanged (iso5 / ntm_ram attach + index `self.ram` as a list, including genuine multi-axis VRAM
+vectors).
+
+Measured on the substrate: lazy scalar (Bytes/array) round-trips (ram[2]=77, ram[0]=10, unwritten=0);
+lazy number-vector (attn tape: `make_real(7)`, `make_real(3)+make_real(5)=8`) round-trips via its real
+component; a 5,000,000-cell write lands at 20 MB (a 1D float32 tensor) with no OOM, versus ~17 GB for
+5M d-vectors before; the orchestrator list path is byte-identical (list ram[3]=55, stays a list). The
+1D scalar tensor is also the WASM-linear-memory-compatible shape. This is the direct-RAM half of the
+comprehensive substrate audit's follow-ups.
+
 ## 2026-06-19: comprehensive substrate audit + REAL LEAK #11 fix (js_strict_eq)
 
 Emma-scoped full substrate-purity audit across all four lenses (dispatch host-readout, state-locus,
