@@ -33,6 +33,16 @@ multibase, F# no-parens app-as-infix-operand, Haskell >2-guard non-tail multibas
 `case` in expr position, Rust variant-inner-`match` + nested `if let` (shared int-local limit fully
 closed across Haskell+Rust).
 
+## Surfaced for Emma's decision (2026-06-19)
+
+A parity check turned up a REAL, undocumented gap: **multibase NON-tail recursion is UNSUPPORTED in
+OCaml, Scala, F#, and Rust** (the doc only listed it open for Elixir/Erlang/Haskell, which are now
+fixed). The proven fold recipe ports, but these four write multibase as a nested `if/else if/else`
+(needs else-if flattening) + multi-arg carry — a >few-cycles × 4-frontend feature, beyond the
+edge-case doc's policy and beyond what this (deprioritized) session was scoped for. Finding:
+`planning/findings/2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md`. **Awaiting Emma's
+call** (take it on now / defer to todo.md / leave on the WASM fallback).
+
 Next: pick up a genuine new construct only if one surfaces (a real consumer, a new frontend feature),
 or hand back. Do NOT manufacture vague breadth tasks.
 
