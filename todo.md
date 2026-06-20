@@ -608,15 +608,23 @@ the lever that removes branch/path explosion.**
   § S1): the breach class that cost the most weeks (C5, "dispatch
   cleanliness mistaken for sufficiency") has the *weakest* automation —
   only the dispatch leak-sweep is a hard gate; the other three are
-  manual/cron prose checks. Targets: a dimension gate (zero `basis_vector`
-  + large `runtime_dim` fails unless waived), a state-locus gate (any
-  "RNN"/"recurrent" label needs a walk-N-steps-no-host-extraction test —
-  `count.su`'s test is the template), a signal-separation gate (any
-  classifier ships a measured `gap = min(pos)−max(neg)` table —
-  `test_font_bound.py` is the template). **Needs gate-semantics design
-  first** (which `.su` claim dim-minimality vs. tutorials that legitimately
-  use the default; how to waive) — Emma's call before building, since it
-  touches the substrate rails. Not auto-started.
+  manual/cron prose checks. Targets:
+  - **Dimension gate — ✅ build-time sweep SHIPPED 2026-06-20.**
+    `experiments/dimension_audit_sweep.py` statically flags `.su` that use no
+    codebook (no basis_vector/embed, no axon string-keys — the same signal the
+    compile-time warning uses), so they're dimension-reducible. Gate-semantics
+    call (made in-session, conservative): ADVISORY by default (exit 0 — using the
+    default dim in a tutorial is legitimate, not a bug), `--strict` to fail;
+    reports real programs (examples/demos — the actionable set, e.g. the GUI
+    demos that are the documented 96× breach) separately from corpus fixtures
+    (expected codebook-free). Detection pinned by `tests/test_dimension_audit.py`.
+  - **State-locus gate** (any "RNN"/"recurrent" label needs a
+    walk-N-steps-no-host-extraction test — `count.su`'s test is the template) and
+    **signal-separation gate** (any classifier ships a measured
+    `gap = min(pos)−max(neg)` table — `test_font_bound.py` is the template) — these
+    two need a per-`.su` CLAIM annotation (which program asserts it's an RNN / is a
+    classifier) before they can be swept; the dimension one didn't (codebook-use is
+    intrinsic). Decompose the annotation surface when picked up.
 - **Contract obligation (§3.1) — the genuinely-hard family. Two halves
   discharged, one open.** A program `p` with axon-typed contract `C` must:
   read only `C.read_roles`, write only `C.write_roles`, AND compute the
