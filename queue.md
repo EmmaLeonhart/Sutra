@@ -40,8 +40,13 @@ axon programs) depend on. Steps:
    reads) — REVERTED it (commit `fb58373d`); the `is_axon` type-test is a documented negative result.
    Yantra substrate suite (echo/axon_serialise/linux_000/symbol_fidelity/calc/kernel) green; main CI
    green.
-2. **NEXT:** run the FULL Yantra test suite (not just substrate-facing) to catch any remaining drift;
-   confirm the precompile caches regenerate against the current compiler.
+2. **DONE 2026-06-20.** Ran the FULL Yantra suite (tests/ + orchestrator/tests/) against the current
+   SutraDev compiler (PYTHONPATH override; confirmed `sutra_compiler.__file__` resolves into SutraDev):
+   **208 passed, 1 xfailed** — no drift from this session's codegen change (the `axon_build` peephole).
+   Precompile-cache regeneration confirmed: `cached_compile._cache_key` hashes the codegen SOURCE
+   (`_CODEGEN_SOURCE_FILES = codegen_pytorch.py + codegen_base.py`), so any SutraDev codegen edit
+   auto-invalidates every consumer's on-disk cache and regenerates on next compile — the suite exercised
+   exactly this (cache-miss → regenerate → pass), and wrote no stale artifacts into the vendored tree.
 3. **Multi-process Sutra runtime — ACTIVE (Emma 2026-06-20 chose this entry point).** Let the
    orchestrator run all admitted programs SIMULTANEOUSLY on one GPU. `MultiProcessRuntime`
    (`sdk/sutra-compiler/sutra_compiler/multi_process.py`) already hosts N programs over a shared

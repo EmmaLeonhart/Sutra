@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-20: Cross-repo health check — full Yantra suite green against the peephole compiler
+
+Ran the FULL vendored-Yantra suite (`external/Yantra/tests/` + `orchestrator/tests/`) against this repo's
+compiler (PYTHONPATH override forcing `sutra_compiler` to resolve into SutraDev, not the sibling
+`Github\Sutra` editable install) to catch any downstream drift from the `axon_build` peephole landed this
+session. **208 passed, 1 xfailed** — no Yantra substrate program regressed. Precompile-cache regeneration
+confirmed by inspection + behaviour: `cached_compile._cache_key` mixes in a SHA-256 over the codegen
+source files (`codegen_pytorch.py` + `codegen_base.py`), so a SutraDev codegen edit auto-invalidates every
+consumer's on-disk `.compiled-sutra<ver>-<hash>.py` cache and regenerates on next compile; the suite did
+exactly this (cache-miss → regenerate → pass) and left no stale artifacts in the vendored tree (kernel
+tests compile via a redirected cache dir). Discharges queue §1 step 2 (full-suite drift check + cache
+regeneration). The peephole only changes op COUNT, so results are bit-identical — the green suite is the
+end-to-end confirmation of that across every Yantra `.su`.
+
 ## 2026-06-20: FUSION PASS — codegen wiring: `axon_build` peephole batches consecutive `.add` runs
 
 Wired the batched `axon_build` primitive into the codegen (Emma's "extend the fusion pass"). New
