@@ -32,6 +32,7 @@ _RUNNABLE = {
     "add_main": 16.0,  # let add a b = a + b; let main () = add 7 9
     "if_classify": 100.0,  # if n > 0 then 100 else 200; classify 5  (if -> defuzz blend)
     "paren_sum": 26.0,  # (add 7 9) + (double 5)  (parenthesized application + infix)
+    "noparen_app_infix": 30.0,  # classify "foo" + classify "bar" = 10+20  (NO-PARENS curried application as an infix operand: the grammar parses (f x + g) y; re-associate application(infix(L,op,R),args) -> L op (R args))
     "match_literal": 200.0,  # match n with | 1 -> 100 | 2 -> 200 | _ -> 300; classify 2
     "bool_match": 10.0,  # f (b: bool) = match b with | true -> 10 | false -> 20; main = f true  (Bool match -> (b == true/false) blend; bool const -> true/false)
     "match_bind": 160.0,  # match n with | 0 -> 100 | x -> x * 10; (classify 0)+(classify 6) = 100+60
