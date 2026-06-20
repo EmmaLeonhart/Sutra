@@ -40,11 +40,14 @@ read the em-dash diff. arXiv-ready in review.
 REAL LEAK #11 (`js_strict_eq` host-arithmetic) fixed + substrate-verified. Concrete follow-ups it
 surfaced, in priority order:
 
-- [ ] **Direct-RAM rework** (the big one; needs Emma's green light — safety-critical shared device).
-  The RAM/linear-memory device must be a DIRECT memory object (flat tensor / WASM linear memory), NOT
-  a Python `list`/`dict` (finding `2026-06-19-ram-device-scaling-limit.md`). Reconcile with the
-  orchestrator contract (iso5 / ntm_ram attach `self.ram` as a list), the attention-on-RAM
-  VRAM-vector path, and the WASM linear-memory model. Substrate-to-substrate verified on every path.
+- Direct-RAM rework — **DONE 2026-06-19** for the lazily-allocated linear-memory path (finding
+  `2026-06-19-ram-device-scaling-limit.md` RESOLVED). The no-orchestrator RAM (Bytes.make / OCaml
+  arrays / attn number-tape) is now a DIRECT 1D torch tensor of real-axis scalars (not Python),
+  doubling growth: 5M cells = 20 MB (was ~17 GB), no OOM. Reads scatter the 0-d scalar onto AXIS_REAL
+  (tensor op, no host readout). The external orchestrator-attached LIST path (iso5 / ntm_ram, genuine
+  multi-axis VRAM vectors) is unchanged. Substrate-verified on all paths; the 1D scalar tensor is the
+  WASM-linear-memory-compatible shape. (Remaining if ever needed: a tensor-backed VRAM-vector store
+  for an orchestrator that wants direct multi-axis cells — currently externally managed as lists.)
 - [ ] **Dimension auto-minimize.** 18 zero-`basis_vector` `examples/` run at 768/868 (silent cost).
   Make codegen auto-minimize semantic_dim when no `basis_vector`/`embed`/axon-string-key is present,
   or add per-file dim directives. Bounded, verifiable.

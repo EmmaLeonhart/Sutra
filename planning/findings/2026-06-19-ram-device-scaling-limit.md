@@ -1,9 +1,18 @@
 # RAM device does not scale to a 10MB linear memory — two compounding costs
 
 **Date:** 2026-06-19
-**Status:** root-caused, NOT fixed — a deliberate, safety-critical rework of the shared
-runtime RAM device, deprioritized by Emma this session (she greenlit Q5 over it). Logged so
-a future dedicated session starts from the precise costs rather than "doesn't scale."
+**Status:** FIXED 2026-06-19 for the lazily-allocated linear-memory path. The
+no-orchestrator RAM (Bytes.make / OCaml arrays / the attn number-tape) is now a DIRECT 1D
+torch tensor of real-axis scalars (not a Python list/dict), grown by doubling: 1 scalar per
+cell, no pre-grow of d-vectors. A 5M-cell write lands at 20 MB (a 1D float32 tensor) instead
+of ~17 GB (5M d-vectors), with no OOM. Reads scatter the stored 0-d scalar onto AXIS_REAL (a
+tensor op, no host readout). The EXTERNAL orchestrator-attached path stays a list of vectors
+(unchanged contract: iso5 / ntm_ram attach + index `self.ram` as a list, including genuine
+multi-axis VRAM vectors). Verified on the substrate: lazy scalar (Bytes/array) round-trips,
+lazy number-vector (attn tape: make_real / dot/sum results) round-trips via its real
+component, high-address scaling has no OOM, orchestrator list path unchanged. The 1D scalar
+tensor is also the WASM-linear-memory-compatible shape ("WASM if necessary"). The analysis
+below is the historical root-cause.
 
 ## Symptom
 
