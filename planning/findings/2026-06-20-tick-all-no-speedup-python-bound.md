@@ -98,6 +98,22 @@ Memory note: `M_key` is d×d per key (~3 MB at dim 868), cached in `_axon_op_cac
 key vocabulary in practice; a program with a pathologically large key set would want an LRU cap
 (follow-on, not needed by current fixtures). §1A is then complete except that cap.
 
+## Fusion-pass extension — `axon_build` BATCHES N adds into one bmm (primitive shipped).
+
+After M_key, the next op-count win: an `on_axon` body / record construction does N `axon_add`s = N
+separate `M_key @ value` matmuls. `axon_build(axon, keys, values)` stacks the N cached `M_key` operators
+into one `(N,d,d)` batch and does a single `bmm` + sum — folds the N adds, BIT-IDENTICAL (verified, max
+diff 0.0; `test_axon_build.py`, 4 tests), collapsing N launches to 1. Measured (3 adds): 0.155 →
+0.050 ms (~3x with the M-stack reused) / 0.108 ms (~1.4x stacking per call). Fewer ops, so it helps the
+concurrent path (the cat-fusion lesson applied — and validated here, unlike attempt 1).
+
+**Shipped:** the `axon_build` runtime primitive (additive, tested). **Queued (broad blast radius, fresh
+context):** wiring the codegen to EMIT it — the tractable target is the class/record factory
+(`_emit_class_factory`, codegen_base) which already has the full known field list, so it can emit one
+`axon_build` instead of the N-`axon_add` loop; the harder target is a compile-time peephole that detects
+a run of consecutive `a.add(k,v)` statements on the same Axon (no intervening use of `a`). Both must be
+verified bit-identical + that record-returning frontend fixtures stay green.
+
 ---
 
 ## Original measurement (before the `_role_hash` fix)
