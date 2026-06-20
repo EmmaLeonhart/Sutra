@@ -670,22 +670,41 @@ the lever that removes branch/path explosion.**
   tests pin it (composition discharges depth-2..4; refuses non-connective
   operators; agrees with the direct bound where tractable). Finding:
   `planning/findings/2026-06-20-fv-composed-branch-range-cost.md`.
-- **Termination obligation.** For a tail-recursive soft-halt loop, check the
-  halt signal is monotone within bounded steps (§3.3) — far smaller than
-  proving an arbitrary `while` terminates.
-- **Graph-equivalence obligation.** Decide whether two programs compile to the
-  same graph by algebraic comparison of the two graphs (not execution traversal);
-  start from the simplifier/CSE passes already in the compiler.
-- **End-to-end worked example.** Take one `.su` program → emit its compiled graph →
-  mechanically check it against its published contract. The first real FV
-  artifact (framework → demonstrated). Feeds a paper revision.
+- **Termination obligation — ✅ SHIPPED (verified 2026-06-20).** Discharged
+  observably on the torch substrate by `tests/test_fv_termination.py`: the emitted
+  soft-halt loop is BOUNDED (`for _t in range(max_iters)`, no unbounded `while`)
+  and its halt signal is MONOTONE (`halted = min(halted + halt, 1)`, non-decreasing,
+  freezes state once saturated) — a non-converging loop runs to the bound and stops,
+  a converging loop freezes so extra unroll steps yield the same state. Paper §3.3.
+- **Graph-equivalence obligation — ✅ SHIPPED (verified 2026-06-20).**
+  `reduces_to_same_graph` (`fv_obligation_checker.py`) decides graph equality by
+  polynomial identity (`expand(p_a - p_b) == 0`), algebraic not traversal; tested on
+  De Morgan / commutativity / double-negation (same graph) vs distributivity /
+  absorption / plainly-different (NOT same graph, the off-grid witness), with a
+  randomized PIT cross-check (`reduces_to_same_graph_randomized`).
+  `tests/test_fv_general_checker.py`.
+- **End-to-end worked example — substantially covered, polish optional.** The
+  contract function-correctness check IS this for the Kleene fragment
+  (`test_fv_general_checker` / the contract test: a NAND impl passes its `!(a&&b)`
+  contract, a NOR impl is correctly rejected — `.su` expression → compiled graph →
+  checked against contract). A polished standalone narrative artifact (one named
+  program, its published contract, the mechanical check rendered for the paper) is
+  the only remaining piece, and it is presentation, not new mechanism.
 - **Tie to Yantra's trusted base.** The kernel roles + named critical
   programs are the in-scope surface (Yantra `paper/paper.md` §4); coordinate
   which programs get contracts first.
 
 Honest scope (keep in the paper): covers the **non-AI** trusted base, per
 contract — NOT whole-system closed-form, NOT anything riding on a learned
-weight. The checker does not exist yet; that is the bulk of the work.
+weight. **Status correction (2026-06-20): the checker substantially EXISTS** —
+the three obligation families (contract role-isolation + Kleene-fragment
+correctness, branch-range incl. composed-by-induction, termination) plus
+grid-exactness and graph-equivalence all have mechanical checks that run, matching
+the FV paper's "mechanical checks for all three" claim. The genuinely-open
+remainder is narrow: static `AXON_KEYS_READ`/`BOUND` soundness (needs design —
+Emma's call, above) and the measurement-checks-as-CI-gates (needs gate-semantics
+design — Emma's call). The earlier "the checker does not exist yet, that is the
+bulk of the work" framing is stale.
 
 ---
 
