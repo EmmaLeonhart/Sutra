@@ -587,6 +587,31 @@ def _try_lower_tail_recursive(name: str, params, ret: str, cond_src, neg_src,
 
 # Associative + commutative combine ops for the non-tail fold transform.
 _FOLD_OPS = {"+", "*"}
+# Identity element for seeding a non-tail fold accumulator (both `_FOLD_OPS` ops are
+# commutative + associative with a known identity, so a post-loop `acc OP base` combine
+# reproduces the call-stack order).
+_FOLD_IDENTITY = {"+": "0", "*": "1"}
+
+
+def _foldable_step_multi(node, name: str, arity: int, src: bytes):
+    """`LEAF <OP> f a1 … aN` (or the self-call on the left), OP in `_FOLD_OPS`, the call
+    at arity N: return `(op_text, leaf_node, [rec_arg_nodes])` — the full recursion arg
+    list, for the MULTI-arg / multibase non-tail fold path. Else None."""
+    if node.type != "infix":
+        return None
+    kids = node.named_children
+    op = next((c for c in kids if c.type == "operator"), None)
+    operands = [c for c in kids if c.type != "operator"]
+    if op is None or len(operands) != 2:
+        return None
+    op_text = _text(op, src)
+    if op_text not in _FOLD_OPS:
+        return None
+    lc = _self_call_args(operands[0], name, arity, src)
+    rc = _self_call_args(operands[1], name, arity, src)
+    if (lc is None) == (rc is None):
+        return None
+    return (op_text, operands[1], lc) if lc is not None else (op_text, operands[0], rc)
 
 
 def _contains_variable(node, ident: str, src: bytes) -> bool:
@@ -1026,8 +1051,15 @@ def _try_lower_multibase_tail_recursion(name: str, typed_params, ret: str, match
     if rec_result is None or len(bases) < 2:
         return None
     rec_args = _self_call_args(rec_result, name, arity, src)
+    # A TAIL recursive guard → accumulator loop (`rec_args` are the next-state values).
+    # A NON-tail recursive guard (`a + f (a-1) b`) → CPS fold: carry every recursion arg
+    # plus a synthetic `_acc`, fold the leaf each step, post-combine `_acc OP base_blend`
+    # keyed on the FINAL state (the base the recursion bottoms out at — the seed select).
+    fold_step = None
     if rec_args is None:
-        return None  # non-tail recursive guard — later item
+        fold_step = _foldable_step_multi(rec_result, name, arity, src)
+        if fold_step is None:
+            return None  # non-tail but not a foldable step — later item
     # Continue condition: an explicit recursive guard IS the continue
     # (`| n > 1 = f …` → continue while `n > 1`); an `otherwise` recursive guard
     # continues while NO base matches (the `&&` of the negated base conditions).
@@ -1059,15 +1091,46 @@ def _try_lower_multibase_tail_recursion(name: str, typed_params, ret: str, match
     # Emit — the `_try_lower_tail_recursive` shape, multibase continue + base.
     loop_name = f"_rec_{name}"
     state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in typed_params)
+    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in typed_params)
+    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in typed_params)
+    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in typed_params)
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in typed_params)
+    if fold_step is not None:
+        # NON-tail multibase fold: carry every recursion arg AND a synthetic `_acc`.
+        op_text, leaf, rec_arg_nodes = fold_step
+        sutra_op = _OP_MAP.get(op_text, op_text)
+        identity = _FOLD_IDENTITY[op_text]
+        leaf_src = _lower_expr(leaf, src)
+        rec_srcs = [_lower_expr(a, src) for a in rec_arg_nodes]
+        if "UNSUPPORTED" in leaf_src or any("UNSUPPORTED" in s for s in rec_srcs):
+            return None
+        temp_decls = "".join(f"    {ty} _t{i} = {rec_srcs[i]};\n"
+                             for i, (_nm, ty) in enumerate(typed_params))
+        assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(typed_params))
+        loop_decl = (
+            f"while_loop {loop_name}({cont}, {state_decls}, {ret} _acc = 0) {{\n"
+            f"{temp_decls}"
+            f"    {ret} _t_acc = _acc {sutra_op} {leaf_src};\n"
+            f"{assigns}"
+            f"    _acc = _t_acc;\n"
+            f"}}\n"
+        )
+        fn = (
+            f"function {ret} {name}({params_src}) {{\n"
+            f"    {ret} _acc = {identity};\n"
+            f"{slot_lines}"
+            f"    slot {ret} _acc_r = _acc;\n"
+            f"    loop {loop_name}({cont}, {slot_args}, _acc_r);\n"
+            f"{writeback}"
+            f"    return _acc_r {sutra_op} {base_src};\n"
+            f"}}\n"
+        )
+        return loop_decl + fn
     temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
                          for i, ((_nm, ty), arg) in enumerate(zip(typed_params, rec_args)))
     assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(typed_params))
     loop_decl = (f"while_loop {loop_name}({cont}, {state_decls}) "
                  f"{{\n{temp_decls}{assigns}}}\n")
-    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in typed_params)
-    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in typed_params)
-    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in typed_params)
-    params_src = ", ".join(f"{ty} {nm}" for nm, ty in typed_params)
     fn = (
         f"function {ret} {name}({params_src}) {{\n"
         f"{slot_lines}"
