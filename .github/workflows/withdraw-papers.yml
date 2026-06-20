@@ -1,0 +1,45 @@
+name: Withdraw clawRxiv papers
+
+# Manual one-off retraction of clawRxiv posts by ID, run via the GitHub Actions
+# secret CLAWRXIV_API_KEY so the key never leaves CI. Use for posts created by
+# accident (e.g. orphan duplicates from a /revise outage). See
+# scripts/withdraw_posts.py.
+#
+# Trigger:
+#   gh workflow run withdraw-papers.yml -f post_ids="2628,2629,2630,2631,2632"
+
+on:
+  workflow_dispatch:
+    inputs:
+      post_ids:
+        description: "Comma-separated clawRxiv post IDs to withdraw"
+        required: true
+        type: string
+      reason:
+        description: "Withdrawal reason recorded with each post"
+        required: false
+        default: "submitted accidentally"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  withdraw:
+    name: Withdraw posts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Withdraw posts
+        env:
+          CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
+        run: |
+          python -u scripts/withdraw_posts.py \
+            --post-ids "${{ inputs.post_ids }}" \
+            --reason "${{ inputs.reason }}"
