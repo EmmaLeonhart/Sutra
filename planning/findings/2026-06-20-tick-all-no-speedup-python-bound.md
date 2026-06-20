@@ -87,10 +87,16 @@ not hurt the concurrent path, where the cat-fusion's 3 → 5 smaller ops (op SIZ
 stream overhead outweighs the overlap — a "too fast to bother parallelising at this size" regime, not
 a regression (both paths are absolutely faster).
 
-`axon_add` is the WRITE path; the symmetric `axon_item` READ-path fusion (an inverse fused operator) is
-the next sub-step. Memory note: `M_key` is d×d per key (~3 MB at dim 868), cached in `_axon_op_cache`,
-bounded by the axon key vocabulary in practice; a program with a pathologically large key set would
-want an LRU cap (follow-on, not needed by current fixtures).
+**Read path also fused (same commit-series).** `axon_item(axon, key) = unbind(key, unpermute(axon))`
+== `cat(Q_sem^T @ axon[:sem], P_perm^T @ axon[sem:])` == **`M_key^T @ axon`** — the inverse is the
+transpose because `Q` is orthogonal and `P_perm` is a permutation. So `axon_item` is ONE matmul reusing
+the SAME cached `M_key` (no new operator). Bit-identical (max diff 0.0); the `.T` is a strided matmul,
+no copy. Measured ~10x/op (0.343 → 0.033 ms). 83 compiler + 99 Yantra axon tests pass. Both axon write
+(`M_key @ value`) and read (`M_key^T @ axon`) are now single-matmul, 3 ops → 1 each.
+
+Memory note: `M_key` is d×d per key (~3 MB at dim 868), cached in `_axon_op_cache`, bounded by the axon
+key vocabulary in practice; a program with a pathologically large key set would want an LRU cap
+(follow-on, not needed by current fixtures). §1A is then complete except that cap.
 
 ---
 

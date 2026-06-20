@@ -1205,9 +1205,11 @@ class PyTorchCodegen(Codegen):
         self._emit("self._fv_key_trace['read'].add(key if isinstance(key, str) else '<dynamic>')")
         self._indent -= 1
         self._emit("_rk = key if isinstance(key, str) else None")
-        self._emit("perm = self._axon_permutation_for(key_vec, role_key=_rk)")
-        self._emit("unpermuted = self._axon_unpermute_synthetic(axon, perm)")
-        self._emit("return self.unbind(key_vec, unpermuted, role_key=_rk)")
+        self._emit("# Fused read (symmetric to axon_add's M_key write): unbind(key, unpermute(axon))")
+        self._emit("# == cat(Q_sem^T @ axon[:sem], P_perm^T @ axon[sem:]) == M_key^T @ axon. ONE matmul,")
+        self._emit("# reusing the cached blockdiag operator (Q orthogonal, P_perm a permutation, so")
+        self._emit("# the inverse is the transpose). Bit-identical (finding 2026-06-20); op-count 3 -> 1.")
+        self._emit("return self._axon_op_for(key_vec, role_key=_rk).T @ axon")
         self._indent -= 1
         self._emit()
         # ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----
