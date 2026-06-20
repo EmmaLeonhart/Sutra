@@ -101,12 +101,15 @@ in isolation, HELPED sequential `tick` (8.4→6.3ms) but **REGRESSED `tick_all` 
 than sequential — defeats the primitive), because it trades 2–3 ops for 5 SMALLER ops and CUDA streams
 want FEWER/BIGGER kernels. **Lesson: fusion for the concurrent goal must reduce op COUNT, not op size.**
 
-**Next step — the `M_key` fusion (one op per add).** Precompute `M_key = blockdiag(Q_sem, P_perm)` per
-key (the permutation as a matrix), so `axon_add(key,value) = axon + M_key @ value` — ONE matmul, no
-clone/gather/cat, fewer ops for BOTH paths. Cache `M_key` per key (d×d, ~3MB at dim 868; bounded by the
-key vocab; cap/evict for pathological sets). Verify bit-identical round-trips + that `tick_all` IMPROVES
-(not regresses) on `experiments/bench_tick_all.py`. Then the symmetric `axon_item` read path. Finding:
-`2026-06-20-tick-all-no-speedup-python-bound.md` §"Fusion-pass attempt 1".
+**Attempt 2 — the `M_key` fusion — SHIPPED 2026-06-20.** `axon_add` now does ONE matmul
+`axon + M_key @ value` (`M_key = blockdiag(Q_sem, P_perm)`, cached per key in `_axon_op_for`). Bit-
+identical (max diff 0.0; 100 tests pass). Sequential tick ~2x (6.8→3.3ms); `tick_all` NOT regressed
+(5.9–6.6ms) — op-count reduction confirmed (vs the reverted attempt-1 cat-fusion). See the finding
+§"attempt 2".
+
+**Remaining §1A sub-steps:** (i) the symmetric `axon_item` READ-path fusion (an inverse fused operator,
+same shape); (ii) an LRU cap on `_axon_op_cache` for pathologically large key sets (the d×d-per-key
+matrices; not needed by current fixtures). Then §1A is done → §1B.
 
 ## 1B. Per-process state SERIALISATION — NEXT (after §1A)
 
