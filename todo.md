@@ -2,6 +2,41 @@
 
 ## TOP PRIORITY
 
+## Deferred from queue.md cleanup (2026-06-19, Emma) — what's left after the bounded work drained
+
+The bounded, locally-actionable work is all done (this session: OCaml option-payload, Elixir/Erlang
+multibase, doc audit, Q1–Q5 quantum, FV paper arXiv pass, the full substrate audit incl. the
+direct-RAM rework + dimension warning, papers' Background sections). `queue.md` was cleared to a clean
+state; everything still open is captured here or in the named files, grouped by what unblocks it.
+
+**Blocked locally — needs a toolchain this clone lacks (route through CI / a clang-equipped clone):**
+- **WASM `wasm_core` VM follow-ups** (was queue §2): wat2wasm cross-check — assemble the same `.wat`
+  with real `wat2wasm`/`wasm-tools` and assert the function-body bytes are byte-identical to
+  `_WASM_FACT` (CI-only, `wat2wasm` absent here). Plus 3+byte LEB128 decode (a substrate loop for full
+  32-bit operands — low value, no fixture needs it yet).
+- **WASM/ subtree** (was queue §6, see the `WASM/` agenda below + `WASM/devlog.md`): ISO-5 remaining
+  ~23 opcodes (DIV/REM, shifts, stack ops); the pruned-transformer 6-program byte-for-byte oracle
+  (needs a clang CI job to build the fixtures); E3 native `i32.sat_add_u` opcode; the optional hull
+  Python path (`apt install python3-dev`). All need `uv`/`clang` (missing locally).
+- **F# / Clojure native-lowering fixtures**: the grammar DLLs won't compile on the SutraDev clone
+  (MSVC error). The Clojure `.item()`-on-call-result COMPILER fix shipped + is tested; a Clojure
+  end-to-end `(:k (f …))` fixture needs a clone where the grammar builds (CI exercises the path).
+
+**Transpiler edge cases — `planning/wasm-fallback-edge-cases.md`** (low value, few cycles each, leave
+on the WASM fallback if not clean): Erlang list comprehensions; multi-arg non-tail multibase; F#/Scala
+general breadth; OCaml non-zero `Array.make` fill (documented limit); the Haskell/Rust int-local-in-
+expression-position limit. See that catalogue.
+
+**Big legs / longer-horizon (tracked in the sections below):** WASM source frontend (Phase 3, the
+`WASM/`-subtree source→Sutra path); Python via Pyodide/Wasm (after the WASM core; the physical-entropy
+NumPy angle); Yantra OS integration; the `await`-inside-non-async-`recur` blocked remainder (see
+"RAM pointers" below); the FV spectral-gap mixing-RATE proof (`fv-lean/mathlib/`, lowest priority,
+heavy Lean toolchain); irregular (non-grid, stack-based) recursion (substrate-perf root-cause, finding
+`2026-06-17-tier4-irregular-recursion-trampoline-substrate-too-slow.md`).
+
+**Lowest-priority standing items:** W2C corpus scaling (baseline PUBLISHED; one-flag bump → push
+submodule → HF mirror); the daily watchdog crons (verification, not new work).
+
 ## Neural-network Turing-completeness — the architectural roadmap (metabolised 2026-06-07)
 
 Metabolised from Emma's Claude conversation "Neural network approaches to Turing
