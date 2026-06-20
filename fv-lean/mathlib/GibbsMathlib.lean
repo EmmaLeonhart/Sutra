@@ -20,8 +20,15 @@ probabilities + `exp`, hence mathlib. This file delivers it:
 
 Together with the core-only irreducibility/aperiodicity, this is the reversible-
 chain convergence picture: a positive, irreducible, reversible finite chain has a
-unique stationary distribution = the Gibbs measure. The remaining piece (NOT here)
-is the t->infinity limit/mixing rate -- the full Perron-Frobenius spectral gap.
+unique stationary distribution = the Gibbs measure.
+
+UPDATE 2026-06-19 (Emma): the mixing RATE is now mechanised too (§4-5 below) -- the
+t->infinity spectral gap. For the 2-state clamped-decode chain the second eigenvalue
+`lambda2 = 1 - P f->t - P t->f` is the per-step contraction factor, so TV distance
+decays as `|lambda2|^n` (`two_state_tv_mixing`). Instantiated for the gadget's own
+full-resampling Gibbs kernel, `lambda2 = 0` exactly, so it mixes in ONE step
+(`gibbs_mixes_in_one_step`). The convergence picture is now complete: hypotheses +
+stationary-limit object + RATE, all machine-checked.
 -/
 import Mathlib
 
@@ -161,11 +168,177 @@ theorem stationary_unique_two_state
   · exact hfalse
   · exact htrue
 
+/-! ## 4. Mixing RATE: the 2-state spectral gap (Emma 2026-06-19).
+
+The piece named-but-not-yet-mechanised in `planning/sutra-spec/formal-verification.md`:
+the t→∞ mixing RATE (how *fast* the chain reaches the now-proven unique stationary
+measure). The clamped-decode chain is 2-state; its transition matrix has eigenvalues
+`1` and `λ₂ = 1 − P f→t − P t→f`, and that second eigenvalue IS the contraction factor.
+For any mass-1 distribution `μ` and the mass-1 stationary `π`, the deviation from `π`
+scales by exactly `λ₂` each step, so after `n` steps it is `λ₂^n` times the initial
+deviation, and the total-variation distance (which for 2 states equals `|deviation|`)
+decays as `|λ₂|^n`. This is the explicit spectral-gap / mixing-rate statement — proven
+with the same `linear_combination`/`linarith` machinery as `stationary_unique_two_state`,
+no heavy spectral theory. -/
+
+/-- One application of the chain to a distribution (the left action `μ ↦ μ P`). -/
+def stepP (P : Bool → Bool → ℝ) (μ : Bool → ℝ) : Bool → ℝ :=
+  fun t => ∑ s, μ s * P s t
+
+/-- The second eigenvalue / spectral contraction factor of a 2-state chain. -/
+def lambda2 (P : Bool → Bool → ℝ) : ℝ := 1 - P false true - P true false
+
+/-- The chain preserves total mass (`∑ = const`) for a row-stochastic `P`. -/
+lemma stepP_mass (P : Bool → Bool → ℝ) (hrow : ∀ s, ∑ t, P s t = 1) (μ : Bool → ℝ) :
+    stepP P μ false + stepP P μ true = μ false + μ true := by
+  simp only [stepP, Fintype.sum_bool]
+  have hf := hrow false; rw [Fintype.sum_bool] at hf
+  have ht := hrow true;  rw [Fintype.sum_bool] at ht
+  linear_combination (μ false) * hf + (μ true) * ht
+
+/-- Iterating the mass-1-preserving chain keeps total mass at 1. -/
+lemma stepP_iterate_mass (P : Bool → Bool → ℝ) (hrow : ∀ s, ∑ t, P s t = 1)
+    (μ : Bool → ℝ) (hμ : μ false + μ true = 1) (n : ℕ) :
+    ((stepP P)^[n] μ) false + ((stepP P)^[n] μ) true = 1 := by
+  induction n with
+  | zero => simpa using hμ
+  | succ k ih => rw [Function.iterate_succ_apply', stepP_mass P hrow]; exact ih
+
+/-- ONE-STEP CONTRACTION (the spectral-gap multiplier). For a row-stochastic 2-state
+    `P`, the mass-1 stationary `π`, and any mass-1 `μ`, the deviation from `π` at `true`
+    is multiplied by exactly the second eigenvalue `λ₂ = 1 − P f→t − P t→f`. -/
+theorem two_state_step_contraction
+    (P : Bool → Bool → ℝ)
+    (hrow : ∀ s, ∑ t, P s t = 1)
+    (π : Bool → ℝ)
+    (hπ : ∀ t, ∑ s, π s * P s t = π t)
+    (hπmass : π false + π true = 1)
+    (μ : Bool → ℝ)
+    (hμmass : μ false + μ true = 1) :
+    stepP P μ true - π true = lambda2 P * (μ true - π true) := by
+  -- Subtract the stationary fixed point, then expand over Bool.
+  have hstat : stepP P π true = π true := hπ true
+  have hexp : stepP P μ true - π true
+      = (μ false - π false) * P false true + (μ true - π true) * P true true := by
+    have key : stepP P μ true - stepP P π true
+        = (μ false - π false) * P false true + (μ true - π true) * P true true := by
+      simp only [stepP, Fintype.sum_bool]; ring
+    rw [hstat] at key; exact key
+  -- masses: μ f − π f = −(μ t − π t); row sum: P t t = 1 − P t f.
+  have hmd : μ false - π false = -(μ true - π true) := by linarith
+  have hPt := hrow true; rw [Fintype.sum_bool] at hPt
+  have hPtt : P true true = 1 - P true false := by linarith
+  rw [hexp, hmd, hPtt, lambda2]; ring
+
+/-- GEOMETRIC DECAY. Iterating the chain `n` times multiplies the deviation from the
+    stationary `π` at `true` by exactly `λ₂^n`. -/
+theorem two_state_geometric_mixing
+    (P : Bool → Bool → ℝ)
+    (hrow : ∀ s, ∑ t, P s t = 1)
+    (π : Bool → ℝ)
+    (hπ : ∀ t, ∑ s, π s * P s t = π t)
+    (hπmass : π false + π true = 1)
+    (μ : Bool → ℝ)
+    (hμmass : μ false + μ true = 1)
+    (n : ℕ) :
+    ((stepP P)^[n] μ) true - π true = (lambda2 P) ^ n * (μ true - π true) := by
+  induction n with
+  | zero => simp
+  | succ k ih =>
+    rw [Function.iterate_succ_apply',
+        two_state_step_contraction P hrow π hπ hπmass _
+          (stepP_iterate_mass P hrow μ hμmass k),
+        ih, pow_succ]
+    ring
+
+/-- Total-variation distance on `Bool`. -/
+noncomputable def tvDist (μ ν : Bool → ℝ) : ℝ :=
+  (|μ false - ν false| + |μ true - ν true|) / 2
+
+/-- For two mass-1 distributions on `Bool`, TV distance = `|deviation at true|`. -/
+lemma tvDist_two_state (μ ν : Bool → ℝ)
+    (hμ : μ false + μ true = 1) (hν : ν false + ν true = 1) :
+    tvDist μ ν = |μ true - ν true| := by
+  unfold tvDist
+  have h : μ false - ν false = -(μ true - ν true) := by linarith
+  rw [h, abs_neg]; ring
+
+/-- MIXING RATE (TV form). The total-variation distance to the stationary `π` decays
+    geometrically with rate `|λ₂| = |1 − P f→t − P t→f|` — the explicit spectral gap.
+    `tvDist (μ Pⁿ) π = |λ₂|^n · tvDist μ π`. -/
+theorem two_state_tv_mixing
+    (P : Bool → Bool → ℝ)
+    (hrow : ∀ s, ∑ t, P s t = 1)
+    (π : Bool → ℝ)
+    (hπ : ∀ t, ∑ s, π s * P s t = π t)
+    (hπmass : π false + π true = 1)
+    (μ : Bool → ℝ)
+    (hμmass : μ false + μ true = 1)
+    (n : ℕ) :
+    tvDist ((stepP P)^[n] μ) π = |lambda2 P| ^ n * tvDist μ π := by
+  rw [tvDist_two_state _ _ (stepP_iterate_mass P hrow μ hμmass n) hπmass,
+      tvDist_two_state _ _ hμmass hπmass,
+      two_state_geometric_mixing P hrow π hπ hπmass μ hμmass n,
+      abs_mul, abs_pow]
+
+/-! ## 5. The gadget Gibbs kernel: explicit rate (mixes in ONE step).
+
+Instantiate the 2-state spectral gap for the gadget's OWN single-site Gibbs sampler.
+The kernel fully resamples `z` (`gibbsKernel z z' = w z' / Z`, independent of the
+current `z`), so its second eigenvalue is exactly 0: `λ₂ = 1 − w_true/Z − w_false/Z
+= 1 − Z/Z = 0`. The spectral gap is therefore maximal (`1 − |λ₂| = 1`) and the chain
+reaches the (normalized) Gibbs measure in a SINGLE step — TV distance 0 for all
+`n ≥ 1`. This is the mixing-rate statement made fully concrete for the gadget. -/
+
+/-- The normalized Gibbs measure (total mass 1) — the stationary distribution. -/
+noncomputable def gibbsPi (β : ℝ) (a b : Bool) (z : Bool) : ℝ := w β a b z / Z β a b
+
+/-- The normalized Gibbs measure has total mass 1. -/
+lemma gibbsPi_mass (β : ℝ) (a b : Bool) :
+    gibbsPi β a b false + gibbsPi β a b true = 1 := by
+  have hZ : Z β a b ≠ 0 := ne_of_gt (Z_pos β a b)
+  unfold gibbsPi
+  field_simp
+  unfold Z; ring
+
+/-- The normalized Gibbs measure is stationary (scale `gibbsKernel_stationary` by 1/Z). -/
+lemma gibbsPi_stationary (β : ℝ) (a b : Bool) :
+    ∀ t, ∑ z, gibbsPi β a b z * gibbsKernel β a b z t = gibbsPi β a b t := by
+  intro t
+  have h := gibbsKernel_stationary β a b t
+  unfold gibbsPi
+  rw [← h, Finset.sum_div]
+  exact Finset.sum_congr rfl (fun z _ => by ring)
+
+/-- The gadget's single-site Gibbs kernel FULLY RESAMPLES (next-state probability is
+    independent of the current state), so its second eigenvalue is exactly 0. -/
+theorem gibbs_lambda2_zero (β : ℝ) (a b : Bool) :
+    lambda2 (gibbsKernel β a b) = 0 := by
+  have hZ : Z β a b ≠ 0 := ne_of_gt (Z_pos β a b)
+  simp only [lambda2, gibbsKernel]
+  field_simp
+  unfold Z; ring
+
+/-- MIXING RATE for the gadget: the Gibbs chain reaches its stationary measure in ONE
+    step. For any mass-1 start `μ` and any `n ≥ 1`, the TV distance to the normalized
+    Gibbs measure is exactly 0 (`λ₂ = 0` ⇒ spectral gap 1). -/
+theorem gibbs_mixes_in_one_step (β : ℝ) (a b : Bool)
+    (μ : Bool → ℝ) (hμmass : μ false + μ true = 1) (n : ℕ) (hn : 1 ≤ n) :
+    tvDist ((stepP (gibbsKernel β a b))^[n] μ) (gibbsPi β a b) = 0 := by
+  rw [two_state_tv_mixing (gibbsKernel β a b) (gibbsKernel_rowSum β a b)
+        (gibbsPi β a b) (gibbsPi_stationary β a b) (gibbsPi_mass β a b) μ hμmass n,
+      gibbs_lambda2_zero, abs_zero, zero_pow (by omega : n ≠ 0), zero_mul]
+
 -- Axiom audit: the mid-size results rest only on the standard mathlib classical
 -- foundations (no `sorry`). `#print axioms` is verified at build time.
 #print axioms stationary_of_detailedBalance
 #print axioms gibbsKernel_detailedBalance
 #print axioms gibbsKernel_stationary
 #print axioms stationary_unique_two_state
+#print axioms two_state_step_contraction
+#print axioms two_state_geometric_mixing
+#print axioms two_state_tv_mixing
+#print axioms gibbs_lambda2_zero
+#print axioms gibbs_mixes_in_one_step
 
 end GibbsMathlib

@@ -1,5 +1,33 @@
 # Development Log
 
+## 2026-06-19: FV spectral-gap / mixing-RATE proof mechanised (Lean + mathlib)
+
+First of Emma's three ordered big legs (FV spectral-gap → Yantra OS → WASM). Mechanised the
+one named-but-not-yet-mechanised piece of the formal-verification work: the t→∞ mixing RATE
+(how fast the gadget's Gibbs chain reaches its already-proven unique stationary measure), in
+`fv-lean/mathlib/GibbsMathlib.lean` §4–5. For the 2-state clamped-decode chain the spectral
+gap is closed-form: the transition matrix's second eigenvalue λ₂ = 1 − P(f→t) − P(t→f) is the
+per-step contraction factor. New theorems (all `[propext, Classical.choice, Quot.sound]`, no
+`sorry`, `lake build` green, `#print axioms` checked):
+
+- `two_state_step_contraction` — one step multiplies the deviation from the stationary π by
+  exactly λ₂ (the spectral gap isolated);
+- `two_state_geometric_mixing` — after n steps the deviation is λ₂^n · initial (induction +
+  `stepP_iterate_mass` mass preservation);
+- `two_state_tv_mixing` — TV(μ Pⁿ, π) = |λ₂|^n · TV(μ, π), the explicit rate;
+- gadget instantiation: `gibbsPi`/`gibbsPi_stationary` (normalized stationary measure),
+  `gibbs_lambda2_zero` (the full-resampling single-site kernel has λ₂ = 0 exactly), and
+  `gibbs_mixes_in_one_step` (TV = 0 for all n ≥ 1; spectral gap = 1, mixes in ONE step).
+
+Proven with the same `linear_combination`/`linarith` machinery as `stationary_unique_two_state`,
+no heavy spectral theory. The convergence picture for the gadget chain is now complete: hypotheses
+(irreducibility/aperiodicity) + stationary-limit object (detailed balance + uniqueness) + RATE.
+Updated `planning/sutra-spec/formal-verification.md` and `paper/formal-verification/paper.md` (§1,
+§7, §"What is now machine-checked"; em-dash-free per Emma) to cite the mechanised rate; the paper
+edit triggers fv-paper-ci (clawRxiv). What we do NOT claim: a general multi-state spectral-gap
+bound (only the 2-state case), nor the continuous-time Langevin SDE limit. Also fixed the queue to
+be the ordered big-leg execution list (Emma flagged it as drained/crud); Yantra OS is now §1 active.
+
 ## 2026-06-19: Elixir/Erlang tag-checkable type-test guards (substrate type tests)
 
 Pulled the substrate-type-test item from `todo.md` (§ "Substrate type tests"; recipe in finding

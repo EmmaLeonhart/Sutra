@@ -385,15 +385,28 @@ and rejected; do not use it). Strict-uniqueness tactic:
   core-only irreducibility/aperiodicity: a positive + irreducible + reversible
   finite chain has a unique stationary distribution = the Gibbs measure.
 
-**Still the mathlib step (named, not yet mechanised):** only the **t→∞ mixing
-rate** — the total-variation / spectral-gap statement (how *fast* the chain
-reaches the now-proven unique stationary Gibbs measure). Emma capped the ask at the
-mid-size step above, so the mixing rate is longer-horizon / not requested. The
-reversibility + stationarity + uniqueness layer (the *that-it-converges* content,
-short of the rate) is now machine-checked; `GibbsChain.lean` + `GibbsMathlib.lean`
-together discharge the classical theorem's hypotheses and its stationary-limit
-object. (The "stochastic ODEs" / Langevin-limit framing is the continuous-time
-view of the same convergence.) Lean **is** CI-checked: `.github/workflows/fv-lean-ci.yml`
+**Mixing RATE — MECHANISED 2026-06-19 (the t→∞ spectral gap).** `GibbsMathlib.lean`
+§4–5 now machine-checks the total-variation / spectral-gap mixing rate for the 2-state
+clamped-decode chain (how *fast* the chain reaches the proven unique stationary Gibbs
+measure), over the reals:
+- `two_state_step_contraction` — one step multiplies the deviation from the stationary
+  `π` at `true` by EXACTLY the second eigenvalue `λ₂ = 1 − P f→t − P t→f` (the spectral
+  gap, isolated);
+- `two_state_geometric_mixing` — after `n` steps the deviation is `λ₂^n · initial`
+  (induction on the one-step contraction; mass preservation via `stepP_iterate_mass`);
+- `two_state_tv_mixing` — `TV(μ Pⁿ, π) = |λ₂|^n · TV(μ, π)` (2-state TV = `|deviation|`),
+  the explicit mixing-rate statement.
+- Instantiated for the gadget's own single-site Gibbs kernel (§5): it FULLY RESAMPLES,
+  so `gibbs_lambda2_zero` proves `λ₂ = 0` exactly, hence `gibbs_mixes_in_one_step` —
+  TV distance to the normalized Gibbs measure (`gibbsPi`, `gibbsPi_stationary`) is `0`
+  for every `n ≥ 1`: the chain mixes in a SINGLE step (spectral gap = 1).
+
+All `[propext, Classical.choice, Quot.sound]`, no `sorry`, `lake build` green
+(`#print axioms` checked at build time). This closes the named-but-unmechanised gap:
+the full convergence picture — hypotheses (irreducibility/aperiodicity, `GibbsChain.lean`),
+stationary-limit object (detailed balance + uniqueness), AND the rate — is now machine-
+checked for the gadget chain. (The "stochastic ODEs" / Langevin-limit framing is the
+continuous-time view of the same convergence.) Lean **is** CI-checked: `.github/workflows/fv-lean-ci.yml`
 runs `scripts/check_fv_lean.sh` on GitHub Actions, **path-filtered** to `fv-lean/**`
 (the toolchain install is heavy → only fires when a proof / the pin / the runner
 changes), toolchain pinned by `fv-lean/lean-toolchain`. The clawRxiv research-loop
