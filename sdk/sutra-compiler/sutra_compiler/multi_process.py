@@ -277,7 +277,7 @@ class MultiProcessRuntime:
 
 
 def _pool_worker_main(worker_specs, in_q, out_q, ready_q,
-                      llm_model, runtime_dim, force_cpu):
+                      llm_model, runtime_dim, force_cpu, threads_per_worker):
     """Top-level (spawn-picklable) worker entry. Compiles its assigned
     programs, signals ready, then serves ticks off `in_q` until a `None`
     sentinel. Inputs/outputs cross as CPU tensors."""
@@ -285,7 +285,14 @@ def _pool_worker_main(worker_specs, in_q, out_q, ready_q,
     if force_cpu:
         # Must be set BEFORE the compiled module resolves _DEVICE (its own
         # fresh torch import in this spawned process) — forces CPU.
-        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    if threads_per_worker is not None:
+        # Pin intra-op threads so W CPU workers don't oversubscribe the cores
+        # (the parallelism should come from the W processes, not nested
+        # threads). Set before torch is imported by the compiled module.
+        os.environ["OMP_NUM_THREADS"] = str(threads_per_worker)
+        import torch as _t
+        _t.set_num_threads(threads_per_worker)
 
     progs = {}
     shared_vsa = None
@@ -338,6 +345,7 @@ class ProcessPoolRuntime:
         llm_model: str = "nomic-embed-text",
         runtime_dim: int = 768,
         force_cpu: bool = True,
+        threads_per_worker: int | None = None,
     ) -> None:
         import multiprocessing as _mp
 
@@ -372,7 +380,7 @@ class ProcessPoolRuntime:
             p = self._ctx.Process(
                 target=_pool_worker_main,
                 args=(assignments[w], in_q, self._out_q, ready_q,
-                      llm_model, runtime_dim, force_cpu),
+                      llm_model, runtime_dim, force_cpu, threads_per_worker),
                 daemon=True,
             )
             p.start()

@@ -166,12 +166,14 @@ Design doc (forks + verification plan): `planning/sutra-spec/multi-process-runti
    `tests/test_process_pool_runtime.py`: two separate OS processes running the same program on the same
    input produce BIT-IDENTICAL output (rebuild-per-process is deterministic — validates the no-IPC-needed
    design), and the output decodes correctly across the boundary (x=5, y=8). 3 tests pass.
-   (a) **Throughput — NEXT.** Wall-clock N independent ticks via the pool (W procs) vs single-process
-   sequential `tick`×N — does the pool beat 1.0× once the GIL no longer serialises orchestration? Needs a
-   REPRESENTATIVE workload: the tiny `make_real` test program is IPC-bound (pickle + queue round-trip ≫ its
-   compute), so it would show the pool LOSING — an honest but uninteresting result. Use a compute-heavy
-   per-tick program (many axon ops) so parallel compute can amortise the IPC, and report the real curve incl.
-   spawn/serialise overhead (a negative result at small work is recorded, not hidden).
+   (a) **Throughput — DONE 2026-06-20. The leg is VALIDATED.** `experiments/bench_process_pool.py` (CPU,
+   1 thread/process to isolate process-parallelism; compute-heavy K=16-read program; steady-state):
+   sequential ~113 ms/round vs pool **1.54× (W=2) / 2.47× (W=4) / 3.21× (W=8)** — a real, monotonic
+   throughput win, the exact opposite of in-process `tick_all` (0.4–0.95×). Sub-linear from per-tick IPC +
+   serial gather + physical-core cap (expected isolation costs, not a defect). Spawn+compile ~6.6 s one-time
+   (break-even ~99 rounds). Separate OS processes ARE the GIL-escape lever the tick_all finding predicted.
+   Finding: `planning/findings/2026-06-20-genuine-multiprocess-throughput.md`. Added `threads_per_worker`
+   to `ProcessPoolRuntime` (pin intra-op threads so W workers don't oversubscribe).
 3. **CUDA-context isolation (CI/Linux-gated follow-on).** Per-process CUDA context = the §1C memory
    isolation; verify one worker's allocations aren't visible to another via per-process
    `torch.cuda.memory_stats`. Needs a CUDA box; gate behind capability check.
