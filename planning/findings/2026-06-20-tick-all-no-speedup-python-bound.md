@@ -5,6 +5,12 @@
 streams) is correct but does not parallelize on the Python-orchestrated runtime — and profiling the
 "98% Python" revealed most of it was a PERF BUG in `_role_hash`, not irreducible orchestration.**
 
+> **LEVER PULLED → RESOLVED (2026-06-20).** This finding's conclusion — that real multi-process throughput
+> needs genuine parallelism (separate OS processes / GIL release), not in-process CUDA streams — was acted
+> on: `ProcessPoolRuntime` (separate OS processes) delivers **up to 3.21×** where `tick_all` gave
+> 0.4–0.95×. See `2026-06-20-genuine-multiprocess-throughput.md`. `tick_all` keeps its value as the correct
+> in-process dispatch SHAPE; the throughput win lives in the process-pool runtime.
+
 ## UPDATE 2026-06-20 — `_role_hash` was doing `bytes(tensor)` element-wise iteration (66x slow)
 
 Profiling a warm `on_axon` (cProfile, 200 ticks) showed `_role_hash` at ~98% of the per-tick time,
