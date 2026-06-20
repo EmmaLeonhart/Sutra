@@ -180,6 +180,12 @@ Design doc (forks + verification plan): `planning/sutra-spec/multi-process-runti
 4. **CUDA-IPC sharing (CI/Linux-gated, optional).** Share ONE codebook tensor read-only across workers via
    `cudaIpcGetMemHandle` to drop the per-process codebook duplication — only if codebook GPU memory becomes
    the constraint, and only on Linux (Windows has no CUDA IPC).
+5. **Robustness — dead-worker hang fixed — DONE 2026-06-20.** A worker PROCESS dying mid-tick (program
+   OOM/crash) used to hang `tick_all`'s blocking gather forever. Now the gather polls `Process.is_alive()`
+   via a bounded `out_q.get(timeout=1s)` and raises a clear error (with the dead workers' exit codes + the
+   pending program names) instead of hanging; a live-but-slow worker just keeps waiting. Same hardening on
+   `__init__`'s `ready_q` wait (a worker crashing during compile). Tested by terminating a worker and
+   asserting `tick` raises, not hangs (`test_process_pool_runtime.py`, 4/4).
 
 Start at step 1 (the portable core that tests Emma's premise on this machine before any platform-gated IPC).
 

@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-20: ProcessPoolRuntime hardening — dead-worker hang fixed; CI green confirmed; findings cross-linked
+
+Low-risk polish tick. (1) Confirmed CI green for the session's codegen changes (peephole, cache cap,
+axon_build trace) — `Sutra compiler — pytest` + `Transpilers — pytest` both success at HEAD. (2) Fixed a
+real footgun in the `ProcessPoolRuntime` shipped this session: a worker process dying mid-tick (program
+OOM/crash) hung `tick_all`'s blocking `out_q.get()` gather forever. Now the gather polls
+`Process.is_alive()` via a bounded `get(timeout=1s)` and raises a clear error (dead workers' exit codes +
+pending program names) instead of hanging; a live-but-slow worker just keeps waiting. Same hardening on
+`__init__`'s `ready_q` wait (worker crashing during compile). Tested by terminating a worker and asserting
+`tick` raises, not hangs (`test_process_pool_runtime.py` 3→4). (3) Cross-linked the tick_all finding to the
+multi-process-throughput resolution (the open "needs separate processes" lever was pulled → up to 3.21×),
+so the findings narrative is navigable. AGENTS.md checked — appropriately high-level, no drift.
+
 ## 2026-06-20: FV key-soundness — closed a vacuity hole MY axon_build peephole had opened
 
 Emma chose static `AXON_KEYS` soundness as the next direction. Found the checker already built (2026-05-29
