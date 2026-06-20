@@ -1,4 +1,7 @@
-> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Precise open part: which V1-refused constructs (methods, operator decls, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`) V1 should close. Most demos compile; several examples don't.
+> **VERDICT — NARROWED, STILL PARTLY OPEN** (task #15 triage 2026-05-16; narrowed 2026-06-20 after the
+> daily audit found `EmbedExpr`/`DefuzzyExpr` are SHIPPED, not refused). Authoritative table:
+> `planning/open-questions/README.md`. Precise open part: which of the genuinely-still-refused
+> constructs (method declarations, operator declarations, `UnsafeCastExpr`) V1 should close.
 
 ---
 
@@ -6,43 +9,36 @@
 
 ## The question
 
-`sdk/sutra-compiler/`'s codegen pipeline deliberately refuses several source-level constructs with a `CodegenNotSupported` error, e.g.:
+`sdk/sutra-compiler/`'s codegen pipeline still refuses a few source-level constructs with a
+`CodegenNotSupported` error:
 
 - method declarations (class methods — not just free functions)
 - operator declarations (`operator +` etc.)
-- `DefuzzyExpr` (`is_true(...)` unwrap)
-- `EmbedExpr` (the `embed "..."` literal form)
 - `UnsafeCastExpr`
 
-Programs exist in the repo that use every one of these (see `examples/01-…06.su`, `examples/_legacy_syntax_tour.su`). Those programs pass parser + validator but cannot compile.
+**SHIPPED since this doc was written (verified 2026-06-20):** `EmbedExpr` and `DefuzzyExpr` now lower.
+`EmbedExpr` → `_VSA.embed(...)` (`sdk/sutra-compiler/sutra_compiler/codegen.py` `_embed_expr_src`,
+~line 119; also covers the implicit `vector v = "foo"` auto-embed). `DefuzzyExpr` → compile-time
+expansion of the stdlib `defuzzy` body (`_defuzzy_expr_src`, ~line 129). Both compile end-to-end
+through `codegen_pytorch` (spot-checked: `vector v = embed("hello");` emits `_VSA.embed`; a
+`defuzzy(v)` program compiles).
 
-The question is: which of these should V1 support, which should wait for V2, and which are spec features that were prototyped in `.su` but never made it into the runtime model?
+The remaining question is: which of method decls / operator decls / `UnsafeCastExpr` should V1
+support, which wait for V2, and which are spec features prototyped in `.su` but never put into the
+runtime model.
 
 ## What we currently do
 
-The lint sweep (run 2026-04-12) found:
-
-| File | Status | First unsupported construct |
-|---|---|---|
-| `examples/01-objects-and-methods.su` | SKIP | method decl |
-| `examples/02-functions-vs-methods.su` | SKIP | method decl |
-| `examples/03-types-and-casts.su` | SKIP | `EmbedExpr` |
-| `examples/04-control-flow-and-errors.su` | SKIP | `DefuzzyExpr` |
-| `examples/05-operators-and-strings.su` | SKIP | operator decl |
-| `examples/06-executable-file.su` | SKIP | `EmbedExpr` |
-| `examples/workspace/corpus/main.su` | OK | — |
-| `examples/workspace/similarity/main.su` | OK | — |
-| `examples/_legacy_syntax_tour.su` | SKIP | `UnsafeCastExpr` |
-
-(Original sweep also covered four `fly-brain/*.su` programs; that
-directory was retired 2026-04-26 and the entries are dropped.) The
-SKIPs are known feature gaps, not regressions.
+The original lint sweep (2026-04-12) tabulated SKIPs against `examples/01-…06.su` /
+`examples/_legacy_syntax_tour.su`. **Those example files have since been removed from the tree**, so
+the table is dropped as stale. Of the constructs it flagged, `EmbedExpr` and `DefuzzyExpr` now compile
+(see above); only method decls, operator decls, and `UnsafeCastExpr` remain refused.
 
 ## Why each gap has force (or doesn't)
 
-- **method decls / operator decls.** These are OO-flavored surface syntax. The V1 codegen emits free Python functions and calls `_VSA.op(...)`. To support methods, codegen would need a dispatch layer (class body → Python class, method body → Python method). Doable, not urgent unless a paper-relevant `.su` program wants methods.
-- **`EmbedExpr`.** Source-level `embed "foo"` is syntactic sugar for `basis_vector("foo")` (approximately). Easy to lower. Probably should be in V1 — its absence forces every real `.su` program to use `basis_vector(...)` explicitly.
-- **`DefuzzyExpr`.** `is_true(...)` maps to the defuzzification threshold. Spec says it's a tier-2 op reducing a vector to a scalar in [0,1]. Should compile to a `_VSA.is_true(...)` call. Missing the runtime method is probably the real blocker.
+- **method decls / operator decls.** These are OO-flavored surface syntax. The V1 codegen emits free Python functions and calls `_VSA.op(...)`. To support methods, codegen would need a dispatch layer (class body → Python class, method body → Python method). Doable, not urgent unless a paper-relevant `.su` program wants methods. (See also the OO-encapsulation work in `todo.md`.)
+- **`EmbedExpr` — SHIPPED.** Lowers to `_VSA.embed(...)`; also backs the implicit `vector v = "foo"` auto-embed. No longer a gap.
+- **`DefuzzyExpr` — SHIPPED.** `defuzzy(...)` lowers by compile-time expansion of the stdlib `defuzzy` body (the defuzzification threshold reduction). No longer a gap.
 - **`UnsafeCastExpr`.** Explicit cross-type cast. Semantics in the spec are vague. Low priority.
 
 ## What we'd need to decide
@@ -53,11 +49,15 @@ SKIPs are known feature gaps, not regressions.
 
 ## Concrete next steps (when picked up)
 
-- Add `EmbedExpr` lowering to `basis_vector(name)` in `codegen.py`.
-- Add `DefuzzyExpr` lowering + matching `_VSA.is_true` method.
-- Tag each SKIP'd `.su` file with a header comment citing the specific construct it needs.
-- Add a CI lint check that fails if an `OK` file regresses to SKIP (distinct from FAIL).
+- ~~Add `EmbedExpr` lowering~~ — DONE (`_embed_expr_src` → `_VSA.embed`).
+- ~~Add `DefuzzyExpr` lowering~~ — DONE (`_defuzzy_expr_src`, compile-time expansion).
+- Decide method-decl / operator-decl support (the OO dispatch layer) vs leaving them to the
+  TS-transpiler / OO-encapsulation track.
+- Pin down `UnsafeCastExpr` semantics (or formally retire it from the surface).
 
 ## Status
 
-Unresolved. Not blocking the Claw4S paper. Currently captured as backlog item in queue.md.
+NARROWED, partly resolved (2026-06-20). The `EmbedExpr` / `DefuzzyExpr` parts are SHIPPED; the
+remaining open tail is the OO surface (method/operator decls) + `UnsafeCastExpr`. Authoritative
+resolution location for the shipped parts: `sdk/sutra-compiler/sutra_compiler/codegen.py`
+(`_embed_expr_src`, `_defuzzy_expr_src`).
