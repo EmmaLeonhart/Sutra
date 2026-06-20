@@ -28,6 +28,7 @@ _RUNNABLE = {
     "pattern_eq": 120.0,  # classify 0/1/n equations -> dispatch fn; classify 0 + classify 2 = 100+20
     "guards": 120.0,  # classify n | n==0 | n==1 | otherwise -> guard blend; classify 0 + classify 2
     "where_block": 31.0,  # f x = y + z where y = x+1; z = x*2; main = f 10 = 11+20
+    "forward_where": 41.0,  # f x = a + b where a = b+1; b = x*2; main = f 10 = 21+20  (FORWARD/out-of-order where ref -> _order_binds topo-sorts the group so `b` is lowered before `a`)
     "let_block": 18.0,  # g x = let a = x+1; b = a*2 in a + b; main = g 5 = 6+12 (sequential bind)
     "data_adt": 2.0,  # data Expr = Lit Int | Neg Int; evalE via case; evalE(Lit 7)+evalE(Neg 5) = 7+(-5)  (ADT -> tagged axon)
     "nested_ctor_case": (16.0, 256),  # f w = case w of Outer (Inner a b) c -> a+b+c; main = f (Outer (Inner 5 8) 3)  (NESTED ctor CASE pattern -> Axon temp for the _val0 prefix; outer tag test; dim>=256, finding 2026-06-17)

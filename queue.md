@@ -15,17 +15,18 @@ pull it into this queue, attempt a NATIVE lowering within a few-cycles budget, a
 
 ## Active edge case
 
-### Haskell — mutually-recursive / forward `where`/`let` bindings
+### Elixir / Erlang — multi-arg non-tail multibase recursion
 
-Open item from `planning/wasm-fallback-edge-cases.md` § Haskell. A `where`/`let` block whose
-bindings reference each other (mutual / forward order) does not yet lower natively.
+Open item from `planning/wasm-fallback-edge-cases.md` § Elixir/Erlang. >2-clause non-tail
+multibase (single-arg CPS fold) is DONE; the residual is the MULTI-ARG non-tail multibase
+(a non-tail recursive fn with >1 parameter that bottoms out at multiple bases).
 
 Steps:
-1. Add a fixture `sdk/sutra-from-haskell/tests/fixtures/forward_where/input.hs` exercising a
-   forward reference in a `where` block (binding used before its definition line).
-2. Run the existing lower + substrate run; observe whether it already works or emits UNSUPPORTED.
-3. If close, fix the binding-ordering analysis in `lower.py` (topo-sort the bindings).
-4. If not clean in budget, record assessment in the edge-case doc and move on.
+1. Inspect the existing Elixir/Erlang multibase fixtures + lowering to see how the single-arg CPS
+   fold picks its base seed, and where the multi-arg case diverges.
+2. Add a fixture exercising a multi-arg non-tail multibase; lower + substrate-run; measure.
+3. If a clean native lowering is in budget, ship it (fixture RUN == ground truth, regression test).
+4. If not clean in budget, record the assessment in the edge-case doc and move on.
 
 ---
 

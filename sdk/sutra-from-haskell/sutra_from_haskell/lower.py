@@ -677,15 +677,69 @@ def _match_body(decl, src: bytes):
     return m.named_children[-1] if m.named_children else None
 
 
+def _collect_var_names(node, src: bytes, out: set) -> None:
+    """Collect every `variable` identifier text in a subtree (for the dependency scan)."""
+    if node is None:
+        return
+    if node.type == "variable":
+        out.add(_text(node, src))
+    for c in node.named_children:
+        _collect_var_names(c, src, out)
+
+
+def _bind_defines(b, src: bytes) -> set:
+    """The name(s) a `bind` introduces — from its PATTERN (first child), not its value.
+    Simple `a = …` → {a}; destructure `(a,b) = t` / `(Wrap a b) = w` → the pattern vars."""
+    names: set = set()
+    first = b.named_children[0] if b.named_children else None
+    if first is not None and first.type in ("tuple", "parens", "apply"):
+        _collect_var_names(first, src, names)
+    else:
+        nm = next((c for c in b.named_children if c.type == "variable"), None)
+        if nm is not None:
+            names.add(_text(nm, src))
+    return names
+
+
+def _order_binds(binds: list, src: bytes) -> list:
+    """Dependency-order a `where`/`let` group so each bind is lowered AFTER the local
+    binds whose names it references — the substitution is single-level, so a forward
+    (out-of-order) reference would otherwise leak the referenced name as a bare
+    identifier (finding: forward `where` reference). Acyclic forward references are
+    handled here; a true mutual-recursion CYCLE makes no progress and the remaining
+    binds keep source order (it stays on the WASM fallback — laziness/fixpoint is out
+    of scope, not faked)."""
+    defs = [_bind_defines(b, src) for b in binds]
+    all_local: set = set().union(*defs) if defs else set()
+    uses = []
+    for i, b in enumerate(binds):
+        u: set = set()
+        _collect_var_names(_match_body(b, src), src, u)
+        uses.append((u & all_local) - defs[i])
+    ordered, emitted, remaining = [], set(), list(range(len(binds)))
+    progress = True
+    while remaining and progress:
+        progress, still = False, []
+        for i in remaining:
+            if uses[i] <= emitted:
+                ordered.append(binds[i]); emitted |= defs[i]; progress = True
+            else:
+                still.append(i)
+        remaining = still
+    ordered.extend(binds[i] for i in remaining)  # cycle: keep source order
+    return ordered
+
+
 def _apply_local_binds(local_binds, src: bytes) -> list[str]:
     """Add each `bind` in a `local_binds` node (a `where` clause or `let` group) to
-    `_SUBST` as name → its parenthesised lowered value, processed in order so a
-    later binding sees the earlier ones (the OCaml `let..in` / Clojure `let` shape;
-    numbers, so re-evaluating a substituted value is side-effect-free). Mutually-
-    recursive / forward where-bindings are a later item. Returns the bound names
-    (for cleanup by the caller)."""
+    `_SUBST` as name → its parenthesised lowered value. Binds are dependency-ordered
+    (`_order_binds`) so a later binding sees the earlier ones — including FORWARD
+    (out-of-order) references within the group (the OCaml `let..in` / Clojure `let`
+    shape; numbers, so re-evaluating a substituted value is side-effect-free). A true
+    mutual-recursion cycle stays on the WASM fallback. Returns the bound names (for
+    cleanup by the caller)."""
     bound: list[str] = []
-    for b in local_binds.named_children:
+    for b in _order_binds([b for b in local_binds.named_children if b.type == "bind"], src):
         if b.type != "bind":
             continue
         first = b.named_children[0] if b.named_children else None
