@@ -208,7 +208,7 @@ class Calculator:
         vsa = self._digit_vsa
         n = abs(value)
         digs = [
-            round(float(vsa.real(self._digit(float(n), float(place)))))  # SUBSTRATE
+            round(float(vsa._re(self._digit(float(n), float(place)))))  # SUBSTRATE
             for place in (1000.0, 100.0, 10.0, 1.0)
         ]
         s = "".join(str(d) for d in digs).lstrip("0") or "0"
@@ -333,7 +333,7 @@ class Calculator:
             raise RuntimeError(
                 f"calculator delivered {len(self._received)} results (expected 1)"
             )
-        return float(vsa.real(self._received[0].payload))  # decode real axis
+        return float(vsa._re(self._received[0].payload))  # decode real axis
 
 
 def main() -> None:  # pragma: no cover - interactive REPL

@@ -121,7 +121,7 @@ def _run_ticks(init, runtime, a_svc, b_svc):
             ax = init.router.receive("console")
             if ax is None:
                 break
-            val = vsa.real(ax.payload)  # monitoring accessor
+            val = float(vsa._re(ax.payload))  # monitoring accessor (0-d tensor -> float)
             if ax.from_proc == "task_a" and first_a_val is None:
                 first_a_val = val
             if ax.from_proc == "task_b" and first_b_val is None:
