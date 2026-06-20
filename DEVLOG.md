@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-20: FV end-to-end worked example — NAND program through the whole obligation pipeline
+
+Shipped the integrative FV artifact (todo.md "End-to-end worked example"): `experiments/fv_worked_example.py`
+carries one named program — a NAND gate written in De Morgan form (`!a || !b`, deliberately NOT
+syntactically its contract, so "computes the contract's function" is a real claim) — through every
+obligation: (1) function-correctness — `reduces_to_same_graph` proves the impl reduces to the SAME tensor
+graph as the contract `!(a && b)`, and a plausible-but-wrong NOR impl is correctly REJECTED; (2)
+branch-range soundness — exact range [−1,+1] by structural composition; (3) substrate cross-check — the
+COMPILED program, run on the torch substrate at the nine Kleene grid points, reproduces the NAND truth
+table with worst |error| = 0.00e+00 (so the symbolic verdict is about the running program, not a
+hand-copied polynomial — integrity discipline). Narrated for the paper; regression-guarded by
+`tests/test_fv_worked_example.py` (1 pass). Composes the public `sutra_compiler.fv` API; no new mechanism.
+This is the "framework → demonstrated" artifact the FV section wanted; feeds a
+`paper/formal-verification/paper.md` revision when next edited.
+
 ## 2026-06-20: §1C throughput VALIDATED — genuine multi-process gives up to 3.21× (the lever tick_all couldn't pull)
 
 Step 2a (the payoff). Benchmarked `ProcessPoolRuntime` throughput vs single-process sequential

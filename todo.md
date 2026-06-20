@@ -683,13 +683,14 @@ the lever that removes branch/path explosion.**
   absorption / plainly-different (NOT same graph, the off-grid witness), with a
   randomized PIT cross-check (`reduces_to_same_graph_randomized`).
   `tests/test_fv_general_checker.py`.
-- **End-to-end worked example — substantially covered, polish optional.** The
-  contract function-correctness check IS this for the Kleene fragment
-  (`test_fv_general_checker` / the contract test: a NAND impl passes its `!(a&&b)`
-  contract, a NOR impl is correctly rejected — `.su` expression → compiled graph →
-  checked against contract). A polished standalone narrative artifact (one named
-  program, its published contract, the mechanical check rendered for the paper) is
-  the only remaining piece, and it is presentation, not new mechanism.
+- **End-to-end worked example — ✅ SHIPPED 2026-06-20.** `experiments/fv_worked_example.py` carries one
+  named program (a NAND gate in De Morgan form `!a || !b`, deliberately NOT syntactically its contract)
+  through the WHOLE obligation pipeline: (1) function-correctness — reduces to the SAME graph as its
+  contract `!(a && b)`, and a NOR impl is REJECTED; (2) branch-range soundness — exact range [−1,+1] by
+  composition; (3) substrate cross-check — the COMPILED program reproduces the NAND truth table on torch
+  (worst |err| = 0.00e+00). Narrated for the paper; regression-guarded by
+  `tests/test_fv_worked_example.py`. The integrative "framework → demonstrated" artifact; feeds a
+  `paper/formal-verification/paper.md` revision when next edited.
 - **Tie to Yantra's trusted base.** The kernel roles + named critical
   programs are the in-scope surface (Yantra `paper/paper.md` §4); coordinate
   which programs get contracts first.
