@@ -42,9 +42,21 @@ axon programs) depend on. Steps:
    green.
 2. **NEXT:** run the FULL Yantra test suite (not just substrate-facing) to catch any remaining drift;
    confirm the precompile caches regenerate against the current compiler.
-3. Then pull the next concrete Yantra integration step (runtime ABI / multi-process / axon spec
-   alignment) from `todo.md`, decompose here, execute. (This is the bigger leg; may need Emma's
-   direction on the entry point since the GUI surface is out-of-scope.)
+3. **Multi-process Sutra runtime — ACTIVE (Emma 2026-06-20 chose this entry point).** Let the
+   orchestrator run all admitted programs SIMULTANEOUSLY on one GPU. `MultiProcessRuntime`
+   (`sdk/sutra-compiler/sutra_compiler/multi_process.py`) already hosts N programs over a shared
+   `_VSA`, but `tick(name, input)` dispatches SEQUENTIALLY (one program per call; relies on incidental
+   CUDA scheduling). Concrete first step — true concurrent dispatch (the concurrency-spec "multiple
+   paths through vector space, computed for each, splitting"):
+   a. `tick_all(inputs: dict[name, axon]) -> dict[name, axon]`: launch each program's `on_axon` on its
+      OWN `torch.cuda.Stream` (no inter-stream sync), then `torch.cuda.synchronize()` and collect, so
+      the GPU overlaps them. Python launch stays sequential under the GIL (so the shared-`_VSA` lazy
+      caches don't race); only the device kernels overlap. CPU fallback: plain sequential (streams are
+      a CPU no-op), correctness preserved.
+   b. Test (`test_multi_process_runtime.py`): `tick_all` results are IDENTICAL to per-program `tick`
+      (correctness first); N independent programs dispatch concurrently and all outputs are correct.
+   c. Wire Yantra's kernel router to `tick_all` for a round of admitted services (follow-on, after the
+      primitive lands + is tested).
 
 ---
 

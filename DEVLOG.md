@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-20: multi-process runtime — concurrent `tick_all` (run all programs on one GPU)
+
+First concrete step of the Yantra "Multi-process Sutra runtime" leg (Emma 2026-06-20 chose this
+entry point after Yantra §1's cross-repo health check). `MultiProcessRuntime` already hosts N
+programs over a shared `_VSA`, but only dispatched SEQUENTIALLY (`tick(name, input)`, one program
+per call). Added `tick_all(inputs: dict[name, axon]) -> dict[name, axon]`: launches each program's
+`on_axon` on its OWN `torch.cuda.Stream` (no inter-stream sync), then one `torch.cuda.synchronize()`
+joins every path — so the GPU overlaps the kernels while the Python launch loop stays sequential
+under the GIL (the shared-`_VSA` lazy caches don't race). On CPU the streams are a no-op and it
+degrades to correct sequential execution. This realizes concurrency.md's "two or more simultaneous
+trajectories through the same embedding space; every spawned path runs, none is discarded" as an
+explicit API. Results are bit-identical to per-program `tick` (verified). Tests: `tick_all` ==
+sequential tick across both programs, name-validation-before-launch, empty round; 13/13
+`test_multi_process_runtime.py` pass (CUDA stream path exercised on the dev GPU). Follow-on (queued):
+wire Yantra's kernel router to `tick_all` for a round of admitted services.
+
 ## 2026-06-19: REVERT the axon-populated-flag / is_axon type-test (negative result)
 
 Reverted the 2026-06-19 attempt to support `is_list`/`is_map`/`is_tuple` type-test guards by

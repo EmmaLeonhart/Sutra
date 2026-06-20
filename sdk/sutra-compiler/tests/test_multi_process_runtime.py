@@ -165,3 +165,36 @@ def test_axon_project_via_runtime(runtime: MultiProcessRuntime) -> None:
 def test_unknown_program_name_raises(runtime: MultiProcessRuntime) -> None:
     with pytest.raises(KeyError, match="no admitted program"):
         runtime.tick("ghost", torch.zeros(runtime.vsa().dim))
+
+
+def test_tick_all_matches_sequential(runtime: MultiProcessRuntime) -> None:
+    """tick_all runs many programs in one concurrent round; every result is
+    IDENTICAL to the sequential tick (correctness first — the only difference
+    is device-side overlap). On CPU the streams are a no-op; on CUDA each
+    program launches on its own stream and a single synchronize joins them."""
+    vsa = runtime.vsa()
+    dim = vsa.dim
+    dummy = torch.zeros(dim)
+    producer_out = runtime.tick("producer", dummy)  # axon binding animal + color
+    # One concurrent round: producer ignores input; consumer reads "animal".
+    outs = runtime.tick_all({"producer": dummy, "consumer": producer_out})
+    assert set(outs) == {"producer", "consumer"}
+    # Concurrent == sequential, program by program.
+    assert torch.allclose(outs["producer"], runtime.tick("producer", dummy))
+    assert torch.allclose(outs["consumer"], runtime.tick("consumer", producer_out))
+    # And the consumer's concurrent output really decodes the key the producer bound.
+    expected = vsa.axon_item(producer_out, "animal")
+    assert torch.allclose(outs["consumer"], expected, atol=1e-4)
+
+
+def test_tick_all_validates_names_before_launch(runtime: MultiProcessRuntime) -> None:
+    """An unknown name raises KeyError and nothing is dispatched."""
+    dim = runtime.vsa().dim
+    with pytest.raises(KeyError, match="no admitted program"):
+        runtime.tick_all({"producer": torch.zeros(dim), "ghost": torch.zeros(dim)})
+
+
+def test_tick_all_empty_round(runtime: MultiProcessRuntime) -> None:
+    """An empty round is a no-op returning an empty dict (every path runs; there
+    are simply zero paths)."""
+    assert runtime.tick_all({}) == {}
