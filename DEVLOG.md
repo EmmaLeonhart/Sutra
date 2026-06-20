@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-20: Dimension-audit sweep — the build-time version of the "codebook unused, large dim is pure cost" check
+
+Self-directed (Emma's feedback: stop over-asking, pick the work myself). Promoted the per-program
+compile-time dimension warning to a corpus-wide build-time audit — one of the three measurement-checks the
+2026-06-02 retrospective flagged as the breach class with the WEAKEST automation (it cost Yantra a silent
+96× cost for weeks). `experiments/dimension_audit_sweep.py` statically (parse only, no torch) flags every
+`.su` that uses no codebook (no basis_vector/embed, no axon string-keys — the exact signal
+`codegen_pytorch`'s warning uses, via `collect_basis_vector_strings` + `collect_axon_keys`). Made the
+gate-semantics call myself (the part previously deferred as "Emma's call"): ADVISORY by default (exit 0 —
+default dim in a tutorial is legitimate, not a bug), `--strict` to fail a pipeline; and it splits real
+programs (examples/demos — actionable: 35 found, incl. the GUI demos that ARE the documented breach) from
+corpus fixtures (expected codebook-free: 34) so the signal isn't buried in test noise. Detection pinned by
+`tests/test_dimension_audit.py` (4 pass) so the audit can't drift from the warning it promotes. The
+state-locus and signal-separation gates remain — they need a per-`.su` claim annotation first (the
+dimension check didn't, since codebook-use is intrinsic to the source).
+
 ## 2026-06-20: ProcessPoolRuntime hardening — dead-worker hang fixed; CI green confirmed; findings cross-linked
 
 Low-risk polish tick. (1) Confirmed CI green for the session's codegen changes (peephole, cache cap,
