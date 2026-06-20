@@ -73,6 +73,40 @@ not conflated with the formal guarantees above.
 
 ---
 
+## Background
+
+Sutra is a typed, purely functional programming language whose compiler lowers an
+entire program to a single fused tensor-op graph over a frozen embedding substrate.
+There is no bytecode or interpreter beneath the graph: compilation produces a
+weight-and-rotation structure, and running the program is the forward pass through
+it, in the same sense that a trained neural network's weights are its computation.
+The substrate is a high-dimensional vector space supplied by a frozen pretrained
+embedding model (nomic-embed-text by default), extended with a small block of
+synthetic axes that carry the real and imaginary parts of numbers, a truth
+coordinate, and string-encoding flags.
+
+The primitives the graph is built from come from Vector Symbolic Architectures, also
+called hyperdimensional computing: binding composes a role with a filler, bundling
+superposes several vectors into one, and cleanup decodes a noisy superposition back
+to its nearest stored item (Plate 1995; Gayler 2003; Kanerva 2009). Sutra uses these
+as its data-structuring layer: a record is a bundle of role-filler bindings, a string
+is a synthetic-axis-encoded array of codepoints, and a number lives on the synthetic
+number axis. Control flow is expressed without host branching: a conditional becomes a
+polynomial blend over a three-valued truth grid, and a loop becomes a bounded
+soft-halt recurrence.
+
+A system built on this substrate has two parts with different epistemic status. The
+frozen embedding model is a learned, opaque component; its internal semantics are not
+verified, only its interface. Everything the compiler emits above it, the program's
+control flow, arithmetic, string handling, and role structure, is non-learned: a fixed
+tensor graph determined entirely by the source. This paper concerns the verification
+of that non-learned trusted base, and the contracts that quarantine the learned
+component behind it. The reader needs no familiarity with the embedding model's
+training; the claims are about the compiled graph, which is the same object whether the
+substrate is nomic-embed-text or another frozen model of the same dimension.
+
+---
+
 ## 1. Introduction
 
 Two facts are usually taken to be in tension. (i) Critical systems want formal
