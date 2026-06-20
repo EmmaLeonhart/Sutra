@@ -592,10 +592,15 @@ discharging a finite set of closed-form obligations over a small fixed set
 of tensor graphs, not navigating control flow. Polynomial Kleene logic is
 the lever that removes branch/path explosion.**
 
-- **Kleene grid-exactness checker (first artifact, queued).** Evaluate each
-  connective polynomial (`and`/`or`/`not`/t-norms) at the nine grid points
-  {−1,0,+1}² and assert exact reproduction of the 3-valued Kleene table.
-  Finite + decidable; anchors the smooth polynomial to the discrete logic.
+- **Kleene grid-exactness checker (first artifact) — ✅ SHIPPED (verified 2026-06-20).**
+  `tests/test_fv_kleene_grid_exactness.py` compiles the REAL pipeline (parse → inline →
+  simplify → torch codegen → runtime) and evaluates `&&`/`||`/`!` at all nine grid points
+  {−1,0,+1}² on the substrate, asserting exact reproduction of the 3-valued Kleene table
+  (antipodal encoding: true=+1, unknown=0, false=−1; and=min, or=max, not=negate). Referenced
+  by `paper/formal-verification/paper.md` § Pillar 2. Finite + decidable; anchors the smooth
+  polynomial to the discrete logic. (Note: this checker covers the three connectives Sutra
+  emits; the parenthetical "t-norms" was aspirational — Sutra has the one smooth-min/max pair,
+  not a family.)
 - **[proposed] Promote the three measurement checks from prose to CI gates**
   (dimension / state-locus / signal-separation). Per the 2026-06-02
   substrate-leak retrospective
