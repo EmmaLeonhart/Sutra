@@ -93,11 +93,20 @@ per-op in Python: `bind` (the rotation matmul `Q @ filler`, ~3/tick) and `_axon_
 (the synthetic-block gather + clone, ~3/tick). The fusion pass collapses a program's per-tick per-op
 kernel launches into one (or few) fused tensor-op graph(s), so the GPU does the work in fewer dispatches
 and the Python orchestration shrinks. Existing infra to build on: `simplify_egglog.py` already does
-COMPILE-TIME matrix-chain fusion (R_CHAIN: collapse `R1·R2·…·Rn`). First step: read the codegen emit
-model + the egglog pass, find the concrete fusable pattern in the per-tick path (e.g. batch the
-multiple `axon_add` binds into one batched matmul, or precompute a fused per-key operator), prototype +
-measure it against the bench (`experiments/bench_tick_all.py`), decompose into concrete steps here.
-Finding to extend: `2026-06-20-tick-all-no-speedup-python-bound.md` (§"Perf chain CONCLUDED").
+COMPILE-TIME matrix-chain fusion (R_CHAIN: collapse `R1·R2·…·Rn`).
+
+**Attempt 1 (2026-06-20) — the "cat" fusion — REVERTED. Critical lesson recorded.** Fused
+`permute(bind(key,value))` to `cat(Q_sem @ value[:sem], value[sem:][perm])` — bit-identical, 3x faster
+in isolation, HELPED sequential `tick` (8.4→6.3ms) but **REGRESSED `tick_all` to 0.4–0.68x** (slower
+than sequential — defeats the primitive), because it trades 2–3 ops for 5 SMALLER ops and CUDA streams
+want FEWER/BIGGER kernels. **Lesson: fusion for the concurrent goal must reduce op COUNT, not op size.**
+
+**Next step — the `M_key` fusion (one op per add).** Precompute `M_key = blockdiag(Q_sem, P_perm)` per
+key (the permutation as a matrix), so `axon_add(key,value) = axon + M_key @ value` — ONE matmul, no
+clone/gather/cat, fewer ops for BOTH paths. Cache `M_key` per key (d×d, ~3MB at dim 868; bounded by the
+key vocab; cap/evict for pathological sets). Verify bit-identical round-trips + that `tick_all` IMPROVES
+(not regresses) on `experiments/bench_tick_all.py`. Then the symmetric `axon_item` read path. Finding:
+`2026-06-20-tick-all-no-speedup-python-bound.md` §"Fusion-pass attempt 1".
 
 ## 1B. Per-process state SERIALISATION — NEXT (after §1A)
 

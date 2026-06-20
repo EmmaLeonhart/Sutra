@@ -46,6 +46,30 @@ FUSION PASS (collapse a program's per-tick per-op kernel launches into one fused
 bigger compiler leg, not a micro-optimization. The two bounded hot-spot fixes here (`.tolist()` +
 key-memo) recovered the easy ~45x; the fusion pass is the deeper, separate lever.
 
+## Fusion-pass attempt 1 — the "cat" fusion REGRESSED tick_all (reverted). KEY LESSON.
+
+First fusion attempt (2026-06-20): `axon_add` does `bind` (full d×d matmul `Q@value`, Q identity on the
+synthetic block) then `_axon_permute_synthetic` (gather + a full-vector clone). Since Q is identity on
+the synthetic block and the permute only touches it, `permute(bind(key,value))` ==
+`cat(Q_sem @ value[:sem], value[sem:][perm])` — verified BIT-IDENTICAL (max diff 0.0). In isolation the
+fused expression is ~3x faster (0.276 → 0.091 ms/call: a d_sem matmul + gather vs a full d×d matmul +
+clone).
+
+But measured end-to-end it HELPED sequential `tick` (8.4 → ~6.3 ms/round) and **REGRESSED `tick_all`**
+(6.3 → 8.9–15.7 ms/round; 1.33x → 0.4–0.68x — i.e. concurrent became SLOWER than sequential, defeating
+the whole primitive). Reverted (working tree clean).
+
+**The lesson (load-bearing for the fusion pass):** the cat-fusion trades 2–3 ops for 5 SMALLER ops
+(slice, matmul, slice, gather, cat). Fewer/bigger ops win on the CONCURRENT path (CUDA streams overlap
+big kernels; more small kernel launches add per-launch + sync overhead with no overlap to amortize it).
+So **for the multi-process goal, fusion must reduce op COUNT, not op SIZE.** The right fusion is the
+one that makes each `axon_add` ONE op: precompute `M_key = blockdiag(Q_sem, P_perm)` per key (a single
+d×d matrix; `P_perm` the permutation matrix so `P_perm @ syn == syn[perm]`), so
+`axon_add(key,value) == axon + M_key @ value` — ONE matmul, no clone, no gather, no cat. Same matmul
+size as today's `bind` but it ALSO absorbs the permute+clone, so it's fewer ops for BOTH paths. Cost:
+`M_key` is d×d per key (~3 MB at dim 868), so cache it per key (bounded by the axon key vocabulary) and
+cap/evict for pathological key sets. This is the next §1A step (fresh context).
+
 ---
 
 ## Original measurement (before the `_role_hash` fix)
