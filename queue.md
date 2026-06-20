@@ -26,10 +26,22 @@ top to bottom; do not start a lower one until the one above is shipped (or expli
 ## 1. Yantra OS integration — ACTIVE (FV spectral-gap shipped 2026-06-19)
 
 Downstream consumer work: wire more of the Sutra substrate into the vendored `external/Yantra/` OS.
-NOT YET DECOMPOSED — first action is to pull the concrete first step from `todo.md` § Yantra / the
-GUI-substrate-surface pattern, decompose it into concrete steps HERE, mirror to the task tool, then
-execute. (Division of responsibility + the substrate-window GUI pattern are in `CLAUDE.md`
-§ "Cross-repo workflow"; the trainable click-button rides the pattern end-to-end already.)
+(GUI agenda is OUT per the Context section; the transformer-vm/WASM path is §2.) First concrete step
+is the **cross-repo health check** (CLAUDE.md § "Cross-repo workflow": when a session edits Sutra
+source, verify against Yantra) — this session changed `axon_add` (now sets `AXIS_AXON_POPULATED` +
+the reserved-flag-axis permutation fix), added the type-test predicates, and reworked the RAM device,
+all of which Yantra's substrate consumers (`external/Yantra/apps/`, `kernel/services/*.su`, the calc
+axon programs) depend on. Steps:
+
+1. Run Yantra's substrate-facing tests against the CURRENT SutraDev compiler (not the installed pin):
+   `test_axon_serialise` (most exposed to the axon_add change), `test_calc*`, `test_kernel*`,
+   `test_apps_echo`. PYTHONPATH must point at `sdk/sutra-compiler` so Yantra sees this session's
+   compiler, not Github\Sutra's.
+2. For any regression, root-cause on the substrate and fix (compiler or the Yantra `.su`); the
+   committed precompile caches (`.<stem>.compiled-sutra<ver>-<hash>.py`) are keyed on the codegen
+   hash, so they regenerate against the new compiler — confirm they do.
+3. Once green, pull the next concrete Yantra integration step (runtime ABI / multi-process / axon
+   spec alignment) from `todo.md`, decompose here, execute.
 
 ---
 
