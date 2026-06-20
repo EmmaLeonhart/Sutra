@@ -33,15 +33,18 @@ the reserved-flag-axis permutation fix), added the type-test predicates, and rew
 all of which Yantra's substrate consumers (`external/Yantra/apps/`, `kernel/services/*.su`, the calc
 axon programs) depend on. Steps:
 
-1. Run Yantra's substrate-facing tests against the CURRENT SutraDev compiler (not the installed pin):
-   `test_axon_serialise` (most exposed to the axon_add change), `test_calc*`, `test_kernel*`,
-   `test_apps_echo`. PYTHONPATH must point at `sdk/sutra-compiler` so Yantra sees this session's
-   compiler, not Github\Sutra's.
-2. For any regression, root-cause on the substrate and fix (compiler or the Yantra `.su`); the
-   committed precompile caches (`.<stem>.compiled-sutra<ver>-<hash>.py`) are keyed on the codegen
-   hash, so they regenerate against the new compiler — confirm they do.
-3. Once green, pull the next concrete Yantra integration step (runtime ABI / multi-process / axon
-   spec alignment) from `todo.md`, decompose here, execute.
+1. **DONE 2026-06-20.** Ran Yantra's substrate-facing tests against the current SutraDev compiler.
+   Found + fixed: (a) the `vsa.real()` host-accessor drift — Yantra consumed the accessor Sutra
+   removed in the 2026-06-07 purity overhaul; migrated 6 files to `vsa._re()`. (b) Surfaced that this
+   session's `axon_add` populated-flag was net-negative (corrupted nested-axon + string-in-axon
+   reads) — REVERTED it (commit `fb58373d`); the `is_axon` type-test is a documented negative result.
+   Yantra substrate suite (echo/axon_serialise/linux_000/symbol_fidelity/calc/kernel) green; main CI
+   green.
+2. **NEXT:** run the FULL Yantra test suite (not just substrate-facing) to catch any remaining drift;
+   confirm the precompile caches regenerate against the current compiler.
+3. Then pull the next concrete Yantra integration step (runtime ABI / multi-process / axon spec
+   alignment) from `todo.md`, decompose here, execute. (This is the bigger leg; may need Emma's
+   direction on the entry point since the GUI surface is out-of-scope.)
 
 ---
 
