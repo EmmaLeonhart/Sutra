@@ -1202,6 +1202,13 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("kv = _torch.as_tensor(k, dtype=self.dtype, device=self.device); rk = None")
         self._indent -= 1
+        self._emit("# FV key-soundness trace (mirror axon_add): the batched build is")
+        self._emit("# where the .add-run peephole lands record bindings, so it MUST")
+        self._emit("# record too or the checker goes vacuous for fused programs.")
+        self._emit("if self._fv_key_trace is not None:")
+        self._indent += 1
+        self._emit("self._fv_key_trace['bound'].add(k if isinstance(k, str) else '<dynamic>')")
+        self._indent -= 1
         self._emit("if isinstance(val, (int, float)):")
         self._indent += 1
         self._emit("val = self.make_real(float(val))")

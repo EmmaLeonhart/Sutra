@@ -108,5 +108,63 @@ class TestFVKeySoundness(unittest.TestCase):
         self.assertIn("<dynamic>", v["read_escapes"])
 
 
+# A program whose 3 consecutive `.add`s the peephole fuses into ONE
+# `axon_build` (make_real values → no Ollama, so it runs end-to-end). Its
+# static AXON_KEYS_BOUND = {x, y, z}. This is the path that would go VACUOUS
+# if axon_build did not record to _fv_key_trace.
+FUSED_SRC = (
+    "function vector build() {\n"
+    "    Axon a;\n"
+    '    a.add("x", make_real(5.0));\n'
+    '    a.add("y", make_real(8.0));\n'
+    '    a.add("z", make_real(3.0));\n'
+    "    return a;\n"
+    "}\n"
+    'function string main() { return "ok"; }\n'
+)
+
+
+class TestFVKeySoundnessFusedPath(unittest.TestCase):
+    """The axon_build peephole (consecutive .add → one batched bmm) must trace
+    its bound keys, or the soundness check is vacuous for every fused program
+    (records, structs — the common case). Verified on the REAL compiled entry
+    point, not a hand-written proxy."""
+
+    def test_axon_build_peephole_path_is_traced_end_to_end(self):
+        ns = _compile(FUSED_SRC)
+        self.assertEqual(set(ns["AXON_KEYS_BOUND"]), {"x", "y", "z"})
+        # Run the actual compiled program; every bound key must be traced.
+        v = check_key_soundness(ns, lambda vsa: ns["build"]())
+        self.assertTrue(v["sound"], v)
+        self.assertEqual(
+            v["runtime_bound"], {"x", "y", "z"},
+            "axon_build did not trace its keys — checker vacuous for fused programs",
+        )
+
+    def test_axon_build_bound_escape_is_caught(self):
+        # Non-vacuous through the fused path: a key outside the static set is
+        # flagged even when bound via axon_build.
+        ns = _compile(FUSED_SRC)
+
+        def run(vsa):
+            return vsa.axon_build(vsa.zero_vector(), ["x", "secret"], [1.0, 2.0])
+
+        v = check_key_soundness(ns, run)
+        self.assertFalse(v["sound"], v)
+        self.assertIn("secret", v["bound_escapes"])
+
+    def test_axon_build_dynamic_key_is_caught(self):
+        # A pre-embedded (non-str) key through axon_build records as '<dynamic>'.
+        ns = _compile(FUSED_SRC)
+
+        def run(vsa):
+            kv = vsa.embed("x")
+            return vsa.axon_build(vsa.zero_vector(), [kv], [1.0])
+
+        v = check_key_soundness(ns, run)
+        self.assertFalse(v["sound"], v)
+        self.assertIn("<dynamic>", v["bound_escapes"])
+
+
 if __name__ == "__main__":
     unittest.main()
