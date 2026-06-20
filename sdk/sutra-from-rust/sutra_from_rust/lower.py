@@ -369,6 +369,41 @@ def _hoist_enum_constructions(body, src: bytes, indent: str = "    "):
                 prelude.append(m_stmts)
                 _ARG_HOIST[n.id] = m_expr
                 added.append(n.id)
+            return
+        if (n.type == "if_expression" and n.named_children
+                and n.named_children[0].type == "let_condition"):
+            # `if let E::V(x) = s { … } else { … }` NESTED in an expression: hoist its
+            # `int _vtag_il{k}` tag-test local to the prelude (the same crisp-tag recipe
+            # the function-tail if-let uses) and register the blend at the use site.
+            parts = _if_let_parts(n.named_children[0], src)
+            else_clause = next((c for c in n.named_children
+                                if c.type == "else_clause"), None)
+            _lt, then_tail = _block_value(n.named_children[1], src)
+            _le, else_tail = (_block_value(else_clause.named_children[0], src)
+                              if else_clause is not None and else_clause.named_children
+                              else (False, None))
+            if (parts is not None and not _lt and then_tail is not None and not _le):
+                variant, pvars, scrut = parts
+                _enum, tag, _arity = _VARIANTS[variant]
+                k = _HOIST_N[0]
+                _HOIST_N[0] += 1
+                scrut_src = _text(scrut, src)
+                vtag = f"_vtag_il{k}"
+                binds = [(_text(v, src), f'realvec({scrut_src}.item("_val{i}"))')
+                         for i, v in enumerate(pvars)]
+                for nm, sub in binds:
+                    _SUBST[nm] = sub
+                try:
+                    then_src = _lower_expr(then_tail, src)
+                finally:
+                    for nm, _sub in binds:
+                        _SUBST.pop(nm, None)
+                else_src = _lower_expr(else_tail, src) if else_tail is not None else "0"
+                prelude.append(
+                    f'{indent}int {vtag} = realvec({scrut_src}.item("_tag"));\n')
+                _ARG_HOIST[n.id] = _blend(f"({vtag} == {tag})", then_src, else_src)
+                added.append(n.id)
+            return
 
     walk(body)
     if not added:
@@ -951,6 +986,7 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
     parsed = []
     max_arity = 0
     uses_variant = False
+    arm_hoist: list[str] = []  # int-local preludes hoisted from nested matches in arm bodies
     for arm in block.named_children:
         if arm.type != "match_arm":
             continue
@@ -1001,11 +1037,21 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
             return None, f"/* UNSUPPORTED-MATCH: pattern {inner.type} */"
         for nm, sub in binds:
             _SUBST[nm] = sub
+        # An arm BODY is an expression slot, so a NESTED variant `match` (or enum
+        # construction) inside it can't emit its own int-locals — hoist them to this
+        # match's prelude (the same `_hoist_enum_constructions` + `_ARG_HOIST` path the
+        # function tail uses), so `_lower_expr` resolves the inner match to its blend.
+        deep = _hoist_enum_constructions(res, src, indent)
+        hoisted_ids = deep[1] if deep is not None else []
+        if deep is not None:
+            arm_hoist.append(deep[0])
         try:
             res_src = _lower_expr(res, src)
         finally:
             for nm, _sub in binds:
                 _SUBST.pop(nm, None)
+            for nid in hoisted_ids:
+                _ARG_HOIST.pop(nid, None)
         parsed.append((test, res_src))
     if not parsed:
         return None, "/* UNSUPPORTED-MATCH: no arms */"
@@ -1017,6 +1063,9 @@ def _lower_match_stmts(node, src: bytes, indent: str = "    ",
         stmts = f'{indent}int {tagv} = realvec({scrut_src}.item("_tag"));\n'
         for i in range(max_arity):
             stmts += f'{indent}int {valv}{i} = realvec({scrut_src}.item("_val{i}"));\n'
+    # Nested-match int-locals hoisted from arm bodies, after the outer `_tag`/`_val`
+    # decls (an inner match may read an outer payload local).
+    stmts += "".join(arm_hoist)
     expr = parsed[-1][1]  # last arm = base (exhaustive)
     for test, res in reversed(parsed[:-1]):
         expr = res if test is None else _blend(test, res, expr)

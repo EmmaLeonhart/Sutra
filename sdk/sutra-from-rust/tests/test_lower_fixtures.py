@@ -27,6 +27,8 @@ _RUNNABLE = {
     "enum_match": 2.0,  # enum Expr -> tagged axon; eval(Lit 7)=7 + eval(Neg 5)=-5
     "if_let_enum": 13.0,  # if let Shape::Circle(r) = s { r+1 } else { 0 }; radius(Circle(12))  (if-let enum destructure -> int _vtag tag test [crisp at 0] + _val0 bind)
     "nested_match_tail_arm": 5.0,  # match e { A(x) => match n { 0 => x, _ => x+1 }, B(y) => y }; f(A(5),0)=5  (LITERAL inner match in a tail-match arm -> inline blend)
+    "nested_variant_match_arm": -2.0,  # match e { A(x) => x + match g { A(y)=>y, B(y)=>0-y }, B(x)=>x }; f(A(3),B(5))=3+(0-5)=-2  (VARIANT inner match in a tail-match arm: its _vtag_h/_val_h int-locals HOISTED to the fn prelude via _hoist_enum_constructions on the arm body)
+    "nested_if_let_arm": 8.0,  # match e { A(x) => x + (if let A(y)=g {y} else {0}), B(x)=>x }; f(A(3),A(5))=3+5=8  (nested if-let in a tail-match arm: its _vtag_il int-local HOISTED to the fn prelude)
     "bool_match": 10.0,  # f(b: bool) = match b { true => 10, false => 20 }; main = f(true)  (Bool match pattern -> (b == true/false) blend)
     "tail_rec": 15.0,  # fn sum_to(acc, n) { if n==0 { acc } else { sum_to(acc+n, n-1) } }; sum_to(0, 5)
     "nontail_fact": 120.0,  # fn fact(n) { if n==0 { 1 } else { n * fact(n-1) } }; fact(5)  (CPS fold)

@@ -24,8 +24,10 @@ record it in `DEVLOG.md`.
   the `int`-typed local performs a type-snap the raw read skips, so an inlined tag/payload compares
   wrong). **DONE 2026-06-19 for Haskell** (`_lower_case_stmts(inline=True)` hoists `int _c{uid}_vtag`
   / `_c{uid}_val{i}` to the equation's `_DESTRUCTURE_PRELUDE`; fixture `variant_case_nontail` RUN ==
-  4). **Rust** (variant inner `match` / nested `if let`) still on the fallback — Emma dropped Rust
-  from active (low priority); the same prelude-temp recipe applies if it is ever picked up.
+  4). **DONE 2026-06-19 for Rust too** — `_hoist_enum_constructions` now hoists a VARIANT inner
+  `match` (`_vtag_h{k}` / `_val_h{k}_i`) AND a nested `if let` (`_vtag_il{k}`) found in a match arm
+  body to the function prelude (fixtures `nested_variant_match_arm` RUN == -2, `nested_if_let_arm`
+  RUN == 8). The shared int-local limit is fully cleared.
 
 ## Per-frontend catalogue
 
@@ -41,9 +43,11 @@ record it in `DEVLOG.md`.
   after the local binds it references (fixture `forward_where` RUN == 41). Only a true
   mutual-recursion CYCLE (binding A ↔ B) stays on the fallback — that needs laziness/fixpoint, which
   is out of scope entirely (not a WASM-fallback item — just unsupported).
-- **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (the int-local limit).
-  Dropped from active §4 per Emma — Rust is low priority. (Loop bounds: use strict `<`/`>`; `<=`
-  drops the boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
+- **Rust** (`sutra-from-rust/`): no open WASM-fallback items remain. **VARIANT inner `match` and
+  NESTED `if let` (the int-local limit) are DONE 2026-06-19** — `_hoist_enum_constructions` hoists
+  their tag/payload int-locals from a match-arm body to the function prelude (fixtures
+  `nested_variant_match_arm` RUN == -2, `nested_if_let_arm` RUN == 8). (Loop bounds: use strict
+  `<`/`>`; `<=` drops the boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
 - **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload support is **DONE 2026-06-19**
   — all five gaps from finding `2026-06-19-ocaml-option-payload-five-gaps.md` fixed + substrate-
   verified (scalar AND aggregate payload, annotated or not); the finding is RESOLVED. The scalable RAM

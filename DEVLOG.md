@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-19: Rust VARIANT inner `match` + nested `if let` in expression position lower natively
+
+Branch `wasm-fallback-edge-cases-native`, seventh edge case — the Rust half of the shared "int-local
+in expression position" limit (Emma had dropped Rust from active, but the Haskell side shipped the
+recipe so the port was in budget). The Rust frontend already hoisted a top-level expression-position
+match (`100 + match e {…}`), but a VARIANT `match` or `if let` NESTED inside another match's ARM hit
+`UNSUPPORTED-MATCH` / `UNSUPPORTED-EXPR: nested if let` — the tail-match path called
+`_lower_match_stmts` without first running the hoist walk on arm bodies.
+
+Fix: (1) `_lower_match_stmts` now runs `_hoist_enum_constructions` on each arm result and emits the
+hoisted int-local prelude (after the outer `_vtag`/`_val` decls); (2) added an `if let` branch to
+`_hoist_enum_constructions` that hoists `int _vtag_il{k} = realvec(scrut.item("_tag"))` and registers
+the crisp-tag blend at the use site (the same recipe the function-tail if-let uses). Both reuse the
+existing `_ARG_HOIST` use-site resolution.
+
+Fixtures `nested_variant_match_arm` (`f(A(3),B(5))` = 3+(0-5)) RUN == -2.0 and `nested_if_let_arm`
+(`f(A(3),A(5))` = 3+5) RUN == 8.0, both == ground truth on the substrate. Rust suite passed, no
+regressions. Rust now has no open WASM-fallback items; the shared int-local limit is fully cleared
+across Haskell + Rust.
+
 ## 2026-06-19: Erlang list comprehensions — assessed, STAYS on the WASM fallback
 
 Branch `wasm-fallback-edge-cases-native`, sixth edge case — a negative/blocked result (integrity
