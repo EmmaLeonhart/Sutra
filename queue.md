@@ -13,24 +13,28 @@ pull it into this queue, attempt a NATIVE lowering within a few-cycles budget, a
 
 ---
 
-## Active edge case
+## Status: discrete edge cases worked through
 
-### F# / Scala — a concrete missing String op (modelled on OCaml)
+The discrete, actionable items in `planning/wasm-fallback-edge-cases.md` have been cleared or
+assessed this session (see `DEVLOG.md` 2026-06-19 entries). What REMAINS in the doc is non-discrete /
+deliberately-deprioritized, NOT a next concrete fixture:
 
-Open item from `planning/wasm-fallback-edge-cases.md` § F#/Scala "general breadth (… more String
-ops), modelled on OCaml as needs arise." The OCaml frontend is the reference; F#/Scala lag on some
-String ops. Pick ONE concrete, common String op OCaml supports that F#/Scala don't, attempt it.
+- **F# / Scala general breadth** (closures, generics, traits/instance classes, "more String ops") —
+  open-ended "as needs arise"; no concrete current gap (string ops are at OCaml parity). Not a
+  discrete edge case to clear in a few cycles.
+- **OCaml non-zero `Array.make` fill** — already **assessed STAYS** (pre-session); needs a concrete
+  consumer reading an unwritten slot.
+- **Erlang list comprehensions** — **assessed STAYS** this session (no array-builder primitive / no
+  wired `lists:*` reducer; finding `2026-06-19-erlang-list-comprehension-stays-on-fallback.md`).
+- **Haskell mutual-recursion cycle / laziness** — out of scope (needs fixpoint/laziness).
 
-Steps:
-1. Compare the OCaml frontend's String-op support to F#/Scala (length, indexing, concat, slice,
-   `String.length`/`.Length`, etc.); find one concrete op F#/Scala miss.
-2. Add a fixture exercising it; lower + substrate-run; measure.
-3. If a clean native lowering is in budget, ship it (fixture RUN == ground truth, regression test).
-4. If not clean in budget, record the assessment in the edge-case doc and move on.
+Cleared natively this session: Haskell forward `where`/`let`, Elixir+Erlang multi-arg non-tail
+multibase, F# no-parens app-as-infix-operand, Haskell >2-guard non-tail multibase, Haskell variant
+`case` in expr position, Rust variant-inner-`match` + nested `if let` (shared int-local limit fully
+closed across Haskell+Rust).
 
-(After this: the discrete actionable WASM-fallback edge cases are largely worked through — remaining
-items are open-ended breadth, assessed-stays (OCaml Array.make fill), or Emma-dropped (Rust). If this
-drains, report back rather than manufacturing vague tasks.)
+Next: pick up a genuine new construct only if one surfaces (a real consumer, a new frontend feature),
+or hand back. Do NOT manufacture vague breadth tasks.
 
 ---
 
