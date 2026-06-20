@@ -15,18 +15,21 @@ pull it into this queue, attempt a NATIVE lowering within a few-cycles budget, a
 
 ## Active edge case
 
-### Haskell — >2-guard NON-tail multibase recursion
+### Shared codegen — int-local in expression position (unblocks Rust + Haskell)
 
-Open item from `planning/wasm-fallback-edge-cases.md` § Haskell. The multibase TAIL recursion is
-done (`multibase_tailsum`, `multibase_explicit_rec`); the residual is the >2-guard NON-tail
-multibase, where the CPS fold must pick its seed from which base the recursion bottoms out at.
-The Elixir/Erlang non-tail multibase fold (just shipped) is the family reference.
+Open item from `planning/wasm-fallback-edge-cases.md` § "Shared codegen limitation". A VARIANT
+`match`/`case` nested in an EXPRESSION slot (not the function tail) needs to bind int-locals (the
+variant tag `_vtag`, payload `_valN`) as STATEMENTS, which an expression slot can't emit. Affects
+Rust (variant inner `match` / nested `if let`) and Haskell (VARIANT `case` in expression position).
+The doc's suggested general fix: hoist the inner match to a prelude temp.
 
 Steps:
-1. Inspect the Haskell multibase lowering + the just-shipped Elixir/Erlang non-tail multibase fold.
-2. Add a fixture exercising a >2-guard non-tail multibase; lower + substrate-run; measure.
-3. If a clean native lowering is in budget, ship it (fixture RUN == ground truth, regression test).
-4. If not clean in budget, record the assessment in the edge-case doc and move on.
+1. Inspect the compiler codegen for how expression-slot lowering handles statements/temps, and the
+   Rust + Haskell frontends' VARIANT case handling.
+2. Add a fixture exercising a VARIANT case in expression position; lower + substrate-run; measure.
+3. If the prelude-temp hoist is clean in budget, ship it (fixture RUN == ground truth).
+4. If NOT clean in a few cycles (the doc flags it non-trivial), record the assessment and move on —
+   leave it on the WASM fallback.
 
 ---
 

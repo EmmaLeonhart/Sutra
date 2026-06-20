@@ -50,6 +50,8 @@ _RUNNABLE = {
     "string_case": 60.0,  # classify s = case s of "foo"->10; "bar"->20; _->30; classify "foo"+"bar"+"baz" = 60  (string-LITERAL case pattern, already supported -> locked)
     "multibase_tailsum": 105.0,  # f n acc | n==0=acc | n==1=acc+100 | otherwise=f (n-1) (acc+n); f 3 0 = 105  (>2-GUARD multi-base tail recursion: continue = (n!=0)&&(n!=1) compound halt [§0.3], post-loop = nested blend of the base RHSs on final state)
     "multibase_explicit_rec": 105.0,  # f acc n | n==0=acc | n==1=acc+100 | n>1=f (acc+n) (n-1); f 0 3 = 105  (>2-guard multibase where the recursive guard is an EXPLICIT condition n>1, not `otherwise` -> continue = that condition)
+    "multibase_nontail_fact": 600.0,  # f n | n==0=1 | n==1=5 | otherwise=n*f(n-1); f 5=5*4*3*2*f(1)=120*5=600  (>2-guard NON-TAIL multibase -> CPS fold: _acc seeded to OP identity, leaf folded each step, post-loop _acc*base_blend keyed on final state; the recursion bottoms out at n==1 so the seed is 5)
+    "multiarg_nontail_multibase": 115.0,  # f a b | a==0=b | a==1=b+100 | otherwise=a+f(a-1)b; f 3 10=3+2+(10+100)=115  (MULTI-ARG >2-guard non-tail multibase fold: loop carries (a,b,_acc), base blend keyed on final (a,b); _foldable_step_multi)
 }
 # (regression guards for the cond_src/neg_src recursion refactor: tail_rec, nontail_fact above)
 

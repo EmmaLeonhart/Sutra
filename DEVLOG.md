@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-19: Haskell >2-guard NON-tail multibase recursion lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, fourth edge case cleared. `_try_lower_multibase_tail_recursion`
+returned None for a non-tail recursive guard (`f a b | a==0=b | a==1=b+100 | otherwise = a + f (a-1) b`).
+Extended it: when the recursive guard's result is not a tail self-call, try `_foldable_step_multi`
+(new — the arity-N analog returning the full recursion arg list) and emit a CPS fold instead of an
+accumulator loop. The fold carries every recursion arg plus a synthetic `_acc` seeded to the OP
+identity, folds the leaf at each step's current state, and post-combines `_acc OP base_blend` keyed on
+the FINAL loop state — so the base seed is whichever base the recursion bottoms out at (the
+seed-selection analysis that was the open item). Added `_FOLD_IDENTITY` to the Haskell frontend.
+
+Fixtures: `multibase_nontail_fact` (`f n | n==0=1 | n==1=5 | otherwise = n*f(n-1); f 5`) RUN == 600.0
+(120*5, seed picked as the n==1 base); `multiarg_nontail_multibase` (`f 3 10`) RUN == 115.0 — both ==
+ground truth on the substrate. Haskell suite passed, no regressions. Removed the item from the
+edge-case doc; only VARIANT `case` in expression position (the shared int-local limit) remains open
+for Haskell.
+
 ## 2026-06-19: F# no-parens curried application as an infix operand lowers natively
 
 Branch `wasm-fallback-edge-cases-native`, third edge case cleared. `classify "foo" + classify "bar"`

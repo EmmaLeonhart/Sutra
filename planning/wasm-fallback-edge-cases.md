@@ -25,11 +25,15 @@ record it in `DEVLOG.md`.
 
 ## Per-frontend catalogue
 
-- **Haskell** (`sutra-from-haskell/`): >2-guard NON-tail multibase (the CPS fold must pick its
-  seed from *which* base the recursion bottoms out at — a real compile-time analysis); VARIANT
-  `case` in expression position (the int-local limit above). **Forward (out-of-order) `where`/`let`
-  references are DONE 2026-06-19** — `_order_binds` topo-sorts each `where`/`let` group so a binding
-  is lowered after the local binds it references (fixture `forward_where` RUN == 41). Only a true
+- **Haskell** (`sutra-from-haskell/`): only VARIANT `case` in expression position (the int-local
+  limit above) remains open. **>2-guard NON-tail multibase is DONE 2026-06-19** — the multibase
+  path now folds a non-tail recursive guard via a CPS accumulator (seed = OP identity, fold the leaf
+  each step, post-combine `_acc OP base_blend` keyed on the FINAL state, so the seed is whichever
+  base the recursion bottoms out at — the seed-selection that was the open analysis); both single-arg
+  and multi-arg via `_foldable_step_multi` (fixtures `multibase_nontail_fact` RUN == 600,
+  `multiarg_nontail_multibase` RUN == 115). **Forward (out-of-order) `where`/`let` references are
+  DONE 2026-06-19** — `_order_binds` topo-sorts each `where`/`let` group so a binding is lowered
+  after the local binds it references (fixture `forward_where` RUN == 41). Only a true
   mutual-recursion CYCLE (binding A ↔ B) stays on the fallback — that needs laziness/fixpoint, which
   is out of scope entirely (not a WASM-fallback item — just unsupported).
 - **Rust** (`sutra-from-rust/`): a VARIANT inner `match` / NESTED `if let` (the int-local limit).
