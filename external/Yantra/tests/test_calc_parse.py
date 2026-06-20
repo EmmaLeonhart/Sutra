@@ -50,13 +50,13 @@ def test_parse_int2_exact_over_1_and_2_digits(parse_int2) -> None:
     bad: list[str] = []
     # 1-digit: "0".."9"
     for d in range(10):
-        got = float(vsa.real(fn(vsa.make_string(str(d)))))
+        got = float(vsa._re(fn(vsa.make_string(str(d)))))
         if abs(got - d) > 1e-9:
             bad.append(f"{d!r}->{got} (exp {d})")
     # 2-digit: "00".."99" (covers leading zeros like "07")
     for v in range(100):
         s = f"{v:02d}"
-        got = float(vsa.real(fn(vsa.make_string(s))))
+        got = float(vsa._re(fn(vsa.make_string(s))))
         if abs(got - v) > 1e-9:
             bad.append(f"{s!r}->{got} (exp {v})")
     assert not bad, f"substrate parse mismatches ({len(bad)}): {bad[:8]}"
@@ -70,7 +70,7 @@ def test_parse_int2_is_real_sutra_not_a_host_stub(parse_int2) -> None:
     # make_string + the parse run on the substrate dtype (a torch tensor).
     out = fn(vsa.make_string("42"))
     assert torch.is_tensor(out)
-    assert abs(float(vsa.real(out)) - 42.0) < 1e-9
+    assert abs(float(vsa._re(out)) - 42.0) < 1e-9
 
 
 @pytest.fixture(scope="module")
@@ -94,5 +94,5 @@ def test_op_code_maps_operator_chars_on_substrate(op_code) -> None:
     CODE[op] dictionary moved onto the substrate (calc step d)."""
     fn, vsa = op_code
     for ch, expect in (("+", 0.0), ("-", 1.0), ("*", 2.0), ("/", 3.0)):
-        got = float(vsa.real(fn(vsa.make_string(ch))))
+        got = float(vsa._re(fn(vsa.make_string(ch))))
         assert abs(got - expect) < 1e-9, f"op_code({ch!r})={got}, expected {expect}"

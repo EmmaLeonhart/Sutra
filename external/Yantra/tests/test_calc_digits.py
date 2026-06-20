@@ -54,7 +54,7 @@ def test_digit_extraction_exact_over_boundaries() -> None:
 
     def digits(n: int) -> tuple[int, int, int, int]:
         return tuple(
-            round(float(vsa.real(digit(float(n), float(pl)))))
+            round(float(vsa._re(digit(float(n), float(pl)))))
             for pl in (1000, 100, 10, 1)
         )
 

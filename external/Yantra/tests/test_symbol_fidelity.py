@@ -126,7 +126,7 @@ def test_symbol_fidelity_exact_over_long_horizon(passthrough_harness):
             f"step {step}: expected exactly one delivered axon, "
             f"got {len(received)}"
         )
-        recovered = float(vsa.real(received[0].payload))  # monitoring decode
+        recovered = float(vsa._re(received[0].payload))  # monitoring decode
         err = abs(recovered - float(sym))
         errors.append(err)
         if round(recovered) != sym:

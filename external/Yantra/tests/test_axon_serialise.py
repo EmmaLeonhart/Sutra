@@ -156,8 +156,8 @@ def test_bindings_decode_after_round_trip(calc_vsa) -> None:
     axon = vsa.axon_add(axon, "b", -42.0)
     axon = vsa.axon_add(axon, "op_char", "+")
 
-    a_before = float(vsa.real(vsa.axon_item(axon, "a")))
-    b_before = float(vsa.real(vsa.axon_item(axon, "b")))
+    a_before = float(vsa._re(vsa.axon_item(axon, "a")))
+    b_before = float(vsa._re(vsa.axon_item(axon, "b")))
     # ``string_char_at`` returns a 0-d scalar (the codepoint at the index);
     # ``float()`` decodes it directly. The substrate-side calc lifts this
     # back through ``make_real`` before returning, but for a host audit we
@@ -171,8 +171,8 @@ def test_bindings_decode_after_round_trip(calc_vsa) -> None:
 
     assert torch.equal(restored, axon), "tensor round-trip is not bit-exact"
 
-    a_after = float(vsa.real(vsa.axon_item(restored, "a")))
-    b_after = float(vsa.real(vsa.axon_item(restored, "b")))
+    a_after = float(vsa._re(vsa.axon_item(restored, "a")))
+    b_after = float(vsa._re(vsa.axon_item(restored, "b")))
     cp_after = float(vsa.string_char_at(vsa.axon_item(restored, "op_char"), 0))
 
     assert a_after == a_before, f"binding 'a' drift: {a_before} -> {a_after}"
@@ -208,8 +208,8 @@ def test_axon_envelope_round_trip(calc_vsa) -> None:
     assert torch.equal(restored.payload, original.payload)
 
     # And bindings still decode through axon_item from the restored payload.
-    assert float(vsa.real(vsa.axon_item(restored.payload, "a"))) == float(
-        vsa.real(vsa.axon_item(original.payload, "a"))
+    assert float(vsa._re(vsa.axon_item(restored.payload, "a"))) == float(
+        vsa._re(vsa.axon_item(original.payload, "a"))
     )
 
 
