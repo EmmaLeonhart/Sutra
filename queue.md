@@ -146,10 +146,36 @@ not state. So "per-program substrate state is empty"; the orchestrator's own sta
 and `kernel/checkpoint.py` already serialises it. **`Tier.RAM` cold-store SHIPPED 2026-05-25 without a
 Sutra primitive.** Nothing to build here unless Sutra gains persistent per-process mutable state.
 
-## 1C. Per-process GPU ARENAS — LAST of the three (after §1B)
+## 1C. GENUINE multi-process runtime — ACTIVE (Emma chose this 2026-06-20)
 
-The `MultiProcessRuntime` "What this is NOT": per-process GPU memory isolation (CUDA stream/IPC), so
-admitted programs don't all share one pool. Device-level work. Decompose when §1B ships.
+Emma's call (2026-06-20, over "in-process GPU memory pools" and other options): build the **genuine
+multi-process runtime — separate OS processes**. The `tick_all` finding established that the current
+"MultiProcessRuntime" is single-process + GIL-bound (no speedup); separate OS processes are the only real
+throughput lever AND deliver §1C's original per-process GPU memory isolation. One mechanism, both wins.
+Design doc (forks + verification plan): `planning/sutra-spec/multi-process-runtime.md`. Decomposed:
+
+1. **`ProcessPoolRuntime` prototype (portable, Windows-safe).** New sibling to `MultiProcessRuntime` (do
+   NOT rewrite it — the single-process path stays correct). W worker processes (`multiprocessing`, spawn-
+   safe under `if __name__ == "__main__"`); each worker compiles its assigned `ProgramSpec`s and rebuilds
+   its `_VSA` caches lazily (correct by determinism — §1B finding: caches are key-deterministic, not
+   state). Orchestrator dispatches `(program_name, axon_bytes)` over a queue, collects `axon_bytes` back.
+   Axons cross the boundary CPU-serialised (`tensor → cpu().numpy().tobytes()` + dtype/shape). No CUDA IPC
+   (unsupported on Windows).
+2. **Verification — measure the finding's prediction.** (a) Throughput: wall-clock N independent ticks via
+   the pool (W procs) vs single-process sequential `tick`×N — does the pool beat 1.0× once the GIL is no
+   longer serialising orchestration? Report the real number incl. spawn/serialise overhead (a negative
+   result if the round-trip eats the win at tiny per-program work is recorded, not hidden). (b)
+   Bit-identical: each worker rebuilds caches deterministically, so pool output == single-process `tick`
+   output (same seed → same Haar rotations). Pin both. Test on CPU tensors (portable, genuinely escapes
+   the GIL without CUDA).
+3. **CUDA-context isolation (CI/Linux-gated follow-on).** Per-process CUDA context = the §1C memory
+   isolation; verify one worker's allocations aren't visible to another via per-process
+   `torch.cuda.memory_stats`. Needs a CUDA box; gate behind capability check.
+4. **CUDA-IPC sharing (CI/Linux-gated, optional).** Share ONE codebook tensor read-only across workers via
+   `cudaIpcGetMemHandle` to drop the per-process codebook duplication — only if codebook GPU memory becomes
+   the constraint, and only on Linux (Windows has no CUDA IPC).
+
+Start at step 1 (the portable core that tests Emma's premise on this machine before any platform-gated IPC).
 
 ---
 
