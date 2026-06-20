@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-20: PERF — `_role_hash` 66x faster (`bytes(tensor)` → `.tolist()`); ~18x faster binding tick
+
+Profiling the "98% Python" from the tick_all benchmark found the culprit: `_role_hash` (the rotation/
+permutation cache-key hash, run 6x per axon-add tick) computed its bytes via
+`bytes(role_vec...view(uint8))`, and `bytes(tensor)` invokes the tensor's `__iter__` → `unbind`s the
+d-vector into d 0-d tensors (~6.4ms/call at dim 868). It was introduced when `.numpy().tobytes()` was
+removed for the no-numpy rule — numpy-free but pathologically slow. Fix: `.view(uint8).tolist()` (a
+torch C++ bulk conversion, not numpy, not per-element Python), BYTE-IDENTICAL output (cache keys + all
+behavior unchanged). Measured: `_role_hash` 6.37ms → 0.096ms (66x); an 8-program tick round 347.6ms →
+18.8ms (~18x). This speeds up EVERY Sutra program that binds (every `bind`/`axon_add`), not just
+multi-process; `tick_all` is now 1.08x vs sequential. 72 axon/bind/rotation/multi-process tests pass.
+Updated finding `2026-06-20-tick-all-no-speedup-python-bound.md`.
+
 ## 2026-06-20: MEASURED — tick_all delivers no speedup today (98% GIL-bound, not GPU-bound)
 
 Benchmarked the `tick_all` concurrent-dispatch primitive (the integrity follow-on: measure the
