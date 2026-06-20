@@ -23,6 +23,23 @@ top to bottom; do not start a lower one until the one above is shipped (or expli
 
 ---
 
+## 0. Doc drift: `codegen-v1-feature-coverage` open-question — Embed/Defuzzy are SHIPPED, not refused (daily audit 2026-06-20)
+
+`planning/open-questions/codegen-v1-feature-coverage.md` and its README verdict line list
+`EmbedExpr` / `DefuzzyExpr` among the still-V1-refused constructs and as pending "Concrete next
+steps." Both are SHIPPED in V1 codegen: `sdk/sutra-compiler/sutra_compiler/codegen.py:119`
+(`_embed_expr_src` → `_VSA.embed(...)`) and `:129` (`_defuzzy_expr_src` → compile-time expansion
+of the stdlib `defuzzy` body). Spot-verified: a `vector v = embed("hello");` program compiles via
+`codegen_pytorch` and emits `_VSA.embed`; a `defuzzy(v)` program compiles. The doc's table also
+cites `examples/01-…06.su` / `_legacy_syntax_tour.su` which have been removed from the tree.
+
+Fix shape: narrow the doc + README verdict to the actually-still-refused parts (method decls,
+operator decls, `UnsafeCastExpr`) and drop the stale `examples/01-…06.su` table; keep the doc as a
+pointer rather than retire it (the OO/operator-decl/UnsafeCast tail is genuinely open). Authoritative
+resolution location for the Embed/Defuzzy parts: `sdk/sutra-compiler/sutra_compiler/codegen.py:119,129`.
+
+---
+
 ## 1. Yantra OS integration — ACTIVE (FV spectral-gap shipped 2026-06-19)
 
 Downstream consumer work: wire more of the Sutra substrate into the vendored `external/Yantra/` OS.
