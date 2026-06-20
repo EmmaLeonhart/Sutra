@@ -162,6 +162,7 @@ _RUNNABLE_FIXTURES = {
     "tail_rec_bool": 15.0,  # f 0 5 = if (n=0)||(acc>100) then acc else f (acc+n) (n-1)  (boolean halt -> !(...) continue)
     "nontail_factorial": 120.0,  # let rec fact n = if n=0 then 1 else n * fact (n-1); fact 5  (CPS/accumulator transform of foldable non-tail recursion)
     "nontail_sum": 15.0,  # let rec sum n = if n=0 then 0 else n + sum (n-1); sum 5  (CPS/accumulator transform; + is assoc.+comm.)
+    "multiarg_nontail_multibase": 115.0,  # let rec f a b = if a=0 then b else if a=1 then b+100 else a + f (a-1) b; f 3 10 = 3+2+(10+100)=115  (MULTIBASE non-tail via nested if/else-if + MULTI-arg: flatten the chain into bases + fold STEP, while_loop carries (a,b,_acc), base blend keyed on final state; _try_lower_multibase_nontail_recursive)
     "variant_arg": 2.0,  # eval (Lit 7) + eval (Neg 5) = 7 + (-5)  (single-arg ADT -> uniform tagged-axon {_tag,_val})
     "variant_arg_pos": 7.0,  # eval (Lit 7)  (variant value in ARG position -> hoisted to a temp tagged Axon)
     "variant_nullary_value": 7.0,  # let z = Zero in let a = Lit 7 in eval z + eval a  (bare nullary + direct ctor in local-binding position)
