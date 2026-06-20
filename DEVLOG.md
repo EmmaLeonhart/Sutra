@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-20: FV key-soundness — closed a vacuity hole MY axon_build peephole had opened
+
+Emma chose static `AXON_KEYS` soundness as the next direction. Found the checker already built (2026-05-29
+— another stale "OPEN" todo: `fv_key_soundness.check_key_soundness` + opt-in `_VSA._fv_key_trace` on
+`axon_add`/`axon_item`, gating `runtime_keys ⊆ AXON_KEYS_*`). BUT caught a real regression I introduced
+EARLIER THIS SESSION: the `axon_build` peephole (consecutive `.add` → one batched bmm) did NOT record to
+`_fv_key_trace`. So for every fused program — records, structs, the key-HEAVIEST programs — the runtime
+trace saw zero bound keys and the soundness check passed VACUOUSLY (it could no longer catch a
+bound-escape). A subtle substrate breach: dispatch was clean, the check "ran", but it verified nothing for
+the common case. Fixed `axon_build` to record each key (str name, or `'<dynamic>'` for a non-str key),
+mirroring `axon_add`; the trace stays opt-in/off-by-default so the hot path is untouched (axon_build
+bit-identical tests still 6/6). Added fused-path regression tests run on a REAL compiled entry point (not a
+hand proxy): the peephole'd program traces all its bound keys, and a bound-escape / `<dynamic>` key through
+`axon_build` is caught — `test_fv_key_soundness.py` 5/5 → 8/8. Updated the FV spec
+(`planning/sutra-spec/formal-verification.md` § Key-soundness) to record the fused-path coverage. The
+published FV paper stays accurate (the peephole and its fix both landed this session, net-neutral to it).
+This discharges the last substantive FV obligation; only the measurement-checks-as-CI-gates remain (needs
+gate-semantics design — Emma's call).
+
 ## 2026-06-20: FV end-to-end worked example — NAND program through the whole obligation pipeline
 
 Shipped the integrative FV artifact (todo.md "End-to-end worked example"): `experiments/fv_worked_example.py`

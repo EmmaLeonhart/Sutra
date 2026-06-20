@@ -118,8 +118,8 @@ A Sutra program compiles to a fused tensor-op graph that is its semantics.
   - **Key-soundness — DISCHARGED via runtime key-usage instrumentation,
     2026-05-29.** The static `AXON_KEYS_READ`/`BOUND` sets are now gated against
     the keys a program actually touches at runtime. The PyTorch runtime carries
-    opt-in key tracing on `axon_add`/`axon_item` (`_VSA._fv_key_trace`, OFF by
-    default so the hot path is untouched — it is a host-side `set.add` of a
+    opt-in key tracing on `axon_add`/`axon_item`/`axon_build` (`_VSA._fv_key_trace`,
+    OFF by default so the hot path is untouched — it is a host-side `set.add` of a
     compile-time key string around the substrate op, never inside the tensor
     math). `fv_key_soundness.check_key_soundness` enables the trace, runs the
     program's axon accesses, and checks `runtime_read ⊆ AXON_KEYS_READ` and
@@ -127,9 +127,15 @@ A Sutra program compiles to a fused tensor-op graph that is its semantics.
     (pre-embedded vector) key the static analysis could not name is recorded as
     `'<dynamic>'`, which is never in the static literal set and so is always an
     escape — catching any program that reaches an axon via a runtime-computed key.
-    Non-vacuous (`tests/test_fv_key_soundness.py`, 5/5): a program touching only
+    **Fused-path coverage (2026-06-20):** the `axon_build` peephole (consecutive
+    `.add` runs → one batched bmm — the common record/struct case) records to the
+    trace too; without that, fused programs would trace NO bound keys and the
+    check would pass *vacuously* for exactly the programs that bind the most keys.
+    Non-vacuous (`tests/test_fv_key_soundness.py`, 8/8): a program touching only
     its statically-collected keys is sound; a read of an uncollected key, a bind
-    of an uncollected key, and a `'<dynamic>'` vector key are each caught. With
+    of an uncollected key, and a `'<dynamic>'` vector key are each caught — through
+    both the per-pair `axon_add` and the batched `axon_build` paths, verified on a
+    real compiled entry point (not a hand-written proxy). With
     role-isolation (kernel) + function-correctness (Kleene fragment) + key-
     soundness now all discharged, the §3.1 contract obligation is no longer half-
     done. (Residual: the check is *per-run* over the exercised paths; a

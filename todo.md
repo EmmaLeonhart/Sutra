@@ -640,17 +640,22 @@ the lever that removes branch/path explosion.**
     is correctly rejected). Honest scope: `echo` and `switch.su` are
     OUTSIDE the Kleene fragment and have their function-correctness
     covered by their own substrate tests, not by this procedure.
-  - ❌ **Static `AXON_KEYS_READ`/`BOUND` soundness — OPEN, needs design.**
-    (Re-added 2026-05-27 per Emma — explanation cron `b348c005` fires
-    13:36 PST.) That the compiler's statically-emitted key sets match the
-    keys the program actually touches at runtime (the lazy-delivery
-    contract the kernel relies on). Needs runtime key-usage instrumentation,
-    or a key-level contract in the manifest to check the static analysis
-    against. Do NOT ship a vacuous check; settle the design in
-    `planning/sutra-spec/formal-verification.md` first. Why it matters: if
-    the static keys under-approximate, the lazy router could withhold an
-    axon the program needs → silent wrong behaviour. Emma's leaning is to
-    ship it with very good specifications inside the FV paper.
+  - ✅ **Static `AXON_KEYS_READ`/`BOUND` soundness — DISCHARGED (built 2026-05-29,
+    fused-path hole closed 2026-06-20).** The compiler's static key sets are gated
+    against the keys a program actually touches at runtime: opt-in tracing on
+    `axon_add`/`axon_item`/`axon_build` (`_VSA._fv_key_trace`, OFF by default — a
+    host-side `set.add` around the substrate op, never in the tensor math),
+    `fv_key_soundness.check_key_soundness` checks `runtime ⊆ AXON_KEYS_*`, and a
+    non-str (pre-embedded) key records as `'<dynamic>'` (always an escape). NOT
+    vacuous (`tests/test_fv_key_soundness.py`, 8/8): read/bind/`<dynamic>` escapes
+    each caught, through BOTH `axon_add` and the batched `axon_build`, on a real
+    compiled entry point. **2026-06-20 fix:** the `axon_build` peephole added this
+    session had silently stopped tracing bound keys for fused (record/struct)
+    programs — i.e. the check went vacuous for exactly the key-heaviest programs;
+    `axon_build` now records to the trace. Spec:
+    `planning/sutra-spec/formal-verification.md` § Key-soundness. (Residual, a
+    sharpening not a hole: the check is per-run over exercised paths; a
+    path-coverage argument or key-level manifest would make it exhaustive.)
 - **Branch-range obligation discharge.** ✅ DONE for the connectives,
   closed-form (2026-05-24). The polynomial-bounding routine — the core of the
   bespoke checker — is built (`sutra_compiler/fv_poly_bound.py`,
@@ -702,10 +707,10 @@ the three obligation families (contract role-isolation + Kleene-fragment
 correctness, branch-range incl. composed-by-induction, termination) plus
 grid-exactness and graph-equivalence all have mechanical checks that run, matching
 the FV paper's "mechanical checks for all three" claim. The genuinely-open
-remainder is narrow: static `AXON_KEYS_READ`/`BOUND` soundness (needs design —
-Emma's call, above) and the measurement-checks-as-CI-gates (needs gate-semantics
-design — Emma's call). The earlier "the checker does not exist yet, that is the
-bulk of the work" framing is stale.
+remainder is narrow: just the measurement-checks-as-CI-gates (needs gate-semantics
+design — Emma's call). Static `AXON_KEYS` soundness is now DISCHARGED (above,
+incl. the 2026-06-20 fused-path fix). The earlier "the checker does not exist yet,
+that is the bulk of the work" framing is stale.
 
 ---
 
