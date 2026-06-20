@@ -50,11 +50,13 @@ record it in `DEVLOG.md`.
   instance classes, more String ops), modelled on OCaml as needs arise. F# additionally can't build
   its grammar DLL on the SutraDev clone (MSVC error), so F# work needs a clone where the grammar
   builds (CI exercises it). Low priority.
-- **Elixir / Erlang** (`sutra-from-{elixir,erlang}/`): >2-clause NON-tail multibase (CPS fold) and
-  GUARDED >2-clause multibase (mixed integer-literal + `when` bases) are **DONE 2026-06-19** for BOTH
-  (fixtures `multibase_nontail_fact` RUN == 600, `guarded_multibase` RUN == 9114 each). Still open:
-  Erlang list comprehensions (needs a list abstraction the substrate lacks); multi-arg non-tail
-  multibase.
+- **Elixir / Erlang** (`sutra-from-{elixir,erlang}/`): >2-clause NON-tail multibase (CPS fold),
+  GUARDED >2-clause multibase (mixed integer-literal + `when` bases), and **MULTI-ARG non-tail
+  multibase** are all **DONE 2026-06-19** for BOTH (fixtures `multibase_nontail_fact` RUN == 600,
+  `guarded_multibase` RUN == 9114, `multiarg_nontail_multibase` RUN == 115 each — the last via
+  `_foldable_step_multi`: the trampoline carries every recursion arg alongside `_acc`, folds the leaf
+  at each step's current state, and keys the base blend on the final multi-arg loop state). Still
+  open: Erlang list comprehensions (needs a list abstraction the substrate lacks).
 - **Clojure** (`sutra-from-clojure/`): map/vector literal in a TAIL-recursive base — **DONE
   2026-06-18** (`_try_lower_tail_recursive` now runs `_hoist_maps` on the base and types the fn
   return `Axon`; fixtures `map_in_recursion` RUN == 3, `vec_in_recursion` RUN == 60). The residual
