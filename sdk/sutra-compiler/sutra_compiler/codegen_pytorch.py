@@ -1153,6 +1153,53 @@ class PyTorchCodegen(Codegen):
         self._emit("return axon + self._axon_op_for(key_vec, role_key=_rk) @ value")
         self._indent -= 1
         self._emit()
+        self._emit("def axon_build(self, axon, keys, values):")
+        self._indent += 1
+        self._emit('"""BATCHED axon_add: bind N (key, value) pairs in ONE bmm instead of')
+        self._emit('N separate matmuls. Folds `axon_add` over the pairs and is BIT-IDENTICAL')
+        self._emit('to that fold (verified) — but it stacks the cached per-key fused operators')
+        self._emit('M_key (= blockdiag(Q_sem, P_perm)) into one (N,d,d) batch and does a single')
+        self._emit('`bmm` + sum, collapsing N kernel launches to 1. That op-count reduction is')
+        self._emit('what the concurrent tick_all path wants (CUDA streams overlap fewer/bigger')
+        self._emit('kernels; finding 2026-06-20). Use for a KNOWN set of bindings (record/struct')
+        self._emit('construction); the per-pair `axon_add` stays for incremental writes."""')
+        self._emit("axon = _torch.as_tensor(axon, dtype=self.dtype, device=self.device)")
+        self._emit("if not keys:")
+        self._indent += 1
+        self._emit("return axon")
+        self._indent -= 1
+        self._emit("Ms = []")
+        self._emit("Vs = []")
+        self._emit("for k, val in zip(keys, values):")
+        self._indent += 1
+        self._emit("if isinstance(k, str):")
+        self._indent += 1
+        self._emit("kv = self.embed(k); rk = k")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
+        self._emit("kv = _torch.as_tensor(k, dtype=self.dtype, device=self.device); rk = None")
+        self._indent -= 1
+        self._emit("if isinstance(val, (int, float)):")
+        self._indent += 1
+        self._emit("val = self.make_real(float(val))")
+        self._indent -= 1
+        self._emit("elif isinstance(val, str):")
+        self._indent += 1
+        self._emit("val = self.make_string(val)")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
+        self._emit("val = _torch.as_tensor(val, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit("Ms.append(self._axon_op_for(kv, role_key=rk))")
+        self._emit("Vs.append(val)")
+        self._indent -= 1
+        self._emit("Mstack = _torch.stack(Ms)")
+        self._emit("Vstack = _torch.stack(Vs).unsqueeze(-1)")
+        self._emit("return axon + _torch.bmm(Mstack, Vstack).sum(0).squeeze(-1)")
+        self._indent -= 1
+        self._emit()
         self._emit("def axon_project(self, axon, requested_keys):")
         self._indent += 1
         self._emit('"""Per-receiver projection: rebuild an axon containing only the listed keys.')

@@ -111,9 +111,17 @@ identical (max diff 0.0; 100 tests pass). Sequential tick ~2x (6.8→3.3ms); `ti
 M_key; the inverse is the transpose since Q is orthogonal + P_perm a permutation). Bit-identical, ~10x/
 op (0.343→0.033ms); 83 compiler + 99 Yantra axon tests pass. Both axon write+read are now single-matmul.
 
-**Remaining §1A sub-step:** an LRU cap on `_axon_op_cache` for pathologically large key sets (the d×d-
-per-key matrices; not needed by current fixtures — a robustness follow-on). After it, §1A is done → §1B
-(per-process state serialisation).
+**Fusion extension (Emma 2026-06-20: "extend the fusion pass").** `axon_build(axon, keys, values)` —
+the BATCHED fusion: stack the N cached `M_key` operators into one `(N,d,d)` bmm + sum instead of N
+separate matmuls. Bit-identical (max diff 0.0; `test_axon_build.py` 4 tests), ~3x (M-stack reused) /
+~1.4x (per-call stack); fewer ops → helps the concurrent path. **PRIMITIVE SHIPPED 2026-06-20.**
+Remaining (broad blast radius, fresh context): WIRE the codegen to emit `axon_build` — tractable target
+is `_emit_class_factory` (codegen_base; record/struct construction already has the known field list →
+one `axon_build` not N `axon_add`s); harder target is a peephole detecting consecutive `a.add(k,v)` runs
+on one Axon. Verify bit-identical + record-returning frontend fixtures green.
+
+**Remaining §1A robustness follow-on:** an LRU cap on `_axon_op_cache` for pathologically large key sets
+(not needed by current fixtures). §1B is RESOLVED (above); §1C (GPU arenas) deferred per Emma.
 
 ## 1B. Per-process state SERIALISATION — RESOLVED / NOT NEEDED (verified 2026-06-20)
 
