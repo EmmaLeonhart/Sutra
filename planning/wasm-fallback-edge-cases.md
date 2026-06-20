@@ -64,8 +64,10 @@ record it in `DEVLOG.md`.
   COMPILER fix (`_translate_call` routes `.item(key)` on a non-identifier receiver to `axon_item`;
   finding `2026-06-18-axon-item-on-call-result-not-supported.md` RESOLVED).
 - **F#** (`sutra-from-fsharp/`): no-parens curried application as an infix operand
-  (`classify "foo" + classify "bar"` → application-precedence error; parenthesise as
-  `(classify "foo") + (classify "bar")` to work today).
+  (`classify "foo" + classify "bar"`) is **DONE 2026-06-19** — the ionide grammar parses it as
+  `application(infix(L, op, R), args)` (the trailing args bind to the whole infix); the lowering
+  re-associates to `L op (R args)` since application binds tighter than infix (fixture
+  `noparen_app_infix` RUN == 30). No source parenthesisation needed anymore.
 
 ## Not on this list (genuinely done or out of scope)
 

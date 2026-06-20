@@ -1,5 +1,18 @@
 # Development Log
 
+## 2026-06-19: F# no-parens curried application as an infix operand lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, third edge case cleared. `classify "foo" + classify "bar"`
+parsed (ionide grammar) as `application(infix(classify "foo", +, classify), ["bar"])` — the trailing
+arg bound to the whole infix instead of its rightmost operand, emitting `UNSUPPORTED-EXPR: application
+head infix_expression`. Since application binds tighter than infix in F#, the lowering now
+re-associates `application(infix(L, op, R), args)` → `L op (R args)` (factored the call-emission into
+`_emit_call`, shared by the plain-application and re-associated paths). Fixture `noparen_app_infix`
+(`classify "foo" + classify "bar"` = 10+20) RUN == 30.0 on the substrate == ground truth. F# suite 64
+passed, no regressions. (Built the F# grammar DLL locally to verify — the `_grammar/` MSVC build works
+here via `vcvars64.bat`; the `vswhere` warning is cosmetic.) Removed the item from the edge-case doc
+and updated the `lower.py` header that had documented the quirk as requiring source parens.
+
 ## 2026-06-19: Elixir + Erlang multi-arg non-tail multibase recursion lowers natively
 
 Branch `wasm-fallback-edge-cases-native`, second edge case cleared. The non-tail multibase fold

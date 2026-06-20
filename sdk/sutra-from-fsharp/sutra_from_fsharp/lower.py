@@ -16,8 +16,11 @@ integer/float consts; infix arithmetic/comparison/boolean operators (`<>` →
 calls (`add 7 9` → `add(7, 9)`); `if/then/else` → the defuzz blend; parens.
 Untyped params default to int (F# infers; annotations are a later item).
 GRAMMAR QUIRK (measured): unparenthesized application mixed with infix
-(`add 7 9 + classify 5`) mis-associates in the ionide grammar — parenthesize
-call operands. Anything unrecognized emits an `UNSUPPORTED-*` marker;
+(`classify "foo" + classify "bar"`) parses in the ionide grammar as
+`application(infix(L, op, R), args)` — the trailing args bind to the whole infix
+instead of its rightmost operand. The lowering RE-ASSOCIATES this to `L op (R args)`
+(application binds tighter than infix), so call operands no longer need source parens.
+Anything unrecognized emits an `UNSUPPORTED-*` marker;
 recursion surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms
 are ported (never a silent self-call).
 """
@@ -323,6 +326,30 @@ def _try_lower_foldable_nontail(name: str, params: list, body, src: bytes):
     return loop_decl + fn
 
 
+def _emit_call(head, args, src: bytes) -> str:
+    """Lower an application `head arg1 …` to a Sutra call `head(arg1, …)`. Shared by the
+    plain application path and the re-associated infix-head quirk path."""
+    hname = _text(head, src).strip()
+    # `fst t` / `snd t` — pair accessors → the positional axon fields _0 / _1.
+    if hname in ("fst", "snd") and len(args) == 1:
+        field = "_0" if hname == "fst" else "_1"
+        return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
+    # A zero-arg call `f ()` carries a unit argument — drop it so it lowers to the
+    # nullary call `f()` (matches the `let f () = …` zero-param definition).
+    def _is_unit_arg(a):
+        if a.type == "unit":
+            return True
+        if a.type == "const" and a.named_children and a.named_children[0].type == "unit":
+            return True
+        return a.type == "paren_expression" and not a.named_children
+    args = [a for a in args if not _is_unit_arg(a)]
+    # A tuple/record/DU construction passed directly as an argument is hoisted to
+    # a prelude temp (axon-build statements), then the temp name used here.
+    arg_srcs = [(_hoist_construction_arg(a, src) or _lower_expr(a, src))
+                for a in args]
+    return f"{hname}({', '.join(arg_srcs)})"
+
+
 def _lower_expr(node, src: bytes) -> str:
     t = node.type
     if t == "const":
@@ -381,27 +408,26 @@ def _lower_expr(node, src: bytes) -> str:
         return _blend(cond_src, then_src, else_src)
     if t == "application_expression":
         head, args = _flatten_apply(node)
+        # GRAMMAR QUIRK (measured): `f x + g y` parses as
+        # `application(infix(f x, +, g), [y])` — the trailing args bind to the whole
+        # infix instead of to its RIGHTMOST operand. Application binds tighter than
+        # infix in F#, so re-associate: `application(infix(L, op, R), args)` ≡
+        # `L op (R args)`. Recovers the intended `(f x) + (g y)` without requiring the
+        # source to parenthesise call operands.
+        if head.type == "infix_expression":
+            ikids = head.named_children
+            iop = next((c for c in ikids if c.type == "infix_op"), None)
+            iops = [c for c in ikids if c.type != "infix_op"]
+            if (iop is not None and len(iops) == 2 and iops[1].type in
+                    ("identifier", "long_identifier_or_op", "long_identifier")):
+                sop = _OP_MAP.get(_text(iop, src))
+                if sop is not None:
+                    return (f"({_lower_expr(iops[0], src)} {sop} "
+                            f"{_emit_call(iops[1], args, src)})")
+            return f"/* UNSUPPORTED-EXPR: application head {head.type} */"
         if head.type not in ("identifier", "long_identifier_or_op", "long_identifier"):
             return f"/* UNSUPPORTED-EXPR: application head {head.type} */"
-        hname = _text(head, src).strip()
-        # `fst t` / `snd t` — pair accessors → the positional axon fields _0 / _1.
-        if hname in ("fst", "snd") and len(args) == 1:
-            field = "_0" if hname == "fst" else "_1"
-            return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
-        # A zero-arg call `f ()` carries a unit argument — drop it so it lowers to the
-        # nullary call `f()` (matches the `let f () = …` zero-param definition).
-        def _is_unit_arg(a):
-            if a.type == "unit":
-                return True
-            if a.type == "const" and a.named_children and a.named_children[0].type == "unit":
-                return True
-            return a.type == "paren_expression" and not a.named_children
-        args = [a for a in args if not _is_unit_arg(a)]
-        # A tuple/record/DU construction passed directly as an argument is hoisted to
-        # a prelude temp (axon-build statements), then the temp name used here.
-        arg_srcs = [(_hoist_construction_arg(a, src) or _lower_expr(a, src))
-                    for a in args]
-        return f"{hname}({', '.join(arg_srcs)})"
+        return _emit_call(head, args, src)
     if t == "match_expression":
         # `match scrut with | k1 -> r1 | … | x -> base` → a nested defuzz blend
         # over `scrut == k` tests (the OCaml/Scala literal-match shape). The last

@@ -15,19 +15,18 @@ pull it into this queue, attempt a NATIVE lowering within a few-cycles budget, a
 
 ## Active edge case
 
-### F# — no-parens curried application as an infix operand
+### Haskell — >2-guard NON-tail multibase recursion
 
-Open item from `planning/wasm-fallback-edge-cases.md` § F#. `classify "foo" + classify "bar"`
-parses as application-precedence error; today it needs explicit parens
-`(classify "foo") + (classify "bar")`. See whether the lowering can insert the implied
-grouping (curried application binds tighter than infix `+`).
+Open item from `planning/wasm-fallback-edge-cases.md` § Haskell. The multibase TAIL recursion is
+done (`multibase_tailsum`, `multibase_explicit_rec`); the residual is the >2-guard NON-tail
+multibase, where the CPS fold must pick its seed from which base the recursion bottoms out at.
+The Elixir/Erlang non-tail multibase fold (just shipped) is the family reference.
 
 Steps:
-1. Add a fixture exercising no-parens curried application as an infix operand; lower; measure.
-   (F# grammar DLL may not build on this clone — MSVC; if so, route through CI and assess on the
-   lowering logic / Scala-shaped analog.)
-2. If a clean native fix is in budget, ship it (fixture RUN == ground truth, regression test).
-3. If not clean in budget, record the assessment in the edge-case doc and move on.
+1. Inspect the Haskell multibase lowering + the just-shipped Elixir/Erlang non-tail multibase fold.
+2. Add a fixture exercising a >2-guard non-tail multibase; lower + substrate-run; measure.
+3. If a clean native lowering is in budget, ship it (fixture RUN == ground truth, regression test).
+4. If not clean in budget, record the assessment in the edge-case doc and move on.
 
 ---
 
