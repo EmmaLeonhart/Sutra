@@ -38,6 +38,7 @@ _RUNNABLE = {
     "match_bind": 160.0,  # match n with | 0 -> 100 | x -> x * 10; (classify 0)+(classify 6) = 100+60
     "tail_rec": 15.0,  # let rec sumTo acc n = if n = 0 then acc else sumTo (acc+n) (n-1); sumTo 0 5
     "nontail_fact": 120.0,  # let rec fact n = if n = 0 then 1 else n * fact (n-1); fact 5  (CPS fold)
+    "multiarg_nontail_multibase": 115.0,  # let rec f a b = if a=0 then b elif a=1 then b+100 else a + (f (a-1) b); f 3 10 = 3+2+(10+100)=115  (MULTIBASE non-tail via if/elif + MULTI-arg fold: elif_expression chain flattened to bases + STEP, while_loop carries (a,b,_acc), base blend on final state; _try_lower_multibase_nontail)
     "typed_params": 17.0,  # let add (a: int) (b: int) = a + b; add 8 9  (type-annotated params)
     "return_type": 13.0,  # let add (a: int) (b: int) : int = a + b; add 6 7  (return-type annotation, value_declaration_left path)
     "let_seq": 18.0,  # let f x = let a = x+1 \n let b = a*2 \n a+b; f 5 = 6+12  (let-sequence body, sequential subst)
