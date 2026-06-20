@@ -65,7 +65,18 @@ record it in `DEVLOG.md`.
   `guarded_multibase` RUN == 9114, `multiarg_nontail_multibase` RUN == 115 each — the last via
   `_foldable_step_multi`: the trampoline carries every recursion arg alongside `_acc`, folds the leaf
   at each step's current state, and keys the base blend on the final multi-arg loop state). Still
-  open: Erlang list comprehensions (needs a list abstraction the substrate lacks).
+  open: Erlang list comprehensions. **Assessed 2026-06-19: STAYS on the fallback** — and the prior
+  reason ("needs a list abstraction the substrate lacks") is CORRECTED: the substrate *does* have a
+  list abstraction (Sutra binding-arrays — `array_from_literal` / `array_get` / `array_length` /
+  `foreach_loop`, `docs/loops.md`). The real blockers: (1) only `array_from_literal` builds an array,
+  and only from compile-time-known elements — there is no `array_map` / append / set primitive, so a
+  RUNTIME-list comprehension can't build its result list (`foreach_loop` can reduce to a scalar but
+  not produce a new list); (2) a compile-time-LITERAL-list comprehension could unroll to
+  `array_from_literal(...)`, but no Erlang list-consumer (`lists:sum`/`hd`/`nth`) is wired to reduce
+  it to a scalar, so there is no RUN==ground-truth path to verify it — shipping an untested
+  list-valued lowering would violate the integrity rules. Re-attempt only with (a) an array-builder
+  primitive for the runtime case, or (b) a concrete `lists:*` reducer consumer for the literal case.
+  See finding `2026-06-19-erlang-list-comprehension-stays-on-fallback.md`.
 - **Clojure** (`sutra-from-clojure/`): map/vector literal in a TAIL-recursive base — **DONE
   2026-06-18** (`_try_lower_tail_recursive` now runs `_hoist_maps` on the base and types the fn
   return `Axon`; fixtures `map_in_recursion` RUN == 3, `vec_in_recursion` RUN == 60). The residual
