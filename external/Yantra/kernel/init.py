@@ -27,6 +27,7 @@ import dataclasses
 import enum
 import pathlib
 import threading
+from typing import Any
 
 from kernel.manifest import Manifest, load_manifest
 from kernel.router import AxonRouter
@@ -353,6 +354,85 @@ class Init:
                 counts[ap.manifest.name] = ap.service.tick()
             else:
                 counts[ap.manifest.name] = 0  # unloaded — not on GPU
+        return counts
+
+    def tick_concurrent(self) -> dict[str, int]:
+        """One tick, dispatching shared-runtime Sutra services CONCURRENTLY
+        on the GPU (Sutra v0.4.0 `MultiProcessRuntime.tick_all`: per-program
+        CUDA streams + one synchronize).
+
+        SEMANTICS differ from `tick()` and this is deliberate. `tick()` is
+        SEQUENTIAL with intra-tick flow: a producer that runs earlier in the
+        loop can emit an axon that a later consumer sees in the SAME tick.
+        `tick_concurrent()` is the production "every GPU-resident process runs
+        SIMULTANEOUSLY" model: every shared-runtime service reads the inbox
+        state as it was at the START of the tick (all inboxes are drained up
+        front), all paths run together, and their outputs land in inboxes for
+        the NEXT tick. So a producer→consumer pipeline of shared-runtime
+        services takes one extra tick to flow, exactly as it would on real
+        simultaneous hardware. Use `tick()` for the sequential model;
+        `tick_concurrent()` when you want true on-GPU overlap and the
+        simultaneous semantics.
+
+        Per-service-`_VSA` Sutra services and non-Sutra (Python) services have
+        no shared runtime to batch, so they stay on the sequential `tick()`
+        path within this call. Returns the same per-process axons-processed
+        dict as `tick()`.
+        """
+        counts: dict[str, int] = {}
+        with self._lock:
+            snapshot = [
+                (ap, self._tier.get(ap.manifest.name, Tier.GPU))
+                for ap in self._table.values()
+            ]
+        # Partition GPU-resident services: shared-runtime (batchable via
+        # tick_all) grouped per runtime object; everything else sequential.
+        by_runtime: dict[int, tuple[Any, list]] = {}
+        sequential: list = []
+        for ap, tier in snapshot:
+            name = ap.manifest.name
+            if tier is not Tier.GPU:
+                counts[name] = 0  # not on GPU
+                continue
+            svc = ap.service
+            rt = getattr(svc, "_runtime", None)
+            prog = getattr(svc, "_runtime_program_name", None)
+            on_axon = getattr(svc, "_on_axon", None)
+            if rt is not None and prog is not None and on_axon is not None:
+                by_runtime.setdefault(id(rt), (rt, []))[1].append(svc)
+            else:
+                sequential.append(svc)
+        # Non-batchable services: ordinary sequential tick.
+        for svc in sequential:
+            counts[svc.name] = svc.tick()
+        # Shared-runtime services: simultaneous semantics. Drain every inbox up
+        # front (the start-of-tick snapshot), then dispatch in waves so each
+        # tick_all call runs one pending axon per service concurrently.
+        for rt, svcs in by_runtime.values():
+            queues: dict[str, tuple[Any, list]] = {}  # prog name -> (svc, inbounds)
+            for svc in svcs:
+                inbounds = list(svc._router.drain(svc.name))  # noqa: SLF001
+                counts[svc.name] = len(inbounds)
+                if inbounds:
+                    queues[svc._runtime_program_name] = (svc, inbounds)  # noqa: SLF001
+            while queues:
+                wave_inputs: dict[str, Any] = {}
+                wave_svc: dict[str, Any] = {}
+                drained: list[str] = []
+                for prog, (svc, inbounds) in queues.items():
+                    inbound = inbounds.pop(0)
+                    wave_inputs[prog] = inbound.payload
+                    wave_svc[prog] = svc
+                    if not inbounds:
+                        drained.append(prog)
+                outs = rt.tick_all(wave_inputs)
+                for prog, out in outs.items():
+                    svc = wave_svc[prog]
+                    svc.emit(
+                        svc._output_role, out, keys=svc._axon_keys_bound,  # noqa: SLF001
+                    )
+                for prog in drained:
+                    del queues[prog]
         return counts
 
     # --- introspection ---
