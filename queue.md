@@ -15,18 +15,19 @@ pull it into this queue, attempt a NATIVE lowering within a few-cycles budget, a
 
 ## Active edge case
 
-### Elixir / Erlang — multi-arg non-tail multibase recursion
+### F# — no-parens curried application as an infix operand
 
-Open item from `planning/wasm-fallback-edge-cases.md` § Elixir/Erlang. >2-clause non-tail
-multibase (single-arg CPS fold) is DONE; the residual is the MULTI-ARG non-tail multibase
-(a non-tail recursive fn with >1 parameter that bottoms out at multiple bases).
+Open item from `planning/wasm-fallback-edge-cases.md` § F#. `classify "foo" + classify "bar"`
+parses as application-precedence error; today it needs explicit parens
+`(classify "foo") + (classify "bar")`. See whether the lowering can insert the implied
+grouping (curried application binds tighter than infix `+`).
 
 Steps:
-1. Inspect the existing Elixir/Erlang multibase fixtures + lowering to see how the single-arg CPS
-   fold picks its base seed, and where the multi-arg case diverges.
-2. Add a fixture exercising a multi-arg non-tail multibase; lower + substrate-run; measure.
-3. If a clean native lowering is in budget, ship it (fixture RUN == ground truth, regression test).
-4. If not clean in budget, record the assessment in the edge-case doc and move on.
+1. Add a fixture exercising no-parens curried application as an infix operand; lower; measure.
+   (F# grammar DLL may not build on this clone — MSVC; if so, route through CI and assess on the
+   lowering logic / Scala-shaped analog.)
+2. If a clean native fix is in budget, ship it (fixture RUN == ground truth, regression test).
+3. If not clean in budget, record the assessment in the edge-case doc and move on.
 
 ---
 

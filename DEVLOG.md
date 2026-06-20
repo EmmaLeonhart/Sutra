@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-19: Elixir + Erlang multi-arg non-tail multibase recursion lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, second edge case cleared. The non-tail multibase fold
+(`def f(0),do: 1; f(1),do: 5; f(n),do: n*f(n-1)`) only handled arity 1 — a multi-arg non-tail
+multibase emitted `UNSUPPORTED-RECURSION`. Added `_foldable_step_multi` (the arity-N analog of
+`_foldable_step`, returning the full recursion-arg list) to both frontends, and a multi-arg branch
+in `_try_lower_multibase_multiclause_recursion`'s `rec_args is None` path: the `while_loop`
+trampoline now carries every recursion arg AND `_acc`, folds the leaf at each step's CURRENT state
+(commutative+associative OP reproduces call-stack order), and combines the final accumulator with the
+base blend keyed on the FINAL multi-arg loop state (`_acc_r OP base_blend(final state)`).
+
+Fixture `multiarg_nontail_multibase` (`f(0,b)=b; f(1,b)=b+100; f(a,b)=a+f(a-1,b); f(3,10)`) RUN ==
+115.0 on the substrate == ground truth (3+2+(10+100)) for BOTH Elixir and Erlang. (Rebuilt the
+Erlang grammar DLL locally via `build_grammar.py` to verify — `vswhere` warning is cosmetic, MSVC
+present.) Suites: Elixir 66 passed, Erlang 54 passed, no regressions. Removed multi-arg non-tail
+multibase from the edge-case doc; Erlang list comprehensions remain the only open Elixir/Erlang item.
+
 ## 2026-06-19: Haskell forward (out-of-order) `where`/`let` references lower natively
 
 Branch `wasm-fallback-edge-cases-native` (off the main big-leg queue — Emma's exploratory
