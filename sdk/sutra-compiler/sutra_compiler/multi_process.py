@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import dataclasses
 import pathlib
+import queue as _queue
 import types
 from typing import Any, Iterable
 
@@ -386,14 +387,28 @@ class ProcessPoolRuntime:
             p.start()
             self._workers.append(p)
 
-        # Wait for every worker to finish compiling (or report an error).
-        for _ in range(num_workers):
-            status, name, msg = ready_q.get()
+        # Wait for every worker to finish compiling (or report an error). A
+        # worker that dies during compile (bad source, OOM) would otherwise hang
+        # this loop forever — poll liveness and raise instead.
+        self._closed = False
+        got = 0
+        while got < num_workers:
+            try:
+                status, name, msg = ready_q.get(timeout=1.0)
+            except _queue.Empty:
+                dead = [i for i, p in enumerate(self._workers) if not p.is_alive()]
+                if dead:
+                    codes = [self._workers[i].exitcode for i in dead]
+                    self.close()
+                    raise RuntimeError(
+                        f"worker process(es) {dead} died during admission "
+                        f"(exit codes {codes}) before signalling ready")
+                continue
+            got += 1
             if status == "error":
                 self.close()
                 raise RuntimeError(f"worker failed admitting {name!r}: {msg}")
         self._req = 0
-        self._closed = False
 
     # --- public API ---
 
@@ -423,9 +438,24 @@ class ProcessPoolRuntime:
             pending[rid] = name
             self._in_qs[self._owner[name]].put((rid, name, _to_cpu(axon)))
         outputs: dict[str, Any] = {}
-        for _ in range(len(pending)):
-            rid, name, out = self._out_q.get()
+        remaining = len(pending)
+        while remaining:
+            try:
+                rid, name, out = self._out_q.get(timeout=1.0)
+            except _queue.Empty:
+                # No result in the last second. A live-but-slow worker is fine
+                # (keep waiting); a DEAD worker means a result is never coming —
+                # raise instead of hanging forever (a program OOM'd / crashed).
+                dead = [i for i, p in enumerate(self._workers) if not p.is_alive()]
+                if dead:
+                    codes = [self._workers[i].exitcode for i in dead]
+                    raise RuntimeError(
+                        f"worker process(es) {dead} died during tick_all "
+                        f"(exit codes {codes}); {remaining} result(s) will never "
+                        f"arrive. Pending: {sorted(pending.values())}")
+                continue
             outputs[name] = out
+            remaining -= 1
         return outputs
 
     def close(self) -> None:

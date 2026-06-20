@@ -90,3 +90,21 @@ def test_process_pool_rejects_duplicate_names(tmp_path):
         ProcessPoolRuntime([ProgramSpec(name="d", source_path=src),
                             ProgramSpec(name="d", source_path=src)],
                            num_workers=1, runtime_dim=_DIM)
+
+
+def test_process_pool_dead_worker_raises_not_hangs(tmp_path):
+    """If a worker process dies mid-run, tick_all's gather must RAISE a clear
+    error, not hang forever waiting for a result that will never arrive."""
+    src = _write(tmp_path, "rec_dead")
+    ref = MultiProcessRuntime([ProgramSpec(name="r", source_path=src)],
+                              runtime_dim=_DIM)
+    inp = ref.vsa().zero_vector()
+    pool = ProcessPoolRuntime([ProgramSpec(name="p0", source_path=src)],
+                              num_workers=1, runtime_dim=_DIM)
+    try:
+        pool._workers[0].terminate()  # simulate an OOM/crash
+        pool._workers[0].join()
+        with pytest.raises(RuntimeError, match="died during tick_all"):
+            pool.tick("p0", inp)
+    finally:
+        pool.close()
