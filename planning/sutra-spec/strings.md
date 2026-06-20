@@ -32,37 +32,21 @@ sharing a layout with complex-valued vectors:
 |-----------------|-------------------|--------------------|
 | 0 (`AXIS_REAL`) | `char[0]` codepoint | real part |
 | 1 (`AXIS_IMAG`) | `char[1]` codepoint | imag part |
-| 2 (`AXIS_TRUTH`)| (reserved; skipped) | fuzzy truth |
+| 2 (`AXIS_TRUTH`)| (unused; 0)         | fuzzy truth |
 | 3 (`AXIS_STRING_FLAG`) | **1.0 to mark the value as a String** | 0 |
-| 4 (`AXIS_LOOP_DONE`) | (reserved; skipped) | loop done |
-| 5 (`AXIS_PROMISE_FULFILLED`) | (reserved; skipped) | 2D Givens slot data |
-| 6 (`AXIS_PROMISE_REJECTED`) | (reserved; skipped) | 2D Givens slot data |
-| 7 (`AXIS_AXON_POPULATED`) | (reserved; skipped) | 2D Givens slot data |
-| 8.. (`SLOT_BASE`) | `char[2..]` packed | 2D Givens slot data |
+| 4 (`AXIS_LOOP_DONE`) | (unused; 0)    | loop done |
+| 5..             | `char[2..]` packed pairwise | 2D Givens slot data |
 
-For `k >= 2`, character `k` lives at the `k`-th synthetic offset that
-is **not a reserved flag axis** — the reserved set is `AXIS_TRUTH[2]`,
-`AXIS_STRING_FLAG[3]`, `AXIS_LOOP_DONE[4]`, `AXIS_PROMISE_FULFILLED[5]`,
-`AXIS_PROMISE_REJECTED[6]`, `AXIS_AXON_POPULATED[7]`. So `char[2]` at
-`synthetic[8]`, `char[3]` at `synthetic[9]`, and so on (codepoints 0,1
-stay on `synthetic[0,1]`).
+For `k >= 2`, character `k` lives at `synthetic[k + 3]` —
+specifically: `char[2]` at `synthetic[5]`, `char[3]` at
+`synthetic[6]`, `char[4]` at `synthetic[7]`, and so on.
 
-**Why skip the reserved axes (changed 2026-06-19).** The codepoint block
-used to reuse `synthetic[5,6,7]` for `char[2,3,4]`. That collided with
-`axon_add`, which writes `AXIS_AXON_POPULATED[7]` to mark a populated
-axon: a String stored as an axon *value* lost its 5th codepoint (the
-`echo` round-trip regression, `in='hello' out='hell\x01'`). Skipping the
-whole reserved flag region `[2..7]` makes codepoints start at
-`SLOT_BASE=8`, so a String survives being bound into an axon. `_string_axis`
-(write) and `_str_axes` (read) both derive from `_str_reserved_axes` and
-MUST agree.
-
-The codepoint block is still bit-identical to the complex-pair slot
-encoding the rotation-binding machinery uses (just starting at
-`SLOT_BASE`). The string flag distinguishes the interpretations:
+This is identical at the bit level to the existing complex-pair
+slot encoding the rotation-binding machinery uses. The string flag
+distinguishes the interpretations:
 
 - Flag set → "this is a String; read codepoints from
-  synthetic[0,1,8,9,10,…]."
+  synthetic[0,1,5,6,7,…]."
 - Flag unset → "this is a complex / rotation-bound / numeric
   vector; do not interpret synthetic axes as codepoints."
 
@@ -70,15 +54,22 @@ The user's framing: *"strings are technically the same as
 complex-valued vectors"* — same physical layout, different semantic
 interpretation, gated on a single flag bit.
 
+> **Note (2026-06-19).** A 2026-06-19 attempt to make `axon_add` write
+> `AXIS_AXON_POPULATED[7]` (for an `is_axon` type-test) collided with
+> `char[4]` at `synthetic[7]` — a String stored as an axon *value* lost
+> its 5th codepoint (`echo`: `in='hello' out='hell\x01'`). That attempt
+> was REVERTED, so this encoding is unchanged; `axon_add` does not write
+> the flag and Strings survive being bound into axons.
+
 ## Length
 
 Length is recovered by **walking from the highest possible char
 position down to the first non-zero codepoint**. A trailing-zero
-codepoint marks end-of-string. The maximum length is the count of
-non-reserved synthetic offsets:
+codepoint marks end-of-string. The maximum length depends on
+`synthetic_dim`:
 
 ```
-max_len = 2 + max(0, synthetic_dim - 8)
+max_len = 2 + (synthetic_dim - 5)
 ```
 
 (2 chars at axes 0,1, plus all axes from 5 upward.)

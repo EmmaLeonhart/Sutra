@@ -360,15 +360,10 @@ def _builtin_is_string_truth(args: List[str]) -> str:
     return f"_VSA.is_string_truth({args[0]})"
 
 
-def _builtin_is_axon_truth(args: List[str]) -> str:
-    # +1 on AXIS_TRUTH iff AXIS_AXON_POPULATED is set (list/map/tuple/struct),
-    # else -1. The `is_list`/`is_map`/`is_tuple` guards lower here.
-    return f"_VSA.is_axon_truth({args[0]})"
-
-
 def _builtin_is_number_truth(args: List[str]) -> str:
-    # +1 on AXIS_TRUTH iff v is neither a String nor an axon, else -1
-    # (1 - 2*max(string_flag, axon_populated)). The `is_number` guard lowers here.
+    # +1 on AXIS_TRUTH iff v is NOT a String (a plain number), else -1 (1 - 2*sflag).
+    # The `is_number` guard lowers here. Does NOT distinguish a number from an axon
+    # (no clean axon tag — see the finding); callers must not pass an axon to it.
     return f"_VSA.is_number_truth({args[0]})"
 
 
@@ -469,12 +464,13 @@ BUILTINS = {
     "real": (_builtin_real, 1),
     "imag": (_builtin_imag, 1),
     # Substrate-pure tag type-tests returning a fuzzy AXIS_TRUTH value
-    # (`_VSA.is_string_truth` / `is_axon_truth` / `is_number_truth`). The
-    # Elixir/Erlang `is_binary`/`is_list`/`is_number`-family `when` guards
-    # lower to these so they compose in the `defuzzy` clause-dispatch blend.
-    # Distinct from the host-bool `is_string` (used for compile-time dispatch).
+    # (`_VSA.is_string_truth` / `is_number_truth`). The Elixir/Erlang
+    # `is_binary`/`is_number` `when` guards lower to these so they compose in the
+    # `defuzzy` clause-dispatch blend. Distinct from the host-bool `is_string`
+    # (used for compile-time dispatch). (is_axon_truth was removed 2026-06-19: it
+    # needed an AXIS_AXON_POPULATED tag whose axon_add write corrupted nested-axon
+    # reads — reverted; is_list/is_map/is_tuple stay UNSUPPORTED.)
     "is_string_truth": (_builtin_is_string_truth, 1),
-    "is_axon_truth": (_builtin_is_axon_truth, 1),
     "is_number_truth": (_builtin_is_number_truth, 1),
     # Plain-list array helpers used by the TS transpiler's primitive-
     # array lowering. The richer binding-array runtime methods on the

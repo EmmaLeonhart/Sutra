@@ -1005,24 +1005,7 @@ class PyTorchCodegen(Codegen):
         self._emit("# Distinct seed from rotation cache so the two are")
         self._emit("# uncorrelated draws.")
         self._emit("rng = _np_bridge.random.RandomState(key ^ 0xA50A_F00D)")
-        self._emit("# Keep the reserved flag axes [4,8) (AXIS_LOOP_DONE,")
-        self._emit("# AXIS_PROMISE_FULFILLED/REJECTED, AXIS_AXON_POPULATED) as")
-        self._emit("# permutation FIXED POINTS, mirroring the slot block's")
-        self._emit("# SLOT_BASE=8 reservation. Two reasons: (1) axon field data")
-        self._emit("# (real-axis value at synthetic[0]) is never permuted ONTO a")
-        self._emit("# flag axis, and (2) the AXIS_AXON_POPULATED flag axon_add sets")
-        self._emit("# is never permuted onto the real axis during readback, so it")
-        self._emit("# cannot leak a ~1.0 contribution into realvec(axon_item(...))")
-        self._emit("# (which read axis 0). Without this, a flagged axon corrupts")
-        self._emit("# field reads for keys whose permutation maps axis 7 -> axis 0")
-        self._emit("# (compounding through nested axons; the tuple_in_ctor regression).")
-        self._emit("reserved = [i for i in range(4, 8) if i < self.synthetic_dim]")
-        self._emit("movable = [i for i in range(self.synthetic_dim) if i not in set(reserved)]")
-        self._emit("perm_np = _np_bridge.arange(self.synthetic_dim).astype('int64')")
-        self._emit("if movable:")
-        self._indent += 1
-        self._emit("perm_np[movable] = rng.permutation(movable).astype('int64')")
-        self._indent -= 1
+        self._emit("perm_np = rng.permutation(self.synthetic_dim).astype('int64')")
         self._emit("self._perm_cache[key] = _torch.as_tensor(perm_np, device=self.device)")
         self._indent -= 1
         self._emit("return self._perm_cache[key]")
@@ -1093,18 +1076,7 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit("rotated = self.bind(key_vec, value)")
         self._emit("perm = self._axon_permutation_for(key_vec)")
-        self._emit("result = axon + self._axon_permute_synthetic(rotated, perm)")
-        self._emit("# Mark the axon as populated (planning/sutra-spec/axon-io.md")
-        self._emit("# §'The all-zeros edge case'): a producer that has bound a")
-        self._emit("# key sets AXIS_AXON_POPULATED so a consumer distinguishes an")
-        self._emit("# axon from a bare number/string. This is the flag the substrate")
-        self._emit("# type-tests (is_axon_truth / is_number_truth) read. The reserved")
-        self._emit("# flag axis [7] carries ~no bound data (measured), so overwrite it")
-        self._emit("# to exactly 1.0 via a mask (autograd-safe; offset 7 becomes a")
-        self._emit("# constant flag, gradients still flow through every other dim).")
-        self._emit("_pop = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
-        self._emit("_pop[self.semantic_dim + self.AXIS_AXON_POPULATED] = 1.0")
-        self._emit("return result * (1.0 - _pop) + _pop")
+        self._emit("return axon + self._axon_permute_synthetic(rotated, perm)")
         self._indent -= 1
         self._emit()
         self._emit("def axon_project(self, axon, requested_keys):")
@@ -2318,65 +2290,44 @@ class PyTorchCodegen(Codegen):
         self._emit("# ---- String runtime methods ----")
         self._emit("# Encoding: AXIS_STRING_FLAG marks the vector as a String.")
         self._emit("# Characters pack into the synthetic axes — char[0] at")
-        self._emit("# AXIS_REAL (=synthetic[0]), char[1] at AXIS_IMAG (=synthetic[1]),")
-        self._emit("# char[k] for k>=2 at the (k)-th synthetic offset that is NOT a")
-        self._emit("# reserved flag axis (see _str_reserved_axes: skips TRUTH/STRING_FLAG/")
-        self._emit("# LOOP_DONE/PROMISE_*/AXON_POPULATED at synthetic [2..7], so codepoints")
-        self._emit("# 2.. start at synthetic[8]=SLOT_BASE). Skipping AXON_POPULATED[7] is")
-        self._emit("# load-bearing: axon_add writes it, so a String stored as an axon value")
-        self._emit("# must not place a codepoint there. _string_axis (write) and _str_axes")
-        self._emit("# (read) MUST agree. Length is recovered by walking from the highest")
+        self._emit("# AXIS_REAL (=synthetic[0]), char[1] at AXIS_IMAG")
+        self._emit("# (=synthetic[1]), char[k] for k>=2 at synthetic[k+3]")
+        self._emit("# (skipping AXIS_TRUTH/STRING_FLAG/LOOP_DONE at synthetic")
+        self._emit("# [2..4]). Length is recovered by walking from the highest")
         self._emit("# possible char position down to the first non-zero. See")
         self._emit("# planning/sutra-spec/strings.md.")
         self._emit("def _string_axis(self, char_index):")
         self._indent += 1
-        self._emit('"""Map a character index k into the absolute axis offset inside the')
-        self._emit('synthetic block (relative to semantic_dim): the k-th non-reserved')
-        self._emit('offset. Must agree with _str_axes (the gather/scatter reader)."""')
-        self._emit("res = set(self._str_reserved_axes())")
-        self._emit("avail = [k for k in range(self.synthetic_dim) if k not in res]")
-        self._emit("return avail[char_index] if char_index < len(avail) else avail[-1]")
-        self._indent -= 1
-        self._emit()
-        self._emit("def _str_reserved_axes(self):")
-        self._indent += 1
-        self._emit('"""Synthetic-block offsets the String codepoint array must SKIP:')
-        self._emit('the reserved flag axes AXIS_TRUTH[2], AXIS_STRING_FLAG[3],')
-        self._emit('AXIS_LOOP_DONE[4], AXIS_PROMISE_FULFILLED[5], AXIS_PROMISE_REJECTED[6],')
-        self._emit('AXIS_AXON_POPULATED[7]. Codepoints 0,1 still live on AXIS_REAL[0]/')
-        self._emit('AXIS_IMAG[1] (a String IS its codepoints; the string flag at [3]')
-        self._emit('marks the vector), but the rest start at SLOT_BASE=8. Skipping [7]')
-        self._emit('is load-bearing: axon_add writes AXIS_AXON_POPULATED, so a String')
-        self._emit('stored as an axon VALUE would otherwise have its codepoint-4 clobbered')
-        self._emit('(the echo round-trip regression). Skipping [4,5,6] keeps loop/promise')
-        self._emit('flags clean for the same reason, matching SLOT_BASE."""')
-        self._emit("return (self.AXIS_TRUTH, self.AXIS_STRING_FLAG, self.AXIS_LOOP_DONE,")
-        self._emit("        self.AXIS_PROMISE_FULFILLED, self.AXIS_PROMISE_REJECTED,")
-        self._emit("        self.AXIS_AXON_POPULATED)")
+        self._emit('"""Map a character index k into the absolute axis offset')
+        self._emit('inside the synthetic block (relative to semantic_dim)."""')
+        self._emit("return char_index if char_index < 2 else char_index + 3")
         self._indent -= 1
         self._emit()
         self._emit("def string_max_length(self):")
         self._indent += 1
-        self._emit('"""Number of codepoint slots: every synthetic offset EXCEPT the')
-        self._emit('reserved flag axes (see _str_reserved_axes). Codepoints 0,1 on')
-        self._emit('synthetic[0,1]; the rest on synthetic[8..synthetic_dim-1]."""')
-        self._emit("res = set(self._str_reserved_axes())")
-        self._emit("return sum(1 for k in range(self.synthetic_dim) if k not in res)")
+        self._emit('"""Maximum string length that fits in the current')
+        self._emit('synthetic_dim. char positions occupy synthetic[0,1] plus')
+        self._emit('synthetic[5..synthetic_dim-1]."""')
+        self._emit("if self.synthetic_dim < 5:")
+        self._indent += 1
+        self._emit("return min(self.synthetic_dim, 2)")
+        self._indent -= 1
+        self._emit("return 2 + (self.synthetic_dim - 5)")
         self._indent -= 1
         self._emit()
         self._emit("def _str_axes(self):")
         self._indent += 1
-        self._emit('"""Cached constant LongTensor of the absolute vector offsets that')
-        self._emit('hold the String codepoints, in char order: every synthetic offset')
-        self._emit('NOT in _str_reserved_axes, lowest first. Built once at first use (a')
-        self._emit('compile-time-shaped constant, like the exp/trig lookup tables) so')
-        self._emit('string_length / char_at / concat are pure tensor gather/scatter over')
-        self._emit('the codepoint block instead of host codepoint loops."""')
+        self._emit('"""Cached constant LongTensor of the absolute vector offsets')
+        self._emit('that hold the String codepoints, in char order: offset k =')
+        self._emit('semantic_dim + (k if k<2 else k+3), for k in 0..max_len-1.')
+        self._emit('Built once at first use (a compile-time-shaped constant, the')
+        self._emit('same class as the exp/trig lookup tables) so string_length /')
+        self._emit('char_at / concat are pure tensor gather/scatter over the')
+        self._emit('codepoint block instead of host codepoint loops."""')
         self._emit("if not hasattr(self, '_str_axes_cache') or self._str_axes_cache is None:")
         self._indent += 1
-        self._emit("res = set(self._str_reserved_axes())")
-        self._emit("offs = [self.semantic_dim + k for k in range(self.synthetic_dim) "
-                   "if k not in res]")
+        self._emit("ml = self.string_max_length()")
+        self._emit("offs = [self.semantic_dim + (k if k < 2 else k + 3) for k in range(ml)]")
         self._emit("self._str_axes_cache = _torch.tensor(offs, dtype=_torch.long, device=self.device)")
         self._indent -= 1
         self._emit("return self._str_axes_cache")
@@ -2412,19 +2363,17 @@ class PyTorchCodegen(Codegen):
         self._emit("return bool(v[self.semantic_dim + self.AXIS_STRING_FLAG].item() >= 0.5)")
         self._indent -= 1
         self._emit()
-        # Substrate-pure tag type-tests (Elixir/Erlang is_binary/is_list/is_number
-        # guards; planning/findings/2026-06-18-substrate-type-tests.md). Each reads a
-        # tag axis flag and scatters `2*ind - 1` onto AXIS_TRUTH (a tensor op, NO host
-        # readout, unlike `is_string` which collapses to a host bool for dispatch), so
-        # the result is a fuzzy truth value that composes in the `defuzzy` guard blend.
-        # IMPORTANT — the AXIS_STRING_FLAG is the clean discriminator: a String carries
-        # codepoints across the synthetic block, so the axon / number indicators gate on
-        # `(1 - sflag)` (sflag is exactly 0/1, an unambiguous String marker), forcing a
-        # String to -1 regardless of its codepoint content. Numeric axon vs number then
-        # separates cleanly on the axon_add-set AXIS_AXON_POPULATED. (As of 2026-06-19 the
-        # string codepoint block skips the reserved flag axes [2..7] entirely — see
-        # _str_reserved_axes — so codepoints no longer alias AXIS_AXON_POPULATED[7]; the
-        # (1 - sflag) gate stays as defence and to classify Strings as non-axon/non-number.)
+        # Substrate-pure tag type-tests (Elixir/Erlang is_binary / is_number guards;
+        # planning/findings/2026-06-18-substrate-type-tests.md). Each reads the
+        # AXIS_STRING_FLAG and scatters `2*ind - 1` onto AXIS_TRUTH (a tensor op, NO host
+        # readout, unlike `is_string` which collapses to a host bool for dispatch), so the
+        # result is a fuzzy truth value that composes in the `defuzzy` guard blend. SCOPE:
+        # only the String flag is a clean runtime tag, so only is_string (is_binary) and
+        # is_number (= NOT-a-String) lower. is_list/is_map/is_tuple are NOT supported: they
+        # need an axon tag, and the 2026-06-19 attempt to set AXIS_AXON_POPULATED in
+        # axon_add was REVERTED — it corrupted nested-axon field reads (the tuple_in_ctor /
+        # nested_ctor crosstalk) and a String stored as an axon value (echo). See the
+        # finding's "Negative result" section.
         self._emit("def is_string_truth(self, v):")
         self._indent += 1
         self._emit('"""Type-test as a fuzzy truth: +1 on AXIS_TRUTH if v carries the')
@@ -2436,30 +2385,17 @@ class PyTorchCodegen(Codegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
-        self._emit("def is_axon_truth(self, v):")
-        self._indent += 1
-        self._emit('"""+1 on AXIS_TRUTH if v is a populated axon (list/map/tuple/struct,')
-        self._emit('AXIS_AXON_POPULATED set AND not a String), else -1. The (1 - sflag)')
-        self._emit('factor excludes Strings whose codepoints alias axis [7]."""')
-        self._emit("vt = self._as_any_vector(v)")
-        self._emit("sflag = vt[self.semantic_dim + self.AXIS_STRING_FLAG]")
-        self._emit("aflag = vt[self.semantic_dim + self.AXIS_AXON_POPULATED]")
-        self._emit("ind = aflag * (1.0 - sflag)")
-        self._emit("out = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = 2.0 * ind - 1.0")
-        self._emit("return out")
-        self._indent -= 1
-        self._emit()
         self._emit("def is_number_truth(self, v):")
         self._indent += 1
-        self._emit('"""+1 on AXIS_TRUTH if v is a number (neither a String nor an axon),')
-        self._emit('else -1: (1 - sflag) * (1 - aflag). Substrate-pure scatter."""')
+        self._emit('"""+1 on AXIS_TRUTH if v is NOT a String (a plain number), else -1:')
+        self._emit('1 - 2*sflag. Substrate-pure scatter. NOTE: this does NOT distinguish')
+        self._emit('a number from an axon (axons carry no clean runtime tag), so it')
+        self._emit('classifies an axon as a number; callers must not rely on is_number to')
+        self._emit('reject an axon (see planning/findings/2026-06-18-substrate-type-tests.md)."""')
         self._emit("vt = self._as_any_vector(v)")
         self._emit("sflag = vt[self.semantic_dim + self.AXIS_STRING_FLAG]")
-        self._emit("aflag = vt[self.semantic_dim + self.AXIS_AXON_POPULATED]")
-        self._emit("ind = (1.0 - sflag) * (1.0 - aflag)")
         self._emit("out = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = 2.0 * ind - 1.0")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = 1.0 - 2.0 * sflag")
         self._emit("return out")
         self._indent -= 1
         self._emit()

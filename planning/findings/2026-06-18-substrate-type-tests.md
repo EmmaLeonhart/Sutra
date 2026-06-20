@@ -1,49 +1,50 @@
 # What a type test means on a substrate where everything is a vector (Elixir `is_integer` etc.)
 
-**Date:** 2026-06-18 (queue §0.6); **tag-checkable subset BUILT 2026-06-19.**
-**Spec-first analysis + measurement. Outcome: the representable subset is now shipped for
-Elixir AND Erlang; `is_integer`/`is_float` remain deferred as fundamentally unrepresentable.**
+**Date:** 2026-06-18 (queue §0.6); **String/number subset SHIPPED 2026-06-19; is_axon REVERTED
+as a negative result.** **Outcome: `is_binary`/`is_bitstring`→`is_string_truth` and
+`is_number`→`is_number_truth` (= NOT-a-String) lower for Elixir AND Erlang;
+`is_list`/`is_map`/`is_tuple` do NOT lower (need an axon tag the substrate can't carry without
+corrupting axons); `is_integer`/`is_float` remain unrepresentable.**
 
-## RESOLUTION (2026-06-19) — tag-checkable subset shipped
+## RESOLUTION (2026-06-19) — String/number subset shipped; `is_axon` is a NEGATIVE RESULT
 
-The build recipe below was executed. Runtime predicates `is_string_truth` / `is_axon_truth` /
-`is_number_truth` are in `codegen_pytorch.py` (+ `codegen.py` parity) and registered in
-`codegen_base.BUILTINS`. Elixir lowers `is_binary`/`is_bitstring`→`is_string_truth`,
-`is_list`/`is_map`/`is_tuple`→`is_axon_truth`, `is_number`→`is_number_truth`
-(`_TYPE_TEST_LOWER` in `sutra-from-elixir/.../lower.py`); Erlang mirrors it but EXCLUDES
-`is_binary` (Erlang strings are charlists, not binaries — mapping it to the String flag would
-diverge from Erlang semantics). Fixtures `type_test_guard` RUN == 123 on the substrate for both
-frontends (`kind(5)*100 + kind({7,8})*10 + kind(string)`).
+What ships: runtime predicates `is_string_truth` and `is_number_truth` (`codegen_pytorch.py` +
+`codegen.py` parity, `codegen_base.BUILTINS`). Elixir lowers `is_binary`/`is_bitstring`→
+`is_string_truth`, `is_number`→`is_number_truth`; Erlang lowers `is_number`→`is_number_truth`
+(it EXCLUDES `is_binary` — Erlang strings are charlists, not binaries). Both predicates read the
+**clean `AXIS_STRING_FLAG`**: `is_string` = `2*sflag − 1`, `is_number` = `1 − 2*sflag` (i.e.
+"NOT-a-String"). Fixtures `type_test_guard` RUN == 12 for both (`kind("a")*10 + kind(5)` /
+`kind(5)*10 + kind("hello")`, 2-way). Gap table: `is_string_truth` and `is_number_truth` each
+separate String-vs-number with **gap 2.0** (`tests/test_type_test_gap.py`).
 
-**Two things the build surfaced that the original analysis missed:**
+### Negative result: `is_axon` / `is_list` / `is_map` / `is_tuple` are NOT supported
 
-1. **`axon_add` did not set `AXIS_AXON_POPULATED`** (spec axon-io.md says producers should). It
-   does now — a one-hot mask after the permute-accumulate, autograd-safe. But the flag-set first
-   regressed nested-axon field reads (`tuple_in_ctor`: 13→6): the axon permutation scrambled the
-   WHOLE synthetic block, so for some keys it mapped the flag axis [7] onto the real axis [0] and
-   `realvec(axon_item(...))` read the flag's ~1.0 into the recovered number (compounding through
-   nested axons, worst at small `runtime_dim`). Fix: the axon permutation now keeps the reserved
-   flag axes [4,8) as FIXED POINTS (mirroring the slot block's `SLOT_BASE=8`), so field data never
-   lands on a flag axis and the flag never reaches the real axis on readback. Pinned by
-   `test_type_test_gap.py::test_axon_populated_flag_does_not_corrupt_field_readback` (dims 16/64/256)
-   and the frontend `tuple_in_ctor` / `tuple_axon` fixtures.
-2. **The string codepoint block (`_str_axes`) REUSES axes [5,6,7]** (promise + axon-populated
-   flags) for codepoints 3..5, so a multi-char string writes a codepoint into
-   `AXIS_AXON_POPULATED[7]`. Reading `aflag` alone misclassifies `"hello"` as an axon. Fix: the
-   axon/number predicates gate on the clean `AXIS_STRING_FLAG` (`ind = aflag*(1-sflag)` /
-   `(1-sflag)*(1-aflag)`), which never aliases. Pinned by the Erlang fixture using a multi-char
-   string in the catch-all and by `tests/test_type_test_gap.py`.
+The 2026-06-19 attempt to support them by having `axon_add` set `AXIS_AXON_POPULATED[7]` (so a
+substrate `is_axon_truth` could read it) was **REVERTED** after a cascade of substrate breaches —
+an axon tag cannot be carried in the vector without corrupting the axon's own contents:
 
-**Signal-separation gap table** (`gap = min(positive) − max(negative)` on AXIS_TRUTH, the
-CLAUDE.md rule-3 requirement; `tests/test_type_test_gap.py`):
+1. **Flagging the real axis (`tuple_in_ctor`: 13→6).** The axon permutation scrambled the whole
+   synthetic block, mapping the flag axis [7] onto the real axis [0] for some keys, so
+   `realvec(axon_item(...))` read the flag's ~1.0 into the recovered number. A permutation fix
+   (reserve [4,8) as fixed points) addressed *this* case.
+2. **Corrupting String values in axons (`echo`: `in='hello' out='hell\x01'`).** The string codepoint
+   block packs `char[4]` at `synthetic[7]`, so a String stored as an axon value lost its 5th
+   codepoint when the flag overwrote [7]. A string-encoding change (skip the reserved axes)
+   addressed *this* case.
+3. **Thinning the nested-axon crosstalk margin (`nested_ctor_case`/`nested_ctor_let`: 16→29 on CI).**
+   The permutation fix from (1) excludes 4 dims from the axon permutation, thinning the already-thin
+   nested-axon bundling margin (finding `2026-06-17-nested-axon-readout-crosstalk-is-dim-dependent`).
+   At `runtime_dim=256` this is clean on the dev GPU (float64-ish) but **structurally fails on CI's
+   float32 CPU** (the inner axon's sum leaks fully into an outer field read), and the failure could
+   not be reproduced on the dev machine. Not fixable without removing the flag.
 
-| predicate | positive class | gap |
-|---|---|---|
-| `is_string_truth` | String | **2.0** |
-| `is_axon_truth` | populated axon | **2.0** |
-| `is_number_truth` | number | **2.0** |
-
-Clean ±1 scatter ⇒ exact 2.0 separation, robust to string length.
+The flag, the permutation fix, and the string-encoding change were all reverted to the pre-attempt
+state (which is CI-green and stable). Supporting `is_axon` properly needs a **dedicated axon tag
+that does not live in the data-carrying synthetic block** — a core encoding change (a new reserved
+axis outside both the codepoint block and the permutation range, or a structured orthogonal role
+basis so nested-axon reads don't crosstalk). Until then `is_list`/`is_map`/`is_tuple` emit
+`UNSUPPORTED-GUARD` and `is_number` is documented as "NOT-a-String" (it does not reject axons; the
+fixtures never pass one to it).
 
 ## The question
 
