@@ -70,6 +70,28 @@ size as today's `bind` but it ALSO absorbs the permute+clone, so it's fewer ops 
 `M_key` is d×d per key (~3 MB at dim 868), so cache it per key (bounded by the axon key vocabulary) and
 cap/evict for pathological key sets. This is the next §1A step (fresh context).
 
+## Fusion-pass attempt 2 — the `M_key` operator SUCCEEDED (shipped). Op-count lesson confirmed.
+
+Implemented `M_key = blockdiag(Q_sem, P_perm)` (the synthetic-block permutation as a matrix:
+`P_perm = eye(d_syn)[perm]`, so `P_perm @ syn == syn[perm]`), cached per role-hash in `_axon_op_for`,
+and rewrote `axon_add` to `axon + M_key @ value` — ONE matmul instead of bind (matmul) + permute
+(clone + gather). Verified BIT-IDENTICAL (`M_key @ value` max diff 0.0 vs the old path; round-trips and
+string-in-axon exact; 100 axon/bind/multi-process/rotation/string/type-test tests pass).
+
+Measured (8-program round, dim 868): in isolation `M_key @ value` is ~10x the old per-add cost
+(0.267 → 0.025 ms). End-to-end: **sequential `tick` ~6.8 → 3.3 ms/round (~2x)**, and crucially
+`tick_all` is **5.9–6.6 ms (NOT regressed**; pre-fusion 6.3 ms) — the exact opposite of the cat-fusion,
+which had pushed it to 8.9–15.7 ms. This confirms the lesson: collapsing 3 ops → 1 op (op COUNT) does
+not hurt the concurrent path, where the cat-fusion's 3 → 5 smaller ops (op SIZE) did. The
+`tick_all`/sequential RATIO drops to ~0.5x only because the per-program work is now so small that the
+stream overhead outweighs the overlap — a "too fast to bother parallelising at this size" regime, not
+a regression (both paths are absolutely faster).
+
+`axon_add` is the WRITE path; the symmetric `axon_item` READ-path fusion (an inverse fused operator) is
+the next sub-step. Memory note: `M_key` is d×d per key (~3 MB at dim 868), cached in `_axon_op_cache`,
+bounded by the axon key vocabulary in practice; a program with a pathologically large key set would
+want an LRU cap (follow-on, not needed by current fixtures).
+
 ---
 
 ## Original measurement (before the `_role_hash` fix)

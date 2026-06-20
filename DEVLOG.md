@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-20: FUSION PASS — `M_key` operator fuses axon_add to one matmul (~2x sequential)
+
+First successful step of the fusion-pass leg (Emma's §1A). `axon_add` did bind (a full d×d matmul) +
+`_axon_permute_synthetic` (clone + gather) = 3 ops. Fused into ONE: `M_key = blockdiag(Q_sem, P_perm)`
+(the synthetic permutation as a matrix), cached per role-hash in `_axon_op_for`, so
+`axon_add(key,value) = axon + M_key @ value`. Bit-identical (max diff 0.0; 100 axon/bind/multi-process/
+string tests pass). Measured: sequential tick ~6.8→3.3 ms/8-prog round (~2x); `tick_all` 5.9–6.6 ms
+(NOT regressed). This contrasts with the reverted attempt-1 "cat" fusion (3→5 SMALLER ops) which had
+regressed `tick_all` to 0.4–0.68x — confirming the load-bearing lesson that fusion for the concurrent
+path must cut op COUNT, not op size. Next sub-step: the symmetric `axon_item` read-path fusion. Memory:
+`M_key` is d×d per key (cached, bounded by the key vocab; LRU cap is a follow-on). See the finding.
+
 ## 2026-06-20: PERF — memoize `_role_hash` by role key; ~41x total faster binding tick
 
 Fixed the next hot-spot after the `.tolist()` fix: `_role_hash`'s `.cpu()` GPU→CPU transfer, recomputed

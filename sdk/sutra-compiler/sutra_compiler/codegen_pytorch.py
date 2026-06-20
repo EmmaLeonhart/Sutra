@@ -1069,6 +1069,38 @@ class PyTorchCodegen(Codegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
+        self._emit("def _axon_op_for(self, role_vec, role_key=None):")
+        self._indent += 1
+        self._emit('"""The FUSED per-key axon write operator M = blockdiag(Q_sem, P_perm):')
+        self._emit('a single d x d matrix that does bind+permute in ONE matmul, i.e.')
+        self._emit('M @ value == _axon_permute_synthetic(bind(role, value), perm) (verified')
+        self._emit('bit-identical). Q_sem is the semantic rotation block; P_perm is the')
+        self._emit('synthetic-block permutation as a matrix (P_perm @ syn == syn[perm]).')
+        self._emit('Cached per role-hash (d x d; bounded by the axon key vocabulary).')
+        self._emit('Collapsing axon_add to ONE op is what the concurrent tick_all path')
+        self._emit('needs: CUDA streams overlap fewer/bigger kernels, so reducing op COUNT')
+        self._emit('(not op size) is the win (finding 2026-06-20). Falls out of the existing')
+        self._emit('_rotation_for / _axon_permutation_for caches, so no new Haar/perm draw."""')
+        self._emit("key = self._role_hash(role_vec, role_key)")
+        self._emit("if not hasattr(self, '_axon_op_cache'):")
+        self._indent += 1
+        self._emit("self._axon_op_cache = {}")
+        self._indent -= 1
+        self._emit("if key not in self._axon_op_cache:")
+        self._indent += 1
+        self._emit("Q = self._rotation_for(role_vec, role_key)")
+        self._emit("perm = self._axon_permutation_for(role_vec, role_key)")
+        self._emit("sem = self.semantic_dim")
+        self._emit("dsyn = self.dim - sem")
+        self._emit("P_perm = _torch.eye(dsyn, dtype=self.dtype, device=self.device)[perm]")
+        self._emit("M = _torch.zeros(self.dim, self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("M[:sem, :sem] = Q[:sem, :sem]")
+        self._emit("M[sem:, sem:] = P_perm")
+        self._emit("self._axon_op_cache[key] = M")
+        self._indent -= 1
+        self._emit("return self._axon_op_cache[key]")
+        self._indent -= 1
+        self._emit()
         self._emit("def axon_add(self, axon, key, value):")
         self._indent += 1
         self._emit("# Defensively coerce caller-provided tensors to the runtime")
@@ -1114,9 +1146,11 @@ class PyTorchCodegen(Codegen):
         self._emit("# per-call .cpu() hash. A non-str key (pre-embedded vector) has no")
         self._emit("# stable string, so role_key=None falls back to hashing the vector.")
         self._emit("_rk = key if isinstance(key, str) else None")
-        self._emit("rotated = self.bind(key_vec, value, role_key=_rk)")
-        self._emit("perm = self._axon_permutation_for(key_vec, role_key=_rk)")
-        self._emit("return axon + self._axon_permute_synthetic(rotated, perm)")
+        self._emit("# One fused matmul (M = blockdiag(Q_sem, P_perm)) instead of bind +")
+        self._emit("# permute (matmul + clone + gather) — ONE op, the op-count reduction the")
+        self._emit("# concurrent tick_all path needs. Bit-identical (finding 2026-06-20).")
+        self._emit("value = _torch.as_tensor(value, dtype=self.dtype, device=self.device)")
+        self._emit("return axon + self._axon_op_for(key_vec, role_key=_rk) @ value")
         self._indent -= 1
         self._emit()
         self._emit("def axon_project(self, axon, requested_keys):")
