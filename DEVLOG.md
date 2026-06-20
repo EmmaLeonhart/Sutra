@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-19: F# multibase NON-tail recursion (if/elif) lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, third of the four multibase-non-tail ports (after OCaml,
+Scala). F#'s `elif` is a flat `elif_expression` child (the if_expression's children are
+`[cond0, then0, elif_1, …, else]`), not a nested if — so `_try_lower_multibase_nontail` collects the
+first if + each `elif_expression` as bases and the final child as the recursive fold STEP. The step's
+self-call is parenthesised per the F# grammar convention (same as the single-base `nontail_fact`
+fixture, `n * (fact (n-1))`), so it parses as a clean `infix` with the self-call peeled out of the
+paren. Emits the multi-arg CPS fold (carry every rec arg + `_acc` at OP identity, post-combine
+`_acc OP base_blend(final state)`); added `_FOLD_IDENTITY`.
+
+Fixture `multiarg_nontail_multibase` (`let rec f a b = if a=0 then b elif a=1 then b+100 else
+a + (f (a-1) b); f 3 10`) RUN == 115.0 on the substrate == ground truth. F# suite passed, no
+regressions. Rust is the last of the four.
+
 ## 2026-06-19: Scala multibase NON-tail recursion (nested if/else-if) lowers natively
 
 Branch `wasm-fallback-edge-cases-native`, second of the four multibase-non-tail ports (after OCaml).

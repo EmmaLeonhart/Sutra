@@ -63,9 +63,10 @@ record it in `DEVLOG.md`.
     clearing the Elixir/Erlang/Haskell multibase-non-tail items showed OCaml, Scala, F#, AND Rust all
     `UNSUPPORTED` a ≥2-base non-tail recursion (`f a b = if a==0 then b else if a==1 then b+100 else
     a + f (a-1) b`). The fold recipe ports; the wrinkle is their multibase is a nested `if/else if/else`
-    (needs else-if-chain flattening) + multi-arg carry. **OCaml + Scala DONE 2026-06-19**
-    (`_try_lower_multibase_nontail*`; fixtures `multiarg_nontail_multibase` RUN == 115 each).
-    F# / Rust still pending (same recipe, ported one at a time). Finding:
+    (needs else-if-chain flattening) + multi-arg carry. **OCaml + Scala + F# DONE 2026-06-19**
+    (`_try_lower_multibase_nontail*`; fixtures `multiarg_nontail_multibase` RUN == 115 each; F#'s
+    `elif` is a flat `elif_expression` child + the self-call is parenthesised per F# convention).
+    Rust still pending (same recipe, ported one at a time). Finding:
     `2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md`.
 - **F# / Scala** (`sutra-from-{fsharp,scala}/`): general breadth (closures, generics, traits /
   instance classes, more String ops), modelled on OCaml as needs arise. F# additionally can't build
