@@ -37,7 +37,12 @@ record it in `DEVLOG.md`.
   verified (scalar AND aggregate payload, annotated or not); the finding is RESOLVED. The scalable RAM
   device for the 10MB linear memory is also **DONE 2026-06-19** (direct 1D tensor; finding
   `2026-06-19-ram-device-scaling-limit.md` RESOLVED). Still open: non-zero `Array.make` fill (slots
-  start at 0 — a documented limit, not a bug).
+  start at 0 — a documented limit, not a bug). **Assessed 2026-06-19: STAYS on the fallback.** A
+  straight-line array lowers to `dict<int, int>` (missing keys read 0); a non-zero fill would need
+  either unroll-on-constant-`n` initialization (bloat, and only when `n` is a compile-time literal)
+  or a compiler-level change to the dict default — neither is clean in a few cycles, and the
+  straight-line "write before read" pattern makes the fill moot in practice. Do not re-attempt
+  without a concrete consumer that reads an unwritten slot expecting the fill.
 - **F# / Scala** (`sutra-from-{fsharp,scala}/`): general breadth (closures, generics, traits /
   instance classes, more String ops), modelled on OCaml as needs arise. F# additionally can't build
   its grammar DLL on the SutraDev clone (MSVC error), so F# work needs a clone where the grammar
