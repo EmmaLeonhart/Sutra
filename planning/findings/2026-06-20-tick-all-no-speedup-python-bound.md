@@ -136,6 +136,38 @@ the evicted one (pinned by a small-cap overflow test). The cap is generous: real
 to a few dozen distinct keys, far under it, so they never evict — only pathological key sets trade
 recompute for bounded memory.
 
+## Fusion-pass effect MEASURED end-to-end (2026-06-20) — sequential ~3x; tick_all sharpened to ~0.4–0.6x
+
+After wiring the `axon_build` peephole, re-ran `bench_tick_all.py 8 768` (dev GPU, dim=868, caches warm).
+The bench program (`Axon a; a.add("x",…); a.add("y",…); a.add("z", input); return a`) now compiles to a
+single batched `a = _VSA.axon_build(a, ['x','y','z'], …)` (verified emitted), so each program's per-tick
+graph is ~1 fused op instead of 3 `axon_add`s.
+
+| dispatch | ms / 8-prog round (4 runs) | speedup |
+|---|---|---|
+| sequential `tick` ×8 | 2.5 / 2.6 / 2.8 / 2.9 (~2.7) | 1.00x |
+| `tick_all` (8 streams + 1 synchronize) | 6.5 / 7.0 / 6.8 / 4.6 | **0.38–0.60x** |
+
+Two findings, both honest:
+
+1. **The fusion WON on the sequential path (the measurable goal).** The 8-program round went from
+   347.6 ms (original, pre-`_role_hash` fix) → 8.4 ms (after the `_role_hash` 66x + key-memo) → **~2.7 ms**
+   (after M_key write/read fusion + the `axon_build` peephole). That last stage is **~3x** on top of
+   key-memo, **~129x** across the whole chain. Fewer/bigger ops per tick = less GIL-bound Python = faster
+   sequential ticks. This is what the fusion pass was for, and it delivered.
+
+2. **`tick_all` got MORE net-negative, not less: 0.95x → ~0.4–0.6x.** Counter-intuitive but coherent.
+   `tick_all`'s per-round cost is ~fixed CUDA-stream machinery (8 stream creates + context switches + 1
+   synchronize), which the original finding already measured as pure overhead at 0.95x. Shrinking the
+   *work* (fusion) did nothing to that fixed overhead — so now the overhead (~4–7 ms) DWARFS the ~2.7 ms
+   of actual work, and the ratio drops further. **Sharpened conclusion: CUDA streams are the wrong
+   concurrency mechanism for this workload at any per-program work size, and making the work smaller only
+   widens the gap.** Real multi-process throughput still needs genuine parallelism (separate processes or
+   GIL release), exactly as the original finding concluded — the fusion pass was the right lever for the
+   *sequential* cost, and it is now essentially exhausted (per-tick work is ~1 op). `tick_all` keeps its
+   value as the correct *dispatch shape* (bit-identical, the API Yantra's `tick_concurrent` consumes), not
+   as a throughput win on today's single-process GIL-bound runtime.
+
 ---
 
 ## Original measurement (before the `_role_hash` fix)
