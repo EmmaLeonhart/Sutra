@@ -81,16 +81,45 @@ axon programs) depend on. Steps:
       _role_hash, memoizing the hash by key (deterministic `embed`, string-keyed so no collision risk;
       `role_key=None` keeps the vector path). 18.8ms → 8.4ms (~2.2x more; **~41x total** from original).
       `tick_all` now 1.33x. 85 + 37 tests pass. See the finding.
-   Remaining follow-ons (queued, NOT urgent): (ii) per-process GPU-arena isolation; the compile-time
-   FUSION PASS is the deeper lever for the remaining ~61% per-op orchestration (a bigger compiler leg).
+   The multi-process leg core is shipped + measured (~45x perf). Its deeper levers are §1A–§1C below.
 
 ---
 
-## 2. WASM source frontend — NEXT (do after §1)
+## 1A. Compile-time FUSION PASS — ACTIVE (Emma 2026-06-20: do §1A → §1B → §1C in sequence)
 
-The `WASM/`-subtree source→Sutra path (Phase 3 in `todo.md`). Several sub-parts are CI/clang-blocked
-on this clone (need `uv`/`clang`/`wat2wasm`); route those through CI. Decompose from `todo.md`
-§"Phase 3 — WASM" + the `WASM/` agenda when §1 is done.
+The deeper perf lever for the remaining ~61% per-op orchestration. After the two `_role_hash` hot-spot
+fixes (~45x), a single binding tick is ~0.95ms and the residual cost is GENUINE substrate ops launched
+per-op in Python: `bind` (the rotation matmul `Q @ filler`, ~3/tick) and `_axon_permute_synthetic`
+(the synthetic-block gather + clone, ~3/tick). The fusion pass collapses a program's per-tick per-op
+kernel launches into one (or few) fused tensor-op graph(s), so the GPU does the work in fewer dispatches
+and the Python orchestration shrinks. Existing infra to build on: `simplify_egglog.py` already does
+COMPILE-TIME matrix-chain fusion (R_CHAIN: collapse `R1·R2·…·Rn`). First step: read the codegen emit
+model + the egglog pass, find the concrete fusable pattern in the per-tick path (e.g. batch the
+multiple `axon_add` binds into one batched matmul, or precompute a fused per-key operator), prototype +
+measure it against the bench (`experiments/bench_tick_all.py`), decompose into concrete steps here.
+Finding to extend: `2026-06-20-tick-all-no-speedup-python-bound.md` (§"Perf chain CONCLUDED").
+
+## 1B. Per-process state SERIALISATION — NEXT (after §1A)
+
+The Sutra primitive Yantra names as the blocker for Disc↔RAM↔GPU storage-tier moves: snapshot a
+process's substrate state to a portable blob and restore it (so eviction preserves running state, not
+just residency). Yantra's `kernel/checkpoint.py` + `SutraService.unload()` document the gap ("running
+state is NOT preserved across unload — needs the Sutra serialise-process-state primitive"). Decompose
+when §1A ships.
+
+## 1C. Per-process GPU ARENAS — LAST of the three (after §1B)
+
+The `MultiProcessRuntime` "What this is NOT": per-process GPU memory isolation (CUDA stream/IPC), so
+admitted programs don't all share one pool. Device-level work. Decompose when §1B ships.
+
+---
+
+## 2. WASM source frontend — after the §1A–§1C sequence
+
+The `WASM/`-subtree source→Sutra path (Phase 3 in `todo.md`). NOTE: the `WASM/` subtree is actively
+worked by its OWN work-loop / `:33` sibling-watch cron, and its remaining items are largely
+clang/uv/wat2wasm-blocked on this clone. Coordinate / route through CI; do not collide with the
+subtree agent. Decompose from `todo.md` §"Phase 3 — WASM" when the §1 sequence is done.
 
 ---
 
