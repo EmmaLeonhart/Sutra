@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-06-19: Elixir/Erlang tag-checkable type-test guards (substrate type tests)
+
+Pulled the substrate-type-test item from `todo.md` (§ "Substrate type tests"; recipe in finding
+`2026-06-18-substrate-type-tests.md`, now RESOLVED) and shipped the tag-checkable subset for BOTH
+the Elixir and Erlang frontends. Three substrate-pure runtime predicates added to
+`codegen_pytorch.py` (+ `codegen.py` parity) and registered in `codegen_base.BUILTINS`:
+`is_string_truth` / `is_axon_truth` / `is_number_truth`, each scattering `2·ind − 1` onto
+`AXIS_TRUTH` (a tensor op, no host readout) so they compose in the `defuzzy` clause-dispatch blend.
+Elixir lowers `is_binary`/`is_bitstring`→string, `is_list`/`is_map`/`is_tuple`→axon,
+`is_number`→number (`_TYPE_TEST_LOWER`); Erlang mirrors it but EXCLUDES `is_binary` (Erlang strings
+are charlists, not binaries — the String-flag mapping would diverge from Erlang semantics).
+`is_integer`/`is_float` stay deferred (int N ≡ float N is the bit-identical vector). Fixtures
+`type_test_guard` RUN == 123 on the substrate for both frontends.
+
+Two substrate facts the build surfaced (both fixed):
+1. **`axon_add` never set `AXIS_AXON_POPULATED`** despite spec axon-io.md saying producers should.
+   Wired now via an autograd-safe one-hot mask after the permute-accumulate; axon readback fixtures
+   (map/tuple/struct == 13) unaffected.
+2. **`_str_axes` reuses axes [5,6,7]** (promise + axon-populated flags) for string codepoints 3..5,
+   so a multi-char string aliases a codepoint into `AXIS_AXON_POPULATED[7]`. The axon/number
+   predicates therefore gate on the clean `AXIS_STRING_FLAG` (`aflag·(1−sflag)` /
+   `(1−sflag)·(1−aflag)`), not on `aflag` alone — robust to string length. Pinned by the Erlang
+   fixture's multi-char catch-all string and `tests/test_type_test_gap.py` (gap table 2.0/2.0/2.0,
+   the CLAUDE.md signal-separation requirement).
+
 ## 2026-06-19: papers — added a Background lead-in section to both live papers
 
 Per the queue item (Emma 2026-06-18), added a `## Background` section at the beginning of both live

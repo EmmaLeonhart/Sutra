@@ -289,6 +289,38 @@ def _clause_body_prelude(clause_body, src: bytes):
     return list(kids[:-1]) if len(kids) > 1 else []
 
 
+# Erlang type-test guards that lower natively to a substrate-pure truth-builtin
+# (codegen_base.BUILTINS; planning/findings/2026-06-18-substrate-type-tests.md).
+# Each scatters `2*flag - 1` onto AXIS_TRUTH over a tag axis, so the guard composes
+# in the `defuzzy` clause-dispatch blend. Mirrors the Elixir frontend. NOTE: Erlang
+# `is_binary` is deliberately NOT mapped — an Erlang string literal is a CHARLIST
+# (the frontend stores it as a substrate String for `++`/case, but it is not a
+# binary), so mapping is_binary→is_string_truth would diverge from Erlang semantics.
+_TYPE_TEST_LOWER = {
+    "is_list": "is_axon_truth",
+    "is_map": "is_axon_truth",
+    "is_tuple": "is_axon_truth",
+    "is_number": "is_number_truth",
+}
+
+# Erlang type-test guards that still do NOT lower. is_integer/is_float are
+# UNREPRESENTABLE (int N and float N are the bit-identical real-axis vector); the
+# rest are not-yet-built / have no substrate notion. (is_binary excluded above.)
+_TYPE_TEST_GUARDS = {
+    "is_integer": "unrepresentable: int N and float N are the bit-identical "
+                  "real-axis vector on the substrate (measured).",
+    "is_float": "unrepresentable: see is_integer.",
+    "is_binary": "Erlang strings are charlists, not binaries; no clean substrate "
+                 "binary tag separate from the String representation.",
+    "is_bitstring": "no substrate bitstring tag.",
+    "is_atom": "tag-checkable (atoms lower to string-flag codepoint arrays) but "
+               "not yet built; booleans-as-atoms make the boundary subtle.",
+    "is_boolean": "tag-checkable (AXIS_TRUTH-only value) but not yet built.",
+    "is_pid": "no substrate notion of a pid.",
+    "is_function": "no substrate notion of a first-class function value yet.",
+}
+
+
 def _call_name_args(node, src: bytes):
     """`call` → (function-name-atom-text, [arg_nodes]) or None for a non-atom head."""
     if node.type != "call":
@@ -366,6 +398,14 @@ def _lower_expr(node, src: bytes) -> str:
         if na is None:
             return "/* UNSUPPORTED-EXPR: non-atom call head */"
         name, args = na
+        # Type-test guards (`is_number(N)`, `is_tuple(T)`, …). On a substrate where
+        # every value is a vector, a type test is an axis/tag check; the tag-checkable
+        # subset lowers to a substrate-pure truth-builtin over its tag axis. See
+        # planning/findings/2026-06-18-substrate-type-tests.md.
+        if name in _TYPE_TEST_LOWER and len(args) == 1:
+            return f"{_TYPE_TEST_LOWER[name]}({_lower_expr(args[0], src)})"
+        if name in _TYPE_TEST_GUARDS:
+            return f"/* UNSUPPORTED-GUARD: {name} — {_TYPE_TEST_GUARDS[name]} */"
         return f"{name}({', '.join(_lower_expr(a, src) for a in args)})"
     if t == "if_expr":
         # `if G1 -> R1; G2 -> R2; ... ; true -> D end` — nested guard blend, the

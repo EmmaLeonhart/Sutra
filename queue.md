@@ -23,9 +23,9 @@ deleted on completion.
 
 ---
 
-## Active work
+## Done this session (DRAINED 2026-06-19)
 
-**DRAINED 2026-06-19.** The bounded, locally-actionable work is all done. This session shipped the
+The bounded, locally-actionable work is all done. This session shipped the
 OCaml option-payload rework (all five gaps), Elixir/Erlang non-tail + guarded multibase, the
 repo-wide doc audit, the Q1–Q5 quantum exploration (incl. Q5 VQE-to-Sutra), the FV paper arXiv pass
 (References + em-dash removal + accuracy fixes + Background), the comprehensive substrate audit (REAL
