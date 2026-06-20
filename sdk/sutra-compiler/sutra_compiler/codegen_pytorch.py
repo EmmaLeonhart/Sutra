@@ -2009,6 +2009,23 @@ class PyTorchCodegen(Codegen):
         self._emit("# or computed RAM offset, e.g. base+i) — handle both.")
         self._emit("addr = int(round(float((_pt if _pt.ndim == 0 else "
                    "_pt[self.semantic_dim + self.AXIS_REAL]).item())))")
+        self._emit("# DIRECT 1D linear memory (a torch tensor, see ram_write): each")
+        self._emit("# cell is a real-axis scalar; reconstruct the number-vector by")
+        self._emit("# scattering the stored 0-d value onto AXIS_REAL (a tensor op, no")
+        self._emit("# host readout). Scales to the 10MB linear memory (1 scalar/cell,")
+        self._emit("# no per-cell d-vector). The lazily-allocated Bytes/array case.")
+        self._emit("if _torch.is_tensor(self.ram):")
+        self._indent += 1
+        self._emit("if 0 <= addr < self.ram.shape[0]:")
+        self._indent += 1
+        self._emit("out = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("out[self.semantic_dim + self.AXIS_REAL] = self.ram[addr]")
+        self._emit("return out")
+        self._indent -= 1
+        self._emit("return self.zero_vector()")
+        self._indent -= 1
+        self._emit("# External-attached LIST device (orchestrator contract: iso5 /")
+        self._emit("# ntm_ram attach + index self.ram as a list of vectors).")
         self._emit("if 0 <= addr < len(self.ram):")
         self._indent += 1
         self._emit("return self.ram[addr]")
@@ -2030,25 +2047,41 @@ class PyTorchCodegen(Codegen):
         self._emit("_vt = self._st(value)")
         self._emit("val_vec = value if (hasattr(value, 'ndim') and "
                    "_vt.ndim != 0) else self.make_real(float(_vt.item()))")
-        self._emit("# Standalone-run default orchestrator: a program that writes RAM")
-        self._emit("# (e.g. OCaml `Array.make` -> ramWrite) declares it needs memory,")
-        self._emit("# so when no external device is attached we lazily allocate the")
-        self._emit("# host RAM buffer and grow it to cover the address. Still the")
-        self._emit("# external-host-memory I/O wire (ram-pointers.md) — a separate")
-        self._emit("# orchestrator can still pre-attach self.ram before the run.")
-        self._emit("if self.ram is None:")
-        self._indent += 1
-        self._emit("self.ram = []")
-        self._indent -= 1
         self._emit("if addr < 0:")
         self._indent += 1
         self._emit("return val_vec")
         self._indent -= 1
+        self._emit("# An EXTERNAL orchestrator-attached device stays a list of vectors")
+        self._emit("# (unchanged contract: iso5 / ntm_ram attach + index self.ram as a")
+        self._emit("# list, including genuine multi-axis VRAM vectors).")
+        self._emit("if isinstance(self.ram, list):")
+        self._indent += 1
         self._emit("while len(self.ram) <= addr:")
         self._indent += 1
         self._emit("self.ram.append(self.zero_vector())")
         self._indent -= 1
         self._emit("self.ram[addr] = val_vec")
+        self._emit("return val_vec")
+        self._indent -= 1
+        self._emit("# No external device: a DIRECT 1D linear-memory tensor, NOT a")
+        self._emit("# Python list (Emma 2026-06-19). Each cell is the real-axis scalar")
+        self._emit("# of the value (the byte/number a Bytes.make / array linear memory")
+        self._emit("# holds; the OCaml attn tape stores dot/sum NUMBERS too). Grown by")
+        self._emit("# doubling. Scales to 10MB: 1 scalar/cell, no pre-grown d-vectors.")
+        self._emit("cell = _vt if _vt.ndim == 0 else _torch.dot(val_vec, self._e_real())")
+        self._emit("if self.ram is None:")
+        self._indent += 1
+        self._emit("self.ram = _torch.zeros(max(addr + 1, 16), dtype=self.dtype, "
+                   "device=self.device)")
+        self._indent -= 1
+        self._emit("if addr >= self.ram.shape[0]:")
+        self._indent += 1
+        self._emit("grown = _torch.zeros(max(addr + 1, 2 * self.ram.shape[0]), "
+                   "dtype=self.dtype, device=self.device)")
+        self._emit("grown[:self.ram.shape[0]] = self.ram")
+        self._emit("self.ram = grown")
+        self._indent -= 1
+        self._emit("self.ram[addr] = cell")
         self._emit("return val_vec")
         self._indent -= 1
         self._emit()
