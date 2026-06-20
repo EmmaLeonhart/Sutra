@@ -65,8 +65,9 @@ arithmetic, partial evaluation, and vector-symbolic architectures. Then §7
 turns from software to **hardware** formal verification, on Sutra's
 **energy-based** thermodynamic compile target: Lean-machine-checked proofs that
 its gadgets have the correct output as the **strict global energy minimum** (a
-ground-state decode is exact), with sampler-*convergence* largely proven
-(stationary measure unique; rate open). Finally, §8 is a brief note on a
+ground-state decode is exact), with sampler-*convergence* proven (stationary measure
+unique, and the two-state mixing rate mechanised: the gadget's full-resampling Gibbs
+kernel reaches its stationary measure in a single step). Finally, §8 is a brief note on a
 **separate, weaker** empirical layer, a compile-and-run-against-ground-truth
 suite for the source-language frontends that compile *into* Sutra, explicitly
 not conflated with the formal guarantees above.
@@ -979,18 +980,28 @@ the AND gadget was even *re-learned* from data by contrastive divergence,
 recovering the hand-derived couplings, so measurement, learning, and proof agree
 on the same energy landscape.
 
-**What this does not yet prove, stated plainly.** We have machine-checked the
+**What is now machine-checked, including the rate.** We have machine-checked the
 gadget energies are *correct*; the finite chain's ergodicity hypotheses (irreducible,
 aperiodic) and Gibbs **mode**; and, over the reals with `mathlib`, detailed
-balance, stationarity of the Gibbs measure, and its uniqueness. What remains is the
-**mixing rate**: *how fast* the chain reaches that now-proven unique stationary
-measure, the $t\to\infty$ total-variation / spectral-gap statement, the Langevin
-stochastic-differential-equation limit of block-Gibbs. So: the gadgets are
-*correct*, the chain is *ergodic with the right unique stationary Gibbs measure*, all
-machine-checked; the remaining link is the *rate* of convergence, which we do not yet
-mechanise. (Proofs: `fv-lean/`, core, no `mathlib`, and `fv-lean/mathlib/` for the
-reversibility/stationarity/uniqueness layer; the measured exploration and the
-host/sampled hardware mapping: the companion findings.)
+balance, stationarity of the Gibbs measure, and its uniqueness. The **mixing rate**
+(*how fast* the chain reaches that unique stationary measure, the $t\to\infty$
+total-variation / spectral-gap statement) is now mechanised too, for the two-state
+clamped-decode chain the gadget inhabits. The transition matrix's second eigenvalue
+$\lambda_2 = 1 - P_{f\to t} - P_{t\to f}$ is the per-step contraction factor: one step
+multiplies the deviation from the stationary $\pi$ by exactly $\lambda_2$
+(`two_state_step_contraction`), so after $n$ steps it is $\lambda_2^n$ times the
+initial deviation (`two_state_geometric_mixing`) and the total-variation distance
+decays as $|\lambda_2|^n$ (`two_state_tv_mixing`). Instantiated for the gadget's own
+single-site Gibbs kernel, which fully resamples the spin, $\lambda_2 = 0$ exactly
+(`gibbs_lambda2_zero`): the chain reaches the Gibbs measure in a *single* step
+(`gibbs_mixes_in_one_step`; spectral gap $=1$). All `[propext, Classical.choice,
+Quot.sound]`, no `sorry`. So the full convergence picture for the gadget chain (the
+gadgets *correct*, the chain *ergodic with the right unique stationary Gibbs measure*,
+and now the *rate*) is machine-checked. What we do **not** claim: a mixing-rate bound
+for a general multi-state block-Gibbs chain (only the two-state case is mechanised),
+nor the continuous-time Langevin SDE limit. (Proofs: `fv-lean/`, core, no `mathlib`,
+and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
+measured exploration and the host/sampled hardware mapping: the companion findings.)
 
 ## 8. Source-language frontends: empirical end-to-end verification
 
@@ -1051,8 +1062,10 @@ substrate physically realizes Sutra's fuzzy-by-default premise. There the gadget
 ground-states are already machine-checked correct, and the single-gadget Gibbs chain
 is machine-checked ergodic (irreducible, aperiodic) with a unique stationary Gibbs
 measure (reversibility, stationarity, and uniqueness verified over the reals in
-`mathlib`); the remaining link, the convergence *rate*, the $t\to\infty$
-spectral-gap / Langevin limit of block-Gibbs, is the road ahead there. The verification is hardware-portable in principle, but we instantiate
+`mathlib`), and the convergence *rate* for that two-state chain is mechanised: its
+spectral gap is $1$ ($\lambda_2 = 0$, the kernel fully resamples) so it reaches the
+Gibbs measure in one step. The road ahead there is the general multi-state
+spectral-gap / Langevin limit of block-Gibbs. The verification is hardware-portable in principle, but we instantiate
 it on the specific thermodynamic hardware we are building toward; carrying the §3
 framework fully onto that hardware is, in our view, the more consequential direction
 this work opens, correctness established at the level of the physics, not only the
