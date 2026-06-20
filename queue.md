@@ -71,8 +71,16 @@ axon programs) depend on. Steps:
       Consequence: real multi-process throughput is GATED on shrinking per-tick Python (the compile-time
       FUSION PASS that collapses a program's per-tick graph to one fused op), not on more dispatch
       plumbing. That fusion work is the real lever — a bigger leg, not yet decomposed.
-   Remaining follow-on: (ii) per-process GPU-arena isolation (the `MultiProcessRuntime` "What this is
-   NOT" — CUDA stream/IPC work). Lower priority than the fusion lever above.
+   e. **DONE 2026-06-20 — profiled the per-tick Python, found + fixed a 66x hot-spot.** `_role_hash`
+      computed its cache-key via `bytes(tensor.view(uint8))`, which iterates the d-vector element-wise
+      (`__iter__`→`unbind`, ~6.4ms/call). Fix: `.tolist()` (C++ bulk, not numpy), byte-identical →
+      `_role_hash` 66x faster, the whole binding tick ~18x faster (347→18.8ms/8-prog round). Benefits
+      EVERY binding Sutra program. CI green. See the finding.
+   Remaining follow-ons (queued, NOT urgent): (ii) per-process GPU-arena isolation; (iii) the NEXT
+   hot-spot — `_role_hash`'s `.cpu()` transfer (~1.5ms/tick), fixable by memoizing the hash by role KEY
+   (thread the key string through bind/_rotation_for/_axon_permutation_for) or stable-embed-objects
+   (codebook-mutation care); another ~2x. Both need fresh-context care — see the finding's "Next
+   hot-spot" section. The compile-time fusion pass is the deeper lever after that.
 
 ---
 
