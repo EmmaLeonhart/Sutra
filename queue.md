@@ -115,10 +115,21 @@ op (0.343→0.033ms); 83 compiler + 99 Yantra axon tests pass. Both axon write+r
 the BATCHED fusion: stack the N cached `M_key` operators into one `(N,d,d)` bmm + sum instead of N
 separate matmuls. Bit-identical (max diff 0.0; `test_axon_build.py` 4 tests), ~3x (M-stack reused) /
 ~1.4x (per-call stack); fewer ops → helps the concurrent path. **PRIMITIVE SHIPPED 2026-06-20.**
-Remaining (broad blast radius, fresh context): WIRE the codegen to emit `axon_build` — tractable target
-is `_emit_class_factory` (codegen_base; record/struct construction already has the known field list →
-one `axon_build` not N `axon_add`s); harder target is a peephole detecting consecutive `a.add(k,v)` runs
-on one Axon. Verify bit-identical + record-returning frontend fixtures green.
+Remaining — WIRE the codegen to emit `axon_build` (fresh context; investigated 2026-06-20):
+- **The class factory (`_emit_class_factory`) is NOT the target.** Frontend records/tuples do NOT lower
+  to Sutra `class`/`new`; they emit DIRECT `Axon _record; _record.add("x",a); _record.add("y",b);`
+  sequences (verified on the OCaml `record` fixture). The class factory is only for Sutra `class` decls
+  (rare). So wiring it would help almost nothing.
+- **The real target is a PEEPHOLE over consecutive `<var>.add(K,V);` statements** (catches frontend
+  records AND explicit `Axon a; a.add()×N`). `.add` lowers one-at-a-time in `_translate_stmt` to
+  `<var> = _VSA.axon_add(<var>, K, V)`. Collect a maximal run of consecutive `.add` on the SAME axon var
+  (no intervening use of the var) and emit one `<var> = _VSA.axon_build(<var>, [K…], [V…])`.
+- **Interacts with the existing elision** (`_axon_elide_keys`, `_compute_axon_elision`): some `.add(K,V)`
+  are already SKIPPED (key never read + axon doesn't escape). The peephole must batch only the
+  NON-elided adds in the run. Implementation: buffer consecutive same-var `.add` in `_translate_stmt`
+  (flush the buffer as one `axon_build` when the run ends), or a statement-list pre-pass.
+- Verify bit-identical + ALL record/tuple/struct frontend fixtures (OCaml/Scala/Rust/Haskell/Elixir/
+  Erlang/Clojure/F#) stay green.
 
 **Remaining §1A robustness follow-on:** an LRU cap on `_axon_op_cache` for pathologically large key sets
 (not needed by current fixtures). §1B is RESOLVED (above); §1C (GPU arenas) deferred per Emma.
