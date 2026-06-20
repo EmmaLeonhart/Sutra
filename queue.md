@@ -48,9 +48,13 @@ surfaced, in priority order:
   multi-axis VRAM vectors) is unchanged. Substrate-verified on all paths; the 1D scalar tensor is the
   WASM-linear-memory-compatible shape. (Remaining if ever needed: a tensor-backed VRAM-vector store
   for an orchestrator that wants direct multi-axis cells — currently externally managed as lists.)
-- [ ] **Dimension auto-minimize.** 18 zero-`basis_vector` `examples/` run at 768/868 (silent cost).
-  Make codegen auto-minimize semantic_dim when no `basis_vector`/`embed`/axon-string-key is present,
-  or add per-file dim directives. Bounded, verifiable.
+- Dimension audit — **DONE 2026-06-19** as a compiler WARNING (not a risky auto-minimize):
+  `codegen_pytorch.translate_module` warns when a program uses no codebook (no `basis_vector`/`embed`
+  via `collect_basis_vector_strings`, no axon string-keys via `collect_axon_keys`) yet runs at an
+  LLM-sized `semantic_dim` (>= 256) — the LLM subspace is unused, so the dimension is pure cost. Warn
+  loudly, still compile (Sutra is opinionated, not authoritarian). No false positives (axon/
+  basis_vector programs don't warn), no behavior change. `test_dimension_audit_warning.py` 4/4.
+  (Per-file dim fixes for the 18 example demos are now optional polish, surfaced by the warning.)
 - calc operator-select gap table — **DONE 2026-06-19**: `demos/calc/measure_select_gap.py` +
   `test_calc.py::test_operator_select_signal_separation_gap` measure gap = 1000 (matched op scores 0,
   every wrong op ≤ −1000; tightest pair `+`/`*`, one codepoint apart). The substrate genuinely

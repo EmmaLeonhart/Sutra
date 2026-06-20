@@ -91,14 +91,16 @@ Result: the substrate is clean on the differentiable hot path; the FV §4.5
   leak; no fake-RNN / host-loop-extraction state-locus leaks — every
   "recurrent"/RNN claim in demos/experiments carries its state as a substrate
   tensor (recur slot / loop slot), host reads only at the display/IO boundary.
-- **Dimension — silent oversizing in `examples/`.** 18 zero-`basis_vector`
-  example `.su` run at semantic_dim 768 (+100 → 868) because
-  `examples/atman.toml` sets `dim = 768` directory-wide and codegen does NOT
-  auto-minimize when no `basis_vector`/`embed`/axon-string-key is present
-  (root: `codegen.py` default 768 on `runtime_dim=None`). The CLI (default 50)
-  and `compile_su` (required kwarg) already avoid it; `translate_module` does
-  not. Fix direction: codegen auto-minimize, or per-file dim directives. Small
-  absolute cost (tiny one-shot demos) but the exact pattern CLAUDE.md flags.
+- **Dimension — silent oversizing — ✅ WARNING ADDED 2026-06-19.** 18 zero-
+  `basis_vector` example `.su` ran at semantic_dim 768 (+100 → 868) with the LLM
+  subspace unused. Rather than a risky auto-minimize (axon string-keys also use
+  the codebook, so minimizing on a basis_vector-empty signal alone would break
+  axon programs), `codegen_pytorch.translate_module` now WARNS when the codebook
+  is genuinely unused (`collect_basis_vector_strings` empty — covers basis_vector
+  + embed — AND `collect_axon_keys` empty) yet `semantic_dim >= 256`. Warn loudly,
+  still compile. No false positives, no behavior change; `test_dimension_audit_
+  warning.py` 4/4. Automates the manual dimension-audit breach as a diagnostic for
+  every program.
 - **Signal-separation — calc operator-select gap table — ✅ ADDED 2026-06-19.**
   `demos/calc/switch.su` decides which of four ops fires via `select`;
   previously `test_calc.py` checked only end-to-end results, no gap table.

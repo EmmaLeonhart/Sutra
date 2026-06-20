@@ -3279,4 +3279,22 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     cg._prefetch_strings = strings
     cg._axon_keys_bound = bound_keys
     cg._axon_keys_read = read_keys
+    # Dimension-audit diagnostic (CLAUDE.md "Subtler substrate breaches" #1,
+    # substrate audit 2026-06-19): a program that embeds no codebook strings
+    # (no basis_vector / embed) and binds no axon string-keys does not use the
+    # LLM semantic subspace at all, so an LLM-sized semantic_dim is paid for
+    # nothing (matrices scale with dim^2). collect_basis_vector_strings covers
+    # basis_vector + embed; bound_keys/read_keys cover axon string-keys, so
+    # all-three-empty is a reliable "codebook unused" signal. Warn loudly but
+    # still compile (Sutra is opinionated, not authoritarian).
+    if (not strings and not bound_keys and not read_keys
+            and cg._semantic_dim >= 256):
+        import warnings as _warnings
+        _warnings.warn(
+            f"semantic_dim={cg._semantic_dim} but this program uses no codebook "
+            "(no basis_vector / embed, no axon string-keys); the LLM semantic "
+            "subspace is unused, so the large dimension is pure cost. Consider a "
+            "much smaller runtime_dim (the synthetic axes need only a handful).",
+            stacklevel=2,
+        )
     return cg.translate(module)
