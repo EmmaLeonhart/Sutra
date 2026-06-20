@@ -40,6 +40,8 @@ sympy = pytest.importorskip(
 )
 
 from sutra_compiler.codegen_pytorch import translate_module as torch_translate  # noqa: E402
+from sutra_compiler.fv_obligation_checker import (  # noqa: E402
+    check_branch_range, range_sound_by_composition)
 from sutra_compiler.fv_poly_bound import bound_polynomial_over_box  # noqa: E402
 from sutra_compiler.lexer import Lexer  # noqa: E402
 from sutra_compiler.parser import Parser  # noqa: E402
@@ -151,3 +153,68 @@ def test_branch_range_obligation_discharged_closed_form() -> None:
     assert results["and"].maximum == sympy.Integer(1)
     assert results["or"].minimum == sympy.Integer(-1)
     assert results["or"].maximum == sympy.Integer(1)
+
+
+# Composed / whole-program range-soundness ---------------------------------
+#
+# The closed-form bounder above discharges the obligation for the THREE atomic
+# connectives. The whole-program obligation — an arbitrarily NESTED Kleene
+# expression's range stays in [-1,+1] — is NOT discharged by bounding the
+# composed (high-degree) polynomial directly: that route's cost explodes with
+# nesting depth (see experiments/fv_composed_branch_range_cost.py and
+# planning/findings/2026-06-20-fv-composed-branch-range-cost.md). It is
+# discharged instead by STRUCTURAL INDUCTION on the expression tree
+# (`range_sound_by_composition`): each connective maps [-1,+1]^k into [-1,+1]
+# exactly (the per-connective lemma above), so any composition of them over
+# truth inputs in [-1,+1] is range-sound, degree-insensitively. This matches
+# paper/formal-verification/paper.md §3.2 ("Range-soundness scales to arbitrary
+# depth by composition, the bounder is NOT on the critical path for depth").
+
+# (label, expr_src, var_names) — increasing branch-nesting depth.
+_COMPOSED_CASES = [
+    ("(a&&b)||c", "(a && b) || c", ["a", "b", "c"]),
+    ("(a&&b)||(c&&d)", "(a && b) || (c && d)", ["a", "b", "c", "d"]),
+    ("!((a&&b)||c)", "!((a && b) || c)", ["a", "b", "c"]),
+    ("((a&&b)||(c&&d))&&!e", "((a && b) || (c && d)) && !e",
+     ["a", "b", "c", "d", "e"]),
+    ("((a&&b)||(c&&d))&&(!e||(a&&c))",
+     "((a && b) || (c && d)) && (!e || (a && c))", ["a", "b", "c", "d", "e"]),
+]
+
+
+@pytest.mark.parametrize("label,src,vs", _COMPOSED_CASES,
+                         ids=[c[0] for c in _COMPOSED_CASES])
+def test_composed_range_sound_by_structural_induction(label, src, vs):
+    """Whole-program range-soundness: every nested composition of the proven
+    connectives is range-sound at ANY depth, decided structurally (degree-
+    insensitively) — the discharge the closed-form direct bound cannot scale to."""
+    assert range_sound_by_composition(src, vs), (
+        f"composed expression {label!r} should be range-sound by induction "
+        f"(it is built solely from proven connectives)"
+    )
+
+
+def test_composition_refuses_non_connective_operators():
+    """The structural argument is SOUND, not vacuous: it returns False for any
+    expression that uses an operator NOT proven to map [-1,+1] into [-1,+1], so
+    the [-1,+1] conclusion is never asserted where it does not follow."""
+    # Bundle (+) and a comparison are not range-sound connectives → refuse.
+    assert not range_sound_by_composition("a + b", ["a", "b"])
+    assert not range_sound_by_composition("(a && b) + c", ["a", "b", "c"])
+    # ...but the same shape with only connectives IS accepted.
+    assert range_sound_by_composition("(a && b) || c", ["a", "b", "c"])
+
+
+def test_composition_agrees_with_direct_bound_on_the_per_connective_lemma():
+    """Anchor the inductive lemma to the exact tool. The closed-form direct
+    bounder only completes on a SINGLE connective — depth-2 compositions already
+    time out (>30 s; see experiments/fv_composed_branch_range_cost.py), which is
+    exactly why composition, not direct bounding, discharges whole programs. On
+    the case the direct route CAN evaluate (one connective), its exact range is
+    [-1,+1] AND composition agrees — so composition is a sound shortcut for the
+    lemma it rests on, not a weaker check."""
+    src, vs = "a && b", ["a", "b"]  # single connective: the only direct-tractable case
+    assert range_sound_by_composition(src, vs)
+    rb = check_branch_range(src, vs)
+    assert rb.within(-1, 1), f"direct exact range [{rb.minimum},{rb.maximum}] escapes"
+    assert rb.minimum == sympy.Integer(-1) and rb.maximum == sympy.Integer(1)

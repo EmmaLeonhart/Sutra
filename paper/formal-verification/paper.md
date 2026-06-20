@@ -376,7 +376,11 @@ natural worry is that deep nesting produces a high-degree polynomial the
 closed-form bounder cannot handle. It does, and we do not bound it. The
 closed-form critical-point bound gives the exact range of a *single* connective;
 the *composed* polynomial of a deeply nested expression is high-degree and
-bounding it directly is expensive. We do not need to: each connective is proven to
+bounding it directly is expensive — measured, the exact box bound completes a
+single connective in ≈0.1 s but does not finish even a depth-2 composition
+(`(a && b) || c`) within 30 s, because the critical-point box search blows up the
+moment degree and arity climb past one connective. We do not need to: each
+connective is proven to
 map [−1, +1]ᵏ into
 [−1, +1] (its exact range *is* [−1, +1]), so any expression built solely from the
 connectives, over truth-axis inputs in [−1, +1], has range within [−1, +1] **by
