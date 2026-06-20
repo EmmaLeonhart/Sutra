@@ -1,8 +1,42 @@
 # What a type test means on a substrate where everything is a vector (Elixir `is_integer` etc.)
 
-**Date:** 2026-06-18 (queue §0.6)
-**Spec-first analysis + measurement. Outcome: build the representable subset later;
-`is_integer`/`is_float` are deferred as fundamentally unrepresentable.**
+**Date:** 2026-06-18 (queue §0.6); **tag-checkable subset BUILT 2026-06-19.**
+**Spec-first analysis + measurement. Outcome: the representable subset is now shipped for
+Elixir AND Erlang; `is_integer`/`is_float` remain deferred as fundamentally unrepresentable.**
+
+## RESOLUTION (2026-06-19) — tag-checkable subset shipped
+
+The build recipe below was executed. Runtime predicates `is_string_truth` / `is_axon_truth` /
+`is_number_truth` are in `codegen_pytorch.py` (+ `codegen.py` parity) and registered in
+`codegen_base.BUILTINS`. Elixir lowers `is_binary`/`is_bitstring`→`is_string_truth`,
+`is_list`/`is_map`/`is_tuple`→`is_axon_truth`, `is_number`→`is_number_truth`
+(`_TYPE_TEST_LOWER` in `sutra-from-elixir/.../lower.py`); Erlang mirrors it but EXCLUDES
+`is_binary` (Erlang strings are charlists, not binaries — mapping it to the String flag would
+diverge from Erlang semantics). Fixtures `type_test_guard` RUN == 123 on the substrate for both
+frontends (`kind(5)*100 + kind({7,8})*10 + kind(string)`).
+
+**Two things the build surfaced that the original analysis missed:**
+
+1. **`axon_add` did not set `AXIS_AXON_POPULATED`** (spec axon-io.md says producers should). It
+   does now — a one-hot mask after the permute-accumulate, autograd-safe; axon readback fixtures
+   (map/tuple/struct, all == 13) unaffected.
+2. **The string codepoint block (`_str_axes`) REUSES axes [5,6,7]** (promise + axon-populated
+   flags) for codepoints 3..5, so a multi-char string writes a codepoint into
+   `AXIS_AXON_POPULATED[7]`. Reading `aflag` alone misclassifies `"hello"` as an axon. Fix: the
+   axon/number predicates gate on the clean `AXIS_STRING_FLAG` (`ind = aflag*(1-sflag)` /
+   `(1-sflag)*(1-aflag)`), which never aliases. Pinned by the Erlang fixture using a multi-char
+   string in the catch-all and by `tests/test_type_test_gap.py`.
+
+**Signal-separation gap table** (`gap = min(positive) − max(negative)` on AXIS_TRUTH, the
+CLAUDE.md rule-3 requirement; `tests/test_type_test_gap.py`):
+
+| predicate | positive class | gap |
+|---|---|---|
+| `is_string_truth` | String | **2.0** |
+| `is_axon_truth` | populated axon | **2.0** |
+| `is_number_truth` | number | **2.0** |
+
+Clean ±1 scatter ⇒ exact 2.0 separation, robust to string length.
 
 ## The question
 

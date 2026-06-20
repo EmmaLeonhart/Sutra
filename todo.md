@@ -413,23 +413,25 @@ emission → fixtures that compile end-to-end. Priority order
 "Oak Hamel" — ignore it; the authoritative order is the six above,
 OCaml first.)
 
-### Deferred from the frontend work — substrate type tests (queue §0.6, 2026-06-18)
+### Substrate type tests (queue §0.6) — tag-checkable subset DONE 2026-06-19
 
-Elixir/Erlang type-test guards (`is_integer`, `is_binary`, …). Measured + spec'd in
-`planning/findings/2026-06-18-substrate-type-tests.md`. Two buckets:
+Elixir/Erlang type-test guards. Measured + spec'd in
+`planning/findings/2026-06-18-substrate-type-tests.md` (RESOLVED). The tag-checkable subset is
+SHIPPED for both frontends: `is_string_truth`/`is_axon_truth`/`is_number_truth` runtime
+predicates + `BUILTINS` + guard lowering (`is_binary`/`is_bitstring`→string, `is_list`/`is_map`/
+`is_tuple`→axon, `is_number`→number); fixtures `type_test_guard` RUN == 123; gap table 2.0/2.0/2.0.
+
+Still open:
 
 - **`is_integer` / `is_float` — DEFERRED, substrate-fundamental.** Int `N` and float `N` are
   the **bit-identical** real-axis vector (measured `||make_real(2) − make_real(2.0)|| = 0`),
   so no axis check can separate them. Representing them needs a new int/float tag in Sutra's
   **core** number encoding — a language-level design decision (ask Emma), not a frontend fix.
-  Do NOT fake `is_integer` as `is_number` (it would wrongly pass `is_integer(2.5)`). The
-  Elixir frontend now emits an honest `UNSUPPORTED-GUARD` marker for these (shipped 2026-06-18).
-- **Tag-checkable guards — ready-to-build future work.** `is_binary`/`is_bitstring`
-  (`AXIS_STRING_FLAG`), `is_list`/`is_map`/`is_tuple` (`AXIS_AXON_POPULATED`), `is_number`
-  (neither), `is_boolean` (`AXIS_TRUTH`). Build recipe in the findings doc: add substrate-pure
-  truth-returning predicates (`is_string_truth`/`is_axon_truth`/`is_number_truth`), then lower
-  the guards to them. Prerequisite for `is_binary`: Elixir string-literal-arg lowering (itself
-  currently `UNSUPPORTED-EXPR: string`).
+  Do NOT fake `is_integer` as `is_number` (it would wrongly pass `is_integer(2.5)`). Both
+  frontends emit an `UNSUPPORTED-GUARD` marker for these.
+- **`is_atom` / `is_boolean` — not yet built.** `is_atom` (atoms → string-flag codepoint arrays;
+  boolean-as-atom boundary subtle), `is_boolean` (`AXIS_TRUTH`-only). Lower-value; build if a
+  fixture needs them.
 
 ### Phase 2 — Rust
 

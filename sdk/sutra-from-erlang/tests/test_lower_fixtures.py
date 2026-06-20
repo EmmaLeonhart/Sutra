@@ -54,6 +54,7 @@ _RUNNABLE = {
     "guarded_multibase": 9114.0,  # f(0,Acc)->Acc; f(1,Acc)->Acc+100; f(N,Acc) when N>50 -> Acc+9000; f(N,Acc)->f(N-1,Acc+N); f(5,0)+f(60,0)=114+9000  (MIXED literal + `when`-guard >2-clause multibase tail recursion: continue = (N!=0)&&(N!=1)&&(N<=50) compound halt with guard term, post-loop = source-order blend keyed by (N==K)/guard)
     "string_case": 60.0,  # classify(S) -> case S of "foo"->10; "bar"->20; _->30 end; classify("foo")+("bar")+("baz") = 60  (Erlang string literal + case string pattern -> eq_synthetic)
     "string_concat": 100.0,  # cat(A,B) -> A ++ B; classify(S) -> case S of "foobar"->100; _->200; classify(cat("foo","bar"))  (`++` over charlists -> substrate string concat; `++`-operand params inferred String)
+    "type_test_guard": 123.0,  # kind(X) when is_number(X)->1; when is_tuple(X)->2; kind(_X)->3; main = kind(5)*100 + kind({7,8})*10 + kind("hello") = 123  (is_number->is_number_truth [neither flag], is_tuple->is_axon_truth [AXIS_AXON_POPULATED set by axon_add], MULTI-CHAR string "hello" falls to catch-all: its codepoints alias axis [7] so the predicates gate on the clean AXIS_STRING_FLAG. is_binary excluded: Erlang strings are charlists, not binaries)
 }
 
 

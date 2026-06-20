@@ -1076,7 +1076,18 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit("rotated = self.bind(key_vec, value)")
         self._emit("perm = self._axon_permutation_for(key_vec)")
-        self._emit("return axon + self._axon_permute_synthetic(rotated, perm)")
+        self._emit("result = axon + self._axon_permute_synthetic(rotated, perm)")
+        self._emit("# Mark the axon as populated (planning/sutra-spec/axon-io.md")
+        self._emit("# §'The all-zeros edge case'): a producer that has bound a")
+        self._emit("# key sets AXIS_AXON_POPULATED so a consumer distinguishes an")
+        self._emit("# axon from a bare number/string. This is the flag the substrate")
+        self._emit("# type-tests (is_axon_truth / is_number_truth) read. The reserved")
+        self._emit("# flag axis [7] carries ~no bound data (measured), so overwrite it")
+        self._emit("# to exactly 1.0 via a mask (autograd-safe; offset 7 becomes a")
+        self._emit("# constant flag, gradients still flow through every other dim).")
+        self._emit("_pop = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("_pop[self.semantic_dim + self.AXIS_AXON_POPULATED] = 1.0")
+        self._emit("return result * (1.0 - _pop) + _pop")
         self._indent -= 1
         self._emit()
         self._emit("def axon_project(self, axon, requested_keys):")
@@ -2361,6 +2372,58 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit('"""True iff v has the AXIS_STRING_FLAG set."""')
         self._emit("return bool(v[self.semantic_dim + self.AXIS_STRING_FLAG].item() >= 0.5)")
+        self._indent -= 1
+        self._emit()
+        # Substrate-pure tag type-tests (Elixir/Erlang is_binary/is_list/is_number
+        # guards; planning/findings/2026-06-18-substrate-type-tests.md). Each reads a
+        # tag axis flag and scatters `2*ind - 1` onto AXIS_TRUTH (a tensor op, NO host
+        # readout, unlike `is_string` which collapses to a host bool for dispatch), so
+        # the result is a fuzzy truth value that composes in the `defuzzy` guard blend.
+        # IMPORTANT — the AXIS_STRING_FLAG is the clean discriminator: the string
+        # codepoint block (`_str_axes`) REUSES the promise/axon flag axes [5,6,7] for
+        # codepoints 3..5, so a multi-char string writes a codepoint into
+        # AXIS_AXON_POPULATED[7]. Reading aflag alone would misclassify "hello" as an
+        # axon. So the axon / number indicators gate on `(1 - sflag)` (sflag is exactly
+        # 0/1 and never reused), which forces a String to -1 regardless of what its
+        # codepoints left at [7]. Numeric axon vs number then separates cleanly on the
+        # axon_add-set AXIS_AXON_POPULATED. (Axons holding String values can still leak
+        # sflag/codepoint crosstalk — a deeper limit, not exercised by current fixtures.)
+        self._emit("def is_string_truth(self, v):")
+        self._indent += 1
+        self._emit('"""Type-test as a fuzzy truth: +1 on AXIS_TRUTH if v carries the')
+        self._emit('AXIS_STRING_FLAG (a String), else -1. Substrate-pure scatter."""')
+        self._emit("vt = self._as_any_vector(v)")
+        self._emit("out = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = "
+                   "2.0 * vt[self.semantic_dim + self.AXIS_STRING_FLAG] - 1.0")
+        self._emit("return out")
+        self._indent -= 1
+        self._emit()
+        self._emit("def is_axon_truth(self, v):")
+        self._indent += 1
+        self._emit('"""+1 on AXIS_TRUTH if v is a populated axon (list/map/tuple/struct,')
+        self._emit('AXIS_AXON_POPULATED set AND not a String), else -1. The (1 - sflag)')
+        self._emit('factor excludes Strings whose codepoints alias axis [7]."""')
+        self._emit("vt = self._as_any_vector(v)")
+        self._emit("sflag = vt[self.semantic_dim + self.AXIS_STRING_FLAG]")
+        self._emit("aflag = vt[self.semantic_dim + self.AXIS_AXON_POPULATED]")
+        self._emit("ind = aflag * (1.0 - sflag)")
+        self._emit("out = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = 2.0 * ind - 1.0")
+        self._emit("return out")
+        self._indent -= 1
+        self._emit()
+        self._emit("def is_number_truth(self, v):")
+        self._indent += 1
+        self._emit('"""+1 on AXIS_TRUTH if v is a number (neither a String nor an axon),')
+        self._emit('else -1: (1 - sflag) * (1 - aflag). Substrate-pure scatter."""')
+        self._emit("vt = self._as_any_vector(v)")
+        self._emit("sflag = vt[self.semantic_dim + self.AXIS_STRING_FLAG]")
+        self._emit("aflag = vt[self.semantic_dim + self.AXIS_AXON_POPULATED]")
+        self._emit("ind = (1.0 - sflag) * (1.0 - aflag)")
+        self._emit("out = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = 2.0 * ind - 1.0")
+        self._emit("return out")
         self._indent -= 1
         self._emit()
         self._emit("def string_length(self, v):")
