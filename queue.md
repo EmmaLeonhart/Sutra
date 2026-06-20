@@ -63,11 +63,16 @@ axon programs) depend on. Steps:
       unchanged. Tests: independent-services concurrent dispatch + the simultaneous-semantics flow; full
       Yantra kernel suite 73 pass.
 
-   **Multi-process runtime leg: core DONE** (tick_all primitive + Yantra concurrent integration). Next
-   concrete sub-steps if continued: (i) measure actual GPU overlap/throughput of `tick_all` vs
-   sequential on a real multi-program round (a timing finding); (ii) per-process GPU-arena isolation
-   (the `MultiProcessRuntime` "What this is NOT" — needs CUDA stream/IPC work). Both are follow-ons;
-   pull + decompose when picked up.
+   **Multi-process runtime leg: core DONE** (tick_all primitive + Yantra concurrent integration).
+   d. **DONE 2026-06-20 — measured the throughput (finding `2026-06-20-tick-all-no-speedup-python-
+      bound.md`).** NEGATIVE result: `tick_all` is 0.95x vs sequential at N=8 — NO speedup, because a
+      program's per-tick cost is 98% GIL-bound Python orchestration and only 2% GPU kernel time, and
+      streams overlap only the kernels. Corrected the docstrings; committed `experiments/bench_tick_all.py`.
+      Consequence: real multi-process throughput is GATED on shrinking per-tick Python (the compile-time
+      FUSION PASS that collapses a program's per-tick graph to one fused op), not on more dispatch
+      plumbing. That fusion work is the real lever — a bigger leg, not yet decomposed.
+   Remaining follow-on: (ii) per-process GPU-arena isolation (the `MultiProcessRuntime` "What this is
+   NOT" — CUDA stream/IPC work). Lower priority than the fusion lever above.
 
 ---
 

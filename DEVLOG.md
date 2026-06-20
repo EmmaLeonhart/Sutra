@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-20: MEASURED — tick_all delivers no speedup today (98% GIL-bound, not GPU-bound)
+
+Benchmarked the `tick_all` concurrent-dispatch primitive (the integrity follow-on: measure the
+parallelism claim). Negative result: at N=8, dim=868, `tick_all` is 0.95x vs sequential `tick` — no
+speedup. Split: the per-round cost is 98% GIL-bound Python orchestration (building/launching each
+program's tensor-op graph: embed-cache lookups, _rotation_for, bind, _axon_permutation_for, the
+permuted add) and only 2% GPU kernel time. CUDA streams overlap only the kernels, so they cannot help
+the serialized Python. `tick_all` is still correct and the right ABI/dispatch shape (Yantra's
+tick_concurrent consumes it); real throughput needs the per-tick Python to shrink (the compile-time
+fusion pass collapsing each program's graph to one fused op) or genuine parallel orchestration —
+which one Python process + CUDA streams cannot provide. Corrected the multi_process.py docstrings (the
+"CUDA-stream-level parallelism" framing) to cite the measured 0.95x, wrote the finding
+(planning/findings/2026-06-20-tick-all-no-speedup-python-bound.md), and committed a reproducible
+benchmark (experiments/bench_tick_all.py).
+
 ## 2026-06-20: Yantra kernel — `Init.tick_concurrent()` (concurrent GPU tick via tick_all)
 
 Second step of the Multi-process Sutra runtime leg: wired Yantra's kernel to the `tick_all` primitive.
