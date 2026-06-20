@@ -33,18 +33,30 @@ multibase, F# no-parens app-as-infix-operand, Haskell >2-guard non-tail multibas
 `case` in expr position, Rust variant-inner-`match` + nested `if let` (shared int-local limit fully
 closed across Haskell+Rust).
 
-## Surfaced for Emma's decision (2026-06-19)
+## Active edge case (ONE at a time — Emma: add things to the queue one by one)
 
-A parity check turned up a REAL, undocumented gap: **multibase NON-tail recursion is UNSUPPORTED in
-OCaml, Scala, F#, and Rust** (the doc only listed it open for Elixir/Erlang/Haskell, which are now
-fixed). The proven fold recipe ports, but these four write multibase as a nested `if/else if/else`
-(needs else-if flattening) + multi-arg carry — a >few-cycles × 4-frontend feature, beyond the
-edge-case doc's policy and beyond what this (deprioritized) session was scoped for. Finding:
-`planning/findings/2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md`. **Awaiting Emma's
-call** (take it on now / defer to todo.md / leave on the WASM fallback).
+### Scala — multibase NON-tail recursion (nested if/else-if)
 
-Next: pick up a genuine new construct only if one surfaces (a real consumer, a new frontend feature),
-or hand back. Do NOT manufacture vague breadth tasks.
+Port the multibase non-tail fold (OCaml DONE; recipe in finding
+`2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md` and DEVLOG 2026-06-19). Scala writes
+multibase as `if (c0) b0 else if (c1) b1 else step`.
+
+Transform: flatten the nested-if chain into bases `[(cond_i, base_i), …]` + the recursive step
+`LEAF <OP> f(REC…)`; emit a `while_loop` carrying every recursion arg + a synthetic `_acc` seeded to
+the OP identity; fold the leaf each step; post-combine `_acc OP base_blend(final state)`. Add fixture
+`multiarg_nontail_multibase` (`f(3, 10) = 115`), substrate-verify RUN == 115, run the suite, commit+push.
+
+Then (pull in one at a time as each lands): F#, Rust (same recipe).
+
+---
+
+## Backlog (do AFTER the multibase work — Emma 2026-06-19)
+
+- **Host the web-page-optimization sample at `https://sutra.topazcomputing.com/example`.** Emma wants
+  the web-page optimization thing hosted as a sample page on the Sutra site (`/example`). Site is the
+  static multi-page build (`scripts/build_site.py` over `docs/`); figure out the source of the
+  "web-page optimization" demo and wire a page for it. Pull into the active queue only after the
+  multibase frontends are done.
 
 ---
 
