@@ -512,6 +512,9 @@ def _try_lower_tail_recursive(name: str, params, ret: str, body, src: bytes):
 
 # Associative + commutative combine ops for the non-tail fold transform.
 _FOLD_OPS = {"+", "*"}
+# Identity element for seeding a non-tail fold accumulator (the multibase fold
+# post-combines `_acc OP base_blend` instead of pre-seeding BASE).
+_FOLD_IDENTITY = {"+": "0", "*": "1"}
 
 
 def _contains_identifier(node, ident: str, src: bytes) -> bool:
@@ -596,6 +599,127 @@ def _try_lower_foldable_nontail(name: str, params, ret: str, body, src: bytes):
         f"    slot {pty} _acc_r = _acc;\n"
         f"    loop {loop_name}({cont}, _{pname}_r, _acc_r);\n"
         f"    return _acc_r;\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
+def _try_lower_multibase_nontail(name: str, params, ret: str, body, src: bytes):
+    """Multibase NON-tail recursion as a nested if/else-if chain, e.g.
+    `fn f(a, b) { if a==0 { b } else if a==1 { b+100 } else { a + f(a-1, b) } }` (any
+    arity, >=2 bases). Flatten into bases + the recursive fold STEP (the final `else`
+    block tail), then emit the multi-arg CPS fold: a `while_loop` carrying every recursion
+    arg + a synthetic `_acc` seeded to the OP identity, folding the leaf each step,
+    post-combining `_acc OP base_blend(final state)` (the base the recursion bottoms out at
+    is the seed). OP must be associative+commutative (`+`/`*`). The single-base case is
+    `_try_lower_foldable_nontail`. Returns the emitted Sutra or None."""
+    if body.type != "if_expression" or not params:
+        return None
+    arity = len(params)
+    chain: list = []  # (cond_or_None, value_node) — value is each block's tail
+    node = body
+    while True:
+        if node.type != "if_expression":
+            return None
+        kids = node.named_children
+        if len(kids) < 2:
+            return None
+        cond, then_blk = kids[0], kids[1]
+        else_clause = next((c for c in kids if c.type == "else_clause"), None)
+        if else_clause is None or not else_clause.named_children:
+            return None
+        then_lets, then_tail = _block_value(then_blk, src)
+        if then_lets or then_tail is None:
+            return None
+        chain.append((cond, then_tail))
+        else_child = else_clause.named_children[0]
+        if else_child.type == "if_expression":
+            node = else_child
+            continue
+        if else_child.type == "block":
+            else_lets, else_tail = _block_value(else_child, src)
+            if else_lets or else_tail is None:
+                return None
+            chain.append((None, else_tail))
+            break
+        return None
+    if len(chain) < 3:
+        return None  # <2 bases → the single-if foldable path handles it
+    if chain[-1][0] is not None or not _contains_self_call(chain[-1][1], name, src):
+        return None
+    bases = chain[:-1]
+    if any(_contains_self_call(v, name, src) for _c, v in bases):
+        return None
+
+    # STEP = LEAF OP f(REC…): exactly one operand is the arity-N self-call.
+    step = chain[-1][1]
+    if step.type != "binary_expression":
+        return None
+    op = step.child_by_field_name("operator")
+    left = step.child_by_field_name("left")
+    right = step.child_by_field_name("right")
+    if op is None or left is None or right is None:
+        return None
+    op_text = _text(op, src)
+    if op_text not in _FOLD_OPS:
+        return None
+    lc = _self_call_args(left, name, arity, src)
+    rc = _self_call_args(right, name, arity, src)
+    if (lc is None) == (rc is None):
+        return None
+    leaf, rec_args = (right, lc) if lc is not None else (left, rc)
+
+    # continue = loop while NO base condition holds (`&&` of negated base conds).
+    neg_terms: list = []
+    for cond, _v in bases:
+        neg = _negate_cond(cond, src)
+        if "UNSUPPORTED" in neg:
+            return None
+        neg_terms.append(f"({neg})")
+    cont = " && ".join(neg_terms)
+    # Post-loop base blend keyed by each base cond on the FINAL state (last base = bare else).
+    rendered: list = []
+    for cond, v in bases:
+        csrc = _lower_expr(cond, src)
+        vsrc = _lower_expr(v, src)
+        if "UNSUPPORTED" in csrc or "UNSUPPORTED" in vsrc:
+            return None
+        rendered.append((csrc, vsrc))
+    base_src = rendered[-1][1]
+    for csrc, vsrc in reversed(rendered[:-1]):
+        base_src = _blend(csrc, vsrc, base_src)
+
+    sutra_op = _OP_MAP.get(op_text, op_text)
+    identity = _FOLD_IDENTITY[op_text]
+    leaf_src = _lower_expr(leaf, src)
+    rec_srcs = [_lower_expr(a, src) for a in rec_args]
+    if "UNSUPPORTED" in leaf_src or any("UNSUPPORTED" in s for s in rec_srcs):
+        return None
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in params)
+    temp_decls = "".join(f"    {ty} _t{i} = {rec_srcs[i]};\n"
+                         for i, (_nm, ty) in enumerate(params))
+    assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(params))
+    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in params)
+    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in params)
+    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in params)
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
+    loop_decl = (
+        f"while_loop {loop_name}({cont}, {state_decls}, {ret} _acc = 0) {{\n"
+        f"{temp_decls}"
+        f"    {ret} _t_acc = _acc {sutra_op} {leaf_src};\n"
+        f"{assigns}"
+        f"    _acc = _t_acc;\n"
+        f"}}\n"
+    )
+    fn = (
+        f"function {ret} {name}({params_src}) {{\n"
+        f"    {ret} _acc = {identity};\n"
+        f"{slot_lines}"
+        f"    slot {ret} _acc_r = _acc;\n"
+        f"    loop {loop_name}({cont}, {slot_args}, _acc_r);\n"
+        f"{writeback}"
+        f"    return _acc_r {sutra_op} {base_src};\n"
         f"}}\n"
     )
     return loop_decl + fn
@@ -1107,6 +1231,9 @@ def _lower_function(item, src: bytes) -> str:
         fold = _try_lower_foldable_nontail(name, params, ret, tail, src)
         if fold is not None:
             return fold
+        mb = _try_lower_multibase_nontail(name, params, ret, tail, src)
+        if mb is not None:
+            return mb
     imperative = _try_lower_imperative(name, params, ret, block, src)
     if imperative is not None:
         return imperative

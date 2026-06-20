@@ -1,7 +1,8 @@
 # Multibase non-tail recursion: undocumented gap in OCaml / Scala / F# / Rust (2026-06-19)
 
-**Status:** found + measured, NOT yet fixed. A newly-discovered gap, NOT one of the items listed in
-`planning/wasm-fallback-edge-cases.md`. Surfaced to Emma for a scope decision.
+**Status:** RESOLVED 2026-06-20. Found by a parity check, surfaced to Emma, who chose to port the
+fold recipe to all four frontends — done one at a time (OCaml → Scala → F# → Rust), each with a
+`multiarg_nontail_multibase` fixture RUN == 115 on the substrate. See DEVLOG 2026-06-19/20.
 **Branch:** `wasm-fallback-edge-cases-native`.
 
 ## How it was found

@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-20: Rust multibase NON-tail recursion (nested if/else-if) lowers natively — all 4 done
+
+Branch `wasm-fallback-edge-cases-native`, last of the four multibase-non-tail ports (OCaml, Scala, F#,
+Rust). Rust's `else if` is an `else_clause` whose child is another `if_expression`; the final `else`
+is an `else_clause` → `block`. `_try_lower_multibase_nontail` walks the chain, taking each block's tail
+via `_block_value` as a base value, and the final else block's tail as the recursive fold STEP (a clean
+`binary_expression`, no F#-style quirk). Emits the multi-arg CPS fold (carry every rec arg + `_acc` at
+OP identity, post-combine `_acc OP base_blend(final state)`); added `_FOLD_IDENTITY`.
+
+Fixture `multiarg_nontail_multibase` (`fn f(a,b) { if a==0 {b} else if a==1 {b+100} else {a+f(a-1,b)} };
+f(3,10)`) RUN == 115.0 on the substrate == ground truth. Rust suite passed, no regressions.
+
+**All four frontends done** → finding `2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md`
+RESOLVED. Multibase non-tail recursion now lowers natively across all eight non-trivial frontends
+(Elixir/Erlang/Haskell earlier this session + OCaml/Scala/F#/Rust now).
+
 ## 2026-06-19: F# multibase NON-tail recursion (if/elif) lowers natively
 
 Branch `wasm-fallback-edge-cases-native`, third of the four multibase-non-tail ports (after OCaml,
