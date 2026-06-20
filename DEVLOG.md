@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-20: §1C throughput VALIDATED — genuine multi-process gives up to 3.21× (the lever tick_all couldn't pull)
+
+Step 2a (the payoff). Benchmarked `ProcessPoolRuntime` throughput vs single-process sequential
+(`experiments/bench_process_pool.py`): CPU both paths (the GIL testbed), 1 torch thread per process (so the
+parallelism is purely across processes, not nested intra-op threads), compute-heavy program (K=16
+`axon_item` reads/tick), N=8 programs, steady-state. Result: sequential ~113 ms/round vs pool **1.54×
+(W=2) / 2.47× (W=4) / 3.21× (W=8)** — a real, monotonic throughput win. This is the EXACT OPPOSITE of
+in-process `tick_all` (0.4–0.95×, slower): the tick_all finding said real throughput needs genuine
+parallelism (separate OS processes / GIL release), and here it is, measured. Sub-linear scaling is the
+expected cost of process isolation (per-tick pickle+queue IPC, serial gather, physical-core cap), not a
+defect; a larger per-tick workload pushes the ratio toward W×. Spawn+compile ~6.6 s one-time (break-even
+~99 rounds — startup, not per-round). The win does not cost determinism: the correctness gate already pins
+bit-identical cross-process output. Added `threads_per_worker` to `ProcessPoolRuntime` (pin intra-op
+threads so W CPU workers don't oversubscribe). Finding:
+`planning/findings/2026-06-20-genuine-multiprocess-throughput.md`. Remaining §1C steps (3 per-process CUDA
+isolation, 4 CUDA-IPC codebook sharing) are CI/Linux-gated.
+
 ## 2026-06-20: §1C genuine multi-process runtime — ProcessPoolRuntime + cross-process correctness gate
 
 Emma chose (over in-process GPU memory pools) the genuine multi-process runtime — separate OS processes,
