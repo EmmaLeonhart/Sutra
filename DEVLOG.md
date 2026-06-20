@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-20: MEASURED the fusion end-to-end — sequential ~3x faster; tick_all sharpened to ~0.4–0.6x
+
+Closed the loop on the fusion pass by measuring its effect (integrity rule: measure a perf claim, don't
+assert it). Re-ran `bench_tick_all.py 8 768` with the `axon_build` peephole active (confirmed the bench
+program now compiles to one batched `axon_build`). Two honest results: (1) **the fusion WON on the
+sequential path** — the 8-program round went 347.6 ms (original) → 8.4 ms (after the `_role_hash` 66x +
+key-memo) → ~2.7 ms (after M_key fusion + peephole), i.e. ~3x on top of key-memo and ~129x across the
+whole chain. (2) **`tick_all` got MORE net-negative, 0.95x → ~0.4–0.6x** — counter-intuitive but coherent:
+its cost is ~fixed CUDA-stream machinery (8 stream creates + 1 synchronize), which shrinking the work
+doesn't touch, so the fixed overhead (~4–7 ms) now dwarfs the ~2.7 ms of real work. Sharpened conclusion:
+CUDA streams are the wrong concurrency mechanism for this GIL-bound workload at any per-program work size,
+and making the work smaller only widens the gap; real multi-process throughput needs genuine parallelism
+(separate processes / GIL release). The fusion pass was the right lever for the *sequential* cost and is
+now essentially exhausted (per-tick work ≈ 1 op). Recorded in the finding; no code change.
+
 ## 2026-06-20: FUSION PASS — bounded cap on the d×d role-keyed caches (§1A complete)
 
 Closed the last §1A follow-on: the d×d role-keyed caches (`_rot_cache` holding Haar rotations, and the
