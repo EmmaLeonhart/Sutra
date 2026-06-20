@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-20: Queue reorganized + owned; object encapsulation found already complete, now runtime-guarded
+
+Per Emma's directive to own + run the queue autonomously (no questions), reorganized `queue.md` into a
+clean ordered execution list (stripped the completed §1/§1A/§1B/§1C history to a DEVLOG pointer; ACTIVE =
+A) object encapsulation, B) first-class functions, C) measurement gates; PARKED the Linux/CUDA-gated and
+sibling-owned work). Then barreled into A — and found, by RUNNING it, that the whole object-encapsulation
+feature is already shipped: `field` declarations (axon-backed immutable, `new C(args)` → `axon_add` per
+field, `g.field` → `axon_item`), `this.field` in methods, instance-method dispatch (`g.method()`), and
+non-static loops threading `this` ALL work end-to-end and decode exactly (Cat age=5/weight=10; Greeter
+`this.base`×2 = 14; Accum `this.step`×3 = 12; two instances independent). The real gap was ZERO end-to-end
+runtime test guarding any of it — so it could silently regress. Added `tests/test_class_fields_runtime.py`
+(4 tests, RUN + decode vs ground truth). Marked the todo encapsulation section done; deprioritised the
+stdlib class-as-namespace migration (its functions are called by bare name from operator lowering — a
+high-blast-radius change for cosmetic gain). Encapsulation item retired from the queue; first-class
+functions promoted to top.
+
 ## 2026-06-20: Dimension-audit sweep — the build-time version of the "codebook unused, large dim is pure cost" check
 
 Self-directed (Emma's feedback: stop over-asking, pick the work myself). Promoted the per-program

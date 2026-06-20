@@ -895,24 +895,27 @@ for the full taxonomy.
 
 Remaining work:
 
-- [ ] **Migrate the four remaining stdlib files** to class-as-namespace
-  shape: `logic.su`, `similarity.su`, `vectors.su`, `rotation.su`.
-  Their bodies use the `loop (10)` form which still works but
-  needs a careful check that the inliner still expands them
-  correctly inside class bodies (it does, per the 2026-05-01
-  inliner extension).
-- [ ] **Field declarations inside class bodies** (`field x : int;`).
-  Without fields there's no per-class state for non-static methods
-  to encapsulate, and step 5 (class-level slots) has no referent.
-- [ ] **Non-static object loops with `this` threading.** Today
-  class loops are effectively static — the cell function takes
-  only the declared state params. Per Emma's design, non-static
-  loops should pass `this` through each iteration so the loop
-  walks the same instance. Implementation: insert `this` as an
-  implicit additional state parameter on non-static class loops.
-- [ ] **Instance-syntax dispatch on typed variables** (`g.method(args)`
-  for `Greeter g`). Needs variable type tracking through the
-  codegen.
+- [x] **Field declarations inside class bodies** (`field x : int;`) — ✅ WORKS
+  (verified end-to-end 2026-06-20). Immutable axon-backed fields: `new C(args)`
+  lowers to `axon_add` per field, `g.field` to `axon_item(g, "field")`. Construct
+  + read decodes exactly (Cat age=5, weight=10). Runtime-guarded:
+  `tests/test_class_fields_runtime.py`.
+- [x] **Non-static object loops with `this` threading** — ✅ WORKS (verified):
+  a non-static method's `loop` reads `this.field` across iterations correctly
+  (Accum `this.step`×3 = 12.0). Test in the same file.
+- [x] **Instance-syntax dispatch on typed variables** (`g.method(args)` for
+  `Greeter g`) — ✅ WORKS (verified): `g.doubled()` reading `this.base` decodes
+  exactly (14.0); two instances are independent. Test in the same file.
+- [ ] **Migrate the four remaining stdlib files** to class-as-namespace shape
+  (`logic.su`, `similarity.su`, `vectors.su`, `rotation.su`) — DEPRIORITISED
+  2026-06-20: these functions are called by BARE NAME from operator lowering
+  (`&&`→`logical_and`), other stdlib, and user code; wrapping them in a class
+  changes how they're referenced — a high-blast-radius change to the operator
+  path for cosmetic consistency. Not worth the risk; leave as free functions.
+
+**Object encapsulation is functionally COMPLETE** (fields, `this.field`,
+instance dispatch, non-static `this`-threading all verified end-to-end). The only
+open item is the deprioritised cosmetic stdlib migration.
 
 ## [This year] GUI — deferred / long-horizon (core + most extensions shipped)
 
