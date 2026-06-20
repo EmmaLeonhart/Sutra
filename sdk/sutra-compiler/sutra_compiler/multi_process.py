@@ -262,6 +262,191 @@ class MultiProcessRuntime:
         return self._programs[name]
 
 
+# ---------- genuine multi-process: separate OS processes ------------
+#
+# `MultiProcessRuntime` above is ONE process, N programs (GIL-bound — the
+# tick_all finding showed no speedup). `ProcessPoolRuntime` below is the
+# GENUINE thing Emma greenlit 2026-06-20: W worker OS PROCESSES, each its own
+# GIL and (forced or natural) device context. Programs are assigned to workers;
+# each worker compiles its own programs and rebuilds its `_VSA` caches lazily —
+# correct by determinism (the §1B finding: caches are key-deterministic, not
+# state), so no cross-process cache sharing is needed for correctness. Axons
+# cross the process boundary CPU-serialised (a CPU torch tensor pickles cleanly;
+# CUDA tensors would need CUDA IPC, unsupported on Windows). See
+# planning/sutra-spec/multi-process-runtime.md.
+
+
+def _pool_worker_main(worker_specs, in_q, out_q, ready_q,
+                      llm_model, runtime_dim, force_cpu):
+    """Top-level (spawn-picklable) worker entry. Compiles its assigned
+    programs, signals ready, then serves ticks off `in_q` until a `None`
+    sentinel. Inputs/outputs cross as CPU tensors."""
+    import os
+    if force_cpu:
+        # Must be set BEFORE the compiled module resolves _DEVICE (its own
+        # fresh torch import in this spawned process) — forces CPU.
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+    progs = {}
+    shared_vsa = None
+    for s in worker_specs:
+        mod = _compile(s.source_path, llm_model=llm_model,
+                       runtime_dim=runtime_dim)
+        if shared_vsa is None:
+            shared_vsa = mod._VSA
+        else:
+            mod._VSA = shared_vsa  # one _VSA per worker (shared codebook)
+        if not hasattr(mod, s.entry_point):
+            ready_q.put(("error", s.name,
+                         f"no entry point {s.entry_point!r}"))
+            return
+        progs[s.name] = getattr(mod, s.entry_point)
+
+    dev = shared_vsa.device
+    ready_q.put(("ready", None, None))
+    while True:
+        item = in_q.get()
+        if item is None:
+            break
+        req_id, name, axon = item
+        out = progs[name](axon.to(dev))
+        out_q.put((req_id, name, out.detach().to("cpu")))
+
+
+class ProcessPoolRuntime:
+    """Hosts N Sutra programs across W worker OS PROCESSES — genuine
+    multi-process (separate GILs), the throughput lever the tick_all finding
+    identified. A sibling to `MultiProcessRuntime`, NOT a replacement: use this
+    when GIL-serialised orchestration is the bottleneck and programs are
+    independent.
+
+    Each program is assigned to exactly one worker (round-robin), compiled
+    there, and ticked there. `tick`/`tick_all` route by ownership and pass
+    axons as CPU tensors. Construct, use, then `close()` (or use as a context
+    manager) to join the workers.
+
+    `force_cpu=True` (default) pins every worker to CPU — the portable shape
+    that escapes the GIL without a CUDA context per process (Windows has no
+    CUDA IPC). Set False on a CUDA box to give each worker its own device
+    context (per-process GPU memory isolation — queue §1C step 3)."""
+
+    def __init__(
+        self,
+        specs: Iterable[ProgramSpec],
+        *,
+        num_workers: int = 2,
+        llm_model: str = "nomic-embed-text",
+        runtime_dim: int = 768,
+        force_cpu: bool = True,
+    ) -> None:
+        import multiprocessing as _mp
+
+        specs = list(specs)
+        if not specs:
+            raise ValueError("ProcessPoolRuntime requires at least one program")
+        seen: set[str] = set()
+        for s in specs:
+            if s.name in seen:
+                raise ValueError(f"duplicate program name in specs: {s.name!r}")
+            seen.add(s.name)
+        if num_workers < 1:
+            raise ValueError("num_workers must be >= 1")
+        num_workers = min(num_workers, len(specs))
+
+        self._ctx = _mp.get_context("spawn")  # explicit: Windows-portable
+        # Round-robin assign programs to workers.
+        assignments: list[list[ProgramSpec]] = [[] for _ in range(num_workers)]
+        self._owner: dict[str, int] = {}
+        for i, s in enumerate(specs):
+            w = i % num_workers
+            assignments[w].append(s)
+            self._owner[s.name] = w
+
+        self._out_q = self._ctx.Queue()
+        self._in_qs: list[Any] = []
+        self._workers: list[Any] = []
+        ready_q = self._ctx.Queue()
+        for w in range(num_workers):
+            in_q = self._ctx.Queue()
+            self._in_qs.append(in_q)
+            p = self._ctx.Process(
+                target=_pool_worker_main,
+                args=(assignments[w], in_q, self._out_q, ready_q,
+                      llm_model, runtime_dim, force_cpu),
+                daemon=True,
+            )
+            p.start()
+            self._workers.append(p)
+
+        # Wait for every worker to finish compiling (or report an error).
+        for _ in range(num_workers):
+            status, name, msg = ready_q.get()
+            if status == "error":
+                self.close()
+                raise RuntimeError(f"worker failed admitting {name!r}: {msg}")
+        self._req = 0
+        self._closed = False
+
+    # --- public API ---
+
+    def admitted(self) -> list[str]:
+        return sorted(self._owner)
+
+    def tick(self, name: str, input_axon: Any) -> Any:
+        """Route one tick to the owning worker; return its CPU output."""
+        return self.tick_all({name: input_axon})[name]
+
+    def tick_all(self, inputs: dict[str, Any]) -> dict[str, Any]:
+        """Dispatch each named program's tick to its owning worker IN
+        PARALLEL (separate processes, separate GILs) and gather the results.
+        Inputs/outputs are CPU tensors. Results are independent of dispatch
+        order. Routing between programs is the caller's job, as with
+        `MultiProcessRuntime.tick_all`."""
+        if self._closed:
+            raise RuntimeError("ProcessPoolRuntime is closed")
+        for name in inputs:
+            if name not in self._owner:
+                raise KeyError(f"no admitted program {name!r}; "
+                               f"admitted: {self.admitted()}")
+        pending = {}
+        for name, axon in inputs.items():
+            rid = self._req
+            self._req += 1
+            pending[rid] = name
+            self._in_qs[self._owner[name]].put((rid, name, _to_cpu(axon)))
+        outputs: dict[str, Any] = {}
+        for _ in range(len(pending)):
+            rid, name, out = self._out_q.get()
+            outputs[name] = out
+        return outputs
+
+    def close(self) -> None:
+        if getattr(self, "_closed", True):
+            return
+        for in_q in self._in_qs:
+            in_q.put(None)
+        for p in self._workers:
+            p.join(timeout=10)
+            if p.is_alive():
+                p.terminate()
+        self._closed = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+
+def _to_cpu(axon: Any) -> Any:
+    """Move an axon tensor to CPU so it pickles across the process boundary
+    (CUDA tensors would need CUDA IPC). A no-op for tensors already on CPU."""
+    to_cpu = getattr(axon, "to", None)
+    if to_cpu is not None:
+        return axon.detach().to("cpu") if hasattr(axon, "detach") else axon.to("cpu")
+    return axon
+
+
 # ---------- internals -----------------------------------------------
 
 
