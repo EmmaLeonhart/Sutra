@@ -35,6 +35,7 @@ _RUNNABLE = {
     "case_literal": 300.0,  # classify n = case n of 0->100; 1->200; _->300; classify 1 + classify 0 = 200+100  (literal-pattern case -> equality blend)
     "bool_case": 10.0,  # f b = case b of True -> 10; False -> 20; main = f True  (Bool literal case -> (b == true/false) blend; True/False values -> true/false)
     "case_nontail": 101.0,  # f n = 1 + (case n of 0 -> 100; _ -> 200); f 0 = 1 + 100  (literal case in NON-TAIL expression position -> inline nested blend)
+    "variant_case_nontail": 4.0,  # data Expr=Lit Int|Neg Int; evalE e = 1 + (case e of Lit n->n; Neg n->0-n); evalE(Lit 7)+evalE(Neg 5)=8+(-4)=4  (VARIANT case in EXPRESSION position: int _vtag/_val locals HOISTED to the equation prelude under _c{uid}_ names so the int-snap still happens; inline raw realvec reads compare wrong)
     "tuple_axon": 13.0,  # addPair :: (Int,Int) -> Int; addPair p = fst p + snd p; main = addPair (5, 8)  (tuple -> positional-key axon, fst/snd -> _0/_1)
     "tuple_destructure": 13.0,  # addPair t = let (a, b) = t in a + b; main = addPair (5, 8)  (let-tuple-pattern -> realvec(item _0/_1))
     "nested_tuple_let": (16.0, 256),  # f t = let (a, (b, c)) = t in a+b+c; main = f (5, (8, 3))  (NESTED let-tuple pattern -> Axon temp for the _1 prefix; dim>=256, finding 2026-06-17)
