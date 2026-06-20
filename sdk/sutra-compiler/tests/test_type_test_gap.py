@@ -90,3 +90,33 @@ def test_gap_table_is_exact():
     # All three are exact ±1 scatters ⇒ gap of exactly 2.0 each.
     for method, gap in table.items():
         assert abs(gap - 2.0) < 1e-6, f"{method} gap={gap} (table={table})"
+
+
+@pytest.mark.parametrize("dim", [16, 64, 256])
+def test_axon_populated_flag_does_not_corrupt_field_readback(dim):
+    """axon_add sets AXIS_AXON_POPULATED; that flag must NOT leak into field reads.
+
+    Root cause of the tuple_in_ctor regression (got 6.0, want 13.0): the axon
+    permutation used to scramble the WHOLE synthetic block, so for some keys it
+    mapped the flag axis [7] onto the real axis [0]; realvec(axon_item(...)) then
+    read the flag's ~1.0 into the recovered number (compounding through nested
+    axons). The fix keeps the reserved flag axes [4,8) as permutation fixed points.
+    This pins that a flagged 2-key axon reads its fields back EXACTLY, across the
+    small dims where the leak was largest.
+    """
+    v = _vsa(runtime_dim=dim)
+    # Pre-made distinct vector keys (no embed model needed in this unit test;
+    # axon_add skips embed() for a non-str key). Distinct role vectors → distinct
+    # rotations/permutations, the same separation the frontends get from embedded keys.
+    k0 = v.make_real(1.0)
+    k1 = v.make_complex(0.0, 1.0)
+    ax = v.axon_add(v.axon_add(v.zero_vector(), k0, 5.0), k1, 8.0)
+    # The flag is set.
+    assert float(ax[v.semantic_dim + v.AXIS_AXON_POPULATED]) == pytest.approx(1.0)
+    # Field reads are uncorrupted (realvec = dot with the real one-hot). The bug
+    # read ~6 instead of 13 for a 2-field tuple (off by several units); the fix
+    # keeps the flag off the real axis, so a loose tolerance still distinguishes them.
+    a = float(v.dot(v.axon_item(ax, k0), v.make_real(1.0)))
+    b = float(v.dot(v.axon_item(ax, k1), v.make_real(1.0)))
+    assert a == pytest.approx(5.0, abs=0.5), f"dim={dim}: key0 read {a}, want 5.0"
+    assert b == pytest.approx(8.0, abs=0.5), f"dim={dim}: key1 read {b}, want 8.0"
