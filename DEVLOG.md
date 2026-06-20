@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-19: Scala multibase NON-tail recursion (nested if/else-if) lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, second of the four multibase-non-tail ports (after OCaml).
+`_try_lower_multibase_nontail` mirrors the OCaml version on Scala's node API (`if_expression` kids =
+[paren_cond, then, else], `operator_identifier`, `call_expression` self-calls, `_peel_parens`,
+`emit_name` threading): flatten the nested if/else-if into bases + the fold STEP, emit the multi-arg
+CPS fold (carry every rec arg + `_acc` at OP identity, post-combine `_acc OP base_blend(final state)`).
+Wired after the single-base fold in the def dispatch; added `_FOLD_IDENTITY`.
+
+Fixture `multiarg_nontail_multibase` (`def f(a,b) = if (a==0) b else if (a==1) b+100 else a + f(a-1,b);
+f(3,10)`) RUN == 115.0 on the substrate == ground truth. (Body must be single-line — a multi-line body
+parses as an `indented_block` the recursion dispatch doesn't descend; same as the existing
+`nontail_fact` fixture.) Scala suite passed, no regressions. F# / Rust still pending.
+
 ## 2026-06-19: OCaml multibase NON-tail recursion (nested if/else-if) lowers natively
 
 Branch `wasm-fallback-edge-cases-native`. After the parity check found multibase non-tail recursion

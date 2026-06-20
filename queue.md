@@ -35,18 +35,19 @@ closed across Haskell+Rust).
 
 ## Active edge case (ONE at a time — Emma: add things to the queue one by one)
 
-### Scala — multibase NON-tail recursion (nested if/else-if)
+### F# — multibase NON-tail recursion (nested if/elif)
 
-Port the multibase non-tail fold (OCaml DONE; recipe in finding
-`2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md` and DEVLOG 2026-06-19). Scala writes
-multibase as `if (c0) b0 else if (c1) b1 else step`.
+Port the multibase non-tail fold (OCaml + Scala DONE; recipe in finding
+`2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md` and DEVLOG 2026-06-19). F# writes
+multibase as `if c0 then b0 elif c1 then b1 else step` (or nested `else if`).
 
-Transform: flatten the nested-if chain into bases `[(cond_i, base_i), …]` + the recursive step
-`LEAF <OP> f(REC…)`; emit a `while_loop` carrying every recursion arg + a synthetic `_acc` seeded to
+Transform: flatten the if/elif chain into bases `[(cond_i, base_i), …]` + the recursive step
+`LEAF <OP> f REC…`; emit a `while_loop` carrying every recursion arg + a synthetic `_acc` seeded to
 the OP identity; fold the leaf each step; post-combine `_acc OP base_blend(final state)`. Add fixture
-`multiarg_nontail_multibase` (`f(3, 10) = 115`), substrate-verify RUN == 115, run the suite, commit+push.
+`multiarg_nontail_multibase` (`f 3 10 = 115`), substrate-verify RUN == 115, run the suite, commit+push.
+(F# grammar DLL builds locally via build_grammar.py — already built this session.)
 
-Then (pull in one at a time as each lands): F#, Rust (same recipe).
+Then (pull in last): Rust (same recipe).
 
 ---
 
