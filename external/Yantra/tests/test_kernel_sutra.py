@@ -603,6 +603,100 @@ def test_shared_runtime_axon_passing_through_router(tmp_path: pathlib.Path) -> N
     assert counts["cons"] == 1  # received from prod's emit, processed
 
 
+def test_tick_concurrent_independent_services(tmp_path: pathlib.Path) -> None:
+    """tick_concurrent dispatches two INDEPENDENT shared-runtime services in one
+    round (per-program CUDA streams via MultiProcessRuntime.tick_all); both
+    process their pending axon. No chaining, so the result is unambiguously the
+    same as ticking each: counts of 1 apiece."""
+    from kernel import make_shared_sutra_services
+
+    a_src = tmp_path / "a.su"
+    a_src.write_text(
+        "function vector on_axon(vector input_axon) {\n"
+        "    Axon a;\n    a.add(\"k\", input_axon);\n    return a;\n}\n",
+        encoding="utf-8",
+    )
+    b_src = tmp_path / "b.su"
+    b_src.write_text(
+        "function vector on_axon(vector input_axon) {\n"
+        "    Axon b;\n    b.add(\"k\", input_axon);\n    return b;\n}\n",
+        encoding="utf-8",
+    )
+    runtime, (sa, sb) = make_shared_sutra_services([
+        {"name": "a", "source_path": a_src, "output_role": "R_a_out"},
+        {"name": "b", "source_path": b_src, "output_role": "R_b_out"},
+    ], runtime_dim=16)
+    init = Init(compute_pool=10)
+    init.admit(
+        Manifest(name="a", axon_width=AXON_WIDTH, compute_units=1,
+                 read_roles=frozenset({"R_a_in"}), write_roles=frozenset({"R_a_out"}),
+                 source=str(a_src)),
+        sa,
+    )
+    init.admit(
+        Manifest(name="b", axon_width=AXON_WIDTH, compute_units=1,
+                 read_roles=frozenset({"R_b_in"}), write_roles=frozenset({"R_b_out"}),
+                 source=str(b_src)),
+        sb,
+    )
+    dim = runtime.vsa().dim
+    init.router._inboxes["a"].append(  # noqa: SLF001
+        Axon(role="R_a_in", payload=torch.zeros(dim), from_proc="a"))
+    init.router._inboxes["b"].append(  # noqa: SLF001
+        Axon(role="R_b_in", payload=torch.zeros(dim), from_proc="b"))
+    counts = init.tick_concurrent()
+    assert counts["a"] == 1
+    assert counts["b"] == 1
+
+
+def test_tick_concurrent_simultaneous_semantics(tmp_path: pathlib.Path) -> None:
+    """tick_concurrent runs every process on the START-of-tick inbox state, so a
+    prod->cons pipeline of shared-runtime services takes TWO ticks to flow (the
+    simultaneous hardware model), where the sequential `tick()` flows it in one.
+    This pins the deliberate semantic difference."""
+    from kernel import make_shared_sutra_services
+
+    producer_src = tmp_path / "p.su"
+    producer_src.write_text(
+        "function vector on_axon(vector input_axon) {\n"
+        "    Axon a;\n    a.add(\"shared\", input_axon);\n    return a;\n}\n",
+        encoding="utf-8",
+    )
+    consumer_src = tmp_path / "c.su"
+    consumer_src.write_text(
+        "function vector on_axon(vector input_axon) {\n"
+        "    return axon_item(input_axon, \"shared\");\n}\n",
+        encoding="utf-8",
+    )
+    runtime, (prod, cons) = make_shared_sutra_services([
+        {"name": "prod", "source_path": producer_src, "output_role": "R_out"},
+        {"name": "cons", "source_path": consumer_src, "output_role": "R_done"},
+    ], runtime_dim=16)
+    init = Init(compute_pool=10)
+    init.admit(
+        Manifest(name="prod", axon_width=AXON_WIDTH, compute_units=1,
+                 read_roles=frozenset({"R_in"}), write_roles=frozenset({"R_out"}),
+                 source=str(producer_src)),
+        prod,
+    )
+    init.admit(
+        Manifest(name="cons", axon_width=AXON_WIDTH, compute_units=1,
+                 read_roles=frozenset({"R_out"}), write_roles=frozenset({"R_done"}),
+                 source=str(consumer_src)),
+        cons,
+    )
+    dim = runtime.vsa().dim
+    init.router._inboxes["prod"].append(  # noqa: SLF001
+        Axon(role="R_in", payload=torch.zeros(dim), from_proc="prod"))
+    # Tick 1: prod runs on the start-of-tick state; cons's inbox is still empty.
+    counts1 = init.tick_concurrent()
+    assert counts1["prod"] == 1
+    assert counts1["cons"] == 0  # prod's emit is NOT visible this tick
+    # Tick 2: prod's output (now in cons's inbox) is processed.
+    counts2 = init.tick_concurrent()
+    assert counts2["cons"] == 1
+
+
 def test_sutraservice_runtime_requires_program_name() -> None:
     """SutraService(runtime=...) without runtime_program_name is a clear error."""
     with pytest.raises(ValueError, match="runtime_program_name"):

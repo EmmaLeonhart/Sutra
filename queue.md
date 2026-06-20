@@ -53,17 +53,21 @@ axon programs) depend on. Steps:
       launch sequential under the GIL so the shared-`_VSA` caches don't race; CPU-sequential fallback.
    b. **DONE (`eb9fcece`).** Tests: `tick_all` == per-program `tick` (bit-identical), name-validation-
       before-launch, empty round; 13/13 `test_multi_process_runtime.py`, compiler CI green.
-   c. **NEXT — Yantra `init.tick()` concurrent refactor.** `init.tick()` (external/Yantra/kernel/
-      init.py:330) loops GPU-resident services SEQUENTIALLY (`ap.service.tick()`), though its own
-      docstring says the production model "runs every GPU-resident process simultaneously". Real
-      refactor (not a one-liner): `SutraService.tick()` bundles inbox-drain + `on_axon` + route, and
-      `tick_all` needs the SHARED-runtime services grouped (Yantra already has optional
-      MultiProcessRuntime wiring — `services.py:163`, the `_runtime` field). Plan: for the subset of
-      GPU-resident services backed by ONE shared MultiProcessRuntime, split `service.tick()` into
-      (drain inbox → input) / (run) / (route output), gather inputs across that subset, one
-      `runtime.tick_all(inputs)`, then route each output. Per-service-`_VSA` services stay on the
-      sequential path. Verify Yantra's kernel tests still pass + the concurrent round is
-      result-identical to the sequential one. (Fresh-context chunk; tick_all primitive already landed.)
+   c. **DONE 2026-06-20.** Added `Init.tick_concurrent()` (external/Yantra/kernel/init.py): an OPT-IN
+      tick that dispatches shared-`MultiProcessRuntime` GPU-resident services CONCURRENTLY via
+      `runtime.tick_all` (per-program CUDA streams), in waves over their drained inboxes; per-service-
+      `_VSA` and non-Sutra services stay sequential. SEMANTICS are deliberately the production
+      "simultaneous" model (NOT a drop-in for `tick()`): every process reads the START-of-tick inbox
+      state, so a prod→cons pipeline takes one extra tick to flow — pinned by
+      `test_tick_concurrent_simultaneous_semantics`. `tick()` (sequential intra-tick flow) is
+      unchanged. Tests: independent-services concurrent dispatch + the simultaneous-semantics flow; full
+      Yantra kernel suite 73 pass.
+
+   **Multi-process runtime leg: core DONE** (tick_all primitive + Yantra concurrent integration). Next
+   concrete sub-steps if continued: (i) measure actual GPU overlap/throughput of `tick_all` vs
+   sequential on a real multi-program round (a timing finding); (ii) per-process GPU-arena isolation
+   (the `MultiProcessRuntime` "What this is NOT" — needs CUDA stream/IPC work). Both are follow-ons;
+   pull + decompose when picked up.
 
 ---
 

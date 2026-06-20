@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-06-20: Yantra kernel — `Init.tick_concurrent()` (concurrent GPU tick via tick_all)
+
+Second step of the Multi-process Sutra runtime leg: wired Yantra's kernel to the `tick_all` primitive.
+Added `Init.tick_concurrent()` (external/Yantra/kernel/init.py) — an OPT-IN tick that dispatches the
+shared-`MultiProcessRuntime` GPU-resident services CONCURRENTLY via `runtime.tick_all` (per-program
+CUDA streams), in waves over their drained inboxes; per-service-`_VSA` Sutra services and Python
+services stay on the sequential path within the call. SEMANTICS are deliberately the production
+"every GPU-resident process runs simultaneously" model and differ from `tick()`: every process reads
+the START-of-tick inbox state (all inboxes drained up front), so a prod→cons pipeline of shared-runtime
+services takes one extra tick to flow — exactly as on real simultaneous hardware. `tick()` (sequential,
+intra-tick flow) is unchanged, so no existing behavior shifts. Tests: independent-services concurrent
+dispatch (`test_tick_concurrent_independent_services`) + the simultaneous-semantics two-tick flow
+(`test_tick_concurrent_simultaneous_semantics`); full Yantra kernel suite 73 passed, 1 xfailed. The
+multi-process leg's core (Sutra primitive + Yantra integration) is done; follow-ons (overlap/throughput
+measurement, per-process GPU-arena isolation) are queued.
+
 ## 2026-06-20: multi-process runtime — concurrent `tick_all` (run all programs on one GPU)
 
 First concrete step of the Yantra "Multi-process Sutra runtime" leg (Emma 2026-06-20 chose this
