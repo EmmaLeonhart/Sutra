@@ -22,9 +22,18 @@ are unchanged). Measured: `_role_hash` 6.37ms → 0.096ms (**66x**); the whole 8
 not just multi-process. 72 axon/bind/rotation/multi-process tests pass (byte-identical hashes).
 
 After the fix `tick_all` is 1.08x vs sequential (the concurrency finally shows a small benefit) and the
-round is 84% Python at the new, ~18x-lower absolute time — the remaining Python is now genuine
-per-op orchestration (the matmul/permute launches), where the compile-time fusion pass below is the
-next lever, but no longer an urgent hot-spot.
+round is 84% Python at the new, ~18x-lower absolute time (~3.1ms/tick).
+
+**Next hot-spot (re-profiled, NOT yet fixed — queued).** `_role_hash` is still ~68% of the (now tiny)
+tick, dominated by its `.cpu()` GPU→CPU transfer (~0.26ms × 6 calls/tick ≈ 1.5ms/tick). The hash is
+recomputed every tick because `embed`/`basis_vector` return a `.clone()` of the codebook entry (fresh
+object each call), so nothing is stable to memoize on. Eliminating it (another ~2x) needs one of: (a)
+thread the role KEY STRING through `bind`/`_rotation_for`/`_axon_permutation_for`/`_role_hash` so the
+hash memoizes by key (clean, but a multi-method signature change); or (b) make `embed` return the
+cached codebook object (no clone) so `_role_hash` can memoize by `id` — faster but risks codebook
+corruption if any caller mutates an embed result in place (today they appear read-only, but that
+contract isn't enforced). Both are careful changes, not done here. The compile-time fusion pass remains
+the deeper lever for the genuine per-op orchestration once this hash cost is gone.
 
 ---
 
