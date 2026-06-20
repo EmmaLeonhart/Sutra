@@ -1,14 +1,17 @@
 """Signal-separation gap table for the substrate tag type-tests.
 
 CLAUDE.md § "Subtler substrate breaches" rule 3: every substrate classifier ships
-with a measured `gap = min(positive_class) - max(negative_class)`. Without the table
-the claim "the substrate decides the type" is unverified. The three predicates
-(`is_string_truth`, `is_axon_truth`, `is_number_truth`, codegen_pytorch) scatter
-`2*flag - 1` onto AXIS_TRUTH over a tag axis, so a clean ±1 separation is expected;
-this test measures it on the real substrate and pins it as a regression guard.
+with a measured `gap = min(positive_class) - max(negative_class)`. The two supported
+predicates (`is_string_truth`, `is_number_truth`, codegen_pytorch) read the
+AXIS_STRING_FLAG and scatter onto AXIS_TRUTH, so a clean ±1 separation between String
+and number is expected; this test measures it on the real substrate and pins it.
 
-These are the predicates the Elixir/Erlang `when is_binary/is_list/is_number(...)`
-guards lower to (planning/findings/2026-06-18-substrate-type-tests.md).
+These are the predicates the Elixir/Erlang `when is_binary/is_number(...)` guards lower
+to (planning/findings/2026-06-18-substrate-type-tests.md). SCOPE: only the String flag
+is a clean runtime tag, so only String-vs-number is separated. `is_number_truth` is
+"NOT-a-String"; it does NOT distinguish a number from an axon (the AXIS_AXON_POPULATED
+attempt was reverted — it corrupted nested-axon reads). So this table covers String and
+number only; an axon is (intentionally) classified as a number by is_number_truth.
 """
 from __future__ import annotations
 
@@ -38,25 +41,13 @@ def _truth(v, out):
 
 
 def _samples(v):
-    """One representative value per substrate type. The axon is built with the real
-    axon_add path (which sets AXIS_AXON_POPULATED), not a hand-flagged vector."""
-    ax = v.zero_vector().clone()
-    # axon_add embeds its key; with llm_model='none' that path is unavailable, so set
-    # the populated flag directly — this is what axon_add does to the result. The
-    # type_test_guard frontend fixtures exercise the real axon_add path end-to-end.
-    ax[v.semantic_dim + v.AXIS_AXON_POPULATED] = 1.0
-    return {
-        "string": v.make_string("hello"),
-        "number": v.make_real(42.0),
-        "axon": ax,
-    }
+    return {"string": v.make_string("hello"), "number": v.make_real(42.0)}
 
 
 @pytest.mark.parametrize(
     "method,positive",
     [
         ("is_string_truth", "string"),
-        ("is_axon_truth", "axon"),
         ("is_number_truth", "number"),
     ],
 )
@@ -67,56 +58,32 @@ def test_type_test_signal_separation_gap(method, positive):
     pos_truths = [_truth(v, pred(val)) for k, val in samples.items() if k == positive]
     neg_truths = [_truth(v, pred(val)) for k, val in samples.items() if k != positive]
     gap = min(pos_truths) - max(neg_truths)
-    # Clean ±1 scatter ⇒ gap == 2.0. Require a wide, unambiguous separation.
     assert gap >= 1.9, (
         f"{method}: positive={pos_truths} negative={neg_truths} gap={gap:.4f}"
     )
 
 
 def test_gap_table_is_exact():
-    """The full measured gap table (reported, not just asserted)."""
+    """The measured gap table (reported, not just asserted): String vs number."""
     v = _vsa()
     samples = _samples(v)
     table = {}
     for method, positive in [
         ("is_string_truth", "string"),
-        ("is_axon_truth", "axon"),
         ("is_number_truth", "number"),
     ]:
         pred = getattr(v, method)
         pos = min(_truth(v, pred(val)) for k, val in samples.items() if k == positive)
         neg = max(_truth(v, pred(val)) for k, val in samples.items() if k != positive)
         table[method] = pos - neg
-    # All three are exact ±1 scatters ⇒ gap of exactly 2.0 each.
     for method, gap in table.items():
         assert abs(gap - 2.0) < 1e-6, f"{method} gap={gap} (table={table})"
 
 
-@pytest.mark.parametrize("dim", [16, 64, 256])
-def test_axon_populated_flag_does_not_corrupt_field_readback(dim):
-    """axon_add sets AXIS_AXON_POPULATED; that flag must NOT leak into field reads.
-
-    Root cause of the tuple_in_ctor regression (got 6.0, want 13.0): the axon
-    permutation used to scramble the WHOLE synthetic block, so for some keys it
-    mapped the flag axis [7] onto the real axis [0]; realvec(axon_item(...)) then
-    read the flag's ~1.0 into the recovered number (compounding through nested
-    axons). The fix keeps the reserved flag axes [4,8) as permutation fixed points.
-    This pins that a flagged 2-key axon reads its fields back EXACTLY, across the
-    small dims where the leak was largest.
-    """
-    v = _vsa(runtime_dim=dim)
-    # Pre-made distinct vector keys (no embed model needed in this unit test;
-    # axon_add skips embed() for a non-str key). Distinct role vectors → distinct
-    # rotations/permutations, the same separation the frontends get from embedded keys.
-    k0 = v.make_real(1.0)
-    k1 = v.make_complex(0.0, 1.0)
-    ax = v.axon_add(v.axon_add(v.zero_vector(), k0, 5.0), k1, 8.0)
-    # The flag is set.
-    assert float(ax[v.semantic_dim + v.AXIS_AXON_POPULATED]) == pytest.approx(1.0)
-    # Field reads are uncorrupted (realvec = dot with the real one-hot). The bug
-    # read ~6 instead of 13 for a 2-field tuple (off by several units); the fix
-    # keeps the flag off the real axis, so a loose tolerance still distinguishes them.
-    a = float(v.dot(v.axon_item(ax, k0), v.make_real(1.0)))
-    b = float(v.dot(v.axon_item(ax, k1), v.make_real(1.0)))
-    assert a == pytest.approx(5.0, abs=0.5), f"dim={dim}: key0 read {a}, want 5.0"
-    assert b == pytest.approx(8.0, abs=0.5), f"dim={dim}: key1 read {b}, want 8.0"
+def test_is_number_truth_is_not_a_string():
+    """is_number_truth is the negation of is_string_truth on the String flag: a String
+    reads -1, anything without the flag reads +1 (a number; also an axon, which it does
+    NOT distinguish — the documented scope limit)."""
+    v = _vsa()
+    assert _truth(v, v.is_number_truth(v.make_real(7.0))) == pytest.approx(1.0)
+    assert _truth(v, v.is_number_truth(v.make_string("x"))) == pytest.approx(-1.0)

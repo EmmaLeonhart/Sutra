@@ -52,7 +52,7 @@ _RUNNABLE = {
     "string_case": 60.0,  # case s do "foo"->10; "bar"->20; _->30 end; classify("foo")+("bar")+("baz") = 60  (string literal + case string pattern -> eq_synthetic)
     "string_eq": 30.0,  # classify(s) = if s == "foo" do 10 else 20; classify("foo")+classify("bar") = 10+20  (string literal + `==` -> eq_synthetic via the literal operand; one-line `do:/else:` if mis-parses, multi-line works)
     "string_concat": 100.0,  # cat(a,b) = a <> b; classify(s) = if s == "foobar" do 100 else 200; classify(cat("foo","bar"))  (`<>` -> substrate string concat; `<>`-operand params inferred String so `+` routes to concat)
-    "type_test_guard": 123.0,  # def kind(x) when is_binary(x),do: 1; when is_number(x),do: 2; def kind(_x),do: 3; main = kind("a")*100 + kind(5)*10 + kind({7,8}) = 123  (tag type-test guards: is_binary->is_string_truth [AXIS_STRING_FLAG], is_number->is_number_truth [neither flag], catch-all axon->AXIS_AXON_POPULATED set by axon_add; each guard a substrate-pure truth scatter blended in the clause dispatch)
+    "type_test_guard": 12.0,  # def kind(x) when is_binary(x),do: 1; def kind(_x),do: 2; main = kind("a")*10 + kind(5) = 12  (is_binary->is_string_truth [AXIS_STRING_FLAG]: "a"->1, 5->catch-all 2; a substrate-pure truth scatter blended in the clause dispatch. 2-way: is_list/is_map/is_tuple need an axon tag that was reverted — see the finding)
 }
 
 

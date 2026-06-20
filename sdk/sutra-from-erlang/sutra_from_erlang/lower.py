@@ -291,21 +291,18 @@ def _clause_body_prelude(clause_body, src: bytes):
 
 # Erlang type-test guards that lower natively to a substrate-pure truth-builtin
 # (codegen_base.BUILTINS; planning/findings/2026-06-18-substrate-type-tests.md).
-# Each scatters `2*flag - 1` onto AXIS_TRUTH over a tag axis, so the guard composes
-# in the `defuzzy` clause-dispatch blend. Mirrors the Elixir frontend. NOTE: Erlang
-# `is_binary` is deliberately NOT mapped — an Erlang string literal is a CHARLIST
-# (the frontend stores it as a substrate String for `++`/case, but it is not a
-# binary), so mapping is_binary→is_string_truth would diverge from Erlang semantics.
+# Scatters `2*flag - 1` onto AXIS_TRUTH over the AXIS_STRING_FLAG, so the guard
+# composes in the `defuzzy` clause-dispatch blend. SCOPE: only is_number lowers (as
+# NOT-a-String; must not be applied to an axon). is_binary is NOT mapped — an Erlang
+# string literal is a CHARLIST, so is_binary→string would diverge from Erlang
+# semantics. is_list/is_map/is_tuple need an axon tag (reverted) — see the finding.
 _TYPE_TEST_LOWER = {
-    "is_list": "is_axon_truth",
-    "is_map": "is_axon_truth",
-    "is_tuple": "is_axon_truth",
     "is_number": "is_number_truth",
 }
 
-# Erlang type-test guards that still do NOT lower. is_integer/is_float are
-# UNREPRESENTABLE (int N and float N are the bit-identical real-axis vector); the
-# rest are not-yet-built / have no substrate notion. (is_binary excluded above.)
+# Erlang type-test guards that do NOT lower. UNREPRESENTABLE: int/float share the
+# real-axis vector. NEEDS-AXON-TAG: is_list/is_map/is_tuple (the AXIS_AXON_POPULATED
+# attempt was reverted, it corrupted nested-axon reads). NOT-YET-BUILT / no notion: rest.
 _TYPE_TEST_GUARDS = {
     "is_integer": "unrepresentable: int N and float N are the bit-identical "
                   "real-axis vector on the substrate (measured).",
@@ -313,6 +310,9 @@ _TYPE_TEST_GUARDS = {
     "is_binary": "Erlang strings are charlists, not binaries; no clean substrate "
                  "binary tag separate from the String representation.",
     "is_bitstring": "no substrate bitstring tag.",
+    "is_list": "needs an axon tag; the AXIS_AXON_POPULATED attempt was reverted.",
+    "is_map": "needs an axon tag (see is_list).",
+    "is_tuple": "needs an axon tag (see is_list).",
     "is_atom": "tag-checkable (atoms lower to string-flag codepoint arrays) but "
                "not yet built; booleans-as-atoms make the boundary subtle.",
     "is_boolean": "tag-checkable (AXIS_TRUTH-only value) but not yet built.",

@@ -218,30 +218,32 @@ def _lower_pipe(left, right, src: bytes) -> str:
 
 # Elixir type-test guards that DO lower natively (measured in
 # planning/findings/2026-06-18-substrate-type-tests.md). Each maps to a
-# substrate-pure truth-returning builtin (`is_string_truth` / `is_axon_truth` /
-# `is_number_truth`, codegen_base.BUILTINS) that scatters `2*flag - 1` onto
-# AXIS_TRUTH over an existing tag axis, so the guard composes in the `defuzzy`
-# clause-dispatch blend. (`is_binary` additionally needs Elixir string-literal-arg
-# lowering, which now works.)
+# substrate-pure truth-returning builtin (`is_string_truth` / `is_number_truth`,
+# codegen_base.BUILTINS) that scatters `2*flag - 1` onto AXIS_TRUTH over the
+# AXIS_STRING_FLAG, so the guard composes in the `defuzzy` clause-dispatch blend.
+# SCOPE: only the String flag is a clean runtime tag. is_number lowers as NOT-a-String
+# (so it must not be applied to an axon argument). is_list/is_map/is_tuple do NOT lower
+# (they need an axon tag — the 2026-06-19 AXIS_AXON_POPULATED attempt was reverted, it
+# corrupted nested-axon reads; see the finding's "Negative result").
 _TYPE_TEST_LOWER = {
     "is_binary": "is_string_truth",
     "is_bitstring": "is_string_truth",
-    "is_list": "is_axon_truth",
-    "is_map": "is_axon_truth",
-    "is_tuple": "is_axon_truth",
     "is_number": "is_number_truth",
 }
 
-# Elixir type-test guard predicates that still do NOT lower (queue §0.6; same
-# finding). Two classes: UNREPRESENTABLE (int and float are the identical real-axis
-# vector, so no axis check separates them) and not-yet-built (a clean substrate
-# axis exists but the boundary is subtle / no substrate notion yet).
+# Elixir type-test guard predicates that do NOT lower. UNREPRESENTABLE: int and float
+# are the identical real-axis vector. NEEDS-AXON-TAG: is_list/is_map/is_tuple (reverted).
+# NOT-YET-BUILT: the rest.
 _TYPE_TEST_GUARDS = {
     "is_integer": "unrepresentable: int N and float N are the bit-identical "
                   "real-axis vector on the substrate (measured); no axis check "
                   "separates is_integer from is_float. Needs a core int/float tag.",
     "is_float": "unrepresentable: see is_integer (int and float share the "
                 "identical substrate vector).",
+    "is_list": "needs an axon tag; the AXIS_AXON_POPULATED attempt was reverted "
+               "(it corrupted nested-axon field reads). See the finding.",
+    "is_map": "needs an axon tag (see is_list).",
+    "is_tuple": "needs an axon tag (see is_list).",
     "is_atom": "tag-checkable (atoms lower to string-flag codepoint arrays) but "
                "not yet built; booleans-as-atoms make the boundary subtle.",
     "is_boolean": "tag-checkable (AXIS_TRUTH-only value) but not yet built.",

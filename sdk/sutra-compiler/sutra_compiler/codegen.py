@@ -1918,12 +1918,11 @@ class Codegen(BaseCodegen):
         self._indent -= 1
         self._emit()
         # Substrate-pure tag type-tests (BUILTINS parity with the pytorch backend;
-        # planning/findings/2026-06-18-substrate-type-tests.md). Each reads a tag axis
-        # flag and scatters `2*flag - 1` onto AXIS_TRUTH. NOTE: the numpy backend has
-        # no make_string / axon_add (strings embed without a flag; axons are pytorch-
-        # only), so is_string_truth / is_axon_truth read flags this backend never
-        # sets — they return -1 for everything it produces. is_number_truth is the
-        # only one that classifies correctly here (every numpy value is a number).
+        # planning/findings/2026-06-18-substrate-type-tests.md). Read the AXIS_STRING_FLAG
+        # and scatter onto AXIS_TRUTH. NOTE: the numpy backend has no make_string (strings
+        # embed without a flag), so is_string_truth reads a flag this backend never sets
+        # (returns -1 for everything). is_number_truth (= NOT-a-String) classifies every
+        # numpy value as a number here. (is_axon_truth was removed 2026-06-19 — see finding.)
         self._emit("def is_string_truth(self, v):")
         self._indent += 1
         self._emit('"""+1 on AXIS_TRUTH if AXIS_STRING_FLAG set, else -1."""')
@@ -1934,30 +1933,14 @@ class Codegen(BaseCodegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
-        self._emit("def is_axon_truth(self, v):")
-        self._indent += 1
-        self._emit('"""+1 on AXIS_TRUTH if AXIS_AXON_POPULATED set AND not a String,')
-        self._emit('else -1. The (1 - sflag) factor excludes Strings whose codepoints')
-        self._emit('alias axis [7] (see the pytorch backend for the layout note)."""')
-        self._emit("vt = self._as_any_vector(v)")
-        self._emit("sflag = vt[self.semantic_dim + self.AXIS_STRING_FLAG]")
-        self._emit("aflag = vt[self.semantic_dim + self.AXIS_AXON_POPULATED]")
-        self._emit("ind = aflag * (1.0 - sflag)")
-        self._emit("out = _np.zeros(self.dim, dtype=_np.float64)")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = 2.0 * ind - 1.0")
-        self._emit("return out")
-        self._indent -= 1
-        self._emit()
         self._emit("def is_number_truth(self, v):")
         self._indent += 1
-        self._emit('"""+1 on AXIS_TRUTH if v is neither String nor axon, else -1:')
-        self._emit('(1 - sflag) * (1 - aflag)."""')
+        self._emit('"""+1 on AXIS_TRUTH if v is NOT a String, else -1: 1 - 2*sflag.')
+        self._emit('Does not distinguish a number from an axon (no clean axon tag)."""')
         self._emit("vt = self._as_any_vector(v)")
         self._emit("sflag = vt[self.semantic_dim + self.AXIS_STRING_FLAG]")
-        self._emit("aflag = vt[self.semantic_dim + self.AXIS_AXON_POPULATED]")
-        self._emit("ind = (1.0 - sflag) * (1.0 - aflag)")
         self._emit("out = _np.zeros(self.dim, dtype=_np.float64)")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = 2.0 * ind - 1.0")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = 1.0 - 2.0 * sflag")
         self._emit("return out")
         self._indent -= 1
         self._emit()

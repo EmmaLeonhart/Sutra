@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-06-19: REVERT the axon-populated-flag / is_axon type-test (negative result)
+
+Reverted the 2026-06-19 attempt to support `is_list`/`is_map`/`is_tuple` type-test guards by
+having `axon_add` set `AXIS_AXON_POPULATED`. An axon tag cannot be carried in the vector without
+corrupting the axon's own data, and the attempt caused a cascade: (1) the flag mapped onto the real
+axis (`tuple_in_ctor` 13→6, "fixed" by reserving [4,8) in the permutation); (2) it clobbered a
+String stored as an axon value (`echo` `hello`→`hell\x01`, "fixed" by a string-encoding change);
+(3) the permutation fix from (1) thinned the nested-axon crosstalk margin so `nested_ctor_case`/
+`nested_ctor_let` go 16→29 on CI's float32 CPU (structural inner-sum leak) — not reproducible on the
+dev GPU and not fixable without removing the flag. Reverted all three changes (flag + permutation +
+string-encoding) to the stable, CI-green pre-attempt state.
+
+What still ships from the type-test work: `is_binary`/`is_bitstring`→`is_string_truth` and
+`is_number`→`is_number_truth` (= NOT-a-String), reading the clean `AXIS_STRING_FLAG`, for Elixir AND
+Erlang. Fixtures `type_test_guard` RUN == 12 (2-way: `is_binary`/`is_number` + catch-all). Removed
+`is_axon_truth` (runtime + BUILTINS); `is_list`/`is_map`/`is_tuple` emit `UNSUPPORTED-GUARD`. The
+finding `2026-06-18-substrate-type-tests.md` carries the full negative result: a real `is_axon`
+needs a dedicated tag outside the data-carrying synthetic block (a core encoding change), or a
+structured orthogonal role basis. Verified: nested_ctor 16, echo round-trip, type_test 12, Yantra
+substrate suite, compiler gap test (String/number, gap 2.0) all green locally.
+
 ## 2026-06-19: FV spectral-gap / mixing-RATE proof mechanised (Lean + mathlib)
 
 First of Emma's three ordered big legs (FV spectral-gap → Yantra OS → WASM). Mechanised the
