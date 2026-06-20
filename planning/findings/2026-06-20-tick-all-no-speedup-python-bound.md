@@ -33,8 +33,18 @@ only, so it cannot collide a different vector onto a cached hash). `role_key=Non
 `bind`/`bundle` builtins) computes from the vector as before. Measured: 18.8ms → **8.4ms/8-prog round**
 (another ~2.2x; **~41x total** from the original 347.6ms). `tick_all` is now **1.33x** vs sequential —
 Python is down to 61% of the round, so the GPU overlap finally pays. 85 axon/bind/rotation +
-37 Yantra-kernel tests pass (byte-identical hashes). The compile-time fusion pass remains the deeper
-lever for the genuine per-op orchestration (the remaining 61%).
+37 Yantra-kernel tests pass (byte-identical hashes).
+
+## Perf chain CONCLUDED — the remaining cost is genuine substrate work (fusion-pass territory)
+
+Re-profiling after both fixes: a single-program tick is now ~0.95ms (from ~43ms, **~45x**). `_role_hash`
+is negligible (0.002s, from 8s). The new top costs are `bind` (the rotation matmul `Q @ filler`,
+~0.1ms × 3/tick) and `_axon_permute_synthetic` (the synthetic-block gather + a `clone`, ~0.09ms ×
+3/tick) — these are GENUINE substrate operations (the actual binding + axon storage), not fixable bugs
+like the `bytes(tensor)` / `.cpu()` hot-spots were. Squeezing them further needs the compile-time
+FUSION PASS (collapse a program's per-tick per-op kernel launches into one fused tensor-op graph), a
+bigger compiler leg, not a micro-optimization. The two bounded hot-spot fixes here (`.tolist()` +
+key-memo) recovered the easy ~45x; the fusion pass is the deeper, separate lever.
 
 ---
 
