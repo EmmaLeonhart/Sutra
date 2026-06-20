@@ -66,8 +66,8 @@ turns from software to **hardware** formal verification, on Sutra's
 **energy-based** thermodynamic compile target: Lean-machine-checked proofs that
 its gadgets have the correct output as the **strict global energy minimum** (a
 ground-state decode is exact), with sampler-*convergence* proven (stationary measure
-unique, and the two-state mixing rate mechanised: the gadget's full-resampling Gibbs
-kernel reaches its stationary measure in a single step). Finally, §8 is a brief note on a
+unique, and the two-state mixing rate mechanised: the gadget's Gibbs kernel mixes in
+one step). Finally, §8 is a brief note on a
 **separate, weaker** empirical layer, a compile-and-run-against-ground-truth
 suite for the source-language frontends that compile *into* Sutra, explicitly
 not conflated with the formal guarantees above.
