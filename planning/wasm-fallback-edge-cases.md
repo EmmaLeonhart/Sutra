@@ -34,9 +34,14 @@ record it in `DEVLOG.md`.
   drops the boundary iteration — finding `2026-06-13-while-loop-le-boundary-equality-defuzz`.)
 - **OCaml** (`sutra-from-ocaml/`, reference): `option`/variant payload support is **DONE 2026-06-19**
   — all five gaps from finding `2026-06-19-ocaml-option-payload-five-gaps.md` fixed + substrate-
-  verified (scalar AND aggregate payload, annotated or not); the finding is RESOLVED. Still open and
-  unrelated to payloads: scalable RAM device for the 10MB linear memory; non-zero `Array.make` fill
-  (slots start at 0).
+  verified (scalar AND aggregate payload, annotated or not); the finding is RESOLVED. The scalable RAM
+  device for the 10MB linear memory is also **DONE 2026-06-19** (direct 1D tensor; finding
+  `2026-06-19-ram-device-scaling-limit.md` RESOLVED). Still open: non-zero `Array.make` fill (slots
+  start at 0 — a documented limit, not a bug).
+- **F# / Scala** (`sutra-from-{fsharp,scala}/`): general breadth (closures, generics, traits /
+  instance classes, more String ops), modelled on OCaml as needs arise. F# additionally can't build
+  its grammar DLL on the SutraDev clone (MSVC error), so F# work needs a clone where the grammar
+  builds (CI exercises it). Low priority.
 - **Elixir / Erlang** (`sutra-from-{elixir,erlang}/`): >2-clause NON-tail multibase (CPS fold) and
   GUARDED >2-clause multibase (mixed integer-literal + `when` bases) are **DONE 2026-06-19** for BOTH
   (fixtures `multibase_nontail_fact` RUN == 600, `guarded_multibase` RUN == 9114 each). Still open:
