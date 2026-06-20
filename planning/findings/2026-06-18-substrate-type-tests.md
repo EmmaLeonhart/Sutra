@@ -18,8 +18,15 @@ frontends (`kind(5)*100 + kind({7,8})*10 + kind(string)`).
 **Two things the build surfaced that the original analysis missed:**
 
 1. **`axon_add` did not set `AXIS_AXON_POPULATED`** (spec axon-io.md says producers should). It
-   does now — a one-hot mask after the permute-accumulate, autograd-safe; axon readback fixtures
-   (map/tuple/struct, all == 13) unaffected.
+   does now — a one-hot mask after the permute-accumulate, autograd-safe. But the flag-set first
+   regressed nested-axon field reads (`tuple_in_ctor`: 13→6): the axon permutation scrambled the
+   WHOLE synthetic block, so for some keys it mapped the flag axis [7] onto the real axis [0] and
+   `realvec(axon_item(...))` read the flag's ~1.0 into the recovered number (compounding through
+   nested axons, worst at small `runtime_dim`). Fix: the axon permutation now keeps the reserved
+   flag axes [4,8) as FIXED POINTS (mirroring the slot block's `SLOT_BASE=8`), so field data never
+   lands on a flag axis and the flag never reaches the real axis on readback. Pinned by
+   `test_type_test_gap.py::test_axon_populated_flag_does_not_corrupt_field_readback` (dims 16/64/256)
+   and the frontend `tuple_in_ctor` / `tuple_axon` fixtures.
 2. **The string codepoint block (`_str_axes`) REUSES axes [5,6,7]** (promise + axon-populated
    flags) for codepoints 3..5, so a multi-char string writes a codepoint into
    `AXIS_AXON_POPULATED[7]`. Reading `aflag` alone misclassifies `"hello"` as an axon. Fix: the
