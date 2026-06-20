@@ -1,8 +1,34 @@
 # `tick_all` is correct but delivers NO speedup today — the runtime is GIL-bound, not GPU-bound
 
 **Date:** 2026-06-20
-**Measured negative result. `MultiProcessRuntime.tick_all` (per-program CUDA streams) is correct
-but does not parallelize Sutra programs on the current Python-orchestrated runtime.**
+**Measured negative result, THEN a hot-spot fix. `MultiProcessRuntime.tick_all` (per-program CUDA
+streams) is correct but does not parallelize on the Python-orchestrated runtime — and profiling the
+"98% Python" revealed most of it was a PERF BUG in `_role_hash`, not irreducible orchestration.**
+
+## UPDATE 2026-06-20 — `_role_hash` was doing `bytes(tensor)` element-wise iteration (66x slow)
+
+Profiling a warm `on_axon` (cProfile, 200 ticks) showed `_role_hash` at ~98% of the per-tick time,
+dominated by `unbind` (3.3s/1200 calls) + `.cpu()` (1.4s) + tensor `__iter__` (0.95s). Root cause:
+`_role_hash` computed its hash via `bytes(role_vec.detach().cpu().contiguous().view(uint8))`, and
+`bytes(tensor)` invokes the tensor's `__iter__`, which `unbind`s the d-vector into d 0-d tensors —
+~6.4ms/call at dim 868. `_role_hash` runs 6x per axon-add tick (the rotation + permutation cache
+keys), so this single line was the bottleneck. (It was introduced when `.numpy().tobytes()` was
+removed for the no-numpy-on-hot-path rule — the replacement avoided numpy but was pathologically slow.)
+
+**Fix:** `bytes(... .view(uint8).tolist())` — `.tolist()` is a torch C++ bulk conversion (NOT numpy,
+NOT per-element Python), producing BYTE-IDENTICAL output (verified, so the cache keys and all behavior
+are unchanged). Measured: `_role_hash` 6.37ms → 0.096ms (**66x**); the whole 8-program round
+347.6ms → **18.8ms (~18x)**. This sped up EVERY Sutra program that binds (every `bind`/`axon_add`),
+not just multi-process. 72 axon/bind/rotation/multi-process tests pass (byte-identical hashes).
+
+After the fix `tick_all` is 1.08x vs sequential (the concurrency finally shows a small benefit) and the
+round is 84% Python at the new, ~18x-lower absolute time — the remaining Python is now genuine
+per-op orchestration (the matmul/permute launches), where the compile-time fusion pass below is the
+next lever, but no longer an urgent hot-spot.
+
+---
+
+## Original measurement (before the `_role_hash` fix)
 
 ## Measured (dev GPU; `experiments/bench_tick_all.py`)
 
