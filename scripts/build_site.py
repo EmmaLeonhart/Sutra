@@ -498,7 +498,7 @@ ORDER = [
     "what-is-sutra", "vision", "paradigms", "ontology", "primitive-classes",
     "operators", "logical-operations", "numeric-math", "memory", "loops",
     "promises", "typescript-to-sutra", "compilation", "neural-webassembly",
-    "demos", "gui", "history",
+    "demos", "gui", "example", "history",
 ]
 BLURB = {
     "what-is-sutra": "The short version: a typed language whose compiled forward pass is a neural net.",
@@ -517,6 +517,7 @@ BLURB = {
     "neural-webassembly": "A transformer that is a WASM VM — and the isomorphism program down to Sutra.",
     "demos": "Every program in the smoke test.",
     "gui": "Sutra computes the pixels: a window of substrate-rendered frames.",
+    "example": "A worked sample: a landing-page button that trains itself for click-through, rendered on the substrate.",
     "history": "How the language got to its current shape.",
 }
 
