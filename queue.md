@@ -33,22 +33,17 @@ multibase, F# no-parens app-as-infix-operand, Haskell >2-guard non-tail multibas
 `case` in expr position, Rust variant-inner-`match` + nested `if let` (shared int-local limit fully
 closed across Haskell+Rust).
 
-## Active (Emma 2026-06-19): host the web-page-optimization sample at `/example`
+## Queue empty — branch `wasm-fallback-edge-cases-native` work done
 
-The multibase-non-tail work is DONE across all 8 frontends (Elixir/Erlang/Haskell + OCaml/Scala/F#/Rust;
-finding `2026-06-19-multibase-nontail-gap-…` RESOLVED). Next, per Emma:
+All items this session are shipped (see `DEVLOG.md` 2026-06-19/20 + `git log`):
+- 7 edge-case-doc items (6 native lowerings + 1 grounded assessment).
+- Multibase non-tail recursion ported across all 8 frontends (Elixir/Erlang/Haskell + OCaml/Scala/F#/Rust);
+  finding `2026-06-19-multibase-nontail-gap-…` RESOLVED.
+- `/example` sample page (self-optimizing landing-page button) added to the site (`docs/example.md`
+  → `/example/`), build-verified.
 
-**Host the web-page-optimization thing as a sample page at `https://sutra.topazcomputing.com/example`.**
-Site is the static multi-page build (`scripts/build_site.py` over `docs/*.md` + `docs/tutorials/*.md`).
-
-Steps:
-1. Find the "web-page optimization" demo/source in the repo (search docs/, examples/, planning/,
-   demos/ — likely an existing `.su` example or write-up about optimizing a web page).
-2. Decide the page: a new `docs/example.md` (→ `/example`) authored for the website audience (no
-   repo-internal scratchpad refs per CLAUDE.md §Audiences), rendered by `scripts/build_site.py`.
-3. Wire it into the build/nav, build locally, verify `/example` renders. Commit+push.
-4. If the "web-page optimization thing" is ambiguous (which artifact Emma means), ASK via
-   AskUserQuestion before authoring — don't guess the wrong demo.
+This branch is off the main big-leg queue (Emma's exploratory pass). Merge/PR when Emma reviews.
+The main-queue work (FV spectral-gap → Yantra → WASM) lives on `main`'s `queue.md`.
 
 ---
 
