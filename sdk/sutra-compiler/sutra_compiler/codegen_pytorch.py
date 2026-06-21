@@ -66,6 +66,23 @@ class PyTorchCodegen(Codegen):
         uses _torch.tanh for the polarizer."""
         return True
 
+    def _arith_op_src(self, expr, op: str,
+                      left_src: str, right_src: str) -> str:
+        """Lower `+ - * /` on number-axis operands to the substrate
+        number-axis runtime methods (num_add / num_sub / num_mul /
+        num_div).
+
+        queue §C "all numbers on the substrate": int / number / scalar
+        arithmetic is a substrate operation on the canonical number axis
+        (AXIS_REAL), NOT host Python float arithmetic. The runtime
+        methods coerce both operands onto the real axis and compute
+        there, returning a clean number-vector tensor — substrate-pure,
+        no `.item()` mid-computation. See `make_real` / `num_*` in the
+        prelude.
+        """
+        method = self._ARITH_OP_METHODS[op]
+        return f"_VSA.{method}({left_src}, {right_src})"
+
     def _emit_select_helper(self) -> None:
         """Torch-based softmax for the Sutra `select` primitive.
 
@@ -1356,6 +1373,23 @@ class PyTorchCodegen(Codegen):
         self._emit("return (base, base + 1)")
         self._indent -= 1
         self._emit()
+        self._emit("def _slot_cell(self, scalar):")
+        self._indent += 1
+        self._emit('"""Coerce a number value to the 0-d real-axis scalar a slot')
+        self._emit('plane stores. A d-dim number-vector (the make_real / num_*')
+        self._emit('form) projects to its AXIS_REAL component via `_re` (a dot —')
+        self._emit('substrate-pure, no host readout); a 0-d tensor or host literal')
+        self._emit('passes through `_st`. queue §C "all numbers on the substrate":')
+        self._emit('arithmetic now yields number-vectors, so the slot subsystem')
+        self._emit('must accept them as well as the historical 0-d form."""')
+        self._emit("if _torch.is_tensor(scalar) and scalar.ndim >= 1 "
+                   "and scalar.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return self._num_re(scalar)")
+        self._indent -= 1
+        self._emit("return self._st(scalar)")
+        self._indent -= 1
+        self._emit()
         self._emit("def slot_store(self, state, slot_idx, scalar):")
         self._indent += 1
         self._emit('"""Write `scalar` into the (i, j) slot plane. Substrate-pure')
@@ -1365,10 +1399,17 @@ class PyTorchCodegen(Codegen):
         self._emit('value on the substrate (no-op view) and is the literal entry')
         self._emit('boundary for a host literal — the same _st() boundary used')
         self._emit('everywhere else. i, j are structural slot indices, not data;')
-        self._emit('the scatter writes are tensor ops."""')
+        self._emit('the scatter writes are tensor ops.')
+        self._emit('')
+        self._emit('queue §C "all numbers on the substrate": `scalar` may now')
+        self._emit('arrive as a d-dim number-vector (the make_real form produced')
+        self._emit("by num_add / num_mul / a make_real literal), not only a 0-d")
+        self._emit('tensor. `_slot_cell` projects either form to the 0-d real-axis')
+        self._emit('value the slot plane stores — `_re` for a number-vector (a dot,')
+        self._emit('substrate-pure), the value itself for a 0-d / host scalar."""')
         self._emit("i, j = self._slot_plane(slot_idx)")
         self._emit("new = state.clone() if hasattr(state, 'clone') else state.copy()")
-        self._emit("new[i] = self._st(scalar)")
+        self._emit("new[i] = self._slot_cell(scalar)")
         self._emit("new[j] = self._st(0.0)")
         self._emit("return new")
         self._indent -= 1
@@ -1706,6 +1747,27 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.as_tensor(x, dtype=self.dtype, device=self.device)")
         self._indent -= 1
         self._emit()
+        self._emit("def _scalar(self, x):")
+        self._indent += 1
+        self._emit('"""Scalar-math entry boundary: coerce a NUMBER to its 0-d')
+        self._emit('real-axis value. queue §C "all numbers on the substrate": int /')
+        self._emit('number arithmetic now yields a d-dim number-vector (value on')
+        self._emit('AXIS_REAL), so a scalar-domain op (floor / round / mod / pow /')
+        self._emit('the transcendentals) handed `n / place` receives that vector and')
+        self._emit('must read its real axis (a dot — substrate-pure, NO host readout)')
+        self._emit('before computing, or it would run element-wise over the whole')
+        self._emit('vector and corrupt the result. A 0-d tensor / host literal takes')
+        self._emit('the plain `_st` boundary. This is `_st` specialised for the')
+        self._emit('scalar-valued math library, distinct from `_st` which several')
+        self._emit('genuine-vector call sites (realvec, digit-array, bigint) rely on')
+        self._emit('to pass a full vector through unchanged."""')
+        self._emit("if _torch.is_tensor(x) and x.ndim >= 1 and x.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return _torch.dot(x, self._num_e_real(x))")
+        self._indent -= 1
+        self._emit("return self._st(x)")
+        self._indent -= 1
+        self._emit()
         self._emit("def _lerp(self, xt, xs, values, dx):")
         self._indent += 1
         self._emit('"""Crosstalk-weighted continuous readout of a codebook.')
@@ -1802,7 +1864,7 @@ class PyTorchCodegen(Codegen):
         self._emit('Out-of-range saturates at the table edge (tensor clamp),')
         self._emit('not a raise. The crosstalk _lerp readout is the only')
         self._emit('non-trivial op; all tensor."""')
-        self._emit("xt = self._st(x).clamp(self._EXP_LO, self._EXP_HI)")
+        self._emit("xt = self._scalar(x).clamp(self._EXP_LO, self._EXP_HI)")
         self._emit("return self._lerp(xt, self._EXP_XS, self._EXP_VALUES, self._EXP_DX)")
         self._indent -= 1
         self._emit()
@@ -1811,7 +1873,7 @@ class PyTorchCodegen(Codegen):
         self._emit('"""Natural-log lookup leaf: ln(x) for a 0-d tensor x.')
         self._emit('Non-positive / out-of-range saturates at the table edge')
         self._emit('(ln near LN_LO = a large negative - the valid limit)."""')
-        self._emit("xt = self._st(x).clamp(self._LN_LO, self._LN_HI)")
+        self._emit("xt = self._scalar(x).clamp(self._LN_LO, self._LN_HI)")
         self._emit("return self._lerp(xt, self._LN_XS, self._LN_VALUES, self._LN_DX)")
         self._indent -= 1
         self._emit()
@@ -1820,7 +1882,7 @@ class PyTorchCodegen(Codegen):
         self._emit('"""Reduce a 0-d angle to (-pi, pi] via x - 2pi*round(x/2pi).')
         self._emit('rotation is periodic so this is the angle it actually turns')
         self._emit('Periodic, so mod 2pi comes for free. Pure tensor."""')
-        self._emit("xt = self._st(x)")
+        self._emit("xt = self._scalar(x)")
         self._emit("return xt - self._TWO_PI * _torch.round(xt / self._TWO_PI)")
         self._indent -= 1
         self._emit()
@@ -2017,7 +2079,7 @@ class PyTorchCodegen(Codegen):
         self._emit("def pow(self, x, y):")
         self._indent += 1
         self._emit('"""x^y = exp(y*ln x) - change-of-base identity. 0-d tensor."""')
-        self._emit("return self._exp_s(self._st(y) * self.log(x))")
+        self._emit("return self._exp_s(self._scalar(y) * self.log(x))")
         self._indent -= 1
         self._emit()
         self._emit("def sqrt(self, x):")
@@ -2035,14 +2097,14 @@ class PyTorchCodegen(Codegen):
         self._emit("def sinh(self, x):")
         self._indent += 1
         self._emit('"""(e^x - e^-x)/2."""')
-        self._emit("xt = self._st(x)")
+        self._emit("xt = self._scalar(x)")
         self._emit("return (self._exp_s(xt) - self._exp_s(-xt)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def cosh(self, x):")
         self._indent += 1
         self._emit('"""(e^x + e^-x)/2."""')
-        self._emit("xt = self._st(x)")
+        self._emit("xt = self._scalar(x)")
         self._emit("return (self._exp_s(xt) + self._exp_s(-xt)) * 0.5")
         self._indent -= 1
         self._emit()
@@ -2050,7 +2112,7 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit('"""(e^2x - 1)/(e^2x + 1) [stable]; large |x| => exp saturates')
         self._emit('so tanh -> +/-1, the correct limit, no host range check."""')
-        self._emit("e2x = self._exp_s(2.0 * self._st(x))")
+        self._emit("e2x = self._exp_s(2.0 * self._scalar(x))")
         self._emit("return (e2x - 1.0) / (e2x + 1.0)")
         self._indent -= 1
         self._emit()
@@ -2064,38 +2126,38 @@ class PyTorchCodegen(Codegen):
         self._emit("def floor(self, x):")
         self._indent += 1
         self._emit('"""Round toward -∞. Substrate: torch.floor (GPU instruction)."""')
-        self._emit("return _torch.floor(self._st(x))")
+        self._emit("return _torch.floor(self._scalar(x))")
         self._indent -= 1
         self._emit()
         self._emit("def ceil(self, x):")
         self._indent += 1
         self._emit('"""Round toward +∞. Substrate: torch.ceil."""')
-        self._emit("return _torch.ceil(self._st(x))")
+        self._emit("return _torch.ceil(self._scalar(x))")
         self._indent -= 1
         self._emit()
         self._emit("def round(self, x):")
         self._indent += 1
         self._emit('"""Nearest integer, ties-to-even (torch default). JS Math.round')
         self._emit('is half-up — mismatch tracked in the substrate-purity audit."""')
-        self._emit("return _torch.round(self._st(x))")
+        self._emit("return _torch.round(self._scalar(x))")
         self._indent -= 1
         self._emit()
         self._emit("def trunc(self, x):")
         self._indent += 1
         self._emit('"""Truncate toward zero. Substrate: torch.trunc."""')
-        self._emit("return _torch.trunc(self._st(x))")
+        self._emit("return _torch.trunc(self._scalar(x))")
         self._indent -= 1
         self._emit()
         self._emit("def abs(self, x):")
         self._indent += 1
         self._emit('"""|x|. Substrate: torch.abs."""')
-        self._emit("return _torch.abs(self._st(x))")
+        self._emit("return _torch.abs(self._scalar(x))")
         self._indent -= 1
         self._emit()
         self._emit("def sign(self, x):")
         self._indent += 1
         self._emit('"""-1 / 0 / +1. Substrate: torch.sign."""')
-        self._emit("return _torch.sign(self._st(x))")
+        self._emit("return _torch.sign(self._scalar(x))")
         self._indent -= 1
         self._emit()
         # =================================================================
@@ -2162,8 +2224,8 @@ class PyTorchCodegen(Codegen):
         self._emit('has the sign of x. x - m·trunc(x/m). Divisor 0 yields a NaN')
         self._emit('tensor — the mathematically-valid degenerate result, not a')
         self._emit('host ZeroDivisionError (no scalar control flow)."""')
-        self._emit("xt = self._st(x)")
-        self._emit("mt = self._st(m)")
+        self._emit("xt = self._scalar(x)")
+        self._emit("mt = self._scalar(m)")
         self._emit("return xt - mt * _torch.trunc(xt / mt)")
         self._indent -= 1
         self._emit()
@@ -2184,8 +2246,8 @@ class PyTorchCodegen(Codegen):
         self._emit('  φ_pos  = φ - 2π·floor(φ / 2π)    (re-wrap to [0, 2π))')
         self._emit('  result = m · φ_pos / (2π)')
         self._emit('"""')
-        self._emit("xt = self._st(x)")
-        self._emit("mt = self._st(m)")
+        self._emit("xt = self._scalar(x)")
+        self._emit("mt = self._scalar(m)")
         self._emit("theta = self._TWO_PI * xt / mt")
         self._emit("phi = _torch.atan2(self._sin_s(theta), self._cos_s(theta))")
         self._emit("phi_pos = phi - self._TWO_PI * _torch.floor(phi / self._TWO_PI)")
@@ -2201,8 +2263,8 @@ class PyTorchCodegen(Codegen):
         self._emit('crosstalk-weight matmul against the sin table) — NOT a')
         self._emit('Python for-loop over scalars. n_terms is a compile-time')
         self._emit('structural constant, not substrate data."""')
-        self._emit("xt = self._st(x)")
-        self._emit("mt = self._st(m)")
+        self._emit("xt = self._scalar(x)")
+        self._emit("mt = self._scalar(m)")
         self._emit("k = _torch.arange(1, int(n_terms) + 1, dtype=self.dtype, device=self.device)")
         self._emit("ang = self._TWO_PI * k * xt / mt")
         self._emit("ar = ang - self._TWO_PI * _torch.round(ang / self._TWO_PI)")
@@ -2376,9 +2438,140 @@ class PyTorchCodegen(Codegen):
         # correct; fusing RAM is not. Keep RAM external.
         self._emit("def make_real(self, x):")
         self._indent += 1
+        self._emit('"""Lift a number onto the real axis. Idempotent on an already-')
+        self._emit("d-dim number-vector (queue §C \"all numbers on the substrate\":")
+        self._emit('`x + 1.0` now yields a number-vector, so `make_real(x + 1.0)`')
+        self._emit('receives one and must pass it through — projecting its AXIS_REAL')
+        self._emit('cleanly via the real projector, a substrate matmul, NOT a host')
+        self._emit('float-readout that would detach autograd and crash on')
+        self._emit('a multi-element tensor). A 0-d tensor / host literal takes the')
+        self._emit('scaled-one-hot entry boundary."""')
+        self._emit("if _torch.is_tensor(x) and x.ndim >= 1 and x.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return self._real_projector() @ x")
+        self._indent -= 1
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
         self._emit("v[self.semantic_dim + self.AXIS_REAL] = float(x)")
         self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        # ---- Number-axis arithmetic (queue §C "all numbers on the
+        # substrate") ----
+        # int / number / scalar arithmetic runs on the canonical number
+        # axis (AXIS_REAL of the synthetic subspace), NOT on host Python
+        # floats. `+ - * /` on number-typed operands dispatch here (see
+        # _translate_expr in codegen_base.py). Each method coerces both
+        # operands to the d-dim number-vector via `_cnum` (the
+        # host->substrate entry boundary — a host literal becomes a
+        # scaled one-hot on AXIS_REAL; an already-number-vector passes
+        # through), so the result is a clean number-vector with the value
+        # on AXIS_REAL and zeros elsewhere. Substrate-pure: matmul-class
+        # ops only, NO `.item()` / host readout mid-computation. The value
+        # stays a tensor end-to-end; host extraction happens only at the
+        # terminal display boundary (_decode_terminal_result).
+        self._emit("def _num_e_real(self, ref):")
+        self._indent += 1
+        self._emit('"""Real-axis one-hot DERIVED from `ref` (a live operand tensor)')
+        self._emit('so it tracks the operand device. The cached `_e_real()` lives on')
+        self._emit('`self.device`; under `torch.jit.trace` a freshly-constructed')
+        self._emit('`zeros(..., device=ref.device)` bakes the traced device as a')
+        self._emit('CONSTANT, so a CUDA-traced graph replayed on a CPU input device-')
+        self._emit('mismatches in the orchestrator subprocess. `zeros_like(ref)`')
+        self._emit('derives the one-hot from the input, so the device follows the')
+        self._emit('live input through the trace. For a d-dim ref we scatter 1.0 onto')
+        self._emit('AXIS_REAL; the cached one-hot is the fallback when ref is not a')
+        self._emit('d-dim tensor. Pure tensor, device-portable."""')
+        self._emit("if _torch.is_tensor(ref) and ref.ndim >= 1 and ref.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("e = _torch.zeros_like(ref)")
+        self._emit("e[self.semantic_dim + self.AXIS_REAL] = 1.0")
+        self._emit("return e")
+        self._indent -= 1
+        self._emit("return self._e_real()")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _num(self, x, ref):")
+        self._indent += 1
+        self._emit('"""Coerce `x` to a d-dim number-vector, device-tracking `ref`. An')
+        self._emit('already-d-dim number-vector passes through; a 0-d tensor scales')
+        self._emit('the ref-derived real-axis one-hot; a host scalar multiplies that')
+        self._emit('one-hot as a Python number (device-agnostic in a trace — it')
+        self._emit('broadcasts to the ref device, so a CUDA-traced graph replays on')
+        self._emit('a CPU input without baking a device constant)."""')
+        self._emit("if _torch.is_tensor(x) and x.ndim >= 1 and x.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return x")
+        self._indent -= 1
+        self._emit("if _torch.is_tensor(x):")
+        self._indent += 1
+        self._emit("return x * self._num_e_real(ref)")
+        self._indent -= 1
+        self._emit("return float(x) * self._num_e_real(ref)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _num_re(self, z):")
+        self._indent += 1
+        self._emit('"""Real-axis component of a number value as a 0-d tensor, device-')
+        self._emit('tracking the operand (cf. `_re`, which uses the cached one-hot).')
+        self._emit('A host scalar is returned as a Python float (device-agnostic in')
+        self._emit('a trace: it broadcasts to the other operand device instead of')
+        self._emit('baking `self.device`, keeping num_mul / num_div device-portable')
+        self._emit('when a CUDA-traced graph is replayed on a CPU input)."""')
+        self._emit("if _torch.is_tensor(z) and z.ndim >= 1 and z.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return _torch.dot(z, self._num_e_real(z))")
+        self._indent -= 1
+        self._emit("if _torch.is_tensor(z):")
+        self._indent += 1
+        self._emit("return z")
+        self._indent -= 1
+        self._emit("return float(z)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def num_add(self, a, b):")
+        self._indent += 1
+        self._emit('"""a + b on the number axis. Element-wise add of two')
+        self._emit('real-axis number-vectors keeps the value on AXIS_REAL')
+        self._emit('(imag/other axes stay 0). Operands are lifted on a shared')
+        self._emit('device so a host literal + a live tensor stay device-aligned."""')
+        self._emit("ref = a if _torch.is_tensor(a) else b")
+        self._emit("return self._num(a, ref) + self._num(b, ref)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def num_sub(self, a, b):")
+        self._indent += 1
+        self._emit('"""a - b on the number axis."""')
+        self._emit("ref = a if _torch.is_tensor(a) else b")
+        self._emit("return self._num(a, ref) - self._num(b, ref)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def num_mul(self, a, b):")
+        self._indent += 1
+        self._emit('"""a * b on the number axis. Multiply the real-axis')
+        self._emit('components and scatter back onto AXIS_REAL — element-wise')
+        self._emit('product of the full vectors would also work for two reals')
+        self._emit('but the real-axis form is robust to crosstalk on other')
+        self._emit('axes. Pure tensor (dot + scalar mul + scaled one-hot)."""')
+        self._emit("ref = a if _torch.is_tensor(a) else b")
+        self._emit("r = self._num_re(a) * self._num_re(b)")
+        self._emit("return r * self._num_e_real(ref)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def num_div(self, a, b):")
+        self._indent += 1
+        self._emit('"""a / b on the number axis. Element-wise division would')
+        self._emit('compute 0/0 = nan on every zero axis and poison the vector;')
+        self._emit('divide the real-axis components and scatter the quotient')
+        self._emit('back onto AXIS_REAL. Pure tensor, NO host readout."""')
+        self._emit("ref = a if _torch.is_tensor(a) else b")
+        self._emit("r = self._num_re(a) / self._num_re(b)")
+        self._emit("return r * self._num_e_real(ref)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def num_neg(self, a):")
+        self._indent += 1
+        self._emit('"""Unary minus on the number axis."""')
+        self._emit("return -self._num(a, a)")
         self._indent -= 1
         self._emit()
         self._emit("def realvec(self, v):")
