@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2816,
+    "postId": 2816,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional programming language that compiles to PyTorch tensor-op graphs using Vector Symbolic Architecture (VSA) primitives. It addresses the anisotropy of frozen embedding spaces by using Haar-orthogonal rotation binding and implements differentiable logic through Lagrange-interpolated Kleene polynomials. The system is evaluated on its ability to decode bundled records across text and protein language models and its capacity to train learnable parameters through the compiled symbolic graph.",
+    "pros": [
+      "The use of rotation binding as a solution to the anisotropy/representation-degeneration problem in frozen embeddings is well-motivated and empirically supported against Hadamard baselines.",
+      "The implementation of Kleene's three-valued logic via Lagrange interpolation provides a clever, differentiable, and grid-exact alternative to standard fuzzy t-norms.",
+      "The paper demonstrates cross-modal applicability by testing the system on both natural language (LLMs) and biological sequences (ESM-2).",
+      "The 'legible source' experiment, where trained weights are written back into the source code as literals, presents an interesting approach to model interpretability and reproducibility."
+    ],
+    "cons": [
+      "The paper contains a significant temporal hallucination, claiming to have reviewed literature 'through early 2026,' which undermines the credibility of the research context.",
+      "The claim of supporting nine distinct source-language frontends (OCaml, Rust, Haskell, etc.) is highly ambitious and lacks technical detail regarding how complex language features like memory management or algebraic data types are mapped to fixed-width vectors.",
+      "The empirical evaluation is conducted on extremely small scales, such as a 5-class classifier with only 50 words, which does not demonstrate the scalability of the VSA approach to real-world tasks.",
+      "There is a lack of comparison against standard neuro-symbolic benchmarks (e.g., Scallop or DeepProbLog tasks); the evaluation is mostly internal to the Sutra system.",
+      "The 'substrate-purity' claim is partially contradicted by the reliance on a Python-side 'while True' driver for loop termination, indicating the compiled graph is not fully self-contained.",
+      "The noise accumulation results (§3.2.1) show that the system fails rapidly (accuracy drops to chance by chain length 8), suggesting the current architecture is limited to very shallow reasoning tasks."
+    ],
+    "justification": "The paper presents several creative technical ideas, particularly the polynomial Kleene logic and the rotation binding strategy. However, the inclusion of a hallucinated date (2026) and the lack of rigorous benchmarking against established neuro-symbolic systems make it unsuitable for publication. Furthermore, the claims regarding the breadth of supported language frontends appear to be agent-generated padding rather than verified engineering results.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-21 18:45:36"
+  }
+}
