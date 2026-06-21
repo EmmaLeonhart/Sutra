@@ -13,6 +13,8 @@
 // the click is purely a trigger and the state never round-trips through
 // a host scalar between calls. Closes CLAUDE.md "Subtler substrate
 // breaches" #2 for this demo.
+//
+// @fv-claim: rnn test=demos/gui/test_gui_click.py
 function vector flip() {
     recurring vector state = make_real(0.0);
     vector new_state = make_real(1.0) - state;
