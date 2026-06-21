@@ -85,10 +85,20 @@ _PRELUDE_LEAK_EXEMPT_METHODS = {
     "_cnum",
     # Axon construction — accepts host Python int/str values and lifts
     # them via make_real / make_string (entry-boundary dispatch).
-    "axon_add",
+    # axon_build is the batched form of axon_add (the .add-run peephole)
+    # and lifts the same way (`make_real(float(val))`) — same boundary.
+    "axon_add", "axon_build",
     # Array accessors — return host int / 0-d tensor; used as Python
     # for-loop bound and array indexing (host-output edge).
     "array_length", "array_get",
+    # Immutable list ops (Emma 2026-06-20): same host-output edge as the
+    # array accessors above — they read the array LENGTH (`arr[0].item()`)
+    # to drive the build loop (control-flow metadata, like array_length),
+    # and `array_filter` reads the predicate's truth value to decide
+    # keep/drop (a discrete host decision, the analogue of a loop-halt
+    # check). Element math is host-scalar today (numbers are host floats —
+    # the §C substrate-numbers leg closes that gap). Not substrate-op leaks.
+    "array_concat", "array_map", "array_filter",
     # Monitoring/debugging accessors (CLAUDE.md-allowed)
     "component", "semantic", "synthetic", "slot", "real", "imag",
     "truth", "norm", "slot_read",

@@ -1412,19 +1412,10 @@ class PyTorchCodegen(Codegen):
         self._emit('Allocates a fresh tensor; a and b are unchanged."""')
         self._emit("a = self._as_binding_array(a)")
         self._emit("b = self._as_binding_array(b)")
-        self._emit("na = int(a[0].item())")
-        self._emit("nb = int(b[0].item())")
-        self._emit("out = _torch.zeros(na + nb + 1, dtype=self.dtype, device=self.device)")
-        self._emit("out[0] = float(na + nb)")
-        self._emit("if na > 0:")
-        self._indent += 1
-        self._emit("out[1:1 + na] = a[1:1 + na]")
-        self._indent -= 1
-        self._emit("if nb > 0:")
-        self._indent += 1
-        self._emit("out[1 + na:1 + na + nb] = b[1:1 + nb]")
-        self._indent -= 1
-        self._emit("return out")
+        self._emit("# No host length read (.item()): the new length is a[0]+b[0]")
+        self._emit("# (0-d tensor) and the element tails a[1:]/b[1:] cat directly")
+        self._emit("# (arrays are exactly sized). Pure tensor ops.")
+        self._emit("return _torch.cat([(a[0] + b[0]).reshape(1), a[1:], b[1:]])")
         self._indent -= 1
         self._emit()
         self._emit("def array_map(self, f, arr):")
@@ -1433,14 +1424,14 @@ class PyTorchCodegen(Codegen):
         self._emit('f is a function value (Python callable). Same length as')
         self._emit('arr; arr is unchanged."""')
         self._emit("arr = self._as_binding_array(arr)")
-        self._emit("n = int(arr[0].item())")
-        self._emit("out = _torch.zeros(n + 1, dtype=self.dtype, device=self.device)")
-        self._emit("out[0] = float(n)")
-        self._emit("for i in range(n):")
+        self._emit("# No host length read (.item()): clone (immutable — preserves")
+        self._emit("# the arr[0] length slot) and walk the element tail arr[1:]")
+        self._emit("# directly. f returns a host scalar (numbers are host floats")
+        self._emit("# today) or a 0-d/real-axis tensor; coerce to a real scalar.")
+        self._emit("out = arr.clone()")
+        self._emit("for i, elem in enumerate(arr[1:]):")
         self._indent += 1
-        self._emit("v = f(arr[1 + i])")
-        # f returns a host scalar (number elements are host floats today) or
-        # a 0-d/real-axis tensor; coerce to a real scalar for the slot.
+        self._emit("v = f(elem)")
         self._emit("if _torch.is_tensor(v) and v.dim() > 0:")
         self._indent += 1
         self._emit("v = self._re(v)")
@@ -1458,11 +1449,10 @@ class PyTorchCodegen(Codegen):
         self._emit('decodes it and the element is kept when truth > 0')
         self._emit('(unknown / 0 is dropped). arr is unchanged."""')
         self._emit("arr = self._as_binding_array(arr)")
-        self._emit("n = int(arr[0].item())")
+        self._emit("# No host length read (.item()): walk the element tail arr[1:].")
         self._emit("kept = []")
-        self._emit("for i in range(n):")
+        self._emit("for elem in arr[1:]:")
         self._indent += 1
-        self._emit("elem = arr[1 + i]")
         self._emit("t = self.truth_axis(pred(elem))")
         # truth_axis returns a 0-d tensor on AXIS_TRUTH; keep when > 0.
         # This host bool read is the filter decision point, the analogue
