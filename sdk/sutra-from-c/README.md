@@ -12,7 +12,7 @@ The transpiler is part of [Sutra's strategic queue](https://github.com/EmmaLeonh
 
 Two reasons:
 
-1. **Strategic.** Yantra (the planned Sutra-based OS) requires that existing C code can participate. A transpiler from a restricted C subset gives that path without rewriting C code by hand.
+1. **Strategic.** Sutra for Windows (Sutra's desktop I/O layer) requires that existing C code can participate. A transpiler from a restricted C subset gives that path without rewriting C code by hand.
 2. **Pragmatic.** A working transpiler is a forcing function on the Sutra-side axon model — until you have to lower a struct into an axon, the axon spec's open questions can stay open. The transpiler will pin them down.
 
 ## Planned scope (subset of C accepted)

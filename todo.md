@@ -29,7 +29,7 @@ expression-position limit. See that catalogue.
 
 **Big legs / longer-horizon (tracked in the sections below):** WASM source frontend (Phase 3, the
 `WASM/`-subtree source→Sutra path); Python via Pyodide/Wasm (after the WASM core; the physical-entropy
-NumPy angle); Yantra OS integration; the `await`-inside-non-async-`recur` blocked remainder (see
+NumPy angle); Sutra-for-Windows (desktop I/O layer) integration; the `await`-inside-non-async-`recur` blocked remainder (see
 "RAM pointers" below); the FV spectral-gap mixing-RATE proof (`fv-lean/mathlib/`, lowest priority,
 heavy Lean toolchain); irregular (non-grid, stack-based) recursion (substrate-perf root-cause, finding
 `2026-06-17-tier4-irregular-recursion-trampoline-substrate-too-slow.md`).
@@ -64,7 +64,7 @@ the organizing frame for Sutra's architectural diversification.
 |---|---|---|
 | **RNN / recurrent neurons** | **time** (steps) | DONE — substrate loops / `recur` are a substrate-RNN; the loop step now fuses into one graph + exports as a weight file (#6/#7, `emit_loop_weight_file`). See `non-halting-loop.md`. |
 | **External memory (NTM / DNC; LLM-context)** | **space** (tape / stack / context) | ACTIVE — external RAM + orchestrator + VRAM mailbox (`ram-pointers.md`, `experiments/ntm_ram/`). RAM stays EXTERNAL + hard/discrete I/O; a *trainable* NTM trains the **controller**, not the RAM. **Do NOT fuse RAM into VRAM** (the 2026-06-07 wrong turn, reverted). |
-| **Reservoir computing** | **state** (fixed dynamics; infinite reservoir = infinite state) | DEFERRED to the OS era (Yantra). |
+| **Reservoir computing** | **state** (fixed dynamics; infinite reservoir = infinite state) | DEFERRED to the desktop-I/O-layer (Sutra for Windows) era. |
 
 **The sharper organizing principle (from the conversation): classify by *which
 resource is made unbounded*** — time (recurrence), state (reservoir), space
@@ -122,9 +122,10 @@ demonstrate.
 > `docs/neural-webassembly.md`; deep notes under `WASM/notes/`. Decompose into
 > `queue.md` one phase at a time (design-only until pulled).
 
-### Forward goal: integrate `transformer-vm` into the Yantra OS
+### Forward goal: integrate `transformer-vm` into Sutra for Windows
 
-Adopt `transformer-vm` as the way Yantra runs WebAssembly. Architecture decided in
+Adopt `transformer-vm` as the way the desktop I/O layer (Sutra for Windows) runs
+WebAssembly. Architecture decided in
 the 2026-06-05 interview — full design + trap-and-resume ABI + phased roadmap in
 `WASM/notes/yantra_integration.md`. Decisions: real neural executor · universal
 interpreter · per-process sandbox · full WASM MVP · syscalls trap-and-resume to
@@ -583,10 +584,10 @@ operation correspondence + the round-trip plan.
   sequential-`ramWrite`/`ramRead` program? Measure the soft→code recovery
   (the smallest DNC↔code-isomorphism evidence).
 
-### Reservoir computing (DEFERRED to the OS era)
+### Reservoir computing (DEFERRED to the desktop-I/O-layer era)
 
-Emma: materially more complex; expected to land **with Yantra**, not
-now. Do not start until the NTM direction is mature and Emma
+Emma: materially more complex; expected to land **with Sutra for Windows** (the
+desktop I/O layer), not now. Do not start until the NTM direction is mature and Emma
 re-greenlights. Placeholder so the roadmap records the intent.
 
 ---
@@ -729,8 +730,8 @@ the lever that removes branch/path explosion.**
   (worst |err| = 0.00e+00). Narrated for the paper; regression-guarded by
   `tests/test_fv_worked_example.py`. The integrative "framework → demonstrated" artifact; feeds a
   `paper/formal-verification/paper.md` revision when next edited.
-- **Tie to Yantra's trusted base.** The kernel roles + named critical
-  programs are the in-scope surface (Yantra `paper/paper.md` §4); coordinate
+- **Tie to the desktop I/O layer's trusted base.** The kernel roles + named critical
+  programs are the in-scope surface (`external/Yantra/paper/paper.md` §4); coordinate
   which programs get contracts first.
 
 Honest scope (keep in the paper): covers the **non-AI** trusted base, per
@@ -895,7 +896,7 @@ then module imports, then the multi-program axon demo last.
   to collect the referenced-key set, rewrite the producer's
   `make_state` to skip `axon_add` calls for keys outside that
   set. Whole-program analysis across the cross-program boundary;
-  natural follow-on when there's a concrete user (Yantra IPC,
+  natural follow-on when there's a concrete user (Sutra-for-Windows IPC,
   multi-program TS demos via the import system, real
   cross-process Sutra apps).
 
@@ -966,7 +967,7 @@ rotation animation wrap) and the checker / diagonal / four-quadrant shapes. Thes
   constrain-train "every op trainable" vision meets GUI; the analytic whole-frame render is
   the fixed-weight base case). Likely ties into the weight→code / constrain-train work
   (`experiments/w2c_*`). Pick the approach with Emma before a large build.
-- [ ] **Yantra GUI integration** — the window living in the orchestrator, per the Yantra OS.
+- [ ] **Sutra for Windows GUI integration** — the window living in the orchestrator, per the desktop I/O layer.
 
 HARD RAILS (CLAUDE.md): every pixel on the substrate; stateful widgets are substrate-RNNs;
 verify the rendered frame against a reference, measured.
@@ -1817,7 +1818,7 @@ Skeleton landed at `sdk/sutra-from-c/` (commit `6970c52`); `c2su`
 CLI exits 2 pointing at `DESIGN.md`. Decision 2026-05-08: user no
 longer views transpiling Linux as a useful path to OS-level Sutra
 work, so the C transpiler is no longer paired with the TypeScript
-transpiler as a Yantra prerequisite. TypeScript is the sole
+transpiler as a Sutra-for-Windows prerequisite. TypeScript is the sole
 transpiler gate.
 
 The skeleton stays in tree — do not delete it. If a future use case
@@ -1827,11 +1828,12 @@ DESIGN.md and skeleton are the starting point.
 
 Until then this is the very back of the queue.
 
-## [This year] OS-blockers (from `planning/os-blockers.md`)
+## [This year] Desktop-I/O-layer blockers (from `planning/os-blockers.md`)
 
 These are the items standing between Sutra-the-language-toolchain
-(feature-complete enough as of 2026-05-10) and Yantra writing an
-actual OS. Full text + status table lives in `planning/os-blockers.md`.
+(feature-complete enough as of 2026-05-10) and Sutra for Windows (the
+desktop I/O layer) being fully wired up. Full text + status table lives
+in `planning/os-blockers.md`.
 
 - **Lazy materialization across axon boundaries.** Per `axons.md`
   § "Lazy evaluation across boundaries": only keys the consumer
@@ -1907,9 +1909,10 @@ actual OS. Full text + status table lives in `planning/os-blockers.md`.
   algorithms) or produces it accidentally and we want defined
   behavior.
 
-- **I/O primitives.** Lives in Yantra repo; Sutra side will grow
-  an `io` stdlib class declaring intrinsics. Surface dictated by
-  what Yantra actually wants. Not Sutra's call to pre-design.
+- **I/O primitives.** Lives in the desktop I/O layer (Sutra for Windows,
+  in-tree at `external/Yantra/`); Sutra side will grow an `io` stdlib class
+  declaring intrinsics. Surface dictated by what the desktop I/O layer
+  actually wants. Not Sutra's call to pre-design.
 
 - **Performance** — inherent to "every op is a tensor matmul on
   868-d vectors." Tracked under existing entries:
@@ -2246,7 +2249,7 @@ Why it is deferred, not done now:
 
 When picked up: define TNF + recurrent-TNF precisely as part of the FV process,
 prove the canonicalisation properties claimed, THEN (and only then) reintroduce
-the term into the spec/paper. Mirrored in Yantra `todo.md`.
+the term into the spec/paper. Mirrored in `external/Yantra/todo.md`.
 
 ## [This year] Agentic RAG for constrained-training design (generalize the equals-stuff machinery)
 
@@ -2744,7 +2747,7 @@ program* whose compile output matches the fragment.
 - [ ] **Decompilation target: attention head → `select` + bind.**
   Single attention heads compute weighted sums that look a lot like
   `select(scores, values)` over a bound store. Probe: can the
-  Yantra-calculator `select`-sharpness pattern decompile a real
+  desktop-I/O calculator `select`-sharpness pattern decompile a real
   attention head (e.g. one head from a frozen small model) into a
   Sutra `select` + `bind` program? Honest non-claim: this is
   exploratory; "no" is a real possible outcome and a finding.

@@ -26,7 +26,7 @@ Beyond that surface, lower currently rejects (and the compiler warns about) the 
 
 Two reasons:
 
-1. **Strategic.** Yantra (the Sutra-based OS) requires that existing TypeScript and JavaScript code can participate, especially for the GUI/browser layer where the userspace is "everything is a browser." A transpiler from a typed-core TS subset gives that path without rewriting code by hand. Sutra's surface syntax already looks TypeScript-flavored (functions, classes, `&&` / `||`, string and numeric literals), so the syntactic distance is small.
+1. **Strategic.** Sutra for Windows (Sutra's desktop I/O layer) requires that existing TypeScript and JavaScript code can participate, especially for the GUI/browser layer where the surface is "everything is a browser." A transpiler from a typed-core TS subset gives that path without rewriting code by hand. Sutra's surface syntax already looks TypeScript-flavored (functions, classes, `&&` / `||`, string and numeric literals), so the syntactic distance is small.
 2. **Pragmatic.** TypeScript and Sutra share the structural-typing-on-records mindset. Lowering TS interfaces and classes to Sutra axons is a forcing function on the Sutra-side axon model, similar to what the C transpiler will do for structs.
 
 JavaScript is treated as TypeScript with type annotations stripped — the transpiler reads `.js` and `.ts` uniformly. Untyped values become `vector` in Sutra (the bottom of Sutra's typing surface) with no implicit narrowing.

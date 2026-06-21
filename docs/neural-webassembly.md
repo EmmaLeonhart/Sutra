@@ -139,12 +139,12 @@ shape Sutra's memory and loop primitives are built to express.
 
 ---
 
-## Where this is heading: a neural executor for Yantra
+## Where this is heading: a neural executor for Sutra for Windows
 
-The longer-term motivation is [Yantra](https://github.com/EmmaLeonhart/Yantra),
-the GPU-native operating system built on Sutra. The design adopted for Yantra
-treats this transformer as a **real neural executor** — the actual way the OS runs
-WebAssembly — using one shared universal-interpreter model per process sandbox.
+The longer-term motivation is **Sutra for Windows**, Sutra's desktop I/O layer.
+The design adopted there treats this transformer as a **real neural executor** —
+the actual way the I/O layer runs WebAssembly — using one shared
+universal-interpreter model per process sandbox.
 
 The hard part of "run full WebAssembly as a neural executor" collapses through a
 single **trap-and-resume** primitive: the neural core natively handles only
@@ -170,7 +170,7 @@ phased roadmap.
   weights (saturating add/sub/min/max all reach 100% exact; a logical-AND attempt
   is kept as a documented negative result).
 - `notes/` — the research notes, including the full architectural classification
-  and the Yantra integration design.
+  and the Sutra-for-Windows integration design.
 - `FINDINGS.md` — the replication report.
 
 > **A note on provenance.** This work was originally scaffolded against an
