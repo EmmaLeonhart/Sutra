@@ -68,9 +68,22 @@ running it on every compiler push materially slows compiler-change iteration. Th
 CI-policy decision, not made here. (The compiled `.compiled-*.py` caches were also committed-but-
 gitignored, which could mask a runtime change behind a stale cache; untracked this session.)
 
+## Both backends need `_num_re`
+
+The scalar-gate fix lives in the SHARED `codegen_base._translate_expr`, so it emits
+`_VSA._num_re(...)` for BOTH backends. The pytorch backend has `_num_re`; the numpy backend
+(`codegen.py`, deprecated but still what `examples/_smoke_test.py` compiles through) did NOT — so
+`fuzzy_branching.su`'s `vector * number` gate threw `AttributeError: '_NumpyVSA' object has no
+attribute '_num_re'`. The compiler suite is all pytorch, so it stayed green; the smoke test (numpy)
+is what surfaced it. Fixed by adding `_num_re` to the numpy backend (same logic as its existing
+`_re`: full number-vector → AXIS_REAL coordinate, host scalar → itself — numpy keeps numbers as host
+scalars, it has no `num_*` ops). Lesson: a shared-codegen emission of a new runtime method must exist
+on every backend, and the numpy path is only exercised by `examples/_smoke_test.py`, not the suite.
+
 ## Verified
 
 font_bound 2/2, font_bound_antipodal 2/2, font_cycle 4/4, button_spec 1/1, calc 27/27, count/toggle
 6/6, font/frame 55/55; compiler `number`/`select`/`logical`/`arith` tests; full compiler suite;
-OCaml transpiler 155. The scalar-multiply router change is byte-identical for host-literal
-coefficients (the logical/Lagrange path), so it does not regress the earlier `_logical_truth` fix.
+OCaml transpiler 155; `examples/_smoke_test.py` (numpy backend) all pass; numpy `test_codegen.py` 91.
+The scalar-multiply router change is byte-identical for host-literal coefficients (the logical/
+Lagrange path), so it does not regress the earlier `_logical_truth` fix.
