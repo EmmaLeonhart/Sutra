@@ -138,4 +138,16 @@ class Promise extends vector {
     // unwrap. See planning/sutra-spec/promises.md §"Lowering" and
     // planning/sutra-spec/axon-io.md.
     static intrinsic method vector await_value(Promise self);
+
+    // Rejection propagation — promises.md §"Rejection propagation".
+    // `vector v = await awaited; ... return result` lowers (Stage-1
+    // desugar) so the surrounding promise is `propagate(awaited, result)`:
+    // if `awaited` rejected, the surrounding promise rejects with the
+    // same reason and the post-await `result` is discarded; otherwise
+    // `result` passes through. A substrate-pure tanh-polarized blend on
+    // awaited's AXIS_PROMISE_REJECTED channel (mirrors the try/catch
+    // blend, no host branch). Both args are already Promise-shaped:
+    // `awaited` is the awaited promise, `result` is the Promise the
+    // post-await code returns (already Promise.resolve/reject-wrapped).
+    static intrinsic method Promise propagate(Promise awaited, Promise result);
 }

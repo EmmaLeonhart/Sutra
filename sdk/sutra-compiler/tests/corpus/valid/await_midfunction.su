@@ -1,0 +1,74 @@
+// General mid-function `await` — promises.md §"Lowering" + §"Rejection
+// propagation". Each `vector v = await x; ... return g(v);` lowers
+// (Stage-1 promise_desugar) by hoisting `x` into a temp Promise,
+// replacing the await with Promise.await_value(temp), and folding
+// Promise.propagate(temp, ...) over the returns so a rejected awaited
+// promise propagates its rejection (does NOT silently fulfil).
+//
+// The substrate backing is Promise.propagate's tanh-polarized blend on
+// AXIS_PROMISE_REJECTED (no host branch / no .item()). See
+// codegen_pytorch.py `def propagate`.
+
+vector cat = basis_vector("cat");
+vector dog = basis_vector("dog");
+
+function vector g(vector v) { return v; }
+
+async function Promise<vector> id_async(vector v) { return v; }
+async function Promise<vector> rej_async(vector v) { return Promise.reject(v); }
+
+// The verification-target shape: mid-function await, value through g.
+async function Promise<vector> f(vector x) {
+    vector v = await id_async(x);
+    return g(v);
+}
+
+// Two awaits; both fulfil -> fulfilled with the threaded value.
+async function Promise<vector> chain_ok(vector x) {
+    vector a = await id_async(x);
+    vector b = await id_async(a);
+    return g(b);
+}
+
+// Two awaits; the SECOND rejects -> the whole chain rejects.
+async function Promise<vector> chain_reject_mid(vector x) {
+    vector a = await id_async(x);
+    vector b = await rej_async(a);
+    return g(b);
+}
+
+// Awaiting a rejected promise propagates rejection.
+async function Promise<vector> f_reject(vector x) {
+    vector v = await rej_async(x);
+    return g(v);
+}
+
+// ---- Inspectors: each returns a host-float bool at the boundary ----
+
+// f(cat) fulfils.
+function bool f_fulfilled()   { return Promise.isFulfilled(f(cat)); }
+function bool f_rejected()    { return Promise.isRejected(f(cat)); }
+
+// chain_ok fulfils.
+function bool chain_ok_fulfilled() { return Promise.isFulfilled(chain_ok(cat)); }
+
+// Mid-chain rejection: NOT fulfilled, IS rejected.
+function bool chain_rm_fulfilled() { return Promise.isFulfilled(chain_reject_mid(cat)); }
+function bool chain_rm_rejected()  { return Promise.isRejected(chain_reject_mid(cat)); }
+
+// Direct rejection propagation.
+function bool f_reject_fulfilled() { return Promise.isFulfilled(f_reject(cat)); }
+function bool f_reject_rejected()  { return Promise.isRejected(f_reject(cat)); }
+
+// ---- Value-flow checks (the resolved value really flows through g) ----
+// `f(cat)`'s resolved value compared (cosine on AXIS_TRUTH) to cat / dog.
+function bool value_is_cat() {
+    Promise<vector> p = f(cat);
+    vector out = Promise.value(p);
+    return out == cat;
+}
+function bool value_is_dog() {
+    Promise<vector> p = f(cat);
+    vector out = Promise.value(p);
+    return out == dog;
+}
