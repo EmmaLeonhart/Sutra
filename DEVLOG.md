@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-20: Higher-order functions on the substrate — and an integrity catch (int fold is HOST, vector fold is substrate)
+
+Demonstrated the payoff of the just-shipped first-class functions: `examples/higher_order_functions.su` —
+one `reduce` folds an array with a function value (named `vadd` AND an inline arrow `(a,b)=>a+b+b`),
+composed with `foreach`. **Integrity catch:** my first draft used `int` values and the emitted `reduce`
+was HOST arithmetic — `x = 1; acc = f(acc, x)` with Python int literals, `add` = `(a+b)*1.0` on host ints
+— i.e. the fold ran on the host, not the substrate. Shipping it as a "substrate higher-order" demo would
+have been a fake-substrate claim (the exact thing the integrity rules forbid). Caught it by reading the
+emitted code before shipping. Rewrote to `vector`/`make_real` values + substrate `+`: now `reduce` returns
+a SUBSTRATE vector (decoded off the real axis: `total`=6, `total_dbl`=12), and the test asserts the return
+is a torch tensor (not a host scalar) so the host-fold case can't sneak back. Boundary documented in the
+example + test: `int` folds compute on the host (int literals stay Python ints); number-vector folds
+compute on the substrate. (Whether `int` SHOULD lift to substrate vectors in this path is a separate
+question — noted, not chased.) `tests/test_higher_order_functions.py` 3 pass.
+
 ## 2026-06-20: Sutra-native arrow functions — first-class function values leg COMPLETE (closure-free)
 
 Barreled into the top queue item (the genuine open part of first-class functions: anonymous/arrow

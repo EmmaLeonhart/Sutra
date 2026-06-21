@@ -1,0 +1,36 @@
+// Higher-order functions over a collection, ON THE SUBSTRATE — first-class
+// function values (named functions AND inline arrows) folded across an array of
+// number-vectors with `foreach`.
+//
+// One `reduce` expresses every fold: the BEHAVIOUR is passed in as a function
+// value. This is the payoff of first-class functions (shipped 2026-06-20):
+// behaviour-as-data, closure-free (arrows desugar to hoisted top-level
+// functions; captured locals lift to parameters — Sutra has no runtime closure).
+//
+// NOTE the values are `vector` (number-vectors via `make_real`), NOT `int`.
+// That is deliberate: `int` literals fold on the HOST (Python arithmetic), so an
+// int version would not be a substrate demonstration. With number-vectors the
+// fold runs on the substrate — `reduce` returns a vector, decoded off the real
+// axis. (Integrity: every op runs where the spec says it runs.)
+
+// vadd / vsum: substrate vector addition (the `+` is element-wise on the
+// number-vectors, on the substrate).
+function vector vadd(vector a, vector b) { return a + b; }
+
+// reduce: fold [1,2,3] left-to-right with `f`, starting from `init`. `foreach`
+// is the substrate-pure array walk; `f` (a function value) is applied each step.
+function vector reduce(function f, vector init) {
+    vector acc = init;
+    foreach (vector x in [make_real(1.0), make_real(2.0), make_real(3.0)]) {
+        acc = f(acc, x);
+    }
+    return acc;
+}
+
+// Same reduce, two behaviours — one named, one inline arrow — both substrate.
+function vector total()      { return reduce(vadd, make_real(0.0)); }                          // 1+2+3        = 6
+function vector total_dbl()  { return reduce((vector a, vector b) => a + b + b, make_real(0.0)); } // 2*(1+2+3)  = 12
+
+function vector main() {
+    return total();
+}
