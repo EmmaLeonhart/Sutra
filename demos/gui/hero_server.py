@@ -30,6 +30,7 @@ import argparse
 import importlib.util
 import io
 import json
+import os
 import pathlib
 
 import numpy as np
@@ -149,9 +150,14 @@ def _make_handler(bridge: HeroBridge):
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Web bridge for the warmer/colder substrate hero.")
-    ap.add_argument("--port", type=int, default=8771)
-    ap.add_argument("--size", type=int, default=48, help="substrate frame grid resolution")
-    ap.add_argument("--scale", type=int, default=9, help="upscale factor for the served PNG")
+    # Host/port default from env so a container platform can set them (HOST=0.0.0.0,
+    # PORT=$PORT). Local default stays loopback for safety.
+    ap.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8771")))
+    ap.add_argument("--size", type=int, default=int(os.environ.get("HERO_SIZE", "48")),
+                    help="substrate frame grid resolution")
+    ap.add_argument("--scale", type=int, default=int(os.environ.get("HERO_SCALE", "9")),
+                    help="upscale factor for the served PNG")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--no-headline", action="store_true",
                     help="skip the glyph headline overlay (faster frames)")
@@ -161,8 +167,8 @@ def main() -> None:
 
     bridge = HeroBridge(size=args.size, seed=args.seed, scale=args.scale,
                         render_headline=not args.no_headline)
-    httpd = HTTPServer(("127.0.0.1", args.port), _make_handler(bridge))
-    print(f"warmer/colder hero demo on http://127.0.0.1:{args.port}/")
+    httpd = HTTPServer((args.host, args.port), _make_handler(bridge))
+    print(f"warmer/colder hero demo on http://{args.host}:{args.port}/")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
