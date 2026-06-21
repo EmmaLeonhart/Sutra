@@ -297,6 +297,87 @@ def _rewrite_expr(expr, table):
 # ---------------------------------------------------------------------------
 
 
+# Stdlib functions whose body is a Lagrange/Zadeh polynomial over the
+# TRUTH axis — `a && b`, `a || b`, `!v`, and the derived nand/xor/xnor.
+# Their inlined arithmetic (`+ - * /` over boolean operands) must be
+# emitted ELEMENT-WISE on the truth axis, never routed to the number-axis
+# `num_*` runtime ops — the operands carry their value on AXIS_TRUTH, so a
+# real-axis `num_*` reads them as ~0 and destroys the truth value. A
+# logical operator's result is always a truth-axis vector REGARDLESS of the
+# operands' declared type (e.g. `int a, int b`), which is exactly the case
+# `_is_vectory_expr`'s static type check misses. We mark every node of the
+# inlined polynomial body with `_logical_truth = True` so codegen can force
+# the element-wise route. See codegen_base.py `_is_vectory_expr` /
+# arithmetic-routing.
+_LOGICAL_TRUTH_FORMS = frozenset({
+    "logical_and",
+    "logical_or",
+    "logical_not",
+    "logical_nand",
+    "logical_xor",
+    "logical_xnor",
+})
+
+
+def _mark_logical_truth(expr) -> None:
+    """Recursively set `_logical_truth = True` on `expr` and every
+    sub-expression node, so codegen treats the inlined logical-operator
+    polynomial as a truth-axis vector (element-wise arithmetic) rather than
+    routing its `+ - * /` to the number axis."""
+    if expr is None or not isinstance(expr, ast.Node):
+        return
+    try:
+        expr._logical_truth = True
+    except (AttributeError, TypeError):
+        # __slots__ without the attr, or otherwise unsettable — skip; the
+        # marker is best-effort over the polynomial's arithmetic nodes.
+        pass
+    for child in _iter_child_exprs(expr):
+        _mark_logical_truth(child)
+
+
+def _iter_child_exprs(expr):
+    """Yield the child-expression nodes of `expr` for marker recursion.
+    Mirrors the node shapes handled by `_substitute_params`."""
+    if isinstance(expr, ast.BinaryOp):
+        yield expr.left
+        yield expr.right
+    elif isinstance(expr, ast.UnaryOp):
+        yield expr.operand
+    elif isinstance(expr, ast.PostfixOp):
+        yield expr.operand
+    elif isinstance(expr, ast.Parenthesized):
+        yield expr.inner
+    elif isinstance(expr, ast.Call):
+        yield expr.callee
+        for a in expr.args:
+            yield a
+    elif isinstance(expr, ast.Subscript):
+        yield expr.target
+        yield expr.index
+    elif isinstance(expr, ast.MemberAccess):
+        yield expr.obj
+    elif isinstance(expr, ast.Assignment):
+        yield expr.target
+        yield expr.value
+    elif isinstance(expr, (ast.CastExpr, ast.UnsafeCastExpr,
+                           ast.UnsafeOverrideExpr, ast.DefuzzyExpr,
+                           ast.EmbedExpr)):
+        yield expr.expr
+    elif isinstance(expr, ast.ArrayLiteral):
+        for e in expr.elements:
+            yield e
+    elif isinstance(expr, ast.MapLiteral):
+        for k in expr.keys:
+            yield k
+        for v in expr.values:
+            yield v
+    elif isinstance(expr, ast.InterpolatedString):
+        for part in expr.parts:
+            if not isinstance(part, str):
+                yield part
+
+
 def _do_inline(call: ast.Call, decl: ast.FunctionDecl, table=None):
     """Return the inlined expression for `call`, or the original call
     unchanged if arities disagree (let the validator flag it).
@@ -327,7 +408,16 @@ def _do_inline(call: ast.Call, decl: ast.FunctionDecl, table=None):
     # only appeared after inlining.
     if table is not None:
         substituted = _lower_ops_expr(substituted, table)
-        return _rewrite_expr(substituted, table)
+        substituted = _rewrite_expr(substituted, table)
+    # Provenance: if this call was a logical operator, the produced body is
+    # a truth-axis polynomial. Mark it so codegen keeps the arithmetic
+    # element-wise (truth axis) and never routes to the number axis, even
+    # when the operands are int-typed. Marking AFTER the recursive
+    # lower/rewrite above so the whole final sub-AST is covered.
+    callee = call.callee
+    callee_name = callee.name if isinstance(callee, ast.Identifier) else None
+    if callee_name in _LOGICAL_TRUTH_FORMS:
+        _mark_logical_truth(substituted)
     return substituted
 
 
