@@ -5,6 +5,15 @@ what is next, in execution order — barrel it top to bottom. **Finished work is
 same commit it ships** (history lives in `git log`, `DEVLOG.md`, `planning/findings/`).
 `todo.md` is the longer-horizon backlog; items migrate `todo.md` → here → deleted on completion.
 
+**⭐ CLEARING the queue is the SAFE default (Emma 2026-06-21).** When an item is done, DELETE the
+line — **version control + `DEVLOG.md` already hold the entire history, so nothing is ever lost by
+removing it.** Deleting a finished item is NEVER the risky move; the git log is the safety net.
+The UNSAFE thing is letting done work accumulate — a "Recently shipped" pointer block,
+`~~struck-through~~` lines, "DONE"/"✓" markers, or a paragraph summarizing what shipped. That bloat
+buries the open work and is exactly what keeps re-growing this file. The queue holds ONLY
+not-yet-done work; the moment something ships, it leaves. **Do not defer work to a clock time either**
+— if nothing else is in flight, just do it now (no "do this at 2pm" scheduling).
+
 **Owned + autonomous (Emma 2026-06-20):** the agent organises this queue itself — pulls items from
 `todo.md`/findings/specs, orders by value, decomposes into concrete steps, prunes done work, and
 executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not questions.
@@ -25,36 +34,11 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-_Done legs (numbers-on-substrate + its 2026-06-21 scalar-position fixes, perf/fusion, multi-process, FV
-surface + measurement-claim gates, await core, the NeurIPS-frozen-layer removal, the email + paper-Background
-work) live in `DEVLOG.md`, `git log`, and `planning/findings/` — not here. Open work below._
-
-### C. Background → a short "Preliminaries" after Related Work (Emma 2026-06-21; metabolised from the data-lake chat)
-
-**Metabolised** from the data-lake chat "Adding background section to paper with prior work" (Emma + Opus 4.8;
-metabolised, not committed — the HTML stays in `data_lake/`). The refined direction:
-- **A short `Preliminaries` placed AFTER Related Work, before §3** (Consolidation into Canonical Primitives) —
-  NOT a sprawling survey, ~a page. It does exactly two things: (a) consolidate the VSA primitive definitions
-  (bind/bundle/unbind/similarity) in one clean place (pull up from §3.1/Appendix A so they're stated before
-  heavy use); (b) **ground Kleene three-valued logic** — the load-bearing-AND-obscure case: a few sentences on
-  Kleene's strong 3-valued system, the truth tables, and the Gödel min/max t-norm framing, so when §3.6
-  backprops through AND-of-NOTs the ML-leaning reader has ground under them. Stop there.
-- Triage rule: "if I cut this, does a §3/4 derivation become UNFOLLOWABLE? → Preliminaries. Else → Related Work
-  or a one-line citation." Depth tracks reader difficulty, not field importance.
-- **Anisotropy stays INLINE** (§1/§2.1/§3.7, at point of use), NOT in Preliminaries. **RNN Turing-completeness**
-  = the one-line Siegelmann–Sontag cite already in §3.4, not a subsection.
-- **Shaw et al. (arXiv 2501.05368v2, "VSAs via Category Theory")** → cite in **Related Work §2.1, NOT
-  Preliminaries.** Framing: their §5 / footnote 3 names "a VSA that is purely functional (in the programming
-  sense)" as a significant open engineering direction; Sutra is a realization of it, arrived at independently
-  (engineering-first). Positioning, not machinery. (Emma: "worth citing but not critical.")
-- **Schmidhuber 1990 "Making the World Differentiable"** (FKI-126-90) → LEAVE OUT of paper one (future research:
-  RL/planning/world-models, Extropic). Back pocket.
-
-**State / supersedes:** my edit `1f0544db` moved Background to AFTER the Intro but BEFORE Related Work, with VSA +
-anisotropy content. That is now SUPERSEDED: move it to AFTER Related Work as `Preliminaries`, swap the anisotropy
-framing for the Kleene grounding (keep VSA consolidation), and add the Shaw et al. citation to Related Work.
-Substantive paper content + another clawRxiv resubmit. Integrity: measured claims only, no honest/genuinely
-buzzwords. (The NeurIPS task that used to be item C.2 is GONE — the frozen paper was removed `2c17ef12`.)
+_Nothing active right now._ Recent work — numbers-on-substrate + its scalar-position fixes, perf/fusion,
+multi-process, FV surface + measurement-claim gates, await core, the NeurIPS-frozen-layer removal, the
+email-dedup, and the paper Background→Preliminaries refactor (after Related Work, with Kleene grounding +
+the Shaw et al. citation) — is all shipped and lives in `DEVLOG.md`, `git log`, and `planning/findings/`.
+When starting fresh, pull the next genuinely-unblocked item from `todo.md`.
 
 ---
 
