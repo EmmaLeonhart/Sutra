@@ -33,6 +33,11 @@ def test_transpiled_button_spec_compiles_and_centre_is_lit():
     mod = compile_su(su, llm_model="unused-no-basis-vectors", runtime_dim=8, verbose=False)
     result = mod.main()
     val = result.real if hasattr(result, "is_complex") and result.is_complex() else result
+    # Numbers-on-substrate: `main`'s arithmetic returns a real-axis number-VECTOR
+    # (the value on AXIS_REAL, zeros elsewhere), not a 0-d scalar — project it to
+    # its real-axis scalar at the display boundary before reading out (the same
+    # role as the font demos' `read_real`).
+    val = mod._VSA._num_re(val)
     val = float(val.item()) if hasattr(val, "item") else float(val)
     assert abs(val - 1.0) < 1e-5, f"transpiled button centre = {val}, expected 1.0"
 

@@ -54,7 +54,8 @@ jobs:
       - name: Install Sutra compiler (-e) + torch + pytest
         run: |
           python -m pip install --upgrade pip
-          pip install pytest numpy
+          # pillow: the hero-server demo renders frames to PNG via PIL.
+          pip install pytest numpy pillow
           # CPU-only torch wheel: the demos run via real Sutra, but on CI
           # we don't need CUDA (~200 MB wheel vs 2 GB+ for cuda).
           pip install torch --index-url https://download.pytorch.org/whl/cpu
