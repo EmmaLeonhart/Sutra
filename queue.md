@@ -39,19 +39,7 @@ The session's big directed legs are done + validated:
 
 ## ACTIVE — barrel top to bottom (Emma's 2026-06-20 design decisions, now unblocked)
 
-### A. Immutable list-building → `map` / `filter` (Emma: "immutable list-building (functional)")
-
-Lists are fixed literals today (`array_from_literal`/`length`/`get`/`foreach`, no construction). Emma chose
-IMMUTABLE list-building (make a NEW list from pieces, never mutate). Arrays are length-prefixed scalar
-tensors (`arr[0]`=len, `arr[1:]`=elements), so building new ones is straightforward. Steps: (1) runtime
-primitives `array_concat(a, b)` (new tensor, immutable) and higher-order `array_map(f, arr)` /
-`array_filter(pred, arr)` (apply a function value — Python callable at runtime — to each element, return a
-new array); (2) wire `map`/`filter`/`concat` as Sutra builtins; (3) verify on the substrate: `map((x)=>x*2,
-[1,2,3])` = `[2,4,6]`, `filter((x)=>x>1, [1,2,3])` = `[2,3]`, RUN + decode vs ground truth. NOTE: element
-math is host-scalar today; this leg completes the higher-order/collection story (pairs with `reduce`, which
-already works) regardless of the §C number-substrate work.
-
-### B. `await` mid-function → poll-loop lowering (Emma: "polling loop is desired; the input+flag form is the β-reduction case")
+### A. `await` mid-function → poll-loop lowering (Emma: "polling loop is desired; the input+flag form is the β-reduction case")
 
 `await` as a mid-function expr raises `CodegenNotSupported` today (only tail-position `async … return await
 e` works). Emma's model: the RUNTIME lowering is the **gated polling loop** (`promises.md`'s while_loop) —
@@ -61,7 +49,7 @@ INPUT + arrival-flag form is the COMPILE-TIME β-REDUCTION case: when the awaite
 resolved, the poll loop reduces away to a direct input+flag read. Build the poll-loop lowering first; add
 the β-reduction-to-input+flag as the optimisation. Conform to `promises.md` + Promises/A+.
 
-### C. All numbers on the SUBSTRATE (Emma: "purist, the old goal") — BIG, foundational, substrate-purity-critical
+### B. All numbers on the SUBSTRATE (Emma: "purist, the old goal") — BIG, foundational, substrate-purity-critical
 
 Emma chose: `int`/`number`/`scalar` math should run on the substrate (the number axis), NOT host floats.
 So host-int is a **gap to CLOSE**, not the intended design (correct the spec/finding accordingly — substrate

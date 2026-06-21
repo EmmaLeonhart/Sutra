@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-06-20: Immutable list ops (map/filter/concat) — leg A of Emma's unblocked decisions
+
+Emma answered the design questions, unblocking three legs; barreled the first. Leg A = immutable
+list-building (her choice over mutable). Added runtime ops + Sutra builtins, all returning a NEW
+length-prefixed tensor (never mutating an input): `array_concat(a,b)`, `array_map(f,arr)`,
+`array_filter(pred,arr)`. `array_map`/`array_filter` take a FUNCTION VALUE — so they compose directly with
+the arrow functions shipped earlier this session (`array_map((x)=>x*2, [1,2,3])` = [2,4,6]). `filter`
+decodes the predicate's Sutra truth value via the runtime `truth_axis` read at the keep/drop decision only
+(the analogue of a loop-halt check). Surface names are `array_*` because bare `map`/`filter` collide with
+the `map<K,V>` type keyword. numpy backend lists them unsupported (clean compile error); PyTorch supports
+them. Verified RUN + read-back: concat=[1,2,3,4], map=[2,4,6], filter(x>1)=[2,3], filter(x>10)=[];
+immutability asserted (inputs unchanged, output shares no storage). Built in an isolated worktree via a
+subagent with my design, independently verified before merge (247 array/codegen/parser/arrow/class tests
+pass, no regressions). New `test_list_ops.py` (8) + corpus `25_list_ops.su`. This + `reduce` (already
+working) gives Sutra the core higher-order/collection toolkit. Legs B (await poll-loop) and C (all numbers
+on the substrate) remain.
+
 ## 2026-06-20: a1 hero demo step 5 — warmer/colder hero now served in a real browser (hero_server.py)
 
 The a1 warmer/colder self-morphing hero (controller `hero_steering.py`, render
