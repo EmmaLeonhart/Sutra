@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sutra-dev"
-version = "0.7.0"
+version = "0.9.0"
 description = "Compiler for the Sutra programming language — tensor ops on frozen-LLM embedding vectors."
 readme = "README.md"
 requires-python = ">=3.11"
