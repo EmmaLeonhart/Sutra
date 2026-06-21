@@ -11,6 +11,10 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ---
 
+## IMPORTANT
+
+Oh god why is the queue so bloated again
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.
@@ -100,6 +104,12 @@ Two concrete tasks:
    submitted without.
 
 Keep the integrity discipline (measured claims only, no honest/genuinely buzzwords).
+
+## DO THIS AT 2pm
+
+Please go over the chat that was added into the root since it explains more on what I am doing with the background. It is not meant to be committed but metabolised
+
+It is in the data lake
 
 ---
 
