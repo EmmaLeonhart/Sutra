@@ -1,0 +1,16 @@
+# Keep the hero-demo image lean: the demo needs sdk/sutra-compiler + demos/.
+# Exclude history and the heavy research material the demo does not use.
+.git
+.gstack
+**/__pycache__
+*.pyc
+references/
+corpus/
+paper/
+external/Yantra/
+data_lake/
+WASM/
+fv-lean/
+*.pdf
+*.zip
+*.tar.gz

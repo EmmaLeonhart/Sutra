@@ -16,6 +16,28 @@ subagent with my design, independently verified before merge (247 array/codegen/
 pass, no regressions). New `test_list_ops.py` (8) + corpus `25_list_ops.su`. This + `reduce` (already
 working) gives Sutra the core higher-order/collection toolkit. Legs B (await poll-loop) and C (all numbers
 on the substrate) remain.
+## 2026-06-20: a1 hero demo — containerized for online deploy (Dockerfile + cloud-ready server)
+
+Made the warmer/colder hero demo deployable so it can go live online. It is a
+*dynamic* app (the page needs a Python backend rendering each frame on the
+substrate), so static GitHub Pages can't serve it — it needs a container host.
+
+- `demos/gui/hero_server.py` now reads `HOST` / `PORT` / `HERO_SIZE` / `HERO_SCALE`
+  from env (local default loopback:8771; the container sets `HOST=0.0.0.0`).
+  VERIFIED: started via `PORT=8782` env, `/state` responded.
+- `Dockerfile` (repo root) + `.dockerignore`: `python:3.12-slim`, **CPU** torch +
+  numpy + Pillow, `COPY` repo, `CMD python demos/gui/hero_server.py`. No Ollama
+  (frame_hero.su has zero `basis_vector` calls); `sdk/sutra-compiler` is
+  path-injected, nothing to install from the repo. `.dockerignore` drops the
+  heavies the demo doesn't use (corpus/, paper/, external/Yantra/, references/, ...).
+- `demos/gui/DEPLOY.md`: host options (HF Spaces Docker / Render / Fly / generic),
+  the CPU-only no-Ollama footprint, and the v1 single-shared-state caveat.
+
+NOT build-verified here: the local Docker daemon was down (Docker Desktop not
+running), so the image build itself is unverified — the Dockerfile follows
+standard practice but needs a build on a host with Docker running. The actual
+online deploy is the next step and needs a hosting account (HF Spaces is the
+recommended home; the steering server stays single-shared-state for v1).
 
 ## 2026-06-20: a1 hero demo step 5 — warmer/colder hero now served in a real browser (hero_server.py)
 
