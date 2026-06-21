@@ -941,6 +941,22 @@ class Codegen(BaseCodegen):
         self._emit("return self.value(p)")
         self._indent -= 1
         self._emit()
+        self._emit("def propagate(self, awaited, result):")
+        self._indent += 1
+        self._emit('"""Rejection propagation — promises.md §"Rejection propagation".')
+        self._emit("Substrate-pure blend (no host branch / no float()):")
+        self._emit("  rej = tanh(50 * awaited[AXIS_PROMISE_REJECTED])")
+        self._emit("  return (1 - rej) * result + rej * reject(reason(awaited))")
+        self._emit("A rejected await selects the reject branch (same reason); a")
+        self._emit("fulfilled await passes the post-await `result` through. See the")
+        self._emit("pytorch backend for the full spec-justification docstring.")
+        self._emit('"""')
+        self._emit("rej = _np.tanh(50.0 * "
+                   "awaited[self.semantic_dim + self.AXIS_PROMISE_REJECTED])")
+        self._emit("reject_branch = self.reject(self.reason(awaited))")
+        self._emit("return (1.0 - rej) * result + rej * reject_branch")
+        self._indent -= 1
+        self._emit()
         self._emit("# ---- Binding-array (substrate-stored ordered list) ----")
         self._emit("#")
         self._emit("# An array stores N scalar values in a single substrate vector,")
