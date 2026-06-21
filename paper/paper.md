@@ -1033,13 +1033,13 @@ Sutra — the language, compiler, runtime, and every `.su` program
 cited in this paper — is openly available at
 <https://github.com/EmmaLeonhart/Sutra>. A self-contained
 replication package is published at
-<https://sutra.emmaleonhart.com/sutra-replication-package.zip>: it
+<https://sutra.topazcomputing.com/sutra-replication-package.zip>: it
 ships `SKILL.md`, an agent-runnable recipe an autonomous agent can
 follow to install the toolchain and re-derive every result reported
 in this paper end-to-end, with no human in the loop. The project
 site (this paper in HTML and the conceptual documentation) is at
-<https://sutra.emmaleonhart.com>; the paper PDF is at
-<https://sutra.emmaleonhart.com/paper.pdf>.
+<https://sutra.topazcomputing.com>; the paper PDF is at
+<https://sutra.topazcomputing.com/paper.pdf>.
 
 ---
 
