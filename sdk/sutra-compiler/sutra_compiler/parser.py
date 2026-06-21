@@ -74,6 +74,7 @@ Ambiguities handled:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
 from . import ast_nodes as ast
@@ -149,6 +150,103 @@ def _body_contains_recur(node) -> bool:
     return False
 
 
+@dataclass
+class _PendingArrow:
+    """A hoisted arrow awaiting capture resolution.
+
+    Sutra desugars `(params) => body` into a synthetic top-level
+    function. The arrow's free variables (names referenced in the body
+    that are neither its own params nor declared locally inside the
+    body) become candidate captures; the actual capture set is the
+    subset that resolves to an enclosing-scope local rather than a
+    global (top-level function or file-scope variable). That subset
+    can only be computed once every top-level name is known, so the
+    parser buffers the arrow here and finishes the lift in
+    parse_module().
+    """
+    decl: "ast.FunctionDecl"
+    own_param_names: List[str]
+    free_var_candidates: List[str]
+
+
+# Names that look like identifiers in a Sutra body but are intrinsic /
+# special-form callee names, NOT user locals — they must never be
+# treated as captures. (Free-function intrinsics resolve at the global
+# scope; capturing them would lift a bogus extra parameter.)
+_NON_CAPTURE_IDENTS = set(_SPECIAL_CALL_NAMES) | {
+    "true", "false", "this",
+}
+
+
+def _collect_arrow_free_vars(body) -> List[str]:
+    """Collect candidate free-variable names referenced inside an arrow
+    body, excluding names bound locally within the body itself.
+
+    Walks the arrow body AST (a single Expr or a Block) gathering every
+    `Identifier` that is read, then subtracts the names introduced by
+    declarations inside the body (VarDecl names, foreach/for-loop
+    variables, loop index variables). The remainder is the set of names
+    the body references from *outside* itself — its own parameters plus
+    any enclosing-scope captures. The caller removes the own-params; the
+    rest are capture candidates resolved against the global name set.
+
+    Returns a sorted, de-duplicated list for deterministic output (no
+    Math.random / Date — names and ordering are reproducible).
+    """
+    referenced: set[str] = set()
+    bound: set[str] = set()
+
+    def visit(node) -> None:
+        if node is None:
+            return
+        if isinstance(node, list):
+            for x in node:
+                visit(x)
+            return
+        if isinstance(node, ast.Identifier):
+            if node.name not in _NON_CAPTURE_IDENTS and not node.name.startswith("<"):
+                referenced.add(node.name)
+            return
+        if isinstance(node, ast.MemberAccess):
+            # Only the base object can be a free variable; the member
+            # name is a field/method selector, not an identifier read.
+            visit(node.obj)
+            return
+        if isinstance(node, ast.VarDecl):
+            bound.add(node.name)
+            visit(node.initializer)
+            return
+        if isinstance(node, ast.ForeachStmt):
+            bound.add(node.var_name)
+            visit(node.iterable)
+            visit(node.body)
+            return
+        if isinstance(node, ast.ForStmt):
+            visit(node.init)
+            visit(node.condition)
+            visit(node.step)
+            visit(node.body)
+            return
+        if isinstance(node, ast.LoopStmt):
+            if node.index_var is not None:
+                bound.add(node.index_var)
+            visit(node.count)
+            visit(node.condition)
+            visit(node.body)
+            return
+        if isinstance(node, ast.FunctionDecl):
+            # A nested arrow inside this arrow body was already hoisted
+            # to top level and replaced by an Identifier, so we never
+            # see a FunctionDecl here. Guard anyway: don't descend.
+            return
+        if hasattr(node, "__dataclass_fields__"):
+            for fld in node.__dataclass_fields__:
+                visit(getattr(node, fld))
+
+    visit(body)
+    return sorted(referenced - bound)
+
+
 class Parser:
     def __init__(
         self,
@@ -161,6 +259,27 @@ class Parser:
         self.file = file
         self.diagnostics = diagnostics if diagnostics is not None else DiagnosticBag(file=file)
         self._pos = 0
+        # Arrow/anonymous-function support. Sutra has no runtime
+        # closures (planning/open-questions/function-taxonomy-and-
+        # closure.md): an arrow `(params) => expr` is desugared at
+        # parse time into a synthetic top-level function declaration
+        # with a fresh name (`__arrow_N`), and the arrow expression in
+        # source position is replaced by an Identifier referencing that
+        # name. Captured enclosing-scope locals are lifted to extra
+        # trailing parameters; direct-call sites thread the captured
+        # value as an extra argument. This mirrors the TS frontend's
+        # _lower_arrow_as_function transpile-time lowering.
+        self._arrow_counter = 0
+        # Pending hoisted arrows awaiting capture resolution + injection
+        # in parse_module(). Each entry records the synthetic
+        # FunctionDecl (params not yet including captures), the arrow's
+        # own parameter names, and the set of free-variable candidate
+        # names referenced in the body (minus body-locals).
+        self._pending_arrows: List["_PendingArrow"] = []
+        # Resolved arrow captures, keyed by the synthetic function name.
+        # Populated in parse_module() once all top-level (global) names
+        # are known. Read by the call-site threading rewrite.
+        self.arrow_captures: dict[str, List[str]] = {}
 
     # ================================================================
     # Public entry points
@@ -173,9 +292,261 @@ class Parser:
             item = self._parse_top_level()
             if item is not None:
                 items.append(item)
+        # Resolve arrow captures and inject the hoisted arrow functions.
+        # This runs after every top-level item is parsed so the global
+        # name set (top-level function + variable names) is complete; a
+        # free variable that resolves to a global is NOT a capture.
+        if self._pending_arrows:
+            items = self._finalize_arrows(items)
         end = self._current_span()
         module_span = SourceSpan(start=start.start, end=end.end)
         return ast.Module(items=items, span=module_span)
+
+    def _finalize_arrows(
+        self, items: List[ast.TopLevel]
+    ) -> List[ast.TopLevel]:
+        """Lift captures and prepend hoisted arrow functions.
+
+        For each pending arrow:
+          1. A free-var candidate that names a top-level function or
+             file-scope variable is a *global* reference — baked
+             normally, not captured.
+          2. Every remaining free-var candidate is an enclosing-scope
+             local → lifted to an extra trailing parameter (typed via a
+             best-effort lookup against the enclosing function's locals;
+             unknown types fall back to `int`, matching the verification
+             targets where captures are ints).
+        Then the arrow's call sites get the captured values threaded as
+        extra arguments (see _thread_arrow_captures).
+        """
+        global_names: set[str] = set()
+        for it in items:
+            name = getattr(it, "name", None)
+            if isinstance(name, str):
+                global_names.add(name)
+
+        # Map each pending arrow's synthetic name to its declared
+        # parameter types we discover from enclosing-scope decls. We
+        # don't have a typed symbol table at parse time, so capture
+        # types are resolved by scanning every function body for a
+        # `TYPE name = ...` / param declaration of the captured name.
+        capture_types = self._collect_local_decl_types(items)
+
+        for pend in self._pending_arrows:
+            captures: List[str] = []
+            for cand in pend.free_var_candidates:
+                if cand in pend.own_param_names:
+                    continue
+                if cand in global_names:
+                    continue
+                captures.append(cand)
+            for cap in captures:
+                cap_type = capture_types.get(cap, "int")
+                pend.decl.params.append(
+                    ast.Param(
+                        type_ref=ast.TypeRef(
+                            name=cap_type, type_args=[], span=pend.decl.span
+                        ),
+                        name=cap,
+                        span=pend.decl.span,
+                    )
+                )
+            if captures:
+                self.arrow_captures[pend.decl.name] = captures
+
+        # Thread captured values through arrow call sites, then prepend
+        # the hoisted declarations so they're in scope for every caller.
+        if self.arrow_captures:
+            for it in items:
+                self._thread_arrow_captures(it)
+            # Reject the unsupported pattern: a capturing arrow used as a
+            # *value* (passed to a higher-order function, returned, etc.)
+            # rather than called directly. Sutra has no closure, so the
+            # captured value cannot travel with the function reference —
+            # we refuse to miscompile and emit a clear diagnostic.
+            for it in items:
+                self._check_capturing_arrow_escapes(it)
+        hoisted = [pend.decl for pend in self._pending_arrows]
+        return hoisted + items
+
+    def _check_capturing_arrow_escapes(self, node) -> None:
+        """Diagnose a capturing arrow that escapes as a value.
+
+        A capturing arrow is safe only when every reference to its
+        hoisted name (or a `var` alias of it) sits in *callee* position
+        of a Call. Any other use — argument, return value, assignment
+        RHS, array element — would require the captured locals to travel
+        with the reference, which Sutra's closure-free model cannot do.
+        We flag it as SUT0140 so the user gets a precise message instead
+        of a runtime arity mismatch.
+        """
+        def visit(n, aliases: dict, callee_ok: set) -> None:
+            if n is None:
+                return
+            if isinstance(n, list):
+                for x in n:
+                    visit(x, aliases, callee_ok)
+                return
+            if isinstance(n, (ast.FunctionDecl, ast.MethodDecl)):
+                visit(n.body, {}, set())
+                return
+            if isinstance(n, ast.Block):
+                local = dict(aliases)
+                for stmt in n.statements:
+                    if (
+                        isinstance(stmt, ast.VarDecl)
+                        and isinstance(stmt.initializer, ast.Identifier)
+                        and stmt.initializer.name in self.arrow_captures
+                    ):
+                        # `var g = __arrow_N;` binds an alias to a
+                        # capturing arrow. The initializer reference is
+                        # allowed (the alias is resolved + threaded at
+                        # `g`'s direct call sites); exempt it here.
+                        local[stmt.name] = stmt.initializer.name
+                        ok = set(callee_ok)
+                        ok.add(id(stmt.initializer))
+                        visit(stmt, local, ok)
+                    else:
+                        visit(stmt, local, callee_ok)
+                return
+            if isinstance(n, ast.Call):
+                # The callee Identifier is an allowed reference position;
+                # mark it so the Identifier visit below doesn't flag it.
+                ok = set(callee_ok)
+                if isinstance(n.callee, ast.Identifier):
+                    ok.add(id(n.callee))
+                visit(n.callee, aliases, ok)
+                visit(n.args, aliases, callee_ok)
+                return
+            if isinstance(n, ast.Identifier):
+                capturing = (
+                    n.name in self.arrow_captures
+                    or aliases.get(n.name) in self.arrow_captures
+                )
+                if capturing and id(n) not in callee_ok:
+                    self.diagnostics.error(
+                        "a capturing arrow function cannot be used as a "
+                        "value (passed to a higher-order function, "
+                        "returned, or stored) — Sutra has no runtime "
+                        "closure, so the captured local cannot travel "
+                        "with the function reference. Call it directly, "
+                        "or pass the captured value as an explicit "
+                        "argument.",
+                        n.span,
+                        code="SUT0140",
+                    )
+                return
+            if hasattr(n, "__dataclass_fields__"):
+                for fld in n.__dataclass_fields__:
+                    visit(getattr(n, fld), aliases, callee_ok)
+
+        visit(node, {}, set())
+
+    def _collect_local_decl_types(
+        self, items: List[ast.TopLevel]
+    ) -> dict:
+        """Best-effort name→type map for capture typing.
+
+        Scans every function/method body for `VarDecl` and `Param`
+        declarations and records the declared type name. Used only to
+        give a lifted capture parameter a plausible type; the value
+        itself is threaded unchanged at the call site, so an imperfect
+        type here cannot change the runtime result — it only affects the
+        declared signature (and the verification targets all capture
+        ints)."""
+        types: dict = {}
+
+        def visit(node) -> None:
+            if node is None:
+                return
+            if isinstance(node, list):
+                for x in node:
+                    visit(x)
+                return
+            if isinstance(node, ast.Param):
+                if node.type_ref is not None:
+                    types.setdefault(node.name, node.type_ref.name)
+                return
+            if isinstance(node, ast.VarDecl):
+                if node.type_ref is not None:
+                    types.setdefault(node.name, node.type_ref.name)
+                visit(node.initializer)
+                return
+            if isinstance(node, ast.FunctionDecl):
+                visit(node.params)
+                visit(node.body)
+                return
+            if hasattr(node, "__dataclass_fields__"):
+                for fld in node.__dataclass_fields__:
+                    visit(getattr(node, fld))
+
+        for it in items:
+            visit(it)
+        return types
+
+    def _thread_arrow_captures(self, node) -> None:
+        """Append captured-local arguments at arrow call sites.
+
+        Walks a top-level item rewriting in place. Two call-site shapes
+        thread captures:
+          - `__arrow_N(args...)` — a direct call of a hoisted arrow.
+          - `g(args...)` where a `var g = __arrow_N;` alias is in scope
+            within the same function body.
+        For each, the recorded capture names are appended as extra
+        Identifier arguments (the captured locals are in scope at the
+        call site by construction). Arrow values passed to a higher-
+        order function are NOT threaded — Sutra has no closure, so the
+        captured value cannot travel with the reference; that case is
+        rejected at validation/codegen as a clear error, never
+        miscompiled. (See planning/open-questions/function-taxonomy-
+        and-closure.md and the test boundary in test_arrow_functions.)
+        """
+        # Per-body alias map: local name → hoisted arrow name.
+        def rewrite(n, aliases: dict) -> None:
+            if n is None:
+                return
+            if isinstance(n, list):
+                for x in n:
+                    rewrite(x, aliases)
+                return
+            if isinstance(n, ast.FunctionDecl):
+                # A fresh alias scope per function body.
+                rewrite(n.body, {})
+                return
+            if isinstance(n, ast.MethodDecl):
+                rewrite(n.body, {})
+                return
+            if isinstance(n, ast.Block):
+                # Collect aliases declared in this block as we walk it.
+                local = dict(aliases)
+                for stmt in n.statements:
+                    if (
+                        isinstance(stmt, ast.VarDecl)
+                        and isinstance(stmt.initializer, ast.Identifier)
+                        and stmt.initializer.name in self.arrow_captures
+                    ):
+                        local[stmt.name] = stmt.initializer.name
+                    rewrite(stmt, local)
+                return
+            if isinstance(n, ast.Call):
+                rewrite(n.callee, aliases)
+                rewrite(n.args, aliases)
+                callee = n.callee
+                if isinstance(callee, ast.Identifier):
+                    arrow_name = callee.name
+                    if arrow_name not in self.arrow_captures:
+                        arrow_name = aliases.get(callee.name)
+                    if arrow_name in self.arrow_captures:
+                        for cap in self.arrow_captures[arrow_name]:
+                            n.args.append(
+                                ast.Identifier(name=cap, span=n.span)
+                            )
+                return
+            if hasattr(n, "__dataclass_fields__"):
+                for fld in n.__dataclass_fields__:
+                    rewrite(getattr(n, fld), aliases)
+
+        rewrite(node, {})
 
     # ================================================================
     # Token stream helpers
@@ -2235,6 +2606,20 @@ class Parser:
     def _parse_paren_or_cast(self) -> ast.Expr:
         # Save state so we can rewind if the cast attempt fails.
         save = self._pos
+
+        # Arrow function? `(params) => expr` or `(params) => { ... }`.
+        # Sutra has no runtime closures: an arrow is desugared at parse
+        # time into a hoisted top-level function (`__arrow_N`) and this
+        # expression position is replaced by an Identifier referencing
+        # that name. We try the arrow parse first (with rewind on
+        # failure) because a parameter list — `(int x)` — also looks
+        # like the start of a cast or a parenthesized expression until
+        # the `=>` is seen.
+        arrow = self._try_parse_arrow()
+        if arrow is not None:
+            return arrow
+        self._pos = save
+
         lparen = self._advance()  # (
 
         # Try to read a type followed by `)` followed by a token that
@@ -2263,6 +2648,122 @@ class Parser:
         return ast.Parenthesized(
             inner=inner,
             span=SourceSpan(start=lparen.span.start, end=end),
+        )
+
+    def _try_parse_arrow(self) -> Optional[ast.Expr]:
+        """Try to parse `(params) [: Type] => body` at the current `(`.
+
+        Returns an `Identifier` referencing the hoisted synthetic
+        function on success, or None (without consuming, the caller
+        rewinds) if the tokens are not an arrow. The body is either a
+        single expression (`=> x * 2`) or a statement block
+        (`=> { return x + 1; }`).
+
+        The arrow is desugared immediately into a synthetic top-level
+        `FunctionDecl` buffered in self._pending_arrows; capture
+        resolution and call-site threading happen in parse_module()
+        once all globals are known. No runtime closure is created.
+        """
+        start_span = self._current_span()
+        if not self._check(TokenKind.LPAREN):
+            return None
+        save = self._pos
+        self._advance()  # (
+
+        # Parse a parameter list, but tolerate failure quietly: a plain
+        # parenthesized expression or a cast also starts with `(`, so we
+        # must not emit diagnostics here. We re-implement the param walk
+        # rather than calling _parse_param_list (which reports errors).
+        params: List[ast.Param] = []
+        if not self._check(TokenKind.RPAREN):
+            while True:
+                p_start = self._current_span()
+                type_ref = self._parse_type()
+                if type_ref is None:
+                    self._pos = save
+                    return None
+                if not self._check(TokenKind.IDENT):
+                    self._pos = save
+                    return None
+                name_tok = self._advance()
+                params.append(
+                    ast.Param(
+                        type_ref=type_ref,
+                        name=name_tok.lexeme,
+                        span=SourceSpan(start=p_start.start, end=name_tok.span.end),
+                    )
+                )
+                if self._check(TokenKind.COMMA):
+                    self._advance()
+                    continue
+                break
+        if not self._check(TokenKind.RPAREN):
+            self._pos = save
+            return None
+        self._advance()  # )
+
+        # Optional return-type annotation: `(int x) : vector => ...`.
+        return_type: Optional[ast.TypeRef] = None
+        if self._check(TokenKind.COLON):
+            save_colon = self._pos
+            self._advance()
+            return_type = self._parse_type()
+            if return_type is None:
+                self._pos = save
+                return None
+
+        if not self._check(TokenKind.FAT_ARROW):
+            # Not an arrow after all — rewind so the caller can parse a
+            # cast or parenthesized expression instead.
+            self._pos = save
+            return None
+        self._advance()  # =>
+
+        # Default return type when unannotated. The verification targets
+        # return ints; an unannotated arrow whose body is a vector
+        # operation would need an explicit `: vector` annotation.
+        if return_type is None:
+            return_type = ast.TypeRef(
+                name="int", type_args=[], span=start_span
+            )
+
+        # Parse the body: a block `{ ... }` or a single expression.
+        if self._check(TokenKind.LBRACE):
+            body = self._parse_block()
+            if body is None:
+                return ast.Identifier(name="<error>", span=start_span)
+            free_src = body
+        else:
+            expr = self._parse_expr()
+            ret = ast.ReturnStmt(value=expr, span=expr.span)
+            body = ast.Block(statements=[ret], span=expr.span)
+            free_src = body
+
+        name = f"__arrow_{self._arrow_counter}"
+        self._arrow_counter += 1
+        end_pos = body.span.end
+        decl = ast.FunctionDecl(
+            modifiers=ast.Modifiers(),
+            return_type=return_type,
+            name=name,
+            type_params=[],
+            params=params,
+            body=body,
+            is_operator=False,
+            span=SourceSpan(start=start_span.start, end=end_pos),
+        )
+        own_param_names = [p.name for p in params]
+        free_vars = _collect_arrow_free_vars(free_src)
+        self._pending_arrows.append(
+            _PendingArrow(
+                decl=decl,
+                own_param_names=own_param_names,
+                free_var_candidates=free_vars,
+            )
+        )
+        return ast.Identifier(
+            name=name,
+            span=SourceSpan(start=start_span.start, end=end_pos),
         )
 
     def _try_parse_type_for_cast(self) -> Optional[ast.TypeRef]:
