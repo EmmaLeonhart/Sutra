@@ -35,7 +35,7 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 | Path | What's there |
 |---|---|
 | `sdk/sutra-compiler/` | The compiler. `sutra_compiler/` is the Python package; `tests/` is the test suite; `stdlib/` holds the `.su` standard library that gets inlined into user code. |
-| `sdk/sutra-from-ts/` | The TypeScript→Sutra transpiler — Yantra's downstream gate (21 fixtures). |
+| `sdk/sutra-from-ts/` | The TypeScript→Sutra transpiler — the desktop-I/O-layer (Sutra for Windows) gate (21 fixtures). |
 | `sdk/sutra-from-{ocaml,rust,scala,clojure,elixir,erlang,fsharp,haskell,c}/` | Additional language frontends, in active development — each a fixture-tested lowering pass that compiles AND runs its fixtures on the substrate against ground truth. Maturity (fixtures, 2026-06-19; counts churn — see each frontend's README/tests): OCaml 61 (the reference frontend), Fsharp 31, Elixir 31, Haskell 28, Rust 25, Erlang 25, Clojure 24, Scala 21, C 2 (parked). All nine share the same lowering shapes — functions → `function`, `if`/`match` → defuzz blend, tail recursion → `while_loop`, foldable non-tail recursion → CPS accumulator trampoline. The "TS is the sole transpiler" framing is retired. |
 | `sdk/intellij-sutra/` | IntelliJ plugin (syntax highlighting, completion, external annotator, settings). |
 | `sdk/vscode-sutra/` | VS Code extension (TextMate grammar, snippets). |
@@ -88,7 +88,7 @@ The full rules are in `CLAUDE.md` §"Workflow Rules". Short version:
 ## What this repo is *not* for
 
 - Reading the website. The website is for humans at `sutra.topazcomputing.com`; agents read the repo Markdown directly.
-- Implementing Yantra (the Sutra-based OS). That has its own repo at `../Yantra/`. Yantra is downstream of Sutra and of the TypeScript transpiler (its GUI gate) — it does not live here.
+- Implementing **Sutra for Windows** (Sutra's desktop I/O layer — the GUI/window/clicks/paint surface plus the I/O orchestrator). It is vendored in-tree at `external/Yantra/` (the directory keeps the legacy name for now) and is gated by the TypeScript transpiler — but it is I/O, not the language, so it is not the focus of work here.
 
 ## When in doubt
 

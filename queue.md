@@ -40,44 +40,39 @@ email-dedup, and the paper Background→Preliminaries refactor (after Related Wo
 the Shaw et al. citation) — is all shipped and lives in `DEVLOG.md`, `git log`, and `planning/findings/`.
 When starting fresh, pull the next genuinely-unblocked item from `todo.md`.
 
-## Stuff to do
+## ACTIVE
 
-So I am editing this on GitHub separately, but just keep in mind it's because of the fact that it's a bit unsafe to insert while you are also editing the queue. Just think of this as being an insertion but also a change of the parked to formerly parked thing in the queue. 
+### Version reconciliation + v1.0.0 decision (Emma 2026-06-21 audit)
 
-I am very confused as to why it is that we are not at v1.0.0 yet. Is there a technical reason in documentation? Is Sutra just not usable yet based on your judgment?
-
-Do an audit to figure this stuff out.
-
-Also check whatever is going on in [[#Formerly parked]] Audit whether those things are done or not, and if they are done then remove them and if not then implement them
-
-Yantra is kinda not a thing anymore so weird that it is referenced. We are just doing desktop io for Sutra. Anynthing that is called Yantra here is just io stuff or the legacy imported content. But def we are moving away from calling it Yantra. It is now Sutra for Windows.
-
-But yeah, I think that most of the stuff here is just kind of absent. Most of it in this section is just kind of absent. This, and the formerly parked stuff, might have just been added to the queue based off of some improperly done pull request or something like that. I want you to specifically audit the stuff. 
-
-
-Once you have finished this stuff up, with finishing the paper and the formerly parked stuff and things like that, I think we're probably going to be able to have our actual proper version one. I'm not really entirely sure, because I don't really know what the actual judgement is for why we're not at version one. Even if we can't get to version one right now, unless a new version was pretty recent, we're probably at a point where we can move on beyond whatever version we're on right now.
-
-Our releases: I'm not sure how well we're doing our releases, but I think we might have been a bit too conservative with them. Yeah, an audit after the paper's done and the stuff to do is done, and we've barreled through the formerly parked and stuff like that, we're going to be seeing if we can just do v1. 
+Audit finding: the version sources DISAGREE — `sdk/sutra-compiler/pyproject.toml` = `0.7.0`,
+`sutra_compiler/__init__.py` = `0.7.1`, latest annotated git tag = **`v0.9.0`** (2026-06-18); the PyPI
+publish path (`publish-sutra-compiler.yml`, fires on `sutra-dev-v*` tags) only ever got
+`sutra-dev-v0.2.0`, so it's dormant. There is **no documented HARD blocker to v1.0.0** — the only stated
+reason is `sdk/sutra-compiler/README.md` ("research-grade; versions before 1.0 may break source
+compatibility; the grammar is stable, codegen + stdlib still move") + the `3 - Alpha` classifier. Sutra is
+functional (compiler suite + demos + transpilers + examples all green). **Action (gated on Emma's release
+call):** reconcile the three version numbers to one, and decide v1.0.0 vs a consistent v0.9.x. Full audit
+in chat + DEVLOG (2026-06-21).
 
 ---
 
-## Formerly parked
+## PARKED — real but gated (cannot implement on this clone)
 
-- **await Stage-2 — full gated `while_loop` with a LIVE external-axon producer — Yantra-I/O-gated.**
+_2026-06-21 audit: these are real, not phantom-PR. The async/await Stage-1 item was RETIRED (its
+"only-tail-position-works / model-blocked" premise is now false — mid-function await shipped 2026-06-20).
+The rest are genuinely gated on resources this clone lacks._
+
+- **await Stage-2 — full gated `while_loop` with a LIVE external producer — desktop-I/O-gated.**
   The await CORE shipped 2026-06-20 (mid-function lowering + Promises/A+ rejection propagation, substrate-
-  pure). What remains is the poll loop spinning on a promise an EXTERNAL producer resolves over time — i.e.
-  the orchestrator (Yantra) writing the resolved value into the awaited axon. `await_value` stays the
-  β-reduced no-producer form until there's a real producer to test against. Also: awaits buried in nested
-  control-flow still fall through to the codegen rejection. Resume when wiring Yantra's promise producer.
-- **(historical) Full async/await Stage-1 desugar — was DESIGN-BLOCKED; the await MODEL is now settled.** First-class
-  functions (now shipped) unblock the *mechanism* (a continuation can be a hoisted function), and the gap
-  is concrete (`await` as a mid-function expr raises `CodegenNotSupported` in `codegen_base.py`; only
-  tail-position `async function … return await e` works). BUT the await *model* itself is undecided: Emma
-  2026-05-17 directed "model the awaited value as an implicit axon INPUT + an arrival-flag axis, NOT a poll
-  loop," which conflicts with `planning/sutra-spec/promises.md`'s gated-while-loop lowering. That's a
-  language-semantics decision (load-bearing, conforms to Promises/A+), not an implementation detail — so it
-  is NOT a self-direct call. Parked until the model is settled; building either lowering now risks building
-  the wrong one. (Do not queue this as a question — wait for Emma to settle the model in her own time.)
+  pure; `test_await_midfunction.py` green). What remains is the poll loop spinning on a promise an EXTERNAL
+  producer resolves over time — i.e. the I/O orchestrator (**Sutra for Windows**, the desktop-I/O layer
+  vendored in-tree at `external/Yantra/`) writing the resolved value into the awaited axon. `await_value`
+  stays the β-reduced no-producer form until there's a real producer to test against; awaits buried in
+  nested control-flow still fall through to the codegen rejection. Resume when wiring the desktop-I/O promise
+  producer. (The await *model* — Emma 2026-05-17's implicit-axon-input + arrival-flag vs `promises.md`'s
+  gated-while-loop — is still unsettled in the spec, but only governs this unbuilt producer path, not the
+  shipped core. The old "async/await Stage-1 desugar" item was retired here: mid-function await shipped, so
+  its "only-tail-position-works" premise is false.)
 - **§1C steps 3 & 4 — per-process CUDA isolation + CUDA-IPC codebook sharing.** Need a Linux/CUDA box;
   unverifiable on this Windows clone (no CUDA IPC). The portable core is done + validated. Resume when a
   CUDA environment is available; until then writing the code would ship unverified substrate work.
@@ -94,7 +89,8 @@ Our releases: I'm not sure how well we're doing our releases, but I think we mig
   Open design questions: `planning/open-questions/`. Devlog: `DEVLOG.md`.
 - Transpiler edge cases (low-value, leave-on-WASM-fallback): `planning/wasm-fallback-edge-cases.md`.
 - Corpus: `github.com/EmmaLeonhart/sutra-w2c-corpus` (submodule `corpus/`) + HF mirror.
-- Yantra (downstream OS): vendored in-tree at `external/Yantra/`.
+- Sutra for Windows (the desktop-I/O layer, formerly called "Yantra"): vendored in-tree at `external/Yantra/`
+  (directory keeps the legacy name for now).
 
 ## Session bracket
 

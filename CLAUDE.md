@@ -95,45 +95,42 @@ Emma designed Sutra and knows its mechanisms far better than any agent landing i
 3. **If it seems not to compose, the gap is usually a missing primitive to expose, not a wrong idea.**
 4. **Substituting your own variant for Emma's stated method is the anti-pattern** — especially on Sutra internals, where she has ground truth and you do not.
 
-## Cross-repo workflow: Sutra ↔ Yantra
+## Sutra for Windows — the desktop I/O layer
 
-Sutra is consumed downstream by **Yantra** (the GPU-native OS built in Sutra).
-**As of 2026-06-16 Yantra is being deprecated as an independent repo and vendored in-tree**
-as a shallow subtree at `external/Yantra/` (squashed from `EmmaLeonhart/Yantra` main, website
-stripped; gitignored-no-more — it is committed here). Its runtime references to the Sutra SDK
-are rewired to this repo's `sdk/sutra-compiler` (no submodule recursion). Historically Yantra
-pinned this repo as a git submodule at its own `external/Sutra`; that relationship is winding
-down as the two merge. Commit messages mentioning Yantra are the workflow operating as designed.
+Sutra's desktop I/O layer is **Sutra for Windows**: the GUI/window/clicks/paint surface
+plus the I/O orchestrator that feeds external axons/promises and handles RAM I/O. It is no
+longer framed as a separate "GPU-native OS" downstream of Sutra — it is Sutra's own desktop
+front-end. **As of 2026-06-16 it is vendored in-tree** as a shallow subtree at `external/Yantra/`
+(the directory keeps the old `Yantra` name for now — it is the legacy imported content; squashed
+from the old upstream main, website stripped; committed here, not gitignored). Its runtime
+references to the Sutra SDK are rewired to this repo's `sdk/sutra-compiler` (no submodule
+recursion). Commit messages mentioning Yantra are the workflow operating as designed.
 
 **Division of responsibility:**
-- **Yantra** — kernel orchestration (`kernel/`, axon router, storage tiers,
-  capability checks, FS bridge, GUI/browser stack, Yantra paper).
+- **Sutra for Windows** (the desktop I/O layer, in-tree at `external/Yantra/`) — I/O
+  orchestration: GUI host surfaces (window/clicks/paint), the orchestrator that resolves
+  promises and external axons, RAM I/O, FS bridge, the browser/GUI stack.
 - **Sutra (this repo)** — the language itself. `sdk/sutra-compiler/`, the
   language frontends `sdk/sutra-from-{ts,ocaml,rust,scala,clojure,elixir,erlang,fsharp,haskell,c}/`
   (each a fixture-tested, substrate-verified lowering pass; OCaml is the reference,
-  TS is Yantra's gate, C is parked), lowering passes, axon spec, multi-process
+  TS is the desktop-I/O gate, C is parked), lowering passes, axon spec, multi-process
   runtime, runtime ABI.
 
-**GUI integration — the substrate window in the orchestrator.** Yantra `apps/` GUI entries are
-host surfaces over substrate compute: a surface spawns a Sutra substrate-server and does only
-window/clicks/paint. The trainable click-button rides this pattern end-to-end:
+**GUI integration — the substrate window in the orchestrator.** Sutra-for-Windows `apps/` GUI
+entries are host surfaces over substrate compute: a surface spawns a Sutra substrate-server and
+does only window/clicks/paint. The trainable click-button rides this pattern end-to-end:
 `demos/gui/button_substrate_server.py` (the Sutra-side stdin/stdout bridge over `ButtonAdam`) is
-spawned by `external/Yantra/apps/gui-button/button_surface.py` (the Yantra host surface), which
+spawned by `external/Yantra/apps/gui-button/button_surface.py` (the host surface), which
 forwards owner A/B preferences + visitor clicks and paints the substrate-rendered button — the
-owner×CTR steering and the render run on the substrate; the host is I/O. (The Yantra-side
-prose under `external/Yantra/` still describes the old `external/Sutra` submodule pin in places
-— stale since the in-tree merge; cosmetic.)
+owner×CTR steering and the render run on the substrate; the host is I/O. (The prose under
+`external/Yantra/` still describes the old `external/Sutra` submodule pin in places — stale
+since the in-tree merge; cosmetic.)
 
-**Rules that bind regardless of who's driving the change** — when a Yantra-driven
+**Rules that bind regardless of who's driving the change** — when a desktop-I/O-driven
 session edits Sutra source, the rules in this file still apply: integrity /
 substrate-correctness (top of file); NO MATH SHORTCUTS; Workflow Rules
 (commit+push immediately, plan-into-queue.md-first, no local-only work — this
 repo's queue.md is the one that binds when editing this repo).
-
-**Release vs. push:** tag a release when Yantra needs to depend on a specific
-Sutra version (new extra, new public API, bug fix affecting Yantra tests);
-Yantra pins to the tag. Just push to master for docs/refactor — Yantra can bump
-its submodule pointer to HEAD without a release ceremony.
 
 ## Paper
 
@@ -216,14 +213,14 @@ Stop. Report what actually executed, including negative findings. Reference the 
 ### Subtler substrate breaches — measurement-required (Emma 2026-05-28)
 
 Three failure modes the "every op runs on the substrate" check does NOT
-catch. The Yantra OS attempt (paused 2026-05-28 — see `DEVLOG.md`) shipped
+catch. The desktop-I/O-layer attempt (paused 2026-05-28 — see `DEVLOG.md`) shipped
 all three as "substrate-pure" for weeks. Dispatch-level cleanliness is
 necessary, not sufficient — these three are the sufficient set.
 The FV paper §4.4 names this rule formally.
 
 **1. Dimension audit.** If a `.su` has zero `basis_vector` calls, the LLM
 codebook is unused — `runtime_dim` can drop from the default 868 to ~108
-or ~16 with no loss of correctness. Yantra apps ran at 768 despite zero
+or ~16 with no loss of correctness. The desktop-I/O apps ran at 768 despite zero
 basis_vector calls; 96× cost paid silently for weeks. **Rule:** count
 `basis_vector` calls and pick the smallest `runtime_dim` the task needs.
 
@@ -233,12 +230,12 @@ between calls, is **NOT an RNN** — the recurrence lives in a Python
 variable. **Rule:** for any claim of "recurrent" / "RNN" / "substrate-pure
 state," the state MUST be a vector surviving across calls without host
 `real()` extraction. `make_real(scalar) → host → real(...)` per tick is
-a counter, not an RNN. Yantra `count.su` / `toggle.su` / `font_demo`
+a counter, not an RNN. The desktop-I/O `count.su` / `toggle.su` / `font_demo`
 `cycle_step` wore the RNN label until 2026-05-28 corrected the framing.
 
 **3. Signal-separation audit.** A substrate function can return numbers
 via `make_real(some_op(...))` while the numbers fail to distinguish the
-classes the function is supposed to distinguish. First Yantra `font_bound`
+classes the function is supposed to distinguish. The first `font_bound`
 encoding (`bundle(bind(p,LIT)/(p,UNLIT))`): lit and unlit cell cosines
 OVERLAPPED at every `runtime_dim` 16..256. **Rule:** every substrate
 classifier ships with a measured `gap = min(positive_class) -
