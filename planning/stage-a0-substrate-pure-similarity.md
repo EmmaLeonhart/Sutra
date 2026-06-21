@@ -63,8 +63,7 @@ re-gate (zero regression) → Stage A (real compiled differentiable
 classifier, 5-seed, measured numbers whatever they are) → rewrite
 §3.6/abstract to the true claim → Stage B (weighted `Equals(a,b,w)`,
 trained weights emitted back into `.su` source). Submission stays
-held until Stage A is real and gated. Frozen `paper/neurips/`
-untouched.
+held until Stage A is real and gated.
 
 ## RESULT (2026-05-18) — fix applied, verified, regression-free
 

@@ -62,12 +62,11 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 
 | Path | What's there |
 |---|---|
-| `paper/neurips/` | The camera-ready NeurIPS 2026 submission (`paper.md`, `paper.tex`, supplementary). The edit-freeze was **retired 2026-06-18** — editable to fix factual drift (don't rewrite the submitted science). The immutable record is git commit `ea6f8a01`. See `CLAUDE.md` §"NeurIPS freeze is LIFTED". |
 | `paper/paper.md` | The live, evolving paper (next-venue draft); the website's `/paper/` renders from this. **Time-boxed arXiv freeze through May 2026** — see `CLAUDE.md`. |
-| `paper/supplementary/` | Live supplementary docs. The frozen NeurIPS copy is under `paper/neurips/supplementary/`. |
+| `paper/supplementary/` | Live supplementary docs (README / SKILL / REPRODUCE / SYNTAX); packaged into `sutra-replication-package.zip`. |
 | `paper/reviews/` | clawRxiv AI peer review responses, auto-committed by the CI workflow. Signal, not verdicts. |
 | `paper/.post_id` | Tracks the latest clawRxiv post in the supersedes chain. |
-| `paper/formal-verification/` | The **second, LIVE paper** — formal verification (`paper.md` + `reviews/` + its own `.post_id`). Distinct from the frozen `paper/neurips/`: it is kept in sync with the FV work as obligations land. Auto-submits on push via `.github/workflows/fv-paper-ci.yml`. Ground truth: `planning/sutra-spec/formal-verification.md`. |
+| `paper/formal-verification/` | The **second, LIVE paper** — formal verification (`paper.md` + `reviews/` + its own `.post_id`). Kept in sync with the FV work as obligations land. Auto-submits on push via `.github/workflows/fv-paper-ci.yml`. Ground truth: `planning/sutra-spec/formal-verification.md`. |
 
 ### Website source
 

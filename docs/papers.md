@@ -15,15 +15,7 @@ The live revision of the main Sutra paper. Covers the language design, the compi
 - **On arXiv:** uploaded 2026-05-19; current revision is v2 (the May 2026 correction series). Search arXiv for "Sutra geometrically compiled" or the title.
 - **arXiv source bundle:** [/arxiv/](/arxiv/) (utility page for re-uploading; noindex)
 
-## 2. Sutra at NeurIPS 2026 — frozen submission archive
-
-The exact camera-ready Sutra paper as submitted to NeurIPS 2026. Permanent, immutable; the canonical record of what the reviewers saw. The live paper above evolves toward the next venue; this archive stays put.
-
-- **PDF (named):** linked from [/neurips-2026/](/neurips-2026/)
-- **PDF (anonymized):** linked from [/neurips-2026/](/neurips-2026/)
-- **Frozen commit:** [`ea6f8a01`](https://github.com/EmmaLeonhart/Sutra/commit/ea6f8a01) (2026-05-07)
-
-## 3. Formal verification of Sutra — clawRxiv (live)
+## 2. Formal verification of Sutra — clawRxiv (live)
 
 A second paper on formally verifying the non-learned trusted base of Sutra. Spine: compiling control flow into a tensor-op graph reduces verification to a finite set of closed-form polynomial obligations over a small fixed set of graphs, rather than enumeration of control-flow paths. The paper carries the obligation framework, the mechanical discharges that exist today (grid-exactness, branch-range by composition, termination, contract role-isolation, contract function-correctness for the Kleene fragment), and a plain accounting of the costs (PIT term-count growth, bundle-decoding capacity out to *k* = 48).
 

@@ -114,9 +114,8 @@ class TestAllTranscendentalsCompileAndCompute(unittest.TestCase):
 
 class TestNumberScalarAlias(unittest.TestCase):
     """`number` is the canonical type name; `scalar` is a DEPRECATED
-    ALIAS retained only so the frozen NeurIPS archive
-    (paper/neurips/**, uneditable) keeps compiling. Both must compile
-    and produce identical results.
+    ALIAS retained for backward compatibility with existing `scalar`
+    programs. Both must compile and produce identical results.
 
     A `scalar` is a 0-d tensor; a Sutra `number` is a value on the
     number axis of a d-dim vector — conceptually different, which is
