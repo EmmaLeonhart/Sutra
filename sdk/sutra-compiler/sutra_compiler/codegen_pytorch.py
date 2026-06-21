@@ -1029,6 +1029,35 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.value(p)")
         self._indent -= 1
         self._emit()
+        self._emit("def propagate(self, awaited, result):")
+        self._indent += 1
+        self._emit('"""Rejection propagation — promises.md §"Rejection propagation".')
+        self._emit("")
+        self._emit("`vector v = await awaited; ... return result` must reject when")
+        self._emit("`awaited` rejected, carrying awaited's reason, WITHOUT running the")
+        self._emit("post-await code's fulfilment. The spec says: the surrounding loop")
+        self._emit("checks the awaited input's rejected channel; if set, the")
+        self._emit("surrounding loop rejects with the same reason and the post-await")
+        self._emit("result is discarded.")
+        self._emit("")
+        self._emit("Substrate-pure blend, no host branch / no .item():")
+        self._emit("  rej = tanh(k * awaited[AXIS_PROMISE_REJECTED])   # ~1 if rejected")
+        self._emit("  reject_branch = reject(reason(awaited))          # same reason")
+        self._emit("  return (1 - rej) * result + rej * reject_branch")
+        self._emit("The tanh(k=50) polarizer mirrors the try/catch blend so a")
+        self._emit("rejected=1 input selects the reject branch entirely and a")
+        self._emit("rejected=0 input selects the fulfilled `result` entirely. Both")
+        self._emit("branches are evaluated (no early exit) — the blend decides which")
+        self._emit("survives. The reject branch's AXIS_PROMISE_REJECTED is 1 and")
+        self._emit("AXIS_PROMISE_FULFILLED is 0, so the blended promise's channels")
+        self._emit("polarize correctly: a rejected await yields rejected≈1, fulfilled≈0.")
+        self._emit('"""')
+        self._emit("rej = _torch.tanh(50.0 * "
+                   "awaited[self.semantic_dim + self.AXIS_PROMISE_REJECTED])")
+        self._emit("reject_branch = self.reject(self.reason(awaited))")
+        self._emit("return (1.0 - rej) * result + rej * reject_branch")
+        self._indent -= 1
+        self._emit()
         # ---- Axon runtime methods ----
         # Axons share the substrate operations of the rotation hashmap
         # (an axon is a bundle of bind(role, value) terms over a

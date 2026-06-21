@@ -61,14 +61,139 @@ def desugar_promises(module: ast.Module) -> ast.Module:
     return module
 
 
+class _AwaitHoister:
+    """Per-function state for the await → propagate lowering.
+
+    Walks a straight-line statement list, hoisting each `await x` into a
+    fresh temp Promise VarDecl (`Promise _await_pN = x;`) emitted before
+    the statement that contained the await, and replacing the await
+    in-place with `Promise.await_value(_await_pN)`. The ordered list of
+    hoisted temp names is then folded into every `return` so that any
+    awaited promise which rejected propagates its rejection through the
+    surrounding promise (promises.md §"Rejection propagation").
+    """
+
+    def __init__(self) -> None:
+        self._counter = 0
+        # Temps awaited so far in the current straight-line scope, in
+        # source order. Returns fold propagate(...) over all of them.
+        self._awaited_temps: list[str] = []
+
+    def _fresh(self) -> str:
+        name = f"_await_p{self._counter}"
+        self._counter += 1
+        return name
+
+    def lower_block(self, block: ast.Block) -> ast.Block:
+        out: list[ast.Stmt] = []
+        for stmt in block.statements:
+            out.extend(self._lower_stmt(stmt))
+        return ast.Block(statements=out, span=block.span)
+
+    def _lower_stmt(self, stmt: ast.Stmt) -> list[ast.Stmt]:
+        """Lower one statement, returning the (possibly multiple)
+        statements that replace it — hoisted await-temp decls plus the
+        rewritten statement."""
+        if isinstance(stmt, ast.ReturnStmt):
+            if stmt.value is None:
+                return [stmt]
+            hoists, new_value = self._extract_awaits(stmt.value)
+            if not _is_already_promise(new_value):
+                new_value = _wrap_in_promise_resolve(new_value, stmt.span)
+            # Fold rejection-propagation over every awaited temp in scope
+            # (outermost wrap = first-awaited temp): if any awaited
+            # promise rejected, the surrounding promise rejects.
+            for temp in reversed(self._awaited_temps):
+                new_value = _wrap_in_propagate(temp, new_value, stmt.span)
+            return [*hoists, ast.ReturnStmt(value=new_value, span=stmt.span)]
+        if isinstance(stmt, ast.VarDecl):
+            if stmt.initializer is None:
+                return [stmt]
+            hoists, new_init = self._extract_awaits(stmt.initializer)
+            new_decl = ast.VarDecl(
+                is_const=stmt.is_const,
+                is_var_inferred=stmt.is_var_inferred,
+                type_ref=stmt.type_ref,
+                name=stmt.name,
+                initializer=new_init,
+                is_role=stmt.is_role,
+                is_var_colon=stmt.is_var_colon,
+                array_size=stmt.array_size,
+                is_slot=stmt.is_slot,
+                span=stmt.span,
+            )
+            return [*hoists, new_decl]
+        if isinstance(stmt, ast.ExprStmt):
+            hoists, new_expr = self._extract_awaits(stmt.expr)
+            return [*hoists, ast.ExprStmt(expr=new_expr, span=stmt.span)]
+        # Anything else (control-flow bodies, slot decls, loop calls) —
+        # pass through. An await surviving inside such a statement still
+        # falls through to the codegen rejection, which points at the spec.
+        return [stmt]
+
+    def _extract_awaits(self, expr: ast.Expr) -> tuple[list[ast.Stmt], ast.Expr]:
+        """Walk `expr`, hoisting every `await x` into a fresh temp decl
+        and replacing it with `Promise.await_value(temp)`. Returns the
+        list of hoist decls (in source order) and the rewritten expr."""
+        hoists: list[ast.Stmt] = []
+
+        def walk(e: ast.Expr) -> ast.Expr:
+            if isinstance(e, ast.AwaitExpr):
+                # Recurse first (await await x — uncommon but legal), so
+                # the inner promise's own awaits hoist ahead of this one.
+                inner = walk(e.operand)
+                temp = self._fresh()
+                # Promise _await_pN = <inner promise expr>;
+                hoists.append(ast.VarDecl(
+                    is_const=False,
+                    is_var_inferred=False,
+                    type_ref=ast.TypeRef(name="Promise", type_args=[],
+                                         span=e.span),
+                    name=temp,
+                    initializer=inner,
+                    span=e.span,
+                ))
+                self._awaited_temps.append(temp)
+                # await x → Promise.await_value(_await_pN)
+                return _wrap_in_promise_value(
+                    ast.Identifier(name=temp, span=e.span), e.span)
+            if isinstance(e, ast.Call):
+                return ast.Call(
+                    callee=walk(e.callee),
+                    type_args=e.type_args,
+                    args=[walk(a) for a in e.args],
+                    span=e.span,
+                )
+            if isinstance(e, ast.BinaryOp):
+                return ast.BinaryOp(
+                    op=e.op, left=walk(e.left), right=walk(e.right),
+                    span=e.span)
+            if isinstance(e, ast.UnaryOp):
+                return ast.UnaryOp(op=e.op, operand=walk(e.operand),
+                                   span=e.span)
+            if isinstance(e, ast.MemberAccess):
+                return ast.MemberAccess(obj=walk(e.obj), member=e.member,
+                                        span=e.span)
+            if isinstance(e, ast.Subscript):
+                return ast.Subscript(target=walk(e.target),
+                                     index=walk(e.index), span=e.span)
+            return e
+
+        new_expr = walk(expr)
+        return hoists, new_expr
+
+
 def _desugar_async_function(decl: ast.FunctionDecl) -> ast.FunctionDecl:
     """Lower an async function's body into a non-async equivalent.
 
-    Walks every statement, replacing `await x` with `Promise.value(x)`
-    and wrapping bare return values with `Promise.resolve(...)`.
+    Walks every statement, hoisting `await x` into a temp Promise and
+    replacing it with `Promise.await_value(temp)`, wrapping bare return
+    values with `Promise.resolve(...)`, and folding
+    `Promise.propagate(temp, ...)` over every awaited promise so a
+    rejected await propagates its rejection (promises.md §"Rejection
+    propagation").
     """
-    new_stmts = [_lower_stmt(s) for s in decl.body.statements]
-    new_body = ast.Block(statements=new_stmts, span=decl.body.span)
+    new_body = _AwaitHoister().lower_block(decl.body)
     return ast.FunctionDecl(
         modifiers=decl.modifiers,
         return_type=decl.return_type,
@@ -84,93 +209,17 @@ def _desugar_async_function(decl: ast.FunctionDecl) -> ast.FunctionDecl:
     )
 
 
-def _lower_stmt(stmt: ast.Stmt) -> ast.Stmt:
-    """Recursively rewrite a statement, lowering AwaitExpr inside it."""
-    if isinstance(stmt, ast.ReturnStmt):
-        if stmt.value is None:
-            return stmt
-        new_value = _lower_expr(stmt.value)
-        # Wrap the return value in Promise.resolve(...) unless it's
-        # already a Promise.* call (Promise.resolve / Promise.reject /
-        # a recursive async function call returning Promise<T>).
-        if not _is_already_promise(new_value):
-            new_value = _wrap_in_promise_resolve(new_value, stmt.span)
-        return ast.ReturnStmt(value=new_value, span=stmt.span)
-    if isinstance(stmt, ast.VarDecl):
-        if stmt.initializer is None:
-            return stmt
-        new_init = _lower_expr(stmt.initializer)
-        return ast.VarDecl(
-            is_const=stmt.is_const,
-            is_var_inferred=stmt.is_var_inferred,
-            type_ref=stmt.type_ref,
-            name=stmt.name,
-            initializer=new_init,
-            is_role=stmt.is_role,
-            is_var_colon=stmt.is_var_colon,
-            array_size=stmt.array_size,
-            is_slot=stmt.is_slot,
-            span=stmt.span,
-        )
-    if isinstance(stmt, ast.ExprStmt):
-        return ast.ExprStmt(expr=_lower_expr(stmt.expr), span=stmt.span)
-    # Anything else (slot decls, loop calls, etc.) — pass through. The
-    # codegen rejection still fires if it contains an unhandled await.
-    return stmt
-
-
-def _lower_expr(expr: ast.Expr) -> ast.Expr:
-    """Recursively rewrite an expression, replacing AwaitExpr with
-    Promise.value(...) calls."""
-    if isinstance(expr, ast.AwaitExpr):
-        # `await x` → `Promise.value(x)`. The inner x is also walked,
-        # in case there are nested awaits (await await x — uncommon but
-        # legal).
-        inner = _lower_expr(expr.operand)
-        return _wrap_in_promise_value(inner, expr.span)
-    if isinstance(expr, ast.Call):
-        return ast.Call(
-            callee=_lower_expr(expr.callee),
-            type_args=expr.type_args,
-            args=[_lower_expr(a) for a in expr.args],
-            span=expr.span,
-        )
-    if isinstance(expr, ast.BinaryOp):
-        return ast.BinaryOp(
-            op=expr.op,
-            left=_lower_expr(expr.left),
-            right=_lower_expr(expr.right),
-            span=expr.span,
-        )
-    if isinstance(expr, ast.UnaryOp):
-        return ast.UnaryOp(
-            op=expr.op,
-            operand=_lower_expr(expr.operand),
-            span=expr.span,
-        )
-    if isinstance(expr, ast.MemberAccess):
-        return ast.MemberAccess(
-            obj=_lower_expr(expr.obj),
-            member=expr.member,
-            span=expr.span,
-        )
-    if isinstance(expr, ast.Subscript):
-        return ast.Subscript(
-            target=_lower_expr(expr.target),
-            index=_lower_expr(expr.index),
-            span=expr.span,
-        )
-    # Leaf nodes — Identifier, literals, etc. — pass through unchanged.
-    return expr
-
-
 def _is_already_promise(expr: ast.Expr) -> bool:
-    """True iff `expr` is a Promise.* call (resolve / reject / value).
+    """True iff `expr` already produces a Promise<T> and must not be
+    re-wrapped in Promise.resolve(...).
 
-    Used to skip the outer Promise.resolve wrap when the return
-    expression already produces a Promise<T> — `return await x;`
-    after lowering becomes `return Promise.value(x);` and we don't
-    want to re-wrap that into `Promise.resolve(Promise.value(x))`.
+    Only `Promise.resolve(...)` / `Promise.reject(...)` (and the
+    `propagate` blend, which returns a Promise) build promise-shaped
+    values. `Promise.value/.reason/.await_value` return the UNWRAPPED
+    `T` (channels zeroed), so `return await x;` — which lowers to
+    `return Promise.await_value(temp);` — DOES need the outer
+    `Promise.resolve` so the async function honours its `Promise<T>`
+    return contract.
     """
     if not isinstance(expr, ast.Call):
         return False
@@ -181,9 +230,7 @@ def _is_already_promise(expr: ast.Expr) -> bool:
         return False
     if callee.obj.name != "Promise":
         return False
-    return callee.member in (
-        "resolve", "reject", "value", "reason", "await_value",
-    )
+    return callee.member in ("resolve", "reject", "propagate")
 
 
 def _wrap_in_promise_resolve(value: ast.Expr, span) -> ast.Expr:
@@ -212,3 +259,24 @@ def _wrap_in_promise_value(promise: ast.Expr, span) -> ast.Expr:
         span=span,
     )
     return ast.Call(callee=callee, type_args=[], args=[promise], span=span)
+
+
+def _wrap_in_propagate(awaited_temp: str, result: ast.Expr, span) -> ast.Expr:
+    """Emit Promise.propagate(awaited_temp, result).
+
+    If `awaited_temp` (the promise that was `await`ed) rejected, the
+    surrounding promise rejects with the same reason and `result` is
+    discarded; otherwise `result` passes through. Substrate-pure blend
+    in the runtime — see promises.md §"Rejection propagation".
+    """
+    callee = ast.MemberAccess(
+        obj=ast.Identifier(name="Promise", span=span),
+        member="propagate",
+        span=span,
+    )
+    return ast.Call(
+        callee=callee,
+        type_args=[],
+        args=[ast.Identifier(name=awaited_temp, span=span), result],
+        span=span,
+    )
