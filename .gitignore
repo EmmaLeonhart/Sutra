@@ -164,3 +164,4 @@ experiments/_rerun3.sh
 
 # a1 GUI paper figures — build artifacts, regenerate via experiments/gui_figures.py
 paper/gui-steering/figures/
+.gstack/
