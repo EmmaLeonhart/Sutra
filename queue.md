@@ -39,14 +39,23 @@ The session's big directed legs are done + validated:
 
 ## ACTIVE — barrel top to bottom
 
-### A. First-class function values (`todo.md` §"First-class function values") — BIG leg, decompose first
+### A. First-class function values — arrow/closure path (`todo.md` §"First-class function values")
 
-The single biggest unlock: it gates the full async/await Stage-1 desugar (multi-await chains,
-`try/await/catch`), higher-order list ops (`map`/`filter`/`reduce`), AND the NTM `ramRead`/`ramWrite`
-inline surface. Today arrow functions hoist to top-level decls; a function name can't appear in a value
-position. **Before writing code: write a design/decomposition doc** (parser arrow-as-value, a function
-arrow type, codegen emitting Python closures / named-helper indirection) and split into bounded steps —
-this is explicitly "its own focused session," so prefer a worktree and small verified increments.
+**State verified 2026-06-20 by running:** passing TOP-LEVEL functions by name as values ALREADY WORKS —
+`apply(double, 5)`, `forward_diff(f, x, h)` compile + run (`first_class_functions.su` `main()` = 30.0; the
+`function`-typed param + bare-name pass is shipped). The OPEN part is **anonymous / arrow functions as
+values + closures**: `(int x) => x + 100` in value position does NOT parse (`SUT0100: expected ) ... got
+x`). That is the genuine big leg, and it gates the full async/await Stage-1 desugar (multi-await chains,
+`try/await/catch`), higher-order list ops (`map`/`filter`/`reduce`), and the NTM `ramRead`/`ramWrite`
+inline surface.
+
+**Decompose before coding** (its own focused session — prefer a worktree, small verified increments):
+(1) parser — accept `(params) => expr` / `(params) => { body }` in expression position; (2) a function
+arrow type so the type system can carry function values; (3) codegen — emit a Python closure (or
+named-helper indirection) that captures the free variables; (4) verified increments: arrow passed to an
+existing higher-order fn (`apply`), then a closure capturing an outer variable, each RUN + decoded vs
+ground truth. Free-variable capture is the hard part (Sutra "has no closure" per the 2026-05-01 taxonomy —
+reconcile with `planning/open-questions/function-taxonomy-and-closure.md` first).
 
 ### B. Measurement gates — state-locus + signal-separation (`todo.md` §"Promote the three measurement checks")
 
