@@ -30,7 +30,19 @@ def _run_main(src: str, dim: int = 256):
     py = translate_module(module, runtime_dim=dim)
     ns: dict = {}
     exec(py, ns)
-    return float(ns["main"]())
+    result = ns["main"]()
+    # Terminal/output boundary decode (mirrors __main__._decode_terminal_result).
+    # queue §C "all numbers on the substrate": the arithmetic in `classify`
+    # (`1 + w`, `* 10`, `/ 2`, and `classify(...) + classify(...)`) runs on the
+    # number axis and returns a d-dim number-vector (value on AXIS_REAL), not a
+    # 0-d scalar. Read AXIS_REAL here — the same projection the CLI display edge
+    # does; a 0-d / host scalar passes straight through.
+    vsa = ns.get("_VSA")
+    if (vsa is not None and hasattr(result, "ndim")
+            and getattr(result, "ndim", None) == 1
+            and result.shape[0] == vsa.dim):
+        return float(result[vsa.semantic_dim + vsa.AXIS_REAL])
+    return float(result)
 
 
 # classify("foo")=10 (k == "foo" true), classify("bar")=20; sum = 30.

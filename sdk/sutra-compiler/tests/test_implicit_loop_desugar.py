@@ -29,7 +29,31 @@ def _parse(src: str):
 def _run(translate_fn, src: str, fn: str = "main"):
     ns: dict = {}
     exec(translate_fn(_parse(src)), ns)
-    return ns[fn]()
+    result = ns[fn]()
+    return _decode(result, ns)
+
+
+def _decode(result, ns):
+    """Terminal/output boundary decode, mirroring __main__._decode_terminal_result.
+
+    queue §C "all numbers on the substrate": numeric arithmetic now yields a
+    d-dim number-vector (value on AXIS_REAL) instead of a host float / 0-d
+    tensor. A loop whose body is compile-time-unrolled returns that
+    number-vector directly; a runtime loop returns the 0-d slot value. Both
+    are valid number representations — read AXIS_REAL off the number-vector
+    here (the same projection the real CLI display edge does) so the test
+    harness sees the number regardless of which form the path produced. A 0-d
+    tensor / host scalar passes straight through.
+    """
+    vsa = ns.get("_VSA")
+    try:
+        import torch as _t  # noqa: F401
+        if (vsa is not None and hasattr(result, "ndim")
+                and result.ndim == 1 and result.shape[0] == vsa.dim):
+            return float(result[vsa.semantic_dim + vsa.AXIS_REAL])
+    except Exception:
+        pass
+    return result
 
 
 class TestImplicitLoopDesugar(unittest.TestCase):

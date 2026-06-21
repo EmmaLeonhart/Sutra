@@ -39,7 +39,20 @@ def _compile_and_run(translate_fn, src: str, fn_name: str):
     py = translate_fn(module)
     ns: dict = {}
     exec(py, ns)
-    return ns[fn_name]()
+    result = ns[fn_name]()
+    # Terminal/output boundary decode (mirrors __main__._decode_terminal_result).
+    # queue §C "all numbers on the substrate": `* 0.5`, `a - b`, `/` on numbers
+    # now run on the number axis and yield a d-dim number-vector (value on
+    # AXIS_REAL), so the derived transcendentals sinh/cosh/tanh — whose math.su
+    # bodies are arithmetic over real(exp(...)) scalars — return a number-vector
+    # rather than the historical 0-d scalar. Read AXIS_REAL here, the same
+    # projection the CLI display edge does; a 0-d / host scalar passes through.
+    vsa = ns.get("_VSA")
+    if (vsa is not None and hasattr(result, "ndim")
+            and getattr(result, "ndim", None) == 1
+            and result.shape[0] == vsa.dim):
+        return float(result[vsa.semantic_dim + vsa.AXIS_REAL])
+    return result
 
 
 # (program, function_name, true_value, tolerance_relative). Tolerances

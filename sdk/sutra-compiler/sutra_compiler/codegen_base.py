@@ -2543,6 +2543,27 @@ class BaseCodegen:
                     return
                 target_src = self._translate_expr(expr.target)
                 value_src = self._translate_expr(expr.value)
+                # Compound assignment on a NUMBER target runs on the number
+                # axis (queue §C "all numbers on the substrate"): `n += 1`
+                # desugars to `n = num_add(n, 1)` so the recurrence stays a
+                # substrate number-vector instead of Python's native `n += 1`
+                # (which, on a number-vector, would broadcast the scalar
+                # across every axis and corrupt the value). The arithmetic
+                # operator of the compound form (`+=` -> `+`) maps to the same
+                # backend hook the binary path uses. A vectory target (a
+                # `vector`-typed accumulator using `+=` for a bundle-class
+                # add) keeps Python's native compound op — element-wise is
+                # the correct semantics there.
+                base_op = (expr.op[:-1] if len(expr.op) == 2
+                           and expr.op.endswith("=") else None)
+                if (self._is_pytorch_backend()
+                        and base_op in ("+", "-", "*", "/")
+                        and self._is_number_expr(expr.target)
+                        and not self._is_vectory_expr(expr.target)):
+                    rhs = self._arith_op_src(expr, base_op, target_src,
+                                             value_src)
+                    self._emit(f"{target_src} = {rhs}")
+                    return
                 self._emit(f"{target_src} {expr.op} {value_src}")
                 return
             if isinstance(expr, ast.PostfixOp):
@@ -2554,6 +2575,17 @@ class BaseCodegen:
                 # unsupported and the expression-translation path
                 # below errors with a clear message.
                 target_src = self._translate_expr(expr.operand)
+                # On the number-axis backend a numeric `i++` desugars to
+                # `i = num_add(i, 1)` (queue §C) — Python's native `i += 1`
+                # on a number-vector broadcasts across every axis. A non-
+                # number target keeps native `+=`/`-=`.
+                if (self._is_pytorch_backend()
+                        and self._is_number_expr(expr.operand)
+                        and not self._is_vectory_expr(expr.operand)):
+                    base = "+" if expr.op == "++" else "-"
+                    rhs = self._arith_op_src(expr, base, target_src, "1")
+                    self._emit(f"{target_src} = {rhs}")
+                    return
                 delta = "+= 1" if expr.op == "++" else "-= 1"
                 self._emit(f"{target_src} {delta}")
                 return
@@ -3054,6 +3086,75 @@ class BaseCodegen:
                     or self._is_number_expr(expr.right))
         if isinstance(expr, ast.UnaryOp) and expr.op in ("-", "+"):
             return self._is_number_expr(expr.operand)
+        # A call whose declared return type is a numeric type yields a
+        # number-axis value: `f(x) / g(x)` between number-returning calls
+        # routes to `num_div` (element-wise tensor division would compute
+        # 0/0 = nan on the zero axes). The vectory veto already excludes
+        # vector/truth-returning calls, so this only fires for genuine
+        # numbers. Unknown return types stay False (element-wise default).
+        if isinstance(expr, ast.Call):
+            return self._resolved_return_type(expr.callee) in self._NUMBER_TYPES
+        return False
+
+    # Types whose runtime value is a full d-dim vector (NOT a number on the
+    # number axis). Arithmetic on these must stay element-wise (scalar
+    # broadcast / bundle-class), never route to the number-axis ops.
+    _VECTORY_TYPES = frozenset(
+        {"vector", "fuzzy", "bool", "trit", "matrix", "Axon"}
+    )
+
+    def _is_vectory_expr(self, expr: ast.Expr) -> bool:
+        """True iff expr is provably a full-vector / truth-axis value (i.e. NOT
+        a bare number on the number axis), so number-axis arithmetic must NOT
+        intercept it.
+
+        The load-bearing case is the inlined logical-operator Lagrange
+        polynomial: `!(a && b)` lowers to an arithmetic expression like
+        `0 - (((a + b) + (a*b) - (a*a) - (b*b) + (a*a*b*b)) * 0.5)` over
+        truth-axis vectors `a, b`. The numeric-literal coefficients (`0.5`,
+        `0`) must multiply / subtract the truth-axis vector ELEMENT-WISE
+        (scalar broadcast across the whole vector), not via `num_mul` /
+        `num_sub` (which project to AXIS_REAL and destroy the truth value).
+        So a `*`/`+`/`-`/`/` expression with even ONE vectory operand is
+        itself vectory and vetoes the number-axis route.
+
+        Conservative: only fires on provable vector/truth operands (bool /
+        fuzzy / trit / vector / matrix / Axon-typed identifiers, bool /
+        unknown literals, logical / comparison / equality results, and
+        arithmetic built from any of them). Plain numbers fall through, so
+        pure numeric arithmetic still routes to the number axis."""
+        if isinstance(expr, (ast.BoolLiteral, ast.UnknownLiteral)):
+            return True
+        if isinstance(expr, ast.Identifier):
+            t = self._var_type.get(expr.name)
+            return t in self._VECTORY_TYPES or t in self._TRUTH_TYPES
+        if isinstance(expr, ast.Parenthesized):
+            return self._is_vectory_expr(expr.inner)
+        if isinstance(expr, ast.BinaryOp):
+            # Logical / comparison / equality always yield a truth-axis vector.
+            if expr.op in ("&&", "||", "==", "!=", "<", ">", "<=", ">="):
+                return True
+            # Arithmetic carrying a vectory operand stays vectory (the
+            # Lagrange-polynomial case): the whole expression is a vector.
+            if expr.op in ("+", "-", "*", "/", "%"):
+                return (self._is_vectory_expr(expr.left)
+                        or self._is_vectory_expr(expr.right))
+        if isinstance(expr, ast.UnaryOp):
+            if expr.op == "!":
+                return True
+            if expr.op in ("-", "+"):
+                return self._is_vectory_expr(expr.operand)
+        # A call whose declared return type is a full-vector / truth type
+        # vetoes the number-axis route: `vec_fn() * 0.5` must scale the
+        # whole vector element-wise, not project it to AXIS_REAL. Number-
+        # returning calls (return type int/number/scalar/...) are NOT
+        # vectory, so `f(x) / g(x)` between number-returning calls can still
+        # route to the number axis. Conservative — an unknown return type
+        # (None) falls through to False, leaving the element-wise default.
+        if isinstance(expr, ast.Call):
+            rt = self._resolved_return_type(expr.callee)
+            if rt in self._VECTORY_TYPES or rt in self._TRUTH_TYPES:
+                return True
         return False
 
     def _is_truth_expr(self, expr: ast.Expr) -> bool:
@@ -3127,6 +3228,29 @@ class BaseCodegen:
             expr,
             "complex division is not supported by this backend "
             "(no real/imag-axis runtime); use the numpy or pytorch backend",
+        )
+
+    # Map the surface arithmetic operator to the substrate runtime
+    # method name. Shared by every backend that has a number-axis
+    # runtime (numpy / pytorch).
+    _ARITH_OP_METHODS = {"+": "num_add", "-": "num_sub",
+                         "*": "num_mul", "/": "num_div"}
+
+    def _arith_op_src(self, expr: ast.BinaryOp, op: str,
+                      left_src: str, right_src: str) -> str:
+        """Override point for `+` / `-` / `*` / `/` on number-axis values.
+
+        Numeric arithmetic is a substrate operation on the canonical
+        number axis (AXIS_REAL), not host Python float arithmetic
+        (queue §C "all numbers on the substrate"). Backends with a
+        number-axis runtime emit `_VSA.num_<op>(...)`. The base refuses —
+        a backend without a number axis (fly-brain) has nowhere for the
+        value to live.
+        """
+        raise CodegenNotSupported(
+            expr,
+            f"number-axis arithmetic `{op}` is not supported by this "
+            "backend (no number-axis runtime); use the pytorch backend",
         )
 
     def _comparison_src(self, expr: ast.BinaryOp, op: str,
@@ -3356,6 +3480,29 @@ class BaseCodegen:
             # differentiable) that callers reach via `Math.mod(x, m)`.
             if expr.op == "%":
                 return f"_VSA.fmod({left}, {right})"
+            # Number-axis arithmetic (queue §C "all numbers on the
+            # substrate"). `+ - * /` on provably-numeric operands run on
+            # the canonical number axis via substrate runtime methods
+            # (num_add / num_sub / num_mul / num_div), NOT host Python
+            # float arithmetic. Truth-family operands are excluded (handled
+            # above for comparison; truth arithmetic stays element-wise on
+            # the truth axis). Vector / unknown operands fall through to the
+            # element-wise Python form below — `vector + vector` is a
+            # bundle-class element-wise add and must NOT route here.
+            if expr.op in ("+", "-", "*", "/"):
+                left_num = self._is_number_expr(expr.left)
+                right_num = self._is_number_expr(expr.right)
+                # Veto: a vectory operand (truth-axis vector, vector-typed
+                # value, or the inlined logical-operator Lagrange polynomial)
+                # must keep the op element-wise — number-axis ops project to
+                # AXIS_REAL and destroy the vector. A numeric literal next to
+                # a truth-axis vector (the polynomial coefficient case) is the
+                # exact trap this closes.
+                left_vec = self._is_vectory_expr(expr.left)
+                right_vec = self._is_vectory_expr(expr.right)
+                if ((left_num or right_num)
+                        and not (left_vec or right_vec)):
+                    return self._arith_op_src(expr, expr.op, left, right)
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
             if expr.op == "!":

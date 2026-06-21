@@ -274,6 +274,22 @@ class Codegen(BaseCodegen):
         form on the real/imag axes."""
         return f"_VSA.complex_div({left_src}, {right_src})"
 
+    def _arith_op_src(self, expr: ast.BinaryOp, op: str,
+                      left_src: str, right_src: str) -> str:
+        """Numeric `+ - * /` on the deprecated numpy backend.
+
+        The numpy backend has no number-axis arithmetic runtime — it
+        represents scalars as host Python floats (the historical
+        behaviour documented in planning/sutra-spec/types.md §"int /
+        number / scalar"). It stays host-float here; the number-axis
+        substrate form (queue §C "all numbers on the substrate") lives
+        on the canonical PyTorch backend, which overrides this hook to
+        emit `_VSA.num_<op>`. Numpy is deprecated and being retired
+        (CLAUDE.md §"Architecture and Conventions"); host-float is the
+        sanctioned non-supported behaviour for it.
+        """
+        return f"({left_src} {op} {right_src})"
+
     def _comparison_src(self, expr: ast.BinaryOp, op: str,
                         left_src: str, right_src: str) -> str:
         """Lower `>` / `<` / `>=` / `<=` to _VSA.gt / _VSA.lt / _VSA.ge / _VSA.le.
