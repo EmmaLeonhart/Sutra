@@ -1,5 +1,13 @@
 # Development Log
 
+## 2026-06-21: cron tick — confirmed sutra-dev 0.9.1 is live on PyPI (publish path revived)
+
+Autonomous tick (queue drained). Verified the version-reconciliation + publish work landed end-to-end:
+`pip index versions sutra-dev` reports **0.9.1** as the latest available release (versions: 0.9.1, 0.2.0).
+So the dormant PyPI publish path (it had been stuck at 0.2.0 since 2026-05-08) is revived and working —
+the `sutra-dev-v0.9.1` tag's trusted-publisher CI published an installable 0.9.1. v1.0.0 remains deferred
+until codegen/stdlib go a stretch with no source-breaking changes (Emma 2026-06-21). No code change.
+
 ## 2026-06-21: cron tick — verified the trainable-query demonstration; closed the todo item
 
 Autonomous work-loop tick (cron, queue drained). Verified the NTM-breadth "trainable-query" todo item is
