@@ -54,6 +54,15 @@ cleanly, moderate value.
 
 ## PARKED — gated or owned elsewhere (do NOT start on this clone)
 
+- **Full async/await Stage-1 desugar — DESIGN-BLOCKED (the await MODEL is unsettled).** First-class
+  functions (now shipped) unblock the *mechanism* (a continuation can be a hoisted function), and the gap
+  is concrete (`await` as a mid-function expr raises `CodegenNotSupported` in `codegen_base.py`; only
+  tail-position `async function … return await e` works). BUT the await *model* itself is undecided: Emma
+  2026-05-17 directed "model the awaited value as an implicit axon INPUT + an arrival-flag axis, NOT a poll
+  loop," which conflicts with `planning/sutra-spec/promises.md`'s gated-while-loop lowering. That's a
+  language-semantics decision (load-bearing, conforms to Promises/A+), not an implementation detail — so it
+  is NOT a self-direct call. Parked until the model is settled; building either lowering now risks building
+  the wrong one. (Do not queue this as a question — wait for Emma to settle the model in her own time.)
 - **§1C steps 3 & 4 — per-process CUDA isolation + CUDA-IPC codebook sharing.** Need a Linux/CUDA box;
   unverifiable on this Windows clone (no CUDA IPC). The portable core is done + validated. Resume when a
   CUDA environment is available; until then writing the code would ship unverified substrate work.
