@@ -83,6 +83,17 @@ _PRELUDE_LEAK_EXEMPT_METHODS = {
     # form) and are documented Python-host-interop dispatch surfaces.
     "_as_any_vector", "_as_complex_vector", "_as_truth_vector",
     "_cnum",
+    # Number-axis coercion helpers (Emma 2026-06-21, numbers-on-substrate
+    # leg `4412751`): `_num`/`_num_re` lift a host scalar into a real-axis
+    # number-vector or pass through an already-substrate tensor. The
+    # `float()` calls fire only when the input is a Python scalar (the
+    # tensor branches passthrough above) — same entry-boundary shape as
+    # `make_real`/`_as_any_vector`. Host scalars stay host on input to
+    # keep `num_mul`/`num_div` device-portable under `torch.jit.trace`
+    # (a Python number broadcasts to the operand device instead of
+    # baking `self.device` as a trace constant). NOT a substrate-value
+    # extraction.
+    "_num", "_num_re",
     # Axon construction — accepts host Python int/str values and lifts
     # them via make_real / make_string (entry-boundary dispatch).
     # axon_build is the batched form of axon_add (the .add-run peephole)

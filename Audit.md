@@ -372,6 +372,23 @@ decision (and a comment) rather than being silently host:
   into an axis slot. This is the literal→substrate entry boundary
   (the `_st()` analogue). Decide: should they also accept an
   already-substrate tensor without round-tripping through `float`?
+- **`_num` / `_num_re`** — `codegen_pytorch.py:2509,2528` (commit
+  `4412751`, 2026-06-21, numbers-on-substrate leg). Coercion helpers
+  used by the new `num_add`/`num_sub`/`num_mul`/`num_div`/`num_neg`
+  ops to dispatch host-scalar-or-tensor operands. The flagged
+  `float(x)` / `float(z)` lines fire only when the input has already
+  been ruled out as a tensor (the tensor branches passthrough above
+  them) — same shape as the `make_real` entry boundary, NOT a
+  substrate-value extraction. Host scalars are kept as Python numbers
+  on input by design: a Python number broadcasts to the live operand's
+  device under `torch.jit.trace`, instead of baking `self.device` as a
+  traced constant — keeping `num_mul`/`num_div` device-portable when a
+  CUDA-traced graph replays on a CPU input (the commit's stated
+  rationale + docstring at `_num` / `_num_re`). Added to
+  `experiments/substrate_leak_sweep.py`'s `_PRELUDE_LEAK_EXEMPT_METHODS`
+  2026-06-21 (daily audit) so the sweep stops misfiring on this
+  boundary. Same shape as the 2026-06-03 `ram_read`/`ram_write` +
+  2026-05-30 `load_matrix` allowlist additions.
 - **`load_matrix(path)`** — `codegen_pytorch.py:731-755` (commit
   `a2cbc05`, 2026-05-29). File-backed literal-lift: opens a CSV,
   parses comma-separated string tokens to host floats
