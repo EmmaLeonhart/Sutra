@@ -56,6 +56,8 @@ _HEADER = """\
 // [0, 1]. Existing tests/test_font.py uses 1e-9 tolerance and will NOT pass
 // against this output -- that's expected; this gets its own measured-tolerance
 // test in tests/test_font_bound.py.
+//
+// @fv-claim: classifier test=demos/font/test_font_bound.py
 """
 
 

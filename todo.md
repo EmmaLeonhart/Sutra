@@ -618,13 +618,23 @@ the lever that removes branch/path explosion.**
     reports real programs (examples/demos — the actionable set, e.g. the GUI
     demos that are the documented 96× breach) separately from corpus fixtures
     (expected codebook-free). Detection pinned by `tests/test_dimension_audit.py`.
-  - **State-locus gate** (any "RNN"/"recurrent" label needs a
-    walk-N-steps-no-host-extraction test — `count.su`'s test is the template) and
-    **signal-separation gate** (any classifier ships a measured
-    `gap = min(pos)−max(neg)` table — `test_font_bound.py` is the template) — these
-    two need a per-`.su` CLAIM annotation (which program asserts it's an RNN / is a
-    classifier) before they can be swept; the dimension one didn't (codebook-use is
-    intrinsic). Decompose the annotation surface when picked up.
+  - **State-locus gate + signal-separation gate — ✅ SHIPPED 2026-06-21 as a
+    claim→measurement linkage sweep.** `experiments/measurement_claim_sweep.py` reads a
+    per-`.su` `// @fv-claim: rnn|classifier test=<path>` annotation (the annotation surface
+    todo flagged as the prerequisite) and enforces the linkage: the linked measurement must
+    exist; an `rnn` claim gets a static state-locus check on the `.su` (carries a `recurring`
+    vector through `recur`, NO host accessor — the `make_real(scalar)→host→real()`-per-tick
+    breach signature); a `classifier` claim's linked measurement must compute a measured gap.
+    It also reports unannotated state-bearing (`recur`+`recurring`) `.su` as advisory. Advisory
+    by default, `--strict` fails on a broken claim — matching the dimension-gate precedent
+    (whether to wire `--strict` into CI as a blocking gate stays Emma's call). Annotated:
+    `count.su`/`toggle.su` (rnn), `font_bound{,_antipodal}.su`/`switch.su` (classifier) — 5
+    verified, 0 broken. Pinned by `tests/test_measurement_claim_sweep.py`. **Surfaced + fixed
+    a real regression** building this: the numbers-on-substrate leg made `select` scores
+    real-axis VECTORS, so `_select_softmax` returned a 2-D vector and `unbind` (font_bound)
+    threw — latent because `demos-ci.yml` is path-filtered off `sdk/` changes. Fixed in the
+    PyTorch `_select_softmax` (project 2-D scores onto AXIS_REAL — a substrate slice, autograd
+    intact). The dimension gate (above) is the third of the three measurement checks.
 - **Contract obligation (§3.1) — the genuinely-hard family. Two halves
   discharged, one open.** A program `p` with axon-typed contract `C` must:
   read only `C.read_roles`, write only `C.write_roles`, AND compute the

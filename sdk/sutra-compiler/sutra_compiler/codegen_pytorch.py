@@ -106,6 +106,20 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("s = _torch.as_tensor(scores, dtype=_DTYPE, device=_DEVICE)")
         self._indent -= 1
+        # Numbers-on-substrate: an arithmetic score expression (e.g.
+        # `-1000*(pos-t)^2`) is now a real-axis number-VECTOR — the scalar
+        # value on AXIS_REAL, zeros elsewhere (num_add/sub/mul/div) — not a
+        # 0-d scalar. Stacking N of those gives a 2-D (N, d) tensor, which
+        # would make `(w[:,None]*opts).sum(0)` collapse to a 2-D result (a
+        # broken role for unbind). Project each score onto its AXIS_REAL
+        # component to recover the N scalar weights the softmax needs. This
+        # is a substrate tensor slice (NOT a host `.item()`), so autograd
+        # survives — the select-T constrain-train path stays differentiable.
+        # 0-d scalar scores stack to 1-D (N,) and skip the projection.
+        self._emit("if s.ndim == 2:")
+        self._indent += 1
+        self._emit("s = s[:, _VSA.semantic_dim + _VSA.AXIS_REAL]")
+        self._indent -= 1
         self._emit("s = s - _torch.amax(s)")
         self._emit("w = _torch.exp(s)")
         self._emit("w = w / _torch.sum(w)")

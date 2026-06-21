@@ -22,6 +22,8 @@
 //
 // We do NOT wrap back to 0 after 9 (Emma: don't care past the count); the
 // count just keeps rising and the glow exits the right edge.
+//
+// @fv-claim: rnn test=demos/gui/test_gui_counter.py
 function vector step() {
     recurring vector state = make_real(0.0);
     vector next_state = state + make_real(1.0);

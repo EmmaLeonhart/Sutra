@@ -21,6 +21,7 @@
 // substrate. Operands are `complex` so `/` routes through complex_div; for
 // real inputs every result lands on the real axis. float64 runtime dtype
 // gives exact integers to 2^53.
+// @fv-claim: classifier test=demos/calc/measure_select_gap.py
 function vector on_axon(vector input_axon) {
     complex a = axon_item(input_axon, "a");
     complex b = axon_item(input_axon, "b");

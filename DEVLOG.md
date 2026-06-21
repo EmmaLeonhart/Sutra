@@ -1,5 +1,35 @@
 # Development Log
 
+## 2026-06-21: FV measurement gates (state-locus + signal-separation) + a second numbers-leg select regression
+
+**FV measurement-claim sweep shipped.** Promoted from todo §FV: the two measurement checks the 2026-06-02
+retrospective named as the weakest-automated breach class (C5) — **state-locus** (an "RNN" must carry state
+on the substrate, not `make_real(scalar)→host→real()` per tick) and **signal-separation** (a classifier
+ships a measured `gap = min(pos)−max(neg)` table) — now have a corpus sweep, like the dimension gate before
+them. `experiments/measurement_claim_sweep.py` reads a per-`.su` `// @fv-claim: rnn|classifier test=<path>`
+annotation (the annotation surface todo flagged as the prerequisite — unlike the dimension gate, RNN/
+classifier status isn't structurally inferable) and enforces the claim→measurement linkage: linked test must
+exist; `rnn` ⇒ static state-locus check on the `.su` (carries a `recurring` vector through `recur`, NO host
+accessor); `classifier` ⇒ the linked measurement computes a measured gap. Unannotated state-bearing `.su`
+are reported advisory. Advisory by default, `--strict` fails a broken claim (CI-blocking stays Emma's call,
+matching the dimension-gate precedent). Annotated `count.su`/`toggle.su` (rnn) + `font_bound{,_antipodal}.su`/
+`switch.su` (classifier): 5 verified, 0 broken. Pinned by `tests/test_measurement_claim_sweep.py` (10 tests:
+clean claims verify, missing/absent test caught, host-accessor caught, no-recurrence caught, no-gap caught,
+`make_real(` does NOT trip the accessor regex, repo has 0 broken, `--strict` exits 0 clean).
+
+**Caught + fixed a real regression doing it — a second instance of the SAME class as the logical-op fix
+below.** Running the now-annotated `font_bound` test surfaced `_VSA.unbind(...)` throwing `'list' object
+cannot be interpreted as an integer`. Root cause: the numbers-on-substrate leg routes arithmetic through
+real-axis `num_*`, so `select`'s SCORE expressions (`-1000*(pos-t)^2`) are now real-axis number-VECTORS, not
+0-d scalars. `_select_softmax` stacked them to a 2-D `(N, d)` tensor and `(w[:,None]*opts).sum(0)` collapsed
+to a 2-D `pos_vec` — a broken role for `unbind`'s `_role_hash` (`bytes()` over a nested list). Latent because
+`demos-ci.yml` is path-filtered to `demos/**`, so the `sdk/`-only numbers commit never ran the font demos;
+this leg's `demos/**` annotations are what re-trip it. Fixed in the PyTorch `_select_softmax`: project a 2-D
+score stack onto AXIS_REAL (`s[:, semantic_dim + AXIS_REAL]`) before the softmax — a substrate tensor slice,
+NOT a host `.item()`, so autograd survives (the select-T constrain-train path stays differentiable); 0-d
+scalar scores stack to 1-D and skip the projection. Verified: `font_bound` 2/2, `font_bound_antipodal` 2/2,
+`calc` 27/27 (switch.su select), the `select`/`number` compiler tests 16/16, full compiler suite green.
+
 ## 2026-06-21: Numbers-leg regression — logical ops over int operands — caught by CI, fixed
 
 The numbers-on-substrate merge passed the compiler suite (788) but turned the **Transpilers — pytest** CI
