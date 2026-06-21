@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-21: Numbers-leg regression — logical ops over int operands — caught by CI, fixed
+
+The numbers-on-substrate merge passed the compiler suite (788) but turned the **Transpilers — pytest** CI
+red: logical operators (`&&`/`||`/`!`) over INT-typed operands computed the WRONG truth value. `&&` inlines
+to a Lagrange polynomial `(a+b+a*b-a*a-b*b+a*a*b*b)*0.5`; the numbers change routed that arithmetic through
+real-axis `num_*` whenever the operands were int-typed — but boolean operands carry their value on the TRUTH
+axis, so `num_*` (reading AXIS_REAL) destroyed it: `truth_axis(defuzzy(a&&b))` returned 0 not 1, and the
+`bool_ops` fixture got 150 instead of 100. The compiler's own tests use `bool`/vector-typed booleans (the
+veto already caught those) so they passed; the transpiler frontends emit booleans as `int`, so only their
+suite broke. THE GAP: the numbers change ran only the compiler suite, not the downstream transpiler suites.
+
+Fixed (additive, no revert of the numbers change): a logical operator's result is ALWAYS truth-axis
+regardless of operand type, so its inlined polynomial must compute element-wise. `inliner.py` now marks
+every node of an inlined `&&`/`||`/`!`/nand/xor/xnor body with `_logical_truth=True` (survives deepcopy —
+plain dataclasses); `codegen_base._is_vectory_expr` + the arith-routing veto treat a marked node as vectory
+→ element-wise, never `num_*`. Plain numeric arithmetic still routes to the number axis. Diagnosed to the
+exact emitted code, fixed via a focused subagent with a DUAL-suite (compiler + transpiler) mandate,
+independently re-verified before merge: `a&&b` truth (int true/true)=1.0 (was 0), `bool_ops` fixture passes,
+full OCaml suite 155 + rust spot-check, `addp(2,3)` still substrate tensor=5, FV Kleene/general +
+no_host_readout (.item() baseline still 18) green. Merge `48b3e982`. Lesson baked in: any compiler change
+must verify the transpiler suites (int-typed surface), not just the compiler suite.
+
 ## 2026-06-21 — daily audit: allowlist `_num`/`_num_re` as numbers-on-substrate entry boundary
 
 77 .su compiled, 18 skipped, 0 user-program leaks + **2 → 0** runtime-prelude leak(s) after fixing the leak-sweep allowlist (1 finding, not a real leak); `scripts/check_promise_await_fit_to_spec.py` returns `EXIT=0` with `[2/2] regression tests PASS (4/4 expected)` end-to-end (after installing `pytest`, `numpy`, `torch` CPU, the `ollama` Python pkg, and the Ollama daemon binary via `apt-get install zstd && bash /tmp/ollama_install.sh` + `ollama serve` + `ollama pull nomic-embed-text`, the two semantic-preservation legs ran live and PASSED to 3 places against `main()` = 3.0); `tests/test_no_host_readout.py` 5/5 PASS. **Substrate-leak finding:** `experiments/substrate_leak_sweep.py` flagged the newly-emitted `_num` (`codegen_pytorch.py:2509`) and `_num_re` (`:2528`) coercion helpers in the `_TorchVSA` prelude for `float(...)` host-extraction. These are NOT substrate-value extractions — both are entry-boundary lifts identical in shape to `make_real` and `_as_any_vector`/`_cnum` (already allowlisted): the tensor branches passthrough above them, and `float(x)` / `float(z)` fires only when the input has already been ruled out as a tensor (i.e. a host Python scalar). Per the commit `4412751` (numbers-on-substrate leg, Emma 2026-06-21) docstring on `_num`/`_num_re`: host scalars stay as Python numbers on input by design — a Python number broadcasts to the live operand's device under `torch.jit.trace`, instead of baking `self.device` as a traced constant, keeping `num_mul`/`num_div` device-portable when a CUDA-traced graph replays on a CPU input. The `_num_e_real(ref)` helper they wrap derives the real-axis one-hot from `_torch.zeros_like(ref)` (not the cached `_e_real()`) for the same reason. Fix: added `_num`, `_num_re` to `experiments/substrate_leak_sweep.py::_PRELUDE_LEAK_EXEMPT_METHODS` with a comment citing the trace device-portability rationale — purely a gate-maintenance edit, no runtime change. Post-fix sweep clean (`77 compiled, 0 user-program leak(s), 0 runtime-prelude leak(s)`). Documented in Audit.md BORDERLINE alongside `make_real`/`_as_any_vector`/`_cnum` (the entry-boundary cohort) + `ram_read`/`ram_write` + `load_matrix` (the same allowlist-fix-shape precedents from 2026-06-03 and 2026-05-30). Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; #3 (await) reverified by the watchdog end-to-end; #4 still NOT-A-LEAK (the generic loop runtime is a fixed-T eigenrotation unroll). 16 open-question dossiers in `planning/open-questions/` + `sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning (refreshed 2026-06-20 by `00f9bba` for the codegen-v1-coverage narrow-down); `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop; spec-index strikethroughs unchanged. The 2026-06-20 `73504ce` (types.md int/scalar reconciliation) + `4afbd9b` (new `multi-process-runtime.md` spec doc) + `c182e14`/`cd6b368` (FV key-soundness / branch-range obligations) are spec-extensions and FV-paper work — none resolves a `planning/open-questions/` dossier. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation per CLAUDE.md "Subtler substrate breaches" + FV paper §4.4) remain out of scope.
