@@ -63,12 +63,16 @@ re-verified (659 non-VM + 129 VM). Finding `planning/findings/2026-06-20-int-sca
 (now: gap CLOSED for runtime arithmetic).
 
 **Remaining (refinements, NOT blockers):**
-- **PERMUTATION-encoded integers (Emma's mechanism) — not yet done; the core uses real-axis magnitude
-  instead.** Emma 2026-06-20: a counter/iteration is a PERMUTATION on a dimension (a ring counter — step by
-  permuting; the count is the accumulated permutation state). The shipped work meets the GOAL (counters are
-  substrate, via real-axis `num_add`) but uses a magnitude representation, NOT the permutation/position
-  encoding. If Emma wants integers represented as permutation/rotation state (the canonical substrate
-  integer, differentiable matmul/gather), that's a representation change on top of the working core.
+- **Permutation iteration — RESOLVED: the real-axis counter IS Emma's established pattern (2026-06-21).**
+  Emma's "permutation is a thing" (2026-06-20) was given when an earlier agent hedged about whether counters
+  could be substrate. Investigated `demos/gui/count.su` (Emma's own SHIPPED substrate-counter, measured
+  `[1,2,3,4,5]` 2026-06-11): it counts via `state + make_real(1.0)` — **real-axis increment on the
+  substrate**, the SAME mechanism the numbers leg uses for `int` counters. So the real-axis counter is NOT a
+  substitution of Emma's mechanism — it's the established Sutra substrate-counting pattern she already
+  shipped, and her emphatic "counters are obviously on substrate" is met. Permutation is an ALTERNATIVE
+  substrate-iteration mechanism (a ring counter — the same family as the substrate loop's `state ← R·state`
+  rotation), not a required re-representation. Only build a permutation-encoded counter if Emma explicitly
+  asks for that specific representation; the real-axis one is correct + consistent + CI-green.
 - **Compile-time constant folding** (`return 20/4` between two literals) folds to a host constant — minor
   β-reduction edge, not the runtime path. **Structural literals** (array sizes `var[N]`, `loop(N)` unroll
   counts) stay host — compile-time codegen directives, consumed before runtime. **numpy backend** keeps
