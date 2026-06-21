@@ -978,8 +978,6 @@ The content-addressing track is COMPLETE and closed (Emma's call: the key/value-
 associative recall IS the demonstration; do NOT content-address the RAM device). What
 remains is breadth, not feasibility — low priority, autonomous when the loop reaches it:
 
-- [ ] A TRAINABLE-query `.su` (the host loop already trains a query through the
-  compiled `select`; package it as a runnable example).
 - [ ] Training the composed reduced network end-to-end (open research).
 - [ ] Grow the parse-task/tape example set (design doc
   `planning/exploratory/codable-attention-on-ram-parser.md` §5).

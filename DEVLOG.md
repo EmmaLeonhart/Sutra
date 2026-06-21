@@ -1,5 +1,17 @@
 # Development Log
 
+## 2026-06-21: cron tick — verified the trainable-query demonstration; closed the todo item
+
+Autonomous work-loop tick (cron, queue drained). Verified the NTM-breadth "trainable-query" todo item is
+already satisfied: `experiments/attention_on_ram/substrate_content_read.py` trains a query `q` (Adam,
+`requires_grad`) THROUGH the compiled substrate `select`+`similarity` and it learns to address memory by
+content. Ran it (runtime_dim=16): soft `select` read — `cos(read, target)` 0.80 → 1.00 as the
+beta/temperature lever rises (β=16 → weight_on_target 0.9998), gradient flows into `q`; hard argmax over
+the same scores is inert (zero gradient). PASS. A dedicated `examples/` `.su` would be marginal
+presentation over this runnable experiment, not new capability — so removed the `[ ]` item rather than
+manufacture a duplicate. No code changed; nothing else actionable (PARKED items are resource-gated:
+desktop-I/O producer, Linux/CUDA, sibling WASM).
+
 ## 2026-06-21: numbers-leg scalar-position breakage — systemic, demos-ci-hidden; fixed forward
 
 Pushing the FV measurement sweep (it touches `demos/`) ran `demos-ci.yml` for the first time with the
