@@ -53,6 +53,12 @@ jobs:
           # 1. Strip the first H1 line (the title is rendered by
           #    paper.tex's \maketitle; emitting the H1 as a section
           #    duplicates the title on page 1).
+          # 1b. Strip the author byline ("Emma Leonhart — <email>"):
+          #    paper.tex's \author block already renders it via
+          #    \maketitle, so leaving it in the pandoc body printed the
+          #    name + email a SECOND time at the top of the PDF. (The
+          #    website keeps it — it renders paper.md directly with no
+          #    \author block, so the byline is its only author line.)
           # 2. Tag the meta-sections (Abstract / References /
           #    Appendix parent / per-letter Appendix headings) with
           #    pandoc's {-} unnumbered-heading attribute so they
@@ -61,6 +67,7 @@ jobs:
           #    unchanged on disk; transformation is per-build only.
           sed \
             -e '1{/^# /d}' \
+            -e '/^Emma Leonhart.*@/d' \
             -e 's|^## Abstract$|## Abstract {-}|' \
             -e 's|^## References$|## References {-}|' \
             -e 's|^## Appendix$|## Appendix {-}|' \
