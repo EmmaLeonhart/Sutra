@@ -3519,6 +3519,27 @@ class BaseCodegen:
                 if ((left_num or right_num)
                         and not (left_vec or right_vec or this_logical)):
                     return self._arith_op_src(expr, expr.op, left, right)
+                # Mixed scalar×vector for `*` / `/`: `vector * number` is SCALAR
+                # multiplication (scale the whole vector). The vectory veto above
+                # correctly keeps it element-wise, but under numbers-on-substrate a
+                # COMPUTED number operand (e.g. `1.0 - has_typed`) is a real-axis
+                # number-VECTOR — value on AXIS_REAL, zeros elsewhere — which
+                # neither broadcasts against a domain vector of a different dim (the
+                # font-cycle 36-vs-108 crash) nor scales correctly element-wise at
+                # equal dim (it would zero every non-real axis). Project the number
+                # operand to its 0-d real-axis scalar via `_num_re` (substrate-pure
+                # dot, autograd-safe) so it broadcasts as a scalar multiplier. A
+                # host literal like `0.5` passes through `_num_re` unchanged, so
+                # `truth_vec * 0.5` and the logical Lagrange coefficients stay
+                # byte-identical; `_logical_truth` is excluded outright so the
+                # inlined logical polynomial keeps its exact element-wise form.
+                if not this_logical:
+                    if (expr.op in ("*", "/") and left_vec and not left_num
+                            and right_num and not right_vec):
+                        return f"({left} {expr.op} _VSA._num_re({right}))"
+                    if (expr.op == "*" and right_vec and not right_num
+                            and left_num and not left_vec):
+                        return f"(_VSA._num_re({left}) * {right})"
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
             if expr.op == "!":

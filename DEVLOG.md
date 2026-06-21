@@ -1,5 +1,37 @@
 # Development Log
 
+## 2026-06-21: numbers-leg scalar-position breakage — systemic, demos-ci-hidden; fixed forward
+
+Pushing the FV measurement sweep (it touches `demos/`) ran `demos-ci.yml` for the first time with the
+numbers-on-substrate behavior and surfaced that the numbers leg broke **every place a number is
+consumed in a scalar position** — latent because demos-ci is path-filtered to `demos/**`, so the
+`sdk/`-only numbers commit never ran the demos, and "788 compiler tests passed" never exercised
+arithmetic in real programs at small `runtime_dim`. One conceptual gap (a computed number is now a
+real-axis number-VECTOR, not a 0-d scalar; consuming it as a scalar needs a real-axis projection),
+four manifestations — full root-cause + the four sites in
+`planning/findings/2026-06-21-numbers-leg-scalar-position-breakage.md`:
+
+- **`select` scores** (`_select_softmax`, fixed in the prior commit): vector scores → 2-D stack → 2-D
+  `pos_vec` → `unbind` crash. Project the 2-D score stack onto `AXIS_REAL` before the softmax.
+- **Scalar-gate multiply** `vector * number` (arith router, this commit): the blend
+  `advanced * (1.0 - has_typed) + typed_onehot * has_typed` (font_cycle's glyph cursor) crashed
+  `36 vs 108` because `(1.0 - has_typed)` became a 108-dim real-axis vector against a 36-dim domain
+  one-hot. Fix: in the mixed `vectory * numbery` case wrap the number in `_num_re` so it broadcasts as
+  a 0-d scalar multiplier. A host literal (`0.5`) passes through `_num_re` unchanged → `truth_vec *
+  0.5` and the logical Lagrange coefficients are byte-identical (no regression to the `_logical_truth`
+  fix); the same projection also fixes the silently-wrong equal-dim case (element-wise mul by a
+  value-on-AXIS_REAL-zeros-elsewhere vector would zero every non-real axis).
+- **`main` returning a number** (`test_button_spec_ts.py`, this commit): the test read `main`'s
+  real-axis number-vector with `.item()`; decode at the display boundary via `_num_re` (the font
+  demos' `read_real` role).
+- **Logical ops over int** — the mirror case, fixed earlier (`48b3e982`, `_logical_truth` marker).
+
+Also added `pillow` to demos-ci (the hero-server demo's pre-existing `ModuleNotFoundError: PIL`, not
+numbers-related). Open recommendation (Emma's call, real CI-time tradeoff): trigger demos-ci on
+`sdk/**` too, so a compiler change can't silently break every demo again. Verified: font_cycle 4/4,
+button_spec 1/1, font_bound{,_antipodal} 2/2 each, calc 27/27, count/toggle 6/6, font/frame 55/55,
+OCaml transpiler 155, full compiler suite green.
+
 ## 2026-06-21: FV measurement gates (state-locus + signal-separation) + a second numbers-leg select regression
 
 **FV measurement-claim sweep shipped.** Promoted from todo §FV: the two measurement checks the 2026-06-02
