@@ -37,14 +37,20 @@ heavy Lean toolchain); irregular (non-grid, stack-based) recursion (substrate-pe
 **Lowest-priority standing items:** W2C corpus scaling (baseline PUBLISHED; one-flag bump → push
 submodule → HF mirror); the daily watchdog crons (verification, not new work).
 
-**CI-infra (Emma's call — real tradeoff):** `demos-ci.yml` is path-filtered to `demos/**`, so an
-`sdk/`-only compiler change never runs the demos. That gap hid the numbers-on-substrate leg's
-scalar-position breakage (select scores / scalar-gate multiply / main-returns-number) for weeks
-until a `demos/`-touching commit surfaced it — full write-up
-`planning/findings/2026-06-21-numbers-leg-scalar-position-breakage.md`. Recommendation: trigger
-demos-ci on `sdk/**` too (catches the class) — but the full demos suite is ~25 min with cache-miss
-recompiles (font.su's 22500-op switch dominates), so it materially slows compiler-change iteration.
-A demos-smoke subset on `sdk/**` (skip the slow font render) is the likely middle ground.
+**CI-infra (Emma's call — real tradeoff):** TWO coverage gaps let this session's numbers-leg
+scalar-position breakage hide — full write-up
+`planning/findings/2026-06-21-numbers-leg-scalar-position-breakage.md`:
+1. `demos-ci.yml` is path-filtered to `demos/**`, so an `sdk/`-only compiler change never runs the
+   demos. That hid the demos breakage (select scores / scalar-gate multiply / main-returns-number).
+   Recommendation: trigger demos-ci on `sdk/**` too — but the full demos suite is ~25 min with
+   cache-miss recompiles (font.su's 22500-op switch dominates), so it slows compiler-change
+   iteration. A demos-smoke subset on `sdk/**` (skip the slow font render) is the likely middle ground.
+2. `examples/_smoke_test.py` is run by **no workflow at all** — yet it is the ONLY exerciser of the
+   numpy backend (`codegen.py`, deprecated). That hid the numpy `_num_re` break (fixed `8f89100e`).
+   The compiler suite is all-pytorch. Recommendation: add `python examples/_smoke_test.py` as a step
+   in `compiler-ci.yml` (it has ollama + exits 0/1). Caveat: it decodes real embeddings, so it could
+   flake on crosstalk like `test_axon_build` did — harden/spot-check before gating, hence not done
+   unilaterally here.
 
 ## Neural-network Turing-completeness — the architectural roadmap (metabolised 2026-06-07)
 
