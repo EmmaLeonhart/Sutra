@@ -152,16 +152,12 @@ jobs:
             paper.tex paper.tex.body neurips_2026.sty
           ls -la ../sutra-arxiv-source.tar.gz
 
-      - name: Build replication package + NeurIPS supplementary zips
+      - name: Build replication package zip
         run: |
           # Replication package (live paper/supplementary/) — what the
           # live paper + /paper/ link.
           python scripts/build_supplementary_zip.py \
               --output sutra-replication-package.zip
-          # NeurIPS submission supplementary (frozen
-          # paper/neurips/supplementary/) — what /neurips-2026/ links.
-          python scripts/build_supplementary_zip.py --neurips \
-              --output sutra-neurips-supplementary.zip
 
       - name: Build the static site
         run: |
@@ -172,7 +168,6 @@ jobs:
           cp paper/paper-named.pdf _site/paper.pdf
           cp paper/paper-anonymized.pdf _site/paper-anonymized.pdf
           cp sutra-replication-package.zip _site/sutra-replication-package.zip
-          cp sutra-neurips-supplementary.zip _site/sutra-neurips-supplementary.zip
           # arXiv source bundle — the /arxiv/ page links to this at /sutra-arxiv-source.tar.gz.
           cp sutra-arxiv-source.tar.gz _site/sutra-arxiv-source.tar.gz
           # Formal-verification paper PDF — the /papers/ index page

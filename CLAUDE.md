@@ -34,9 +34,9 @@ The repository has two audiences and they read different files. Do not conflate 
 
 - **AI agents and contributors read the repo Markdown.** That includes this `CLAUDE.md`, the `AGENTS.md` index at the repo root, `queue.md`, `todo.md`, `DEVLOG.md`, `paper/`, `paper/supplementary/`, and everything under `planning/` (`sutra-spec/`, `findings/`, `open-questions/`, `exploratory/`). This is the canonical, fullest-fidelity surface — when something is true about Sutra, it's true here first.
 
-- **Humans read the website at `sutra.topazcomputing.com`.** Static site rendered by `scripts/build_site.py` — one HTML page per Markdown file under `docs/` (every `docs/*.md` and `docs/tutorials/*.md`, except paths containing `interactive/`), plus `/paper/` rendered from `paper/paper.md`. `/neurips-2026/` is the NeurIPS submission-archive page; `/arxiv/` is a direct-URL-only utility page for grabbing the LaTeX source bundle (`noindex, nofollow`; bundle disallowed in `robots.txt`). MkDocs is gone — don't reintroduce it. **Keep every website page free of repo-internal scratchpad references** (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...`).
+- **Humans read the website at `sutra.topazcomputing.com`.** Static site rendered by `scripts/build_site.py` — one HTML page per Markdown file under `docs/` (every `docs/*.md` and `docs/tutorials/*.md`, except paths containing `interactive/`), plus `/paper/` rendered from `paper/paper.md`. `/arxiv/` is a direct-URL-only utility page for grabbing the LaTeX source bundle (`noindex, nofollow`; bundle disallowed in `robots.txt`). MkDocs is gone — don't reintroduce it. **Keep every website page free of repo-internal scratchpad references** (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...`).
 
-The two surfaces are **not generated from the same source**. `docs/neurips-2026.md` is hand-written for the website; the canonical Markdown elsewhere in the repo is hand-written for agents. They are allowed to drift in framing, level of detail, and which examples they pick. They must not contradict each other on facts.
+The two surfaces are **not generated from the same source**. The website Markdown under `docs/` is hand-written for the website; the canonical Markdown elsewhere in the repo is hand-written for agents. They are allowed to drift in framing, level of detail, and which examples they pick. They must not contradict each other on facts.
 
 If you are an AI agent landing in this repo, start with `AGENTS.md` for the file-by-file map, then come back here.
 
@@ -128,8 +128,7 @@ prose under `external/Yantra/` still describes the old `external/Sutra` submodul
 session edits Sutra source, the rules in this file still apply: integrity /
 substrate-correctness (top of file); NO MATH SHORTCUTS; Workflow Rules
 (commit+push immediately, plan-into-queue.md-first, no local-only work — this
-repo's queue.md is the one that binds when editing this repo). (The
-`paper/neurips/` freeze was retired 2026-06-18 — see the NeurIPS section below.)
+repo's queue.md is the one that binds when editing this repo).
 
 **Release vs. push:** tag a release when Yantra needs to depend on a specific
 Sutra version (new extra, new public API, bug fix affecting Yantra tests);
@@ -142,30 +141,19 @@ Claw4S the competition is over. clawRxiv the platform stays — it's a feedback 
 
 None of the prior Claw4S-specific rules apply (no "lock in a Strong Accept by disabling submission," no "always check the latest review before pushing," no dedup-bypass concerns). Reviews are signal, not verdicts. NeurIPS is the longer-term target — see `todo.md`.
 
-**Second paper — formal verification (live, kept in sync with the work).** `paper/formal-verification/paper.md` (clawRxiv post 2613, paper_id 2605.02613) is a SECOND paper with its own supersedes chain (`paper/formal-verification/.post_id`) and its own workflow `.github/workflows/fv-paper-ci.yml` (auto-submits on push to `paper/formal-verification/paper.md`). It is a **live artifact: as formal-verification work lands (an obligation discharged, a checker built, a scope change), update this paper in the same session** — cite only measured numbers, mirror the §"What we are not claiming" discipline. Ground truth it must not contradict: `planning/sutra-spec/formal-verification.md`. Agenda: `todo.md` § "Formal verification". The FV paper is a separate paper from `paper/paper.md` and `paper/neurips/`; all three are now freely editable (the NeurIPS freeze was retired 2026-06-18).
-
-### NeurIPS freeze is LIFTED (Emma 2026-06-18) — `paper/neurips/` is editable
-
-**The `paper/neurips/` freeze is retired.** Emma's call: "just give up on the NeurIPS freeze, it's been causing more harm than good." `paper/neurips/` is no longer immutable — it may be edited like any other doc to keep it factually consistent with the repo (e.g. the 2026-06-18 Apache→AGPL relicense corrected the supplementary `README.md` license section, which the freeze had previously blocked and turned into a standing contradiction).
-
-What this means:
-- Edit `paper/neurips/` freely to fix factual drift (license, identity, stale claims, typos, broken cross-references). It is a historical-submission snapshot, not a locked archive — keep it honest rather than frozen-wrong.
-- Still apply the normal integrity discipline: cite only measured numbers, no overclaiming, no `honest`/`genuinely` buzzwords. Don't *rewrite* the submitted science to look better; *do* correct things that are now factually false.
-- The downloadable artifacts on the website (camera-ready PDF, anonymized PDF, supplementary zip) are built from `paper/neurips/`. `paper/paper.md` remains the live next-venue revision target.
-
-(History: the freeze ran 2026-05-10 → 2026-06-18. It protected the as-submitted content but repeatedly forced stale facts to persist — the relicense contradiction was the last straw.)
+**Second paper — formal verification (live, kept in sync with the work).** `paper/formal-verification/paper.md` (clawRxiv post 2613, paper_id 2605.02613) is a SECOND paper with its own supersedes chain (`paper/formal-verification/.post_id`) and its own workflow `.github/workflows/fv-paper-ci.yml` (auto-submits on push to `paper/formal-verification/paper.md`). It is a **live artifact: as formal-verification work lands (an obligation discharged, a checker built, a scope change), update this paper in the same session** — cite only measured numbers, mirror the §"What we are not claiming" discipline. Ground truth it must not contradict: `planning/sutra-spec/formal-verification.md`. Agenda: `todo.md` § "Formal verification". The FV paper is a separate paper from `paper/paper.md`; both are freely editable.
 
 ### `paper/paper.md` is UNFROZEN (Emma 2026-06-07) — live revision target
 
-**The arXiv lock lifted (it was time-bounded through May 31; Emma explicitly unfroze it 2026-06-07 for a new submission).** `paper/paper.md` is now freely editable — audit it against current measured reality and revise toward the next submission. The prior arXiv-v2 snapshot is preserved in git history (uploaded 2026-05-19; correction series `0b151b79`). (`paper/neurips/` was also unfrozen 2026-06-18 — see the NeurIPS section above.) When revising `paper/paper.md`, keep the integrity discipline: cite only measured numbers, no honest/genuinely buzzwords, replication URL only in the Reproducibility statement, and do not overclaim substrate-purity / fused-network status as *done* where the 2026-06-07 purity overhaul is still in progress.
+**The arXiv lock lifted (it was time-bounded through May 31; Emma explicitly unfroze it 2026-06-07 for a new submission).** `paper/paper.md` is now freely editable — audit it against current measured reality and revise toward the next submission. The prior arXiv-v2 snapshot is preserved in git history (uploaded 2026-05-19; correction series `0b151b79`). When revising `paper/paper.md`, keep the integrity discipline: cite only measured numbers, no honest/genuinely buzzwords, replication URL only in the Reproducibility statement, and do not overclaim substrate-purity / fused-network status as *done* where the 2026-06-07 purity overhaul is still in progress.
 
-### Paper-code durability — keep the original NeurIPS paper's examples working
+### Paper-code durability — keep the live paper's examples working
 
-Every `.su`, reproduction script, and supplementary surface that `paper/neurips/` references should continue to compile, run, and produce the same observable outputs — the downloadable artifacts are still built from it and people may try to reproduce the submission. Now that the freeze is lifted, you have an extra repair option the freeze denied: if the code legitimately drifts, **update the `paper/neurips/` text to match** rather than being forced to carry an alias forever.
+Every `.su`, reproduction script, and supplementary surface that `paper/paper.md` references should continue to compile, run, and produce the same observable outputs — the downloadable artifacts (paper PDF, replication package) are built from it and people may try to reproduce it. If the code legitimately drifts: prefer keeping an alias when a feature is renamed (cheap, preserves reproducibility), or update the cited description in `paper/paper.md`.
 
-In practice: surface syntax cited by `paper/neurips/paper.md` (`map<vector, string>` codebooks, `bind`/`unbind`/`bundle`, `loop` forms, `dict<K, V>` rotation hashmaps) should stay valid — prefer keeping an alias when a feature is renamed (cheap, preserves reproducibility), but you may instead correct the cited description. `examples/_smoke_test.py` keeps passing; if a refactor regresses it, the refactor is wrong. Reproduction scripts under `experiments/` (per `paper/neurips/supplementary/SKILL.md` / `REPRODUCE.md`) keep producing the same output (modulo documented sampling noise). `paper/neurips/supplementary/SYNTAX.md` should keep matching what the compiler emits for the cited surface — add an alias, or update the description.
+In practice: surface syntax cited by `paper/paper.md` (`map<vector, string>` codebooks, `bind`/`unbind`/`bundle`, `loop` forms, `dict<K, V>` rotation hashmaps) should stay valid. `examples/_smoke_test.py` keeps passing; if a refactor regresses it, the refactor is wrong. Reproduction scripts under `experiments/` (per `paper/supplementary/SKILL.md` / `REPRODUCE.md`) keep producing the same output (modulo documented sampling noise). `paper/supplementary/SYNTAX.md` should keep matching what the compiler emits for the cited surface — add an alias, or update the description.
 
-If a change would break reproducibility of the cited path: (a) make it additive + keep the old form working, (b) update `paper/neurips/` and/or the live `paper/paper.md` to reflect the new shape, or (c) flag the conflict to the user. Don't silently break the cited path. The supplementary zip is a build artifact (not committed) regenerated by `scripts/build_supplementary_zip.py`.
+If a change would break reproducibility of the cited path: (a) make it additive + keep the old form working, (b) update `paper/paper.md` to reflect the new shape, or (c) flag the conflict to the user. Don't silently break the cited path. The supplementary zip is a build artifact (not committed) regenerated by `scripts/build_supplementary_zip.py`.
 
 ### Reference PDFs are re-downloaded each session, not committed
 

@@ -7,6 +7,5 @@
 # is also the regression-test corpus, run by examples/_smoke_test.py)
 # never reaches the repo's language stats. Force the directory to be
 # counted. This is the surgical fix for "Linguist ignores examples/":
-# no rename, no refactor of the ~30 files that reference examples/,
-# and the frozen paper/neurips/ references stay intact.
+# no rename, no refactor of the ~30 files that reference examples/.
 examples/** linguist-detectable=true

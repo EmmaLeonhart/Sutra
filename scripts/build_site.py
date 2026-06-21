@@ -8,9 +8,8 @@ Every `docs/**/*.md` (except `docs/interactive/**` and the agent-only
     /                 docs/index.md          — what Sutra is (home)
     /<name>/          docs/<name>.md         — a conceptual page
     /tutorials/...    docs/tutorials/*.md    — the tutorials
-    /neurips-2026/    docs/neurips-2026.md   — frozen-submission archive
     /paper/           paper/paper.md         — the paper, readable HTML
-                                               (+ PDF / anon / zip downloads)
+                                               (+ PDF / zip downloads)
 
 The doc sources are the original MkDocs-flavoured Markdown; `clean_md`
 sanitises the MkDocs-only syntax (YAML frontmatter, `!!!` admonitions,
@@ -193,32 +192,6 @@ MATHJAX_JS = """  <script>
 # for the abs URL the site links to.
 ARXIV_URL = "https://arxiv.org/abs/2605.20919"
 
-DOWNLOAD_CARDS = """
-    <div class="downloads">
-      <a class="card dl" href="/paper.pdf">
-        <div class="dl-body">
-          <div class="dl-name">Paper (PDF)</div>
-          <div class="dl-sub">The Sutra language paper &mdash; author-attributed, full version.</div>
-        </div>
-        <span class="dl-arrow">&rarr;</span>
-      </a>
-      <a class="card dl" href="/paper-anonymized.pdf">
-        <div class="dl-body">
-          <div class="dl-name">Paper (PDF, anonymized)</div>
-          <div class="dl-sub">The double-blind review version &mdash; author identity stripped, same content.</div>
-        </div>
-        <span class="dl-arrow">&rarr;</span>
-      </a>
-      <a class="card dl" href="/sutra-neurips-supplementary.zip">
-        <div class="dl-body">
-          <div class="dl-name">Reproduction archive (ZIP)</div>
-          <div class="dl-sub">Compiler source, tests, paper-claim reproduction scripts, and the agent-runnable replication recipe.</div>
-        </div>
-        <span class="dl-arrow">&rarr;</span>
-      </a>
-    </div>
-"""
-
 # /arxiv/ ships a single prominent download: the LaTeX source bundle
 # arXiv expects you to upload as a .tar.gz on the "Add files" step.
 # Same visual treatment as DOWNLOAD_CARDS so the file is impossible
@@ -242,9 +215,8 @@ ARXIV_DOWNLOAD_CARDS = """
     </div>
 """
 
-# The /paper/ page links only the paper itself and the reproduction
-# archive (the anonymized PDF lives on /neurips-2026/, the submission
-# record). The ZIP is called out as carrying SKILL.md.
+# The /paper/ page links the paper itself and the reproduction
+# archive. The ZIP is called out as carrying SKILL.md.
 PAPER_DOWNLOADS = """
     <div class="downloads">
       <a class="card dl" href="/paper.pdf">
@@ -558,12 +530,7 @@ def main() -> int:
         if slug == "index":
             home_md = (heading, body, mer, mth)
             continue
-        if slug == "neurips-2026":
-            inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
-                     f'    <span class="eyebrow">Sutra</span>\n    <h1>{heading}</h1>\n'
-                     f'    <p class="lede">The immutable record of the Sutra paper as submitted to NeurIPS 2026. Downloads:</p>\n'
-                     f'{DOWNLOAD_CARDS}\n    <div class="doc">\n{body}\n    </div>\n')
-        elif slug == "arxiv":
+        if slug == "arxiv":
             inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
                      f'    <span class="eyebrow">Sutra</span>\n    <h1>{heading}</h1>\n'
                      f'    <p class="lede">The LaTeX source bundle arXiv expects you to upload &mdash; pandoc has already been run, the three files inside are what arXiv\'s TeX Live builds the PDF from.</p>\n'
@@ -598,7 +565,7 @@ def main() -> int:
         print("error: docs/index.md missing", file=sys.stderr)
         return 1
     h_head, h_body, h_mer, h_mth = home_md
-    page_slugs = [s for s in titles if s not in ("index", "neurips-2026", "arxiv")]
+    page_slugs = [s for s in titles if s not in ("index", "arxiv")]
     ordered = [s for s in ORDER if s in page_slugs] + sorted(
         s for s in page_slugs if s not in ORDER
     )
@@ -616,8 +583,6 @@ def main() -> int:
             t = "Tutorials"
             d = "Hands-on: hello Sutra, bind/unbind, snap-to-nearest."
         cards.append(f'<a href="{url}"><div class="ex-t">{t}</div><div class="ex-d">{d}</div></a>')
-    cards.append('<a href="/neurips-2026/"><div class="ex-t">NeurIPS 2026 archive</div>'
-                 '<div class="ex-d">The frozen submission record + paper / anonymized / zip downloads.</div></a>')
     explore = ('    <div class="explore-h">Explore</div>\n    <div class="explore">\n      '
                + "\n      ".join(cards) + "\n    </div>\n")
     paper_link = '<a class="primary" href="/paper/">Read the paper</a>' if paper_ok else ""

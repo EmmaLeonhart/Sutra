@@ -154,8 +154,8 @@ the Ollama init when no embedding ops are used).
   attempt OS work. Remaining surface items (if-without-else done,
   module imports done, classes done, async done, Math done, enums
   done, JS-coercion overrides per item 1) are tracked above.
-- The frozen NeurIPS submission — separate concern; lives at
-  `paper/neurips/`. See `docs/neurips-2026.md`.
+- The frozen NeurIPS submission archive was removed 2026-06-21 (Emma — NeurIPS
+  was long past). The live paper is `paper/paper.md`.
 
 ## When this list is "done"
 

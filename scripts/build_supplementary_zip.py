@@ -1,22 +1,12 @@
 """
-Build a Sutra reproduction archive. Two variants, same code payload,
-different supplementary docs + name:
+Build the Sutra reproduction archive:
 
-  (default)   sutra-replication-package.zip   — docs from the LIVE
-              paper/supplementary/; the archive the live paper links.
-  --neurips   sutra-neurips-supplementary.zip — docs from the FROZEN
-              paper/neurips/supplementary/; the submission record.
+  sutra-replication-package.zip   — docs from the LIVE
+  paper/supplementary/; the archive the live paper links.
 
-Anonymization is conditional on the variant:
-
-  default     NOT anonymized. The live replication package is not a
-              blind submission — it ships the real public source
-              verbatim (author, the upstream repo link, and code
-              comments all intact).
-  --neurips   anonymized. The frozen submission record keeps the
-              double-blind scrub (author / repo identifiers removed)
-              AND comment stripping, byte-stable with what was
-              submitted for review.
+It is NOT anonymized: the live replication package is not a blind
+submission — it ships the real public source verbatim (author, the
+upstream repo link, and code comments all intact).
 
 A tightly-scoped reproduction archive — only the files needed to
 verify the paper's empirical claims. The agent-runnable replication
@@ -101,14 +91,12 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ARCHIVE_ROOT = "sutra-neurips-supplementary"
+ARCHIVE_ROOT = "sutra-replication-package"
 
 
 # Per-file additions: (source path relative to repo root, destination
 # path inside archive). The four supplementary docs come from
-# paper/supplementary/ (live build) or paper/neurips/supplementary/
-# (--neurips). The --neurips set is the anonymized double-blind
-# record; the live set carries the real author / repo link. Both
+# paper/supplementary/ and carry the real author / repo link. They
 # are distinct from the docs/ pages served at the public site.
 TOP_LEVEL_FILES = [
     ("paper/supplementary/README.md", "README.md"),
@@ -154,9 +142,7 @@ INCLUDE_GLOBS = [
     "experiments/rotation_binding_capacity_llm.py",
     "experiments/rotation_binding_capacity_bioinformatics.py",
     "experiments/crosstalk_chain.py",
-    # §3.6 proxy (kept: the FROZEN neurips supplementary references
-    # it; the payload is shared, so removing it would break the
-    # submission-record zip's reproducibility — durability rule).
+    # §3.6 proxy.
     "experiments/differentiable_training.py",
     # §3.6 / §3.7 genuine compiled-graph harnesses cited by the
     # corrected live paper (compiled --batched; weighted baked-.su).
@@ -523,12 +509,9 @@ def walk_for_zip(src_dir: Path) -> list[Path]:
 
 
 def build(output_path: Path, *, check_only: bool = False,
-          anonymize: bool = True) -> None:
+          anonymize: bool = False) -> None:
     """Build the supplementary zip at output_path. Prints a summary.
 
-    anonymize=True  (frozen --neurips record): scrub author / repo
-                    identifiers and strip comments — byte-stable with
-                    the blind submission.
     anonymize=False (live replication package): ship the real public
                     source verbatim, comments and identifiers intact.
     """
@@ -655,26 +638,15 @@ def build(output_path: Path, *, check_only: bool = False,
 
 
 def main() -> None:
-    # Two generated archives, same code payload, different supplementary
-    # docs + name:
-    #   default     -> sutra-replication-package.zip  (live
-    #                   paper/supplementary/ — what the live paper links)
-    #   --neurips    -> sutra-neurips-supplementary.zip (frozen
-    #                   paper/neurips/supplementary/ — the submission record)
-    global ARCHIVE_ROOT, TOP_LEVEL_FILES
+    # One generated archive:
+    #   sutra-replication-package.zip  (live paper/supplementary/ — what
+    #   the live paper links). Ships the real public source verbatim.
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument(
-        "--neurips",
-        action="store_true",
-        help="Build the frozen NeurIPS submission supplementary (docs from "
-             "paper/neurips/supplementary/) instead of the live replication package.",
-    )
     p.add_argument(
         "--output",
         type=Path,
         default=None,
-        help="Output zip path. Default: sutra-replication-package.zip, or "
-             "sutra-neurips-supplementary.zip with --neurips.",
+        help="Output zip path. Default: sutra-replication-package.zip.",
     )
     p.add_argument(
         "--check",
@@ -682,18 +654,10 @@ def main() -> None:
         help="Print what would be included without writing the zip",
     )
     args = p.parse_args()
-    supp = "paper/neurips/supplementary" if args.neurips else "paper/supplementary"
-    ARCHIVE_ROOT = "sutra-neurips-supplementary" if args.neurips else "sutra-replication-package"
-    TOP_LEVEL_FILES = [
-        (f"{supp}/README.md", "README.md"),
-        (f"{supp}/SKILL.md", "SKILL.md"),
-        (f"{supp}/REPRODUCE.md", "REPRODUCE.md"),
-        (f"{supp}/SYNTAX.md", "SYNTAX.md"),
-    ]
     out = args.output or (REPO_ROOT / f"{ARCHIVE_ROOT}.zip")
-    # Only the frozen --neurips submission record is anonymized; the
-    # live replication package ships the real public source.
-    build(out, check_only=args.check, anonymize=args.neurips)
+    # The live replication package ships the real public source verbatim
+    # (not anonymized).
+    build(out, check_only=args.check, anonymize=False)
 
 
 if __name__ == "__main__":
