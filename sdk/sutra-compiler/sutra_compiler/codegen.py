@@ -1457,6 +1457,22 @@ class Codegen(BaseCodegen):
         self._emit("return v")
         self._indent -= 1
         self._emit()
+        self._emit("def _num_re(self, v):")
+        self._indent += 1
+        self._emit('"""Real-axis scalar of a number value — mirrors the pytorch backend\'s')
+        self._emit('`_num_re` so the SHARED codegen\'s scalar×vector multiply emission')
+        self._emit('(`vector * _VSA._num_re(number)`) works on this backend too. A full')
+        self._emit('number-vector projects to its AXIS_REAL coordinate; a host/0-d scalar')
+        self._emit('(the numpy backend keeps numbers as host scalars — no num_* ops) is')
+        self._emit('returned as-is so it broadcasts as a scalar multiplier. Same logic as')
+        self._emit('`_re`; named separately to match the pytorch surface."""')
+        self._emit("if hasattr(v, 'ndim') and v.ndim >= 1 and v.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return v[self.semantic_dim + self.AXIS_REAL]")
+        self._indent -= 1
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
         self._emit("def _im(self, v):")
         self._indent += 1
         self._emit('"""Imag-axis counterpart of _re (no host-float cast)."""')
