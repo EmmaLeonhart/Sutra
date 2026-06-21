@@ -1,0 +1,33 @@
+// Arrow / anonymous function values. Sutra has no runtime closures:
+// each arrow is desugared at parse time into a hoisted top-level
+// function, and captured enclosing-scope locals are lifted to extra
+// trailing parameters threaded at every direct call site. See
+// planning/open-questions/function-taxonomy-and-closure.md.
+
+// A higher-order function that takes a function value and applies it.
+function int apply(function f, int v) {
+    return f(v);
+}
+
+// No-capture arrow passed as a value to a higher-order function.
+function int use_no_capture() {
+    return apply((int x) => x * 2, 5);
+}
+
+// Block-body arrow.
+function int use_block_body() {
+    return apply((int x) => { return x + 1; }, 5);
+}
+
+// Capturing arrow, called directly. The captured `multiplier` is
+// lifted to a trailing parameter on the hoisted function and threaded
+// at the `scale(7)` call site — no runtime closure.
+function int use_capture() {
+    int multiplier = 5;
+    var scale = (int x) => x * multiplier;
+    return scale(7);
+}
+
+function int main() {
+    return use_no_capture() + use_block_body() + use_capture();
+}

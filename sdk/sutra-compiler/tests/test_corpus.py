@@ -71,6 +71,7 @@ class TestInvalidCorpus(unittest.TestCase):
             "09_unterminated_block_comment.su": "SUT0001",
             "10_unsafe_cast_missing_type.su": "SUT0105",
             "11_casing_drift.su": "SUT0113",
+            "22_capturing_arrow_escape.su": "SUT0140",
         }
         for name, code in expected.items():
             with self.subTest(file=name):

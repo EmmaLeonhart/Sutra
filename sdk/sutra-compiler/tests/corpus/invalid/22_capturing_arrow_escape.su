@@ -1,0 +1,13 @@
+// A capturing arrow used as a value (passed to a higher-order
+// function) must be rejected: Sutra has no runtime closure, so the
+// captured local cannot travel with the function reference. Expect
+// SUT0140 rather than a silent miscompile / runtime arity mismatch.
+
+function int apply(function f, int v) {
+    return f(v);
+}
+
+function int main() {
+    int multiplier = 5;
+    return apply((int x) => x * multiplier, 7);
+}
