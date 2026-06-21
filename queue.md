@@ -78,6 +78,14 @@ re-verified (659 non-VM + 129 VM). Finding `planning/findings/2026-06-20-int-sca
   counts) stay host — compile-time codegen directives, consumed before runtime. **numpy backend** keeps
   host floats (deprecated, no number-axis runtime).
 
+### C. Add a Background section to any paper that lacks one (Emma 2026-06-21)
+
+Ensure each paper has a Background section. Status as of 2026-06-21: `paper/paper.md` (§Background,
+line ~17) and `paper/formal-verification/paper.md` (§Background) already have one; **`paper/neurips/
+paper.md` does NOT** — add a Background section there if appropriate (the neurips freeze is retired, so
+it's editable). Keep the integrity discipline (measured claims only, no honest/genuinely buzzwords).
+Editing a `paper/*/paper.md` triggers a clawRxiv resubmit CI — intended for real updates.
+
 ---
 
 ## PARKED — gated or owned elsewhere (do NOT start on this clone)

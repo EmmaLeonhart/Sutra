@@ -1,6 +1,6 @@
 # Sutra: Tensor-Op RNNs as a Compilation Target for Vector Symbolic Architectures
 
-Emma Leonhart — contact@emmaleonhart.com
+Emma Leonhart — emma@topazcomputing.com
 
 ---
 
