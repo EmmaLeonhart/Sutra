@@ -110,6 +110,13 @@ class Codegen(BaseCodegen):
         "make_rotation",
         "compile_prototypes",
         "geometric_loop",
+        # Immutable higher-order list ops live only on the PyTorch
+        # runtime (the canonical compile target). The deprecated numpy
+        # backend has no array_concat/map/filter methods — emit a clear
+        # compile error here instead of a runtime AttributeError.
+        "array_concat",
+        "array_map",
+        "array_filter",
     })
 
     def _char_literal_src(self, expr: ast.CharLiteral) -> str:

@@ -1,0 +1,47 @@
+// Sutra corpus test: immutable list-building + higher-order list ops.
+//
+// Emma's design decision (2026-06-20): IMMUTABLE list-building — build a
+// NEW list from pieces, NEVER mutate an existing one (pure-functional,
+// fits the substrate). Surface names match the existing `array_length` /
+// `array_get` builtin convention: `array_concat`, `array_map`,
+// `array_filter` (the bare `map` / `filter` spellings are unavailable —
+// `map` is a TYPE keyword).
+//
+// Exercises:
+//   - array_concat(a, b)            — new array = a's elements then b's
+//   - array_map(named_fn, arr)      — new array, element i = f(arr[i])
+//   - array_map((x) => ..., arr)    — arrow function value
+//   - array_filter(pred, arr)       — new array of elements where pred true
+
+// Element-wise transform passed by name to array_map.
+function int dbl(int x) {
+    return x * 2;
+}
+
+// Predicate for array_filter — returns a Sutra truth value.
+function fuzzy gt_one(int x) {
+    return x > 1;
+}
+
+// concat then map: build [1,2,3,4], then double every element.
+function list<int> concat_then_map() {
+    var joined = array_concat([1, 2], [3, 4]);
+    return array_map(dbl, joined);
+}
+
+// map with an arrow function value (no-capture).
+function list<int> map_with_arrow() {
+    return array_map((int x) => x * 2, [1, 2, 3]);
+}
+
+// filter keeps the elements greater than one.
+function list<int> keep_big() {
+    return array_filter(gt_one, [1, 2, 3]);
+}
+
+function string main() {
+    var a = concat_then_map();
+    var b = map_with_arrow();
+    var c = keep_big();
+    return "ok";
+}
