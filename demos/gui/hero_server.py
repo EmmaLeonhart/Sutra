@@ -160,13 +160,23 @@ def main() -> None:
                     help="upscale factor for the served PNG")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--no-headline", action="store_true",
-                    help="skip the glyph headline overlay (faster frames)")
+                    help="skip the substrate glyph headline (the headline shows as text "
+                         "instead). The glyph font is VSA-encoded and needs the embedding "
+                         "backend (ollama); --no-headline keeps the demo dependency-free.")
+    ap.add_argument("--warmup", action="store_true",
+                    help="build the bridge (compiles + caches the substrate render) then "
+                         "exit. Use at container BUILD time to bake the compile cache so "
+                         "runtime startup is fast.")
     args = ap.parse_args()
-
-    from http.server import HTTPServer
 
     bridge = HeroBridge(size=args.size, seed=args.seed, scale=args.scale,
                         render_headline=not args.no_headline)
+    if args.warmup:
+        print("warmup done (compile cache primed); exiting")
+        return
+
+    from http.server import HTTPServer
+
     httpd = HTTPServer((args.host, args.port), _make_handler(bridge))
     print(f"warmer/colder hero demo on http://{args.host}:{args.port}/")
     try:
