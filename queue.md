@@ -31,8 +31,9 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
   (`.item()`/`float(tensor)`) inside operations.
 - **Multi-clone**: editable `sutra_compiler` install points at the sibling `Github\Sutra`; verify
   changes here via `PYTHONPATH=sdk/sutra-compiler`. CI uses this repo's compiler.
-- **Version: 0.9.0** (Emma 2026-06-21) — `pyproject.toml` + `__init__.py` reconciled to the `v0.9.0` tag;
-  publish via a `sutra-dev-v0.9.0` tag (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until
+- **Version: 0.9.1** (Emma 2026-06-21) — `pyproject.toml` + `__init__.py` bumped to a fresh `0.9.1` (a clean
+  patch past the `v0.9.0` milestone tag, rather than forcing the package to exactly match the old tag).
+  Publish via a `sutra-dev-v0.9.1` tag (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until
   codegen/stdlib go a stretch with NO source-breaking changes (Emma's call — too soon right after this
   week's arithmetic-semantics changes). No hard blocker; it's a source-compat-stability commitment.
 
