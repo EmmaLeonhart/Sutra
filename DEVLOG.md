@@ -461,6 +461,184 @@ Updated `planning/sutra-spec/formal-verification.md` and `paper/formal-verificat
 edit triggers fv-paper-ci (clawRxiv). What we do NOT claim: a general multi-state spectral-gap
 bound (only the 2-state case), nor the continuous-time Langevin SDE limit. Also fixed the queue to
 be the ordered big-leg execution list (Emma flagged it as drained/crud); Yantra OS is now §1 active.
+## 2026-06-20: Rust multibase NON-tail recursion (nested if/else-if) lowers natively — all 4 done
+
+Branch `wasm-fallback-edge-cases-native`, last of the four multibase-non-tail ports (OCaml, Scala, F#,
+Rust). Rust's `else if` is an `else_clause` whose child is another `if_expression`; the final `else`
+is an `else_clause` → `block`. `_try_lower_multibase_nontail` walks the chain, taking each block's tail
+via `_block_value` as a base value, and the final else block's tail as the recursive fold STEP (a clean
+`binary_expression`, no F#-style quirk). Emits the multi-arg CPS fold (carry every rec arg + `_acc` at
+OP identity, post-combine `_acc OP base_blend(final state)`); added `_FOLD_IDENTITY`.
+
+Fixture `multiarg_nontail_multibase` (`fn f(a,b) { if a==0 {b} else if a==1 {b+100} else {a+f(a-1,b)} };
+f(3,10)`) RUN == 115.0 on the substrate == ground truth. Rust suite passed, no regressions.
+
+**All four frontends done** → finding `2026-06-19-multibase-nontail-gap-ocaml-scala-fsharp-rust.md`
+RESOLVED. Multibase non-tail recursion now lowers natively across all eight non-trivial frontends
+(Elixir/Erlang/Haskell earlier this session + OCaml/Scala/F#/Rust now).
+
+## 2026-06-19: F# multibase NON-tail recursion (if/elif) lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, third of the four multibase-non-tail ports (after OCaml,
+Scala). F#'s `elif` is a flat `elif_expression` child (the if_expression's children are
+`[cond0, then0, elif_1, …, else]`), not a nested if — so `_try_lower_multibase_nontail` collects the
+first if + each `elif_expression` as bases and the final child as the recursive fold STEP. The step's
+self-call is parenthesised per the F# grammar convention (same as the single-base `nontail_fact`
+fixture, `n * (fact (n-1))`), so it parses as a clean `infix` with the self-call peeled out of the
+paren. Emits the multi-arg CPS fold (carry every rec arg + `_acc` at OP identity, post-combine
+`_acc OP base_blend(final state)`); added `_FOLD_IDENTITY`.
+
+Fixture `multiarg_nontail_multibase` (`let rec f a b = if a=0 then b elif a=1 then b+100 else
+a + (f (a-1) b); f 3 10`) RUN == 115.0 on the substrate == ground truth. F# suite passed, no
+regressions. Rust is the last of the four.
+
+## 2026-06-19: Scala multibase NON-tail recursion (nested if/else-if) lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, second of the four multibase-non-tail ports (after OCaml).
+`_try_lower_multibase_nontail` mirrors the OCaml version on Scala's node API (`if_expression` kids =
+[paren_cond, then, else], `operator_identifier`, `call_expression` self-calls, `_peel_parens`,
+`emit_name` threading): flatten the nested if/else-if into bases + the fold STEP, emit the multi-arg
+CPS fold (carry every rec arg + `_acc` at OP identity, post-combine `_acc OP base_blend(final state)`).
+Wired after the single-base fold in the def dispatch; added `_FOLD_IDENTITY`.
+
+Fixture `multiarg_nontail_multibase` (`def f(a,b) = if (a==0) b else if (a==1) b+100 else a + f(a-1,b);
+f(3,10)`) RUN == 115.0 on the substrate == ground truth. (Body must be single-line — a multi-line body
+parses as an `indented_block` the recursion dispatch doesn't descend; same as the existing
+`nontail_fact` fixture.) Scala suite passed, no regressions. F# / Rust still pending.
+
+## 2026-06-19: OCaml multibase NON-tail recursion (nested if/else-if) lowers natively
+
+Branch `wasm-fallback-edge-cases-native`. After the parity check found multibase non-tail recursion
+UNSUPPORTED across OCaml/Scala/F#/Rust (finding `2026-06-19-multibase-nontail-gap-…`), Emma chose to
+port the fold recipe to all four — done ONE frontend at a time. OCaml first (the reference):
+`_try_lower_multibase_nontail_recursive` flattens the nested `if/else if/else` chain into bases +
+the recursive fold STEP (the final else), then emits the multi-arg CPS fold (a `while_loop` carrying
+every recursion arg + `_acc` seeded to the OP identity, folding the leaf each step, post-combining
+`_acc OP base_blend(final state)` — the base the recursion bottoms out at is the seed). Added
+`_FOLD_IDENTITY`; wired after the single-base fold in the `let rec` dispatch.
+
+Fixture `multiarg_nontail_multibase` (`let rec f a b = if a=0 then b else if a=1 then b+100 else
+a + f (a-1) b; f 3 10`) RUN == 115.0 on the substrate == ground truth (3+2+(10+100)). OCaml suite
+passed (golden + run), no regressions. Scala/F#/Rust still pending (same recipe, pulled into the
+queue one at a time).
+
+## 2026-06-19: Rust VARIANT inner `match` + nested `if let` in expression position lower natively
+
+Branch `wasm-fallback-edge-cases-native`, seventh edge case — the Rust half of the shared "int-local
+in expression position" limit (Emma had dropped Rust from active, but the Haskell side shipped the
+recipe so the port was in budget). The Rust frontend already hoisted a top-level expression-position
+match (`100 + match e {…}`), but a VARIANT `match` or `if let` NESTED inside another match's ARM hit
+`UNSUPPORTED-MATCH` / `UNSUPPORTED-EXPR: nested if let` — the tail-match path called
+`_lower_match_stmts` without first running the hoist walk on arm bodies.
+
+Fix: (1) `_lower_match_stmts` now runs `_hoist_enum_constructions` on each arm result and emits the
+hoisted int-local prelude (after the outer `_vtag`/`_val` decls); (2) added an `if let` branch to
+`_hoist_enum_constructions` that hoists `int _vtag_il{k} = realvec(scrut.item("_tag"))` and registers
+the crisp-tag blend at the use site (the same recipe the function-tail if-let uses). Both reuse the
+existing `_ARG_HOIST` use-site resolution.
+
+Fixtures `nested_variant_match_arm` (`f(A(3),B(5))` = 3+(0-5)) RUN == -2.0 and `nested_if_let_arm`
+(`f(A(3),A(5))` = 3+5) RUN == 8.0, both == ground truth on the substrate. Rust suite passed, no
+regressions. Rust now has no open WASM-fallback items; the shared int-local limit is fully cleared
+across Haskell + Rust.
+
+## 2026-06-19: Erlang list comprehensions — assessed, STAYS on the WASM fallback
+
+Branch `wasm-fallback-edge-cases-native`, sixth edge case — a negative/blocked result (integrity
+rule #4), no code change. The catalogue's stated reason ("needs a list abstraction the substrate
+lacks") is CORRECTED: the substrate has binding-arrays (`array_from_literal` / `array_get` /
+`array_length` / `foreach_loop`, used by the TS transpiler). The real blockers: (1) only
+`array_from_literal` builds an array and only from compile-time elements — no `array_map`/append/set,
+so a runtime-list comprehension can't build its result list (`foreach_loop` reduces to a scalar, can't
+produce a new list); (2) a compile-time-literal comprehension could unroll to `array_from_literal`,
+but no Erlang list-consumer (`lists:sum`/`hd`/`nth`) is wired to reduce it to a scalar, so there is no
+RUN==ground-truth path — an untested list-valued lowering can't be claimed working. Recorded in
+`planning/findings/2026-06-19-erlang-list-comprehension-stays-on-fallback.md`; corrected the
+edge-case doc. Re-attempt only with an array-builder primitive or a concrete `lists:*` reducer.
+
+## 2026-06-19: Haskell VARIANT `case` in expression position lowers natively (int-local hoist)
+
+Branch `wasm-fallback-edge-cases-native`, fifth edge case cleared — the shared "int-local in
+expression position" codegen limit, Haskell side. A VARIANT `case` nested in an expression
+(`evalE e = 1 + (case e of Lit n -> n; Neg n -> 0 - n)`) needs `int _vtag`/`int _val{i}` statement
+declarations an expression slot can't emit, so it was `UNSUPPORTED-EXPR`.
+
+First attempt — inline the reads as `realvec(scrut.item("_tag"))` everywhere instead of named
+locals — was MEASURED WRONG: RUN gave 1.0/2.0 instead of 8.0/4.0. The `int`-typed local performs a
+type-snap that the raw `realvec` read skips, so the inlined tag/payload compared wrong. Reverted to
+the doc's actual recipe: hoist the int-local declarations to the equation's `_DESTRUCTURE_PRELUDE`
+(the existing nested-destructure prelude mechanism) under unique `_c{uid}_vtag` / `_c{uid}_val{i}`
+names (`_lower_case_stmts(inline=True)` + `_CASE_UID`, reset per equation). The locals then get their
+proper snap and the expression references them. Nested-payload variant cases still need `Axon`
+statement temps and stay on the fallback.
+
+Fixture `variant_case_nontail` (`evalE(Lit 7)+evalE(Neg 5)` = 8+(-4)) RUN == 4.0 on the substrate ==
+ground truth. Haskell suite passed, no regressions. Removed the item from the edge-case doc — Haskell
+now has no open WASM-fallback items. Rust (the other half of the shared limit) stays on the fallback
+(Emma dropped it from active, low priority); the same prelude-temp recipe applies if picked up.
+
+## 2026-06-19: Haskell >2-guard NON-tail multibase recursion lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, fourth edge case cleared. `_try_lower_multibase_tail_recursion`
+returned None for a non-tail recursive guard (`f a b | a==0=b | a==1=b+100 | otherwise = a + f (a-1) b`).
+Extended it: when the recursive guard's result is not a tail self-call, try `_foldable_step_multi`
+(new — the arity-N analog returning the full recursion arg list) and emit a CPS fold instead of an
+accumulator loop. The fold carries every recursion arg plus a synthetic `_acc` seeded to the OP
+identity, folds the leaf at each step's current state, and post-combines `_acc OP base_blend` keyed on
+the FINAL loop state — so the base seed is whichever base the recursion bottoms out at (the
+seed-selection analysis that was the open item). Added `_FOLD_IDENTITY` to the Haskell frontend.
+
+Fixtures: `multibase_nontail_fact` (`f n | n==0=1 | n==1=5 | otherwise = n*f(n-1); f 5`) RUN == 600.0
+(120*5, seed picked as the n==1 base); `multiarg_nontail_multibase` (`f 3 10`) RUN == 115.0 — both ==
+ground truth on the substrate. Haskell suite passed, no regressions. Removed the item from the
+edge-case doc; only VARIANT `case` in expression position (the shared int-local limit) remains open
+for Haskell.
+
+## 2026-06-19: F# no-parens curried application as an infix operand lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, third edge case cleared. `classify "foo" + classify "bar"`
+parsed (ionide grammar) as `application(infix(classify "foo", +, classify), ["bar"])` — the trailing
+arg bound to the whole infix instead of its rightmost operand, emitting `UNSUPPORTED-EXPR: application
+head infix_expression`. Since application binds tighter than infix in F#, the lowering now
+re-associates `application(infix(L, op, R), args)` → `L op (R args)` (factored the call-emission into
+`_emit_call`, shared by the plain-application and re-associated paths). Fixture `noparen_app_infix`
+(`classify "foo" + classify "bar"` = 10+20) RUN == 30.0 on the substrate == ground truth. F# suite 64
+passed, no regressions. (Built the F# grammar DLL locally to verify — the `_grammar/` MSVC build works
+here via `vcvars64.bat`; the `vswhere` warning is cosmetic.) Removed the item from the edge-case doc
+and updated the `lower.py` header that had documented the quirk as requiring source parens.
+
+## 2026-06-19: Elixir + Erlang multi-arg non-tail multibase recursion lowers natively
+
+Branch `wasm-fallback-edge-cases-native`, second edge case cleared. The non-tail multibase fold
+(`def f(0),do: 1; f(1),do: 5; f(n),do: n*f(n-1)`) only handled arity 1 — a multi-arg non-tail
+multibase emitted `UNSUPPORTED-RECURSION`. Added `_foldable_step_multi` (the arity-N analog of
+`_foldable_step`, returning the full recursion-arg list) to both frontends, and a multi-arg branch
+in `_try_lower_multibase_multiclause_recursion`'s `rec_args is None` path: the `while_loop`
+trampoline now carries every recursion arg AND `_acc`, folds the leaf at each step's CURRENT state
+(commutative+associative OP reproduces call-stack order), and combines the final accumulator with the
+base blend keyed on the FINAL multi-arg loop state (`_acc_r OP base_blend(final state)`).
+
+Fixture `multiarg_nontail_multibase` (`f(0,b)=b; f(1,b)=b+100; f(a,b)=a+f(a-1,b); f(3,10)`) RUN ==
+115.0 on the substrate == ground truth (3+2+(10+100)) for BOTH Elixir and Erlang. (Rebuilt the
+Erlang grammar DLL locally via `build_grammar.py` to verify — `vswhere` warning is cosmetic, MSVC
+present.) Suites: Elixir 66 passed, Erlang 54 passed, no regressions. Removed multi-arg non-tail
+multibase from the edge-case doc; Erlang list comprehensions remain the only open Elixir/Erlang item.
+
+## 2026-06-19: Haskell forward (out-of-order) `where`/`let` references lower natively
+
+Branch `wasm-fallback-edge-cases-native` (off the main big-leg queue — Emma's exploratory
+edge-case-clearing pass over `planning/wasm-fallback-edge-cases.md`). First item cleared.
+
+`_apply_local_binds` substituted `where`/`let` binds in source order, single-level: a binding
+that referenced a *later* binding in the same group leaked the referenced name as a bare
+identifier (`a = b + 1; b = x * 2` lowered to `((b + 1)) + ((x*2))` — bare `b`). Added
+`_order_binds`, which dependency-orders each group (collect each bind's PATTERN-defined names and
+its value's referenced local names, then a stable fixpoint topo-sort) so every bind is lowered
+after the local binds it references. A true mutual-recursion CYCLE makes no progress and the
+remaining binds keep source order — it stays on the WASM fallback (laziness/fixpoint out of scope,
+not faked). Fixture `forward_where` (`f x = a + b where a = b+1; b = x*2; main = f 10`) RUN == 41.0
+on the substrate == ground truth (21+20). Full Haskell suite 58 passed, no regressions. Removed the
+forward-`where`/`let` item from the edge-case doc.
 
 ## 2026-06-19: Elixir/Erlang tag-checkable type-test guards (substrate type tests)
 

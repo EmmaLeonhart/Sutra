@@ -59,6 +59,10 @@ _SUBST: dict[str, str] = {}
 # substitution-only, so the temps accumulate here and the equation emitter appends them
 # after the hoist prelude. Cleared per equation. (Clojure's `_DESTRUCTURE_PRELUDE` shape.)
 _DESTRUCTURE_PRELUDE: list = []
+# Monotonic id for naming the int-local prelude of a VARIANT `case` in EXPRESSION
+# position (`_c{uid}_vtag` / `_c{uid}_val{i}`), so multiple such cases in one expression
+# don't collide. Reset per equation (names only need to be unique within a function).
+_CASE_UID: list = [0]
 
 
 def _text(node, src: bytes) -> str:
@@ -294,17 +298,35 @@ def _hoist_constructions(node, src: bytes, indent: str = "    ") -> str:
     return prelude
 
 
-def _lower_case_stmts(node, src: bytes, indent: str = "    "):
+def _lower_case_stmts(node, src: bytes, indent: str = "    ", inline: bool = False):
     """`case scrut of (C x) -> r; …` → (binding statements, result expr), the Rust
     `_lower_match_stmts` shape. Binds `int _vtag = realvec(scrut.item("_tag"))` and
     `int _val{i} = realvec(scrut.item("_val{i}"))` to clean number-vector LOCALS,
     then a nested defuzz blend tests `_vtag == tag`; constructor-payload names
     substitute to the `_val{i}` locals. Last constructor arm is the base; a bare
-    `variable`/`_` pattern is also a base. Returns (stmts, expr) or (None, marker)."""
+    `variable`/`_` pattern is also a base. Returns (stmts, expr) or (None, marker).
+
+    `inline=True` (for a VARIANT `case` in EXPRESSION position, which can't emit its own
+    statements): the `int _vtag`/`int _val{i}` declarations are HOISTED to the equation's
+    `_DESTRUCTURE_PRELUDE` under unique `_c{uid}_…` names (so the `int` type-snap still
+    happens — an inline raw `realvec(scrut.item(…))` read is NOT equivalent, measured: it
+    skips the snap and the tag/payload compare wrong), and `stmts == ""` is returned. The
+    expression references those prelude locals. Nested constructor payloads still need
+    `Axon` statement temps, so they stay unsupported in inline mode (UNSUPPORTED marker)."""
     kids = node.named_children
     if not kids or kids[0].type != "variable":
         return None, "/* UNSUPPORTED-CASE: non-variable scrutinee (later item) */"
     scrut_src = _text(kids[0], src)
+    # In inline mode the int-locals get unique `_c{uid}_…` names (hoisted to the prelude);
+    # at the function tail they keep the plain `_vtag` / `_val{i}` names.
+    _pfx = ""
+    if inline:
+        _pfx = f"_c{_CASE_UID[0]}"
+        _CASE_UID[0] += 1
+    vtag_ref = f"{_pfx}_vtag" if inline else "_vtag"
+
+    def _val_ref(i: int) -> str:
+        return f"{_pfx}_val{i}" if inline else f"_val{i}"
     alts_node = next((c for c in kids if c.type == "alternatives"), None)
     if alts_node is None:
         return None, "/* UNSUPPORTED-CASE: no alternatives */"
@@ -342,16 +364,21 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
             if head.type != "constructor" or _text(head, src) not in _VARIANTS:
                 return None, "/* UNSUPPORTED-CASE: non-variant constructor pattern */"
             tag = _VARIANTS[_text(head, src)][1]
-            test = f"(_vtag == {tag})"
+            test = f"({vtag_ref} == {tag})"
             uses_variant = True
             if all(p.type == "variable" for p in pargs):
                 max_arity = max(max_arity, len(pargs))
                 for i, p in enumerate(pargs):
-                    binds.append((_text(p, src), f"_val{i}"))
+                    binds.append((_text(p, src), _val_ref(i)))
             else:
                 # NESTED ctor payload (`Outer (Inner a b) c`): read each leaf through an
                 # `Axon` temp per non-leaf prefix (`_collect_hs_ctor_paths` flattens the
                 # whole pattern to `_val{i}` key-paths; the test is still the OUTER tag).
+                if inline:
+                    # Nested payloads need `Axon` statement temps — not emittable in an
+                    # expression slot; leave on the WASM fallback.
+                    return None, ("/* UNSUPPORTED-CASE: nested variant payload in "
+                                  "expression position (later item) */")
                 paths = _collect_hs_ctor_paths(pat, src, ())
                 if paths is None:
                     return None, "/* UNSUPPORTED-CASE: non-variable payload pattern */"
@@ -359,7 +386,7 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
                     holder = _case_axon_temp_for(keys[:-1])
                     binds.append((nm, f'realvec({holder}.item("{keys[-1]}"))'))
         elif pat.type == "constructor" and _text(pat, src) in _VARIANTS:
-            test = f"(_vtag == {_VARIANTS[_text(pat, src)][1]})"
+            test = f"({vtag_ref} == {_VARIANTS[_text(pat, src)][1]})"
             uses_variant = True
         elif pat.type == "constructor" and _text(pat, src) in ("True", "False"):
             # Bool literal pattern (`case b of True -> …; False -> …`): test the bool
@@ -399,10 +426,16 @@ def _lower_case_stmts(node, src: bytes, indent: str = "    "):
     # literal/number case dispatches the scrutinee directly with no prelude.
     stmts = ""
     if uses_variant:
-        stmts = f'{indent}int _vtag = realvec({scrut_src}.item("_tag"));\n'
+        decls = f'{indent}int {vtag_ref} = realvec({scrut_src}.item("_tag"));\n'
         for i in range(max_arity):
-            stmts += f'{indent}int _val{i} = realvec({scrut_src}.item("_val{i}"));\n'
-        stmts += "".join(case_axon_temps)   # NESTED-payload `Axon` temps (read from scrut)
+            decls += f'{indent}int {_val_ref(i)} = realvec({scrut_src}.item("_val{i}"));\n'
+        decls += "".join(case_axon_temps)   # NESTED-payload `Axon` temps (read from scrut)
+        if inline:
+            # Hoist to the equation prelude (flushed before the return) — an expression
+            # slot can't carry the declarations itself.
+            _DESTRUCTURE_PRELUDE.append(decls)
+        else:
+            stmts = decls
     expr = parsed[-1][1]  # last arm = base (exhaustive ADT match / catch-all)
     for test, res in reversed(parsed[:-1]):
         expr = res if test is None else _blend(test, res, expr)
@@ -491,14 +524,13 @@ def _lower_expr(node, src: bytes) -> str:
         # `case` in NON-TAIL expression position (`1 + (case n of 0 -> 100; _ -> 200)`).
         # A LITERAL/wildcard case is a pure nested blend (`_lower_case_stmts` returns no
         # prelude — a plain-number scrutinee `n == 0` is crisp), so it inlines. A VARIANT
-        # case needs an `int _vtag` prelude an expression can't emit → a later item (use
-        # it as the function tail, where `_lower_case_stmts` emits the locals).
-        stmts, expr = _lower_case_stmts(node, src)
+        # case is lowered in INLINE mode: the `_tag`/`_val{i}` reads splice in as
+        # `realvec(scrut.item(…))` directly, so no `int _vtag` prelude is needed and the
+        # whole case is one pure expression. Nested-payload variant cases still need
+        # statement temps and stay on the fallback (an UNSUPPORTED-CASE marker).
+        stmts, expr = _lower_case_stmts(node, src, inline=True)
         if stmts is None:
             return expr  # an UNSUPPORTED-CASE marker
-        if stmts:
-            return ("/* UNSUPPORTED-EXPR: variant `case` in expression position "
-                    "(needs an int-local; use as the function tail) */")
         return f"({expr})"
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
@@ -587,6 +619,31 @@ def _try_lower_tail_recursive(name: str, params, ret: str, cond_src, neg_src,
 
 # Associative + commutative combine ops for the non-tail fold transform.
 _FOLD_OPS = {"+", "*"}
+# Identity element for seeding a non-tail fold accumulator (both `_FOLD_OPS` ops are
+# commutative + associative with a known identity, so a post-loop `acc OP base` combine
+# reproduces the call-stack order).
+_FOLD_IDENTITY = {"+": "0", "*": "1"}
+
+
+def _foldable_step_multi(node, name: str, arity: int, src: bytes):
+    """`LEAF <OP> f a1 … aN` (or the self-call on the left), OP in `_FOLD_OPS`, the call
+    at arity N: return `(op_text, leaf_node, [rec_arg_nodes])` — the full recursion arg
+    list, for the MULTI-arg / multibase non-tail fold path. Else None."""
+    if node.type != "infix":
+        return None
+    kids = node.named_children
+    op = next((c for c in kids if c.type == "operator"), None)
+    operands = [c for c in kids if c.type != "operator"]
+    if op is None or len(operands) != 2:
+        return None
+    op_text = _text(op, src)
+    if op_text not in _FOLD_OPS:
+        return None
+    lc = _self_call_args(operands[0], name, arity, src)
+    rc = _self_call_args(operands[1], name, arity, src)
+    if (lc is None) == (rc is None):
+        return None
+    return (op_text, operands[1], lc) if lc is not None else (op_text, operands[0], rc)
 
 
 def _contains_variable(node, ident: str, src: bytes) -> bool:
@@ -677,15 +734,69 @@ def _match_body(decl, src: bytes):
     return m.named_children[-1] if m.named_children else None
 
 
+def _collect_var_names(node, src: bytes, out: set) -> None:
+    """Collect every `variable` identifier text in a subtree (for the dependency scan)."""
+    if node is None:
+        return
+    if node.type == "variable":
+        out.add(_text(node, src))
+    for c in node.named_children:
+        _collect_var_names(c, src, out)
+
+
+def _bind_defines(b, src: bytes) -> set:
+    """The name(s) a `bind` introduces — from its PATTERN (first child), not its value.
+    Simple `a = …` → {a}; destructure `(a,b) = t` / `(Wrap a b) = w` → the pattern vars."""
+    names: set = set()
+    first = b.named_children[0] if b.named_children else None
+    if first is not None and first.type in ("tuple", "parens", "apply"):
+        _collect_var_names(first, src, names)
+    else:
+        nm = next((c for c in b.named_children if c.type == "variable"), None)
+        if nm is not None:
+            names.add(_text(nm, src))
+    return names
+
+
+def _order_binds(binds: list, src: bytes) -> list:
+    """Dependency-order a `where`/`let` group so each bind is lowered AFTER the local
+    binds whose names it references — the substitution is single-level, so a forward
+    (out-of-order) reference would otherwise leak the referenced name as a bare
+    identifier (finding: forward `where` reference). Acyclic forward references are
+    handled here; a true mutual-recursion CYCLE makes no progress and the remaining
+    binds keep source order (it stays on the WASM fallback — laziness/fixpoint is out
+    of scope, not faked)."""
+    defs = [_bind_defines(b, src) for b in binds]
+    all_local: set = set().union(*defs) if defs else set()
+    uses = []
+    for i, b in enumerate(binds):
+        u: set = set()
+        _collect_var_names(_match_body(b, src), src, u)
+        uses.append((u & all_local) - defs[i])
+    ordered, emitted, remaining = [], set(), list(range(len(binds)))
+    progress = True
+    while remaining and progress:
+        progress, still = False, []
+        for i in remaining:
+            if uses[i] <= emitted:
+                ordered.append(binds[i]); emitted |= defs[i]; progress = True
+            else:
+                still.append(i)
+        remaining = still
+    ordered.extend(binds[i] for i in remaining)  # cycle: keep source order
+    return ordered
+
+
 def _apply_local_binds(local_binds, src: bytes) -> list[str]:
     """Add each `bind` in a `local_binds` node (a `where` clause or `let` group) to
-    `_SUBST` as name → its parenthesised lowered value, processed in order so a
-    later binding sees the earlier ones (the OCaml `let..in` / Clojure `let` shape;
-    numbers, so re-evaluating a substituted value is side-effect-free). Mutually-
-    recursive / forward where-bindings are a later item. Returns the bound names
-    (for cleanup by the caller)."""
+    `_SUBST` as name → its parenthesised lowered value. Binds are dependency-ordered
+    (`_order_binds`) so a later binding sees the earlier ones — including FORWARD
+    (out-of-order) references within the group (the OCaml `let..in` / Clojure `let`
+    shape; numbers, so re-evaluating a substituted value is side-effect-free). A true
+    mutual-recursion cycle stays on the WASM fallback. Returns the bound names (for
+    cleanup by the caller)."""
     bound: list[str] = []
-    for b in local_binds.named_children:
+    for b in _order_binds([b for b in local_binds.named_children if b.type == "bind"], src):
         if b.type != "bind":
             continue
         first = b.named_children[0] if b.named_children else None
@@ -972,8 +1083,15 @@ def _try_lower_multibase_tail_recursion(name: str, typed_params, ret: str, match
     if rec_result is None or len(bases) < 2:
         return None
     rec_args = _self_call_args(rec_result, name, arity, src)
+    # A TAIL recursive guard → accumulator loop (`rec_args` are the next-state values).
+    # A NON-tail recursive guard (`a + f (a-1) b`) → CPS fold: carry every recursion arg
+    # plus a synthetic `_acc`, fold the leaf each step, post-combine `_acc OP base_blend`
+    # keyed on the FINAL state (the base the recursion bottoms out at — the seed select).
+    fold_step = None
     if rec_args is None:
-        return None  # non-tail recursive guard — later item
+        fold_step = _foldable_step_multi(rec_result, name, arity, src)
+        if fold_step is None:
+            return None  # non-tail but not a foldable step — later item
     # Continue condition: an explicit recursive guard IS the continue
     # (`| n > 1 = f …` → continue while `n > 1`); an `otherwise` recursive guard
     # continues while NO base matches (the `&&` of the negated base conditions).
@@ -1005,15 +1123,46 @@ def _try_lower_multibase_tail_recursion(name: str, typed_params, ret: str, match
     # Emit — the `_try_lower_tail_recursive` shape, multibase continue + base.
     loop_name = f"_rec_{name}"
     state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in typed_params)
+    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in typed_params)
+    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in typed_params)
+    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in typed_params)
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in typed_params)
+    if fold_step is not None:
+        # NON-tail multibase fold: carry every recursion arg AND a synthetic `_acc`.
+        op_text, leaf, rec_arg_nodes = fold_step
+        sutra_op = _OP_MAP.get(op_text, op_text)
+        identity = _FOLD_IDENTITY[op_text]
+        leaf_src = _lower_expr(leaf, src)
+        rec_srcs = [_lower_expr(a, src) for a in rec_arg_nodes]
+        if "UNSUPPORTED" in leaf_src or any("UNSUPPORTED" in s for s in rec_srcs):
+            return None
+        temp_decls = "".join(f"    {ty} _t{i} = {rec_srcs[i]};\n"
+                             for i, (_nm, ty) in enumerate(typed_params))
+        assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(typed_params))
+        loop_decl = (
+            f"while_loop {loop_name}({cont}, {state_decls}, {ret} _acc = 0) {{\n"
+            f"{temp_decls}"
+            f"    {ret} _t_acc = _acc {sutra_op} {leaf_src};\n"
+            f"{assigns}"
+            f"    _acc = _t_acc;\n"
+            f"}}\n"
+        )
+        fn = (
+            f"function {ret} {name}({params_src}) {{\n"
+            f"    {ret} _acc = {identity};\n"
+            f"{slot_lines}"
+            f"    slot {ret} _acc_r = _acc;\n"
+            f"    loop {loop_name}({cont}, {slot_args}, _acc_r);\n"
+            f"{writeback}"
+            f"    return _acc_r {sutra_op} {base_src};\n"
+            f"}}\n"
+        )
+        return loop_decl + fn
     temp_decls = "".join(f"    {ty} _t{i} = {_lower_expr(arg, src)};\n"
                          for i, ((_nm, ty), arg) in enumerate(zip(typed_params, rec_args)))
     assigns = "".join(f"    {nm} = _t{i};\n" for i, (nm, _ty) in enumerate(typed_params))
     loop_decl = (f"while_loop {loop_name}({cont}, {state_decls}) "
                  f"{{\n{temp_decls}{assigns}}}\n")
-    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in typed_params)
-    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in typed_params)
-    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in typed_params)
-    params_src = ", ".join(f"{ty} {nm}" for nm, ty in typed_params)
     fn = (
         f"function {ret} {name}({params_src}) {{\n"
         f"{slot_lines}"
@@ -1193,6 +1342,7 @@ def _lower_equation(decl, src: bytes) -> str:
         # blend (the Rust match-at-tail shape).
         _ARG_HOIST.clear()
         _DESTRUCTURE_PRELUDE.clear()
+        _CASE_UID[0] = 0  # unique case-prelude names start fresh per equation
         prelude = _hoist_constructions(body, src)
         if body.type == "case":
             case_stmts, case_expr = _lower_case_stmts(body, src)

@@ -398,6 +398,28 @@ def _foldable_step(node, name: str, src: bytes):
     return (op_text, right, lc[0]) if lc is not None else (op_text, left, rc[0])
 
 
+def _foldable_step_multi(node, name: str, arity: int, src: bytes):
+    """Like `_foldable_step` but for an arity-N self-call: `LEAF <OP> f(REC0, REC1, …)`
+    (or the call on the left). Returns `(op_text, leaf_node, [rec_arg_nodes])` — the
+    full recursion arg list, so a MULTI-arg non-tail fold can carry every arg through
+    the trampoline. Else None."""
+    if node.type != "binary_operator":
+        return None
+    op = node.child_by_field_name("operator")
+    left = node.child_by_field_name("left")
+    right = node.child_by_field_name("right")
+    if op is None or left is None or right is None:
+        return None
+    op_text = _text(op, src)
+    if op_text not in _FOLD_OPS:
+        return None
+    lc = _self_call_args(left, name, arity, src)
+    rc = _self_call_args(right, name, arity, src)
+    if (lc is None) == (rc is None):
+        return None
+    return (op_text, right, lc) if lc is not None else (op_text, left, rc)
+
+
 def _contains_identifier_node(node, ident: str, src: bytes) -> bool:
     if node.type == "identifier" and _text(node, src) == ident:
         return True
@@ -1054,9 +1076,47 @@ def _try_lower_multibase_multiclause_recursion(name: str, members, src: bytes):
         # fold the leaf each iteration, then combine with the base blend keyed on the
         # FINAL loop state (`acc OP base`). `_FOLD_OPS` are commutative + associative,
         # so this reproduces the call-stack order. Single-base analog:
-        # `_try_lower_foldable_nontail`. Multi-arg non-tail stays on the WASM fallback.
+        # `_try_lower_foldable_nontail`. Multi-arg non-tail folds carry every recursion
+        # arg AND the accumulator through the trampoline (commutative+associative OP, so
+        # folding the leaf at each step's CURRENT state reproduces the call-stack order);
+        # the base blend is keyed on the FINAL multi-arg loop state.
         if arity != 1:
-            return None
+            mstep = _foldable_step_multi(rec_body, name, arity, src)
+            if mstep is None:
+                return None
+            op_text, leaf, rec_arg_nodes = mstep
+            sutra_op = _OP_MAP.get(op_text, op_text)
+            identity = _FOLD_IDENTITY[op_text]
+            leaf_src = _lower_expr(leaf, src)
+            rec_srcs = [_lower_expr(a, src) for a in rec_arg_nodes]
+            if "UNSUPPORTED" in leaf_src or any("UNSUPPORTED" in s for s in rec_srcs):
+                return None
+            state_decls = ", ".join(f"{ty} {p} = 0" for p in rec_names)
+            temp_decls = "".join(f"    {ty} _t{i} = {rec_srcs[i]};\n" for i in range(arity))
+            assigns = "".join(f"    {p} = _t{i};\n" for i, p in enumerate(rec_names))
+            slot_lines = "".join(f"    slot {ty} _{p}_r = {p};\n" for p in rec_names)
+            slot_args = ", ".join(f"_{p}_r" for p in rec_names)
+            writeback = "".join(f"    {p} = _{p}_r;\n" for p in rec_names)
+            params_src = ", ".join(f"{ty} {p}" for p in rec_names)
+            loop_decl = (
+                f"while_loop {loop_name}({cont}, {state_decls}, {ty} _acc = 0) {{\n"
+                f"{temp_decls}"
+                f"    {ty} _t_acc = _acc {sutra_op} {leaf_src};\n"
+                f"{assigns}"
+                f"    _acc = _t_acc;\n"
+                f"}}\n"
+            )
+            fn = (
+                f"function {ty} {name}({params_src}) {{\n"
+                f"    {ty} _acc = {identity};\n"
+                f"{slot_lines}"
+                f"    slot {ty} _acc_r = _acc;\n"
+                f"    loop {loop_name}({cont}, {slot_args}, _acc_r);\n"
+                f"{writeback}"
+                f"    return _acc_r {sutra_op} {base_src};\n"
+                f"}}\n"
+            )
+            return loop_decl + fn
         step = _foldable_step(rec_body, name, src)
         if step is None:
             return None

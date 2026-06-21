@@ -16,8 +16,11 @@ integer/float consts; infix arithmetic/comparison/boolean operators (`<>` →
 calls (`add 7 9` → `add(7, 9)`); `if/then/else` → the defuzz blend; parens.
 Untyped params default to int (F# infers; annotations are a later item).
 GRAMMAR QUIRK (measured): unparenthesized application mixed with infix
-(`add 7 9 + classify 5`) mis-associates in the ionide grammar — parenthesize
-call operands. Anything unrecognized emits an `UNSUPPORTED-*` marker;
+(`classify "foo" + classify "bar"`) parses in the ionide grammar as
+`application(infix(L, op, R), args)` — the trailing args bind to the whole infix
+instead of its rightmost operand. The lowering RE-ASSOCIATES this to `L op (R args)`
+(application binds tighter than infix), so call operands no longer need source parens.
+Anything unrecognized emits an `UNSUPPORTED-*` marker;
 recursion surfaces as `UNSUPPORTED-RECURSION` until the tail/CPS transforms
 are ported (never a silent self-call).
 """
@@ -232,6 +235,9 @@ def _try_lower_tail_recursive(name: str, params: list, body, src: bytes):
 
 # Associative + commutative combine ops for the non-tail fold transform.
 _FOLD_OPS = {"+", "*"}
+# Identity element for seeding a non-tail fold accumulator (the multibase fold
+# post-combines `_acc OP base_blend` instead of pre-seeding BASE).
+_FOLD_IDENTITY = {"+": "0", "*": "1"}
 
 
 def _contains_identifier(node, ident: str, src: bytes) -> bool:
@@ -323,6 +329,139 @@ def _try_lower_foldable_nontail(name: str, params: list, body, src: bytes):
     return loop_decl + fn
 
 
+def _try_lower_multibase_nontail(name: str, params: list, body, src: bytes):
+    """Multibase NON-tail recursion as an `if … elif … else` chain, e.g.
+    `let rec f a b = if a=0 then b elif a=1 then b+100 else a + (f (a-1) b)` (any arity,
+    >=2 bases). F# `elif` is a flat `elif_expression` child (the if_expression's children
+    are `[cond0, then0, elif_1, …, else]`). Flatten into bases + the recursive fold STEP
+    (the final else; its self-call is parenthesised per the F# grammar convention, like the
+    single-base fold), then emit the multi-arg CPS fold: a `while_loop` carrying every
+    recursion arg + a synthetic `_acc` seeded to the OP identity, folding the leaf each
+    step, post-combining `_acc OP base_blend(final state)` (the base the recursion bottoms
+    out at is the seed). OP must be associative+commutative (`+`/`*`). The single-base case
+    is `_try_lower_foldable_nontail`. Returns the emitted Sutra or None."""
+    if body.type != "if_expression" or not params:
+        return None
+    arity = len(params)
+    kids = body.named_children
+    if len(kids) < 4:
+        return None  # need cond0, then0, >=1 elif, and the final else
+    bases = [(kids[0], kids[1])]
+    i = 2
+    while i < len(kids) and kids[i].type == "elif_expression":
+        ek = kids[i].named_children
+        if len(ek) < 2:
+            return None
+        bases.append((ek[0], ek[1]))
+        i += 1
+    if i != len(kids) - 1 or len(bases) < 2:
+        return None  # anything other than `elif`-chain + a single final else
+    step = kids[-1]
+    if not _contains_self_call(step, name, src) \
+            or any(_contains_self_call(v, name, src) for _c, v in bases):
+        return None
+
+    def _peel(n):
+        while n is not None and n.type == "paren_expression" and n.named_children:
+            n = n.named_children[0]
+        return n
+
+    if step.type != "infix_expression":
+        return None
+    nk = step.named_children
+    op = next((c for c in nk if c.type == "infix_op"), None)
+    operands = [c for c in nk if c.type != "infix_op"]
+    if op is None or len(operands) != 2:
+        return None
+    op_text = _text(op, src)
+    if op_text not in _FOLD_OPS:
+        return None
+    lc = _self_call_args(_peel(operands[0]), name, arity, src)
+    rc = _self_call_args(_peel(operands[1]), name, arity, src)
+    if (lc is None) == (rc is None):
+        return None
+    leaf, rec_args = (operands[1], lc) if lc is not None else (operands[0], rc)
+
+    # continue = loop while NO base condition holds (`&&` of negated base conds).
+    neg_terms: list = []
+    for cond, _v in bases:
+        neg = _negate_cond(cond, src)
+        if "UNSUPPORTED" in neg:
+            return None
+        neg_terms.append(f"({neg})")
+    cont = " && ".join(neg_terms)
+    # Post-loop base blend keyed by each base cond on the FINAL state (last base = bare else).
+    rendered: list = []
+    for cond, v in bases:
+        csrc = _lower_expr(cond, src)
+        vsrc = _lower_expr(v, src)
+        if "UNSUPPORTED" in csrc or "UNSUPPORTED" in vsrc:
+            return None
+        rendered.append((csrc, vsrc))
+    base_src = rendered[-1][1]
+    for csrc, vsrc in reversed(rendered[:-1]):
+        base_src = _blend(csrc, vsrc, base_src)
+
+    ty = _DEFAULT_TYPE
+    sutra_op = _OP_MAP.get(op_text, op_text)
+    identity = _FOLD_IDENTITY[op_text]
+    leaf_src = _lower_expr(_peel(leaf), src)
+    rec_srcs = [_lower_expr(a, src) for a in rec_args]
+    if "UNSUPPORTED" in leaf_src or any("UNSUPPORTED" in s for s in rec_srcs):
+        return None
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {p} = 0" for p in params)
+    temp_decls = "".join(f"    {ty} _t{i} = {rec_srcs[i]};\n" for i in range(arity))
+    assigns = "".join(f"    {p} = _t{i};\n" for i, p in enumerate(params))
+    slot_lines = "".join(f"    slot {ty} _{p}_r = {p};\n" for p in params)
+    slot_args = ", ".join(f"_{p}_r" for p in params)
+    writeback = "".join(f"    {p} = _{p}_r;\n" for p in params)
+    params_src = ", ".join(f"{ty} {p}" for p in params)
+    loop_decl = (
+        f"while_loop {loop_name}({cont}, {state_decls}, {ty} _acc = 0) {{\n"
+        f"{temp_decls}"
+        f"    {ty} _t_acc = _acc {sutra_op} {leaf_src};\n"
+        f"{assigns}"
+        f"    _acc = _t_acc;\n"
+        f"}}\n"
+    )
+    fn = (
+        f"function {ty} {name}({params_src}) {{\n"
+        f"    {ty} _acc = {identity};\n"
+        f"{slot_lines}"
+        f"    slot {ty} _acc_r = _acc;\n"
+        f"    loop {loop_name}({cont}, {slot_args}, _acc_r);\n"
+        f"{writeback}"
+        f"    return _acc_r {sutra_op} {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
+def _emit_call(head, args, src: bytes) -> str:
+    """Lower an application `head arg1 …` to a Sutra call `head(arg1, …)`. Shared by the
+    plain application path and the re-associated infix-head quirk path."""
+    hname = _text(head, src).strip()
+    # `fst t` / `snd t` — pair accessors → the positional axon fields _0 / _1.
+    if hname in ("fst", "snd") and len(args) == 1:
+        field = "_0" if hname == "fst" else "_1"
+        return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
+    # A zero-arg call `f ()` carries a unit argument — drop it so it lowers to the
+    # nullary call `f()` (matches the `let f () = …` zero-param definition).
+    def _is_unit_arg(a):
+        if a.type == "unit":
+            return True
+        if a.type == "const" and a.named_children and a.named_children[0].type == "unit":
+            return True
+        return a.type == "paren_expression" and not a.named_children
+    args = [a for a in args if not _is_unit_arg(a)]
+    # A tuple/record/DU construction passed directly as an argument is hoisted to
+    # a prelude temp (axon-build statements), then the temp name used here.
+    arg_srcs = [(_hoist_construction_arg(a, src) or _lower_expr(a, src))
+                for a in args]
+    return f"{hname}({', '.join(arg_srcs)})"
+
+
 def _lower_expr(node, src: bytes) -> str:
     t = node.type
     if t == "const":
@@ -381,27 +520,26 @@ def _lower_expr(node, src: bytes) -> str:
         return _blend(cond_src, then_src, else_src)
     if t == "application_expression":
         head, args = _flatten_apply(node)
+        # GRAMMAR QUIRK (measured): `f x + g y` parses as
+        # `application(infix(f x, +, g), [y])` — the trailing args bind to the whole
+        # infix instead of to its RIGHTMOST operand. Application binds tighter than
+        # infix in F#, so re-associate: `application(infix(L, op, R), args)` ≡
+        # `L op (R args)`. Recovers the intended `(f x) + (g y)` without requiring the
+        # source to parenthesise call operands.
+        if head.type == "infix_expression":
+            ikids = head.named_children
+            iop = next((c for c in ikids if c.type == "infix_op"), None)
+            iops = [c for c in ikids if c.type != "infix_op"]
+            if (iop is not None and len(iops) == 2 and iops[1].type in
+                    ("identifier", "long_identifier_or_op", "long_identifier")):
+                sop = _OP_MAP.get(_text(iop, src))
+                if sop is not None:
+                    return (f"({_lower_expr(iops[0], src)} {sop} "
+                            f"{_emit_call(iops[1], args, src)})")
+            return f"/* UNSUPPORTED-EXPR: application head {head.type} */"
         if head.type not in ("identifier", "long_identifier_or_op", "long_identifier"):
             return f"/* UNSUPPORTED-EXPR: application head {head.type} */"
-        hname = _text(head, src).strip()
-        # `fst t` / `snd t` — pair accessors → the positional axon fields _0 / _1.
-        if hname in ("fst", "snd") and len(args) == 1:
-            field = "_0" if hname == "fst" else "_1"
-            return f'realvec({_lower_expr(args[0], src)}.item("{field}"))'
-        # A zero-arg call `f ()` carries a unit argument — drop it so it lowers to the
-        # nullary call `f()` (matches the `let f () = …` zero-param definition).
-        def _is_unit_arg(a):
-            if a.type == "unit":
-                return True
-            if a.type == "const" and a.named_children and a.named_children[0].type == "unit":
-                return True
-            return a.type == "paren_expression" and not a.named_children
-        args = [a for a in args if not _is_unit_arg(a)]
-        # A tuple/record/DU construction passed directly as an argument is hoisted to
-        # a prelude temp (axon-build statements), then the temp name used here.
-        arg_srcs = [(_hoist_construction_arg(a, src) or _lower_expr(a, src))
-                    for a in args]
-        return f"{hname}({', '.join(arg_srcs)})"
+        return _emit_call(head, args, src)
     if t == "match_expression":
         # `match scrut with | k1 -> r1 | … | x -> base` → a nested defuzz blend
         # over `scrut == k` tests (the OCaml/Scala literal-match shape). The last
@@ -1198,6 +1336,9 @@ def _lower_defn(defn, src: bytes) -> str:
         fold = _try_lower_foldable_nontail(name, params, body, src)
         if fold is not None:
             return fold
+        mb = _try_lower_multibase_nontail(name, params, body, src)
+        if mb is not None:
+            return mb
     if _contains_self_call(body, name, src):
         # Recursion outside the supported tail/foldable shapes — a plain
         # self-call would not terminate through the fuzzy-if blend. Surface it.
