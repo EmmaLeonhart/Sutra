@@ -39,17 +39,17 @@ The session's big directed legs are done + validated:
 
 ## ACTIVE — barrel top to bottom (Emma's 2026-06-20 design decisions, now unblocked)
 
-### A. `await` mid-function → poll-loop lowering (Emma: "polling loop is desired; the input+flag form is the β-reduction case")
+### (await leg — CORE shipped 2026-06-20; remainder Yantra-I/O-gated, see PARKED)
 
-`await` as a mid-function expr raises `CodegenNotSupported` today (only tail-position `async … return await
-e` works). Emma's model: the RUNTIME lowering is the **gated polling loop** (`promises.md`'s while_loop) —
-`vector v = await x; return g(v);` becomes a substrate loop that polls `x` until its arrival flag is set,
-then continues with `g(v)` (first-class functions now make the continuation expressible). The value-as-
-INPUT + arrival-flag form is the COMPILE-TIME β-REDUCTION case: when the awaited value can be statically
-resolved, the poll loop reduces away to a direct input+flag read. Build the poll-loop lowering first; add
-the β-reduction-to-input+flag as the optimisation. Conform to `promises.md` + Promises/A+.
+The practically-useful core landed: mid-function `await x` lowers + **Promises/A+ rejection
+propagation** now works (awaiting a rejected promise used to silently FULFIL — fixed via a
+substrate-pure `Promise.propagate` tanh blend; verified fulfill-flows-through + reject-stays-rejected;
+`test_await_midfunction.py`). The remaining piece — the full Stage-2 gated `while_loop` with a LIVE
+external-axon producer (the orchestrator that actually resolves the promise over time) — is Yantra I/O
+work and is parked below; `await_value` stays the β-reduced no-producer form until then. Awaits buried in
+nested control-flow also still fall through. Next active leg:
 
-### B. All numbers on the SUBSTRATE (Emma: "purist, the old goal") — BIG, foundational, substrate-purity-critical
+### A. All numbers on the SUBSTRATE (Emma: "purist, the old goal") — BIG, foundational, substrate-purity-critical
 
 Emma chose: `int`/`number`/`scalar` math should run on the substrate (the number axis), NOT host floats.
 So host-int is a **gap to CLOSE**, not the intended design (correct the spec/finding accordingly — substrate
@@ -68,7 +68,13 @@ Order: A (bounded, quick win) → B (medium) → C (big/critical, decompose). Al
 
 ## PARKED — gated or owned elsewhere (do NOT start on this clone)
 
-- **Full async/await Stage-1 desugar — DESIGN-BLOCKED (the await MODEL is unsettled).** First-class
+- **await Stage-2 — full gated `while_loop` with a LIVE external-axon producer — Yantra-I/O-gated.**
+  The await CORE shipped 2026-06-20 (mid-function lowering + Promises/A+ rejection propagation, substrate-
+  pure). What remains is the poll loop spinning on a promise an EXTERNAL producer resolves over time — i.e.
+  the orchestrator (Yantra) writing the resolved value into the awaited axon. `await_value` stays the
+  β-reduced no-producer form until there's a real producer to test against. Also: awaits buried in nested
+  control-flow still fall through to the codegen rejection. Resume when wiring Yantra's promise producer.
+- **(historical) Full async/await Stage-1 desugar — was DESIGN-BLOCKED; the await MODEL is now settled.** First-class
   functions (now shipped) unblock the *mechanism* (a continuation can be a hoisted function), and the gap
   is concrete (`await` as a mid-function expr raises `CodegenNotSupported` in `codegen_base.py`; only
   tail-position `async function … return await e` works). BUT the await *model* itself is undecided: Emma

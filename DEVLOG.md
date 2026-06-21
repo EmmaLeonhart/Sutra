@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-06-20: Mid-function await + Promises/A+ rejection propagation; and a CI-discipline fix
+
+Two things. (1) **Fixed the list-ops CI failure properly.** After the list-ops merge CI went red on
+`Sutra compiler — pytest`; traced it (NOT the leak sweep, which CI excludes) to `test_no_host_readout.py` —
+the strict gate counting `.item()` host-readouts against a fixed budget (drive-to-0). The array ops read
+the array length via `.item()` to drive a host loop. Fixed the RIGHT way per the gate's philosophy (remove
+the readout, don't bump the budget): arrays are exactly sized, so iterate `arr[1:]` directly with
+`torch.cat`/`clone`/`len` — no host length read. CI green (`3616210a`). Lesson re-applied: a `-k`-filtered
+local sweep MISSED it; verify the full CI surface.
+
+(2) **Mid-function `await` leg (Emma's poll-loop decision).** Attempted via a subagent with a hard
+verify-or-don't-claim mandate; it honestly found the real gap wasn't lowering (mid-function `await x`
+already lowered to `Promise.await_value`) but **Promises/A+ rejection propagation** — awaiting a REJECTED
+promise silently FULFILLED (a correctness violation). Fixed with a SUBSTRATE-PURE `Promise.propagate`
+(tanh-polarized blend, no `.item()`/host-`if`): each `return e` becomes `propagate(awaited, resolve(e))`
+folded over the awaited temps, so a rejected await short-circuits. Independently verified before merge:
+fulfill flows through `g` (cosine 1.0), awaiting a rejected promise → fulfilled=0/rejected=1 (was 1/0),
+2-await chain rejection propagates; `test_await_substrate_pure` (REAL LEAK #3 substrate-purity) +
+`test_no_host_readout` stay green; **full CI-equivalent suite 788 passed, 0 failed** (1h20m — verified the
+COMPLETE surface this time, not a filtered subset). Honest scope: the full Stage-2 gated `while_loop` with a
+LIVE external-axon producer is Yantra-I/O work (parked); awaits in nested control-flow still fall through.
+`test_await_midfunction.py` (10) + corpus `await_midfunction.su`.
+
 ## 2026-06-20: Immutable list ops (map/filter/concat) — leg A of Emma's unblocked decisions
 
 Emma answered the design questions, unblocking three legs; barreled the first. Leg A = immutable
