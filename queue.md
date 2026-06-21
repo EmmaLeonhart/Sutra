@@ -31,6 +31,10 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
   (`.item()`/`float(tensor)`) inside operations.
 - **Multi-clone**: editable `sutra_compiler` install points at the sibling `Github\Sutra`; verify
   changes here via `PYTHONPATH=sdk/sutra-compiler`. CI uses this repo's compiler.
+- **Version: 0.9.0** (Emma 2026-06-21) — `pyproject.toml` + `__init__.py` reconciled to the `v0.9.0` tag;
+  publish via a `sutra-dev-v0.9.0` tag (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until
+  codegen/stdlib go a stretch with NO source-breaking changes (Emma's call — too soon right after this
+  week's arithmetic-semantics changes). No hard blocker; it's a source-compat-stability commitment.
 
 ## ACTIVE — barrel top to bottom
 
@@ -39,20 +43,6 @@ multi-process, FV surface + measurement-claim gates, await core, the NeurIPS-fro
 email-dedup, and the paper Background→Preliminaries refactor (after Related Work, with Kleene grounding +
 the Shaw et al. citation) — is all shipped and lives in `DEVLOG.md`, `git log`, and `planning/findings/`.
 When starting fresh, pull the next genuinely-unblocked item from `todo.md`.
-
-## ACTIVE
-
-### Version reconciliation + v1.0.0 decision (Emma 2026-06-21 audit)
-
-Audit finding: the version sources DISAGREE — `sdk/sutra-compiler/pyproject.toml` = `0.7.0`,
-`sutra_compiler/__init__.py` = `0.7.1`, latest annotated git tag = **`v0.9.0`** (2026-06-18); the PyPI
-publish path (`publish-sutra-compiler.yml`, fires on `sutra-dev-v*` tags) only ever got
-`sutra-dev-v0.2.0`, so it's dormant. There is **no documented HARD blocker to v1.0.0** — the only stated
-reason is `sdk/sutra-compiler/README.md` ("research-grade; versions before 1.0 may break source
-compatibility; the grammar is stable, codegen + stdlib still move") + the `3 - Alpha` classifier. Sutra is
-functional (compiler suite + demos + transpilers + examples all green). **Action (gated on Emma's release
-call):** reconcile the three version numbers to one, and decide v1.0.0 vs a consistent v0.9.x. Full audit
-in chat + DEVLOG (2026-06-21).
 
 ---
 
