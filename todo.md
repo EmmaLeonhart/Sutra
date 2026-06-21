@@ -37,6 +37,15 @@ heavy Lean toolchain); irregular (non-grid, stack-based) recursion (substrate-pe
 **Lowest-priority standing items:** W2C corpus scaling (baseline PUBLISHED; one-flag bump → push
 submodule → HF mirror); the daily watchdog crons (verification, not new work).
 
+**CI-infra (Emma's call — real tradeoff):** `demos-ci.yml` is path-filtered to `demos/**`, so an
+`sdk/`-only compiler change never runs the demos. That gap hid the numbers-on-substrate leg's
+scalar-position breakage (select scores / scalar-gate multiply / main-returns-number) for weeks
+until a `demos/`-touching commit surfaced it — full write-up
+`planning/findings/2026-06-21-numbers-leg-scalar-position-breakage.md`. Recommendation: trigger
+demos-ci on `sdk/**` too (catches the class) — but the full demos suite is ~25 min with cache-miss
+recompiles (font.su's 22500-op switch dominates), so it materially slows compiler-change iteration.
+A demos-smoke subset on `sdk/**` (skip the slow font render) is the likely middle ground.
+
 ## Neural-network Turing-completeness — the architectural roadmap (metabolised 2026-06-07)
 
 Metabolised from Emma's Claude conversation "Neural network approaches to Turing
