@@ -722,13 +722,22 @@ that is the bulk of the work" framing is stale.
 
 ---
 
-## First-class function values (2026-05-09)
+## First-class function values (2026-05-09) — ✅ SHIPPED 2026-06-20
 
-Sutra's arrow functions today get hoisted to top-level `function`
-declarations rather than passed as values (per the 2026-05-08 TS
-transpiler note; see `sdk/sutra-from-ts/tests/fixtures/arrow_function/`).
-That works for the TS lowering but blocks several language-level
-features that need to pass behaviour as data:
+**Sutra-native first-class functions now work end-to-end.** Named functions pass
+as values (verified: `apply(double, 5)`); and Sutra-native **arrow/anonymous
+functions** `(params) => expr` / `(params) => { body }` parse and compile
+(`parser.py`; `tests/test_arrow_functions.py`, corpus `14_arrow_functions.su`),
+desugaring closure-free per the settled design: hoist to a synthetic top-level
+function, replace with an identifier, and **lift captured locals to trailing
+params threaded at direct call sites** (`var g=(int x)=>x*multiplier; g(7)` = 35).
+The one case a closure-free language genuinely can't support — a CAPTURING arrow
+escaping through a higher-order call — is a clear `SUT0140` compile error, not a
+miscompile (corpus `invalid/22_capturing_arrow_escape.su`). This unblocks the
+items below (async/await full desugar, higher-order list ops) at the
+language-mechanism level; they remain as their own follow-ons.
+
+The original framing (kept for the follow-ons it unblocks):
 
 - **Non-tail recursion frontier (from queue #6, 2026-06-12).** The foldable case
   (`+`/`*` non-tail `let rec`) now compiles via the CPS/accumulator transform in
