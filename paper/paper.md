@@ -159,30 +159,6 @@ substrate-agnostically.
 
 ---
 
-## Background
-
-The primitives Sutra consolidates come from Vector Symbolic Architectures, also
-called hyperdimensional computing (Plate 1995; Gayler 2003; Kanerva 2009) — the
-prior work a reader needs in order to follow the rest of the paper. A VSA turns a
-vector space into a store of structured values through three operations. *Binding*
-composes a role with a filler into a single vector dissimilar to both. *Bundling*
-superposes several vectors into one that stays similar to each. *Cleanup* decodes a
-noisy or superposed vector back to the nearest stored item. Together these let a
-record, a sequence, or a graph be carried as one fixed-width vector and queried by
-vector arithmetic — the property a programming language can build data structures on.
-
-The classical VSA literature derives its binding operators — the Hadamard product
-and circular convolution — for hypervectors drawn from a controlled random
-distribution. A frozen embedding space, the substrate this paper targets, does not
-meet that assumption: it is strongly anisotropic, concentrating in a narrow cone, so
-cosine similarity is compressed even between unrelated items. Relational structure
-nonetheless persists in these spaces as consistent displacement directions,
-characterised in prior work by relational-displacement analysis of frozen
-embeddings. Establishing which binding operation survives that mismatch on a real
-substrate is the measurement §3.2 reports.
-
----
-
 ## Related Work
 
 ### Vector Symbolic Architectures
@@ -204,6 +180,19 @@ binding (`R_role @ filler` for a role-seeded Haar-random
 orthogonal `R_role`) is the choice that worked across the
 substrates we tested, and is what Sutra uses today; §3.2
 reports the per-substrate measurements supporting that choice.
+
+Recent work gives VSAs a category-theoretic foundation: Shaw et al.
+(2025) formalize the binding, bundling, and similarity operations
+within a categorical framework and, discussing open directions,
+identify the construction of a *purely functional* VSA — functional
+in the programming-language sense — as a significant engineering
+goal. Sutra can be read as an independent, engineering-first
+realization of that direction: a functional language whose
+primitives are VSA operations, compiled to a differentiable
+neural-network forward pass. We arrived at the construction before
+encountering their formalization; that two routes — categorical
+axiomatization and engineering-first iteration — converge on the
+same object is some evidence the direction is structurally natural.
 
 The closest software peer in the VSA space is **TorchHD**
 (Heddes et al. 2023), a PyTorch library that exposes VSA
@@ -321,6 +310,48 @@ combination (fold source literals into the weight structure,
 compile control flow to RNN cells, run the whole program as one
 tensor-op graph over a *continuous* substrate) is the novel
 position.
+
+---
+
+## Preliminaries
+
+This section consolidates the two prerequisites a reader needs before §3: the
+vector-symbolic primitives Sutra compiles to, and the three-valued logic its
+conditionals and connectives are built on. Both are used heavily from §3 onward. The
+anisotropy of frozen embedding spaces — the other recurring fact — is introduced
+inline where it bears (§2.1, §3.2, §3.7) rather than here.
+
+### Vector-symbolic primitives
+
+Sutra's data-structure primitives come from Vector Symbolic Architectures
+(hyperdimensional computing; Plate 1995; Gayler 2003; Kanerva 2009). Four operations
+carry the algebra. *Binding* composes a role with a filler into a single vector
+dissimilar to both; *unbinding* is its inverse, recovering the filler given the role.
+*Bundling* superposes several vectors into one that stays similar to each.
+*Similarity* (cosine) measures how close two vectors are, and *cleanup* uses it to
+decode a noisy or superposed vector back to the nearest stored item. Together these
+let a record, a sequence, or a graph be carried as one fixed-width vector and queried
+by vector arithmetic — the property Sutra's compiler builds data structures on. §3.1
+and Appendix A give the exact operators Sutra uses: rotation binding (`R_role @
+filler` for a role-seeded Haar-orthogonal `R_role`), additive bundling, and cosine
+similarity.
+
+### Kleene three-valued logic
+
+Sutra's conditionals and boolean connectives are built on Kleene's *strong*
+three-valued logic (Kleene 1952), which extends classical {true, false} with a third
+value *unknown* for under-determined propositions. With the truth values ordered from
+false up through unknown to true, conjunction is min, disjunction is max, and
+negation reverses the order — the Gödel t-norm and t-conorm, the standard choice when
+the third value means "undetermined" rather than "half true". This reproduces
+classical logic whenever both inputs are determined, and propagates *unknown* exactly
+when the classical result depends on the unknown input: *true or unknown* is true,
+but *false or unknown* is unknown. Sutra encodes the three values antipodally on a
+dedicated truth axis — T = +1, U = 0, F = −1 — so min, max, and negation become
+numeric operations on that axis. The contribution in §1.1 is to replace the
+non-differentiable min/max with Lagrange-interpolated polynomials that are *exact* on
+the nine-point {−1, 0, +1} truth grid and smooth off it; §3.6 then backpropagates
+through a symbolic rule built from these gates.
 
 ---
 
@@ -1082,6 +1113,10 @@ reproduction scripts cited in the text and appendices.
   Networks into Answer Set Programming. *IJCAI*.
 - Plate, T. A. (1995). Holographic reduced representations. *IEEE
   Transactions on Neural Networks* 6(3):623–641.
+- Shaw, et al. (2025). Developing a Foundation of Vector Symbolic
+  Architectures Using Category Theory. arXiv:2501.05368. Cited in
+  Related Work for independently identifying the construction of a
+  purely functional VSA as a significant open direction.
 - Siegelmann, H. T. & Sontag, E. D. (1992). On the computational
   power of neural nets. *COLT '92*. Establishes that recurrent
   neural networks with rational weights are Turing-complete;
