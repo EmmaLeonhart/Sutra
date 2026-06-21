@@ -32,6 +32,7 @@ import io
 import json
 import os
 import pathlib
+import threading
 
 import numpy as np
 
@@ -103,7 +104,27 @@ class HeroBridge:
         return self.state()
 
 
-def _make_handler(bridge: HeroBridge):
+# The bridge is built in a BACKGROUND thread (the first substrate render compiles
+# and can be slow on a small cloud CPU) so the HTTP server binds immediately and a
+# host's health check sees an open port. Until it is ready, endpoints report
+# {"warming": true} (503); a build failure reports {"error": ...} (500).
+_BRIDGE = None
+_BRIDGE_ERR = None
+_BRIDGE_LOCK = threading.Lock()
+
+
+def _warm_bridge(size: int, seed: int, scale: int, render_headline: bool):
+    global _BRIDGE, _BRIDGE_ERR
+    try:
+        b = HeroBridge(size=size, seed=seed, scale=scale, render_headline=render_headline)
+        with _BRIDGE_LOCK:
+            _BRIDGE = b
+    except Exception as e:  # noqa: BLE001 — report a warm failure to the page
+        with _BRIDGE_LOCK:
+            _BRIDGE_ERR = repr(e)
+
+
+def _make_handler():
     from http.server import BaseHTTPRequestHandler
 
     page = (_DIR / "hero_page.html").read_text(encoding="utf-8")
@@ -122,21 +143,39 @@ def _make_handler(bridge: HeroBridge):
             n = int(self.headers.get("Content-Length", 0))
             return json.loads(self.rfile.read(n) or b"{}") if n else {}
 
+        def _bridge(self):
+            """The ready bridge, or send a warming(503)/error(500) reply and None."""
+            with _BRIDGE_LOCK:
+                b, err = _BRIDGE, _BRIDGE_ERR
+            if err is not None:
+                self._send(500, json.dumps({"error": err}))
+                return None
+            if b is None:
+                self._send(503, json.dumps({"warming": True}))
+                return None
+            return b
+
         def do_GET(self):
             if self.path == "/" or self.path.startswith("/index"):
                 self._send(200, page, "text/html; charset=utf-8")
             elif self.path.startswith("/frame.png"):
-                self._send(200, bridge.frame_png(), "image/png")
+                b = self._bridge()
+                if b is not None:
+                    self._send(200, b.frame_png(), "image/png")
             elif self.path.startswith("/state"):
-                self._send(200, json.dumps(bridge.state()))
+                b = self._bridge()
+                if b is not None:
+                    self._send(200, json.dumps(b.state()))
             else:
                 self._send(404, "{}")
 
         def do_POST(self):
             try:
                 if self.path.startswith("/press"):
-                    reward = float(self._json_body().get("reward", 0.0))
-                    self._send(200, json.dumps(bridge.press(reward)))
+                    b = self._bridge()
+                    if b is not None:
+                        reward = float(self._json_body().get("reward", 0.0))
+                        self._send(200, json.dumps(b.press(reward)))
                 else:
                     self._send(404, "{}")
             except Exception as e:  # noqa: BLE001 — surface bridge errors to the page
@@ -169,16 +208,25 @@ def main() -> None:
                          "runtime startup is fast.")
     args = ap.parse_args()
 
-    bridge = HeroBridge(size=args.size, seed=args.seed, scale=args.scale,
-                        render_headline=not args.no_headline)
     if args.warmup:
+        # Build-time cache bake: compile synchronously, then exit.
+        HeroBridge(size=args.size, seed=args.seed, scale=args.scale,
+                   render_headline=not args.no_headline)
         print("warmup done (compile cache primed); exiting")
         return
 
     from http.server import HTTPServer
 
-    httpd = HTTPServer((args.host, args.port), _make_handler(bridge))
-    print(f"warmer/colder hero demo on http://{args.host}:{args.port}/")
+    # Warm the bridge in the background so the server binds immediately (the first
+    # substrate render compiles and can be slow on a small CPU).
+    threading.Thread(
+        target=_warm_bridge,
+        args=(args.size, args.seed, args.scale, not args.no_headline),
+        daemon=True,
+    ).start()
+
+    httpd = HTTPServer((args.host, args.port), _make_handler())
+    print(f"warmer/colder hero demo on http://{args.host}:{args.port}/ (warming...)")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
