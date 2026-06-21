@@ -3123,6 +3123,16 @@ class BaseCodegen:
         unknown literals, logical / comparison / equality results, and
         arithmetic built from any of them). Plain numbers fall through, so
         pure numeric arithmetic still routes to the number axis."""
+        # Provenance flag from the inliner: this node is part of an inlined
+        # logical-operator (`&&`/`||`/`!`, nand/xor/xnor) Lagrange polynomial.
+        # Its result lives on the TRUTH axis regardless of the operands'
+        # declared type — an `int a, int b` logical op still produces a
+        # truth-axis vector — so the polynomial arithmetic must stay
+        # element-wise and never route to the number axis (`num_*` projects
+        # to AXIS_REAL and reads truth-axis operands as ~0, destroying the
+        # value). This is the case the static type check below misses.
+        if getattr(expr, "_logical_truth", False):
+            return True
         if isinstance(expr, (ast.BoolLiteral, ast.UnknownLiteral)):
             return True
         if isinstance(expr, ast.Identifier):
@@ -3500,8 +3510,14 @@ class BaseCodegen:
                 # exact trap this closes.
                 left_vec = self._is_vectory_expr(expr.left)
                 right_vec = self._is_vectory_expr(expr.right)
+                # A node carrying the inliner's `_logical_truth` provenance is
+                # an inlined logical-operator polynomial over the truth axis —
+                # force element-wise, never the number axis, even if both
+                # operands are int-typed (the static type check would let it
+                # through to `num_*`, which destroys the truth value).
+                this_logical = getattr(expr, "_logical_truth", False)
                 if ((left_num or right_num)
-                        and not (left_vec or right_vec)):
+                        and not (left_vec or right_vec or this_logical)):
                     return self._arith_op_src(expr, expr.op, left, right)
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
