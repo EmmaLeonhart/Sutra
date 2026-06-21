@@ -39,16 +39,21 @@ The session's big directed legs are done + validated:
 
 ## ACTIVE — barrel top to bottom
 
-### A. Measurement gates — state-locus + signal-separation (`todo.md` §"Promote the three measurement checks")
+### A. Measurement gates — CLOSED as low-value after investigation (2026-06-20)
 
-Dimension gate SHIPPED (`experiments/dimension_audit_sweep.py`). The other two need a per-`.su` CLAIM
-annotation surface first (a way for a program to declare "I am an RNN" / "I am a classifier"), because —
-unlike codebook-use — the property isn't intrinsic to the source. Steps: (1) design a lightweight claim
-annotation (a recognised comment pragma or a manifest entry); (2) state-locus check — for RNN-claiming
-files, assert a walk-N-steps-no-host-extraction test exists/passes (`count.su`'s test is the template);
-(3) signal-separation check — for classifier-claiming files, assert a measured `gap = min(pos)−max(neg)`
-table is present (`test_font_bound.py` is the template). Lower priority than A/B: harder to automate
-cleanly, moderate value.
+Dimension gate SHIPPED (`experiments/dimension_audit_sweep.py`). The other two were investigated and are
+genuinely not worth building:
+- **State-locus** (no host-extraction of recurrent state): **zero subjects.** Confirmed by sweep that NO
+  user `.su` (corpus/examples/demos) calls a host-readout accessor (`real()`/`component()`/`imag()`/
+  `truth()`/`norm()`) — the 2026-06-07 purity overhaul already removed user-level host readout, so the
+  breach is enforced-away at the source. A static gate would guard an already-clean, accessor-removed state
+  (the leak sweep + the removal already cover it). No value to add.
+- **Signal-separation** (classifier ships a measured gap table): the property is RUNTIME (measure the gap
+  by running), so a static gate can only meta-check "a gap test exists"; with `test_font_bound.py` the only
+  real classifier subject, a reusable gate is over-engineering for one consumer.
+
+If a NEW substrate RNN/classifier program lands that needs the discipline, revisit then with a real subject.
+Not forcing speculative framework now.
 
 ---
 
