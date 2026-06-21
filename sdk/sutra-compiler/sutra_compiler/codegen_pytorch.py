@@ -49,6 +49,18 @@ class PyTorchCodegen(Codegen):
     _as_truth_vector.
     """
 
+    # The numpy `Codegen` lists the immutable list ops (array_concat /
+    # array_map / array_filter) as unsupported — it has no runtime methods
+    # for them. The PyTorch runtime DOES implement them (Emma 2026-06-20),
+    # so drop them from the unsupported set on this backend. snap /
+    # make_rotation / compile_prototypes / geometric_loop remain
+    # unsupported on both backends.
+    _UNSUPPORTED_BUILTINS = Codegen._UNSUPPORTED_BUILTINS - frozenset({
+        "array_concat",
+        "array_map",
+        "array_filter",
+    })
+
     def _is_pytorch_backend(self) -> bool:
         """Override: this backend emits torch tensor ops, so try/catch
         uses _torch.tanh for the polarizer."""
@@ -1370,6 +1382,104 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit('"""Read element at index i (0-based). Returns torch 0-dim tensor."""')
         self._emit("return arr[1 + int(i)]")
+        self._indent -= 1
+        self._emit()
+        # ---- Immutable higher-order list ops (Emma 2026-06-20) ----
+        # concat / map / filter build a NEW length-prefixed binding-array
+        # from pieces and NEVER mutate an argument (pure-functional, fits
+        # the substrate). Inputs may be a binding-array tensor (the
+        # foreach_loop / array_from_literal form) OR a plain Python list
+        # (a bare `[...]` array literal lowers to a list); _as_binding_array
+        # normalizes either to a length-prefixed tensor so the ops have one
+        # representation to reason about.
+        self._emit("def _as_binding_array(self, arr):")
+        self._indent += 1
+        self._emit('"""Coerce a Python list OR a binding-array tensor to a')
+        self._emit('length-prefixed binding-array tensor. A 1-D tensor whose')
+        self._emit('[0] entry is its own (len-1) length is already a binding')
+        self._emit('array and passes through; a Python list is packed via')
+        self._emit('array_from_literal."""')
+        self._emit("if _torch.is_tensor(arr):")
+        self._indent += 1
+        self._emit("return arr")
+        self._indent -= 1
+        self._emit("return self.array_from_literal(*arr)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def array_concat(self, a, b):")
+        self._indent += 1
+        self._emit('"""Immutable concat: NEW array = a\'s elements then b\'s.')
+        self._emit('Allocates a fresh tensor; a and b are unchanged."""')
+        self._emit("a = self._as_binding_array(a)")
+        self._emit("b = self._as_binding_array(b)")
+        self._emit("na = int(a[0].item())")
+        self._emit("nb = int(b[0].item())")
+        self._emit("out = _torch.zeros(na + nb + 1, dtype=self.dtype, device=self.device)")
+        self._emit("out[0] = float(na + nb)")
+        self._emit("if na > 0:")
+        self._indent += 1
+        self._emit("out[1:1 + na] = a[1:1 + na]")
+        self._indent -= 1
+        self._emit("if nb > 0:")
+        self._indent += 1
+        self._emit("out[1 + na:1 + na + nb] = b[1:1 + nb]")
+        self._indent -= 1
+        self._emit("return out")
+        self._indent -= 1
+        self._emit()
+        self._emit("def array_map(self, f, arr):")
+        self._indent += 1
+        self._emit('"""Immutable map: NEW array where element i = f(arr[i]).')
+        self._emit('f is a function value (Python callable). Same length as')
+        self._emit('arr; arr is unchanged."""')
+        self._emit("arr = self._as_binding_array(arr)")
+        self._emit("n = int(arr[0].item())")
+        self._emit("out = _torch.zeros(n + 1, dtype=self.dtype, device=self.device)")
+        self._emit("out[0] = float(n)")
+        self._emit("for i in range(n):")
+        self._indent += 1
+        self._emit("v = f(arr[1 + i])")
+        # f returns a host scalar (number elements are host floats today) or
+        # a 0-d/real-axis tensor; coerce to a real scalar for the slot.
+        self._emit("if _torch.is_tensor(v) and v.dim() > 0:")
+        self._indent += 1
+        self._emit("v = self._re(v)")
+        self._indent -= 1
+        self._emit("out[1 + i] = v")
+        self._indent -= 1
+        self._emit("return out")
+        self._indent -= 1
+        self._emit()
+        self._emit("def array_filter(self, pred, arr):")
+        self._indent += 1
+        self._emit('"""Immutable filter: NEW array of the elements where')
+        self._emit('pred(element) is true. pred returns a Sutra truth value')
+        self._emit('(a vector / 0-d tensor on the truth axis); truth_axis')
+        self._emit('decodes it and the element is kept when truth > 0')
+        self._emit('(unknown / 0 is dropped). arr is unchanged."""')
+        self._emit("arr = self._as_binding_array(arr)")
+        self._emit("n = int(arr[0].item())")
+        self._emit("kept = []")
+        self._emit("for i in range(n):")
+        self._indent += 1
+        self._emit("elem = arr[1 + i]")
+        self._emit("t = self.truth_axis(pred(elem))")
+        # truth_axis returns a 0-d tensor on AXIS_TRUTH; keep when > 0.
+        # This host bool read is the filter decision point, the analogue
+        # of a `while` halt check — not a per-element substrate readout of
+        # the data.
+        self._emit("if float(t) > 0.0:")
+        self._indent += 1
+        self._emit("kept.append(elem)")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("out = _torch.zeros(len(kept) + 1, dtype=self.dtype, device=self.device)")
+        self._emit("out[0] = float(len(kept))")
+        self._emit("for j, elem in enumerate(kept):")
+        self._indent += 1
+        self._emit("out[1 + j] = elem")
+        self._indent -= 1
+        self._emit("return out")
         self._indent -= 1
         self._emit()
         self._emit("# ---- Substrate scalar primitives (boundary-leak reductions) ----")
