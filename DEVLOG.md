@@ -1,5 +1,35 @@
 # Development Log
 
+## 2026-06-20: a1 hero demo step 5 — warmer/colder hero now served in a real browser (hero_server.py)
+
+The a1 warmer/colder self-morphing hero (controller `hero_steering.py`, render
+`frame_hero.su` / `whole_frame.render_hero_full`, optimizer host-side SPSA) now has
+the piece the a1 spec (emmas-gstack `business/gtm/a1-implementation-spec.md`, step 5)
+left as the only missing infrastructure: a live page at a URL.
+
+- `demos/gui/hero_server.py` wraps the existing headless `HeroSteering` controller
+  behind a stdlib `http.server` bridge (mirrors `button_server.py`): GET `/` →
+  `hero_page.html`; GET `/frame.png` → the substrate hero render encoded as PNG;
+  POST `/press {reward:±1}` → one warmer/colder press.
+- `demos/gui/hero_page.html` — a real browser page: the hero `<img>` plus
+  WARMER / COLDER buttons that POST presses and refresh the frame.
+- `demos/gui/test_hero_server.py` — 4 tests on the pure `frame_to_png` helper.
+
+VERIFIED BY RUNNING (not just imported): served on http://127.0.0.1:8771/, loaded
+in a headless browser, pressed WARMER 6×. Observed: `/frame.png` returns a 440×440
+PNG; after 6 presses `spsa_steps` advanced 0→3 and the substrate headline morphed
+SUTRA → LEARN — the hero visibly steers from the buttons. `test_hero_server.py`
+green (4); the headless steering pipeline stays covered by `test_hero_steering.py`
+(6 green). HTTP serving + the page are I/O, not in CI (no browser on the runner).
+
+Honesty rails (unchanged from the controller): the frame is a substrate render; the
+optimizer and warmer/colder bookkeeping are host-side; this is steering of
+substrate-rendered output by a present rater — NOT substrate-native training and
+NOT learning from real visitor traffic (that is A2). NOT yet publicly hosted: a
+live internet URL needs a Python-backend host (the page needs the substrate server
+running), so the static sutra.topazcomputing.com build cannot serve it as-is.
+Usable now at a local URL; public deploy is the next infra step.
+
 ## 2026-06-20: Higher-order functions on the substrate — and an integrity catch (int fold is HOST, vector fold is substrate)
 
 Demonstrated the payoff of the just-shipped first-class functions: `examples/higher_order_functions.su` —
