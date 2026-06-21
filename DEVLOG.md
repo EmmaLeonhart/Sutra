@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-06-20: Sutra-native arrow functions — first-class function values leg COMPLETE (closure-free)
+
+Barreled into the top queue item (the genuine open part of first-class functions: anonymous/arrow
+functions as values). Did the real attempt — not the "do something smaller" no-capture-only version — in
+an isolated worktree via a subagent carrying the full design I reverse-engineered from the TS frontend's
+`lower.py`, then independently verified every target before merging. Shipped: `(params) => expr` and
+`(params) => { body }` parse in expression position (parser lookahead-with-rewind before the existing cast
+attempt, so casts/parens/calls are untouched); arrows desugar closure-free per Emma's settled design —
+hoist to a synthetic top-level function, replace with an identifier, and **lift captured locals to trailing
+params threaded at direct call sites** (the valuable capture case, not just sugar). Verified by running +
+decoding: `apply((x)=>x*2,5)`=10, block body=6, `var g=(x)=>x*multiplier; g(7)`=35 (capture lifted). The one
+case a closure-free language genuinely can't do — a capturing arrow escaping through a higher-order call —
+is a clear `SUT0140` compile error, NOT a miscompile (it produced a Python TypeError without the guard).
+276 parser/codegen/class/axon tests pass, no regressions from the high-blast-radius parser change.
+New: `test_arrow_functions.py`, corpus `valid/14_arrow_functions.su` + `invalid/22_capturing_arrow_escape.su`.
+This is the last open piece of first-class function values; it unblocks (at the mechanism level) the
+async/await full Stage-1 desugar and higher-order list ops, which remain as follow-ons. Queue item retired;
+measurement gates promoted to top.
+
 ## 2026-06-20: Queue reorganized + owned; object encapsulation found already complete, now runtime-guarded
 
 Per Emma's directive to own + run the queue autonomously (no questions), reorganized `queue.md` into a
