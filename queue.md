@@ -40,9 +40,28 @@ email-dedup, and the paper Background→Preliminaries refactor (after Related Wo
 the Shaw et al. citation) — is all shipped and lives in `DEVLOG.md`, `git log`, and `planning/findings/`.
 When starting fresh, pull the next genuinely-unblocked item from `todo.md`.
 
+## Stuff to do
+
+So I am editing this on GitHub separately, but just keep in mind it's because of the fact that it's a bit unsafe to insert while you are also editing the queue. Just think of this as being an insertion but also a change of the parked to formerly parked thing in the queue. 
+
+I am very confused as to why it is that we are not at v1.0.0 yet. Is there a technical reason in documentation? Is Sutra just not usable yet based on your judgment?
+
+Do an audit to figure this stuff out.
+
+Also check whatever is going on in [[#Formerly parked]] Audit whether those things are done or not, and if they are done then remove them and if not then implement them
+
+Yantra is kinda not a thing anymore so weird that it is referenced. We are just doing desktop io for Sutra. Anynthing that is called Yantra here is just io stuff or the legacy imported content. But def we are moving away from calling it Yantra. It is now Sutra for Windows.
+
+But yeah, I think that most of the stuff here is just kind of absent. Most of it in this section is just kind of absent. This, and the formerly parked stuff, might have just been added to the queue based off of some improperly done pull request or something like that. I want you to specifically audit the stuff. 
+
+
+Once you have finished this stuff up, with finishing the paper and the formerly parked stuff and things like that, I think we're probably going to be able to have our actual proper version one. I'm not really entirely sure, because I don't really know what the actual judgement is for why we're not at version one. Even if we can't get to version one right now, unless a new version was pretty recent, we're probably at a point where we can move on beyond whatever version we're on right now.
+
+Our releases: I'm not sure how well we're doing our releases, but I think we might have been a bit too conservative with them. Yeah, an audit after the paper's done and the stuff to do is done, and we've barreled through the formerly parked and stuff like that, we're going to be seeing if we can just do v1. 
+
 ---
 
-## PARKED — gated or owned elsewhere (do NOT start on this clone)
+## Formerly parked
 
 - **await Stage-2 — full gated `while_loop` with a LIVE external-axon producer — Yantra-I/O-gated.**
   The await CORE shipped 2026-06-20 (mid-function lowering + Promises/A+ rejection propagation, substrate-
