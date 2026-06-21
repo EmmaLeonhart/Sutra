@@ -109,7 +109,15 @@ def test_axon_op_cache_under_cap_never_evicts():
     is a pathological-case safety net, not something real programs hit."""
     v = _vsa()
     v._role_cache_cap = 64
-    keys = ["f%d" % i for i in range(10)]
+    # Semantically-distinct keys (NOT sequential "f0".."f9"): the readback
+    # below unbinds each key from a 10-key bundle, so the keys' embeddings must
+    # be well-separated or a near-collinear pair lets one key's full value bleed
+    # through (rare 2x-crosstalk CI flake — nomic-embed-text's f0..f9 sit close
+    # and run-to-run FP nondeterminism occasionally tips one pair into a near-
+    # collision). Distinct words embed near-orthogonally, so crosstalk stays
+    # negligible and the readback is robust.
+    keys = ["go", "sun", "tree", "house", "garden",
+            "machine", "mountain", "telephone", "strawberry", "hippopotamus"]
     for k in keys:
         v.axon_build(v.zero_vector(), [k], [float(len(k))])
     assert len(v._axon_op_cache) == 10
