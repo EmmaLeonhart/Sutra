@@ -51,18 +51,21 @@ nested control-flow also still fall through. Next active leg:
 
 ### A. All numbers on the SUBSTRATE (Emma: "purist, the old goal") — BIG, foundational, substrate-purity-critical
 
-Emma chose: `int`/`number`/`scalar` math should run on the substrate (the number axis), NOT host floats.
-So host-int is a **gap to CLOSE**, not the intended design (correct the spec/finding accordingly — substrate
-is the committed direction). Move numeric ops onto the substrate: `int` literal → number-vector, `a + b` →
-substrate add on the number axis, comparisons, augmented assignment, the int-return boundary. **Big blast
-radius + sub-questions to resolve while building** (decompose, may surface design sub-decisions): do loop
-counters / array indices / array lengths also become substrate vectors, or stay host for control flow? (The
-number-axis encoding already exists — `make_real` puts a value there; the work is routing ALL numeric
-lowering through it instead of host floats.) Highest-priority on substrate-purity grounds but the largest;
-do in verified increments (prefer a worktree). Pairs with the int/scalar finding
-`planning/findings/2026-06-20-int-scalar-is-host-not-substrate.md` (reframe: substrate is the goal).
-
-Order: A (bounded, quick win) → B (medium) → C (big/critical, decompose). All three are now design-unblocked.
+Emma chose: `int`/`number`/`scalar` math runs on the substrate (the number axis), NOT host floats. So
+host-int is a **gap to CLOSE**, not the intended design. **"All numbers on the substrate" is LITERAL — it
+includes loop counters, array indices, and array lengths (Emma 2026-06-20: "loop counters are obviously on
+substrate"). There is NO host carve-out for control-flow integers** (a substrate `loop` already runs its
+recurrence on the substrate — its counter being a substrate vector is the existing design, not a new
+question). Route ALL numeric lowering through the number axis: `int` literal → number-vector, `a + b` →
+substrate add, comparisons, augmented assignment, loop bounds/counters, array indices, the int-return
+boundary. The number-axis encoding already exists (`make_real` puts a value there); the work is routing
+EVERY numeric op through it instead of host floats. Highest-priority on substrate-purity grounds, and the
+largest — do in verified increments (prefer a worktree). Pairs with the int/scalar finding
+`planning/findings/2026-06-20-int-scalar-is-host-not-substrate.md` (reframe: substrate is the goal). Plan
+of attack: start with literal+arithmetic (`int` literal → `make_real`, `+`/`-`/`*` → substrate), verify a
+runtime int returns a substrate tensor, then comparisons + augmented assignment, then loop counters +
+array indices last (highest blast radius); each increment RUN + decoded vs ground truth, full CI-equivalent
+suite green before merge.
 
 ---
 
