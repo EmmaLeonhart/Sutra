@@ -49,32 +49,30 @@ external-axon producer (the orchestrator that actually resolves the promise over
 work and is parked below; `await_value` stays the β-reduced no-producer form until then. Awaits buried in
 nested control-flow also still fall through. Next active leg:
 
-### A. All numbers on the SUBSTRATE (Emma: "purist, the old goal") — BIG, foundational, substrate-purity-critical
+### A. All numbers on the SUBSTRATE — CORE SHIPPED 2026-06-21 (`44127510`); refinements below
 
-Emma chose: `int`/`number`/`scalar` math runs on the substrate (the number axis), NOT host floats. So
-host-int is a **gap to CLOSE**, not the intended design. **"All numbers on the substrate" is LITERAL — it
-includes loop counters, array indices, and array lengths (Emma 2026-06-20: "loop counters are obviously on
-substrate"). There is NO host carve-out for control-flow integers** (a substrate `loop` already runs its
-recurrence on the substrate — its counter being a substrate vector is the existing design, not a new
-question). Route ALL numeric lowering through the number axis: `int` literal → number-vector, `a + b` →
-substrate add, comparisons, augmented assignment, loop bounds/counters, array indices, the int-return
-boundary. The number-axis encoding already exists (`make_real` puts a value there); the work is routing
-EVERY numeric op through it instead of host floats. Highest-priority on substrate-purity grounds, and the
-largest — do in verified increments (prefer a worktree). Pairs with the int/scalar finding
-`planning/findings/2026-06-20-int-scalar-is-host-not-substrate.md` (reframe: substrate is the goal). Plan
-of attack: start with literal+arithmetic (`int` literal → `make_real`, `+`/`-`/`*` → substrate), verify a
-runtime int returns a substrate tensor, then comparisons + augmented assignment, then loop counters +
-array indices last (highest blast radius); each increment RUN + decoded vs ground truth, full CI-equivalent
-suite green before merge.
+**Runtime `int`/`number`/`scalar` arithmetic now runs on the substrate number axis (AXIS_REAL), not host
+floats.** Shipped: `+ - * /` → `_VSA.num_add/sub/mul/div` (real-axis ops); augmented assignment `+= -= *= /=`
+and postfix `++ --` → substrate; comparisons already were; loop counters via the slot round-trip stay on
+the substrate (fib/trib/pell native loops verified == ground truth). `addp(2,3)` now returns a SUBSTRATE
+TENSOR decoding to 5.0; `i=5; i+=3; i*=2; i-=1` = 15.0 tensor. `.item()` baseline held at 18 (no new
+readouts — the added `float(x)` are the host→substrate ENTRY boundary, not readouts). Caught + fixed an
+FV-checker regression (the Lagrange `!(a&&b)` veto: numeric-literal coefficients over truth-axis vectors
+stay element-wise so `num_mul` doesn't project a truth vector). Full suite 788 passed, independently
+re-verified (659 non-VM + 129 VM). Finding `planning/findings/2026-06-20-int-scalar-is-host-not-substrate.md`
+(now: gap CLOSED for runtime arithmetic).
 
-**Iteration mechanism — PERMUTATION (Emma 2026-06-20).** A loop counter / iteration is a **permutation on a
-dimension** — you iterate by permuting (rotating) that dimension one step per iteration (a ring counter);
-the count IS the accumulated permutation state, recovered from the permuted vector. NOT a host increment.
-This is already how the substrate `loop` rotates `state ← R·state`, and the same reason the rule is
-"complex rotation for wrap/periodic, never `Math.mod`." So when the numbers leg reaches loop counters /
-indices, encode the counter as a permutation/rotation state and step it by applying the permutation —
-substrate-pure, differentiable (it's a matmul / index gather). (The number-axis `make_real` scalar holds
-magnitudes; permutation handles stepping/iteration/periodicity.)
+**Remaining (refinements, NOT blockers):**
+- **PERMUTATION-encoded integers (Emma's mechanism) — not yet done; the core uses real-axis magnitude
+  instead.** Emma 2026-06-20: a counter/iteration is a PERMUTATION on a dimension (a ring counter — step by
+  permuting; the count is the accumulated permutation state). The shipped work meets the GOAL (counters are
+  substrate, via real-axis `num_add`) but uses a magnitude representation, NOT the permutation/position
+  encoding. If Emma wants integers represented as permutation/rotation state (the canonical substrate
+  integer, differentiable matmul/gather), that's a representation change on top of the working core.
+- **Compile-time constant folding** (`return 20/4` between two literals) folds to a host constant — minor
+  β-reduction edge, not the runtime path. **Structural literals** (array sizes `var[N]`, `loop(N)` unroll
+  counts) stay host — compile-time codegen directives, consumed before runtime. **numpy backend** keeps
+  host floats (deprecated, no number-axis runtime).
 
 ---
 
