@@ -28,12 +28,14 @@ _RUNNABLE = {
     "pattern_eq": 120.0,  # classify 0/1/n equations -> dispatch fn; classify 0 + classify 2 = 100+20
     "guards": 120.0,  # classify n | n==0 | n==1 | otherwise -> guard blend; classify 0 + classify 2
     "where_block": 31.0,  # f x = y + z where y = x+1; z = x*2; main = f 10 = 11+20
+    "forward_where": 41.0,  # f x = a + b where a = b+1; b = x*2; main = f 10 = 21+20  (FORWARD/out-of-order where ref -> _order_binds topo-sorts the group so `b` is lowered before `a`)
     "let_block": 18.0,  # g x = let a = x+1; b = a*2 in a + b; main = g 5 = 6+12 (sequential bind)
     "data_adt": 2.0,  # data Expr = Lit Int | Neg Int; evalE via case; evalE(Lit 7)+evalE(Neg 5) = 7+(-5)  (ADT -> tagged axon)
     "nested_ctor_case": (16.0, 256),  # f w = case w of Outer (Inner a b) c -> a+b+c; main = f (Outer (Inner 5 8) 3)  (NESTED ctor CASE pattern -> Axon temp for the _val0 prefix; outer tag test; dim>=256, finding 2026-06-17)
     "case_literal": 300.0,  # classify n = case n of 0->100; 1->200; _->300; classify 1 + classify 0 = 200+100  (literal-pattern case -> equality blend)
     "bool_case": 10.0,  # f b = case b of True -> 10; False -> 20; main = f True  (Bool literal case -> (b == true/false) blend; True/False values -> true/false)
     "case_nontail": 101.0,  # f n = 1 + (case n of 0 -> 100; _ -> 200); f 0 = 1 + 100  (literal case in NON-TAIL expression position -> inline nested blend)
+    "variant_case_nontail": 4.0,  # data Expr=Lit Int|Neg Int; evalE e = 1 + (case e of Lit n->n; Neg n->0-n); evalE(Lit 7)+evalE(Neg 5)=8+(-4)=4  (VARIANT case in EXPRESSION position: int _vtag/_val locals HOISTED to the equation prelude under _c{uid}_ names so the int-snap still happens; inline raw realvec reads compare wrong)
     "tuple_axon": 13.0,  # addPair :: (Int,Int) -> Int; addPair p = fst p + snd p; main = addPair (5, 8)  (tuple -> positional-key axon, fst/snd -> _0/_1)
     "tuple_destructure": 13.0,  # addPair t = let (a, b) = t in a + b; main = addPair (5, 8)  (let-tuple-pattern -> realvec(item _0/_1))
     "nested_tuple_let": (16.0, 256),  # f t = let (a, (b, c)) = t in a+b+c; main = f (5, (8, 3))  (NESTED let-tuple pattern -> Axon temp for the _1 prefix; dim>=256, finding 2026-06-17)
@@ -49,6 +51,8 @@ _RUNNABLE = {
     "string_case": 60.0,  # classify s = case s of "foo"->10; "bar"->20; _->30; classify "foo"+"bar"+"baz" = 60  (string-LITERAL case pattern, already supported -> locked)
     "multibase_tailsum": 105.0,  # f n acc | n==0=acc | n==1=acc+100 | otherwise=f (n-1) (acc+n); f 3 0 = 105  (>2-GUARD multi-base tail recursion: continue = (n!=0)&&(n!=1) compound halt [§0.3], post-loop = nested blend of the base RHSs on final state)
     "multibase_explicit_rec": 105.0,  # f acc n | n==0=acc | n==1=acc+100 | n>1=f (acc+n) (n-1); f 0 3 = 105  (>2-guard multibase where the recursive guard is an EXPLICIT condition n>1, not `otherwise` -> continue = that condition)
+    "multibase_nontail_fact": 600.0,  # f n | n==0=1 | n==1=5 | otherwise=n*f(n-1); f 5=5*4*3*2*f(1)=120*5=600  (>2-guard NON-TAIL multibase -> CPS fold: _acc seeded to OP identity, leaf folded each step, post-loop _acc*base_blend keyed on final state; the recursion bottoms out at n==1 so the seed is 5)
+    "multiarg_nontail_multibase": 115.0,  # f a b | a==0=b | a==1=b+100 | otherwise=a+f(a-1)b; f 3 10=3+2+(10+100)=115  (MULTI-ARG >2-guard non-tail multibase fold: loop carries (a,b,_acc), base blend keyed on final (a,b); _foldable_step_multi)
 }
 # (regression guards for the cond_src/neg_src recursion refactor: tail_rec, nontail_fact above)
 

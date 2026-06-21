@@ -528,6 +528,9 @@ def _negate_cond(cond, src: bytes) -> str:
 # where order does not matter qualify — `+` and `*`. NOT `-` / `/` (a reversed
 # fold would change the value): those stay UNSUPPORTED, not faked.
 _FOLD_OPS = {"+", "*"}
+# Identity element for seeding a non-tail fold accumulator (the multibase fold
+# post-combines `_acc OP base_blend` instead of pre-seeding BASE).
+_FOLD_IDENTITY = {"+": "0", "*": "1"}
 
 
 def _contains_identifier(node, ident: str, src: bytes) -> bool:
@@ -627,6 +630,119 @@ def _contains_self_call(node, name: str, src: bytes) -> bool:
     return any(_contains_self_call(c, name, src) for c in node.named_children)
 
 
+def _try_lower_multibase_nontail(
+    name: str, params: list[tuple[str, str]], ret: str, body, src: bytes,
+    emit_name: str | None = None,
+):
+    """Multibase NON-tail recursion as a nested if/else-if chain, e.g.
+    `def f(a, b) = if (a==0) b else if (a==1) b+100 else a + f(a-1, b)` (any arity,
+    >=2 bases). Flatten into bases + the recursive fold STEP (final else), then emit the
+    multi-arg CPS fold: a `while_loop` carrying every recursion arg + a synthetic `_acc`
+    seeded to the OP identity, folding the leaf each step, post-combining
+    `_acc OP base_blend(final state)` (the base the recursion bottoms out at is the seed).
+    OP must be associative+commutative (`+`/`*`). The single-base case is handled by
+    `_try_lower_foldable_nontail`. Returns the emitted Sutra or None."""
+    if body.type != "if_expression" or not params:
+        return None
+    arity = len(params)
+    # Flatten the if/else-if chain into [(cond_or_None, value), …]; final else cond None.
+    chain: list = []
+    node = body
+    while True:
+        if node.type != "if_expression" or len(node.named_children) < 3:
+            return None
+        k = node.named_children
+        chain.append((k[0], k[1]))
+        else_e = k[2]
+        pe = _peel_parens(else_e)
+        if pe is not None and pe.type == "if_expression":
+            node = pe
+            continue
+        chain.append((None, else_e))
+        break
+    if len(chain) < 3:
+        return None  # <2 bases → the single-if foldable path handles it
+    if chain[-1][0] is not None or not _contains_self_call(chain[-1][1], name, src):
+        return None  # recursive STEP must be the final else
+    bases = chain[:-1]
+    if any(_contains_self_call(v, name, src) for _c, v in bases):
+        return None
+
+    # STEP = LEAF OP f(REC…): exactly one operand is the arity-N self-call.
+    step = _peel_parens(chain[-1][1])
+    if step is None or step.type != "infix_expression":
+        return None
+    nk = step.named_children
+    op = next((c for c in nk if c.type == "operator_identifier"), None)
+    operands = [c for c in nk if c.type != "operator_identifier"]
+    if op is None or len(operands) != 2:
+        return None
+    op_text = _text(op, src)
+    if op_text not in _FOLD_OPS:
+        return None
+    lc = _self_call_args(operands[0], name, arity, src)
+    rc = _self_call_args(operands[1], name, arity, src)
+    if (lc is None) == (rc is None):
+        return None
+    leaf, rec_args = (operands[1], lc) if lc is not None else (operands[0], rc)
+
+    # continue = loop while NO base condition holds (`&&` of negated base conds).
+    neg_terms: list = []
+    for cond, _v in bases:
+        neg = _negate_cond(cond, src)
+        if "UNSUPPORTED" in neg:
+            return None
+        neg_terms.append(f"({neg})")
+    cont = " && ".join(neg_terms)
+    # Post-loop base blend keyed by each base cond on the FINAL state (last base = bare else).
+    rendered: list = []
+    for cond, v in bases:
+        csrc = _lower_expr(_peel_parens(cond), src)
+        vsrc = _lower_expr(_peel_parens(v), src)
+        if "UNSUPPORTED" in csrc or "UNSUPPORTED" in vsrc:
+            return None
+        rendered.append((csrc, vsrc))
+    base_src = rendered[-1][1]
+    for csrc, vsrc in reversed(rendered[:-1]):
+        base_src = _blend(csrc, vsrc, base_src)
+
+    emit = emit_name or name
+    sutra_op = _OP_MAP.get(op_text, op_text)
+    identity = _FOLD_IDENTITY[op_text]
+    leaf_src = _lower_expr(_peel_parens(leaf), src)
+    rec_srcs = [_lower_expr(a, src) for a in rec_args]
+    if "UNSUPPORTED" in leaf_src or any("UNSUPPORTED" in s for s in rec_srcs):
+        return None
+    loop_name = f"_rec_{emit}"
+    state_decls = ", ".join(f"{t} {p} = 0" for p, t in params)
+    temp_decls = "".join(f"    {t} _t{i} = {rec_srcs[i]};\n"
+                         for i, (_p, t) in enumerate(params))
+    assigns = "".join(f"    {p} = _t{i};\n" for i, (p, _t) in enumerate(params))
+    slot_lines = "".join(f"    slot {t} _{p}_r = {p};\n" for p, t in params)
+    slot_args = ", ".join(f"_{p}_r" for p, _t in params)
+    writeback = "".join(f"    {p} = _{p}_r;\n" for p, _t in params)
+    params_src = ", ".join(f"{t} {p}" for p, t in params)
+    loop_decl = (
+        f"while_loop {loop_name}({cont}, {state_decls}, {ret} _acc = 0) {{\n"
+        f"{temp_decls}"
+        f"    {ret} _t_acc = _acc {sutra_op} {leaf_src};\n"
+        f"{assigns}"
+        f"    _acc = _t_acc;\n"
+        f"}}\n"
+    )
+    fn = (
+        f"function {ret} {emit}({params_src}) {{\n"
+        f"    {ret} _acc = {identity};\n"
+        f"{slot_lines}"
+        f"    slot {ret} _acc_r = _acc;\n"
+        f"    loop {loop_name}({cont}, {slot_args}, _acc_r);\n"
+        f"{writeback}"
+        f"    return _acc_r {sutra_op} {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _try_lower_tail_recursive(
     name: str, params: list[tuple[str, str]], ret: str, body, src: bytes,
     emit_name: str | None = None,
@@ -717,6 +833,10 @@ def _lower_function(node, src: bytes, obj_name: str | None = None) -> str:
                                            emit_name=emit_name)
         if fold is not None:
             return fold
+        mb = _try_lower_multibase_nontail(name, params, ret, body, src,
+                                          emit_name=emit_name)
+        if mb is not None:
+            return mb
     if _contains_self_call(body, name, src):
         # Recursion that is NOT the tail-accumulator shape — a plain self-calling
         # Sutra function would not terminate through the fuzzy-if blend. Surface

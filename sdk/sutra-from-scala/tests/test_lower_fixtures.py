@@ -41,6 +41,7 @@ _RUNNABLE = {
     "tail_rec": 15.0,  # def sumTo(acc,n) = if (n==0) acc else sumTo(acc+n, n-1); sumTo(0,5)
     "match_guard": 60.0,  # case 0 => 100; case x if x > 0 => x*10; case _ => 300; classify(6)
     "nontail_fact": 120.0,  # def fact(n) = if (n==0) 1 else n * fact(n-1); fact(5)  (CPS fold)
+    "multiarg_nontail_multibase": 115.0,  # def f(a,b) = if (a==0) b else if (a==1) b+100 else a + f(a-1,b); f(3,10)=3+2+(10+100)=115  (MULTIBASE non-tail via nested if/else-if + MULTI-arg fold: flatten chain into bases + STEP, while_loop carries (a,b,_acc), base blend keyed on final state; _try_lower_multibase_nontail)
     "object_dispatch": 26.0,  # object Calc { add, twice }; Calc.add(7,9)=16 + Calc.twice(5)=10
     "string_eq": 30.0,  # classify(s) = if (s == "foo") 10 else 20; classify("foo")+classify("bar") = 10+20  (Scala string LITERAL -> Sutra string; == routes to eq_synthetic via the String type)
     "string_concat": 100.0,  # cat(a,b)=a+b; f(s)=if (s=="foobar") 100 else 200; f(cat("foo","bar"))  (String `+` -> substrate string concat; result eq_synthetic-matches "foobar")
