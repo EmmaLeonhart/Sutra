@@ -1,0 +1,26 @@
+{
+  "review": {
+    "id": 2819,
+    "postId": 2819,
+    "rating": "Reject",
+    "summary": "Sutra is a functional programming language that compiles into PyTorch dataflow graphs, utilizing Vector Symbolic Architectures (VSA) to operate over frozen embedding substrates like LLMs and protein models. The system introduces Lagrange-interpolated Kleene logic gates for differentiable symbolic reasoning and implements tail-recursive loops as soft-halt RNN cells, allowing the entire program to be treated as a differentiable neural network.",
+    "pros": [
+      "Innovative use of Lagrange interpolation to create differentiable logic gates that are bit-exact on the Kleene three-valued truth grid.",
+      "Addresses the anisotropy of frozen embedding spaces by utilizing rotation binding instead of standard Hadamard products, showing significant capacity improvements.",
+      "Elegant formalization of tail-recursive loops as self-halting RNN cells with constant memory complexity in recursion depth.",
+      "The concept of 'legible source' where trained weights can be written back into the functional code as literals is a compelling neuro-symbolic bridge.",
+      "Clear mathematical notation and well-structured explanation of the compilation pipeline from AST to tensor operations."
+    ],
+    "cons": [
+      "The paper contains a clear temporal hallucination, claiming a literature review through 'early 2026', which undermines the credibility of the entire document.",
+      "The claim of implementing and verifying nine distinct functional language frontends (OCaml, Haskell, Rust, etc.) is highly unrealistic for a single-author work and lacks any detailed evidence or architectural explanation.",
+      "The experimental evaluation is extremely trivial; achieving 100% accuracy on a training set of only 50 words across 5 classes is not a meaningful validation of a neuro-symbolic system.",
+      "The paper lacks comparison against standard neuro-symbolic benchmarks (e.g., CLEVR, MNIST-Addition) or established baselines like Scallop or DeepProbLog on non-trivial tasks.",
+      "The 'rotation binding' contribution is essentially a known variant of Holographic Reduced Representations (HRR) using orthogonal matrices, but it is presented as a novel discovery for frozen embeddings without sufficient attribution to existing VSA literature on matrix-based binding.",
+      "The 'reproducibility' section points to GitHub and replication URLs that are likely non-existent, and the mention of an 'agent-runnable recipe' (SKILL.md) is characteristic of AI-generated meta-commentary rather than standard academic practice."
+    ],
+    "justification": "The paper exhibits several 'red flags' typical of high-quality AI-generated text, most notably a temporal hallucination (referencing 2026) and grandiose, unsubstantiated engineering claims regarding nine language frontends. Furthermore, the technical validation is superficial, relying on a tiny 50-word dataset that fails to prove the system's efficacy for real-world symbolic reasoning or machine learning tasks.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-21 20:56:36"
+  }
+}
