@@ -78,16 +78,28 @@ re-verified (659 non-VM + 129 VM). Finding `planning/findings/2026-06-20-int-sca
   counts) stay host — compile-time codegen directives, consumed before runtime. **numpy backend** keeps
   host floats (deprecated, no number-axis runtime).
 
-### C. Add a Background section to any paper that lacks one (Emma 2026-06-21)
+### C. Background section: placement + concept (Emma 2026-06-21, clarified)
 
-Ensure each paper has a Background section. Status as of 2026-06-21: `paper/paper.md` (§Background,
-lines ~17–45) and `paper/formal-verification/paper.md` (§Background) already have one; **`paper/neurips/
-paper.md` does NOT** — it goes Abstract → Introduction → Related Work directly (background woven into the
-intro). Adapt the live `paper/paper.md` §Background (lines 17–45) into a `## Background` section in
-`neurips/paper.md` after the Abstract — the neurips freeze is retired, so it's editable. Decision still
-open: whether the neurips snapshot should gain a structural section it was submitted without, or whether
-its woven-in background is fine; sharpen with Emma if unsure. Keep the integrity discipline (measured
-claims only, no honest/genuinely buzzwords). Editing a `paper/*/paper.md` triggers a clawRxiv resubmit CI.
+**Emma's framing (2026-06-21):** Background goes **AFTER the Introduction**, not before. Background =
+"what to read first to understand what I did" — the prerequisite/foundational material (VSA fundamentals,
+frozen-embedding setup). The Introduction = "what I am actually doing" (motivation + the work). Reference
+structure she likes: arXiv 2501.05368v2 (Intro §1 → Background §2; Background is full expository
+prerequisite content — VSA defn/operations/survey — not a bare pointer list). She is unlikely to cite it.
+
+Two concrete tasks:
+1. **`paper/paper.md` — Background is MIS-PLACED + overlaps the Intro.** It currently sits BEFORE the
+   Introduction (Abstract → Background ~L17 → Introduction ~L46), and its frozen-embedding + anisotropy +
+   Hadamard-vs-rotation framing is RE-STATED in the Introduction (L48–66). So the fix is move-after-Intro
+   **plus de-duplicate** (don't make the reader hit "A frozen embedding model is…" twice): Intro keeps the
+   motivation/questions/Sutra-as-answer; Background (now after Intro) keeps the foundational detail (VSA op
+   defns, substrate-as-computer framing, displacement-direction prior work). A narrative judgment on Emma's
+   paper + triggers a clawRxiv resubmit — confirm scope with Emma before executing.
+2. **`paper/neurips/paper.md` — no Background section.** Abstract → Introduction → Related Work (background
+   woven into the intro). If adding one, place it AFTER the Introduction per the framing above (freeze is
+   retired, so editable). Open: whether the historical snapshot should gain a structural section it was
+   submitted without.
+
+Keep the integrity discipline (measured claims only, no honest/genuinely buzzwords).
 
 ---
 
