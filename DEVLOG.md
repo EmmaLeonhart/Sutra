@@ -1,5 +1,34 @@
 # Development Log
 
+## 2026-06-21: Numbers on the substrate — runtime int/number arithmetic now on the number axis
+
+The third and biggest of Emma's unblocked legs (her "purist" choice). Runtime `int`/`number`/`scalar`
+arithmetic now runs on the SUBSTRATE number axis (AXIS_REAL), not host Python floats: `+ - * /` →
+`_VSA.num_add/sub/mul/div` (real-axis ops; mul/div compute on the real-axis components and scatter back so
+the zero axes don't nan-poison), augmented assignment `+= -= *= /=` and postfix `++ --` desugar to the
+substrate ops (instead of Python's broadcast-across-all-axes `+=`), comparisons already were, and a loop
+counter via the slot round-trip stays on the substrate. Verified by RUNNING + decoding off AXIS_REAL:
+`addp(2,3)` is a substrate TENSOR = 5.0, `i=5;i+=3;i*=2;i-=1` = 15.0 tensor, fib/trib/pell native loops ==
+ground truth (45 cases). `.item()` host-readout baseline UNCHANGED at 18 (the change added zero readouts —
+the `float(x)` calls are the sanctioned host→substrate ENTRY boundary, not extractions). Caught + fixed a
+real FV-checker regression along the way (the Lagrange `!(a&&b)` veto). Built in a worktree by a subagent
+with a verify-or-don't-claim mandate; independently re-verified before merge (substrate-purity gates,
+ground truth, touched-test legitimacy, and the 659-test non-VM bulk = the subagent's count exactly; full
+suite 788 passed, 0 failed). Merge `44127510`.
+
+The touched test files (test_implicit_loop_desugar / test_string_equality / test_transcendentals) are
+LEGITIMATE updates, not weakening: their harnesses did a bare `float(result)` that now fails on a (correct)
+multi-element number-vector return; they add a terminal-boundary decode reading AXIS_REAL — the same
+projection the real CLI display edge does — and the asserted VALUES are unchanged (only the readout shape
+moved). Scrutinized the diffs to confirm this.
+
+HONEST scope / what's NOT done: (1) the work uses a REAL-AXIS MAGNITUDE representation for integers; it does
+NOT use Emma's PERMUTATION/ring-counter encoding (counters are substrate via real-axis `num_add`, meeting
+the goal, but not represented as permutation state — flagged for Emma as a possible representation
+refinement). (2) compile-time constant folding (`return 20/4`) folds to a host constant; structural literals
+(array sizes, `loop(N)` unroll counts) stay host compile-time directives; numpy backend stays host floats
+(deprecated). These are documented, not hidden.
+
 ## 2026-06-20: Mid-function await + Promises/A+ rejection propagation; and a CI-discipline fix
 
 Two things. (1) **Fixed the list-ops CI failure properly.** After the list-ops merge CI went red on
