@@ -11,10 +11,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ---
 
-## IMPORTANT
-
-Oh god why is the queue so bloated again
-
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.
@@ -27,89 +23,38 @@ Oh god why is the queue so bloated again
 - **Multi-clone**: editable `sutra_compiler` install points at the sibling `Github\Sutra`; verify
   changes here via `PYTHONPATH=sdk/sutra-compiler`. CI uses this repo's compiler.
 
-## Recently shipped — pointer, NOT work (see DEVLOG.md 2026-06-20)
+## ACTIVE — barrel top to bottom
 
-The session's big directed legs are done + validated:
-- **Perf / fusion leg (§1A complete):** `_role_hash` fixes (~45× binding) + `M_key` write/read fusion +
-  `axon_build` batched build + the consecutive-`.add` peephole + FIFO cache cap. ~3× sequential tick.
-- **Genuine multi-process runtime (§1C core):** `ProcessPoolRuntime` — separate OS processes, bit-identical
-  cross-process, **up to 3.21× throughput** (the lever in-process `tick_all` couldn't pull), dead-worker
-  hardening. Design: `planning/sutra-spec/multi-process-runtime.md`.
-- **FV surface fully discharged:** Kleene grid-exactness, branch-range (incl. composed-by-induction),
-  termination, graph-equivalence, contract key-soundness (incl. the fused-`axon_build` vacuity fix), the
-  NAND end-to-end worked example, and the dimension-audit sweep.
+_Done legs (numbers-on-substrate + its 2026-06-21 scalar-position fixes, perf/fusion, multi-process, FV
+surface + measurement-claim gates, await core, the NeurIPS-frozen-layer removal, the email + paper-Background
+work) live in `DEVLOG.md`, `git log`, and `planning/findings/` — not here. Open work below._
 
----
+### C. Background → a short "Preliminaries" after Related Work (Emma 2026-06-21; metabolised from the data-lake chat)
 
-## ACTIVE — barrel top to bottom (Emma's 2026-06-20 design decisions, now unblocked)
+**Metabolised** from the data-lake chat "Adding background section to paper with prior work" (Emma + Opus 4.8;
+metabolised, not committed — the HTML stays in `data_lake/`). The refined direction:
+- **A short `Preliminaries` placed AFTER Related Work, before §3** (Consolidation into Canonical Primitives) —
+  NOT a sprawling survey, ~a page. It does exactly two things: (a) consolidate the VSA primitive definitions
+  (bind/bundle/unbind/similarity) in one clean place (pull up from §3.1/Appendix A so they're stated before
+  heavy use); (b) **ground Kleene three-valued logic** — the load-bearing-AND-obscure case: a few sentences on
+  Kleene's strong 3-valued system, the truth tables, and the Gödel min/max t-norm framing, so when §3.6
+  backprops through AND-of-NOTs the ML-leaning reader has ground under them. Stop there.
+- Triage rule: "if I cut this, does a §3/4 derivation become UNFOLLOWABLE? → Preliminaries. Else → Related Work
+  or a one-line citation." Depth tracks reader difficulty, not field importance.
+- **Anisotropy stays INLINE** (§1/§2.1/§3.7, at point of use), NOT in Preliminaries. **RNN Turing-completeness**
+  = the one-line Siegelmann–Sontag cite already in §3.4, not a subsection.
+- **Shaw et al. (arXiv 2501.05368v2, "VSAs via Category Theory")** → cite in **Related Work §2.1, NOT
+  Preliminaries.** Framing: their §5 / footnote 3 names "a VSA that is purely functional (in the programming
+  sense)" as a significant open engineering direction; Sutra is a realization of it, arrived at independently
+  (engineering-first). Positioning, not machinery. (Emma: "worth citing but not critical.")
+- **Schmidhuber 1990 "Making the World Differentiable"** (FKI-126-90) → LEAVE OUT of paper one (future research:
+  RL/planning/world-models, Extropic). Back pocket.
 
-### (await leg — CORE shipped 2026-06-20; remainder Yantra-I/O-gated, see PARKED)
-
-The practically-useful core landed: mid-function `await x` lowers + **Promises/A+ rejection
-propagation** now works (awaiting a rejected promise used to silently FULFIL — fixed via a
-substrate-pure `Promise.propagate` tanh blend; verified fulfill-flows-through + reject-stays-rejected;
-`test_await_midfunction.py`). The remaining piece — the full Stage-2 gated `while_loop` with a LIVE
-external-axon producer (the orchestrator that actually resolves the promise over time) — is Yantra I/O
-work and is parked below; `await_value` stays the β-reduced no-producer form until then. Awaits buried in
-nested control-flow also still fall through. Next active leg:
-
-### A. All numbers on the SUBSTRATE — CORE SHIPPED 2026-06-21 (`44127510`); refinements below
-
-**Runtime `int`/`number`/`scalar` arithmetic now runs on the substrate number axis (AXIS_REAL), not host
-floats.** Shipped: `+ - * /` → `_VSA.num_add/sub/mul/div` (real-axis ops); augmented assignment `+= -= *= /=`
-and postfix `++ --` → substrate; comparisons already were; loop counters via the slot round-trip stay on
-the substrate (fib/trib/pell native loops verified == ground truth). `addp(2,3)` now returns a SUBSTRATE
-TENSOR decoding to 5.0; `i=5; i+=3; i*=2; i-=1` = 15.0 tensor. `.item()` baseline held at 18 (no new
-readouts — the added `float(x)` are the host→substrate ENTRY boundary, not readouts). Caught + fixed an
-FV-checker regression (the Lagrange `!(a&&b)` veto: numeric-literal coefficients over truth-axis vectors
-stay element-wise so `num_mul` doesn't project a truth vector). Full suite 788 passed, independently
-re-verified (659 non-VM + 129 VM). Finding `planning/findings/2026-06-20-int-scalar-is-host-not-substrate.md`
-(now: gap CLOSED for runtime arithmetic).
-
-**Remaining (refinements, NOT blockers):**
-- **Permutation iteration — RESOLVED: the real-axis counter IS Emma's established pattern (2026-06-21).**
-  Emma's "permutation is a thing" (2026-06-20) was given when an earlier agent hedged about whether counters
-  could be substrate. Investigated `demos/gui/count.su` (Emma's own SHIPPED substrate-counter, measured
-  `[1,2,3,4,5]` 2026-06-11): it counts via `state + make_real(1.0)` — **real-axis increment on the
-  substrate**, the SAME mechanism the numbers leg uses for `int` counters. So the real-axis counter is NOT a
-  substitution of Emma's mechanism — it's the established Sutra substrate-counting pattern she already
-  shipped, and her emphatic "counters are obviously on substrate" is met. Permutation is an ALTERNATIVE
-  substrate-iteration mechanism (a ring counter — the same family as the substrate loop's `state ← R·state`
-  rotation), not a required re-representation. Only build a permutation-encoded counter if Emma explicitly
-  asks for that specific representation; the real-axis one is correct + consistent + CI-green.
-- **Compile-time constant folding** (`return 20/4` between two literals) folds to a host constant — minor
-  β-reduction edge, not the runtime path. **Structural literals** (array sizes `var[N]`, `loop(N)` unroll
-  counts) stay host — compile-time codegen directives, consumed before runtime. **numpy backend** keeps
-  host floats (deprecated, no number-axis runtime).
-
-### C. Background section: placement + concept (Emma 2026-06-21, clarified)
-
-**Emma's framing (2026-06-21):** Background goes **AFTER the Introduction**, not before. Background =
-"what to read first to understand what I did" — the prerequisite/foundational material (VSA fundamentals,
-frozen-embedding setup). The Introduction = "what I am actually doing" (motivation + the work). Reference
-structure she likes: arXiv 2501.05368v2 (Intro §1 → Background §2; Background is full expository
-prerequisite content — VSA defn/operations/survey — not a bare pointer list). She is unlikely to cite it.
-
-Two concrete tasks:
-1. **`paper/paper.md` — Background is MIS-PLACED + overlaps the Intro.** It currently sits BEFORE the
-   Introduction (Abstract → Background ~L17 → Introduction ~L46), and its frozen-embedding + anisotropy +
-   Hadamard-vs-rotation framing is RE-STATED in the Introduction (L48–66). So the fix is move-after-Intro
-   **plus de-duplicate** (don't make the reader hit "A frozen embedding model is…" twice): Intro keeps the
-   motivation/questions/Sutra-as-answer; Background (now after Intro) keeps the foundational detail (VSA op
-   defns, substrate-as-computer framing, displacement-direction prior work). A narrative judgment on Emma's
-   paper + triggers a clawRxiv resubmit — confirm scope with Emma before executing.
-2. **`paper/neurips/paper.md` — no Background section.** Abstract → Introduction → Related Work (background
-   woven into the intro). If adding one, place it AFTER the Introduction per the framing above (freeze is
-   retired, so editable). Open: whether the historical snapshot should gain a structural section it was
-   submitted without.
-
-Keep the integrity discipline (measured claims only, no honest/genuinely buzzwords).
-
-## DO THIS AT 2pm
-
-Please go over the chat that was added into the root since it explains more on what I am doing with the background. It is not meant to be committed but metabolised
-
-It is in the data lake
+**State / supersedes:** my edit `1f0544db` moved Background to AFTER the Intro but BEFORE Related Work, with VSA +
+anisotropy content. That is now SUPERSEDED: move it to AFTER Related Work as `Preliminaries`, swap the anisotropy
+framing for the Kleene grounding (keep VSA consolidation), and add the Shaw et al. citation to Related Work.
+Substantive paper content + another clawRxiv resubmit. Integrity: measured claims only, no honest/genuinely
+buzzwords. (The NeurIPS task that used to be item C.2 is GONE — the frozen paper was removed `2c17ef12`.)
 
 ---
 
