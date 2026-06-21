@@ -90,17 +90,19 @@ Three base types at the bottom of the user-framed hierarchy:
   return a + b; }` emits `a + b` on host floats and `addp(2,3)`
   returns a host `5.0`, not a `torch.Tensor`. This matches §"The
   number axis" below ("Python floats — what scalars are today"); the
-  number-axis substrate-vector representation is the TARGET, not yet
-  the implementation. A value becomes a substrate vector only when
-  explicitly lifted (`make_real(x)`); a substrate computation over
-  numbers must use number-vectors (see `examples/higher_order_
-  functions.su` — the `int` fold runs on the host, the `vector` fold
-  on the substrate). **This is a known, documented limitation, NOT a
-  hidden substrate leak:** the "every operation runs on the substrate"
-  rule governs the VECTOR/VSA ops (bind/bundle/unbind/similarity/…);
-  host scalar arithmetic on `int`/`scalar` is outside that set today.
-  A substrate-leak auditor should NOT flag `a + b` on int-typed values
-  as a leak on this basis.
+  number-axis substrate-vector representation is the TARGET. **Emma
+  confirmed 2026-06-20: substrate IS the direction** — `int`/`number`
+  math should run on the substrate, and closing this host-float gap is
+  COMMITTED work (queue §C "All numbers on the substrate"), not a
+  permanent design. Until that lands, a value becomes a substrate vector
+  only when explicitly lifted (`make_real(x)`); a substrate computation
+  over numbers must use number-vectors (see `examples/higher_order_
+  functions.su` — the `int` fold runs on the host, the `vector` fold on
+  the substrate). The current host-float behaviour is a known,
+  documented GAP — NOT a hidden leak (the "every operation runs on the
+  substrate" rule governs the VECTOR/VSA ops bind/bundle/unbind/
+  similarity/…; a substrate-leak auditor should NOT flag `a + b` on
+  int-typed values as a leak today) — but it IS the gap §C closes.
 
 ### The number axis and the integer class
 

@@ -37,23 +37,44 @@ The session's big directed legs are done + validated:
 
 ---
 
-## ACTIVE — barrel top to bottom
+## ACTIVE — barrel top to bottom (Emma's 2026-06-20 design decisions, now unblocked)
 
-### A. Measurement gates — CLOSED as low-value after investigation (2026-06-20)
+### A. Immutable list-building → `map` / `filter` (Emma: "immutable list-building (functional)")
 
-Dimension gate SHIPPED (`experiments/dimension_audit_sweep.py`). The other two were investigated and are
-genuinely not worth building:
-- **State-locus** (no host-extraction of recurrent state): **zero subjects.** Confirmed by sweep that NO
-  user `.su` (corpus/examples/demos) calls a host-readout accessor (`real()`/`component()`/`imag()`/
-  `truth()`/`norm()`) — the 2026-06-07 purity overhaul already removed user-level host readout, so the
-  breach is enforced-away at the source. A static gate would guard an already-clean, accessor-removed state
-  (the leak sweep + the removal already cover it). No value to add.
-- **Signal-separation** (classifier ships a measured gap table): the property is RUNTIME (measure the gap
-  by running), so a static gate can only meta-check "a gap test exists"; with `test_font_bound.py` the only
-  real classifier subject, a reusable gate is over-engineering for one consumer.
+Lists are fixed literals today (`array_from_literal`/`length`/`get`/`foreach`, no construction). Emma chose
+IMMUTABLE list-building (make a NEW list from pieces, never mutate). Arrays are length-prefixed scalar
+tensors (`arr[0]`=len, `arr[1:]`=elements), so building new ones is straightforward. Steps: (1) runtime
+primitives `array_concat(a, b)` (new tensor, immutable) and higher-order `array_map(f, arr)` /
+`array_filter(pred, arr)` (apply a function value — Python callable at runtime — to each element, return a
+new array); (2) wire `map`/`filter`/`concat` as Sutra builtins; (3) verify on the substrate: `map((x)=>x*2,
+[1,2,3])` = `[2,4,6]`, `filter((x)=>x>1, [1,2,3])` = `[2,3]`, RUN + decode vs ground truth. NOTE: element
+math is host-scalar today; this leg completes the higher-order/collection story (pairs with `reduce`, which
+already works) regardless of the §C number-substrate work.
 
-If a NEW substrate RNN/classifier program lands that needs the discipline, revisit then with a real subject.
-Not forcing speculative framework now.
+### B. `await` mid-function → poll-loop lowering (Emma: "polling loop is desired; the input+flag form is the β-reduction case")
+
+`await` as a mid-function expr raises `CodegenNotSupported` today (only tail-position `async … return await
+e` works). Emma's model: the RUNTIME lowering is the **gated polling loop** (`promises.md`'s while_loop) —
+`vector v = await x; return g(v);` becomes a substrate loop that polls `x` until its arrival flag is set,
+then continues with `g(v)` (first-class functions now make the continuation expressible). The value-as-
+INPUT + arrival-flag form is the COMPILE-TIME β-REDUCTION case: when the awaited value can be statically
+resolved, the poll loop reduces away to a direct input+flag read. Build the poll-loop lowering first; add
+the β-reduction-to-input+flag as the optimisation. Conform to `promises.md` + Promises/A+.
+
+### C. All numbers on the SUBSTRATE (Emma: "purist, the old goal") — BIG, foundational, substrate-purity-critical
+
+Emma chose: `int`/`number`/`scalar` math should run on the substrate (the number axis), NOT host floats.
+So host-int is a **gap to CLOSE**, not the intended design (correct the spec/finding accordingly — substrate
+is the committed direction). Move numeric ops onto the substrate: `int` literal → number-vector, `a + b` →
+substrate add on the number axis, comparisons, augmented assignment, the int-return boundary. **Big blast
+radius + sub-questions to resolve while building** (decompose, may surface design sub-decisions): do loop
+counters / array indices / array lengths also become substrate vectors, or stay host for control flow? (The
+number-axis encoding already exists — `make_real` puts a value there; the work is routing ALL numeric
+lowering through it instead of host floats.) Highest-priority on substrate-purity grounds but the largest;
+do in verified increments (prefer a worktree). Pairs with the int/scalar finding
+`planning/findings/2026-06-20-int-scalar-is-host-not-substrate.md` (reframe: substrate is the goal).
+
+Order: A (bounded, quick win) → B (medium) → C (big/critical, decompose). All three are now design-unblocked.
 
 ---
 
