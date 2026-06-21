@@ -67,6 +67,15 @@ runtime int returns a substrate tensor, then comparisons + augmented assignment,
 array indices last (highest blast radius); each increment RUN + decoded vs ground truth, full CI-equivalent
 suite green before merge.
 
+**Iteration mechanism — PERMUTATION (Emma 2026-06-20).** A loop counter / iteration is a **permutation on a
+dimension** — you iterate by permuting (rotating) that dimension one step per iteration (a ring counter);
+the count IS the accumulated permutation state, recovered from the permuted vector. NOT a host increment.
+This is already how the substrate `loop` rotates `state ← R·state`, and the same reason the rule is
+"complex rotation for wrap/periodic, never `Math.mod`." So when the numbers leg reaches loop counters /
+indices, encode the counter as a permutation/rotation state and step it by applying the permutation —
+substrate-pure, differentiable (it's a matmul / index gather). (The number-axis `make_real` scalar holds
+magnitudes; permutation handles stepping/iteration/periodicity.)
+
 ---
 
 ## PARKED — gated or owned elsewhere (do NOT start on this clone)
