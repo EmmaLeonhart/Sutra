@@ -80,12 +80,27 @@ Three base types at the bottom of the user-framed hierarchy:
 - **`Character`** — a 1-length `String`. Same encoding, narrower
   static type. `char` is a backwards-compat alias kept for older
   source; new code should use `Character`.
-- **`int`**, **`number`**, **`scalar`** — numeric types. All live
-  on the canonical *number axis* of the synthetic subspace (see
-  §"The number axis and the integer class" below). At runtime, on
-  the canonical PyTorch backend, they are all substrate vectors (the
-  value on the number axis, a `torch.Tensor`) — not host floats; the
+- **`int`**, **`number`**, **`scalar`** — numeric types. By DESIGN
+  they live on the canonical *number axis* of the synthetic subspace
+  (see §"The number axis and the integer class" below), and the
   distinction between them is compile-time metadata.
+  **Implementation reality (measured 2026-06-20):** in the current
+  compiler a bare `int`/`scalar` value is a **host Python float**, NOT
+  a substrate number-vector — e.g. `function int addp(int a, int b){
+  return a + b; }` emits `a + b` on host floats and `addp(2,3)`
+  returns a host `5.0`, not a `torch.Tensor`. This matches §"The
+  number axis" below ("Python floats — what scalars are today"); the
+  number-axis substrate-vector representation is the TARGET, not yet
+  the implementation. A value becomes a substrate vector only when
+  explicitly lifted (`make_real(x)`); a substrate computation over
+  numbers must use number-vectors (see `examples/higher_order_
+  functions.su` — the `int` fold runs on the host, the `vector` fold
+  on the substrate). **This is a known, documented limitation, NOT a
+  hidden substrate leak:** the "every operation runs on the substrate"
+  rule governs the VECTOR/VSA ops (bind/bundle/unbind/similarity/…);
+  host scalar arithmetic on `int`/`scalar` is outside that set today.
+  A substrate-leak auditor should NOT flag `a + b` on int-typed values
+  as a leak on this basis.
 
 ### The number axis and the integer class
 
