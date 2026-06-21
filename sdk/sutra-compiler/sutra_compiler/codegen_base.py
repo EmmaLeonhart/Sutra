@@ -298,6 +298,31 @@ def _builtin_array_get(args: List[str]) -> str:
     return f"{args[0]}[{args[1]}]"
 
 
+def _builtin_array_concat(args: List[str]) -> str:
+    # `array_concat(a, b)` — IMMUTABLE list-building (Emma 2026-06-20).
+    # Builds a NEW binding-array = a's elements then b's; never mutates an
+    # input. Routes to the tensor binding-array runtime method (NOT the
+    # Python-list `array_length`/`array_get` path) — _VSA.array_concat
+    # normalizes a Python-list arg (a bare `[...]` literal) to a binding
+    # array, so both literal and substrate-stored arrays compose.
+    return f"_VSA.array_concat({args[0]}, {args[1]})"
+
+
+def _builtin_array_map(args: List[str]) -> str:
+    # `array_map(f, arr)` — IMMUTABLE map. NEW array, element i = f(arr[i]).
+    # `f` is a function value (a Python callable at runtime; first-class
+    # function values already work — see tests/test_arrow_functions.py).
+    return f"_VSA.array_map({args[0]}, {args[1]})"
+
+
+def _builtin_array_filter(args: List[str]) -> str:
+    # `array_filter(pred, arr)` — IMMUTABLE filter. NEW array of the
+    # elements where pred(element) is true. `pred` returns a Sutra truth
+    # value (truth-axis vector / 0-d tensor); the runtime decodes it via
+    # truth_axis and keeps elements with truth > 0 (unknown / 0 dropped).
+    return f"_VSA.array_filter({args[0]}, {args[1]})"
+
+
 def _builtin_dot(args: List[str]) -> str:
     # Substrate-pure inner product → 0-d tensor (scalar) via `_VSA.dot`.
     # Listed as "Blocked on: dot" in stdlib/similarity.su + logic.su.
@@ -477,6 +502,15 @@ BUILTINS = {
     # `_VSA` class are reached through different paths.
     "array_length": (_builtin_array_length, 1),
     "array_get": (_builtin_array_get, 2),
+    # Immutable higher-order list ops (Emma 2026-06-20): build a NEW
+    # binding-array from pieces, never mutate an input. These route to the
+    # tensor binding-array runtime methods (_VSA.array_concat/map/filter),
+    # which accept either a Python-list array literal or a substrate-stored
+    # binding array. `array_map` takes a function value; `array_filter`
+    # takes a predicate returning a Sutra truth value.
+    "array_concat": (_builtin_array_concat, 2),
+    "array_map": (_builtin_array_map, 2),
+    "array_filter": (_builtin_array_filter, 2),
 }
 
 
