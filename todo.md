@@ -110,6 +110,25 @@ demonstrate.
 > checkpoints under `WASM/src/learned_ops/`). This is the first WASM-gated
 > item to actually work — promote it into `queue.md` when starting.
 >
+> **Located (2026-06-21 cron-tick groundwork — do NOT rush this in a cron tick):**
+> the transformer is `VanillaTransformer` in
+> `WASM/replication_target/transformer-vm/transformer_vm/model/transformer.py`
+> (actual dims `d_model=36, n_heads=18, n_layers=7, d_ffn=36` — the block's 38/19
+> are slightly off). It's `nn.MultiheadAttention(bias=False)` ×7 + ReGLU FFN
+> (`ff_in: d_model→2·d_ffn`, `ff_out: d_ffn→d_model`) + tok-embedding + head, in
+> `float64`. CAVEATS that make this a FOCUSED session, not a cron-tick quickie:
+> (1) `transformer-vm/` is a **git submodule** (the authors' code) with its own
+> **uv** env (torch float64, `highspy`, …) — needs setup to import
+> `transformer_vm.*`; (2) `__init__` only RANDOM-inits the modules — the
+> **analytic weights** (the ones that simulate the WASM VM, the actual PCA target)
+> are filled by a separate build/crystallize step that must be found + run first
+> (PCA on random init is meaningless); (3) `WASM/` is a **self-contained
+> sibling-owned replication project** (its own `queue.md`/`devlog.md`/CI +
+> `:33` work-loop) — coordinate, don't collide. The PCA itself (per-layer
+> attention Q/K/V + FFN weight matrices → SVD/variance-explained → the reduced
+> rank the substrate DNC attention can keep) is bounded once the analytic weights
+> are in hand; write the result to `planning/findings/`, not into `WASM/`.
+>
 > **Remove this entire block once the PCA work is done.**
 
 ---

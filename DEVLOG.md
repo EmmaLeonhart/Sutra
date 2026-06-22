@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-06-21: cron tick — located + de-risked the TOP-PRIORITY WASM-transformer PCA (not rushed)
+
+Autonomous tick. The todo TOP-PRIORITY item (PCA the WASM transformer's weights to find the reduced
+attention for the DNC work) is gating-lifted, so I investigated it. Located the model:
+`WASM/replication_target/transformer-vm/transformer_vm/model/transformer.py` — `VanillaTransformer`
+(`nn.MultiheadAttention(bias=False)` ×7 + ReGLU FFN, `d_model=36, n_heads=18, n_layers=7`, float64; the
+block's 38/19 are off). Did NOT run the PCA, for three accurate reasons recorded in the todo block: the
+transformer is a **git submodule** with its own uv env (needs setup to import); `__init__` only
+random-inits — the **analytic weights** (the real PCA target) are filled by a separate build/crystallize
+step that must be found + run first (PCA on random init is meaningless); and `WASM/` is a self-contained
+sibling-owned replication project with its own work-loop (`:33`) — coordinate, don't collide. So this is a
+focused session, not a cron-tick quickie. Recorded the location + caveats so the next deliberate session
+executes cleanly (write the finding to `planning/findings/`, not into `WASM/`). No PCA faked.
+
 ## 2026-06-21: cron tick — gate the numpy backend in CI (close the examples-smoke-test gap)
 
 Autonomous tick. Closed CI-coverage gap #2 from the numbers-leg scalar-position finding: `examples/
