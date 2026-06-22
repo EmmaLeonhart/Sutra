@@ -1,5 +1,9 @@
 # Development Log
 
+## 2026-06-22 daily audit: clean (77 .su compiled, 0 leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec)
+
+`experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch ollama` + `apt-get install zstd` + `curl ollama/install.sh | sh` + `ollama serve` + `ollama pull nomic-embed-text`) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live ollama embeddings; no `for _ in range(100)` / `if self.isPending` re-appeared. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK; #3 (await) reverified end-to-end; #4 still NOT-A-LEAK (line 3652 `for _t in range(max_iters):` is the structural-index eigenrotation unroll). 14 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning (no new resolutions in spec/todo/findings since the 2026-06-21 entry); `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
+
 ## 2026-06-21: cron tick — the WASM-transformer PCA was ALREADY done; removed the stale TOP-PRIORITY block
 
 Re-investigated the todo TOP-PRIORITY "PCA on the WASM transformer" item and re-ran `build_model()` +
