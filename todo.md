@@ -91,45 +91,6 @@ blurred NTM into RNN). The resource-axis frame is the clean way to position Sutr
 Turing-completeness claims in the paper(s) and to scope what each architecture must
 demonstrate.
 
-> ## 🔬 TOP PRIORITY — PCA on the WASM transformer (remove this block when done)
->
-> Do **principal component analysis on the WASM transformer** — the
-> transformer that comes in with the `WASM/` subtree (from
-> `replicating-neural-computers-2`).
->
-> **Why:** we want to use the transformer's learned **weights** to figure out
-> the most optimal way to run **attention for the differentiable-neural-computer
-> (DNC) work**. The transformer is very likely **significantly larger than it
-> needs to be**, so a PCA of its weights should reveal the genuine
-> low-dimensional structure we can keep — i.e. the reduced attention we can
-> actually run on the substrate.
->
-> **Gating: LIFTED 2026-06-06 — `WASM/` is now in-tree** (subtree merge,
-> full history). The transformer weights live under `WASM/` (analytic model
-> `d_model=38, 7 layers, 19 heads, vocab=915`; plus the learned-ops
-> checkpoints under `WASM/src/learned_ops/`). This is the first WASM-gated
-> item to actually work — promote it into `queue.md` when starting.
->
-> **Located (2026-06-21 cron-tick groundwork — do NOT rush this in a cron tick):**
-> the transformer is `VanillaTransformer` in
-> `WASM/replication_target/transformer-vm/transformer_vm/model/transformer.py`
-> (actual dims `d_model=36, n_heads=18, n_layers=7, d_ffn=36` — the block's 38/19
-> are slightly off). It's `nn.MultiheadAttention(bias=False)` ×7 + ReGLU FFN
-> (`ff_in: d_model→2·d_ffn`, `ff_out: d_ffn→d_model`) + tok-embedding + head, in
-> `float64`. CAVEATS that make this a FOCUSED session, not a cron-tick quickie:
-> (1) `transformer-vm/` is a **git submodule** (the authors' code) with its own
-> **uv** env (torch float64, `highspy`, …) — needs setup to import
-> `transformer_vm.*`; (2) `__init__` only RANDOM-inits the modules — the
-> **analytic weights** (the ones that simulate the WASM VM, the actual PCA target)
-> are filled by a separate build/crystallize step that must be found + run first
-> (PCA on random init is meaningless); (3) `WASM/` is a **self-contained
-> sibling-owned replication project** (its own `queue.md`/`devlog.md`/CI +
-> `:33` work-loop) — coordinate, don't collide. The PCA itself (per-layer
-> attention Q/K/V + FFN weight matrices → SVD/variance-explained → the reduced
-> rank the substrate DNC attention can keep) is bounded once the analytic weights
-> are in hand; write the result to `planning/findings/`, not into `WASM/`.
->
-> **Remove this entire block once the PCA work is done.**
 
 ---
 

@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-06-21: cron tick — the WASM-transformer PCA was ALREADY done; removed the stale TOP-PRIORITY block
+
+Re-investigated the todo TOP-PRIORITY "PCA on the WASM transformer" item and re-ran `build_model()` +
+an SVD (rank@99% ~1–3 for attention QKV). Then found it had **already been done** on 2026-06-06
+(`f71b2dd1`): finding `planning/findings/2026-06-06-pca-wasm-transformer.md`, the committed experiment
+`experiments/wasm_transformer_pca/`, and a DEVLOG entry. That prior finding is the authoritative one and
+is *more careful* than my quick pass — the MILP schedule puts `A[0]` (zero attention) on layers L5 and L6,
+so 2/7 attention layers are zero, and a naive magnitude/SVD PCA misleads (reports "rank-1" for a ~zero
+matrix); the prior finding flags exactly that, plus vocab embedding ~3-d. So I did NOT commit my redundant,
+less-careful duplicate finding — deleted it. The actual remaining work was tiny: the prior session **left
+the TOP-PRIORITY block in `todo.md`** after finishing, which is what misled me into re-doing it — a direct
+clearing-is-safe lesson (a stale "done" marker cost a re-run). Removed the block; cleaned the
+accidentally-committed repo-root `allocation.yaml` (a `build_model()` side-output) and gitignored
+`/allocation.yaml` + `/plan.yaml` so it can't recur. No new PCA claim made.
+
 ## 2026-06-21: cron tick — located + de-risked the TOP-PRIORITY WASM-transformer PCA (not rushed)
 
 Autonomous tick. The todo TOP-PRIORITY item (PCA the WASM transformer's weights to find the reduced
