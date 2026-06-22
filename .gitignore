@@ -163,3 +163,7 @@ experiments/_rerun3.sh
 paper/gui-steering/figures/
 .gstack/
 *.obj
+
+# build_model() (WASM transformer-vm PCA) writes these to cwd — never commit at repo root
+/allocation.yaml
+/plan.yaml
