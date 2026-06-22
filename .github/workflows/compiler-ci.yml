@@ -95,3 +95,15 @@ jobs:
           python -m pytest tests/ -q \
             --ignore=tests/test_substrate_leak_sweep.py \
             --ignore=tests/test_simplify_egglog.py
+
+      - name: Run examples smoke test (numpy backend coverage)
+        run: |
+          # examples/_smoke_test.py compiles + runs the example .su files through
+          # the NUMPY backend (_NumpyVSA) and checks outputs against expected
+          # tables (exit 0 pass / 1 fail). It is the ONLY CI exerciser of the
+          # numpy backend — the pytest suite above is all-PyTorch — so a
+          # numpy-only regression went undetected until 2026-06-21 (the shared
+          # codegen emitted `_num_re`, which only the PyTorch backend had). Uses
+          # the ollama server started earlier for embeddings; sutra_compiler is
+          # the editable install, so it imports without PYTHONPATH here.
+          python examples/_smoke_test.py

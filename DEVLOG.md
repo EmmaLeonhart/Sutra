@@ -1,5 +1,16 @@
 # Development Log
 
+## 2026-06-21: cron tick — gate the numpy backend in CI (close the examples-smoke-test gap)
+
+Autonomous tick. Closed CI-coverage gap #2 from the numbers-leg scalar-position finding: `examples/
+_smoke_test.py` — the ONLY exerciser of the numpy `codegen.py` backend (the compiler pytest suite is
+all-PyTorch) — ran in NO workflow, which is why the numpy-only `_num_re` break (`8f89100e`) was latent.
+Added it as a step in `compiler-ci.yml` after the pytest suite (reuses the ollama server that job starts;
+`sutra_compiler` is the editable install so it imports without PYTHONPATH). Verified stable locally first
+(3/3 PASS) so the embedding-crosstalk-flake risk that defers `test_axon_build`-style tests doesn't apply —
+the examples are well-separated. A numpy-only regression now fails CI instead of hiding. (CI-gap #1 — the
+demos-ci `sdk/**` path-filter — stays open as Emma's CI-time-tradeoff call.)
+
 ## 2026-06-21: cron tick — confirmed sutra-dev 0.9.1 is live on PyPI (publish path revived)
 
 Autonomous tick (queue drained). Verified the version-reconciliation + publish work landed end-to-end:

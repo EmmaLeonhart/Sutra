@@ -45,12 +45,13 @@ scalar-position breakage hide — full write-up
    Recommendation: trigger demos-ci on `sdk/**` too — but the full demos suite is ~25 min with
    cache-miss recompiles (font.su's 22500-op switch dominates), so it slows compiler-change
    iteration. A demos-smoke subset on `sdk/**` (skip the slow font render) is the likely middle ground.
-2. `examples/_smoke_test.py` is run by **no workflow at all** — yet it is the ONLY exerciser of the
-   numpy backend (`codegen.py`, deprecated). That hid the numpy `_num_re` break (fixed `8f89100e`).
-   The compiler suite is all-pytorch. Recommendation: add `python examples/_smoke_test.py` as a step
-   in `compiler-ci.yml` (it has ollama + exits 0/1). Caveat: it decodes real embeddings, so it could
-   flake on crosstalk like `test_axon_build` did — harden/spot-check before gating, hence not done
-   unilaterally here.
+   **Still open (Emma's CI-time call).**
+2. ✅ **CLOSED 2026-06-21.** `examples/_smoke_test.py` (the ONLY exerciser of the numpy `codegen.py`
+   backend — the compiler pytest suite is all-PyTorch) now runs as a step in `compiler-ci.yml` after the
+   pytest suite, using the ollama server that job already starts. Verified stable locally (3/3 PASS) before
+   gating, so the embedding-crosstalk-flake risk that defers `test_axon_build`-style tests doesn't apply
+   here (the examples are well-separated). A numpy-only regression like the `_num_re` break (`8f89100e`)
+   would now fail CI instead of hiding.
 
 ## Neural-network Turing-completeness — the architectural roadmap (metabolised 2026-06-07)
 
