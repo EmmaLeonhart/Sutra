@@ -583,7 +583,7 @@ def main() -> int:
         url = "/tutorials/" if s == "tutorials/index" else f"/{s}/"
         if s == "tutorials/index":
             t = "Tutorials"
-            d = "Hands-on: hello Sutra, bind/unbind, snap-to-nearest."
+            d = "Hands-on: hello Sutra, bind/unbind, snap-to-nearest, from TypeScript, a semantic FAQ matcher."
         cards.append(f'<a href="{url}"><div class="ex-t">{t}</div><div class="ex-d">{d}</div></a>')
     explore = ('    <div class="explore-h">Explore</div>\n    <div class="explore">\n      '
                + "\n      ".join(cards) + "\n    </div>\n")

@@ -58,21 +58,9 @@ list-ops discoverability, `sutrac repl`). Batch 2 below is the refill from the P
 > passages that repeated the false claim were corrected 2026-06-23; the EXAMPLE comments stay untouched
 > until this is decided. (Substrate/language semantics — not a usability tweak.)
 
-1. **Fix tutorial 04's Ollama contradiction.** `docs/tutorials/04-from-typescript.md:18-22` only mentions
-   the `runtime` extra and says programs embedding text "additionally need a local Ollama server" — directly
-   contradicting README, `docs/index.md`, `tutorials/index.md`, and tutorial 05, which all say the model
-   loads in-process via `[embed]`, no daemon. Align tutorial 04's prerequisites + that line to the
-   in-process story. HIGH.
-
-2. **Refresh stale example counts + listings.** The smoke test now runs 12 examples (…7b, …, semantic_faq
-   = Example 10). Stale: `README.md` ("11 of them" + table missing `semantic_faq`), `docs/demos.md` ("Ten"
-   + missing `content_addressed_read.su` AND `semantic_faq.su` rows + "smoke-tested ten" prose),
-   `docs/what-is-sutra.md` ("the ten programs"), `scripts/build_site.py` homepage Tutorials blurb (omits
-   TypeScript + semantic-FAQ tutorials). Update all to the true count/list; verify the site builds. MEDIUM.
-
-3. **Onboarding polish.** `README.md` "Get started" never states the Python version (it's 3.11+, per
-   pyproject `requires-python`); add it above the pip block. Cross-link `docs/list-operations.md` from the
-   tutorials index so lists are discoverable. LOW.
+_Batch 2 drained 2026-06-23 (tutorial 01 rewrite + basis_vector finding, tutorial 04 Ollama fix, stale
+count/listing sweep, onboarding polish). The NEEDS-EMMA basis_vector flag above is still open. REFILL via
+the PINNED TAIL audit below._
 
 ---
 
