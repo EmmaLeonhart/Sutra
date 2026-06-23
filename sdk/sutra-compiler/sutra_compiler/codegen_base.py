@@ -245,14 +245,6 @@ def _builtin_realvec(args: List[str]) -> str:
     return f"_VSA.realvec({args[0]})"
 
 
-def _builtin_real_number(args: List[str]) -> str:
-    # Canonical-axis constructor: a scalar real number as an extended-
-    # state vector with x at synthetic[0], zeros elsewhere. Part of the
-    # int/float/complex shared-axis allocation — see project memory
-    # project_sutra_complex_numbers_first_class.md.
-    return f"_VSA.make_real({args[0]})"
-
-
 def _builtin_ram_read(args: List[str]) -> str:
     # RAM pointer read (planning/sutra-spec/ram-pointers.md). Bridges to
     # the host-attached external memory device `_VSA.ram`: decode the
@@ -441,12 +433,10 @@ BUILTINS = {
     "make_rotation": (_builtin_make_rotation, None),  # 1-2 args
     "compile_prototypes": (_builtin_compile_prototypes, 1),
     "geometric_loop": (_builtin_geometric_loop, None),  # 3-4 args
-    # Canonical-axis constructor alias. `make_real` (the canonical form) resolves
-    # via the stdlib-intrinsic path (`_VSA.make_real`), so this BUILTINS entry is
-    # a redundant spelling on its way out (CLAUDE.md § "Deprecate aliases
-    # aggressively"). `complex_number`/`truth_value` were removed 2026-06-23 (0 call
-    # sites); `make_complex`/`make_truth` stay reachable as intrinsics.
-    "real_number": (_builtin_real_number, 1),
+    # Canonical-axis constructors `make_real` / `make_complex` / `make_truth`
+    # resolve via the stdlib-intrinsic path (`_VSA.make_*`), not this table. The
+    # redundant `real_number` / `complex_number` / `truth_value` aliases were
+    # removed 2026-06-23 (CLAUDE.md § "Deprecate aliases aggressively").
     # RAM pointers (planning/sutra-spec/ram-pointers.md): ramRead(ptr) ->
     # _VSA.ram_read, ramWrite(ptr, data) -> _VSA.ram_write. Host attaches
     # the external memory device as _VSA.ram. `await ramRead(ptr)` is the

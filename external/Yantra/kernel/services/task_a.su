@@ -16,5 +16,5 @@
 // its letter.
 
 function vector on_axon(vector input_axon) {
-    return real_number(65.0);
+    return make_real(65.0);
 }

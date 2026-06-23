@@ -37,7 +37,7 @@ function vector on_axon(vector input_axon) {
     scalar s2 = 0.0 - 1000.0 * (cp - 42.0) * (cp - 42.0);  // '*'
     scalar s3 = 0.0 - 1000.0 * (cp - 47.0) * (cp - 47.0);  // '/'
 
-    vector one = real_number(1.0);
+    vector one = make_real(1.0);
     complex denom = select([s0, s1, s2, s3], [one, one, one, b]);
     complex quot = a / denom;
 

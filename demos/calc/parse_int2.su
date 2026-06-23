@@ -16,7 +16,7 @@
 //   - make_real lifts the final scalar onto the real axis so the host can
 //     decode it with real() (a 0-d codepoint scalar does NOT lift through bare
 //     arithmetic — that was the blocker; make_real is the fix). switch.su uses
-//     the equivalent real_number(x) constructor.
+//     the equivalent make_real(x) constructor.
 //
 // SCOPE — 1 to 2 digits ("2-digit cap to start", planning/23). A 3+-digit
 // input silently truncates to its first two digits, so the caller must ensure

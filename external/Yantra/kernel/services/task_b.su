@@ -13,5 +13,5 @@
 // Yantra architecture, on purpose).
 
 function vector on_axon(vector input_axon) {
-    return real_number(66.0);
+    return make_real(66.0);
 }

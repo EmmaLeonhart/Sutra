@@ -115,8 +115,8 @@ def _run_ticks(init, runtime, a_svc, b_svc):
                      payload=torch.zeros(vsa.dim),
                      from_proc=name)
             )
-        a_svc.tick()  # on_axon → real_number(65) → emit R_console
-        b_svc.tick()  # on_axon → real_number(66) → emit R_console
+        a_svc.tick()  # on_axon → make_real(65) → emit R_console
+        b_svc.tick()  # on_axon → make_real(66) → emit R_console
         while True:
             ax = init.router.receive("console")
             if ax is None:
