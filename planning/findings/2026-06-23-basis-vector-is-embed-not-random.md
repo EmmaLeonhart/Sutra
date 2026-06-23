@@ -33,19 +33,18 @@ Stale claims found (the doc ones were corrected 2026-06-23; the example comments
 - Corrected already: `docs/tutorials/index.md`, `docs/tutorials/05-semantic-faq.md`,
   `docs/tutorials/01-hello-sutra.md` no longer claim "random atoms / need no model".
 
-## The open decision (Emma's call)
+## Decision (Emma 2026-06-23): `basis_vector` is an ALIAS for `embed` — deprecate it
 
-This is a spec-vs-implementation disagreement (CLAUDE.md rule 5). Two resolutions:
+Emma's call: `basis_vector` is a pure alias for `embed`. It is NOT a distinct seeded-random
+primitive (resolution 1, not 2). Per the aggressive-alias-deprecation principle she set the
+same day (CLAUDE.md § "Deprecate aliases aggressively"), a pure alias with no semantic content
+of its own is the easiest thing to retire and should be retired: **`embed` is canonical;
+`basis_vector` is a deprecation on its way out.**
 
-1. **`basis_vector` is intentionally an `embed` alias.** Then it is mis-named and
-   mis-documented: fix every "random basis / pairwise cosine ~0" comment to "a named point
-   in the embedding space (correlated, not orthogonal)", and consider deprecating the name
-   in favour of `embed` to remove the implication of a random basis.
-2. **`basis_vector` should be a distinct random/seeded atom** (deterministic per string,
-   decorrelated — what the name and example comments assume). Then it is a *missing
-   primitive*: add a real seeded-random/Haar atom constructor, point the demos that want
-   decorrelated labels at it, and keep `embed` for semantic content. This would also make
-   the demos' separation margins match their comments.
-
-Do NOT silently pick one — it changes language semantics. Documented here for the design
-call; the example comments stay untouched until it is made.
+Follow-up work (folded into the alias + affordance audit — the next loop batch):
+- Mark `basis_vector` deprecated; repoint every call site (`examples/*.su`, corpus, docs) to
+  `embed`. Behaviour is identical, so outputs/tests don't change.
+- Fix the now-false "random basis / pairwise cosine ~0 / concentration of measure" comments in
+  `examples/nearest_phrase.su` + `examples/classifier.su` (they are correlated embeddings, ~0.47,
+  not orthogonal random atoms) — these get rewritten when the call sites are repointed.
+- The doc passages that repeated the false claim were already corrected 2026-06-23.
