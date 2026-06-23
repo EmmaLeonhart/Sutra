@@ -338,9 +338,13 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit("_os.makedirs(self._cache_dir, exist_ok=True)")
         self._emit("_safe_model = llm_model.replace('/', '_').replace(':', '_')")
+        self._emit("# Backend-aware: in-process (transformers) and ollama realize the")
+        self._emit("# same model with slightly different geometry, so they must not")
+        self._emit("# share a cache file or one backend reads the other's vectors.")
+        self._emit("_emb_backend = _os.environ.get('SUTRA_EMBED_BACKEND', 'auto').strip().lower() or 'auto'")
         self._emit("self._cache_path = _os.path.join(")
         self._indent += 1
-        self._emit("self._cache_dir, f'{_safe_model}-d{self.dim}.pt')")
+        self._emit("self._cache_dir, f'{_safe_model}-d{self.dim}-{_emb_backend}.pt')")
         self._indent -= 1
         self._emit("self._load_disk_cache()")
         self._emit("# Transcendental lookup codebooks — read by _lerp's crosstalk")
@@ -460,9 +464,9 @@ class PyTorchCodegen(Codegen):
                    "llm_model='nomic-embed-text' to embed semantic content; \""
                    " \"programs using only make_real / matrices / arithmetic "
                    "need no model.\")")
-        self._emit("import ollama")
-        self._emit("r = ollama.embed(model=self.llm_model, input=name)")
-        self._emit("v = _torch.tensor(r['embeddings'][0], dtype=self.dtype, device=self.device)")
+        self._emit("from sutra_compiler.embedding import embed_texts as _embed_texts")
+        self._emit("r = _embed_texts([name], self.llm_model)")
+        self._emit("v = _torch.tensor(r[0], dtype=self.dtype, device=self.device)")
         self._emit("# Mean-center; raw LLM embeddings cluster in a cone and centering")
         self._emit("# keeps rotation/bind algebra well-behaved.")
         self._emit("v = v - _torch.mean(v)")
@@ -506,11 +510,11 @@ class PyTorchCodegen(Codegen):
                    " \"llm_model is 'none'. Pass llm_model='nomic-embed-text' "
                    "to embed semantic content; programs using only make_real / \""
                    " \"matrices / arithmetic need no model. Tried: \" + repr(missing))")
-        self._emit("import ollama")
-        self._emit("r = ollama.embed(model=self.llm_model, input=missing)")
+        self._emit("from sutra_compiler.embedding import embed_texts as _embed_texts")
+        self._emit("r = _embed_texts(missing, self.llm_model)")
         self._emit("for i, name in enumerate(missing):")
         self._indent += 1
-        self._emit("v = _torch.tensor(r['embeddings'][i], dtype=self.dtype, device=self.device)")
+        self._emit("v = _torch.tensor(r[i], dtype=self.dtype, device=self.device)")
         self._emit("v = v - _torch.mean(v)")
         self._emit("n = _torch.linalg.norm(v)")
         self._emit("if n > 0: v = v / n")

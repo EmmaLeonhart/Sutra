@@ -172,10 +172,12 @@ class TestEmbeddingDiskCache(unittest.TestCase):
         self.assertIn("self._load_disk_cache()", py)
         self.assertIn("def _load_disk_cache(self):", py)
 
-    def test_cache_path_uses_model_and_dim(self):
+    def test_cache_path_uses_model_dim_and_backend(self):
         src = "function vector main() { return basis_vector(\"x\"); }\n"
         py = _compile(src)
-        self.assertIn("f'{_safe_model}-d{self.dim}.npz'", py)
+        # Backend-aware: in-process (transformers) and ollama realize the same
+        # model with different geometry, so the cache filename carries the backend.
+        self.assertIn("f'{_safe_model}-d{self.dim}-{_emb_backend}.npz'", py)
 
     def test_embed_writes_back_to_disk(self):
         src = "function vector main() { return basis_vector(\"x\"); }\n"

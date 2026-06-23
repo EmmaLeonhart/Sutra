@@ -19,7 +19,7 @@ A Sutra value is a vector in a frozen LLM embedding space (default substrate: `n
 
 ## Hardware
 
-Sutra compiles to self-contained PyTorch and runs on an NVIDIA GPU (CUDA, selected automatically at module init) or on CPU — the same emitted module, no code change. Because the entire program is one tensor-op graph with no host-side control flow, it maps straight onto GPU execution: the program is the kernel sequence, not a script that calls into one. Requirements are Python and PyTorch, plus Ollama to serve the default embedding substrate.
+Sutra compiles to self-contained PyTorch and runs on an NVIDIA GPU (CUDA, selected automatically at module init) or on CPU — the same emitted module, no code change. Because the entire program is one tensor-op graph with no host-side control flow, it maps straight onto GPU execution: the program is the kernel sequence, not a script that calls into one. Requirements are just Python and PyTorch; the default embedding substrate loads in-process (`pip install "sutra-dev[runtime,embed]"`), so no separate model server is needed. Ollama is supported as an alternate backend for anyone who prefers it.
 
 ## Get started
 
