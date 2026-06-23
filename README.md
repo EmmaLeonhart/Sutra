@@ -23,7 +23,7 @@ Two backends, both produce a self-contained Python module:
 
 The CLI is `python -m sutra_compiler`. Validate a file: `sutrac path/to/file.su`. Emit the generated torch module to stdout: `sutrac --emit path/to/file.su`. Compile and run: `sutrac --run path/to/file.su`. Explore interactively: `sutrac repl` — type an expression and see the result (a number shows its real value; a concept decodes to the nearest known string), with declarations ending in `;` or `}` accumulating as session state.
 
-The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 11 of them end-to-end:
+The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 12 of them end-to-end:
 
 | `.su` program | What it exercises |
 |---|---|
@@ -38,6 +38,7 @@ The demo programs live in [`examples/`](examples/). The smoke test [`examples/_s
 | `nearest_phrase.su` | 20-phrase codebook, clean and noisy retrieval |
 | `sequence.su` | position-bound 5-token sequence, decode any position |
 | `content_addressed_read.su` | NTM-style content-addressed read head: associative recall |
+| `semantic_faq.su` | paraphrased query → right answer by meaning (`embed` + `argmax_cosine`) |
 
 Loops use the declared-function form (`do_while_adder.su`), exercised by the `test_loop_function_decl.py` suite. See [`docs/loops.md`](docs/loops.md) for the shape.
 
@@ -67,7 +68,7 @@ The empirical foundation that motivated Sutra — relational-displacement struct
 
 ## Get started
 
-The fast path — install from PyPI, no daemon, no model server:
+The fast path — install from PyPI, no daemon, no model server (requires **Python 3.11+**):
 
 ```bash
 pip install "sutra-dev[runtime,embed]"   # compiler + torch runtime + in-process embedder

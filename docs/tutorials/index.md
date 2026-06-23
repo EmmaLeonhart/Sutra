@@ -12,6 +12,8 @@ Each tutorial is a single `.su` file plus a walkthrough explaining what it does 
 4. **[From TypeScript and JavaScript](04-from-typescript.md)** — take real `.ts` / `.js` source through the `ts2su` transpiler into running Sutra, and see where the substrate shows through.
 5. **[Build a semantic FAQ matcher](05-semantic-faq.md)** — a small, genuinely useful program: a user asks a question in their own words and gets the right canned answer, matched by *meaning* rather than keywords. Your first program where the embedding substrate does real work.
 
+Beyond the numbered walk, the concept guides go deeper on individual features — e.g. [List operations](../list-operations.md) for immutable `map` / `filter` / `concat` over a first-class `list<T>` (worked example: [`examples/list_ops.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/list_ops.su)).
+
 More are coming as we go: cone traversal, fuzzy conditionals, the IntelliJ debugger walkthrough, and the embedding-space visualizer pane once it ships.
 
 ## Prerequisites

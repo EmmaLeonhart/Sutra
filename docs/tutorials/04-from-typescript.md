@@ -11,7 +11,7 @@ Sutra's surface syntax is TypeScript-shaped on purpose — `function`, `class`, 
 ## Install
 
 ```bash
-pip install sutra-dev[runtime,ts]
+pip install "sutra-dev[runtime,ts]"
 ```
 
 That single install gives you two command-line tools:
@@ -19,7 +19,7 @@ That single install gives you two command-line tools:
 - `ts2su` — TypeScript / JavaScript → Sutra (`.su`)
 - `sutrac` — validate, compile, and run Sutra
 
-The `runtime` extra pulls in PyTorch so `sutrac --run` can execute the compiled module. The examples below use strings and numbers, which encode directly on the substrate — no embedding server needed. (Programs that embed *natural-language text* additionally need a local Ollama server; these don't.)
+The `runtime` extra pulls in PyTorch so `sutrac --run` can execute the compiled module. The examples below use strings and numbers, which encode directly on the substrate — no embedding model needed at all. (Programs that embed natural-language text — via `embed(...)` or `basis_vector(...)` — also need the `embed` extra: `pip install "sutra-dev[runtime,ts,embed]"`, which loads the frozen model **in-process, no Ollama daemon**. See the [tutorials index](index.md#prerequisites).)
 
 ## 1. A function
 

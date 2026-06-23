@@ -58,4 +58,4 @@ The current compile target is PyTorch on the frozen-LLM semantic subspace, and t
 - [**The vision page →**](vision.md) — why frozen embedding spaces give Sutra primitives geometric meaning, and what the displacement-vector cartography work showed.
 - [**Hello Sutra →**](tutorials/01-hello-sutra.md) — write your first `.su` program by hand.
 - [**Compilation →**](compilation.md) — how the compiler progressively strips surface sugar down to polynomial and matrix arithmetic.
-- [**Demos →**](demos.md) — the ten programs in the smoke test, what each one exercises.
+- [**Demos →**](demos.md) — the twelve programs in the smoke test, what each one exercises.

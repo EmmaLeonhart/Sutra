@@ -1,6 +1,6 @@
 # Demos
 
-Ten of the `.su` programs in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/main/examples) are exercised end-to-end by the smoke test (the directory holds more — see [Other examples](#other-examples-in-the-directory) below):
+Twelve of the `.su` programs in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/main/examples) are exercised end-to-end by the smoke test (the directory holds more — see [Other examples](#other-examples-in-the-directory) below):
 
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
@@ -22,8 +22,10 @@ The smoke test compiles each `.su` source through the reference codegen path, ex
 | 5 | [`knowledge_graph.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/knowledge_graph.su) | Bundled triples with compositional query. `bind(object, bind(subject, predicate))`; lookup is `unbind(predicate, unbind(subject, graph))`. |
 | 6 | [`predicate_lookup.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/predicate_lookup.su) | Multi-object superposition. When a (subject, predicate) key has multiple objects, all members score above all non-members. |
 | 7 | [`fuzzy_dispatch.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/fuzzy_dispatch.su) | N-way dispatch returning structured records. Each branch returns an (action, target) record; the winner is decoded with two `unbind` calls. |
+| 7b | [`content_addressed_read.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/content_addressed_read.su) | NTM-style content-addressed read head. A colour key recalls the bound value by associative lookup. |
 | 8 | [`nearest_phrase.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/nearest_phrase.su) | 20-phrase codebook, clean and noisy retrieval. Target plus 0.2·distractor still returns target. |
 | 9 | [`sequence.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/sequence.su) | Position-bound sequence encoder. A 5-token sequence is one vector; decode any position with `unbind(pos_i, record)`. Two sequences compared by cosine. |
+| 10 | [`semantic_faq.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/semantic_faq.su) | Semantic FAQ matcher. A paraphrased question matches the right canned answer by meaning — `embed` + `argmax_cosine` over a question codebook. |
 
 Loops use first-class declared functions. The canonical example is [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/do_while_adder.su), with coverage in the `test_loop_function_decl.py` suite (23 tests). See the [Loops page](loops.md) for the surface.
 
@@ -55,11 +57,11 @@ These don't have asserted outputs in the smoke test but parse and (where the cod
 | Scalar-vector multiply, vector add | weighted superposition | 1, 7 |
 | `map<vector, string>` lookup | the single edge bridge from vector to host string | all |
 
-There is no `if`, `while`, `for`, or `switch` in any of these programs. Every conditional is a weighted sum across all options; the commitment to a discrete answer happens at the final cleanup step or map lookup. Loop primitives show up in `do_while_adder.su` and the dedicated test suite, not in the smoke-tested ten.
+There is no `if`, `while`, `for`, or `switch` in any of these programs. Every conditional is a weighted sum across all options; the commitment to a discrete answer happens at the final cleanup step or map lookup. Loop primitives show up in `do_while_adder.su` and the dedicated test suite, not in the smoke-tested set.
 
 ## Reading the source
 
-The `.su` files are deliberately short (30–100 lines each including comments) and meant to be read front-to-back. Start with `hello_world.su` for the minimal shape; `role_filler_record.su` and `knowledge_graph.su` are the richest for understanding bind/unbind composition; `do_while_adder.su` is the smallest example of the new loop surface.
+The `.su` files are deliberately short (30–100 lines each including comments) and meant to be read front-to-back. Start with `hello_world.su` for the minimal shape; `role_filler_record.su` and `knowledge_graph.su` are the richest for understanding bind/unbind composition; `do_while_adder.su` is the smallest example of the loop surface.
 
 To inspect the generated Python for any demo:
 
