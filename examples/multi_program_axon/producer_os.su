@@ -43,7 +43,7 @@
 // compares cosines, which the scaling improved.
 
 function vector make_query() {
-    return basis_vector("find recent files about cats");
+    return embed("find recent files about cats");
 }
 
 function vector make_state() {

@@ -69,7 +69,7 @@ complex c4 = -5i;                      // 0 - 5i
 
 // `i` as a variable name still works — the suffix only binds when
 // the next character is NOT an identifier continuation.
-vector i = basis_vector("index");
+vector i = embed("index");
 vector scaled = 5 * i;                 // ordinary multiplication of 5 by i
 ```
 

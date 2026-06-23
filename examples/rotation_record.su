@@ -1,16 +1,16 @@
 
 // --- Roles (keys for the three fields) ---
-vector r_person = basis_vector("role_person");
-vector r_topic  = basis_vector("role_topic");
-vector r_mood   = basis_vector("role_mood");
+vector r_person = embed("role_person");
+vector r_topic  = embed("role_topic");
+vector r_mood   = embed("role_mood");
 
 // --- Filler codebook ---
-vector f_ada    = basis_vector("filler_ada");
-vector f_turing = basis_vector("filler_turing");
-vector f_math   = basis_vector("filler_math");
-vector f_music  = basis_vector("filler_music");
-vector f_happy  = basis_vector("filler_happy");
-vector f_tired  = basis_vector("filler_tired");
+vector f_ada    = embed("filler_ada");
+vector f_turing = embed("filler_turing");
+vector f_math   = embed("filler_math");
+vector f_music  = embed("filler_music");
+vector f_happy  = embed("filler_happy");
+vector f_tired  = embed("filler_tired");
 
 map<vector, string> FILLER_NAME = {
     f_ada:    "ada",

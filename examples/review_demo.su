@@ -11,9 +11,9 @@
 //
 // Run:  python -m sutra_compiler --review examples/review_demo.su
 
-vector king   = basis_vector("king");
-vector queen  = basis_vector("queen");
-vector role_r = basis_vector("role");
+vector king   = embed("king");
+vector queen  = embed("queen");
+vector role_r = embed("role");
 
 vector round_trip = unbind(role_r, bind(role_r, king));
 vector self_disp  = displacement(king, king);

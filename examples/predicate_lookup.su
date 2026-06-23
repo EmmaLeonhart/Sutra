@@ -22,19 +22,19 @@
 // (members rank above non-members).
 
 // --- Subjects ---
-vector alice = basis_vector("alice");
-vector bob   = basis_vector("bob");
-vector carol = basis_vector("carol");
+vector alice = embed("alice");
+vector bob   = embed("bob");
+vector carol = embed("carol");
 
 // --- Predicate ---
-vector likes = basis_vector("likes");
+vector likes = embed("likes");
 
 // --- Objects ---
-vector cats     = basis_vector("cats");
-vector dogs     = basis_vector("dogs");
-vector fish     = basis_vector("fish");
-vector birds    = basis_vector("birds");
-vector hamsters = basis_vector("hamsters");
+vector cats     = embed("cats");
+vector dogs     = embed("dogs");
+vector fish     = embed("fish");
+vector birds    = embed("birds");
+vector hamsters = embed("hamsters");
 
 // --- Graph: five triples, bundled. Two (subject, predicate) keys
 // have multiple objects. ---

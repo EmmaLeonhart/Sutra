@@ -10,16 +10,16 @@
 // of behavior vectors.
 
 // --- State axes ---
-vector smell_present = basis_vector("smell_present");
-vector smell_absent  = basis_vector("smell_absent");
-vector hunger_hungry = basis_vector("hunger_hungry");
-vector hunger_fed    = basis_vector("hunger_fed");
+vector smell_present = embed("smell_present");
+vector smell_absent  = embed("smell_absent");
+vector hunger_hungry = embed("hunger_hungry");
+vector hunger_fed    = embed("hunger_fed");
 
 // --- Behavior codebook ---
-vector b_approach = basis_vector("approach");
-vector b_ignore   = basis_vector("ignore");
-vector b_search   = basis_vector("search");
-vector b_idle     = basis_vector("idle");
+vector b_approach = embed("approach");
+vector b_ignore   = embed("ignore");
+vector b_search   = embed("search");
+vector b_idle     = embed("idle");
 
 // --- Prototype table: 4 joint (smell, hunger) conjunctions ---
 //

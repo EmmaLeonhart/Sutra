@@ -1,17 +1,17 @@
 
 // --- Five (concept, attribute) pairs. Concepts are keys; attributes
 // are stored values retrieved by concept lookup. ---
-vector cat       = basis_vector("cat");
-vector dog       = basis_vector("dog");
-vector fish      = basis_vector("fish");
-vector bird      = basis_vector("bird");
-vector elephant  = basis_vector("elephant");
+vector cat       = embed("cat");
+vector dog       = embed("dog");
+vector fish      = embed("fish");
+vector bird      = embed("bird");
+vector elephant  = embed("elephant");
 
-vector whiskers  = basis_vector("whiskers");
-vector bark      = basis_vector("bark");
-vector scales    = basis_vector("scales");
-vector feathers  = basis_vector("feathers");
-vector trunk     = basis_vector("trunk");
+vector whiskers  = embed("whiskers");
+vector bark      = embed("bark");
+vector scales    = embed("scales");
+vector feathers  = embed("feathers");
+vector trunk     = embed("trunk");
 
 map<vector, string> ATTR_NAME = {
     whiskers: "whiskers",

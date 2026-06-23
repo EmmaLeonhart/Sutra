@@ -20,22 +20,22 @@
 // Five queries recover each object by its (subject, predicate) key.
 
 // --- Subjects (animals) ---
-vector dog   = basis_vector("dog");
-vector cat   = basis_vector("cat");
-vector fish  = basis_vector("fish");
-vector bird  = basis_vector("bird");
-vector whale = basis_vector("whale");
+vector dog   = embed("dog");
+vector cat   = embed("cat");
+vector fish  = embed("fish");
+vector bird  = embed("bird");
+vector whale = embed("whale");
 
 // --- Predicates ---
-vector has = basis_vector("has");
-vector can = basis_vector("can");
+vector has = embed("has");
+vector can = embed("can");
 
 // --- Objects ---
-vector fur    = basis_vector("fur");
-vector claws  = basis_vector("claws");
-vector scales = basis_vector("scales");
-vector fly    = basis_vector("fly");
-vector swim   = basis_vector("swim");
+vector fur    = embed("fur");
+vector claws  = embed("claws");
+vector scales = embed("scales");
+vector fly    = embed("fly");
+vector swim   = embed("swim");
 
 map<vector, string> OBJECT_NAME = {
     fur:    "fur",

@@ -3,13 +3,13 @@
 ///
 /// This project declares three named reference vectors that downstream
 /// projects (like `similarity`) can look up by name. Each vector is
-/// materialized via the `basis_vector` builtin, which registers the
+/// materialized via the `embed` builtin, which registers the
 /// name in the substrate's codebook and returns a vector handle.
 
 function vector Corpus() {
-    vector cat = basis_vector("cat");
-    vector dog = basis_vector("dog");
-    vector mouse = basis_vector("mouse");
+    vector cat = embed("cat");
+    vector dog = embed("dog");
+    vector mouse = embed("mouse");
     return cat;
 }
 

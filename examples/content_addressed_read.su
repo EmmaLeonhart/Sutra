@@ -14,14 +14,14 @@
 // sharpens to a near-one-hot retrieval; the decoder then names the retrieved value.
 
 // --- Memory keys (the content addressed against) ---
-vector k_red   = basis_vector("k_red");
-vector k_green = basis_vector("k_green");
-vector k_blue  = basis_vector("k_blue");
+vector k_red   = embed("k_red");
+vector k_green = embed("k_green");
+vector k_blue  = embed("k_blue");
 
 // --- Memory values (what each key stores) ---
-vector v_apple = basis_vector("v_apple");
-vector v_leaf  = basis_vector("v_leaf");
-vector v_sky   = basis_vector("v_sky");
+vector v_apple = embed("v_apple");
+vector v_leaf  = embed("v_leaf");
+vector v_sky   = embed("v_sky");
 
 map<vector, string> VALUE_NAME = {
     v_apple: "apple",

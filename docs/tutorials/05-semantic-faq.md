@@ -83,7 +83,7 @@ The query string `"I forgot my login and need to change it"` never appears in th
 
 Compare it to the earlier retrieval tutorials. There, the query you matched was a stored item itself or a lightly-noised copy of one — `hello_world.su` identifies the greeting against a codebook that *contains* that exact greeting. The match is impressive plumbing, but the query and the answer are nearly the same string.
 
-Here the query shares almost no words with the question it matches — "I forgot my login and need to change it" against "how do I reset my password." It still lands right because nearness in the embedding space is *semantic* distance: the model places paraphrases close together even when their words differ. (`basis_vector` and `embed` are the same operation — both resolve a string to its point in that space; the interesting part is not which call you use, it is that you are now matching genuinely different wordings rather than copies.) That generalization to unseen phrasings is the step from "retrieve what I stored" to "understand what the user meant."
+Here the query shares almost no words with the question it matches — "I forgot my login and need to change it" against "how do I reset my password." It still lands right because nearness in the embedding space is *semantic* distance: the model places paraphrases close together even when their words differ. The earlier tutorials matched a stored string to a near-copy of itself; here you match a genuinely different wording. That generalization to unseen phrasings is the step from "retrieve what I stored" to "understand what the user meant."
 
 ## Extend it
 

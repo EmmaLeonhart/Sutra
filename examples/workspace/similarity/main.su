@@ -11,8 +11,8 @@
 /// from the dependency.
 
 function fuzzy SimilarityScore(vector query) {
-    vector cat = basis_vector("cat");
+    vector cat = embed("cat");
     return similarity(query, cat);
 }
 
-function.SimilarityScore(basis_vector("dog"));
+function.SimilarityScore(embed("dog"));

@@ -15,23 +15,23 @@
 // vector substrate it operates on, only that one is present.
 
 // --- Roles: which slot of the record we are addressing ---
-vector r_function      = basis_vector("role_function");
-vector r_localization  = basis_vector("role_localization");
-vector r_family        = basis_vector("role_family");
+vector r_function      = embed("role_function");
+vector r_localization  = embed("role_localization");
+vector r_family        = embed("role_family");
 
 // --- Filler codebook: candidate values for each slot ---
-vector f_kinase        = basis_vector("filler_kinase");
-vector f_phosphatase   = basis_vector("filler_phosphatase");
-vector f_transporter   = basis_vector("filler_transporter");
-vector f_protease      = basis_vector("filler_protease");
-vector f_nucleus       = basis_vector("filler_nucleus");
-vector f_cytoplasm     = basis_vector("filler_cytoplasm");
-vector f_membrane      = basis_vector("filler_membrane");
-vector f_mitochondrion = basis_vector("filler_mitochondrion");
-vector f_GPCR          = basis_vector("filler_GPCR");
-vector f_zinc_finger   = basis_vector("filler_zinc_finger");
-vector f_immunoglobulin = basis_vector("filler_immunoglobulin");
-vector f_serpin        = basis_vector("filler_serpin");
+vector f_kinase        = embed("filler_kinase");
+vector f_phosphatase   = embed("filler_phosphatase");
+vector f_transporter   = embed("filler_transporter");
+vector f_protease      = embed("filler_protease");
+vector f_nucleus       = embed("filler_nucleus");
+vector f_cytoplasm     = embed("filler_cytoplasm");
+vector f_membrane      = embed("filler_membrane");
+vector f_mitochondrion = embed("filler_mitochondrion");
+vector f_GPCR          = embed("filler_GPCR");
+vector f_zinc_finger   = embed("filler_zinc_finger");
+vector f_immunoglobulin = embed("filler_immunoglobulin");
+vector f_serpin        = embed("filler_serpin");
 
 map<vector, string> FILLER_NAME = {
     f_kinase:        "kinase",

@@ -20,26 +20,26 @@
 // point to see what different approach the substrate will prefer.
 
 // --- Input words ---
-vector king   = basis_vector("king");
-vector man    = basis_vector("man");
-vector woman  = basis_vector("woman");
-vector queen  = basis_vector("queen");
+vector king   = embed("king");
+vector man    = embed("man");
+vector woman  = embed("woman");
+vector queen  = embed("queen");
 
 // --- Distractor codebook ---
 // A small codebook containing the four input-relevant words plus
 // distractors. The candidates are all royal/family/gender-adjacent so
 // the argmax has to actually choose between semantically-close
 // options.
-vector prince    = basis_vector("prince");
-vector princess  = basis_vector("princess");
-vector boy       = basis_vector("boy");
-vector girl      = basis_vector("girl");
-vector ruler     = basis_vector("ruler");
-vector monarch   = basis_vector("monarch");
-vector husband   = basis_vector("husband");
-vector wife      = basis_vector("wife");
-vector father    = basis_vector("father");
-vector mother    = basis_vector("mother");
+vector prince    = embed("prince");
+vector princess  = embed("princess");
+vector boy       = embed("boy");
+vector girl      = embed("girl");
+vector ruler     = embed("ruler");
+vector monarch   = embed("monarch");
+vector husband   = embed("husband");
+vector wife      = embed("wife");
+vector father    = embed("father");
+vector mother    = embed("mother");
 
 map<vector, string> WORD = {
     king:     "king",

@@ -2,38 +2,38 @@
 //
 // Generalizes hello_world.su from 3 candidate phrases to 20. The
 // retrieval is the same shape (argmax_cosine against a codebook),
-// but the scale tests whether random-basis vectors stay cleanly
-// separable as the codebook grows. At dim=256, 20 random basis
-// vectors have pairwise cosine ~= 0 (concentration of measure);
-// argmax should still pick the right phrase even when the query is
-// a *noisy superposition* of the target phrase and a small bit of
-// a distractor.
+// but the scale tests whether the embedded phrase atoms stay cleanly
+// separable as the codebook grows. These are real embeddings (`embed`),
+// so distinct phrases are correlated (measured pairwise cosine ~0.5,
+// not orthogonal) yet still distinct enough that argmax picks the right
+// phrase even when the query is a *noisy superposition* of the target
+// phrase and a small bit of a distractor.
 //
 // Two test scenarios:
 //   1. Clean retrieval: query = phrase itself -> argmax returns it.
 //   2. Noisy retrieval: query = target + 0.2 * distractor -> target
 //      still wins, demonstrating the margin afforded by dim=256.
 
-vector p01 = basis_vector("the_quick_brown_fox");
-vector p02 = basis_vector("hello_world");
-vector p03 = basis_vector("goodbye_cruel_world");
-vector p04 = basis_vector("how_are_you_today");
-vector p05 = basis_vector("what_is_your_name");
-vector p06 = basis_vector("i_am_fine_thanks");
-vector p07 = basis_vector("please_and_thank_you");
-vector p08 = basis_vector("can_you_help_me");
-vector p09 = basis_vector("see_you_tomorrow");
-vector p10 = basis_vector("have_a_nice_day");
-vector p11 = basis_vector("good_morning_friend");
-vector p12 = basis_vector("good_night_sleep_well");
-vector p13 = basis_vector("lets_get_coffee");
-vector p14 = basis_vector("whats_for_dinner");
-vector p15 = basis_vector("turn_on_the_lights");
-vector p16 = basis_vector("play_some_music");
-vector p17 = basis_vector("set_an_alarm");
-vector p18 = basis_vector("tell_me_a_joke");
-vector p19 = basis_vector("remind_me_later");
-vector p20 = basis_vector("whats_the_weather");
+vector p01 = embed("the_quick_brown_fox");
+vector p02 = embed("hello_world");
+vector p03 = embed("goodbye_cruel_world");
+vector p04 = embed("how_are_you_today");
+vector p05 = embed("what_is_your_name");
+vector p06 = embed("i_am_fine_thanks");
+vector p07 = embed("please_and_thank_you");
+vector p08 = embed("can_you_help_me");
+vector p09 = embed("see_you_tomorrow");
+vector p10 = embed("have_a_nice_day");
+vector p11 = embed("good_morning_friend");
+vector p12 = embed("good_night_sleep_well");
+vector p13 = embed("lets_get_coffee");
+vector p14 = embed("whats_for_dinner");
+vector p15 = embed("turn_on_the_lights");
+vector p16 = embed("play_some_music");
+vector p17 = embed("set_an_alarm");
+vector p18 = embed("tell_me_a_joke");
+vector p19 = embed("remind_me_later");
+vector p20 = embed("whats_the_weather");
 
 map<vector, string> PHRASE_NAME = {
     p01: "the quick brown fox",

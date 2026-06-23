@@ -12,11 +12,11 @@
 // vector, serializes it, and hands it to the consumer running in a
 // separate compiled module.
 
-vector v_cat = basis_vector("cat");
-vector v_dog = basis_vector("dog");
-vector v_red = basis_vector("red");
-vector v_blue = basis_vector("blue");
-vector v_alice = basis_vector("alice");
+vector v_cat = embed("cat");
+vector v_dog = embed("dog");
+vector v_red = embed("red");
+vector v_blue = embed("blue");
+vector v_alice = embed("alice");
 
 function vector make_state() {
     Axon a;

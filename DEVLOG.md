@@ -4,6 +4,22 @@
 
 `experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist still held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch sentence-transformers einops`) and exercising the new 2026-06-22 in-process backend (`SUTRA_EMBED_BACKEND=transformers` to override the suite's ollama pin in `tests/conftest.py`, since the daemon isn't installed here) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live `nomic-ai/nomic-embed-text-v1.5` in-process embeddings; the 2 semantic-preservation legs (`test_await_semantics_preserved_{torch,numpy}`) decoded `main()` ≈ 3.0 to 3 places, so the spec-2 algebraic reduction (`await_value(p) → self.value(p)`) holds end-to-end under the new default backend too. No `for _ in range(100)` / `if self.isPending` reappeared in `codegen_pytorch.py`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; the only commit since the 2026-06-22 audit is `da92a4f` (in-process embed default), which touches the `embed_texts` host boundary, not any op definition. 16 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question; no spec/todo/findings authoritative resolution surfaced for any other dossier since 2026-06-22. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
 
+## 2026-06-23: alias batch (3) — `basis_vector` → `embed`, user-facing surface
+
+Flagship alias, part 1 (the surface a newcomer reads). Understood the weaving first: `embed("x")` parses
+to an `EmbedExpr` and `collect_basis_vector_strings` collects it identically to `basis_vector` (verified —
+so the batched pre-fetch is preserved); the stdlib "definitions" are commented-out docs, not real
+functions; the axon runtime calls `_VSA.embed` directly (surface alias irrelevant). The one real internal
+dependency was thrml's `_basis_atoms`, which only recognised `Call(basis_vector)` — taught it to also
+accept `EmbedExpr` (`embed`). Then repointed all `examples/*.su` (233) + `docs/` (20) to `embed`, fixed
+the measurably-false "random basis / pairwise cosine ~0 / concentration of measure" comments in
+`nearest_phrase.su` + `classifier.su` (real embeddings, ~0.47 correlated), and marked
+`docs/operators.md`'s `basis_vector` entry deprecated. Behaviour-identical: **smoke test PASS** (12/12
+examples, identical outputs), **thrml 2 passed**, site builds. `_builtin_basis_vector` kept as a
+DEPRECATED thin alias (`# DEPRECATED 2026-06-23`) until the remaining corpus + inline-test-string sites
+(~181) and the demos/font + Yantra subtree migrate — then it's deleted. Queue item updated with the
+remainder.
+
 ## 2026-06-23: alias batch (3) — `real_number` → `make_real`, builtin deleted
 
 Item 2. Comprehensive sweep (py + su, not just .su) found 4 real code sites

@@ -22,39 +22,39 @@
 // has to preserve through the bundle-and-retrieve cycle.
 
 // --- Roles (field keys) ---
-vector r_title  = basis_vector("role_title");
-vector r_author = basis_vector("role_author");
-vector r_genre  = basis_vector("role_genre");
-vector r_year   = basis_vector("role_year");
+vector r_title  = embed("role_title");
+vector r_author = embed("role_author");
+vector r_genre  = embed("role_genre");
+vector r_year   = embed("role_year");
 
 // --- Fillers: titles. Short proper-noun titles cluster in the
 // nomic-embed-text substrate (they all land in roughly the same region
 // of the space), so we use short descriptive titles that embed into
 // more distinctive directions.
-vector t_dune       = basis_vector("a desert-planet novel about spice and prophecy");
-vector t_foundation = basis_vector("a galactic-empire novel about predicting the fall");
-vector t_neuromancer = basis_vector("a novel about cyberspace hackers and AI");
-vector t_hyperion   = basis_vector("a novel about pilgrims on a doomed world");
+vector t_dune       = embed("a desert-planet novel about spice and prophecy");
+vector t_foundation = embed("a galactic-empire novel about predicting the fall");
+vector t_neuromancer = embed("a novel about cyberspace hackers and AI");
+vector t_hyperion   = embed("a novel about pilgrims on a doomed world");
 
 // --- Fillers: authors. Same substrate issue with proper nouns — use
 // author descriptors instead of bare names to give each a distinct
 // semantic direction.
-vector a_herbert  = basis_vector("author of the Dune series, died 1986");
-vector a_asimov   = basis_vector("prolific science writer, author of the Foundation saga");
-vector a_gibson   = basis_vector("Canadian-American author who coined cyberspace");
-vector a_simmons  = basis_vector("author of the Hyperion Cantos");
+vector a_herbert  = embed("author of the Dune series, died 1986");
+vector a_asimov   = embed("prolific science writer, author of the Foundation saga");
+vector a_gibson   = embed("Canadian-American author who coined cyberspace");
+vector a_simmons  = embed("author of the Hyperion Cantos");
 
 // --- Fillers: genres ---
-vector g_space    = basis_vector("space opera");
-vector g_robotic  = basis_vector("robotic science fiction");
-vector g_cyber    = basis_vector("cyberpunk");
-vector g_literary = basis_vector("literary science fiction");
+vector g_space    = embed("space opera");
+vector g_robotic  = embed("robotic science fiction");
+vector g_cyber    = embed("cyberpunk");
+vector g_literary = embed("literary science fiction");
 
 // --- Fillers: years ---
-vector y_1965 = basis_vector("1965");
-vector y_1951 = basis_vector("1951");
-vector y_1984 = basis_vector("1984");
-vector y_1989 = basis_vector("1989");
+vector y_1965 = embed("1965");
+vector y_1951 = embed("1951");
+vector y_1984 = embed("1984");
+vector y_1989 = embed("1989");
 
 // --- Codebook for argmax decode (per-field) ---
 map<vector, string> TITLE_NAME = {

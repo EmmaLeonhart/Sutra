@@ -358,14 +358,11 @@ The LLM-substrate intrinsic: a string goes in, a (mean-centered, normalized) vec
 
 ```sutra
 intrinsic function vector embed(string name);
-
-// `basis_vector` is an alias used in role-allocation contexts:
-function vector basis_vector(string name) {
-    return embed(name);
-}
 ```
 
-**Status: intrinsic** (`embed`); **blocked** (`basis_vector`, on the inliner consuming it).
+`embed` is the canonical spelling. `basis_vector(name)` was a pure alias for it (same lowering) used in VSA role-allocation contexts; it is **deprecated as of 2026-06-23** and being removed — use `embed` everywhere.
+
+**Status: intrinsic** (`embed`).
 
 ---
 

@@ -5,7 +5,7 @@ The smallest real Sutra program is `examples/hello_world.su`. There is no `print
 ## What you'll learn
 
 - Where Sutra files live and what the `.su` extension means
-- How to turn a string into a `vector` with `basis_vector(...)`
+- How to turn a string into a `vector` with `embed(...)`
 - What a **codebook** (`map<vector, string>`) is and how `argmax_cosine` reads from it
 - How to declare functions and the `main()` entry point
 - How to validate and run a source file
@@ -17,12 +17,12 @@ This is [`examples/hello_world.su`](https://github.com/EmmaLeonhart/Sutra/blob/m
 
 ```c
 // The greeting, as a vector in the space.
-vector greeting = basis_vector("hello_world");
+vector greeting = embed("hello_world");
 
 // A small codebook of candidate phrases.
-vector v_hello    = basis_vector("hello_world");
-vector v_goodbye  = basis_vector("goodbye");
-vector v_question = basis_vector("are_you_there");
+vector v_hello    = embed("hello_world");
+vector v_goodbye  = embed("goodbye");
+vector v_question = embed("are_you_there");
 
 map<vector, string> PHRASE_NAME = {
     v_hello:    "hello world",
@@ -45,7 +45,7 @@ function string main() {
 
 Five things to notice:
 
-1. **`vector greeting = basis_vector("hello_world");`** binds a `vector` to the name `greeting`. `basis_vector(s)` resolves the string `s` to its point in the frozen embedding space — it is the bridge from "a name written as text" to "a coordinate in the substrate." The same string always resolves to the same point.
+1. **`vector greeting = embed("hello_world");`** binds a `vector` to the name `greeting`. `embed(s)` resolves the string `s` to its point in the frozen embedding space — it is the bridge from "a name written as text" to "a coordinate in the substrate." The same string always resolves to the same point.
 
 2. **`map<vector, string> PHRASE_NAME`** is a **codebook**: a content-addressed table pairing each known phrase *vector* with the string you want back when that phrase wins. You look it up with a vector, not an index.
 
@@ -80,7 +80,7 @@ Every Sutra diagnostic looks like this, on the command line and (via the same co
 
 ## Run it
 
-Running resolves `basis_vector(...)` to real coordinates, so it needs the embedding model. The model loads **in-process** — no separate server:
+Running resolves `embed(...)` to real coordinates, so it needs the embedding model. The model loads **in-process** — no separate server:
 
 ```bash
 pip install "sutra-dev[runtime,embed]"
@@ -95,7 +95,7 @@ The first run downloads the frozen model once (a few hundred MB; it prints a one
 
 ## The mental model to start absorbing
 
-- A string in your source is *not* the value a function returns. The program returns a **vector**; `basis_vector` is the bridge from "concept written as text" to "coordinate in the substrate."
+- A string in your source is *not* the value a function returns. The program returns a **vector**; `embed` is the bridge from "concept written as text" to "coordinate in the substrate."
 - A vector has no canonical numeric value — it depends on the substrate (`nomic-embed-text` by default). Different substrates produce different coordinates. The *structure* of the program is substrate-independent; the *numbers* are not.
 - Computation is geometry. The next tutorials operate on these vectors with Sutra's primitives — you will see *operations on vectors* far more often than you see numbers.
 

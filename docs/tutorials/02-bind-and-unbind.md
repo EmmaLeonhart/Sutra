@@ -18,8 +18,8 @@ The fix is to *bind* each filler to its *role* before bundling:
 ```c
 vector cat = "cat";
 vector sit = "sit";
-vector agent  = basis_vector("agent");
-vector action = basis_vector("action");
+vector agent  = embed("agent");
+vector action = embed("action");
 
 // Bind each filler to its role, then bundle the bound pairs.
 vector sentence = bundle(
