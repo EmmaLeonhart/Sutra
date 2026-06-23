@@ -1,0 +1,37 @@
+// Immutable list operations — map / filter / concat over lists.
+//
+// Sutra has a first-class `list<T>` and the higher-order ops you expect, all
+// IMMUTABLE: each builds a NEW list and never mutates its input (pure-functional,
+// fits the substrate). The call names are `array_*` because the bare `map` /
+// `filter` spellings are reserved — `map<K, V>` is the codebook TYPE keyword.
+//
+//   array_concat(a, b)         -> new list: a's elements then b's
+//   array_map(f, xs)           -> new list: f applied to each element
+//   array_filter(pred, xs)     -> new list: elements where pred is true
+//
+// `f` and `pred` are first-class function values — pass a named function or an
+// inline arrow. A predicate returns a `fuzzy` (Sutra truth) value.
+
+// A named transform and a named predicate.
+function int dbl(int x)        { return x * 2; }
+function fuzzy gt_one(int x)   { return x > 1; }
+
+// concat then map: build [1,2,3,4], then double every element -> [2,4,6,8].
+function list<int> concat_then_double() {
+    var joined = array_concat([1, 2], [3, 4]);
+    return array_map(dbl, joined);
+}
+
+// map with an inline arrow function value -> [10,20,30].
+function list<int> map_with_arrow() {
+    return array_map((int x) => x * 10, [1, 2, 3]);
+}
+
+// filter keeps the elements greater than one -> [2,3].
+function list<int> keep_big() {
+    return array_filter(gt_one, [1, 2, 3]);
+}
+
+function list<int> main() {
+    return concat_then_double();
+}

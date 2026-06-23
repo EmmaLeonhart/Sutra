@@ -468,7 +468,8 @@ def render(md_text: str, src_dir: str = ".") -> tuple[str, str, bool, bool]:
 # present but not listed is appended alphabetically.
 ORDER = [
     "what-is-sutra", "vision", "paradigms", "ontology", "primitive-classes",
-    "operators", "logical-operations", "numeric-math", "memory", "loops",
+    "operators", "logical-operations", "numeric-math", "list-operations",
+    "memory", "loops",
     "promises", "typescript-to-sutra", "compilation", "neural-webassembly",
     "demos", "gui", "example", "history",
 ]
@@ -481,6 +482,7 @@ BLURB = {
     "operators": "The operator set and what each one compiles to.",
     "logical-operations": "&&, ||, ! over fuzzy three-valued truth.",
     "numeric-math": "How integers, floats, and complex numbers live in the substrate.",
+    "list-operations": "Immutable map / filter / concat over first-class list<T>.",
     "memory": "bind, unbind, bundle — the role-filler model.",
     "loops": "First-class loop functions as substrate-pure RNN cells.",
     "promises": "Promises and async/await, geometrically.",
