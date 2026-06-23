@@ -21,7 +21,7 @@ Two backends, both produce a self-contained Python module:
 - **`codegen_pytorch.py`** — **canonical.** Emits torch tensor ops, picks CUDA at module init if available, falls back to CPU. Axons, the full `Math.*` namespace, the codepoint-array String model, and the rotation-hashmap `dict<K, V>` all live here.
 - **`codegen.py`** — numpy backend, **deprecated**. The PyTorch backend is canonical; newer features (axons, the codepoint-array String model, lookup-table transcendentals, the rotation-hashmap `dict<K, V>`) live there and have no numpy equivalent.
 
-The CLI is `python -m sutra_compiler`. Validate a file: `sutrac path/to/file.su`. Emit the generated torch module to stdout: `sutrac --emit path/to/file.su`. Compile and run: `sutrac --run path/to/file.su`.
+The CLI is `python -m sutra_compiler`. Validate a file: `sutrac path/to/file.su`. Emit the generated torch module to stdout: `sutrac --emit path/to/file.su`. Compile and run: `sutrac --run path/to/file.su`. Explore interactively: `sutrac repl` — type an expression and see the result (a number shows its real value; a concept decodes to the nearest known string), with declarations ending in `;` or `}` accumulating as session state.
 
 The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 11 of them end-to-end:
 
