@@ -1,0 +1,54 @@
+// @embedding: nomic-embed-text
+//
+// Semantic FAQ matcher — a small, genuinely useful program.
+//
+// A support bot has five canned answers. A user asks a question IN THEIR OWN
+// WORDS — different vocabulary, different phrasing — and the bot returns the
+// right answer. The match is by MEANING, not keywords: "I forgot my login and
+// need to change it" finds "how do I reset my password" even though they share
+// almost no words.
+//
+// This is the payoff of running on a frozen LLM embedding space. Each question
+// is embedded to a point in semantic space (`embed`); a user query is embedded
+// the same way; `argmax_cosine` returns the nearest canned question, and the
+// map hands back its answer. There is no control flow — matching is one cosine
+// argmax over the codebook.
+//
+// Runs with NO Ollama daemon: the embedding model loads in-process
+// (`pip install "sutra-dev[runtime,embed]"`). See docs/tutorials/05-semantic-faq.md.
+
+// --- The knowledge base: five questions, each embedded by meaning. ---
+vector q_reset  = embed("how do I reset my password");
+vector q_refund = embed("how do I get a refund");
+vector q_hours  = embed("what are your business hours");
+vector q_track  = embed("where is my order");
+vector q_cancel = embed("how do I cancel my subscription");
+
+// Each question vector maps to its canned answer.
+map<vector, string> ANSWER = {
+    q_reset:  "Go to Settings > Security > Reset Password.",
+    q_refund: "Refunds are issued within 5 business days from your Orders page.",
+    q_hours:  "We are open 9am to 6pm, Monday through Friday.",
+    q_track:  "Track your order under Orders > Track Shipment.",
+    q_cancel: "Cancel anytime under Settings > Subscription > Cancel."
+};
+
+// answer: embed-free core — take an already-embedded query, return the answer
+// of the nearest canned question.
+function string answer(vector query) {
+    vector winner = argmax_cosine(query,
+        [q_reset, q_refund, q_hours, q_track, q_cancel]);
+    return ANSWER[winner];
+}
+
+// A user asks in their own words. Each phrasing is a PARAPHRASE of one canned
+// question — different words, same meaning — yet matches correctly.
+function string ask_password() { return answer(embed("I forgot my login and need to change it")); }
+function string ask_refund()   { return answer(embed("can I get my money back")); }
+function string ask_hours()    { return answer(embed("when are you open")); }
+function string ask_track()    { return answer(embed("has my package shipped yet")); }
+function string ask_cancel()   { return answer(embed("I want to stop my membership")); }
+
+function string main() {
+    return ask_password();
+}
