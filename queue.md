@@ -44,23 +44,25 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
-_Batch 1 drained 2026-06-23 (first-run UX, package-build verify, semantic-FAQ example + tutorial 05,
-list-ops discoverability, `sutrac repl`). Batch 2 below is the refill from the PINNED TAIL audit
-(2026-06-23): a newcomer-perspective readability sweep of the docs/examples/onboarding surface._
+_Batches 1–2 drained 2026-06-23 (in-process embeddings, first-run UX, package verify, semantic-FAQ +
+tutorial 05, list-ops, `sutrac repl`; tutorial 01/04 fixes, stale-count sweep, onboarding polish).
+History in `DEVLOG.md` / `git log`._
 
-> **⚠ NEEDS EMMA — design call, do NOT auto-implement.** `basis_vector(s)` lowers to `_VSA.embed(s)`
-> — it is the SAME op as `embed`, NOT a random/orthogonal basis. Measured pairwise cosine of demo
-> atoms ≈ **0.47** (not ~0), so `examples/nearest_phrase.su` + `examples/classifier.su` comments
-> ("random basis vectors… pairwise cosine ~= 0 / concentration of measure") are measurably false.
-> Finding: `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`. Resolution is Emma's:
-> (1) `basis_vector` is an `embed` alias → fix the false example comments + maybe deprecate the name;
-> or (2) it SHOULD be a distinct seeded-random atom → add that primitive + repoint the demos. The doc
-> passages that repeated the false claim were corrected 2026-06-23; the EXAMPLE comments stay untouched
-> until this is decided. (Substrate/language semantics — not a usability tweak.)
+## Batch 3 — ALIAS + AFFORDANCE AUDIT (Emma 2026-06-23)
 
-_Batch 2 drained 2026-06-23 (tutorial 01 rewrite + basis_vector finding, tutorial 04 Ollama fix, stale
-count/listing sweep, onboarding polish). The NEEDS-EMMA basis_vector flag above is still open. REFILL via
-the PINNED TAIL audit below._
+Emma's directive: the next loop audits Sutra's **internal aliases + affordances** and deprecates them
+aggressively (see CLAUDE.md § "Deprecate aliases aggressively" — affordances cause bad agent behaviour;
+one canonical spelling per operation). Scope is *internal redundancy* (two Sutra-native names for one
+Sutra op), NOT the foreign-ecosystem carve-out (`make_char`, JS shims, `AXIS_CHAR_FLAG`, TS coercion —
+those stay).
+
+**`basis_vector` is DECIDED (Emma 2026-06-23): a pure alias for `embed`.** `embed` is canonical;
+`basis_vector` is on its way out. First concrete target of this batch — mark deprecated, repoint every
+call site (`examples/*.su`, corpus, docs) to `embed` (behaviour identical, tests unchanged), and fix the
+now-false "random basis / pairwise cosine ~0" comments in `nearest_phrase.su` + `classifier.su`. Finding:
+`planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
+
+_Audit-derived items get atomised here. Barrel top to bottom._
 
 ---
 
@@ -79,6 +81,9 @@ list**, then keep barrelling. Repeat every time the concrete items drain. Audit 
   well-commented? Is the stdlib surface discoverable?
 - **Real-program reach:** what can't a newcomer build yet that they'd expect to? (stdlib gaps, missing
   ergonomics) — name precisely; don't fake reach.
+- **Aliases + affordances (Emma 2026-06-23):** internal redundancy — two Sutra-native names for one op,
+  legacy entry points, escape hatches that mislead the next agent. Deprecate aggressively toward one
+  canonical spelling (CLAUDE.md § "Deprecate aliases aggressively"); exclude the foreign-ecosystem carve-out.
 
 **THE GOAL IS V1, AND V1 IS EMMA'S MANUAL CALL — NOT THE LOOP'S.** Keep making Sutra more readable +
 usable; do NOT bump the version to 1.0.0, do NOT declare "V1-ready," do NOT tag a v1 release. Emma

@@ -71,6 +71,15 @@ This project is vibe-coded — decisions get made in chat, partially implemented
 
 **Carve-out: intentional compatibility code is not legacy residue.** `JavaScriptObject` + operator overrides, the TS transpiler's coercion shims, `make_char` aliasing `make_string`, the legacy `AXIS_CHAR_FLAG` name — these absorb a different ecosystem and have a current purpose. Don't sweep them under the "remove legacy" rule.
 
+### Deprecate aliases aggressively — affordances cause bad agent behaviour (Emma 2026-06-23)
+
+Aliases are *allowed*, but in this project they must be **deprecated and removed far more aggressively than in a typical software project.** The reason is specific to how we work: **a code affordance is an invitation, and agents take it.** Every alias / extra spelling / legacy entry point is a surface an agent will latch onto — picking the deprecated name, re-wiring the superseded path, or "preserving compatibility" for a thing with no users — instead of the one canonical form. The redundant affordance is itself the bug-generator. So:
+
+- **One canonical spelling per operation.** When two names do the same thing, one is canonical and the other is a deprecation *on its way out*, not a permanent convenience. Prefer the form that names what actually happens (e.g. `embed` over `basis_vector`, which is a pure alias for it — Emma 2026-06-23).
+- **A pure alias (same behaviour, different name) is the easiest thing to retire** — it has no semantic content of its own. Mark it deprecated, repoint call sites to the canonical name, and delete it. Do not let "it's harmless" keep it alive; harmless-but-present is exactly the affordance that misleads the next agent.
+- **The §carve-out above still holds** for aliases that absorb a *foreign ecosystem* (`make_char`, JS shims, `AXIS_CHAR_FLAG`) — those have a current cross-ecosystem purpose. The aggressive-deprecation rule targets *internal* redundancy: two Sutra-native names for one Sutra operation.
+- **Document deprecations** in the spec / docs so the canonical form is unambiguous, and so an agent reading the docs is steered to it rather than discovering the alias in the source.
+
 `todo.md` is longer-horizon. `queue.md` is the next active session. Items migrate `todo.md` → `queue.md` → deleted on completion.
 
 **⭐ VERY IMPORTANT (Emma 2026-06-18) — removing items as they are done is the SAFE option.** When a queue item is finished, **delete it from `queue.md` entirely** in the same commit that ships it. Do NOT leave it behind as a crossed-off / `~~struck-through~~` / "DONE" / "SHIPPED" marker — *that* is the unsafe option. Crossed-off completed items are the bloat that buries the open work and confuses the next session (it confused this agent into dumping a low-level decision-fork on Emma instead of just working). The queue holds only not-yet-done work; "done" lives in `git log`, `DEVLOG.md`, and `planning/findings/`. Removing-as-done keeps the queue an honest ordered execution list; accumulating crossed-off items destroys that. The git history is the safety net — nothing is truly lost by deleting a completed line, so delete it.
