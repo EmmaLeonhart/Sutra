@@ -13,7 +13,7 @@ class Cat extends vector {
 }
 
 function int main() {
-    Cat c = basis_vector("cat");
+    Cat c = embed("cat");
     c.age = 7;
     c.paws = 4;
     return c.age + c.paws;

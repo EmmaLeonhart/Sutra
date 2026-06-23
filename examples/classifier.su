@@ -1,8 +1,8 @@
 // Prototype classifier — bundle several examples per class, classify
 // novel inputs by argmax cosine against the bundled prototypes.
 //
-// Generalizes fuzzy_branching.su: instead of hand-coding one basis
-// vector per class, each class prototype is the *bundled superposition*
+// Generalizes fuzzy_branching.su: instead of hand-coding one embedded
+// atom per class, each class prototype is the *bundled superposition*
 // of several example vectors. This is the first demo that exercises
 // bundle's averaging property — the class prototype concentrates
 // along the shared direction of its examples and averages out the
@@ -16,19 +16,19 @@
 // a single argmax_cosine.
 
 // --- Training examples for class "fruit" ---
-vector fruit_apple  = basis_vector("fruit_apple");
-vector fruit_pear   = basis_vector("fruit_pear");
-vector fruit_mango  = basis_vector("fruit_mango");
+vector fruit_apple  = embed("fruit_apple");
+vector fruit_pear   = embed("fruit_pear");
+vector fruit_mango  = embed("fruit_mango");
 
 // --- Training examples for class "vehicle" ---
-vector veh_car      = basis_vector("veh_car");
-vector veh_truck    = basis_vector("veh_truck");
-vector veh_bike     = basis_vector("veh_bike");
+vector veh_car      = embed("veh_car");
+vector veh_truck    = embed("veh_truck");
+vector veh_bike     = embed("veh_bike");
 
 // --- Training examples for class "tool" ---
-vector tool_hammer  = basis_vector("tool_hammer");
-vector tool_saw     = basis_vector("tool_saw");
-vector tool_drill   = basis_vector("tool_drill");
+vector tool_hammer  = embed("tool_hammer");
+vector tool_saw     = embed("tool_saw");
+vector tool_drill   = embed("tool_drill");
 
 // --- Class prototypes by bundling ---
 vector proto_fruit   = bundle(fruit_apple,  fruit_pear,  fruit_mango);

@@ -4,11 +4,11 @@
 
 class Counter extends vector {
     method void bump(int amount) {
-        return this + basis_vector("bump");
+        return this + embed("bump");
     }
 }
 
-vector v_initial = basis_vector("initial");
+vector v_initial = embed("initial");
 
 function string main() {
     Counter c = v_initial;

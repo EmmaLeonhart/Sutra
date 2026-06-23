@@ -25,23 +25,23 @@
 // rather than a record or a state.
 
 // --- Positions ---
-vector pos_0 = basis_vector("pos_0");
-vector pos_1 = basis_vector("pos_1");
-vector pos_2 = basis_vector("pos_2");
-vector pos_3 = basis_vector("pos_3");
-vector pos_4 = basis_vector("pos_4");
+vector pos_0 = embed("pos_0");
+vector pos_1 = embed("pos_1");
+vector pos_2 = embed("pos_2");
+vector pos_3 = embed("pos_3");
+vector pos_4 = embed("pos_4");
 
 // --- Token codebook ---
-vector the     = basis_vector("tok_the");
-vector quick   = basis_vector("tok_quick");
-vector brown   = basis_vector("tok_brown");
-vector fox     = basis_vector("tok_fox");
-vector jumps   = basis_vector("tok_jumps");
-vector lazy    = basis_vector("tok_lazy");
-vector dog     = basis_vector("tok_dog");
-vector over    = basis_vector("tok_over");
-vector a       = basis_vector("tok_a");
-vector sleeps  = basis_vector("tok_sleeps");
+vector the     = embed("tok_the");
+vector quick   = embed("tok_quick");
+vector brown   = embed("tok_brown");
+vector fox     = embed("tok_fox");
+vector jumps   = embed("tok_jumps");
+vector lazy    = embed("tok_lazy");
+vector dog     = embed("tok_dog");
+vector over    = embed("tok_over");
+vector a       = embed("tok_a");
+vector sleeps  = embed("tok_sleeps");
 
 map<vector, string> TOKEN_NAME = {
     the:    "the",

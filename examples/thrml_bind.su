@@ -1,8 +1,8 @@
 // Minimal program for the thrml backend (approach G.1): a single bind of two
 // basis-vector atoms. `--emit-thrml examples/thrml_bind.su` lowers it to an
 // energy-based thrml program (bit-registers + 3-body factor + sampling).
-vector a = basis_vector("a");
-vector b = basis_vector("b");
+vector a = embed("a");
+vector b = embed("b");
 
 function vector main() {
     return bind(a, b);

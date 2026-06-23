@@ -34,13 +34,22 @@ class ThrmlCodegenNotSupported(Exception):
 
 
 def _basis_atoms(module) -> dict:
-    """Top-level `vector NAME = basis_vector("...");` declarations → {name: index}."""
+    """Top-level `vector NAME = embed("...");` declarations → {name: index}.
+
+    `embed("...")` parses to an `EmbedExpr`; the legacy `basis_vector("...")` alias
+    (deprecated 2026-06-23) parses to a `Call` — accept both so repointed programs
+    keep their atom mapping.
+    """
     atoms: dict = {}
     for item in module.items:
-        if (isinstance(item, ast.VarDecl) and item.initializer is not None
-                and isinstance(item.initializer, ast.Call)
-                and isinstance(item.initializer.callee, ast.Identifier)
-                and item.initializer.callee.name == "basis_vector"):
+        if not (isinstance(item, ast.VarDecl) and item.initializer is not None):
+            continue
+        init = item.initializer
+        is_embed = isinstance(init, ast.EmbedExpr)
+        is_legacy = (isinstance(init, ast.Call)
+                     and isinstance(init.callee, ast.Identifier)
+                     and init.callee.name == "basis_vector")
+        if is_embed or is_legacy:
             atoms[item.name] = len(atoms)
     return atoms
 

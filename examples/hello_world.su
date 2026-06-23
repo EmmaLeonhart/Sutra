@@ -12,12 +12,12 @@
 // are real: source -> matrix ops -> named output.
 
 // The greeting, as a vector in the space.
-vector greeting = basis_vector("hello_world");
+vector greeting = embed("hello_world");
 
 // A small codebook of candidate phrases.
-vector v_hello    = basis_vector("hello_world");
-vector v_goodbye  = basis_vector("goodbye");
-vector v_question = basis_vector("are_you_there");
+vector v_hello    = embed("hello_world");
+vector v_goodbye  = embed("goodbye");
+vector v_question = embed("are_you_there");
 
 map<vector, string> PHRASE_NAME = {
     v_hello:    "hello world",

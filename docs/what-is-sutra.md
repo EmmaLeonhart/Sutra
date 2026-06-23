@@ -13,7 +13,7 @@ The Sutra compiler is a normal compiler in shape — lexer, parser, simplifier, 
 
 | Primitive | What it computes |
 |---|---|
-| `basis_vector("name")` | embed the string through the substrate |
+| `embed("name")` | embed the string through the substrate |
 | `bundle(a, b, ...)` | sum the vectors and L2-normalize |
 | `bind(role, filler)` | rotation binding: `Q_role @ filler` |
 | `unbind(role, record)` | inverse rotation: `Q_role^T @ record` |

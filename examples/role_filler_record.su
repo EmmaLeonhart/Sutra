@@ -11,17 +11,17 @@
 // the program text. Substrate: numpy matrix ops on CPU.
 
 // --- Roles ---
-vector r_name  = basis_vector("role_name");
-vector r_color = basis_vector("role_color");
-vector r_shape = basis_vector("role_shape");
+vector r_name  = embed("role_name");
+vector r_color = embed("role_color");
+vector r_shape = embed("role_shape");
 
 // --- Filler codebook ---
-vector f_alice   = basis_vector("filler_alice");
-vector f_bob     = basis_vector("filler_bob");
-vector f_red     = basis_vector("filler_red");
-vector f_blue    = basis_vector("filler_blue");
-vector f_circle  = basis_vector("filler_circle");
-vector f_square  = basis_vector("filler_square");
+vector f_alice   = embed("filler_alice");
+vector f_bob     = embed("filler_bob");
+vector f_red     = embed("filler_red");
+vector f_blue    = embed("filler_blue");
+vector f_circle  = embed("filler_circle");
+vector f_square  = embed("filler_square");
 
 map<vector, string> FILLER_NAME = {
     f_alice:  "alice",

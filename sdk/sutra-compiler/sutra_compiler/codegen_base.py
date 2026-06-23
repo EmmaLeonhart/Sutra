@@ -96,6 +96,10 @@ class CodegenNotSupported(Exception):
 # supported builtins is easy to audit against `planning/sutra-spec/21-builtins.md`.
 
 def _builtin_basis_vector(args: List[str]) -> str:
+    # DEPRECATED 2026-06-23 — pure alias for `embed` (identical lowering). Being
+    # removed (CLAUDE.md § "Deprecate aliases aggressively"); `embed` is canonical.
+    # Examples + docs were repointed 2026-06-23; this stays only until the corpus +
+    # inline-test-string sites + the demos/font and external/Yantra subtree migrate.
     return f"_VSA.embed({args[0]})"
 
 

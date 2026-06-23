@@ -17,25 +17,25 @@
 // across all four branches, argmax is at the final codebook lookup.
 
 // --- Intent prototypes (the "query" side) ---
-vector q_weather = basis_vector("q_weather");
-vector q_music   = basis_vector("q_music");
-vector q_timer   = basis_vector("q_timer");
-vector q_cancel  = basis_vector("q_cancel");
+vector q_weather = embed("q_weather");
+vector q_music   = embed("q_music");
+vector q_timer   = embed("q_timer");
+vector q_cancel  = embed("q_cancel");
 
 // --- Roles ---
-vector r_action = basis_vector("r_action");
-vector r_target = basis_vector("r_target");
+vector r_action = embed("r_action");
+vector r_target = embed("r_target");
 
 // --- Action codebook ---
-vector a_lookup = basis_vector("a_lookup");
-vector a_start  = basis_vector("a_start");
-vector a_stop   = basis_vector("a_stop");
+vector a_lookup = embed("a_lookup");
+vector a_start  = embed("a_start");
+vector a_stop   = embed("a_stop");
 
 // --- Target codebook ---
-vector t_weather = basis_vector("t_weather");
-vector t_music   = basis_vector("t_music");
-vector t_timer   = basis_vector("t_timer");
-vector t_alarm   = basis_vector("t_alarm");
+vector t_weather = embed("t_weather");
+vector t_music   = embed("t_music");
+vector t_timer   = embed("t_timer");
+vector t_alarm   = embed("t_alarm");
 
 map<vector, string> ACTION_NAME = {
     a_lookup: "lookup",

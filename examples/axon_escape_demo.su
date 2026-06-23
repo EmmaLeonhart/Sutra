@@ -2,9 +2,9 @@
 // SSA-elision pass conservatively keeps all `add` calls — the
 // receiver doesn't know which keys the caller will read.
 
-vector v_cat = basis_vector("cat");
-vector v_dog = basis_vector("dog");
-vector v_mouse = basis_vector("mouse");
+vector v_cat = embed("cat");
+vector v_dog = embed("dog");
+vector v_mouse = embed("mouse");
 
 function vector make_axon() {
     Axon a;
@@ -22,10 +22,10 @@ map<vector, string> ANIMAL_NAME = {
 
 function string main() {
     vector a = make_axon();
-    // We're calling unbind(basis_vector("object"), a) by way of
+    // We're calling unbind(embed("object"), a) by way of
     // axon_item-equivalent — but `a` here is just a vector, not a
     // typed Axon, so we have to use the substrate primitive.
-    vector recovered = unbind(basis_vector("object"), a);
+    vector recovered = unbind(embed("object"), a);
     vector winner = argmax_cosine(recovered, [v_cat, v_dog, v_mouse]);
     return ANIMAL_NAME[winner];
 }

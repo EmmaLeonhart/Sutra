@@ -48,7 +48,7 @@ These don't have asserted outputs in the smoke test but parse and (where the cod
 
 | Operation | What it computes | Demo files |
 |---|---|---|
-| `basis_vector(name)` | embed a string through the substrate | all |
+| `embed(name)` | embed a string through the substrate | all |
 | `bundle(a, b, …)` | sum and L2-normalize | 1, 2, 3, 4, 5, 6, 7, 9 |
 | `bind(role, filler)` | rotation binding: `Q_role @ filler` | 1, 2, 5, 7, 9 |
 | `unbind(role, record)` | inverse rotation: `Q_role^T @ record` | 2, 5, 6, 7, 9 |

@@ -10,20 +10,20 @@
 // recover the country. The entire memory is one 256-dim vector; all
 // five associations coexist in superposition.
 
-vector paris  = basis_vector("paris");
-vector france = basis_vector("france");
+vector paris  = embed("paris");
+vector france = embed("france");
 
-vector tokyo  = basis_vector("tokyo");
-vector japan  = basis_vector("japan");
+vector tokyo  = embed("tokyo");
+vector japan  = embed("japan");
 
-vector london = basis_vector("london");
-vector uk     = basis_vector("uk");
+vector london = embed("london");
+vector uk     = embed("uk");
 
-vector rome   = basis_vector("rome");
-vector italy  = basis_vector("italy");
+vector rome   = embed("rome");
+vector italy  = embed("italy");
 
-vector cairo  = basis_vector("cairo");
-vector egypt  = basis_vector("egypt");
+vector cairo  = embed("cairo");
+vector egypt  = embed("egypt");
 
 map<vector, string> COUNTRY_NAME = {
     france: "france",

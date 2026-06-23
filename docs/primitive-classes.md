@@ -25,7 +25,7 @@ graph TD
     TRU --> FUZZ[fuzzy]
     TRU --> TRIT[trit]
 
-    SEM --> BV[basis_vector / embed]
+    SEM --> BV[embed]
     SEM --> ROLE[role matrices]
 
     classDef root fill:#512da8,color:#fff,stroke:#311b92
