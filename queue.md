@@ -71,13 +71,7 @@ _Resolution path CONFIRMED 2026-06-23: bare-call dispatch is `BUILTINS` → else
 `_VSA.<name>` → else user call. `make_real`/`make_truth`/`make_complex`/`embed` are all intrinsics, so
 deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonical form reachable._
 
-1. **`real_number` → `make_real`** — pure alias (`codegen_base.py`). **6 call sites**, all in
-   `demos/calc/{parse_int2,switch}.su` + `external/Yantra/{apps/calc/parse_int2,apps/calc/switch,
-   kernel/services/task_a,task_b}.su` (the `.claude/worktrees/*` copies are other agents' worktrees —
-   ignore). Repoint to `make_real` (behaviour identical → compiles + runs unchanged), then delete the
-   builtin. Verify the demos/calc path (demos-ci).
-
-2. **`basis_vector` → `embed`** (FLAGSHIP, decided Emma 2026-06-23; ~280 sites). Repoint SDK-owned `.su`
+1. **`basis_vector` → `embed`** (FLAGSHIP, decided Emma 2026-06-23; ~280 sites). Repoint SDK-owned `.su`
    (examples, `tests/corpus/`, stdlib) + `docs/` to `embed` — identical lowering, so outputs/tests
    unchanged. Then fix the now-false "random basis / pairwise cosine ~0 / concentration of measure"
    comments in `examples/nearest_phrase.su` + `examples/classifier.su` (measured ~0.47, correlated
@@ -85,12 +79,12 @@ deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonic
    `external/Yantra` repoint in their own pass — they're subtree/demo). Big mechanical change: run the
    FULL smoke test + corpus suite after. Finding: `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
 
-3. **`scalar` type → `number`** — already labelled DEPRECATED in-code (`lexer.py:280-286`). Add a
+2. **`scalar` type → `number`** — already labelled DEPRECATED in-code (`lexer.py:280-286`). Add a
    `SUT####` deprecation diagnostic in the validator pointing at `number`; repoint the real type-position
    sites (tighten the grep past the noisy substring — concentrated in `tests/corpus/` +
    stdlib); then drop the keyword. Lower urgency (warning path is safe).
 
-4. **Keyword synonyms `unk` → `unknown` (1 site) and `iff` → `xnor` (2 sites).** `unk`
+3. **Keyword synonyms `unk` → `unknown` (1 site) and `iff` → `xnor` (2 sites).** `unk`
    (`tests/corpus/valid/29_unknown_literal.su:27`) and `iff` (`examples/logical_connectives.su:26,31`)
    are internal redundancy (per Emma's principle, retire harmless-but-present convenience spellings).
    Repoint + remove the lexer entries (`lexer.py:248-249,332`). Trivial; `iff` is standard math notation

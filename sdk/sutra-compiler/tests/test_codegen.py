@@ -252,9 +252,9 @@ class TestCanonicalAxes(unittest.TestCase):
             with self.assertRaises(CodegenNotSupported):
                 _compile(src)
 
-    def test_real_number_constructor_lowers(self):
+    def test_make_real_constructor_lowers(self):
         src = (
-            "function vector main() { return real_number(3.5); }\n"
+            "function vector main() { return make_real(3.5); }\n"
         )
         py = _compile(src)
         self.assertIn("_VSA.make_real(3.5)", py)
