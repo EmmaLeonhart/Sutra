@@ -229,10 +229,13 @@ class TestVectorAccessors(unittest.TestCase):
 class TestCanonicalAxes(unittest.TestCase):
     """First three synthetic axes carry designated semantics:
     synthetic[0] = real, synthetic[1] = imag, synthetic[2] = truth.
-    Constructors `real_number(x)` / `complex_number(re, im)` / `truth_value(t)`
-    lower to the appropriate runtime methods. The scalar-READOUT accessors
-    (`.real()` / `.imag()` / `.truth()` / ...) are REMOVED from the language —
-    they are rejected at compile (no introspection; substrate purity).
+    The canonical constructors `make_real(x)` / `make_complex(re, im)` /
+    `make_truth(t)` lower to the appropriate runtime methods (via the stdlib-
+    intrinsic path). The redundant aliases `complex_number`/`truth_value` were
+    removed 2026-06-23 (CLAUDE.md § "Deprecate aliases aggressively"); `real_number`
+    is on its way out too. The scalar-READOUT accessors (`.real()` / `.imag()` /
+    `.truth()` / ...) are REMOVED from the language — they are rejected at compile
+    (no introspection; substrate purity).
     """
 
     def test_real_accessor_is_rejected(self):
@@ -256,16 +259,16 @@ class TestCanonicalAxes(unittest.TestCase):
         py = _compile(src)
         self.assertIn("_VSA.make_real(3.5)", py)
 
-    def test_complex_number_constructor_lowers(self):
+    def test_make_complex_constructor_lowers(self):
         src = (
-            "function vector main() { return complex_number(3.0, 2.0); }\n"
+            "function vector main() { return make_complex(3.0, 2.0); }\n"
         )
         py = _compile(src)
         self.assertIn("_VSA.make_complex(3.0, 2.0)", py)
 
-    def test_truth_value_constructor_lowers(self):
+    def test_make_truth_constructor_lowers(self):
         src = (
-            "function vector main() { return truth_value(0.9); }\n"
+            "function vector main() { return make_truth(0.9); }\n"
         )
         py = _compile(src)
         self.assertIn("_VSA.make_truth(0.9)", py)

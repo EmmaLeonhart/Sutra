@@ -253,19 +253,6 @@ def _builtin_real_number(args: List[str]) -> str:
     return f"_VSA.make_real({args[0]})"
 
 
-def _builtin_complex_number(args: List[str]) -> str:
-    # Canonical-axis constructor: a complex number with re at
-    # synthetic[0] and im at synthetic[1]. Sutra's first-class complex.
-    return f"_VSA.make_complex({args[0]}, {args[1]})"
-
-
-def _builtin_truth_value(args: List[str]) -> str:
-    # Canonical-axis constructor: a scalar truth value at synthetic[2].
-    # Higher = more true; 0 = neither; negative = false-leaning. The
-    # axis is orthogonal to real/imag by construction.
-    return f"_VSA.make_truth({args[0]})"
-
-
 def _builtin_ram_read(args: List[str]) -> str:
     # RAM pointer read (planning/sutra-spec/ram-pointers.md). Bridges to
     # the host-attached external memory device `_VSA.ram`: decode the
@@ -454,13 +441,12 @@ BUILTINS = {
     "make_rotation": (_builtin_make_rotation, None),  # 1-2 args
     "compile_prototypes": (_builtin_compile_prototypes, 1),
     "geometric_loop": (_builtin_geometric_loop, None),  # 3-4 args
-    # Canonical-axis constructors. Lower to _VSA.make_real / make_complex /
-    # make_truth — runtime methods provided by the _VSA runtime class.
-    # A backend that doesn't implement them will fail at runtime with a
-    # clear AttributeError.
+    # Canonical-axis constructor alias. `make_real` (the canonical form) resolves
+    # via the stdlib-intrinsic path (`_VSA.make_real`), so this BUILTINS entry is
+    # a redundant spelling on its way out (CLAUDE.md § "Deprecate aliases
+    # aggressively"). `complex_number`/`truth_value` were removed 2026-06-23 (0 call
+    # sites); `make_complex`/`make_truth` stay reachable as intrinsics.
     "real_number": (_builtin_real_number, 1),
-    "complex_number": (_builtin_complex_number, 2),
-    "truth_value": (_builtin_truth_value, 1),
     # RAM pointers (planning/sutra-spec/ram-pointers.md): ramRead(ptr) ->
     # _VSA.ram_read, ramWrite(ptr, data) -> _VSA.ram_write. Host attaches
     # the external memory device as _VSA.ram. `await ramRead(ptr)` is the
