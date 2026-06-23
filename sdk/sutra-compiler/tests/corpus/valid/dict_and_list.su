@@ -1,8 +1,8 @@
 
-vector v_cat = basis_vector("cat");
-vector v_dog = basis_vector("dog");
-vector v_whiskers = basis_vector("whiskers");
-vector v_bark = basis_vector("bark");
+vector v_cat = embed("cat");
+vector v_dog = embed("dog");
+vector v_whiskers = embed("whiskers");
+vector v_bark = embed("bark");
 
 function vector dict_demo() {
     // Empty dict, add two entries, retrieve one.

@@ -9,8 +9,8 @@
 // AXIS_PROMISE_REJECTED (no host branch / no .item()). See
 // codegen_pytorch.py `def propagate`.
 
-vector cat = basis_vector("cat");
-vector dog = basis_vector("dog");
+vector cat = embed("cat");
+vector dog = embed("dog");
 
 function vector g(vector v) { return v; }
 

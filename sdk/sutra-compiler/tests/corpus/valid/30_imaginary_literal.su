@@ -46,6 +46,6 @@ function vector ImagThenReal() {
 // `i` as a local variable — the suffix rule does NOT consume `i`
 // when it stands alone, so the identifier binds normally.
 function vector IAsVariable() {
-    vector i = basis_vector("index");
+    vector i = embed("index");
     return i;
 }

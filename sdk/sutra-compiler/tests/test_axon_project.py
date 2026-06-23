@@ -142,9 +142,9 @@ def test_project_via_compiled_su_module() -> None:
     src = """
         function vector build_then_project() {
             Axon a;
-            a.add("alpha", basis_vector("x"));
-            a.add("beta",  basis_vector("y"));
-            a.add("gamma", basis_vector("z"));
+            a.add("alpha", embed("x"));
+            a.add("beta",  embed("y"));
+            a.add("gamma", embed("z"));
             return a;
         }
     """

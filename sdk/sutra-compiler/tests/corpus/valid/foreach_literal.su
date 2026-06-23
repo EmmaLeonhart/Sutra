@@ -1,10 +1,10 @@
 
-vector v_cat = basis_vector("cat");
-vector v_dog = basis_vector("dog");
-vector v_bird = basis_vector("bird");
+vector v_cat = embed("cat");
+vector v_dog = embed("dog");
+vector v_bird = embed("bird");
 
 function vector bundle_all() {
-    vector acc = basis_vector("zero");
+    vector acc = embed("zero");
     foreach (vector x in [v_cat, v_dog, v_bird]) {
         acc = bundle(acc, x);
     }

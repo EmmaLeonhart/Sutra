@@ -41,8 +41,8 @@ def runtime(tmp_path_factory) -> MultiProcessRuntime:
     producer.write_text(
         "function vector on_axon(vector input_axon) {\n"
         "    Axon a;\n"
-        "    a.add(\"animal\", basis_vector(\"dog\"));\n"
-        "    a.add(\"color\",  basis_vector(\"red\"));\n"
+        "    a.add(\"animal\", embed(\"dog\"));\n"
+        "    a.add(\"color\",  embed(\"red\"));\n"
         "    return a;\n"
         "}\n",
         encoding="utf-8",

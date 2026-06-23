@@ -71,17 +71,18 @@ _Resolution path CONFIRMED 2026-06-23: bare-call dispatch is `BUILTINS` → else
 `_VSA.<name>` → else user call. `make_real`/`make_truth`/`make_complex`/`embed` are all intrinsics, so
 deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonical form reachable._
 
-1. **`basis_vector` → `embed` — FINISH the repoint + remove the builtin.** User-facing surface DONE
-   2026-06-23: all `examples/*.su` (233) + `docs/` (20) repointed to `embed`, the false random-basis
-   comments in `nearest_phrase.su`/`classifier.su` fixed, thrml `_basis_atoms` taught to accept `embed`
-   (`EmbedExpr`), smoke test + thrml green, site builds. `_builtin_basis_vector` kept as a DEPRECATED thin
-   alias. REMAINING (this item): repoint `tests/corpus/` (28) + the inline test-string sites in
-   `sdk/sutra-compiler/tests/*.py` (~153 — sweep PY not just SU) + the `stdlib/*.su` doc-comments, then
-   **delete `_builtin_basis_vector` + its BUILTINS entry**, then run the FULL compiler suite + smoke +
-   corpus to prove identical. (`embed("x")` parses to `EmbedExpr`, collected for pre-fetch identically —
-   verified; the axon runtime uses `_VSA.embed` directly, not the surface alias, so it's unaffected.)
-   Subtree `demos/font` (156) + `external/Yantra` (19) repoint in their own pass — not this item.
-   Finding: `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
+1. **`basis_vector` → `embed` — subtree repoint, THEN delete the builtin.** All SDK-owned surface is now
+   DONE: `examples/*.su` (233) + `docs/` (20) [2026-06-23], `tests/corpus/` (28) + the inline test-string
+   sites in `sdk/sutra-compiler/tests/*.py` (~153) [2026-06-23, 233 affected tests green]. The ONLY
+   remaining call sites are the subtree: `demos/font` etc. (156) + `external/Yantra` (19). `demos/font` is
+   in demos-ci, so `_builtin_basis_vector` MUST stay (kept as a DEPRECATED thin alias) until these are
+   repointed — deleting it now breaks demos-ci. REMAINING: (a) repoint `demos/**/*.su` → `embed`, verify
+   `pytest demos/` (font.su codegen is ~400s, slow); (b) repoint `external/Yantra/**/*.su` → `embed`
+   (subtree — behaviour-identical); (c) THEN delete `_builtin_basis_vector` + its BUILTINS entry + the now-
+   dead `_is_basis_vector_literal_call` basis_vector branch in `simplify.py`, and consider renaming
+   `collect_basis_vector_strings` → `collect_embedded_strings` (internal, references the dead name); (d) run
+   the FULL compiler suite + `pytest demos/` + smoke to prove identical. Finding:
+   `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
 
 2. **`scalar` type → `number`** — already labelled DEPRECATED in-code (`lexer.py:280-286`). Add a
    `SUT####` deprecation diagnostic in the validator pointing at `number`; repoint the real type-position

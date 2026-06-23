@@ -42,7 +42,7 @@ def _compile(translate_fn, src: str) -> tuple[str, dict]:
     return py_src, namespace
 
 
-TRIVIAL_SRC = 'function vector main() { return basis_vector("x"); }\n'
+TRIVIAL_SRC = 'function vector main() { return embed("x"); }\n'
 
 
 class TestNoHostControlFlow(unittest.TestCase):

@@ -35,12 +35,12 @@ class TestBundleOfBindsFusion(unittest.TestCase):
 
     def test_three_bind_bundle_fuses(self):
         src = (
-            "vector r1 = basis_vector(\"r1\");\n"
-            "vector r2 = basis_vector(\"r2\");\n"
-            "vector r3 = basis_vector(\"r3\");\n"
-            "vector f1 = basis_vector(\"f1\");\n"
-            "vector f2 = basis_vector(\"f2\");\n"
-            "vector f3 = basis_vector(\"f3\");\n"
+            "vector r1 = embed(\"r1\");\n"
+            "vector r2 = embed(\"r2\");\n"
+            "vector r3 = embed(\"r3\");\n"
+            "vector f1 = embed(\"f1\");\n"
+            "vector f2 = embed(\"f2\");\n"
+            "vector f3 = embed(\"f3\");\n"
             "function vector main() {\n"
             "  return bundle(bind(r1, f1), bind(r2, f2), bind(r3, f3));\n"
             "}\n"
@@ -58,9 +58,9 @@ class TestBundleOfBindsFusion(unittest.TestCase):
         # bundle(bind(r, f), raw_vec) keeps the standard bundle emission
         # because not every arg is a bind call.
         src = (
-            "vector r = basis_vector(\"r\");\n"
-            "vector f = basis_vector(\"f\");\n"
-            "vector x = basis_vector(\"x\");\n"
+            "vector r = embed(\"r\");\n"
+            "vector f = embed(\"f\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return bundle(bind(r, f), x); }\n"
         )
         py = _compile(src)
@@ -73,8 +73,8 @@ class TestBundleOfBindsFusion(unittest.TestCase):
         # bundle(bind(r, f)) → bind(r, f) after simplify. Fusion path
         # shouldn't engage for a 1-arg bundle.
         src = (
-            "vector r = basis_vector(\"r\");\n"
-            "vector f = basis_vector(\"f\");\n"
+            "vector r = embed(\"r\");\n"
+            "vector f = embed(\"f\");\n"
             "function vector main() { return bundle(bind(r, f)); }\n"
         )
         py = _compile(src)
@@ -84,7 +84,7 @@ class TestBundleOfBindsFusion(unittest.TestCase):
     def test_runtime_defines_bundle_of_binds(self):
         # The runtime class must include the fused primitive so the
         # emitted call resolves. Check on any trivial program.
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn("def bundle_of_binds(self, *role_filler_pairs):", py)
         # And the einsum that makes it a single batched op.
@@ -97,10 +97,10 @@ class TestVectorizedArgmaxCosine(unittest.TestCase):
 
     def test_argmax_cosine_emits_vectorized_form(self):
         src = (
-            "vector a = basis_vector(\"a\");\n"
-            "vector b = basis_vector(\"b\");\n"
-            "vector c = basis_vector(\"c\");\n"
-            "vector q = basis_vector(\"q\");\n"
+            "vector a = embed(\"a\");\n"
+            "vector b = embed(\"b\");\n"
+            "vector c = embed(\"c\");\n"
+            "vector q = embed(\"q\");\n"
             "function vector main() {\n"
             "  return argmax_cosine(q, [a, b, c]);\n"
             "}\n"
@@ -115,7 +115,7 @@ class TestVectorizedArgmaxCosine(unittest.TestCase):
     def test_vector_map_lookup_vectorized_fallback(self):
         # Maps with vector keys get _vector_map_lookup; the cosine
         # fallback path must also be vectorized.
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn(
             "keys = _np.stack([_np.asarray(k, dtype=_np.float64) "
@@ -131,7 +131,7 @@ class TestZeroVectorThroughSimplifier(unittest.TestCase):
 
     def test_displacement_of_self_emits_zero_vector(self):
         src = (
-            "vector x = basis_vector(\"x\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return displacement(x, x); }\n"
         )
         py = _compile(src)
@@ -143,8 +143,8 @@ class TestZeroVectorThroughSimplifier(unittest.TestCase):
         # displacement(x, x) → zero_vector(); bundle(a, zero) → a.
         # The final emission is just `a`, with no surviving zero.
         src = (
-            "vector a = basis_vector(\"a\");\n"
-            "vector x = basis_vector(\"x\");\n"
+            "vector a = embed(\"a\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() {"
             " return bundle(a, displacement(x, x)); }\n"
         )
@@ -156,7 +156,7 @@ class TestZeroVectorThroughSimplifier(unittest.TestCase):
         )
 
     def test_runtime_defines_zero_vector(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn("def zero_vector(self):", py)
 
@@ -167,27 +167,27 @@ class TestEmbeddingDiskCache(unittest.TestCase):
     (model, dim) filename key."""
 
     def test_init_loads_disk_cache(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn("self._load_disk_cache()", py)
         self.assertIn("def _load_disk_cache(self):", py)
 
     def test_cache_path_uses_model_dim_and_backend(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # Backend-aware: in-process (transformers) and ollama realize the same
         # model with different geometry, so the cache filename carries the backend.
         self.assertIn("f'{_safe_model}-d{self.dim}-{_emb_backend}.npz'", py)
 
     def test_embed_writes_back_to_disk(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # Both the single and batched embed paths persist new vectors.
         # Count: at least one inside embed, one inside embed_batch.
         self.assertGreaterEqual(py.count("self._write_disk_cache()"), 2)
 
     def test_write_is_atomic(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # Tempfile + os.replace pattern: a partial write can't corrupt
         # the cache.
@@ -195,14 +195,14 @@ class TestEmbeddingDiskCache(unittest.TestCase):
         self.assertIn("_os.replace(tmp, self._cache_path)", py)
 
     def test_cache_load_tolerates_missing_file(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn(
             "if not _os.path.exists(self._cache_path):", py
         )
 
     def test_cache_load_tolerates_corrupt_file(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # Corrupt cache must not crash module init.
         self.assertIn("except Exception:", py)
@@ -217,7 +217,7 @@ class TestVectorAccessors(unittest.TestCase):
     its retirement; see CLAUDE.md §"NO introspection"."""
 
     def test_runtime_defines_accessors(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn("def component(self, v, i):", py)
         self.assertIn("def semantic(self, v, i):", py)
@@ -246,7 +246,7 @@ class TestCanonicalAxes(unittest.TestCase):
         from sutra_compiler.codegen_base import CodegenNotSupported
         for acc in ("real", "imag", "truth", "component", "synthetic"):
             src = (
-                "vector x = basis_vector(\"x\");\n"
+                "vector x = embed(\"x\");\n"
                 f"function fuzzy main() {{ return x.{acc}(); }}\n"
             )
             with self.assertRaises(CodegenNotSupported):
@@ -274,7 +274,7 @@ class TestCanonicalAxes(unittest.TestCase):
         self.assertIn("_VSA.make_truth(0.9)", py)
 
     def test_runtime_defines_canonical_axis_constants(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # The allocation is named at class scope so the layout is legible.
         self.assertIn("AXIS_REAL = 0", py)
@@ -282,7 +282,7 @@ class TestCanonicalAxes(unittest.TestCase):
         self.assertIn("AXIS_TRUTH = 2", py)
 
     def test_runtime_defines_constructors_not_readout_accessors(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # Constructors stay (they build vectors, no readout).
         self.assertIn("def make_real(self, x):", py)
@@ -305,7 +305,7 @@ class TestExtendedStateVector(unittest.TestCase):
     """
 
     def test_vsa_constructed_with_both_subspaces(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # The instantiation site names both subspaces explicitly — so a
         # reader of the generated code can see the split without reading
@@ -314,7 +314,7 @@ class TestExtendedStateVector(unittest.TestCase):
         self.assertIn("synthetic_dim=100", py)
 
     def test_runtime_class_carries_both_dims(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # _NumpyVSA stores semantic_dim and synthetic_dim separately; the
         # total dim is their sum.
@@ -323,7 +323,7 @@ class TestExtendedStateVector(unittest.TestCase):
         self.assertIn("self.dim = semantic_dim + synthetic_dim", py)
 
     def test_embed_emits_synthetic_zero_block(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # The critical invariant: embed() appends `_np.zeros(self.synthetic_dim)`
         # to the semantic block, so every embedded vector has zeros in its
@@ -333,7 +333,7 @@ class TestExtendedStateVector(unittest.TestCase):
         )
 
     def test_rotation_is_block_diagonal(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # _rotation_for draws a Haar rotation over the semantic block and
         # places it inside an identity of the full dim. Bind/unbind therefore
@@ -608,7 +608,7 @@ class TestClassFieldDeclarations(unittest.TestCase):
             "  field int age;\n"
             "}\n"
             "function int main() {\n"
-            "  Cat c = basis_vector(\"cat\");\n"
+            "  Cat c = embed(\"cat\");\n"
             "  return c.age;\n"
             "}\n"
         )
@@ -625,7 +625,7 @@ class TestClassFieldDeclarations(unittest.TestCase):
             "  field int age;\n"
             "}\n"
             "function int main() {\n"
-            "  Cat c = basis_vector(\"cat\");\n"
+            "  Cat c = embed(\"cat\");\n"
             "  c.age = 7;\n"
             "  return c.age;\n"
             "}\n"
@@ -642,7 +642,7 @@ class TestClassFieldDeclarations(unittest.TestCase):
             "  field int paws;\n"
             "}\n"
             "function int main() {\n"
-            "  Cat c = basis_vector(\"cat\");\n"
+            "  Cat c = embed(\"cat\");\n"
             "  c.age = 5;\n"
             "  c.paws = 4;\n"
             "  return c.age;\n"
@@ -665,7 +665,7 @@ class TestClassFieldDeclarations(unittest.TestCase):
             "  field int age;\n"
             "}\n"
             "function int main() {\n"
-            "  Cat c = basis_vector(\"cat\");\n"
+            "  Cat c = embed(\"cat\");\n"
             "  return c.age;\n"
             "}\n"
         )
@@ -1256,9 +1256,9 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
 
     def test_prunes_keys_no_callee_reads(self):
         src = (
-            'vector v_cat = basis_vector("cat");\n'
-            'vector v_dog = basis_vector("dog");\n'
-            'vector v_bird = basis_vector("bird");\n'
+            'vector v_cat = embed("cat");\n'
+            'vector v_dog = embed("dog");\n'
+            'vector v_bird = embed("bird");\n'
             'function vector getCat(Axon a) { return a.item("cat"); }\n'
             'function vector build() {\n'
             '  Axon x;\n'
@@ -1277,8 +1277,8 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
 
     def test_transitive_demand_through_two_calls(self):
         src = (
-            'vector v1 = basis_vector("v1");\n'
-            'vector v2 = basis_vector("v2");\n'
+            'vector v1 = embed("v1");\n'
+            'vector v2 = embed("v2");\n'
             'function vector leafC(Axon c) { return c.item("k1"); }\n'
             'function vector midB(Axon b) { return leafC(b); }\n'
             'function vector build() {\n'
@@ -1294,10 +1294,10 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
 
     def test_multi_param_pruned_independently(self):
         src = (
-            'vector vx = basis_vector("vx");\n'
-            'vector vz = basis_vector("vz");\n'
-            'vector vy = basis_vector("vy");\n'
-            'vector vw = basis_vector("vw");\n'
+            'vector vx = embed("vx");\n'
+            'vector vz = embed("vz");\n'
+            'vector vy = embed("vy");\n'
+            'vector vw = embed("vw");\n'
             'function vector pick(Axon p, Axon q) {\n'
             '  vector r = p.item("x");\n'
             '  return q.item("y");\n'
@@ -1322,8 +1322,8 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
 
     def test_dynamic_key_in_callee_keeps_all(self):
         src = (
-            'vector vp = basis_vector("vp");\n'
-            'vector vr = basis_vector("vr");\n'
+            'vector vp = embed("vp");\n'
+            'vector vr = embed("vr");\n'
             'function vector dyn(Axon a, string k) {\n'
             '  return a.item(k);\n'
             '}\n'
@@ -1342,7 +1342,7 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
 
     def test_callee_returns_bare_axon_keeps_all(self):
         src = (
-            'vector vk = basis_vector("vk");\n'
+            'vector vk = embed("vk");\n'
             'function vector passthru(Axon a) { return a; }\n'
             'function vector build4() {\n'
             '  Axon x;\n'
@@ -1365,8 +1365,8 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
         # across a separately-compiled-program boundary is NOT solved
         # by this pass.
         src = (
-            'vector vk1 = basis_vector("vk1");\n'
-            'vector vk2 = basis_vector("vk2");\n'
+            'vector vk1 = embed("vk1");\n'
+            'vector vk2 = embed("vk2");\n'
             'function vector recv(vector state) {\n'
             '  return axon_item(state, "k1");\n'
             '}\n'
@@ -1386,8 +1386,8 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
         # returns it bare must keep every add (the pre-existing
         # conservative behaviour the new pass must not weaken).
         src = (
-            'vector vs = basis_vector("vs");\n'
-            'vector vo = basis_vector("vo");\n'
+            'vector vs = embed("vs");\n'
+            'vector vo = embed("vo");\n'
             'function vector mk() {\n'
             '  Axon a;\n'
             '  a.add("s", vs);\n'

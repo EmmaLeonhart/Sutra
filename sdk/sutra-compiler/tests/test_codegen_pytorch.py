@@ -30,7 +30,7 @@ class TestPyTorchPrelude(unittest.TestCase):
     canonical-axis allocation as the numpy backend."""
 
     def test_imports_torch_not_numpy(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn("import torch as _torch", py)
         # numpy only appears as a bridge inside _rotation_for and
@@ -45,7 +45,7 @@ class TestPyTorchPrelude(unittest.TestCase):
         self.assertIn("import numpy as _np_bridge", py)
 
     def test_picks_cuda_when_available(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn(
             "_DEVICE = _torch.device('cuda' if _torch.cuda.is_available() else 'cpu')",
@@ -54,7 +54,7 @@ class TestPyTorchPrelude(unittest.TestCase):
         self.assertIn("_DTYPE = _torch.float32", py)
 
     def test_runtime_class_is_torch_vsa(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn("class _TorchVSA:", py)
         self.assertIn("_VSA = _TorchVSA(", py)
@@ -62,7 +62,7 @@ class TestPyTorchPrelude(unittest.TestCase):
         self.assertIn("synthetic_dim=100", py)
 
     def test_cache_uses_pt_extension(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # Torch cache uses .pt so it doesn't collide with the numpy
         # backend's .npz. Keyed by (model, total dim, embedding backend) —
@@ -70,7 +70,7 @@ class TestPyTorchPrelude(unittest.TestCase):
         self.assertIn("f'{_safe_model}-d{self.dim}-{_emb_backend}.pt'", py)
 
     def test_rotation_is_block_diagonal(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         # Haar draw on semantic block (via numpy for reproducible Haar-
         # uniformity), identity fill of full dim, Q_sem in top-left.
@@ -86,10 +86,10 @@ class TestPyTorchFusedOps(unittest.TestCase):
 
     def test_bundle_of_binds_fuses_to_torch_einsum(self):
         src = (
-            "vector r1 = basis_vector(\"r1\");\n"
-            "vector r2 = basis_vector(\"r2\");\n"
-            "vector f1 = basis_vector(\"f1\");\n"
-            "vector f2 = basis_vector(\"f2\");\n"
+            "vector r1 = embed(\"r1\");\n"
+            "vector r2 = embed(\"r2\");\n"
+            "vector f1 = embed(\"f1\");\n"
+            "vector f2 = embed(\"f2\");\n"
             "function vector main() {\n"
             "  return bundle(bind(r1, f1), bind(r2, f2));\n"
             "}\n"
@@ -100,9 +100,9 @@ class TestPyTorchFusedOps(unittest.TestCase):
 
     def test_argmax_cosine_is_torch_matmul(self):
         src = (
-            "vector a = basis_vector(\"a\");\n"
-            "vector b = basis_vector(\"b\");\n"
-            "vector q = basis_vector(\"q\");\n"
+            "vector a = embed(\"a\");\n"
+            "vector b = embed(\"b\");\n"
+            "vector q = embed(\"q\");\n"
             "function vector main() {\n"
             "  return argmax_cosine(q, [a, b]);\n"
             "}\n"
@@ -131,7 +131,7 @@ class TestPyTorchExtendedState(unittest.TestCase):
     block-diagonal rotation."""
 
     def test_embed_appends_synthetic_zero_block(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn(
             "syn = _torch.zeros(self.synthetic_dim, dtype=self.dtype, device=self.device)",
@@ -140,7 +140,7 @@ class TestPyTorchExtendedState(unittest.TestCase):
         self.assertIn("v = _torch.cat([v, syn])", py)
 
     def test_canonical_axes_defined(self):
-        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        src = "function vector main() { return embed(\"x\"); }\n"
         py = _compile(src)
         self.assertIn("AXIS_REAL = 0", py)
         self.assertIn("AXIS_IMAG = 1", py)
@@ -160,7 +160,7 @@ class TestPyTorchVectorAccessors(unittest.TestCase):
     readout `real` accessor is now gone too. See CLAUDE.md §"NO introspection"."""
 
     def test_removed_accessors_are_gone(self):
-        py = _compile("function vector main() { return basis_vector(\"x\"); }\n")
+        py = _compile("function vector main() { return embed(\"x\"); }\n")
         self.assertNotIn("def component(self, v, i):", py)
         self.assertNotIn("def imag(self, v):", py)
         self.assertNotIn("def truth(self, v):", py)
@@ -170,7 +170,7 @@ class TestPyTorchVectorAccessors(unittest.TestCase):
     def test_real_host_readout_accessor_is_removed(self):
         # The host-readout `real` (float(v[...].item())) is gone; `realvec` (the
         # substrate-pure real-axis projection) is its on-substrate replacement.
-        py = _compile("function vector main() { return basis_vector(\"x\"); }\n")
+        py = _compile("function vector main() { return embed(\"x\"); }\n")
         self.assertNotIn("def real(self, v):", py)
         self.assertIn("def realvec(self, v):", py)
 

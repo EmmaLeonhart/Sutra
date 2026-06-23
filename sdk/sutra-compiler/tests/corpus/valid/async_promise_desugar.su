@@ -10,7 +10,7 @@
 // async_promise_basic.su fixture, which the codegen rejects with a
 // promises.md pointer.
 
-vector cat = basis_vector("cat");
+vector cat = embed("cat");
 
 // Pure-return async fn: `return e;` becomes `return Promise.resolve(e);`.
 async function Promise<vector> immediate() {
