@@ -163,6 +163,20 @@ class TestListOps(unittest.TestCase):
         out = ns["do_filter"]()
         self.assertEqual(_read_array(ns, out), [2.0, 3.0])
 
+    def test_examples_list_ops_su_runs_end_to_end(self):
+        # The user-facing example (examples/list_ops.su) compiles + runs and its
+        # three functions decode to the documented results. This is the example
+        # the docs/list-operations.md page walks through; keep it honest.
+        import os
+
+        here = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(here, "..", "..", "..", "examples", "list_ops.su")
+        with open(path, encoding="utf-8") as f:
+            ns = _build(f.read())
+        self.assertEqual(_read_array(ns, ns["concat_then_double"]()), [2.0, 4.0, 6.0, 8.0])
+        self.assertEqual(_read_array(ns, ns["map_with_arrow"]()), [10.0, 20.0, 30.0])
+        self.assertEqual(_read_array(ns, ns["keep_big"]()), [2.0, 3.0])
+
 
 if __name__ == "__main__":
     unittest.main()
