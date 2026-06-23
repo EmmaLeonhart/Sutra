@@ -3,7 +3,7 @@
 // `unknown` is the neutral point on the truth axis — 0.0 between
 // true (+1) and false (-1). Parallels `true` and `false` as a
 // keyword-literal, but names the neutral third value rather than
-// a binary pole. `unk` is a short alias.
+// a binary pole.
 //
 // Lowers to `_VSA.make_truth(0.0)` directly, or to
 // `_VSA.make_trit(0.0)` inside a trit-typed declaration (via
@@ -23,8 +23,8 @@ function fuzzy FuzzyNeutral() {
     return f;
 }
 
-function trit ShortAlias() {
-    trit u = unk;
+function trit AlsoNeutral() {
+    trit u = unknown;
     return u;
 }
 
