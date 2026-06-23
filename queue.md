@@ -67,26 +67,17 @@ The foreign-ecosystem carve-out (`make_char`, `JavaScriptObject`+overrides, TS c
 `AXIS_CHAR_FLAG`, `array_length`/`array_get`, substrate-pure `real(v)`/`imag(v)`) was considered and is
 KEPT — do not touch it.
 
-0. **PREREQ — confirm the call-resolution path before any builtin deletion.** `make_real` / `make_truth` /
-   `make_complex` are the canonical forms but are NOT in the `BUILTINS` table, yet `make_real(...)` works
-   in `.su` (verified via the REPL). Find the generic dispatch (likely a `_VSA.<name>` passthrough for
-   unknown calls — `codegen_base.py` call-translation, ~line 3683 where `if name in BUILTINS`). Confirm
-   that deleting a `*_number`/`*_value` BUILTINS *alias* leaves the canonical `make_*` reachable. Do NOT
-   delete any builtin until this is confirmed (CLAUDE.md: don't implement what you don't 100% understand).
+_Resolution path CONFIRMED 2026-06-23: bare-call dispatch is `BUILTINS` → else `intrinsic_names()` →
+`_VSA.<name>` → else user call. `make_real`/`make_truth`/`make_complex`/`embed` are all intrinsics, so
+deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonical form reachable._
 
-1. **Delete `truth_value` + `complex_number`** — pure aliases, **0 surface call sites** (verified: 0 in
-   `*.su`, 0 in docs). Remove the `BUILTINS` entries (`codegen_base.py:462-463`) and the
-   `_builtin_complex_number` / `_builtin_truth_value` defs (`codegen_base.py:256-266`). Canonical
-   `make_complex`/`make_truth` stay reachable (complex/fuzzy literals already emit them). Verify: codegen +
-   transcendentals tests + a corpus compile sweep. Smallest safe win — do first after #0.
-
-2. **`real_number` → `make_real`** — pure alias (`codegen_base.py:248-253,461`). **6 call sites**, all in
+1. **`real_number` → `make_real`** — pure alias (`codegen_base.py`). **6 call sites**, all in
    `demos/calc/{parse_int2,switch}.su` + `external/Yantra/{apps/calc/parse_int2,apps/calc/switch,
    kernel/services/task_a,task_b}.su` (the `.claude/worktrees/*` copies are other agents' worktrees —
    ignore). Repoint to `make_real` (behaviour identical → compiles + runs unchanged), then delete the
    builtin. Verify the demos/calc path (demos-ci).
 
-3. **`basis_vector` → `embed`** (FLAGSHIP, decided Emma 2026-06-23; ~280 sites). Repoint SDK-owned `.su`
+2. **`basis_vector` → `embed`** (FLAGSHIP, decided Emma 2026-06-23; ~280 sites). Repoint SDK-owned `.su`
    (examples, `tests/corpus/`, stdlib) + `docs/` to `embed` — identical lowering, so outputs/tests
    unchanged. Then fix the now-false "random basis / pairwise cosine ~0 / concentration of measure"
    comments in `examples/nearest_phrase.su` + `examples/classifier.su` (measured ~0.47, correlated
@@ -94,12 +85,12 @@ KEPT — do not touch it.
    `external/Yantra` repoint in their own pass — they're subtree/demo). Big mechanical change: run the
    FULL smoke test + corpus suite after. Finding: `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
 
-4. **`scalar` type → `number`** — already labelled DEPRECATED in-code (`lexer.py:280-286`). Add a
+3. **`scalar` type → `number`** — already labelled DEPRECATED in-code (`lexer.py:280-286`). Add a
    `SUT####` deprecation diagnostic in the validator pointing at `number`; repoint the real type-position
    sites (tighten the grep past the noisy substring — concentrated in `tests/corpus/` +
    stdlib); then drop the keyword. Lower urgency (warning path is safe).
 
-5. **Keyword synonyms `unk` → `unknown` (1 site) and `iff` → `xnor` (2 sites).** `unk`
+4. **Keyword synonyms `unk` → `unknown` (1 site) and `iff` → `xnor` (2 sites).** `unk`
    (`tests/corpus/valid/29_unknown_literal.su:27`) and `iff` (`examples/logical_connectives.su:26,31`)
    are internal redundancy (per Emma's principle, retire harmless-but-present convenience spellings).
    Repoint + remove the lexer entries (`lexer.py:248-249,332`). Trivial; `iff` is standard math notation

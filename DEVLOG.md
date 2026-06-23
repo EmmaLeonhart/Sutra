@@ -4,6 +4,19 @@
 
 `experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist still held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch sentence-transformers einops`) and exercising the new 2026-06-22 in-process backend (`SUTRA_EMBED_BACKEND=transformers` to override the suite's ollama pin in `tests/conftest.py`, since the daemon isn't installed here) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live `nomic-ai/nomic-embed-text-v1.5` in-process embeddings; the 2 semantic-preservation legs (`test_await_semantics_preserved_{torch,numpy}`) decoded `main()` ≈ 3.0 to 3 places, so the spec-2 algebraic reduction (`await_value(p) → self.value(p)`) holds end-to-end under the new default backend too. No `for _ in range(100)` / `if self.isPending` reappeared in `codegen_pytorch.py`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; the only commit since the 2026-06-22 audit is `da92a4f` (in-process embed default), which touches the `embed_texts` host boundary, not any op definition. 16 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question; no spec/todo/findings authoritative resolution surfaced for any other dossier since 2026-06-22. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
 
+## 2026-06-23: alias batch (3) — call-resolution confirmed; deleted `truth_value` + `complex_number`
+
+First execution items of the alias-deprecation batch. **Prereq (item 0):** confirmed the bare-call
+dispatch in `codegen_base.py` — `BUILTINS` → else `intrinsic_names()` → `_VSA.<name>` → else user call.
+`make_real`/`make_truth`/`make_complex`/`embed` are all intrinsics (`stdlib_loader.intrinsic_names()`),
+so they resolve via the `_VSA` passthrough independent of `BUILTINS`; deleting a `*_number`/`*_value`/
+`basis_vector` alias leaves the canonical form reachable. **Item 1:** removed the `truth_value` +
+`complex_number` BUILTINS entries + `_builtin_*` defs (pure aliases). The audit's "0 sites" was `.su`-only
+— there WERE inline test-string call sites (`test_transcendentals.py` constructed complex numbers via
+`complex_number`; `test_codegen.py` had alias-lowering tests). Repointed all to the canonical
+`make_complex`/`make_truth` (still lower to `_VSA.make_*`, coverage preserved — not weakened). 99
+passed in test_codegen + test_transcendentals. `real_number` kept (item 2, has 6 demo/Yantra sites).
+
 ## 2026-06-23: usability loop (batch 2) — tutorial 04 Ollama fix + stale-count sweep + onboarding polish
 
 Three audit items in one doc-accuracy commit. (1) `docs/tutorials/04-from-typescript.md` was the lone page

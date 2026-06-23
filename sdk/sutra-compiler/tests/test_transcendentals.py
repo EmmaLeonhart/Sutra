@@ -247,7 +247,7 @@ class TestComplexArgumentCosine(unittest.TestCase):
         # one-hot, no host readout) are the replacement.
         src = (
             f"function scalar f() {{ return "
-            f"{part}(Math.ccos(complex_number({a!r}, {b!r}))); }}\n"
+            f"{part}(Math.ccos(make_complex({a!r}, {b!r}))); }}\n"
         )
         return _compile_and_run(torch_translate, src, "f")
 
@@ -297,7 +297,7 @@ class TestComplexArgumentSine(unittest.TestCase):
         # functions replace the removed `.real()`/`.imag()` method accessors.
         src = (
             f"function scalar f() {{ return "
-            f"{part}(Math.csin(complex_number({a!r}, {b!r}))); }}\n"
+            f"{part}(Math.csin(make_complex({a!r}, {b!r}))); }}\n"
         )
         return _compile_and_run(torch_translate, src, "f")
 
