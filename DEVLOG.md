@@ -4,6 +4,26 @@
 
 `experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist still held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch sentence-transformers einops`) and exercising the new 2026-06-22 in-process backend (`SUTRA_EMBED_BACKEND=transformers` to override the suite's ollama pin in `tests/conftest.py`, since the daemon isn't installed here) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live `nomic-ai/nomic-embed-text-v1.5` in-process embeddings; the 2 semantic-preservation legs (`test_await_semantics_preserved_{torch,numpy}`) decoded `main()` ≈ 3.0 to 3 places, so the spec-2 algebraic reduction (`await_value(p) → self.value(p)`) holds end-to-end under the new default backend too. No `for _ in range(100)` / `if self.isPending` reappeared in `codegen_pytorch.py`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; the only commit since the 2026-06-22 audit is `da92a4f` (in-process embed default), which touches the `embed_texts` host boundary, not any op definition. 16 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question; no spec/todo/findings authoritative resolution surfaced for any other dossier since 2026-06-22. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
 
+## 2026-06-23: usability loop (batch 2) — fix tutorial 01 + a threaded `basis_vector` inaccuracy
+
+Pinned-tail audit refilled the queue; first refill item was tutorial 01, which taught
+`function vector Hello()` / `function.Hello()` / top-level `function.Main();` / `embed("hello")` — it
+*validates* but matches no real example and claimed "no model yet" while using `embed`. Rewrote
+`docs/tutorials/01-hello-sutra.md` around the actual `examples/hello_world.su` (lowercase `main`/`say`,
+codebook `map<vector,string>`, `argmax_cosine`, accurate model story: validate with no model, run with
+`[embed]`).
+
+Building it surfaced a real spec-vs-impl bug I had to chase down: **`basis_vector(s)` lowers to
+`_VSA.embed(s)`** — it is the SAME op as `embed`, not a random/orthogonal basis. Measured pairwise cosine
+of demo atoms ≈ **0.47** (not ~0), so several "random basis / pairwise cosine ~0 / concentration of
+measure" claims are measurably false — including ones I wrote THIS session (tutorial 05's basis_vector-vs-
+embed contrast; the tutorials-index "01–03 need no model" line). Corrected those doc passages to the true
+distinction (earlier demos match near-identical strings; the FAQ matches paraphrases). Logged the
+measurement + the two-way design decision (alias vs. add a real random primitive) in
+`planning/findings/2026-06-23-basis-vector-is-embed-not-random.md` and flagged it in queue.md as
+**NEEDS EMMA — do not auto-implement** (language semantics). Example-file comments left untouched pending
+her call.
+
 ## 2026-06-23: usability loop — `sutrac repl` interactive evaluator
 
 Last concrete item of the first usability batch. `sutra_compiler/repl.py` + a `repl` CLI subcommand

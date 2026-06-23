@@ -81,9 +81,9 @@ The query string `"I forgot my login and need to change it"` never appears in th
 
 ## Why this is the interesting case
 
-Compare it to the earlier tutorials. Tutorials 01–03 use `basis_vector("name")` — *random* atoms that are deterministic per name but carry no meaning, so `basis_vector("cat")` is no closer to `basis_vector("kitten")` than to `basis_vector("airplane")`. That is perfect for demonstrating bind/unbind mechanics without depending on a model.
+Compare it to the earlier retrieval tutorials. There, the query you matched was a stored item itself or a lightly-noised copy of one — `hello_world.su` identifies the greeting against a codebook that *contains* that exact greeting. The match is impressive plumbing, but the query and the answer are nearly the same string.
 
-Here we use `embed(...)` instead, and that changes everything: the geometry now *encodes meaning*, so nearness means semantic similarity. That is what lets a paraphrase match. Swapping `basis_vector` for `embed` is the step from "symbolic plumbing" to "understands what the user meant."
+Here the query shares almost no words with the question it matches — "I forgot my login and need to change it" against "how do I reset my password." It still lands right because nearness in the embedding space is *semantic* distance: the model places paraphrases close together even when their words differ. (`basis_vector` and `embed` are the same operation — both resolve a string to its point in that space; the interesting part is not which call you use, it is that you are now matching genuinely different wordings rather than copies.) That generalization to unseen phrasings is the step from "retrieve what I stored" to "understand what the user meant."
 
 ## Extend it
 
