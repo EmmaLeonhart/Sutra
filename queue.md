@@ -89,11 +89,12 @@ deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonic
    sites (tighten the grep past the noisy substring — concentrated in `tests/corpus/` +
    stdlib); then drop the keyword. Lower urgency (warning path is safe).
 
-3. **Keyword synonyms `unk` → `unknown` (1 site) and `iff` → `xnor` (2 sites).** `unk`
-   (`tests/corpus/valid/29_unknown_literal.su:27`) and `iff` (`examples/logical_connectives.su:26,31`)
-   are internal redundancy (per Emma's principle, retire harmless-but-present convenience spellings).
-   Repoint + remove the lexer entries (`lexer.py:248-249,332`). Trivial; `iff` is standard math notation
-   so confirm with Emma if she wants to keep it as the one intentional exception.
+3. **Keyword synonyms.** `unk` → `unknown` DONE 2026-06-23 (1 site repointed, lexer entry removed, `unk`
+   now lexes as IDENT, corpus green). **`iff` → ⚠ NEEDS EMMA:** it's a `xnor` alias BUT it's standard
+   math notation (if-and-only-if) AND actively demonstrated in `examples/logical_connectives.su` (the
+   `iff_keyword` function showcases it as a connective spelling). Unlike `unk`, retiring it removes a
+   documented feature. Keep `iff` as the one intentional exception, or retire it (repoint the 2 example
+   sites to `xnor`, drop the `lexer.py:332` entry)? Emma's call — left untouched pending it.
 
 ---
 

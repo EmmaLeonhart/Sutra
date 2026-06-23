@@ -243,10 +243,10 @@ KEYWORDS = {
     "false": TokenKind.FALSE,
     # `unknown` — the neutral point on the truth axis (0.0 between
     # true and false). The first-class three-valued value, and a
-    # readability win over `trit t = 0`. `unk` is a short alias
-    # that gets the same token — both forms are fine to write.
+    # readability win over `trit t = 0`. (The `unk` short-alias was
+    # removed 2026-06-23 — one canonical spelling, CLAUDE.md § "Deprecate
+    # aliases aggressively".)
     "unknown": TokenKind.KW_UNKNOWN,
-    "unk": TokenKind.KW_UNKNOWN,
     # `wait` — explicit deferred-initializer marker. Only legal in a
     # var-decl initializer position (`int i = wait;`). Tells the
     # compiler "I'm declaring this name now, an assignment will
