@@ -364,6 +364,35 @@ def run_sequence() -> bool:
     return correct == total
 
 
+def run_semantic_faq() -> bool:
+    path = os.path.join(HERE, "semantic_faq.su")
+    mod = compile_to_module(path)
+    # Each query is a PARAPHRASE of one canned question — different words, same
+    # meaning. Matching is semantic (argmax_cosine over embedded questions), so
+    # the paraphrase still lands on the right answer. Verified to hold under BOTH
+    # the in-process and Ollama substrates (different geometry, same matches).
+    tests = [
+        ("forgot login", mod.ask_password, "Go to Settings > Security > Reset Password."),
+        ("money back",   mod.ask_refund,   "Refunds are issued within 5 business days from your Orders page."),
+        ("when open",    mod.ask_hours,    "We are open 9am to 6pm, Monday through Friday."),
+        ("package shipped", mod.ask_track, "Track your order under Orders > Track Shipment."),
+        ("stop membership", mod.ask_cancel, "Cancel anytime under Settings > Subscription > Cancel."),
+    ]
+    print("=" * 72)
+    print("Example 10: semantic_faq.su (paraphrased query -> right answer by meaning)")
+    print("=" * 72)
+    total = correct = 0
+    for lbl, fn, exp in tests:
+        got = fn()
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  ask[{lbl:<15}] {mark}  -> {got!r}")
+        total += 1
+        correct += got == exp
+    print()
+    print(f"{correct}/{total} paraphrased questions matched the right answer")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -386,13 +415,15 @@ def main() -> int:
     print()
     ok9 = run_sequence()
     print()
-    # Examples 10-12 (loop_rotation.su, counter_loop.su, concept_search.su)
+    ok10 = run_semantic_faq()
+    print()
+    # Earlier examples 10-12 (loop_rotation.su, counter_loop.su, concept_search.su)
     # used the deprecated `loop (cond)` eigenrotation form and were removed
     # in master @ 29733a4. Loop coverage is exercised by the function-decl
     # form via `do_while_adder.su` and the test_loop_function_decl.py
     # suite (23 tests, all green).
     print("=" * 72)
-    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9]):
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9, ok10]):
         print("PASS")
         return 0
     print("FAIL")
