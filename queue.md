@@ -44,8 +44,33 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
-_The concrete items drained 2026-06-23 (first-run UX, package-build verify, semantic-FAQ example +
-tutorial 05, list-ops discoverability, `sutrac repl`). REFILL via the PINNED TAIL audit below._
+_Batch 1 drained 2026-06-23 (first-run UX, package-build verify, semantic-FAQ example + tutorial 05,
+list-ops discoverability, `sutrac repl`). Batch 2 below is the refill from the PINNED TAIL audit
+(2026-06-23): a newcomer-perspective readability sweep of the docs/examples/onboarding surface._
+
+1. **Fix tutorial 01 — it teaches syntax that compiles to nothing real.** `docs/tutorials/01-hello-sutra.md`
+   teaches `function vector Hello()`, the `function.Hello()` call prefix, capitalized `Main`, a top-level
+   `function.Main();`, and `embed("hello")` — while claiming "you did not run it on a real embedding model
+   yet." The REAL `examples/hello_world.su` uses lowercase `function string main()`/`say()`, NO `function.`
+   prefix, no top-level call, and `basis_vector(...)` (random atom, genuinely NO model). This is the FIRST
+   page a newcomer reads. Rewrite it to match `hello_world.su` exactly; **VERIFY the taught program
+   compiles** (`sutrac <file>`); make the no-model claim true by using `basis_vector`. HIGH.
+
+2. **Fix tutorial 04's Ollama contradiction.** `docs/tutorials/04-from-typescript.md:18-22` only mentions
+   the `runtime` extra and says programs embedding text "additionally need a local Ollama server" — directly
+   contradicting README, `docs/index.md`, `tutorials/index.md`, and tutorial 05, which all say the model
+   loads in-process via `[embed]`, no daemon. Align tutorial 04's prerequisites + that line to the
+   in-process story. HIGH.
+
+3. **Refresh stale example counts + listings.** The smoke test now runs 12 examples (…7b, …, semantic_faq
+   = Example 10). Stale: `README.md` ("11 of them" + table missing `semantic_faq`), `docs/demos.md` ("Ten"
+   + missing `content_addressed_read.su` AND `semantic_faq.su` rows + "smoke-tested ten" prose),
+   `docs/what-is-sutra.md` ("the ten programs"), `scripts/build_site.py` homepage Tutorials blurb (omits
+   TypeScript + semantic-FAQ tutorials). Update all to the true count/list; verify the site builds. MEDIUM.
+
+4. **Onboarding polish.** `README.md` "Get started" never states the Python version (it's 3.11+, per
+   pyproject `requires-python`); add it above the pip block. Cross-link `docs/list-operations.md` from the
+   tutorials index so lists are discoverable. LOW.
 
 ---
 
