@@ -39,11 +39,69 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-_Nothing active right now._ Recent work — numbers-on-substrate + its scalar-position fixes, perf/fusion,
-multi-process, FV surface + measurement-claim gates, await core, the NeurIPS-frozen-layer removal, the
-email-dedup, and the paper Background→Preliminaries refactor (after Related Work, with Kleene grounding +
-the Shaw et al. citation) — is all shipped and lives in `DEVLOG.md`, `git log`, and `planning/findings/`.
-When starting fresh, pull the next genuinely-unblocked item from `todo.md`.
+**Theme (Emma 2026-06-22/23): USABILITY.** Make Sutra easy for an outside person to install, run,
+and learn. The backlog elsewhere is all substrate-correctness; none of it is usability. The
+in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
+delete each on completion + append to `DEVLOG.md` in the same commit.
+
+1. **First-run embedding UX.** A fresh `pip install sutra-dev[runtime,embed]` user's first run silently
+   downloads ~550 MB (the in-process model) and looks hung. Emit a one-time stderr message when the
+   in-process model is loading/downloading (`sutra_compiler/embedding.py`), and make the codegen's
+   "embed needs a model" errors mention `SUTRA_EMBED_BACKEND` + the `embed` extra. Verify: provider test
+   still green; emit a message on cold load, none on warm. Bounded.
+
+2. **Verify the package builds + installs cleanly.** Build the `sutra-dev` wheel/sdist and confirm the
+   new `embed` extra resolves and the metadata is correct (`python -m build`; inspect wheel METADATA for
+   the `embed` extra). Catch packaging breakage before a PyPI user does. Bounded.
+
+3. **A real (non-toy) worked example + tutorial 05, in-process, no Ollama.** Every example is a toy VSA
+   demo. Write one end-to-end program a newcomer would recognise as useful (e.g. a small semantic
+   command-router or FAQ-matcher), runnable with the in-process default and zero daemon, plus a
+   `docs/tutorials/05-*.md` page walking through it. Add it to the smoke test. Verify: compiles + runs +
+   smoke-asserts on the in-process substrate.
+
+4. **`map` / `filter` stdlib helpers over array-literals.** `reduce`/`foreach` + first-class functions
+   already fold on the substrate (`examples/higher_order_functions.su`). Add `map`/`filter`-shaped
+   helpers for the Sutra surface where they compose on the substrate; if a shape genuinely can't (no
+   first-class List return type), name the limit precisely in a finding rather than fake it. Fixtures
+   that compile-and-run. Verify against the substrate, not just "it parsed".
+
+5. **`sutrac repl` — interactive expression evaluator.** Read an expression, compile + run it, and show
+   the result by the sanctioned decode (`nearest_string` against the program's codebook) — NOT a host
+   readout (`.real()`/`.item()` are forbidden by CLAUDE.md). Fast feedback loop for learning. Larger;
+   last because it needs care to stay readout-free. Decompose further when reached.
+
+---
+
+## ⭐ PINNED TAIL — readability + usability audit → REFILL (self-perpetuating; Emma 2026-06-23)
+
+**This item never gets deleted — it regrows the queue.** When items 1..N above are all done, run a fresh
+**readability + usability audit** of Sutra from the perspective of an outsider trying to read, install,
+run, and learn it, and **atomise the findings into 3–6 new concrete items at the TOP of this ACTIVE
+list**, then keep barrelling. Repeat every time the concrete items drain. Audit surfaces, rotating:
+- **Onboarding:** can a stranger `pip install` and run their first program in <5 min? Where do they get stuck?
+- **Docs readability:** are the tutorials/concept pages clear, in order, free of repo-internal jargon and
+  dead links? Does the website read well to a newcomer? (Website discipline: keep `docs/` free of
+  `queue.md`/`todo.md`/`planning/...` references.)
+- **Error messages:** are `SUT####` diagnostics + runtime errors actionable, pointing at the fix?
+- **Language readability:** is `.su` source itself readable? Are the example programs idiomatic and
+  well-commented? Is the stdlib surface discoverable?
+- **Real-program reach:** what can't a newcomer build yet that they'd expect to? (stdlib gaps, missing
+  ergonomics) — name precisely; don't fake reach.
+
+**THE GOAL IS V1, AND V1 IS EMMA'S MANUAL CALL — NOT THE LOOP'S.** Keep making Sutra more readable +
+usable; do NOT bump the version to 1.0.0, do NOT declare "V1-ready," do NOT tag a v1 release. Emma
+approves the V1 transition manually. The loop's job is to keep closing usability/readability gaps until
+she says it's there. (Consistent with the v1.0.0-deferred note in Context above.)
+
+## Session bracket — autonomous loop (self-timed)
+
+- Run as the self-timed `ScheduleWakeup` loop (NOT the three-cron playbook). Each wake: SYNC
+  (`git fetch` + ff/rebase) → WORK the top `queue.md` item → HARD RAILS (never fake/weaken a test; RUN +
+  measure before claiming green; name hard things plainly) → COMMIT (delete done item + DEVLOG entry,
+  same commit) + push → schedule the next wake. When items 1..N drain, run the PINNED TAIL audit to
+  refill, then continue — the loop is self-sustaining toward V1 (Emma's manual gate). Report via commits
+  + DEVLOG, not questions.
 
 ---
 
