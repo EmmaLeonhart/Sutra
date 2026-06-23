@@ -61,3 +61,49 @@ def test_transformers_backend_returns_vectors(monkeypatch):
     monkeypatch.setenv("SUTRA_EMBED_BACKEND", "transformers")
     out = embedding.embed_texts(["hello"], "nomic-embed-text")
     assert len(out) == 1 and len(out[0]) == 768
+
+
+def _install_fake_st(monkeypatch):
+    """Inject a fake sentence_transformers so the cold-load path runs with no
+    real package/download. Returns a counter of how many times it loaded."""
+    import sys
+    import types as _types
+
+    loads = {"n": 0}
+
+    class _FakeST:
+        def __init__(self, hf_id, trust_remote_code=False):
+            loads["n"] += 1
+
+        def encode(self, texts, normalize_embeddings=False):
+            return [[0.0] * 768 for _ in texts]
+
+    fake = _types.ModuleType("sentence_transformers")
+    fake.SentenceTransformer = _FakeST
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake)
+    monkeypatch.setattr(embedding, "_ST_CACHE", {})  # cold cache
+    return loads
+
+
+def test_cold_load_announces_on_stderr_then_caches(monkeypatch, capsys):
+    monkeypatch.delenv("SUTRA_QUIET", raising=False)
+    loads = _install_fake_st(monkeypatch)
+
+    embedding._get_st_model("nomic-embed-text")
+    err1 = capsys.readouterr().err
+    assert "loading embedding model" in err1
+    assert "nomic-ai/nomic-embed-text-v1.5" in err1
+    assert loads["n"] == 1
+
+    # Warm: cached, no second load and no second announcement.
+    embedding._get_st_model("nomic-embed-text")
+    err2 = capsys.readouterr().err
+    assert "loading embedding model" not in err2
+    assert loads["n"] == 1
+
+
+def test_sutra_quiet_silences_cold_load_message(monkeypatch, capsys):
+    monkeypatch.setenv("SUTRA_QUIET", "1")
+    _install_fake_st(monkeypatch)
+    embedding._get_st_model("nomic-embed-text")
+    assert "loading embedding model" not in capsys.readouterr().err

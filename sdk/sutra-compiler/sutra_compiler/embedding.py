@@ -64,6 +64,21 @@ def _get_st_model(model: str):
     cached = _ST_CACHE.get(hf_id)
     if cached is not None:
         return cached
+    # First load of this model in the process. The very first time on a machine
+    # this also downloads weights (hundreds of MB), which otherwise looks like a
+    # hang with no output. Announce it on stderr so it never corrupts --emit
+    # stdout. Suppressible with SUTRA_QUIET=1.
+    if os.environ.get("SUTRA_QUIET", "").strip() not in ("1", "true", "yes"):
+        import sys
+
+        print(
+            f"[sutra] loading embedding model '{hf_id}' in-process "
+            f"(first run downloads it, ~hundreds of MB; cached afterward). "
+            f"Set SUTRA_EMBED_BACKEND=ollama to use a daemon instead, or "
+            f"SUTRA_QUIET=1 to silence this.",
+            file=sys.stderr,
+            flush=True,
+        )
     from sentence_transformers import SentenceTransformer
 
     # nomic-bert ships custom modeling code, hence trust_remote_code.
