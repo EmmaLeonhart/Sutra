@@ -483,6 +483,14 @@ def _emit_thrml(path: str) -> int:
 
 
 def main(argv: List[str] | None = None) -> int:
+    # `sutrac repl` (or `--repl`) launches the interactive evaluator. Intercepted
+    # before argparse because the validator requires a `paths` positional and the
+    # REPL takes no file.
+    _args = argv if argv is not None else sys.argv[1:]
+    if _args and _args[0] in ("repl", "--repl"):
+        from .repl import main_repl
+        return main_repl()
+
     parser = argparse.ArgumentParser(
         prog="sutrac",
         description="Validate Sutra (.su) source files.",

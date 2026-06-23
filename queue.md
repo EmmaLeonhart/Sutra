@@ -44,10 +44,8 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
-1. **`sutrac repl` — interactive expression evaluator.** Read an expression, compile + run it, and show
-   the result by the sanctioned decode (`nearest_string` against the program's codebook) — NOT a host
-   readout (`.real()`/`.item()` are forbidden by CLAUDE.md). Fast feedback loop for learning. Larger;
-   last because it needs care to stay readout-free. Decompose further when reached.
+_The concrete items drained 2026-06-23 (first-run UX, package-build verify, semantic-FAQ example +
+tutorial 05, list-ops discoverability, `sutrac repl`). REFILL via the PINNED TAIL audit below._
 
 ---
 
