@@ -84,10 +84,16 @@ deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonic
    the FULL compiler suite + `pytest demos/` + smoke to prove identical. Finding:
    `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
 
-2. **`scalar` type → `number`** — already labelled DEPRECATED in-code (`lexer.py:280-286`). Add a
-   `SUT####` deprecation diagnostic in the validator pointing at `number`; repoint the real type-position
-   sites (tighten the grep past the noisy substring — concentrated in `tests/corpus/` +
-   stdlib); then drop the keyword. Lower urgency (warning path is safe).
+2. **`scalar` type → `number`.** Deprecation diagnostic **SUT0114 DONE 2026-06-23** — every `scalar`
+   type use now warns and points at `number` (`validator._record_type_usage`); the keyword stays
+   RECOGNIZED so frozen-archive programs still validate with zero errors (warnings tolerated by the corpus
+   harness). Tested: `tests/test_scalar_deprecation.py`. **⚠ NEEDS EMMA — full removal:** dropping the
+   `scalar` keyword + repointing the corpus tests that exercise it (`01_primitive_declarations.su`
+   "Covers: scalar", `13_arithmetic.su`, etc.) would break **frozen-archive backward-compat / paper
+   reproducibility** (CLAUDE.md keeps `scalar` "for the frozen archive"; §Paper-code durability). That's
+   not unilateral — Emma's call whether to hard-remove `scalar` (breaking frozen `.su`) or keep it as the
+   warned compat alias. The stdlib comment-sites repoint (cosmetic, and the "scalar extraction"/"host
+   scalar" *prose* must NOT be touched) is a low-value follow-on, not done.
 
 3. **Keyword synonyms.** `unk` → `unknown` DONE 2026-06-23 (1 site repointed, lexer entry removed, `unk`
    now lexes as IDENT, corpus green). **`iff` → ⚠ NEEDS EMMA:** it's a `xnor` alias BUT it's standard
