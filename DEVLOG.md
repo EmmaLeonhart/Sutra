@@ -4,6 +4,17 @@
 
 `experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist still held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch sentence-transformers einops`) and exercising the new 2026-06-22 in-process backend (`SUTRA_EMBED_BACKEND=transformers` to override the suite's ollama pin in `tests/conftest.py`, since the daemon isn't installed here) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live `nomic-ai/nomic-embed-text-v1.5` in-process embeddings; the 2 semantic-preservation legs (`test_await_semantics_preserved_{torch,numpy}`) decoded `main()` ≈ 3.0 to 3 places, so the spec-2 algebraic reduction (`await_value(p) → self.value(p)`) holds end-to-end under the new default backend too. No `for _ in range(100)` / `if self.isPending` reappeared in `codegen_pytorch.py`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; the only commit since the 2026-06-22 audit is `da92a4f` (in-process embed default), which touches the `embed_texts` host boundary, not any op definition. 16 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question; no spec/todo/findings authoritative resolution surfaced for any other dossier since 2026-06-22. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
 
+## 2026-06-23: usability loop — first-run embedding UX
+
+First item of the USABILITY sprint (queue.md). A fresh `pip install sutra-dev[runtime,embed]` user's
+first run silently downloads the in-process model (hundreds of MB) and looks hung. `_get_st_model`
+(`sutra_compiler/embedding.py`) now prints a one-time stderr line on cold load naming the model, the
+download, and the `SUTRA_EMBED_BACKEND=ollama` / `SUTRA_QUIET=1` escape hatches — stderr so it never
+corrupts `--emit` stdout; fires only on cache miss (warm loads are silent). The provider's auto-fallback
+error already names the install path + backend, so the error-message half was covered. Tests
+(`tests/test_embedding_provider.py`, now 7): a fake `sentence_transformers` exercises the cold-load
+announce + cache-then-silent + `SUTRA_QUIET` paths with no real download.
+
 ## 2026-06-22: usability — drop the Ollama-daemon cold-start; embed in-process
 
 Usability assessment with Emma (the queue was empty of usability work; the whole backlog is
