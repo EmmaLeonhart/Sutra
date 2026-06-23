@@ -127,12 +127,12 @@ def test_keys_across_multiple_top_level_functions_are_collected() -> None:
     src = """
         function vector make_a() {
             Axon a;
-            a.add("from_func_a", basis_vector("x"));
+            a.add("from_func_a", embed("x"));
             return a;
         }
         function vector make_b() {
             Axon a;
-            a.add("from_func_b", basis_vector("y"));
+            a.add("from_func_b", embed("y"));
             return a;
         }
     """
@@ -146,8 +146,8 @@ def test_mixed_bound_and_read_in_one_program() -> None:
     src = """
         function vector roundtrip() {
             Axon a;
-            a.add("k1", basis_vector("v1"));
-            a.add("k2", basis_vector("v2"));
+            a.add("k1", embed("v1"));
+            a.add("k2", embed("v2"));
             vector got_k1 = axon_item(a, "k1");
             return got_k1;
         }

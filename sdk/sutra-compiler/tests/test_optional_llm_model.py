@@ -48,7 +48,7 @@ class TestOptionalLLMModel(unittest.TestCase):
         # NOT an opaque ollama 404. (Prefetch fires at module exec.)
         with self.assertRaises(RuntimeError) as cm:
             _compile(
-                'function vector g() { return basis_vector("cat"); }\n'
+                'function vector g() { return embed("cat"); }\n'
                 'function string main() { return "ok"; }\n',
                 llm_model="none", runtime_dim=8,
             )

@@ -29,8 +29,8 @@ from sutra_compiler.parser import Parser
 SRC = (
     "function vector producer() {\n"
     "    Axon a = new Axon();\n"
-    '    a.add("animal", basis_vector("dog"));\n'
-    '    a.add("color", basis_vector("red"));\n'
+    '    a.add("animal", embed("dog"));\n'
+    '    a.add("color", embed("red"));\n'
     '    return axon_item(a, "animal");\n'
     "}\n"
     'function string main() { return "ok"; }\n'

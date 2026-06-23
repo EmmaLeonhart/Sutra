@@ -19,8 +19,8 @@ function string KeepsAsString() {
     return s;
 }
 
-// Compare against the explicit basis_vector call — still valid.
+// Compare against the explicit embed call — still valid.
 function vector ExplicitBasis() {
-    vector v = basis_vector("bird");
+    vector v = embed("bird");
     return v;
 }

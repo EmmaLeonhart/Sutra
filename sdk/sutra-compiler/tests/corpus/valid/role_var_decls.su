@@ -1,12 +1,12 @@
 
 // Semantic role declaration (is_role=True in the AST).
-role capital_of = basis_vector("capital_of");
+role capital_of = embed("capital_of");
 
 // Rotation-bound slot, zero-initialized.
 var storage_a : vector;
 
 // Rotation-bound slot with an explicit initializer.
-var storage_b : vector = basis_vector("storage_b_init");
+var storage_b : vector = embed("storage_b_init");
 
 // Rotation-bound array of 4 slots, all zero-initialized.
 var[4] slots : vector;

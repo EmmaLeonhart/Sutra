@@ -4,6 +4,21 @@
 
 `experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist still held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch sentence-transformers einops`) and exercising the new 2026-06-22 in-process backend (`SUTRA_EMBED_BACKEND=transformers` to override the suite's ollama pin in `tests/conftest.py`, since the daemon isn't installed here) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live `nomic-ai/nomic-embed-text-v1.5` in-process embeddings; the 2 semantic-preservation legs (`test_await_semantics_preserved_{torch,numpy}`) decoded `main()` ≈ 3.0 to 3 places, so the spec-2 algebraic reduction (`await_value(p) → self.value(p)`) holds end-to-end under the new default backend too. No `for _ in range(100)` / `if self.isPending` reappeared in `codegen_pytorch.py`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; the only commit since the 2026-06-22 audit is `da92a4f` (in-process embed default), which touches the `embed_texts` host boundary, not any op definition. 16 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question; no spec/todo/findings authoritative resolution surfaced for any other dossier since 2026-06-22. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
 
+## 2026-06-23: alias batch (3) — `basis_vector` → `embed`, corpus + test strings
+
+Part 2. Inspected first (the CAUTION): NO test asserts the literal string `basis_vector` (emitted code is
+always `_VSA.embed`), and the `collect_basis_vector_strings` tests assert the RETURNED strings (identical
+for `embed`, since `embed` is collected the same way) — so repointing the source is behaviour-identical.
+Repointed `tests/corpus/*.su` (28) + the inline `.su`-in-Python test-string sites across 13 test files
+(~153). Verified by running the affected files directly (faster + more targeted than the 1h46m full
+suite): **233 passed, 90 subtests, 0 failed** (test_simplify, test_codegen, test_codegen_pytorch,
+test_corpus, dimension-audit, axon, ntm, fv, list_ops, repl, embedding_provider).
+
+`_builtin_basis_vector` is STILL kept — `demos/font` (156 sites) is in demos-ci, so deleting the alias now
+would break CI. The ONLY remaining `basis_vector` call sites are the subtree (`demos/**` 156 +
+`external/Yantra/**` 19); once those are repointed the builtin (+ the dead `_is_basis_vector_literal_call`
+branch) gets deleted. Queue item updated to that remainder.
+
 ## 2026-06-23: alias batch (3) — `basis_vector` → `embed`, user-facing surface
 
 Flagship alias, part 1 (the surface a newcomer reads). Understood the weaving first: `embed("x")` parses

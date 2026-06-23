@@ -1,8 +1,8 @@
 
-vector v_a = basis_vector("a");
-vector v_b = basis_vector("b");
-vector v_c = basis_vector("c");
-vector v_d = basis_vector("d");
+vector v_a = embed("a");
+vector v_b = embed("b");
+vector v_c = embed("c");
+vector v_d = embed("d");
 
 function vector bundle_of_one() {
     // Simplifies to `return v_a;`

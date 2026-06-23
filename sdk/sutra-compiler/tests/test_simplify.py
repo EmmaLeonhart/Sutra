@@ -46,7 +46,7 @@ def _main_return_expr(module):
 class TestBundleRewrites(unittest.TestCase):
     def test_bundle_of_one_elides(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
+            "vector a = embed(\"a\");\n"
             "function vector main() { return bundle(a); }"
         )
         simplify_module(m)
@@ -56,9 +56,9 @@ class TestBundleRewrites(unittest.TestCase):
 
     def test_bundle_flattens_nested(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
-            "vector b = basis_vector(\"b\");\n"
-            "vector c = basis_vector(\"c\");\n"
+            "vector a = embed(\"a\");\n"
+            "vector b = embed(\"b\");\n"
+            "vector c = embed(\"c\");\n"
             "function vector main() { return bundle(bundle(a, b), c); }"
         )
         simplify_module(m)
@@ -72,10 +72,10 @@ class TestBundleRewrites(unittest.TestCase):
 
     def test_bundle_flattens_deeply(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
-            "vector b = basis_vector(\"b\");\n"
-            "vector c = basis_vector(\"c\");\n"
-            "vector d = basis_vector(\"d\");\n"
+            "vector a = embed(\"a\");\n"
+            "vector b = embed(\"b\");\n"
+            "vector c = embed(\"c\");\n"
+            "vector d = embed(\"d\");\n"
             "function vector main() {"
             " return bundle(bundle(a, bundle(b, c)), d); }"
         )
@@ -88,8 +88,8 @@ class TestBundleRewrites(unittest.TestCase):
 
     def test_bundle_with_zero_drops_the_zero(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
-            "vector b = basis_vector(\"b\");\n"
+            "vector a = embed(\"a\");\n"
+            "vector b = embed(\"b\");\n"
             "function vector main() { return bundle(a, displacement(b, b)); }"
         )
         simplify_module(m)
@@ -100,7 +100,7 @@ class TestBundleRewrites(unittest.TestCase):
 
     def test_all_zero_bundle_collapses_to_zero_vector(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
+            "vector a = embed(\"a\");\n"
             "function vector main() {"
             " return bundle(displacement(a, a), displacement(a, a)); }"
         )
@@ -114,9 +114,9 @@ class TestBundleRewrites(unittest.TestCase):
 class TestComposeFlattening(unittest.TestCase):
     def test_compose_flattens_nested(self):
         m = _parse(
-            "vector k1 = basis_vector(\"k1\");\n"
-            "vector k2 = basis_vector(\"k2\");\n"
-            "vector k3 = basis_vector(\"k3\");\n"
+            "vector k1 = embed(\"k1\");\n"
+            "vector k2 = embed(\"k2\");\n"
+            "vector k3 = embed(\"k3\");\n"
             "function vector main() { return compose(compose(k1, k2), k3); }"
         )
         simplify_module(m)
@@ -129,7 +129,7 @@ class TestComposeFlattening(unittest.TestCase):
 class TestSimilarityOfSelf(unittest.TestCase):
     def test_similarity_of_same_identifier_collapses_to_one(self):
         m = _parse(
-            "vector x = basis_vector(\"x\");\n"
+            "vector x = embed(\"x\");\n"
             "function float main() { return similarity(x, x); }"
         )
         simplify_module(m)
@@ -139,8 +139,8 @@ class TestSimilarityOfSelf(unittest.TestCase):
 
     def test_similarity_of_different_identifiers_does_not_simplify(self):
         m = _parse(
-            "vector x = basis_vector(\"x\");\n"
-            "vector y = basis_vector(\"y\");\n"
+            "vector x = embed(\"x\");\n"
+            "vector y = embed(\"y\");\n"
             "function float main() { return similarity(x, y); }"
         )
         simplify_module(m)
@@ -152,7 +152,7 @@ class TestSimilarityOfSelf(unittest.TestCase):
 class TestDisplacementOfSelf(unittest.TestCase):
     def test_displacement_of_same_identifier_is_zero(self):
         m = _parse(
-            "vector x = basis_vector(\"x\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return displacement(x, x); }"
         )
         simplify_module(m)
@@ -163,8 +163,8 @@ class TestDisplacementOfSelf(unittest.TestCase):
 
     def test_displacement_of_different_identifiers_unchanged(self):
         m = _parse(
-            "vector x = basis_vector(\"x\");\n"
-            "vector y = basis_vector(\"y\");\n"
+            "vector x = embed(\"x\");\n"
+            "vector y = embed(\"y\");\n"
             "function vector main() { return displacement(x, y); }"
         )
         simplify_module(m)
@@ -176,8 +176,8 @@ class TestDisplacementOfSelf(unittest.TestCase):
 class TestBindUnbindInverse(unittest.TestCase):
     def test_unbind_cancels_inner_bind_with_same_role(self):
         m = _parse(
-            "vector r = basis_vector(\"r\");\n"
-            "vector x = basis_vector(\"x\");\n"
+            "vector r = embed(\"r\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return unbind(r, bind(r, x)); }"
         )
         simplify_module(m)
@@ -187,8 +187,8 @@ class TestBindUnbindInverse(unittest.TestCase):
 
     def test_bind_cancels_inner_unbind_with_same_role(self):
         m = _parse(
-            "vector r = basis_vector(\"r\");\n"
-            "vector x = basis_vector(\"x\");\n"
+            "vector r = embed(\"r\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return bind(r, unbind(r, x)); }"
         )
         simplify_module(m)
@@ -198,9 +198,9 @@ class TestBindUnbindInverse(unittest.TestCase):
 
     def test_mismatched_roles_do_not_cancel(self):
         m = _parse(
-            "vector r1 = basis_vector(\"r1\");\n"
-            "vector r2 = basis_vector(\"r2\");\n"
-            "vector x = basis_vector(\"x\");\n"
+            "vector r1 = embed(\"r1\");\n"
+            "vector r2 = embed(\"r2\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return unbind(r1, bind(r2, x)); }"
         )
         simplify_module(m)
@@ -212,7 +212,7 @@ class TestBindUnbindInverse(unittest.TestCase):
 class TestZeroAbsorptionInAddition(unittest.TestCase):
     def test_x_plus_zero_vector_drops_zero(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
+            "vector a = embed(\"a\");\n"
             "function vector main() { return a + displacement(a, a); }"
         )
         simplify_module(m)
@@ -222,7 +222,7 @@ class TestZeroAbsorptionInAddition(unittest.TestCase):
 
     def test_zero_vector_plus_x_drops_zero(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
+            "vector a = embed(\"a\");\n"
             "function vector main() { return displacement(a, a) + a; }"
         )
         simplify_module(m)
@@ -232,7 +232,7 @@ class TestZeroAbsorptionInAddition(unittest.TestCase):
 
     def test_x_minus_zero_vector_drops_zero(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
+            "vector a = embed(\"a\");\n"
             "function vector main() { return a - displacement(a, a); }"
         )
         simplify_module(m)
@@ -283,7 +283,7 @@ class TestZeroVectorAbsorptionInBindUnbind(unittest.TestCase):
         # bind(role, zero_vector()) → zero_vector(). Q @ 0 = 0 for any
         # orthogonal Q, so the result is zero regardless of role.
         m = _parse(
-            "vector r = basis_vector(\"r\");\n"
+            "vector r = embed(\"r\");\n"
             "function vector main() { return bind(r, zero_vector()); }"
         )
         simplify_module(m)
@@ -295,7 +295,7 @@ class TestZeroVectorAbsorptionInBindUnbind(unittest.TestCase):
     def test_unbind_of_zero_absorbs(self):
         # unbind(role, zero_vector()) → zero_vector(). Q^T @ 0 = 0.
         m = _parse(
-            "vector r = basis_vector(\"r\");\n"
+            "vector r = embed(\"r\");\n"
             "function vector main() { return unbind(r, zero_vector()); }"
         )
         simplify_module(m)
@@ -305,8 +305,8 @@ class TestZeroVectorAbsorptionInBindUnbind(unittest.TestCase):
 
     def test_bind_of_nonzero_filler_unchanged(self):
         m = _parse(
-            "vector r = basis_vector(\"r\");\n"
-            "vector f = basis_vector(\"f\");\n"
+            "vector r = embed(\"r\");\n"
+            "vector f = embed(\"f\");\n"
             "function vector main() { return bind(r, f); }"
         )
         simplify_module(m)
@@ -319,7 +319,7 @@ class TestComposeWithIdentity(unittest.TestCase):
     def test_compose_with_leading_identity_drops(self):
         # compose(identity_permutation(), x) → x.
         m = _parse(
-            "vector x = basis_vector(\"x\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return compose(identity_permutation(), x); }"
         )
         simplify_module(m)
@@ -330,7 +330,7 @@ class TestComposeWithIdentity(unittest.TestCase):
     def test_compose_with_trailing_identity_drops(self):
         # compose(x, identity_permutation()) → x.
         m = _parse(
-            "vector x = basis_vector(\"x\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return compose(x, identity_permutation()); }"
         )
         simplify_module(m)
@@ -350,8 +350,8 @@ class TestComposeWithIdentity(unittest.TestCase):
 
     def test_compose_two_non_identity_unchanged(self):
         m = _parse(
-            "vector x = basis_vector(\"x\");\n"
-            "vector y = basis_vector(\"y\");\n"
+            "vector x = embed(\"x\");\n"
+            "vector y = embed(\"y\");\n"
             "function vector main() { return compose(x, y); }"
         )
         simplify_module(m)
@@ -365,8 +365,8 @@ class TestArgmaxCosineSingleCandidate(unittest.TestCase):
     def test_single_candidate_argmax_is_the_candidate(self):
         # argmax_cosine(v, [x]) → x. Only one option, no choice to make.
         m = _parse(
-            "vector v = basis_vector(\"v\");\n"
-            "vector x = basis_vector(\"x\");\n"
+            "vector v = embed(\"v\");\n"
+            "vector x = embed(\"x\");\n"
             "function vector main() { return argmax_cosine(v, [x]); }"
         )
         simplify_module(m)
@@ -376,9 +376,9 @@ class TestArgmaxCosineSingleCandidate(unittest.TestCase):
 
     def test_multiple_candidate_argmax_unchanged(self):
         m = _parse(
-            "vector v = basis_vector(\"v\");\n"
-            "vector x = basis_vector(\"x\");\n"
-            "vector y = basis_vector(\"y\");\n"
+            "vector v = embed(\"v\");\n"
+            "vector x = embed(\"x\");\n"
+            "vector y = embed(\"y\");\n"
             "function vector main() { return argmax_cosine(v, [x, y]); }"
         )
         simplify_module(m)
@@ -390,9 +390,9 @@ class TestArgmaxCosineSingleCandidate(unittest.TestCase):
 class TestSubscriptOfArrayLiteral(unittest.TestCase):
     def test_positive_index_picks_element(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
-            "vector b = basis_vector(\"b\");\n"
-            "vector c = basis_vector(\"c\");\n"
+            "vector a = embed(\"a\");\n"
+            "vector b = embed(\"b\");\n"
+            "vector c = embed(\"c\");\n"
             "function vector main() { return [a, b, c][1]; }"
         )
         simplify_module(m)
@@ -402,8 +402,8 @@ class TestSubscriptOfArrayLiteral(unittest.TestCase):
 
     def test_zero_index_picks_first(self):
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
-            "vector b = basis_vector(\"b\");\n"
+            "vector a = embed(\"a\");\n"
+            "vector b = embed(\"b\");\n"
             "function vector main() { return [a, b][0]; }"
         )
         simplify_module(m)
@@ -416,7 +416,7 @@ class TestSubscriptOfArrayLiteral(unittest.TestCase):
         # IndexError surfaces as a real diagnostic. The rewrite would
         # otherwise mask a real bug in the program.
         m = _parse(
-            "vector a = basis_vector(\"a\");\n"
+            "vector a = embed(\"a\");\n"
             "function vector main() { return [a][5]; }"
         )
         simplify_module(m)
@@ -427,8 +427,8 @@ class TestSubscriptOfArrayLiteral(unittest.TestCase):
 class TestBasisVectorCollection(unittest.TestCase):
     def test_collects_in_source_order(self):
         m = _parse(
-            "vector a = basis_vector(\"hello\");\n"
-            "vector b = basis_vector(\"world\");\n"
+            "vector a = embed(\"hello\");\n"
+            "vector b = embed(\"world\");\n"
             "function vector main() { return bundle(a, b); }"
         )
         simplify_module(m)
@@ -437,8 +437,8 @@ class TestBasisVectorCollection(unittest.TestCase):
 
     def test_dedupes_duplicates(self):
         m = _parse(
-            "vector a = basis_vector(\"hello\");\n"
-            "vector b = basis_vector(\"hello\");\n"
+            "vector a = embed(\"hello\");\n"
+            "vector b = embed(\"hello\");\n"
             "function vector main() { return bundle(a, b); }"
         )
         simplify_module(m)

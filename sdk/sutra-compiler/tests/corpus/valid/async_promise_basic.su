@@ -11,8 +11,8 @@
 // lowering lands, this same file will round-trip through codegen
 // without changes.
 
-vector cat = basis_vector("cat");
-vector dog = basis_vector("dog");
+vector cat = embed("cat");
+vector dog = embed("dog");
 
 async function Promise<vector> fetch_label(vector query) {
     vector raw = await network_lookup(query);

@@ -10,8 +10,8 @@
 // The desugar handles the trivial async-fn case (return e becomes
 // Promise.resolve(e)); the runtime methods handle the rest.
 
-vector cat = basis_vector("cat");
-vector dog = basis_vector("dog");
+vector cat = embed("cat");
+vector dog = embed("dog");
 
 async function Promise<vector> immediate() {
     return cat;          // → Promise.resolve(cat) via Stage-1 desugar

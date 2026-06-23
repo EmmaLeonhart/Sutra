@@ -45,5 +45,5 @@ def test_axon_key_program_does_not_warn():
 
 
 def test_basis_vector_program_does_not_warn():
-    src = 'function int main() { vector v = basis_vector("cat"); return 0; }'
+    src = 'function int main() { vector v = embed("cat"); return 0; }'
     assert _warnings_for(src, 768) == []

@@ -28,7 +28,7 @@ def _mod(src: str):
 
 
 def test_basis_vector_program_uses_codebook():
-    src = 'function vector f() { return basis_vector("dog"); }'
+    src = 'function vector f() { return embed("dog"); }'
     assert _uses_codebook(_mod(src)) is True
 
 

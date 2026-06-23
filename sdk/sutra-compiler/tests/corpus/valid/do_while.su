@@ -8,8 +8,8 @@
 // The canonical loop forms are spec'd in
 // planning/sutra-spec/control-flow.md §"Loops" + docs/loops.md.
 
-vector v_cat = basis_vector("cat");
-vector v_dog = basis_vector("dog");
+vector v_cat = embed("cat");
+vector v_dog = embed("dog");
 
 do_while wander_cell(similarity(state, v_dog) < 0.9, vector state) {
     pass state;

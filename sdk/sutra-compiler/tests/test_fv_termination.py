@@ -33,7 +33,7 @@ from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
 
 # A trivial program just to obtain a torch _VSA with the `loop` runtime.
-TRIVIAL = 'function vector main() { return basis_vector("x"); }\n'
+TRIVIAL = 'function vector main() { return embed("x"); }\n'
 
 
 def _vsa():
