@@ -78,6 +78,12 @@ deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonic
    embeddings). Mark `_builtin_basis_vector` deprecated → remove once SDK sites are clean (demos/font +
    `external/Yantra` repoint in their own pass — they're subtree/demo). Big mechanical change: run the
    FULL smoke test + corpus suite after. Finding: `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
+   **CAUTION (not a pure sed):** `basis_vector` is woven into internal machinery — the axon lowering uses
+   `unbind(basis_vector(k), a)` for `axon_item` (codegen_base.py ~line 3700 comment), and it's DEFINED as
+   an alias in `stdlib/embed.su` + `stdlib/vectors.su`. Removing the builtin needs those internal emitters
+   repointed to `embed` too (or kept emitting `_VSA.embed`), and the stdlib alias-defs removed. Understand
+   the axon path before deleting `_builtin_basis_vector`. Sweep py AND su (item 1/2 taught: the `.su`-only
+   grep misses inline test strings). This is a focused tick on its own — do not rush at the end of a long one.
 
 2. **`scalar` type → `number`** — already labelled DEPRECATED in-code (`lexer.py:280-286`). Add a
    `SUT####` deprecation diagnostic in the validator pointing at `number`; repoint the real type-position
