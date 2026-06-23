@@ -524,9 +524,13 @@ class Codegen(BaseCodegen):
         self._emit("_os.makedirs(self._cache_dir, exist_ok=True)")
         self._emit("# Sanitize model name for use as filename.")
         self._emit("_safe_model = llm_model.replace('/', '_').replace(':', '_')")
+        self._emit("# Backend-aware: in-process (transformers) and ollama realize the")
+        self._emit("# same model with slightly different geometry, so they must not")
+        self._emit("# share a cache file or one backend reads the other's vectors.")
+        self._emit("_emb_backend = _os.environ.get('SUTRA_EMBED_BACKEND', 'auto').strip().lower() or 'auto'")
         self._emit("self._cache_path = _os.path.join(")
         self._indent += 1
-        self._emit("self._cache_dir, f'{_safe_model}-d{self.dim}.npz')")
+        self._emit("self._cache_dir, f'{_safe_model}-d{self.dim}-{_emb_backend}.npz')")
         self._indent -= 1
         self._emit("self._load_disk_cache()")
         self._emit("# Transcendental lookup tables — substrate-pure interpolation per")
@@ -641,9 +645,9 @@ class Codegen(BaseCodegen):
         self._emit('starts at zero."""')
         self._emit("if name not in self._codebook:")
         self._indent += 1
-        self._emit("import ollama")
-        self._emit("r = ollama.embed(model=self.llm_model, input=name)")
-        self._emit("v = _np.array(r['embeddings'][0], dtype=_np.float64)")
+        self._emit("from sutra_compiler.embedding import embed_texts as _embed_texts")
+        self._emit("r = _embed_texts([name], self.llm_model)")
+        self._emit("v = _np.array(r[0], dtype=_np.float64)")
         self._emit("# Mean-center. Raw LLM embeddings cluster in a cone (all-")
         self._emit("# positive-ish); centering keeps rotation/bind algebra")
         self._emit("# well-behaved.")
@@ -685,11 +689,11 @@ class Codegen(BaseCodegen):
         self._indent += 1
         self._emit("return")
         self._indent -= 1
-        self._emit("import ollama")
-        self._emit("r = ollama.embed(model=self.llm_model, input=missing)")
+        self._emit("from sutra_compiler.embedding import embed_texts as _embed_texts")
+        self._emit("r = _embed_texts(missing, self.llm_model)")
         self._emit("for i, name in enumerate(missing):")
         self._indent += 1
-        self._emit("v = _np.array(r['embeddings'][i], dtype=_np.float64)")
+        self._emit("v = _np.array(r[i], dtype=_np.float64)")
         self._emit("v = v - _np.mean(v)")
         self._emit("n = _np.linalg.norm(v)")
         self._emit("if n > 0: v = v / n")

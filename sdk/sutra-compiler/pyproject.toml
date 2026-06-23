@@ -44,6 +44,16 @@ dependencies = [
 runtime = [
   "torch>=2.1",
 ]
+# In-process embedding backend. sentence-transformers loads the SAME frozen
+# nomic-embed-text model HuggingFace serves, so semantic Sutra programs run with
+# NO Ollama daemon — this is the default backend (sutra_compiler/embedding.py).
+# einops is needed by nomic-bert's custom modeling code. Pure make_real / matrix
+# / arithmetic programs embed nothing and need none of this.
+# Install with: pip install sutra-dev[runtime,embed]
+embed = [
+  "sentence-transformers>=3.0",
+  "einops>=0.7",
+]
 # TypeScript→Sutra transpiler. `pip install sutra-dev[ts]` pulls in
 # the working ts2su CLI from the sister package, so the recommended
 # way to get a complete Sutra dev environment for browser-layer work

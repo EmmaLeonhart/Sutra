@@ -65,8 +65,9 @@ class TestPyTorchPrelude(unittest.TestCase):
         src = "function vector main() { return basis_vector(\"x\"); }\n"
         py = _compile(src)
         # Torch cache uses .pt so it doesn't collide with the numpy
-        # backend's .npz. Keyed by (model, total dim).
-        self.assertIn("f'{_safe_model}-d{self.dim}.pt'", py)
+        # backend's .npz. Keyed by (model, total dim, embedding backend) —
+        # in-process and ollama realize the model with different geometry.
+        self.assertIn("f'{_safe_model}-d{self.dim}-{_emb_backend}.pt'", py)
 
     def test_rotation_is_block_diagonal(self):
         src = "function vector main() { return basis_vector(\"x\"); }\n"

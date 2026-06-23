@@ -12,7 +12,7 @@ Sutra source looks like TypeScript. It parses to an AST, gets simplified, valida
 
 The composition is the point. Once a whole program has the same shape — values are vectors, operations are tensor ops on vectors — the compiler can read the program as one tensor expression and fold chains of operations into cached matrices at compile time. A chain of bind/unbind/bundle reduces to a sequence of matrix multiplies that the simplifier can fuse. That's the win the language is structured around.
 
-A typical Sutra value is a vector in a frozen LLM embedding space. The current default substrate is `nomic-embed-text` (768-d, mean-centered, served via Ollama). Strings auto-embed in vector contexts, so `vector v = "cat"` means "embed the string 'cat' through the substrate and bind it to `v`." The runtime caches embeddings and batches Ollama round-trips at module init.
+A typical Sutra value is a vector in a frozen LLM embedding space. The current default substrate is `nomic-embed-text` (768-d, mean-centered). The runtime loads that frozen model **in-process** (`sentence-transformers`), so semantic programs run with **no Ollama daemon** — a plain `pip install` is enough. Ollama remains available as an alternate backend via `SUTRA_EMBED_BACKEND=ollama` (the two realizations differ slightly in geometry; see [`sutra_compiler/embedding.py`](sdk/sutra-compiler/sutra_compiler/embedding.py)). Strings auto-embed in vector contexts, so `vector v = "cat"` means "embed the string 'cat' through the substrate and bind it to `v`." The runtime caches embeddings to disk (keyed by model, dim, and backend) and batches the fetches at module init.
 
 ## What runs today
 
@@ -66,6 +66,17 @@ The empirical foundation that motivated Sutra — relational-displacement struct
 | `.sdb` | SutraDB | Binary database file. Analogous to a SQLite `.db`. |
 
 ## Get started
+
+The fast path — install from PyPI, no daemon, no model server:
+
+```bash
+pip install "sutra-dev[runtime,embed]"   # compiler + torch runtime + in-process embedder
+sutrac --run examples/hello_world.su      # compiles and runs; first run downloads the frozen model once
+```
+
+`[embed]` pulls the in-process embedding backend (`sentence-transformers`), which loads the same frozen `nomic-embed-text` model directly — so you do **not** need Ollama. (Programs that only use `make_real` / matrices / arithmetic embed nothing and need neither extra.) To use Ollama instead, set `SUTRA_EMBED_BACKEND=ollama` and run a daemon with the model pulled.
+
+From a clone, the demo harness compiles and runs the bundled examples end-to-end:
 
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
