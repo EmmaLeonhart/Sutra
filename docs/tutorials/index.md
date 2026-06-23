@@ -26,7 +26,7 @@ pip install "sutra-dev[runtime]"         # adds torch so --emit / --run can exec
 pip install "sutra-dev[runtime,embed]"   # also loads the embedding model in-process — no Ollama daemon
 ```
 
-The `[embed]` extra is what makes tutorial 05 (and any program that calls `embed`) run with **no separate model server**: the frozen `nomic-embed-text` model loads in-process. The first such run downloads the model once (a few hundred MB) and prints a one-line notice; after that it is cached. (Tutorials 01–03 use random `basis_vector` atoms and need no model at all.) If you would rather use an [Ollama](https://ollama.com) daemon, set `SUTRA_EMBED_BACKEND=ollama` and `ollama pull nomic-embed-text`.
+The `[embed]` extra is what lets a program **run** with **no separate model server**: the frozen `nomic-embed-text` model loads in-process. Both `basis_vector(...)` and `embed(...)` resolve a string to its point in that model's space (they are the same operation under the hood), so any program that *runs* needs the model — the first such run downloads it once (a few hundred MB) and prints a one-line notice, then caches it. You can still **validate** any tutorial's source (`sutrac file.su`) with just `pip install sutra-dev` — no model, no torch. If you would rather use an [Ollama](https://ollama.com) daemon, set `SUTRA_EMBED_BACKEND=ollama` and `ollama pull nomic-embed-text`.
 
 After install, the `sutrac` command is on your `$PATH`:
 
