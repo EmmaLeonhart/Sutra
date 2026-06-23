@@ -44,23 +44,19 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
-1. **Verify the package builds + installs cleanly.** Build the `sutra-dev` wheel/sdist and confirm the
-   new `embed` extra resolves and the metadata is correct (`python -m build`; inspect wheel METADATA for
-   the `embed` extra). Catch packaging breakage before a PyPI user does. Bounded.
-
-2. **A real (non-toy) worked example + tutorial 05, in-process, no Ollama.** Every example is a toy VSA
+1. **A real (non-toy) worked example + tutorial 05, in-process, no Ollama.** Every example is a toy VSA
    demo. Write one end-to-end program a newcomer would recognise as useful (e.g. a small semantic
    command-router or FAQ-matcher), runnable with the in-process default and zero daemon, plus a
    `docs/tutorials/05-*.md` page walking through it. Add it to the smoke test. Verify: compiles + runs +
    smoke-asserts on the in-process substrate.
 
-3. **`map` / `filter` stdlib helpers over array-literals.** `reduce`/`foreach` + first-class functions
+2. **`map` / `filter` stdlib helpers over array-literals.** `reduce`/`foreach` + first-class functions
    already fold on the substrate (`examples/higher_order_functions.su`). Add `map`/`filter`-shaped
    helpers for the Sutra surface where they compose on the substrate; if a shape genuinely can't (no
    first-class List return type), name the limit precisely in a finding rather than fake it. Fixtures
    that compile-and-run. Verify against the substrate, not just "it parsed".
 
-4. **`sutrac repl` — interactive expression evaluator.** Read an expression, compile + run it, and show
+3. **`sutrac repl` — interactive expression evaluator.** Read an expression, compile + run it, and show
    the result by the sanctioned decode (`nearest_string` against the program's codebook) — NOT a host
    readout (`.real()`/`.item()` are forbidden by CLAUDE.md). Fast feedback loop for learning. Larger;
    last because it needs care to stay readout-free. Decompose further when reached.
