@@ -14,7 +14,7 @@ Each tutorial is a single `.su` file plus a walkthrough explaining what it does 
 
 Beyond the numbered walk, the concept guides go deeper on individual features — e.g. [List operations](../list-operations.md) for immutable `map` / `filter` / `concat` over a first-class `list<T>` (worked example: [`examples/list_ops.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/list_ops.su)).
 
-More are coming as we go: cone traversal, fuzzy conditionals, the IntelliJ debugger walkthrough, and the embedding-space visualizer pane once it ships.
+More tutorials land as the features stabilise.
 
 ## Prerequisites
 
@@ -26,6 +26,7 @@ Install the compiler from PyPI:
 pip install sutra-dev                    # validator + codegen only
 pip install "sutra-dev[runtime]"         # adds torch so --emit / --run can execute the generated module
 pip install "sutra-dev[runtime,embed]"   # also loads the embedding model in-process — no Ollama daemon
+pip install "sutra-dev[runtime,ts]"      # adds the ts2su TypeScript→Sutra transpiler (tutorial 04)
 ```
 
 The `[embed]` extra is what lets a program **run** with **no separate model server**: the frozen `nomic-embed-text` model loads in-process. `embed(...)` resolves a string to its point in that model's space, so any program that *runs* needs the model — the first such run downloads it once (a few hundred MB) and prints a one-line notice, then caches it. You can still **validate** any tutorial's source (`sutrac file.su`) with just `pip install sutra-dev` — no model, no torch. If you would rather use an [Ollama](https://ollama.com) daemon, set `SUTRA_EMBED_BACKEND=ollama` and `ollama pull nomic-embed-text`.
