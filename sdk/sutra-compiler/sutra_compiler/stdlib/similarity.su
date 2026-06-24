@@ -64,9 +64,9 @@ function fuzzy neq(vector a, vector b) {
 
 // select — softmax-weighted superposition of option vectors.
 //
-//   function vector select(scalar[] scores, vector[] options) {
-//       scalar[] s   = scores - max(scores);
-//       scalar[] w   = exp(s);
+//   function vector select(number[] scores, vector[] options) {
+//       number[] s   = scores - max(scores);
+//       number[] w   = exp(s);
 //       w            = w / sum(w);
 //       return sum(w[i] * options[i] for i);
 //   }

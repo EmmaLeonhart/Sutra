@@ -66,7 +66,7 @@ No hex literals yet.
 
 ## 6. Primitive type names
 
-`number` (canonical), `scalar` (deprecated alias, kept for the frozen NeurIPS archive), `vector`, `matrix`, `tuple`, `string`, `bool`, `fuzzy`, `void`, `permutation`, `map`, `char`, `int`, `trit` (three-valued: `true`/`false`/`unknown`), `complex`, `Promise<T>`, `function` (function-typed parameter). Generic syntax: `Type<args>` (e.g. `map<K, V>`, `Promise<T>`).
+`number` (the general numeric type; the old `scalar` alias was removed 2026-06-23), `vector`, `matrix`, `tuple`, `string`, `bool`, `fuzzy`, `void`, `permutation`, `map`, `char`, `int`, `trit` (three-valued: `true`/`false`/`unknown`), `complex`, `Promise<T>`, `function` (function-typed parameter). Generic syntax: `Type<args>` (e.g. `map<K, V>`, `Promise<T>`).
 
 **Training: n/a** (type names are syntax). Per-type trainable surfaces are listed under the operators and runtime methods that consume each type.
 

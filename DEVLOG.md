@@ -4,6 +4,22 @@
 
 `experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist still held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch sentence-transformers einops`) and exercising the new 2026-06-22 in-process backend (`SUTRA_EMBED_BACKEND=transformers` to override the suite's ollama pin in `tests/conftest.py`, since the daemon isn't installed here) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live `nomic-ai/nomic-embed-text-v1.5` in-process embeddings; the 2 semantic-preservation legs (`test_await_semantics_preserved_{torch,numpy}`) decoded `main()` ≈ 3.0 to 3 places, so the spec-2 algebraic reduction (`await_value(p) → self.value(p)`) holds end-to-end under the new default backend too. No `for _ in range(100)` / `if self.isPending` reappeared in `codegen_pytorch.py`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; the only commit since the 2026-06-22 audit is `da92a4f` (in-process embed default), which touches the `embed_texts` host boundary, not any op definition. 16 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question; no spec/todo/findings authoritative resolution surfaced for any other dossier since 2026-06-22. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
 
+## 2026-06-23: post-alias-batch audit — completed two INCOMPLETE removals (iff parser table, missed scalar sites)
+
+A readability/cleanliness audit caught real gaps in the alias removals — both still WORKED despite being
+"removed" (verified: `function scalar f(){}` and `a iff b` both validated with zero errors). **iff:** the
+LEXER entry was dropped but the PARSER kept its own `_LOGICAL_XOR_KW` table with `"iff":"xnor"`, so
+`a iff b` still parsed as an operator. Removed it there (+ the precedence comments) — now `a iff b` is a
+SUT0100 parse error, `a xnor b` still works. **scalar:** the type regex missed `static/method scalar` and
+`scalar operator`/`scalar[]` positions, leaving live uses in `examples/class_static_dispatch.su`,
+`examples/uncertain/0{2,5}-*.su`, `stdlib/similarity.su` (comment), and a CORPUS test
+`21_class_with_methods.su` (these compiled only because the validator leniently accepts an unknown type —
+not a real "removal"). Repointed all → `number`; now ZERO scalar type sites repo-wide, examples validate
+clean. Fixed `docs/numeric-math.md` + `docs/capabilities.md` which still claimed `scalar` "still compiles
+/ kept for the frozen archive" (false — paper unfrozen, type removed). Fast subset 162 passed. Remaining
+stale-comment/doc residue (stdlib `embed.su`/`vectors.su`/`axons.su`/README, codegen prose, iff doc
+tables) atomised into queue.md for the next pass.
+
 ## 2026-06-23: alias batch (3) — `basis_vector` builtin DELETED (subtree close-out)
 
 Final piece of the basis_vector retirement. Repointed the last call sites — the subtree

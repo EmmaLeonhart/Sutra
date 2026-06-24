@@ -1,10 +1,10 @@
 
 class Math extends vector {
-    static method scalar twice(number x) {
+    static method number twice(number x) {
         return x * 2;
     }
 
-    static method scalar squared(number x) {
+    static method number squared(number x) {
         return x * x;
     }
 }

@@ -48,41 +48,35 @@ _Batches 1–2 drained 2026-06-23 (in-process embeddings, first-run UX, package 
 tutorial 05, list-ops, `sutrac repl`; tutorial 01/04 fixes, stale-count sweep, onboarding polish).
 History in `DEVLOG.md` / `git log`._
 
-## Batch 3 — ALIAS + AFFORDANCE AUDIT (Emma 2026-06-23)
+_Batch 3 (ALIAS + AFFORDANCE sweep) DONE 2026-06-23: `truth_value`/`complex_number`/`real_number` →
+`make_*`; `basis_vector` → `embed` (builtin deleted, collect renamed); `unk` → `unknown`; `scalar` type
+→ `number` (fully removed incl. the parser/static-method sites); `iff` → `xnor` (removed from BOTH lexer
+AND parser tables). `embed`/`make_*`/`number`/`unknown`/`xnor` are the single canonical spellings. Other
+logical-connective spellings stay (Emma). All verified (compiler 811, smoke PASS, demos 224). History in
+DEVLOG + git log. CLAUDE.md § "Deprecate aliases aggressively" records the rules + carve-outs._
 
-Emma's directive: the next loop audits Sutra's **internal aliases + affordances** and deprecates them
-aggressively (see CLAUDE.md § "Deprecate aliases aggressively" — affordances cause bad agent behaviour;
-one canonical spelling per operation). Scope is *internal redundancy* (two Sutra-native names for one
-Sutra op), NOT the foreign-ecosystem carve-out (`make_char`, JS shims, `AXIS_CHAR_FLAG`, TS coercion —
-those stay).
+## Batch 4 — stale-reference cleanup (from the post-alias readability audit, 2026-06-23)
 
-**`basis_vector` is DECIDED (Emma 2026-06-23): a pure alias for `embed`.** `embed` is canonical;
-`basis_vector` is on its way out. First concrete target of this batch — mark deprecated, repoint every
-call site (`examples/*.su`, corpus, docs) to `embed` (behaviour identical, tests unchanged), and fix the
-now-false "random basis / pairwise cosine ~0" comments in `nearest_phrase.su` + `classifier.su`. Finding:
-`planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
+The alias removals left STALE references in comments/docs that still present removed spellings as usable.
+These are readability/affordance debt (an agent reading them may think `basis_vector`/`scalar`/`iff`
+exist). Substrate-purity PROSE uses of the WORD "scalar" ("scalar extraction", "host scalar",
+"make_real(scalar)") are CORRECT — do NOT touch those; only the removed-TYPE/BUILTIN spellings. Barrel:
 
-Items below atomised from the alias+affordance audit (2026-06-23, verified counts). Barrel top to bottom.
-The foreign-ecosystem carve-out (`make_char`, `JavaScriptObject`+overrides, TS coercion shims,
-`AXIS_CHAR_FLAG`, `array_length`/`array_get`, substrate-pure `real(v)`/`imag(v)`) was considered and is
-KEPT — do not touch it.
+1. **stdlib comments referencing removed spellings.** `stdlib/embed.su:36,40-41` (presents `basis_vector`
+   as a current alias — drop it); `stdlib/vectors.su:64-75` (DELETE the commented-out
+   `function vector basis_vector(string name)` doc block — documents a removed alias);
+   `stdlib/axons.su:12-13,16` (`bind(basis_vector(k), v)` → `embed(k)`); `stdlib/README.md:61` (remove the
+   `basis_vector` op entry); `stdlib/logic.su:116-117` (delete "`iff` is the natural-language alias the
+   lexer also accepts"). Verify the stdlib still loads + a smoke compile.
 
-_Resolution path CONFIRMED 2026-06-23: bare-call dispatch is `BUILTINS` → else `intrinsic_names()` →
-`_VSA.<name>` → else user call. `make_real`/`make_truth`/`make_complex`/`embed` are all intrinsics, so
-deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonical form reachable._
+2. **docs presenting removed `iff` / `basis_vector` as usable.** `docs/operators.md:363` (`basis_vector`
+   "being removed" → past tense, use `embed`) + `:25,:34` iff in the connective tables; `docs/capabilities.md:24,199`
+   + `docs/logical-operations.md:162,195` (drop `iff` now it errors). Verify site builds.
 
-_`basis_vector` → `embed` FULLY DONE 2026-06-23: subtree (`demos/**` + `external/Yantra/**` + the
-font-bound generators + a Yantra test + a bench script) repointed to `embed`, `_builtin_basis_vector` +
-its BUILTINS entry DELETED, the dead `_is_basis_vector_literal_call` branch removed, and
-`collect_basis_vector_strings` → `collect_embedded_strings` (collect now keys off `EmbedExpr` only).
-Zero `basis_vector(` call sites remain. `embed` is the one canonical spelling. Verification (full suite +
-demos + smoke) gating the commit._
-
-_`scalar` type → `number` and `iff` → `xnor` both FULLY REMOVED 2026-06-23 (Emma: paper unfrozen, so no
-frozen-archive reason; iff dropped too — but OTHER logical-connective spellings stay, her call). ~1300
-sites repointed across .su/tests/demos/Yantra/paper; `scalar` gone from PRIMITIVE_TYPE_NAMES + parser +
-validator + codegen type-sets; font generators fixed. See DEVLOG. Verification (full suite + demos +
-smoke) gating the commit._
+3. **codegen prose comments.** `codegen.py` + `codegen_pytorch.py` (lines ~92/515/685/2153/2240) +
+   `multi_process.py:19` + `README.md:19` still say "basis_vector(...) string" describing the embed
+   pre-fetch collector (now `collect_embedded_strings`, keys off `embed`). Replace "basis_vector(...)" →
+   "embed(...)" in those comments. (Low value, internal — do last.)
 
 ---
 

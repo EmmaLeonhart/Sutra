@@ -1,7 +1,7 @@
 
 class VSA extends vector {
     static intrinsic method vector zero_vector();
-    static intrinsic method scalar similarity(vector a, vector b);
+    static intrinsic method number similarity(vector a, vector b);
 }
 
 // Object loops — loop function declarations inside a class body.
@@ -14,11 +14,11 @@ class Counter extends vector {
 }
 
 class Math extends vector {
-    static method scalar twice(number x) {
+    static method number twice(number x) {
         return x * 2;
     }
 
-    static method scalar square(number x) {
+    static method number square(number x) {
         number y = x * x;
         return y;
     }
