@@ -1,3 +1,13 @@
+## 2026-06-23: newcomer-usability audit → Batch 5 refill (+ fixed an iff Batch-4 miss)
+
+Ran a fresh readability/usability audit (onboarding, error messages, real-program reach). Headline: the
+validator is INTENTIONALLY lenient (validator.py:21-29) — unknown TYPES (`vec`, removed `scalar`) and unknown
+FUNCTION calls (typos) are silently accepted and fail cryptically at runtime (confirmed empirically: only
+a missing-semicolon and the removed-iff parse errors fire; `function scalar f()` / `bogus(1)` validate
+clean). That root cause (H1) + argmax_cosine/select being stdlib-undiscoverable + the snap codegen-trap +
+the no-I/O reach limit are atomised into queue.md Batch 5. Also fixed inline: `docs/primitive-classes.md`
+still shipped the removed `iff(a,b)` form on a website page (a Batch-4 cleanup miss) → `xnor`.
+
 # Development Log
 
 ## 2026-06-23 daily audit: clean (77 .su compiled, 0 leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec)

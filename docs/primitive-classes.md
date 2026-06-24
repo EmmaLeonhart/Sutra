@@ -227,8 +227,8 @@ is polynomial arithmetic, compositions symbolically collapse to
 simpler polynomials. Two standard cases reduce surprisingly far:
 
 ```
-xor(a, b) = (a && !b) || (!a && b)   =   -a · b
-iff(a, b) = (a → b) && (b → a)       =    a · b
+xor(a, b)  = (a && !b) || (!a && b)   =   -a · b
+xnor(a, b) = (a → b) && (b → a)       =    a · b
 ```
 
 On a signed truth scale where `-1 = false`, `0 = unknown`, `+1 = true`,
