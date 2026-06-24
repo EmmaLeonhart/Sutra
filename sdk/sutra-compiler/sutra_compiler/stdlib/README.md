@@ -58,7 +58,7 @@ pipeline has three categories of stdlib entries:
 
 ### `vectors.su` — VSA ops
 - **Blocked pseudo-Sutra:** `bind`, `unbind`, `bundle`,
-  `basis_vector` (alias for embed), `permute`, `permutation_key`,
+  `permute`, `permutation_key`,
   `identity_permutation`, `compose`
   (some are also runtime builtins via codegen_base's BUILTINS table;
   intrinsic declarations here are pending cleanup)

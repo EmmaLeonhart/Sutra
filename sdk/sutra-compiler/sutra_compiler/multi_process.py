@@ -16,7 +16,7 @@ What this is:
     interpreter process.
   - **Shared codebook + embedding cache.** Without rebinding, each
     compiled module would have its own `_VSA._codebook` dict and
-    re-fetch every `basis_vector("...")` from Ollama. The shared
+    re-fetch every `embed("...")` from Ollama. The shared
     `_VSA` makes the codebook a connectome-wide thing — the cost
     that the v0.3.0 batched `embed_batch` was added to amortize.
   - **A concurrent dispatch point (`tick_all`).** Programs' independent

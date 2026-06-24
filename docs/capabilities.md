@@ -21,7 +21,7 @@ There is **one shipped** training instance in the whole language today (the equa
 
 ## 2. Contextual keywords (lex as identifier; parser/codegen recognize)
 
-`role`, `element`, `iterator`, `defuzzy`, `embed`, `unsafeCast`, `unsafeOverride`; logical-connective names `not`, `and`, `or`, `nand`, `xor`, `xnor`, `iff` (alias for `xnor`).
+`role`, `element`, `iterator`, `defuzzy`, `embed`, `unsafeCast`, `unsafeOverride`; logical-connective names `not`, `and`, `or`, `nand`, `xor`, `xnor`.
 
 **Training: n/a** for the syntax. See §13 for the per-operator training notes on the connectives this maps to.
 
@@ -196,7 +196,7 @@ The Kleene connectives lower to Lagrange-interpolated polynomials over the truth
 | `!` (also `not`, `~`) | unary | vision — coefficients of the `−a` form are trivial today but a trainable shape would generalize |
 | `nand` | binary | vision |
 | `xor` | binary | vision |
-| `xnor` (alias `iff`) | binary | vision |
+| `xnor` | binary | vision |
 
 ### Assignment, member access, calls
 

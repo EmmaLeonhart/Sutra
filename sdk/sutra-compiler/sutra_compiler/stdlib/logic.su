@@ -113,8 +113,7 @@ function fuzzy logical_xor(fuzzy a, fuzzy b) {
 //   (-1,-1)   -> +1   (F <-> F = T)
 //   (0,  1)   ->  0   (unknown bilateral)
 //
-// Same shape as logical_xor with the sign flipped. `iff` is the
-// natural-language alias the lexer also accepts.
+// Same shape as logical_xor with the sign flipped.
 function fuzzy logical_xnor(fuzzy a, fuzzy b) {
     return a * b;
 }

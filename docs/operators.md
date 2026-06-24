@@ -22,7 +22,7 @@ Status legend:
 
 Sutra's logic is fuzzy — every value lives on the truth axis as a number in `[-1, +1]` (Kleene K₃: `+1` true, `0` unknown, `-1` false). Logical operators are Lagrange polynomials over this scheme: exact on the three-valued grid, smooth everywhere, differentiable for gradient flow.
 
-Each connective accepts multiple spellings; all forms produce identical AST and lower to the same stdlib polynomial body. The keyword forms (`not`, `and`, `or`, `nand`, `xor`, `xnor`, `iff`) are case-insensitive AND contextual — they only become operators in expression positions, so user identifiers like `Iff`, `Nand`, or `XorTable` keep parsing as plain names.
+Each connective accepts one or more spellings; all forms produce identical AST and lower to the same stdlib polynomial body. The keyword forms (`not`, `and`, `or`, `nand`, `xor`, `xnor`) are case-insensitive AND contextual — they only become operators in expression positions, so user identifiers like `Xnor`, `Nand`, or `XorTable` keep parsing as plain names.
 
 | Connective | Symbolic | Keyword (case-insensitive) | Stdlib body |
 |---|---|---|---|
@@ -31,7 +31,7 @@ Each connective accepts multiple spellings; all forms produce identical AST and 
 | NAND | —                    | `a nand b`             | `!(a && b)` |
 | OR   | `a \|\| b`, `a \| b` | `a or b`               | `(a + b − ab + a² + b² − a²b²) / 2` |
 | XOR  | —                    | `a xor b`              | `0 - a * b` |
-| XNOR | —                    | `a xnor b`, `a iff b`  | `a * b` |
+| XNOR | —                    | `a xnor b`             | `a * b` |
 | EQ   | `a == b`             | —                      | cosine similarity on truth axis (intrinsic) |
 | NEQ  | `a != b`             | —                      | `!(a == b)` |
 | LT   | `a < b`              | —                      | `b > a` |
@@ -97,7 +97,7 @@ function fuzzy logical_xnor(fuzzy a, fuzzy b) {
 }
 ```
 
-NOT(XOR), which simplifies to the bare product. Spellings: `a xnor b`, `a iff b`. **Status: in Sutra** (`stdlib/logic.su`).
+NOT(XOR), which simplifies to the bare product. Spelling: `a xnor b`. **Status: in Sutra** (`stdlib/logic.su`).
 
 ### `a == b` — fuzzy equality (cosine on truth axis)
 
@@ -360,7 +360,7 @@ The LLM-substrate intrinsic: a string goes in, a (mean-centered, normalized) vec
 intrinsic function vector embed(string name);
 ```
 
-`embed` is the canonical spelling. `basis_vector(name)` was a pure alias for it (same lowering) used in VSA role-allocation contexts; it is **deprecated as of 2026-06-23** and being removed — use `embed` everywhere.
+`embed` is the canonical (and only) spelling. `basis_vector(name)` was a pure alias for it, **removed 2026-06-23** — use `embed`.
 
 **Status: intrinsic** (`embed`).
 

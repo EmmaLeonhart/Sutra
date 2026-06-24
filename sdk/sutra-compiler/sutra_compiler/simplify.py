@@ -1,4 +1,4 @@
-"""AST simplification pass + basis_vector-argument collection.
+"""AST simplification pass + embed-argument collection.
 
 Runs after parsing, before codegen. Takes an `ast.Module` and
 returns a simplified `ast.Module` with algebraic rewrites applied.

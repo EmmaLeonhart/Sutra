@@ -3669,7 +3669,7 @@ class BaseCodegen:
             param_types = self._func_param_types.get(name)
             # Axon role-key intrinsics: the `key` arg is a role NAME the
             # runtime embeds into a basis vector (axons.su:
-            # `axon_item(a,k) → unbind(basis_vector(k), a)`), NOT string
+            # `axon_item(a,k) → unbind(embed(k), a)`), NOT string
             # content. It must reach the runtime as a host str so
             # axon_add / axon_item take their `isinstance(key, str)` →
             # embed(key) branch — consistently with the member-access

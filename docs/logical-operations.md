@@ -159,7 +159,7 @@ Each row shows the composition in terms of the three primitives **and** the simp
 | `nand(a, b)` | `!(a && b)` | `(−a − b − ab + a² + b² − a²b²) / 2` | 4 |
 | `nor(a, b)` | `!(a \|\| b)` | `(−a − b + ab − a² − b² + a²b²) / 2` | 4 |
 | `xor(a, b)` | `(a && !b) \|\| (!a && b)` | **`−a · b`** | **2** |
-| `iff(a, b)` | `(a → b) && (b → a)` | **`a · b`** | **2** |
+| `xnor(a, b)` | `(a → b) && (b → a)` | **`a · b`** | **2** |
 
 ### The NAND / NOR polynomials are just negations
 
@@ -188,11 +188,11 @@ NOR(a, b)  =  !(a || b)
 
 Again, just sign flips. You don't need to memorize two new polynomials; just remember "NAND = negated AND polynomial, NOR = negated OR polynomial." At the substrate level Sutra can also run NAND as a composition `!(a && b)` — two runtime ops (an AND polynomial plus a sign flip). Same answer, slightly more hops.
 
-### XOR and IFF
+### XOR and XNOR
 
 ```
-xor(a, b) = (a && !b) || (!a && b)   =   -a · b
-iff(a, b) = (a → b) && (b → a)       =    a · b
+xor(a, b)  = (a && !b) || (!a && b)   =   -a · b
+xnor(a, b) = (a → b) && (b → a)       =    a · b
 ```
 
 On a signed truth scale (`-1 = false`, `+1 = true`, `0 = unknown`), the product of signs is `+1` when they agree, `-1` when they disagree, `0` when either is unknown. That's the IFF truth table; negated, it's XOR.
@@ -306,7 +306,7 @@ AND / OR / NOT / equality / defuzzification live on the truth axis — values ar
 graph TB
     LIT["true / false / unknown / 0.7<br/>truth-axis literal"]
     OP["! / && / ||<br/>polynomial primitive"]
-    DER["xor / iff / nand / nor / →<br/>derived by composition"]
+    DER["xor / xnor / nand / nor / →<br/>derived by composition"]
     SIMP["compile-time simplifier<br/>(future) folds to direct polys"]
     EQ["a == b<br/>cosine similarity"]
     DEF["defuzzy(x)<br/>project + iterate eq"]
