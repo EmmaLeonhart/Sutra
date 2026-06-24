@@ -1954,21 +1954,21 @@ class Parser:
 
     # Logical operator precedence (lowest to highest):
     #   ||  or                  (parse_logical_or)
-    #   xor xnor iff nand       (parse_logical_xor)
+    #   xor xnor nand           (parse_logical_xor)
     #   &&  and                 (parse_logical_and)
     #   ==  !=                  (parse_equality)
     #   <   <=  >  >=           (parse_comparison)
     # Symbolic and keyword forms produce the same op-string in the
     # AST so the inliner can lower uniformly. The keyword forms
-    # (`and`, `or`, `nand`, `xor`, `xnor`, `iff`, `not`) are
+    # (`and`, `or`, `nand`, `xor`, `xnor`, `not`) are
     # CONTEXTUAL — they lex as IDENT and the parser checks their
     # lowercased lexeme here so user identifiers with the same
-    # spelling (e.g. `Iff`, `Nand`) keep working.
+    # spelling (e.g. `Xnor`, `Nand`) keep working.
+    # (The `iff` alias for `xnor` was removed 2026-06-23.)
     _LOGICAL_OR_KW = {"or"}             # binary, op="||"
     _LOGICAL_XOR_KW = {                  # binary, op as named
         "xor":  "xor",
         "xnor": "xnor",
-        "iff":  "xnor",
         "nand": "nand",
     }
     _LOGICAL_AND_KW = {"and"}            # binary, op="&&"

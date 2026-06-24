@@ -4,7 +4,7 @@ Most languages treat `int`, `float`, and `complex` as three separate types with 
 
 The practical consequence: **complex numbers are handled isomorphically with int and float.** There's no "fallback to complex when the types escalate" and no wrapper class. A complex is a real number that happens to have populated its imaginary coordinate too.
 
-> **A note on the name.** The general numeric type is `number`. You may see `scalar` in older material and in the frozen NeurIPS archive — it is a **deprecated alias** that still compiles, kept only so that archive stays reproducible. Prefer `number` in new code. The rename is deliberate: a *scalar* is a 0-dimensional tensor, but a Sutra number is a value carried on the number axis of a full vector — conceptually a different object, so the old name implied the wrong thing.
+> **A note on the name.** The general numeric type is `number`. Older material may show `scalar`, which was a deprecated alias — it was **removed in 2026-06-23**; use `number`. The rename was deliberate: a *scalar* is a 0-dimensional tensor, but a Sutra number is a value carried on the number axis of a full vector — conceptually a different object, so the old name implied the wrong thing.
 
 ---
 

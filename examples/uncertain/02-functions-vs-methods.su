@@ -61,6 +61,6 @@ function number Add(number a, number b) {
 }
 
 // What the compiler sees:
-// function public static scalar Add(number a, number b) {
+// function public static number Add(number a, number b) {
 //     return function.add(a, b);
 // }

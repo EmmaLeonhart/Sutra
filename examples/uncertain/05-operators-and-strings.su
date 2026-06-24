@@ -37,7 +37,7 @@ fuzzy similar = cat == pet;       // Cosine similarity
 // just function resolution.
 
 // Full internal form of an operator:
-function public static scalar operator +(number a, number b) {
+function public static number operator +(number a, number b) {
     return function.add(a, b);
 }
 
