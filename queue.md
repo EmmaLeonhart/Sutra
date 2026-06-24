@@ -67,13 +67,7 @@ comments (referencing the removed spelling as history) — not misleading, left 
 Fresh readability/usability audit (onboarding + error messages + real-program reach). `iff` on the public
 `docs/primitive-classes.md` page (a Batch-4 miss) was fixed inline. Barrel the rest top to bottom:
 
-1. **Make `argmax_cosine` / `select` discoverable in the stdlib (M4).** They're the most-used primitives
-   (every tutorial) but appear in `stdlib/similarity.su` only as commented-out "blocked pseudo-Sutra," so a
-   newcomer grepping the stdlib finds only prose. Add real `intrinsic function` declarations (signature +
-   arity) for `argmax_cosine` (and `select`) so they're discoverable + IDE-completable. Verify stdlib loads
-   + a program using them still compiles identically.
-
-2. **Unknown-type + unknown-function diagnostics (H1 — ROOT CAUSE, highest leverage; careful tick).** The
+1. **Unknown-type + unknown-function diagnostics (H1 — ROOT CAUSE, highest leverage; careful tick).** The
    validator is INTENTIONALLY lenient (`validator.py:21-29` documents "no name resolution / no arity
    check"), so `vec x = …`, `scalar` (removed), `argmaxcosine(…)` (typo) all validate clean and fail
    cryptically at runtime. Add a resolution pass: `SUT01xx unknown type` (TypeRef.name ∉ PRIMITIVE_TYPE_NAMES
@@ -82,18 +76,18 @@ Fresh readability/usability audit (onboarding + error messages + real-program re
    WARNING level first, with the full allowlist; RUN THE FULL SUITE (many .su may trip it) + fix/allowlist
    before claiming green. This also makes removed spellings (`scalar`, `iff`) finally visible. Own tick.
 
-3. **`snap` trap (M5).** Tutorial 03 is titled "Snap-to-nearest" and teaches `snap`, but `snap` is REJECTED
+2. **`snap` trap (M5).** Tutorial 03 is titled "Snap-to-nearest" and teaches `snap`, but `snap` is REJECTED
    at codegen (raw `CodegenNotSupported`). Make it a clear validator diagnostic ("`snap` not yet supported
    on the PyTorch substrate — use `argmax_cosine` against an explicit codebook") AND adjust tutorial 03 to
    lead with `argmax_cosine`, demoting `snap` to a clearly-marked "future" sidebar.
 
-4. **I/O reach + concept page (M6).** Sutra has no `print`/stdin/file-read; the only host bridge is
+3. **I/O reach + concept page (M6).** Sutra has no `print`/stdin/file-read; the only host bridge is
    `main()`'s return + `load_matrix`/embeddings as inputs. This is stated once (tutorial 01) and never
    reinforced; tutorial 05's FAQ bot can't actually READ a user question (hardcoded). Add a short concept
    page on the no-I/O model + the host-bridge, reference it from tutorial 05's "Extend it." ⚠ Whether a
    minimal INPUT primitive is on the roadmap is Emma's design call — FLAG it, don't build one.
 
-5. **`dict<K,V>` discoverability (L11, LOW).** The rotation-hashmap `dict<K,V>` is real but has no tutorial/
+4. **`dict<K,V>` discoverability (L11, LOW).** The rotation-hashmap `dict<K,V>` is real but has no tutorial/
    concept page; link `memory.su`'s `hashmap_*` from `docs/list-operations.md` "Related" or add a short example.
 
 ---

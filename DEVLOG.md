@@ -1,3 +1,16 @@
+## 2026-06-24: Batch 5.2 — argmax_cosine/select stdlib discoverability
+
+The audit flagged argmax_cosine/select (used in every tutorial) as undiscoverable — they appeared in
+stdlib/similarity.su only under a "Section 2 — blocked on intrinsics" header that makes them look
+UNAVAILABLE. They are NOT blocked: the OPERATIONS are codegen-provided + callable; only writing their
+Sutra *implementation* is blocked (needs dot/stack/@/argmax the surface lacks). A faithful
+`intrinsic function` declaration is not expressible — the candidate arg is an inline array literal of
+vectors and `vector[]` is not a valid param type (verified: SUT0100; `list<vector>` parses but is the
+wrong type — a binding-array value, not a literal). So the honest fix is documentation: reframed the
+section header to "compiler-provided intrinsics (CALLABLE)" and added explicit "Call:" usage lines
+(`argmax_cosine(query, [c1,c2,c3])`, `select([s1,s2],[o1,o2])`). Also fixed a stray removed-`scalar` in
+the stdlib_loader docstring. Comment-only — stdlib loads, hello_world compiles, fast subset 115 passed.
+
 ## 2026-06-23: Batch 5.1 — quick doc-accuracy fixes
 
 Tutorial 01: the `vec`→SUT0102 claim was false (the validator silently accepts unknown types) — replaced
