@@ -54,7 +54,7 @@ def load_stdlib(stdlib_dir: str = STDLIB_DIR) -> Dict[str, ast.FunctionDecl]:
          the original stdlib form. Goes into the table by its bare
          name (`log`, `bind`, etc.).
       2. Class-body static methods on stdlib classes (`class Math {
-         static intrinsic method scalar log(scalar x); ... }`) — the
+         static intrinsic method number log(number x); ... }`) — the
          post-2026-05-01 namespaced form. Goes into the table under
          BOTH the bare name (`log`) and the namespaced name
          (`Math.log`). The bare-name entry preserves backward

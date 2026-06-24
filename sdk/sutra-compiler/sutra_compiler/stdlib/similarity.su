@@ -21,8 +21,17 @@ function fuzzy neq(vector a, vector b) {
 
 
 // ==========================================================================
-// Section 2 — blocked on intrinsics
+// Section 2 — compiler-provided intrinsics (CALLABLE; the Sutra bodies are blocked)
 // ==========================================================================
+//
+// IMPORTANT: the operations below ARE available — `argmax_cosine`, `select`,
+// `similarity`, and `eq` are provided directly by the codegen (vectorized
+// matmul + argmax/softmax in the emitted runtime). You call them like any
+// function; see each one's "Call:" line. What is "blocked" is writing their
+// *implementation* as Sutra source — the reference algorithms below need
+// primitives (`dot`, `stack`, `@`, `argmax`, runtime array indexing) that the
+// surface language doesn't expose yet, so the compiler ships the algorithm
+// directly instead. The pseudo-Sutra is the spec the codegen implements.
 //
 // eq — cosine similarity, placed on the truth axis.
 //
@@ -49,7 +58,15 @@ function fuzzy neq(vector a, vector b) {
 // Blocked on: `dot`, `sqrt`.
 
 
-// argmax_cosine — highest-cosine match from a candidate list.
+// argmax_cosine — highest-cosine match from a candidate list. CALLABLE.
+//
+//   Call: vector winner = argmax_cosine(query, [c1, c2, c3]);
+//   The candidates are an INLINE ARRAY LITERAL of vectors; returns the one
+//   nearest `query` by cosine. The cleanup primitive every retrieval demo uses
+//   (hello_world / nearest_phrase / classifier / semantic_faq).
+//
+// Reference algorithm the codegen implements (blocked as Sutra source on
+// `stack`, `@` matmul, `row_norms`, `argmax`, runtime array indexing):
 //
 //   function vector argmax_cosine(vector query, vector[] candidates) {
 //       matrix C       = stack(candidates);
@@ -57,12 +74,15 @@ function fuzzy neq(vector a, vector b) {
 //       int    best    = argmax(scores);
 //       return candidates[best];
 //   }
+
+
+// select — softmax-weighted superposition of option vectors. CALLABLE.
 //
-// Blocked on: `stack`, `@` matmul, `row_norms`, `argmax`, array indexing
-// with a runtime int.
-
-
-// select — softmax-weighted superposition of option vectors.
+//   Call: vector blended = select([s1, s2, s3], [o1, o2, o3]);
+//   Inline array literals: a score per option, a vector per option; returns the
+//   softmax-weighted blend (the fuzzy/branchless N-way conditional).
+//
+// Reference algorithm the codegen implements:
 //
 //   function vector select(number[] scores, vector[] options) {
 //       number[] s   = scores - max(scores);
