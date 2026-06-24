@@ -47,12 +47,12 @@ function void UseMapForms() {
     var weights = {"approach": 0.9, "ignore": 0.1, "search": 0.5};
 
     // Local map<K, V> declaration.
-    map<string, scalar> thresholds = {"fire": 0.85, "hold": 0.4};
+    map<string, number> thresholds = {"fire": 0.85, "hold": 0.4};
 
     // Map literal as a call argument.
     RegisterBehaviors({"a": 1, "b": 2});
 }
 
-function void RegisterBehaviors(map<string, scalar> table) {
+function void RegisterBehaviors(map<string, number> table) {
     return;
 }

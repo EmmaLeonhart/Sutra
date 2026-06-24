@@ -7,7 +7,7 @@
 // computation: decompose each operand into its 32 bit-planes, apply the
 // per-bit logic, and recombine.
 //
-// ── Why this is substrate-pure (not scalar extraction) ──────────────────────
+// ── Why this is substrate-pure (not number extraction) ──────────────────────
 //
 // A number-vector carries its value on AXIS_REAL and zero on every other
 // axis. `_VSA.band/bor/bxor` broadcast the WHOLE vector against a (32,)

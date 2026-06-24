@@ -23,7 +23,7 @@
 // so eigenrotation loops walk the semantic subspace while the
 // synthetic subspace (real / imag / truth / char-flag) stays untouched.
 //
-//   function matrix make_random_rotation(scalar angle, int n_planes,
+//   function matrix make_random_rotation(number angle, int n_planes,
 //                                        int seed) {
 //       matrix A        = randn(semantic_dim, semantic_dim, seed);
 //       (Q_sem, _)      = qr(A);
@@ -64,7 +64,7 @@
 //       matrix R,
 //       vector prototype_codebook,
 //       int max_iters,
-//       scalar match_threshold) {
+//       number match_threshold) {
 //       vector state = initial_state;
 //       int    i     = 0;
 //       loop (max_iters as i) {

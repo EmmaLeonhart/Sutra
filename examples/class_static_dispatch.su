@@ -1,10 +1,10 @@
 
 class Math extends vector {
-    static method scalar twice(scalar x) {
+    static method scalar twice(number x) {
         return x * 2;
     }
 
-    static method scalar squared(scalar x) {
+    static method scalar squared(number x) {
         return x * x;
     }
 }
@@ -16,9 +16,9 @@ class VSA extends vector {
     static intrinsic method vector zero_vector();
 }
 
-function scalar main_value() {
-    scalar a = Math.twice(3);     // 6
-    scalar b = Math.squared(4);   // 16
+function number main_value() {
+    number a = Math.twice(3);     // 6
+    number b = Math.squared(4);   // 16
     return a + b;                 // 22
 }
 

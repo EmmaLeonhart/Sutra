@@ -1109,7 +1109,7 @@ class BaseCodegen:
             # use a plain float zero as the placeholder; the numpy /
             # pytorch backends' make_truth / make_complex paths are
             # used by initialized declarations.
-            if type_name in ("fuzzy", "bool", "int", "scalar", "number",
+            if type_name in ("fuzzy", "bool", "int", "number",
                              "trit", "complex"):
                 if decl.array_size is not None:
                     self._emit(f"{decl.name} = [0.0] * {decl.array_size}")
@@ -3005,10 +3005,9 @@ class BaseCodegen:
             return None
 
     _TRUTH_TYPES = frozenset({"bool", "fuzzy", "trit"})
-    # `number` canonical; `scalar` deprecated alias (both classify
-    # identically — see lexer.py PRIMITIVE_TYPE_NAMES).
+    # `number` canonical (the `scalar` alias was removed 2026-06-23).
     _NUMBER_TYPES = frozenset(
-        {"int", "float", "complex", "number", "scalar", "char"}
+        {"int", "float", "complex", "number", "char"}
     )
     # Synthetic-axis-encoded types: numbers and strings live in the
     # synthetic block of the extended state vector. Per the user's
@@ -3025,7 +3024,7 @@ class BaseCodegen:
     # The codegen already treats `("string","String","Character")` together
     # for return-type handling; this set was the one place missing them.
     _SYNTHETIC_AXIS_TYPES = frozenset(
-        {"int", "float", "complex", "number", "scalar",
+        {"int", "float", "complex", "number",
          "char", "Character", "string", "String"}
     )
 

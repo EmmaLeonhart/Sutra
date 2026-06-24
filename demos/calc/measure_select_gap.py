@@ -44,7 +44,7 @@ from sutra_compiler.codegen_pytorch import translate_module  # noqa: E402
 OPS = {"+": 43, "-": 45, "*": 42, "/": 47}
 
 PROBE_SRC = """
-function scalar op_score(scalar cp, scalar target) {
+function number op_score(number cp, number target) {
     return 0.0 - 1000.0 * (cp - target) * (cp - target);
 }
 function int main() { return 0; }

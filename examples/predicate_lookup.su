@@ -52,7 +52,7 @@ vector graph = bundle(
 
 // Score how well (subject, predicate) implies object — cosine
 // similarity of the recovered bundle to the candidate object.
-function scalar fits(vector subject, vector predicate, vector object) {
+function number fits(vector subject, vector predicate, vector object) {
     vector recovered = unbind(predicate, unbind(subject, graph));
     return similarity(recovered, object);
 }

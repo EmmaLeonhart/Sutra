@@ -14,7 +14,7 @@ function vector NestedBlocks(vector v) {
     }
 }
 
-function scalar DeepIf(scalar x) {
+function number DeepIf(number x) {
     if (x < 0.0) {
         if (x < -1.0) {
             if (x < -2.0) {

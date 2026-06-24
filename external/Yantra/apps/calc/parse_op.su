@@ -20,11 +20,11 @@
 // passing an operator; a full substrate parser would gate this on "is this an
 // operator char" upstream.
 function vector op_code(string s) {
-    scalar cp = s.string_char_at(0);
-    scalar s_add = 0.0 - 1000.0 * (cp - 43.0) * (cp - 43.0);  // '+'
-    scalar s_sub = 0.0 - 1000.0 * (cp - 45.0) * (cp - 45.0);  // '-'
-    scalar s_mul = 0.0 - 1000.0 * (cp - 42.0) * (cp - 42.0);  // '*'
-    scalar s_div = 0.0 - 1000.0 * (cp - 47.0) * (cp - 47.0);  // '/'
+    number cp = s.string_char_at(0);
+    number s_add = 0.0 - 1000.0 * (cp - 43.0) * (cp - 43.0);  // '+'
+    number s_sub = 0.0 - 1000.0 * (cp - 45.0) * (cp - 45.0);  // '-'
+    number s_mul = 0.0 - 1000.0 * (cp - 42.0) * (cp - 42.0);  // '*'
+    number s_div = 0.0 - 1000.0 * (cp - 47.0) * (cp - 47.0);  // '/'
     return select(
         [s_add, s_sub, s_mul, s_div],
         [make_real(0.0), make_real(1.0), make_real(2.0), make_real(3.0)]

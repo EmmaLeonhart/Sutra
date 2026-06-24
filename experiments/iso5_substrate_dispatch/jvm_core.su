@@ -29,7 +29,7 @@
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1),
 // matching Jinja's `let v2=pop; v1=pop; push (v1 OP v2)`. pc advances 2 for
 // bipush, 1 otherwise; ireturn keeps pc so the machine idles with the result on top.
-function int step(scalar d) {
+function int step(number d) {
     int pc = ramRead(0);
     int sp = ramRead(1);
     int op = ramRead(pc);

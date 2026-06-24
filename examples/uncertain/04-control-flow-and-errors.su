@@ -23,7 +23,7 @@ function string Classify(Animal subject) {
 
 function vector Converge(vector start, vector target) {
     vector current = start;
-    scalar threshold = 0.99;
+    number threshold = 0.99;
 
     // while loop
     while (defuzzy(unsafeCast<fuzzy>(Cosine(current, target)))) {
@@ -45,7 +45,7 @@ function void ProcessBatch(tuple items) {
     }
 
     // do...while
-    scalar quality = 0.0;
+    number quality = 0.0;
     do {
         quality = MeasureQuality(items);
         items = Refine(items);

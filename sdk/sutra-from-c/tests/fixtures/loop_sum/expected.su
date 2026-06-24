@@ -30,7 +30,7 @@
 //
 // Status: this surface assumes Sutra's `do_while`/`loop` form accepts
 // an Axon-typed state parameter. Today the form supports primitive
-// scalar slots; whether `slot Axon a` and Axon-as-loop-state work is
+// number slots; whether `slot Axon a` and Axon-as-loop-state work is
 // an open question. The form parses but may need codegen extension
 // for the loop machinery to thread axons.
 //

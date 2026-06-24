@@ -4,6 +4,29 @@
 
 `experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist still held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch sentence-transformers einops`) and exercising the new 2026-06-22 in-process backend (`SUTRA_EMBED_BACKEND=transformers` to override the suite's ollama pin in `tests/conftest.py`, since the daemon isn't installed here) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live `nomic-ai/nomic-embed-text-v1.5` in-process embeddings; the 2 semantic-preservation legs (`test_await_semantics_preserved_{torch,numpy}`) decoded `main()` ≈ 3.0 to 3 places, so the spec-2 algebraic reduction (`await_value(p) → self.value(p)`) holds end-to-end under the new default backend too. No `for _ in range(100)` / `if self.isPending` reappeared in `codegen_pytorch.py`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; the only commit since the 2026-06-22 audit is `da92a4f` (in-process embed default), which touches the `embed_texts` host boundary, not any op definition. 16 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question; no spec/todo/findings authoritative resolution surfaced for any other dossier since 2026-06-22. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
 
+## 2026-06-23: alias batch (3) — `scalar` type + `iff` keyword FULLY REMOVED
+
+Emma corrected the scalar call: the paper + replication package are NO LONGER FROZEN, so the
+backward-compat reason for keeping `scalar` is void — drop it entirely. And `iff` → `xnor` after all
+(remove iff), though the OTHER logical-connective spellings stay (her call, she's unsure).
+
+**`scalar` removed:** repointed ~1300 type-position sites `scalar`→`number` via a targeted regex (the
+hazard was the substrate-purity PROSE — "scalar extraction", "host scalar", "make_real(scalar)" — which
+the patterns deliberately don't match; verified prose untouched). Scope: all `.su` (examples, corpus,
+demos incl. font.su's 980 sites, Yantra) + `tests/*.py` inline strings + the font generators
+(`generate_font*.py` templates) + `paper/supplementary/SYNTAX.md` + a few experiment/demo `.py`. Removed
+`scalar` from `PRIMITIVE_TYPE_NAMES` (lexer), `_PRIMITIVE_TYPES` (parser), the validator `PRIMITIVES` set,
+and codegen's `_NUMBER_TYPES`/`_SYNTHETIC_AXIS_TYPES`/init-classifier sets. Deleted the now-obsolete
+SUT0114 deprecation path + `test_scalar_deprecation.py` + the `TestNumberScalarAlias` class. Fixed a
+test asserting the old type name (`test_const_typed`) and the `iff` codegen tests.
+
+**`iff` removed:** repointed `examples/logical_connectives.su` to `xnor`, dropped the `iff` lexer entry +
+the `test_iff_alias_for_xnor` test (the identifier test repointed to `Xnor`). CLAUDE.md records both
+decisions + the carve-out keeping other connective spellings.
+
+Fast subset green (191 passed); FULL suite + `pytest demos/` (font ~400s) + smoke running to prove the
+~1300-site repoint is behaviour-identical before the commit lands.
+
 ## 2026-06-23: alias batch (3) — `scalar` deprecation diagnostic (SUT0114)
 
 Item 2. `scalar` is materially different from the other aliases: CLAUDE.md keeps it "for the frozen

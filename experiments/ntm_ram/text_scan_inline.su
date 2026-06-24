@@ -9,7 +9,7 @@
 // the ticks; decoding the returned value to a char is monitoring. This is
 // the step-2 inline surface (ramRead builtin -> _VSA.ram_read) running in
 // a real recur read head.
-function vector read_step(scalar dummy) {
+function vector read_step(number dummy) {
     recurring vector cur = make_real(0.0);
     vector val = ramRead(cur);
     recur(cur + make_real(1.0));

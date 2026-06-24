@@ -13,7 +13,7 @@ function string Classify(Animal subject) {
 }
 
 // else-if chain.
-function string Tier(scalar score) {
+function string Tier(number score) {
     if (score < 0.3) {
         return "low";
     } else if (score < 0.7) {
@@ -56,7 +56,7 @@ function void ForEachTyped(tuple items) {
 
 // do-while.
 function void DoWhileLoop(tuple items) {
-    scalar quality = 0.0;
+    number quality = 0.0;
     do {
         quality = MeasureQuality(items);
         items = Refine(items);

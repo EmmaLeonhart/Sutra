@@ -276,14 +276,13 @@ KEYWORDS = {
 # casing-drift checks, and so that the spec treats it as a primitive
 # container alongside `tuple`.
 PRIMITIVE_TYPE_NAMES = {
-    # `number` is the canonical name for a value on the number axis
-    # (real / imaginary components of a d-dim vector). `scalar` is a
-    # DEPRECATED ALIAS kept for backward compatibility with existing
-    # `scalar` programs — a `scalar` is a 0-d tensor, which is
-    # conceptually NOT what a Sutra number is, so the name misleads.
-    # New code uses `number`.
+    # `number` is the canonical name for a value on the number axis (real /
+    # imaginary components of a d-dim vector). The `scalar` alias was REMOVED
+    # 2026-06-23 (Emma — the paper + replication package are no longer frozen,
+    # so the backward-compat reason is void; one canonical spelling, CLAUDE.md
+    # § "Deprecate aliases aggressively"). A `scalar` (0-d tensor) was never
+    # what a Sutra number is, so the name misled.
     "number",
-    "scalar",
     "vector",
     "matrix",
     "tuple",
@@ -329,7 +328,7 @@ _LOGIC_KEYWORD_NAMES = {
     "nand": "nand",    # binary
     "xor":  "xor",     # binary
     "xnor": "xnor",    # binary
-    "iff":  "xnor",    # binary, alias for xnor
+    # (the `iff` alias for xnor was removed 2026-06-23 — one canonical spelling.)
 }
 
 # Contextual keywords: identifiers with special meaning in expressions

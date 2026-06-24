@@ -1,11 +1,11 @@
 // Sutra corpus test: primitive type declarations.
-// Covers: scalar, vector, matrix, tuple, string, bool, fuzzy, void
+// Covers: number, vector, matrix, tuple, string, bool, fuzzy, void
 // All five primitive types plus bool and fuzzy, plus both var and
 // explicit-type declaration shapes.
 
 function void DeclareAllPrimitives() {
     // Explicit types — the normal C# shape.
-    scalar threshold = 0.85;
+    number threshold = 0.85;
     vector cat = embed("cat");
     string label = "result";
 
@@ -20,6 +20,6 @@ function void DeclareAllPrimitives() {
 
     // `const` for immutable bindings, both inferred and explicit.
     const Ceiling = 0.99;
-    const scalar Floor = 0.01;
+    const number Floor = 0.01;
     const string ProgramName = "primitive demo";
 }

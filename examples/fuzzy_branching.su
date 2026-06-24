@@ -43,10 +43,10 @@ function string fuzzy_decide(
 ) {
     vector query = bind(smell, hunger);
 
-    scalar w_PH = similarity(query, proto_PH);
-    scalar w_PF = similarity(query, proto_PF);
-    scalar w_AH = similarity(query, proto_AH);
-    scalar w_AF = similarity(query, proto_AF);
+    number w_PH = similarity(query, proto_PH);
+    number w_PF = similarity(query, proto_PF);
+    number w_AH = similarity(query, proto_AH);
+    number w_AF = similarity(query, proto_AF);
 
     // Weighted superposition. All four branches execute; none is
     // selected by control flow.

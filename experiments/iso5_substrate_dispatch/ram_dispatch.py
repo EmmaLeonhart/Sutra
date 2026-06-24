@@ -10,7 +10,7 @@ def compile_src(src, dim=2):
     ns={}; exec(translate_module(ast, llm_model="none", runtime_dim=dim), ns); return ns
 # recurring-cursor step (NTM-read-head idiom): each call reads opcode at cur, dispatches
 # vs literal 99, advances cur. Mirrors test_synchronous_ram_read_in_recur.
-src=('function vector step(scalar dummy) {'
+src=('function vector step(number dummy) {'
      '  recurring vector cur = make_real(0.0);'
      '  int op = ramRead(cur).real();'
      '  recur(cur + make_real(1.0));'

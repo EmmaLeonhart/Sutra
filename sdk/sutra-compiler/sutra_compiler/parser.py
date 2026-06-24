@@ -111,10 +111,10 @@ _EXPR_START_TOKENS = {
 # Primitive type names. The parser treats these like any other type
 # identifier but keeps the set around for nicer error messages.
 _PRIMITIVE_TYPES = {
-    # `number` canonical; `scalar` deprecated alias (see lexer.py
-    # PRIMITIVE_TYPE_NAMES — kept for the frozen NeurIPS archive).
+    # `number` canonical; the `scalar` alias was REMOVED 2026-06-23 (see
+    # lexer.py PRIMITIVE_TYPE_NAMES).
     "number",
-    "scalar", "vector", "matrix", "tuple", "string",
+    "vector", "matrix", "tuple", "string",
     "bool", "fuzzy", "void", "permutation", "map",
     "char", "int",
     # trit = three-valued fuzzy (three-way polarizer in defuzz).

@@ -51,7 +51,7 @@ method string Describe() {
 /// Nested control flow and loops.
 function vector TrainingLoop(tuple examples, vector target) {
     vector current = target;
-    scalar quality = 0.0;
+    number quality = 0.0;
     var iter = 0;
     while (quality < 0.95) {
         foreach (var example in examples) {

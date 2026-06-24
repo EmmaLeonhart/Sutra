@@ -46,7 +46,7 @@ float pi_approx = 3.14159;
 complex c = 5 + 5i;
 
 // Complex multiplication uses three cached matrices + one element-
-// wise tensor multiply. No scalar extraction; pure tensor ops.
+// wise tensor multiply. No number extraction; pure tensor ops.
 complex product = c * (3 + 2i);
 
 // Complex addition is just vector addition — on the (real, imag)

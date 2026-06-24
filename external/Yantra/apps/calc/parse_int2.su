@@ -24,9 +24,9 @@
 // accumulator loop / digit array). NOT yet wired into calc.py — this is the
 // verified building block that unblocks the full substrate parser.
 function vector parse_int2(string s) {
-    scalar n  = s.string_length();
-    scalar c0 = s.string_char_at(0) - 48.0;
-    scalar c1 = s.string_char_at(1) - 48.0;
+    number n  = s.string_length();
+    number c0 = s.string_char_at(0) - 48.0;
+    number c1 = s.string_char_at(1) - 48.0;
     return make_real(c0 * (1.0 + 9.0 * (n - 1.0)) + c1 * (n - 1.0));
 }
 

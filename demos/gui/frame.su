@@ -21,7 +21,7 @@
 // single returned vector "reorganised" into pixels by a reverse-CNN-style
 // decoder — is the next step (planning/24-first-gui.md); this per-pixel field is
 // the smallest honest version that puts substrate-computed pixels on a screen.
-function vector pixel(scalar x, scalar y) {
+function vector pixel(number x, number y) {
     return make_real(1.0 - x * x - y * y);
 }
 

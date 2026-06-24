@@ -56,11 +56,11 @@ private function vector Helper(vector v) { return v * v; }
 // The surface syntax hides the defaults.
 
 // What you write:
-function scalar Add(scalar a, scalar b) {
+function number Add(number a, number b) {
     return a + b;
 }
 
 // What the compiler sees:
-// function public static scalar Add(scalar a, scalar b) {
+// function public static scalar Add(number a, number b) {
 //     return function.add(a, b);
 // }

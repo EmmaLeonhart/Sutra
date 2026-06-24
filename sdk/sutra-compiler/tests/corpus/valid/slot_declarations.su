@@ -7,6 +7,6 @@
 
 function void DeclareSlots() {
     slot int counter = 0;
-    slot scalar threshold = 0.5;
+    slot number threshold = 0.5;
     slot vector state;
 }

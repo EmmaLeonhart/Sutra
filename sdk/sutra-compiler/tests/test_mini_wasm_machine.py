@@ -27,7 +27,7 @@ import pytest
 
 def _rv(_vsa, _vec):
     # Host-side terminal-boundary read of a number-vector's real axis
-    # (the `real()` runtime method was removed — no scalar accessor). This
+    # (the `real()` runtime method was removed — no number accessor). This
     # is the sanctioned external verification read, done by direct indexing.
     return float(_vec[_vsa.semantic_dim + _vsa.AXIS_REAL])
 

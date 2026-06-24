@@ -19,7 +19,7 @@ function vector outer_demo(vector a, vector b) {
 }
 
 // Dot — inner product, scalar result. Same as `Tensor.dot(a, b)`.
-function scalar dot_demo(vector a, vector b) {
+function number dot_demo(vector a, vector b) {
     return Tensor.Dot(a, b);
 }
 
@@ -57,10 +57,10 @@ function vector unbind_low_level(vector role, vector record) {
 }
 
 // Similarity is dot product over norms:
-function scalar similarity_high_level(vector a, vector b) {
+function number similarity_high_level(vector a, vector b) {
     return similarity(a, b);
 }
 
-function scalar similarity_low_level(vector a, vector b) {
+function number similarity_low_level(vector a, vector b) {
     return Tensor.Dot(a, b) / (Tensor.Norm(a) * Tensor.Norm(b));
 }

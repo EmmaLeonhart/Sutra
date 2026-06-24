@@ -23,7 +23,7 @@
 //
 // make_real — scalar on the real axis, zero elsewhere.
 //
-//   function complex make_real(scalar x) {
+//   function complex make_real(number x) {
 //       vector v                    = zero_vector();
 //       v[semantic_dim + AXIS_REAL] = x;
 //       return v;
@@ -35,7 +35,7 @@
 
 // make_complex — two scalars placed on the real and imag axes.
 //
-//   function complex make_complex(scalar r, scalar i) {
+//   function complex make_complex(number r, number i) {
 //       vector v                    = zero_vector();
 //       v[semantic_dim + AXIS_REAL] = r;
 //       v[semantic_dim + AXIS_IMAG] = i;

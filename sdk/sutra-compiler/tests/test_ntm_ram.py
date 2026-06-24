@@ -25,7 +25,7 @@ import unittest
 
 def _rv(_vsa, _vec):
     # Host-side terminal-boundary read of a number-vector's real axis
-    # (the `real()` runtime method was removed — no scalar accessor). This
+    # (the `real()` runtime method was removed — no number accessor). This
     # is the sanctioned external verification read, done by direct indexing.
     return float(_vec[_vsa.semantic_dim + _vsa.AXIS_REAL])
 
@@ -97,7 +97,7 @@ class TestRamInlineSurface(unittest.TestCase):
         # address. State-locus holds (cursor is a recurring tensor; real()
         # is the I/O-wire address decode, not state extraction).
         ns = _compile_src(
-            'function vector head(scalar dummy) {'
+            'function vector head(number dummy) {'
             '  recurring vector cur = make_real(0.0);'
             '  vector x = ramRead(cur);'
             '  recur(cur + make_real(1.0)); return(x); }'
@@ -178,7 +178,7 @@ class TestNtmRamReadPath(unittest.TestCase):
         from run_demo import compile_su
         import tempfile
         src = (
-            'function vector build(scalar p, scalar d) {\n'
+            'function vector build(number p, number d) {\n'
             '    Axon a;\n'
             '    a.add("ptr", make_real(p));\n'
             '    a.add("data", make_real(d));\n'

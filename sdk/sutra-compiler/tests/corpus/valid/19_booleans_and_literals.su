@@ -16,7 +16,7 @@ function bool LiteralExpression() {
 function void Constants() {
     const bool AlwaysTrue = true;
     const bool AlwaysFalse = false;
-    const scalar Pi = 3.14159;
+    const number Pi = 3.14159;
     const string Greeting = "hello";
 
     if (AlwaysTrue) {

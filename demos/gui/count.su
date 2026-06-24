@@ -31,9 +31,9 @@ function vector step() {
     return(next_state);
 }
 
-function vector pixel(scalar x, scalar y, scalar n) {
-    scalar cx = (2.0 * n / 9.0) - 1.0;
-    scalar dx = x - cx;
+function vector pixel(number x, number y, number n) {
+    number cx = (2.0 * n / 9.0) - 1.0;
+    number dx = x - cx;
     return make_real(1.0 - dx * dx - y * y);
 }
 

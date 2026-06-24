@@ -37,7 +37,7 @@ fuzzy similar = cat == pet;       // Cosine similarity
 // just function resolution.
 
 // Full internal form of an operator:
-function public static scalar operator +(scalar a, scalar b) {
+function public static scalar operator +(number a, number b) {
     return function.add(a, b);
 }
 
@@ -61,7 +61,7 @@ function public static scalar operator +(scalar a, scalar b) {
 // C#-style. Strings are mostly for output and debugging.
 
 string name = "Mittens";
-scalar score = 0.92;
+number score = 0.92;
 string report = $"Cat '{name}' scored {score}";
 string detail = $"Embedding: {embed(name)}, Score: {score}";
 

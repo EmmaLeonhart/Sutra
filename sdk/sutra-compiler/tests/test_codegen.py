@@ -453,7 +453,7 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
     def test_static_method_emits_as_mangled_function(self):
         src = (
             "class Math extends vector {\n"
-            "  static method scalar twice(scalar x) {\n"
+            "  static method scalar twice(number x) {\n"
             "    return x * 2;\n"
             "  }\n"
             "}\n"
@@ -464,11 +464,11 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
     def test_class_namespace_call_dispatches_to_mangled_name(self):
         src = (
             "class Math extends vector {\n"
-            "  static method scalar twice(scalar x) {\n"
+            "  static method scalar twice(number x) {\n"
             "    return x * 2;\n"
             "  }\n"
             "}\n"
-            "function scalar caller() {\n"
+            "function number caller() {\n"
             "  return Math.twice(3);\n"
             "}\n"
         )
@@ -484,11 +484,11 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         # over module items should still register the static methods
         # so the call dispatches correctly.
         src = (
-            "function scalar caller() {\n"
+            "function number caller() {\n"
             "  return Math.twice(3);\n"
             "}\n"
             "class Math extends vector {\n"
-            "  static method scalar twice(scalar x) {\n"
+            "  static method scalar twice(number x) {\n"
             "    return x * 2;\n"
             "  }\n"
             "}\n"
@@ -570,7 +570,7 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         self.assertIn("Greeter_Inner(this)", py)
 
     def test_intrinsic_method_routes_to_VSA_runtime(self):
-        # `static intrinsic method scalar log(scalar x);` inside a
+        # `static intrinsic method scalar log(number x);` inside a
         # class body is a signature-only declaration. Calls of the form
         # `Math.log(x)` must dispatch to `_VSA.log(x)` directly — no
         # `Math_log` wrapper should be emitted, and no literal
@@ -1072,11 +1072,6 @@ class TestLogicalConnectives(unittest.TestCase):
         py = _compile(src)
         self.assertIn("(a * b)", py)
 
-    def test_iff_alias_for_xnor(self):
-        src = "function fuzzy main(fuzzy a, fuzzy b) { return a iff b; }"
-        py = _compile(src)
-        self.assertIn("(a * b)", py)
-
     def test_nand_via_keyword(self):
         # NAND = !AND, so the emitted form should have a negation
         # over the AND polynomial.
@@ -1085,18 +1080,18 @@ class TestLogicalConnectives(unittest.TestCase):
         self.assertIn("0 -", py)
         self.assertIn("0.5", py)
 
-    def test_iff_identifier_still_works(self):
-        # `Iff` is contextual — it lexes as IDENT, so a function named
-        # `Iff` still parses correctly. The keyword form `iff` only
-        # gets recognized in expression position by the parser.
+    def test_capitalized_keyword_name_still_works(self):
+        # Logic keywords are CONTEXTUAL — a capitalized identifier like
+        # `Xnor` lexes as IDENT, so a function named `Xnor` parses fine; the
+        # bare `xnor` keyword is only recognized in expression position.
         src = (
-            "function fuzzy Iff(fuzzy a, fuzzy b) {\n"
-            "  return (a iff b);\n"
+            "function fuzzy Xnor(fuzzy a, fuzzy b) {\n"
+            "  return (a xnor b);\n"
             "}\n"
         )
         # Just making sure compilation doesn't raise.
         py = _compile(src)
-        self.assertIn("def Iff(", py)
+        self.assertIn("def Xnor(", py)
 
 
 class TestChainedComparisons(unittest.TestCase):
