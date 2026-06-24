@@ -14,7 +14,7 @@ function void DemonstrateCasts(Animal subject) {
 
     // Cast down to primitives.
     vector asVector = (vector) checked;
-    scalar asScalar = (scalar) 0.5;
+    number asScalar = (number) 0.5;
     string asString = (string) checked;
 }
 

@@ -133,8 +133,8 @@ def gen_glyph_bundles() -> str:
 def gen_glyph_pixel_bound() -> str:
     """The runtime function: 36-way outer + 25-way pos + unbind + similarity."""
     lines: list[str] = []
-    lines.append("function vector glyph_pixel_bound(scalar x, scalar y, scalar char_code) {")
-    lines.append("    scalar pos = y * 5.0 + x;")
+    lines.append("function vector glyph_pixel_bound(number x, number y, number char_code) {")
+    lines.append("    number pos = y * 5.0 + x;")
     lines.append("")
     lines.append("    // 36-way defuzzified outer select picks the right glyph bundle by char_code.")
     lines.append("    // Same softmax-saturation pattern as the existing font.su glyph_pixel:")

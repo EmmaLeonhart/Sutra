@@ -11,7 +11,7 @@
 //
 // Pure vector math: dot product and L2 norms are element-wise
 // operations on the full substrate vector. The reduction produces
-// the scalar cosine, which gets placed on the truth axis to build
+// the number cosine, which gets placed on the truth axis to build
 // the fuzzy output. No hidden Python-bool path; no `ambiguous truth
 // value of array` errors.
 

@@ -371,7 +371,7 @@ class _Walker:
                     "Did you mean a different type?",
                     node.span,
                     code="SUT0120",
-                    hint="use a `scalar` for unbounded values, or clamp the "
+                    hint="use a `number` for unbounded values, or clamp the "
                          "literal into [-1, +1]",
                 )
 
@@ -532,23 +532,12 @@ class _Walker:
     def _record_type_usage(self, type_ref: Optional[ast.TypeRef]) -> None:
         if type_ref is None:
             return
-        if type_ref.name == "scalar":
-            # `scalar` is a DEPRECATED alias for `number` (CLAUDE.md § "Deprecate
-            # aliases aggressively"). Kept recognized for frozen-archive backward
-            # compat, but every use warns and points at the canonical `number`.
-            self.diagnostics.warning(
-                "type `scalar` is deprecated; use `number` instead",
-                type_ref.span,
-                code="SUT0114",
-                hint="`number` is the canonical name for a value on the number "
-                     "axis; `scalar` (a 0-d tensor) misleads and is being removed",
-            )
         # Only track user-defined types (not primitives) so we can
         # detect casing drift on the same logical name.
         PRIMITIVES = {
-            # `number` canonical; `scalar` deprecated alias.
+            # `number` canonical (the `scalar` alias was removed 2026-06-23).
             "number",
-            "scalar", "vector", "matrix", "tuple", "string",
+            "vector", "matrix", "tuple", "string",
             "bool", "fuzzy", "void", "permutation", "map",
         }
         if type_ref.name not in PRIMITIVES:

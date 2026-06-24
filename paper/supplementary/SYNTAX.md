@@ -195,10 +195,10 @@ function string fuzzy_decide(
     vector beh_PH, vector beh_PF, vector beh_AH, vector beh_AF
 ) {
     vector query = bind(smell, hunger);
-    scalar w_PH = similarity(query, proto_PH);
-    scalar w_PF = similarity(query, proto_PF);
-    scalar w_AH = similarity(query, proto_AH);
-    scalar w_AF = similarity(query, proto_AF);
+    number w_PH = similarity(query, proto_PH);
+    number w_PF = similarity(query, proto_PF);
+    number w_AH = similarity(query, proto_AH);
+    number w_AF = similarity(query, proto_AF);
     vector result =
         w_PH * beh_PH + w_PF * beh_PF +
         w_AH * beh_AH + w_AF * beh_AF;
@@ -292,7 +292,7 @@ The compiler enforces three invariants on every primitive:
    pre-warm) but never on the runtime hot path.
 2. **No scalar extraction inside an operation.** A primitive
    may not unpack a Python float from a substrate vector, do
-   scalar arithmetic, and pack the result back.
+   number arithmetic, and pack the result back.
 3. **No Python control flow inside an operation.** Loop halt
    uses substrate primitives (`heaviside`, `saturate_unit`)
    in place of Python ternaries.

@@ -67,16 +67,16 @@ def _compile_and_run(translate_fn, src: str, fn_name: str):
 # log is still a 0-d scalar. See TestTranscendentalsReturnNumberVector for
 # the new return-shape assertion.
 _PROGRAMS = [
-    ('function scalar f() { return real(Math.exp(2.0)); }\n',  "f", math.exp(2.0),    1e-3),
-    ('function scalar f() { return Math.log(2.0); }\n',  "f", math.log(2.0),    1e-3),
-    ('function scalar f() { return Math.sqrt(16.0); }\n', "f", 4.0,             1e-3),
-    ('function scalar f() { return Math.pow(2.0, 5.0); }\n', "f", 32.0,         1e-2),
-    ('function scalar f() { return real(Math.sin(0.5)); }\n',  "f", math.sin(0.5),    1e-3),
-    ('function scalar f() { return real(Math.cos(0.5)); }\n',  "f", math.cos(0.5),    1e-3),
-    ('function scalar f() { return Math.tan(0.5); }\n',  "f", math.tan(0.5),    1e-3),
-    ('function scalar f() { return Math.sinh(1.0); }\n', "f", math.sinh(1.0),   1e-3),
-    ('function scalar f() { return Math.cosh(1.0); }\n', "f", math.cosh(1.0),   1e-3),
-    ('function scalar f() { return Math.tanh(1.0); }\n', "f", math.tanh(1.0),   1e-3),
+    ('function number f() { return real(Math.exp(2.0)); }\n',  "f", math.exp(2.0),    1e-3),
+    ('function number f() { return Math.log(2.0); }\n',  "f", math.log(2.0),    1e-3),
+    ('function number f() { return Math.sqrt(16.0); }\n', "f", 4.0,             1e-3),
+    ('function number f() { return Math.pow(2.0, 5.0); }\n', "f", 32.0,         1e-2),
+    ('function number f() { return real(Math.sin(0.5)); }\n',  "f", math.sin(0.5),    1e-3),
+    ('function number f() { return real(Math.cos(0.5)); }\n',  "f", math.cos(0.5),    1e-3),
+    ('function number f() { return Math.tan(0.5); }\n',  "f", math.tan(0.5),    1e-3),
+    ('function number f() { return Math.sinh(1.0); }\n', "f", math.sinh(1.0),   1e-3),
+    ('function number f() { return Math.cosh(1.0); }\n', "f", math.cosh(1.0),   1e-3),
+    ('function number f() { return Math.tanh(1.0); }\n', "f", math.tanh(1.0),   1e-3),
 ]
 
 
@@ -110,55 +110,6 @@ class TestAllTranscendentalsCompileAndCompute(unittest.TestCase):
                     rel, tol,
                     f"got={got}, true={true}, rel={rel:.2e}, tol={tol}",
                 )
-
-
-class TestNumberScalarAlias(unittest.TestCase):
-    """`number` is the canonical type name; `scalar` is a DEPRECATED
-    ALIAS retained for backward compatibility with existing `scalar`
-    programs. Both must compile and produce identical results.
-
-    A `scalar` is a 0-d tensor; a Sutra `number` is a value on the
-    number axis of a d-dim vector — conceptually different, which is
-    why `scalar` misleads and `number` is canonical (Emma 2026-05-17).
-    The existing `scalar` programs elsewhere in this suite double as
-    the alias-still-works regression guard; this adds the explicit
-    equivalence + canonical-name checks on both backends."""
-
-    _PAIRS = [
-        # (number_src, scalar_src, fn, expected)
-        ("function number f() { number x = 2.5; return x; }\n",
-         "function scalar f() { scalar x = 2.5; return x; }\n",
-         "f", 2.5),
-        ("function number f() { return real(Math.cos(0.0)); }\n",
-         "function scalar f() { return real(Math.cos(0.0)); }\n",
-         "f", 1.0),
-        ("function number f() { return real(Math.exp(1.0)); }\n",
-         "function scalar f() { return real(Math.exp(1.0)); }\n",
-         "f", math.e),
-    ]
-
-    def _both_backends(self, src, fn):
-        return (
-            _compile_and_run(torch_translate, src, fn),
-            _compile_and_run(np_translate, src, fn),
-        )
-
-    def test_number_canonical_and_scalar_alias_equivalent(self):
-        for num_src, scal_src, fn, expected in self._PAIRS:
-            with self.subTest(src=num_src.strip()):
-                nt, nn = self._both_backends(num_src, fn)
-                st, sn = self._both_backends(scal_src, fn)
-                for got in (nt, nn, st, sn):
-                    self.assertLess(
-                        abs(got - expected), 1e-3,
-                        f"{num_src.strip()} / scalar-alias: got={got}, "
-                        f"expected={expected}",
-                    )
-                # number and its scalar alias must agree exactly per
-                # backend (same lowering, alias is purely a parse-time
-                # synonym).
-                self.assertEqual(nt, st, "torch: number vs scalar alias")
-                self.assertEqual(nn, sn, "numpy: number vs scalar alias")
 
 
 class TestTranscendentalsReturnNumberVector(unittest.TestCase):
@@ -246,7 +197,7 @@ class TestComplexArgumentCosine(unittest.TestCase):
         # free functions `real(...)`/`imag(...)` (`_VSA._re`/`_im`, dot with the axis
         # one-hot, no host readout) are the replacement.
         src = (
-            f"function scalar f() {{ return "
+            f"function number f() {{ return "
             f"{part}(Math.ccos(make_complex({a!r}, {b!r}))); }}\n"
         )
         return _compile_and_run(torch_translate, src, "f")
@@ -296,7 +247,7 @@ class TestComplexArgumentSine(unittest.TestCase):
         # See TestComplexArgumentCosine._run_part: `real(...)`/`imag(...)` free
         # functions replace the removed `.real()`/`.imag()` method accessors.
         src = (
-            f"function scalar f() {{ return "
+            f"function number f() {{ return "
             f"{part}(Math.csin(make_complex({a!r}, {b!r}))); }}\n"
         )
         return _compile_and_run(torch_translate, src, "f")

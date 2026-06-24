@@ -86,7 +86,7 @@ function string decode_at(vector record, vector position) {
 // How similar are two sequence encodings? (Sequences sharing tokens
 // at the same positions will have high cosine; disjoint sequences
 // will have low cosine.)
-function scalar seq_similarity(vector a_seq, vector b_seq) {
+function number seq_similarity(vector a_seq, vector b_seq) {
     return similarity(a_seq, b_seq);
 }
 

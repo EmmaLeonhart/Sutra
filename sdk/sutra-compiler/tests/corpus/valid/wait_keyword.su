@@ -28,6 +28,6 @@ function void AssignmentBeforeAnyRead() {
     // only requires "at least one assignment before the function
     // exits." Reading happens via the return paths, which here
     // includes the implicit fall-through return for void functions.
-    scalar threshold = wait;
+    number threshold = wait;
     threshold = 0.85;
 }

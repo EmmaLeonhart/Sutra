@@ -30,7 +30,7 @@ function void DoNothing() {
 }
 
 // Function returning a primitive.
-function scalar ClampUnit(scalar s) {
+function number ClampUnit(number s) {
     if (s < 0.0) {
         return 0.0;
     } else {

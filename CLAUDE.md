@@ -79,6 +79,8 @@ Aliases are *allowed*, but in this project they must be **deprecated and removed
 - **A pure alias (same behaviour, different name) is the easiest thing to retire** — it has no semantic content of its own. Mark it deprecated, repoint call sites to the canonical name, and delete it. Do not let "it's harmless" keep it alive; harmless-but-present is exactly the affordance that misleads the next agent.
 - **The §carve-out above still holds** for aliases that absorb a *foreign ecosystem* (`make_char`, JS shims, `AXIS_CHAR_FLAG`) — those have a current cross-ecosystem purpose. The aggressive-deprecation rule targets *internal* redundancy: two Sutra-native names for one Sutra operation.
 - **Document deprecations** in the spec / docs so the canonical form is unambiguous, and so an agent reading the docs is steered to it rather than discovering the alias in the source.
+- **Retired so far (2026-06-23):** `truth_value`/`complex_number`/`real_number` → `make_*`; `basis_vector` → `embed`; `unk` → `unknown`; the `scalar` TYPE → `number` (FULLY removed — Emma: the paper + replication package are no longer frozen, so the backward-compat reason is void; don't reintroduce `scalar` as a recognized type); `iff` → `xnor` removed.
+- **Carve-out for logical-connective spellings (Emma 2026-06-23):** `iff` was removed, but the other connective aliases (`and`/`or` words, symbolic vs word forms, etc.) are NOT a decided removal — Emma is unsure. Leave them; do not retire connective spellings beyond `iff` without her say-so.
 
 `todo.md` is longer-horizon. `queue.md` is the next active session. Items migrate `todo.md` → `queue.md` → deleted on completion.
 

@@ -640,78 +640,78 @@ vector glyph_d9 = bundle(
     bind(p_23, LIT)
 );
 
-function vector glyph_pixel_bound(scalar x, scalar y, scalar char_code) {
-    scalar pos = y * 5.0 + x;
+function vector glyph_pixel_bound(number x, number y, number char_code) {
+    number pos = y * 5.0 + x;
 
     // 36-way defuzzified outer select picks the right glyph bundle by char_code.
     // Same softmax-saturation pattern as the existing font.su glyph_pixel:
     // exp(-1000 * delta^2) underflows in float64, making the matching score's
     // branch one-hot.
-    scalar sc_A = 0.0 - 1000.0 * (char_code - 65.0) * (char_code - 65.0);
-    scalar sc_B = 0.0 - 1000.0 * (char_code - 66.0) * (char_code - 66.0);
-    scalar sc_C = 0.0 - 1000.0 * (char_code - 67.0) * (char_code - 67.0);
-    scalar sc_D = 0.0 - 1000.0 * (char_code - 68.0) * (char_code - 68.0);
-    scalar sc_E = 0.0 - 1000.0 * (char_code - 69.0) * (char_code - 69.0);
-    scalar sc_F = 0.0 - 1000.0 * (char_code - 70.0) * (char_code - 70.0);
-    scalar sc_G = 0.0 - 1000.0 * (char_code - 71.0) * (char_code - 71.0);
-    scalar sc_H = 0.0 - 1000.0 * (char_code - 72.0) * (char_code - 72.0);
-    scalar sc_I = 0.0 - 1000.0 * (char_code - 73.0) * (char_code - 73.0);
-    scalar sc_J = 0.0 - 1000.0 * (char_code - 74.0) * (char_code - 74.0);
-    scalar sc_K = 0.0 - 1000.0 * (char_code - 75.0) * (char_code - 75.0);
-    scalar sc_L = 0.0 - 1000.0 * (char_code - 76.0) * (char_code - 76.0);
-    scalar sc_M = 0.0 - 1000.0 * (char_code - 77.0) * (char_code - 77.0);
-    scalar sc_N = 0.0 - 1000.0 * (char_code - 78.0) * (char_code - 78.0);
-    scalar sc_O = 0.0 - 1000.0 * (char_code - 79.0) * (char_code - 79.0);
-    scalar sc_P = 0.0 - 1000.0 * (char_code - 80.0) * (char_code - 80.0);
-    scalar sc_Q = 0.0 - 1000.0 * (char_code - 81.0) * (char_code - 81.0);
-    scalar sc_R = 0.0 - 1000.0 * (char_code - 82.0) * (char_code - 82.0);
-    scalar sc_S = 0.0 - 1000.0 * (char_code - 83.0) * (char_code - 83.0);
-    scalar sc_T = 0.0 - 1000.0 * (char_code - 84.0) * (char_code - 84.0);
-    scalar sc_U = 0.0 - 1000.0 * (char_code - 85.0) * (char_code - 85.0);
-    scalar sc_V = 0.0 - 1000.0 * (char_code - 86.0) * (char_code - 86.0);
-    scalar sc_W = 0.0 - 1000.0 * (char_code - 87.0) * (char_code - 87.0);
-    scalar sc_X = 0.0 - 1000.0 * (char_code - 88.0) * (char_code - 88.0);
-    scalar sc_Y = 0.0 - 1000.0 * (char_code - 89.0) * (char_code - 89.0);
-    scalar sc_Z = 0.0 - 1000.0 * (char_code - 90.0) * (char_code - 90.0);
-    scalar sc_d0 = 0.0 - 1000.0 * (char_code - 48.0) * (char_code - 48.0);
-    scalar sc_d1 = 0.0 - 1000.0 * (char_code - 49.0) * (char_code - 49.0);
-    scalar sc_d2 = 0.0 - 1000.0 * (char_code - 50.0) * (char_code - 50.0);
-    scalar sc_d3 = 0.0 - 1000.0 * (char_code - 51.0) * (char_code - 51.0);
-    scalar sc_d4 = 0.0 - 1000.0 * (char_code - 52.0) * (char_code - 52.0);
-    scalar sc_d5 = 0.0 - 1000.0 * (char_code - 53.0) * (char_code - 53.0);
-    scalar sc_d6 = 0.0 - 1000.0 * (char_code - 54.0) * (char_code - 54.0);
-    scalar sc_d7 = 0.0 - 1000.0 * (char_code - 55.0) * (char_code - 55.0);
-    scalar sc_d8 = 0.0 - 1000.0 * (char_code - 56.0) * (char_code - 56.0);
-    scalar sc_d9 = 0.0 - 1000.0 * (char_code - 57.0) * (char_code - 57.0);
+    number sc_A = 0.0 - 1000.0 * (char_code - 65.0) * (char_code - 65.0);
+    number sc_B = 0.0 - 1000.0 * (char_code - 66.0) * (char_code - 66.0);
+    number sc_C = 0.0 - 1000.0 * (char_code - 67.0) * (char_code - 67.0);
+    number sc_D = 0.0 - 1000.0 * (char_code - 68.0) * (char_code - 68.0);
+    number sc_E = 0.0 - 1000.0 * (char_code - 69.0) * (char_code - 69.0);
+    number sc_F = 0.0 - 1000.0 * (char_code - 70.0) * (char_code - 70.0);
+    number sc_G = 0.0 - 1000.0 * (char_code - 71.0) * (char_code - 71.0);
+    number sc_H = 0.0 - 1000.0 * (char_code - 72.0) * (char_code - 72.0);
+    number sc_I = 0.0 - 1000.0 * (char_code - 73.0) * (char_code - 73.0);
+    number sc_J = 0.0 - 1000.0 * (char_code - 74.0) * (char_code - 74.0);
+    number sc_K = 0.0 - 1000.0 * (char_code - 75.0) * (char_code - 75.0);
+    number sc_L = 0.0 - 1000.0 * (char_code - 76.0) * (char_code - 76.0);
+    number sc_M = 0.0 - 1000.0 * (char_code - 77.0) * (char_code - 77.0);
+    number sc_N = 0.0 - 1000.0 * (char_code - 78.0) * (char_code - 78.0);
+    number sc_O = 0.0 - 1000.0 * (char_code - 79.0) * (char_code - 79.0);
+    number sc_P = 0.0 - 1000.0 * (char_code - 80.0) * (char_code - 80.0);
+    number sc_Q = 0.0 - 1000.0 * (char_code - 81.0) * (char_code - 81.0);
+    number sc_R = 0.0 - 1000.0 * (char_code - 82.0) * (char_code - 82.0);
+    number sc_S = 0.0 - 1000.0 * (char_code - 83.0) * (char_code - 83.0);
+    number sc_T = 0.0 - 1000.0 * (char_code - 84.0) * (char_code - 84.0);
+    number sc_U = 0.0 - 1000.0 * (char_code - 85.0) * (char_code - 85.0);
+    number sc_V = 0.0 - 1000.0 * (char_code - 86.0) * (char_code - 86.0);
+    number sc_W = 0.0 - 1000.0 * (char_code - 87.0) * (char_code - 87.0);
+    number sc_X = 0.0 - 1000.0 * (char_code - 88.0) * (char_code - 88.0);
+    number sc_Y = 0.0 - 1000.0 * (char_code - 89.0) * (char_code - 89.0);
+    number sc_Z = 0.0 - 1000.0 * (char_code - 90.0) * (char_code - 90.0);
+    number sc_d0 = 0.0 - 1000.0 * (char_code - 48.0) * (char_code - 48.0);
+    number sc_d1 = 0.0 - 1000.0 * (char_code - 49.0) * (char_code - 49.0);
+    number sc_d2 = 0.0 - 1000.0 * (char_code - 50.0) * (char_code - 50.0);
+    number sc_d3 = 0.0 - 1000.0 * (char_code - 51.0) * (char_code - 51.0);
+    number sc_d4 = 0.0 - 1000.0 * (char_code - 52.0) * (char_code - 52.0);
+    number sc_d5 = 0.0 - 1000.0 * (char_code - 53.0) * (char_code - 53.0);
+    number sc_d6 = 0.0 - 1000.0 * (char_code - 54.0) * (char_code - 54.0);
+    number sc_d7 = 0.0 - 1000.0 * (char_code - 55.0) * (char_code - 55.0);
+    number sc_d8 = 0.0 - 1000.0 * (char_code - 56.0) * (char_code - 56.0);
+    number sc_d9 = 0.0 - 1000.0 * (char_code - 57.0) * (char_code - 57.0);
 
     vector glyph = select([sc_A, sc_B, sc_C, sc_D, sc_E, sc_F, sc_G, sc_H, sc_I, sc_J, sc_K, sc_L, sc_M, sc_N, sc_O, sc_P, sc_Q, sc_R, sc_S, sc_T, sc_U, sc_V, sc_W, sc_X, sc_Y, sc_Z, sc_d0, sc_d1, sc_d2, sc_d3, sc_d4, sc_d5, sc_d6, sc_d7, sc_d8, sc_d9], [glyph_A, glyph_B, glyph_C, glyph_D, glyph_E, glyph_F, glyph_G, glyph_H, glyph_I, glyph_J, glyph_K, glyph_L, glyph_M, glyph_N, glyph_O, glyph_P, glyph_Q, glyph_R, glyph_S, glyph_T, glyph_U, glyph_V, glyph_W, glyph_X, glyph_Y, glyph_Z, glyph_d0, glyph_d1, glyph_d2, glyph_d3, glyph_d4, glyph_d5, glyph_d6, glyph_d7, glyph_d8, glyph_d9]);
 
     // 25-way defuzzified select picks the matching position basis vector for pos.
-    scalar sp_00 = 0.0 - 1000.0 * (pos - 0.0) * (pos - 0.0);
-    scalar sp_01 = 0.0 - 1000.0 * (pos - 1.0) * (pos - 1.0);
-    scalar sp_02 = 0.0 - 1000.0 * (pos - 2.0) * (pos - 2.0);
-    scalar sp_03 = 0.0 - 1000.0 * (pos - 3.0) * (pos - 3.0);
-    scalar sp_04 = 0.0 - 1000.0 * (pos - 4.0) * (pos - 4.0);
-    scalar sp_05 = 0.0 - 1000.0 * (pos - 5.0) * (pos - 5.0);
-    scalar sp_06 = 0.0 - 1000.0 * (pos - 6.0) * (pos - 6.0);
-    scalar sp_07 = 0.0 - 1000.0 * (pos - 7.0) * (pos - 7.0);
-    scalar sp_08 = 0.0 - 1000.0 * (pos - 8.0) * (pos - 8.0);
-    scalar sp_09 = 0.0 - 1000.0 * (pos - 9.0) * (pos - 9.0);
-    scalar sp_10 = 0.0 - 1000.0 * (pos - 10.0) * (pos - 10.0);
-    scalar sp_11 = 0.0 - 1000.0 * (pos - 11.0) * (pos - 11.0);
-    scalar sp_12 = 0.0 - 1000.0 * (pos - 12.0) * (pos - 12.0);
-    scalar sp_13 = 0.0 - 1000.0 * (pos - 13.0) * (pos - 13.0);
-    scalar sp_14 = 0.0 - 1000.0 * (pos - 14.0) * (pos - 14.0);
-    scalar sp_15 = 0.0 - 1000.0 * (pos - 15.0) * (pos - 15.0);
-    scalar sp_16 = 0.0 - 1000.0 * (pos - 16.0) * (pos - 16.0);
-    scalar sp_17 = 0.0 - 1000.0 * (pos - 17.0) * (pos - 17.0);
-    scalar sp_18 = 0.0 - 1000.0 * (pos - 18.0) * (pos - 18.0);
-    scalar sp_19 = 0.0 - 1000.0 * (pos - 19.0) * (pos - 19.0);
-    scalar sp_20 = 0.0 - 1000.0 * (pos - 20.0) * (pos - 20.0);
-    scalar sp_21 = 0.0 - 1000.0 * (pos - 21.0) * (pos - 21.0);
-    scalar sp_22 = 0.0 - 1000.0 * (pos - 22.0) * (pos - 22.0);
-    scalar sp_23 = 0.0 - 1000.0 * (pos - 23.0) * (pos - 23.0);
-    scalar sp_24 = 0.0 - 1000.0 * (pos - 24.0) * (pos - 24.0);
+    number sp_00 = 0.0 - 1000.0 * (pos - 0.0) * (pos - 0.0);
+    number sp_01 = 0.0 - 1000.0 * (pos - 1.0) * (pos - 1.0);
+    number sp_02 = 0.0 - 1000.0 * (pos - 2.0) * (pos - 2.0);
+    number sp_03 = 0.0 - 1000.0 * (pos - 3.0) * (pos - 3.0);
+    number sp_04 = 0.0 - 1000.0 * (pos - 4.0) * (pos - 4.0);
+    number sp_05 = 0.0 - 1000.0 * (pos - 5.0) * (pos - 5.0);
+    number sp_06 = 0.0 - 1000.0 * (pos - 6.0) * (pos - 6.0);
+    number sp_07 = 0.0 - 1000.0 * (pos - 7.0) * (pos - 7.0);
+    number sp_08 = 0.0 - 1000.0 * (pos - 8.0) * (pos - 8.0);
+    number sp_09 = 0.0 - 1000.0 * (pos - 9.0) * (pos - 9.0);
+    number sp_10 = 0.0 - 1000.0 * (pos - 10.0) * (pos - 10.0);
+    number sp_11 = 0.0 - 1000.0 * (pos - 11.0) * (pos - 11.0);
+    number sp_12 = 0.0 - 1000.0 * (pos - 12.0) * (pos - 12.0);
+    number sp_13 = 0.0 - 1000.0 * (pos - 13.0) * (pos - 13.0);
+    number sp_14 = 0.0 - 1000.0 * (pos - 14.0) * (pos - 14.0);
+    number sp_15 = 0.0 - 1000.0 * (pos - 15.0) * (pos - 15.0);
+    number sp_16 = 0.0 - 1000.0 * (pos - 16.0) * (pos - 16.0);
+    number sp_17 = 0.0 - 1000.0 * (pos - 17.0) * (pos - 17.0);
+    number sp_18 = 0.0 - 1000.0 * (pos - 18.0) * (pos - 18.0);
+    number sp_19 = 0.0 - 1000.0 * (pos - 19.0) * (pos - 19.0);
+    number sp_20 = 0.0 - 1000.0 * (pos - 20.0) * (pos - 20.0);
+    number sp_21 = 0.0 - 1000.0 * (pos - 21.0) * (pos - 21.0);
+    number sp_22 = 0.0 - 1000.0 * (pos - 22.0) * (pos - 22.0);
+    number sp_23 = 0.0 - 1000.0 * (pos - 23.0) * (pos - 23.0);
+    number sp_24 = 0.0 - 1000.0 * (pos - 24.0) * (pos - 24.0);
 
     vector pos_vec = select([sp_00, sp_01, sp_02, sp_03, sp_04, sp_05, sp_06, sp_07, sp_08, sp_09, sp_10, sp_11, sp_12, sp_13, sp_14, sp_15, sp_16, sp_17, sp_18, sp_19, sp_20, sp_21, sp_22, sp_23, sp_24], [p_00, p_01, p_02, p_03, p_04, p_05, p_06, p_07, p_08, p_09, p_10, p_11, p_12, p_13, p_14, p_15, p_16, p_17, p_18, p_19, p_20, p_21, p_22, p_23, p_24]);
 

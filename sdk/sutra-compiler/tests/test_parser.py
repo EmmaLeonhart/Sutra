@@ -103,11 +103,11 @@ class TestDeclarations(unittest.TestCase):
         self.assertTrue(decl.is_const)
 
     def test_const_typed(self):
-        module, diag = parse("function void F() { const scalar x = 0.5; }")
+        module, diag = parse("function void F() { const number x = 0.5; }")
         self.assertFalse(diag.has_errors())
         decl = module.items[0].body.statements[0]
         self.assertTrue(decl.is_const)
-        self.assertEqual(decl.type_ref.name, "scalar")
+        self.assertEqual(decl.type_ref.name, "number")
 
 
 class TestControlFlow(unittest.TestCase):
@@ -122,7 +122,7 @@ class TestControlFlow(unittest.TestCase):
 
     def test_else_if_chain(self):
         module, diag = parse(
-            "function void F(scalar x) { "
+            "function void F(number x) { "
             "if (x < 0.0) { return; } else if (x > 1.0) { return; } else { return; } "
             "}"
         )
@@ -159,7 +159,7 @@ class TestControlFlow(unittest.TestCase):
 
 class TestExpressions(unittest.TestCase):
     def test_arithmetic_precedence(self):
-        module, diag = parse("function scalar F() { return 1 + 2 * 3; }")
+        module, diag = parse("function number F() { return 1 + 2 * 3; }")
         self.assertFalse(diag.has_errors())
         ret = module.items[0].body.statements[0]
         # Top-level should be a +, with * on the right side.
@@ -175,7 +175,7 @@ class TestExpressions(unittest.TestCase):
         self.assertEqual(ret.value.target_type.name, "vector")
 
     def test_parenthesized_group(self):
-        module, diag = parse("function scalar F() { return (1 + 2) * 3; }")
+        module, diag = parse("function number F() { return (1 + 2) * 3; }")
         self.assertFalse(diag.has_errors())
         ret = module.items[0].body.statements[0]
         # Outer should be *, left should be Parenthesized(1+2).

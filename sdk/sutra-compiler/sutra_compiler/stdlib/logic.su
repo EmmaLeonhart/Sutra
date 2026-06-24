@@ -150,7 +150,7 @@ function fuzzy le(complex a, complex b) {
 // defuzzify_trit — three-way polarizer (true / false / unknown) with
 // a β-sharpening knob instead of the straight cosine-eq loop.
 //
-//   function trit defuzzify_trit(trit v, int iters, scalar beta) {
+//   function trit defuzzify_trit(trit v, int iters, number beta) {
 //       vector t = truth_projector @ v;
 //       loop (iters) {
 //           t = sign_polarize(t, beta);

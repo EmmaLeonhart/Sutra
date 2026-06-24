@@ -27,9 +27,9 @@ function fuzzy neq(vector a, vector b) {
 // eq — cosine similarity, placed on the truth axis.
 //
 //   function fuzzy eq(vector a, vector b) {
-//       scalar na  = sqrt(dot(a, a));
-//       scalar nb  = sqrt(dot(b, b));
-//       scalar cos = dot(a, b) / (na * nb + finfo_tiny);
+//       number na  = sqrt(dot(a, a));
+//       number nb  = sqrt(dot(b, b));
+//       number cos = dot(a, b) / (na * nb + finfo_tiny);
 //       return make_truth(cos);
 //   }
 //
@@ -40,9 +40,9 @@ function fuzzy neq(vector a, vector b) {
 // placement). Same dot/norm pipeline as eq, but returns the scalar
 // cosine instead of wrapping it on the truth axis.
 //
-//   function scalar similarity(vector a, vector b) {
-//       scalar na = sqrt(dot(a, a));
-//       scalar nb = sqrt(dot(b, b));
+//   function number similarity(vector a, vector b) {
+//       number na = sqrt(dot(a, a));
+//       number nb = sqrt(dot(b, b));
 //       return dot(a, b) / (na * nb + finfo_tiny);
 //   }
 //

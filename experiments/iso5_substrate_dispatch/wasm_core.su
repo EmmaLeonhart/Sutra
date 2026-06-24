@@ -42,7 +42,7 @@
 // Binary ops pop two (top1=top, top2=second) and push combine(top2, top1). pc
 // advances 2 for i32.const, 1 for arithmetic; end/return keep pc so the machine
 // idles with the result on top.
-function int step(scalar d) {
+function int step(number d) {
     int pc = ramRead(0);
     int sp = ramRead(1);
     // FRAME-RELATIVE addressing (step 5a, toward call/recursion): the current frame's

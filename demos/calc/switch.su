@@ -31,11 +31,11 @@ function vector on_axon(vector input_axon) {
     // is exactly 0 at a match and <= -1000 otherwise; exp(-1000) underflows
     // to exact 0, so select is a true one-hot.
     string op_char = axon_item(input_axon, "op_char");
-    scalar cp = op_char.string_char_at(0);
-    scalar s0 = 0.0 - 1000.0 * (cp - 43.0) * (cp - 43.0);  // '+'
-    scalar s1 = 0.0 - 1000.0 * (cp - 45.0) * (cp - 45.0);  // '-'
-    scalar s2 = 0.0 - 1000.0 * (cp - 42.0) * (cp - 42.0);  // '*'
-    scalar s3 = 0.0 - 1000.0 * (cp - 47.0) * (cp - 47.0);  // '/'
+    number cp = op_char.string_char_at(0);
+    number s0 = 0.0 - 1000.0 * (cp - 43.0) * (cp - 43.0);  // '+'
+    number s1 = 0.0 - 1000.0 * (cp - 45.0) * (cp - 45.0);  // '-'
+    number s2 = 0.0 - 1000.0 * (cp - 42.0) * (cp - 42.0);  // '*'
+    number s3 = 0.0 - 1000.0 * (cp - 47.0) * (cp - 47.0);  // '/'
 
     vector one = make_real(1.0);
     complex denom = select([s0, s1, s2, s3], [one, one, one, b]);

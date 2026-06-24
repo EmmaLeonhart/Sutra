@@ -46,7 +46,7 @@ def _build_runtime():
     is in scope. `_VSA` is the same runtime singleton every Sutra .su
     program sees — what we measure here is what production code
     measures."""
-    src = "function scalar f() { return 0.0; }\n"
+    src = "function number f() { return 0.0; }\n"
     lexer = Lexer(src, file="<benchmark>")
     tokens = lexer.tokenize()
     parser = Parser(tokens, file="<benchmark>", diagnostics=lexer.diagnostics)

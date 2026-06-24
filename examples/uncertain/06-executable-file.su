@@ -36,11 +36,11 @@ if (defuzzy(catFish)) {
 
 function string ClosestTo(vector target, tuple candidates) {
     vector best = Get(candidates, 0);
-    scalar bestScore = Cosine(target, best);
+    number bestScore = Cosine(target, best);
 
     for (var i = 1; i < Length(candidates); i++) {
         vector candidate = Get(candidates, i);
-        scalar score = Cosine(target, candidate);
+        number score = Cosine(target, candidate);
         if (score > bestScore) {
             best = candidate;
             bestScore = score;

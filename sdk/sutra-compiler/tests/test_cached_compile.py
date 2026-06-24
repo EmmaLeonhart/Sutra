@@ -29,7 +29,7 @@ import unittest
 
 def _rv(_vsa, _vec):
     # Host-side terminal-boundary read of a number-vector's real axis
-    # (the `real()` runtime method was removed — no scalar accessor). This
+    # (the `real()` runtime method was removed — no number accessor). This
     # is the sanctioned external verification read, done by direct indexing.
     return float(_vec[_vsa.semantic_dim + _vsa.AXIS_REAL])
 
@@ -46,7 +46,7 @@ except ImportError:
 # A tiny .su that exercises real codegen but compiles quickly.
 TINY_SU = textwrap.dedent("""\
     // Smallest .su that does meaningful codegen: one function, one op.
-    function vector add_one(scalar x) {
+    function vector add_one(number x) {
         return make_real(x + 1.0);
     }
 """)
@@ -120,7 +120,7 @@ class TestCompileSuCacheBehavior(unittest.TestCase):
             # Edit the .su: add a second function. New hash, new cache file,
             # new codegen call.
             self.src_path.write_text(
-                TINY_SU + "function vector add_two(scalar x) "
+                TINY_SU + "function vector add_two(number x) "
                           "{ return make_real(x + 2.0); }\n",
                 encoding="utf-8",
             )

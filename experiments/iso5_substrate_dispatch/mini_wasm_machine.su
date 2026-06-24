@@ -42,7 +42,7 @@
 // enable memory-counter loops (backward branch) -> Turing-complete.
 // Binary ops pop two (top1=top, top2=second), push combine(top2, top1)
 // (matching the reference's `let b=pop in let a=pop in push (a OP b)`).
-function int step(scalar d) {
+function int step(number d) {
     int pc = ramRead(0);
     int sp = ramRead(1);
     int op = ramRead(pc);

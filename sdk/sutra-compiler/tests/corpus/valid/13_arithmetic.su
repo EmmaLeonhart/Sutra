@@ -1,36 +1,36 @@
 // Sutra corpus test: arithmetic and numeric literals.
 // Covers: integer and float literals, basic math, precedence.
 
-function scalar Arith() {
-    scalar a = 1;
-    scalar b = 2.0;
-    scalar c = 3.14;
-    scalar d = 0.001;
+function number Arith() {
+    number a = 1;
+    number b = 2.0;
+    number c = 3.14;
+    number d = 0.001;
 
-    scalar sum = a + b + c;
-    scalar product = a * b * c;
-    scalar mixed = a + b * c - d;
-    scalar div = a / b;
-    scalar mod = a % b;
+    number sum = a + b + c;
+    number product = a * b * c;
+    number mixed = a + b * c - d;
+    number div = a / b;
+    number mod = a % b;
 
     return sum + product - mixed + div + mod;
 }
 
-function scalar PrecedenceSanity(scalar x, scalar y, scalar z) {
+function number PrecedenceSanity(number x, number y, number z) {
     // * binds tighter than +
-    scalar p1 = x + y * z;
+    number p1 = x + y * z;
     // parens override
-    scalar p2 = (x + y) * z;
+    number p2 = (x + y) * z;
     // unary minus
-    scalar p3 = -x;
+    number p3 = -x;
     // unary plus (legal but redundant)
-    scalar p4 = +x;
+    number p4 = +x;
     // negation inside a nested expression
-    scalar p5 = -x + y * -z;
+    number p5 = -x + y * -z;
     return p1 + p2 + p3 + p4 + p5;
 }
 
-function bool Compare(scalar a, scalar b) {
+function bool Compare(number a, number b) {
     bool r1 = a < b;
     bool r2 = a <= b;
     bool r3 = a > b;

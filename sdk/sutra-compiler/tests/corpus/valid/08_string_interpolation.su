@@ -2,7 +2,7 @@
 // Covers: plain strings, $"..." interpolation, nested expressions
 // inside {}, interpolation at start/end/middle of the string.
 
-function string Report(string name, scalar score) {
+function string Report(string name, number score) {
     // Simple interpolation.
     string simple = $"Cat {name}";
 

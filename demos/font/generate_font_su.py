@@ -83,13 +83,13 @@ _HEADER = """\
 
 
 def gen_bit_function(char: str) -> str:
-    """One ``bit_<C>(scalar pos)`` returning the lit/unlit bit for char at pos."""
+    """One ``bit_<C>(number pos)`` returning the lit/unlit bit for char at pos."""
     bits = bits_for(char)
     lines: list[str] = []
-    lines.append(f"function vector bit_{char}(scalar pos) {{")
+    lines.append(f"function vector bit_{char}(number pos) {{")
     for p in range(25):
         lines.append(
-            f"    scalar s{p:02d} = 0.0 - 1000.0 * (pos - {float(p):.1f}) * (pos - {float(p):.1f});"
+            f"    number s{p:02d} = 0.0 - 1000.0 * (pos - {float(p):.1f}) * (pos - {float(p):.1f});"
         )
     scores = ", ".join(f"s{p:02d}" for p in range(25))
     vals = ", ".join(f"make_real({bits[p]:.1f})" for p in range(25))
@@ -101,8 +101,8 @@ def gen_bit_function(char: str) -> str:
 def gen_glyph_pixel() -> str:
     """36-way defuzzified select over char_code -> the per-letter bit at (x, y)."""
     lines: list[str] = []
-    lines.append("function vector glyph_pixel(scalar x, scalar y, scalar char_code) {")
-    lines.append("    scalar pos = y * 5.0 + x;")
+    lines.append("function vector glyph_pixel(number x, number y, number char_code) {")
+    lines.append("    number pos = y * 5.0 + x;")
     lines.append("")
     lines.append("    // Per-letter bit at this position. Each `bit_<C>(pos)` is a 25-way")
     lines.append("    // defuzzified select over the 25 grid positions of letter <C>.")
@@ -118,7 +118,7 @@ def gen_glyph_pixel() -> str:
         suffix = c if c.isalpha() else f"d{c}"
         cp = ord(c)
         lines.append(
-            f"    scalar s_{suffix} = 0.0 - 1000.0 * (char_code - {float(cp):.1f}) "
+            f"    number s_{suffix} = 0.0 - 1000.0 * (char_code - {float(cp):.1f}) "
             f"* (char_code - {float(cp):.1f});"
         )
     lines.append("")
@@ -143,7 +143,7 @@ def gen_step() -> str:
     planning/findings/2026-05-28-demos-font-substrate-audit.md.
     """
     return """\
-function vector step(vector prev_state, scalar x, scalar y, scalar char_code) {
+function vector step(vector prev_state, number x, number y, number char_code) {
     // Stateless per-cell substrate dispatch. The prev_state input is
     // multiplied by 0 (discarded) and the new glyph bit for cell (x, y)
     // under char_code is returned. The "recurrence" across renders lives
@@ -193,7 +193,7 @@ def gen_cycle_step() -> str:
         return f"vector_literal({vals})"
 
     lines: list[str] = []
-    lines.append("function vector cycle_step(vector typed_onehot, scalar has_typed) {")
+    lines.append("function vector cycle_step(vector typed_onehot, number has_typed) {")
     lines.append("    // Substrate-state RNN over the 36-glyph cycle. The recurring `glyph`")
     lines.append("    // slot is a 36-dim one-hot living on the substrate across ticks; the")
     lines.append("    // advance is one matmul against the frozen cyclic-permutation matrix P.")

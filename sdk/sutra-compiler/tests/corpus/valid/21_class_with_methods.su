@@ -14,12 +14,12 @@ class Counter extends vector {
 }
 
 class Math extends vector {
-    static method scalar twice(scalar x) {
+    static method scalar twice(number x) {
         return x * 2;
     }
 
-    static method scalar square(scalar x) {
-        scalar y = x * x;
+    static method scalar square(number x) {
+        number y = x * x;
         return y;
     }
 }

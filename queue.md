@@ -84,23 +84,11 @@ deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonic
    the FULL compiler suite + `pytest demos/` + smoke to prove identical. Finding:
    `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
 
-2. **`scalar` type → `number`.** Deprecation diagnostic **SUT0114 DONE 2026-06-23** — every `scalar`
-   type use now warns and points at `number` (`validator._record_type_usage`); the keyword stays
-   RECOGNIZED so frozen-archive programs still validate with zero errors (warnings tolerated by the corpus
-   harness). Tested: `tests/test_scalar_deprecation.py`. **⚠ NEEDS EMMA — full removal:** dropping the
-   `scalar` keyword + repointing the corpus tests that exercise it (`01_primitive_declarations.su`
-   "Covers: scalar", `13_arithmetic.su`, etc.) would break **frozen-archive backward-compat / paper
-   reproducibility** (CLAUDE.md keeps `scalar` "for the frozen archive"; §Paper-code durability). That's
-   not unilateral — Emma's call whether to hard-remove `scalar` (breaking frozen `.su`) or keep it as the
-   warned compat alias. The stdlib comment-sites repoint (cosmetic, and the "scalar extraction"/"host
-   scalar" *prose* must NOT be touched) is a low-value follow-on, not done.
-
-3. **Keyword synonyms.** `unk` → `unknown` DONE 2026-06-23 (1 site repointed, lexer entry removed, `unk`
-   now lexes as IDENT, corpus green). **`iff` → ⚠ NEEDS EMMA:** it's a `xnor` alias BUT it's standard
-   math notation (if-and-only-if) AND actively demonstrated in `examples/logical_connectives.su` (the
-   `iff_keyword` function showcases it as a connective spelling). Unlike `unk`, retiring it removes a
-   documented feature. Keep `iff` as the one intentional exception, or retire it (repoint the 2 example
-   sites to `xnor`, drop the `lexer.py:332` entry)? Emma's call — left untouched pending it.
+_`scalar` type → `number` and `iff` → `xnor` both FULLY REMOVED 2026-06-23 (Emma: paper unfrozen, so no
+frozen-archive reason; iff dropped too — but OTHER logical-connective spellings stay, her call). ~1300
+sites repointed across .su/tests/demos/Yantra/paper; `scalar` gone from PRIMITIVE_TYPE_NAMES + parser +
+validator + codegen type-sets; font generators fixed. See DEVLOG. Verification (full suite + demos +
+smoke) gating the commit._
 
 ---
 

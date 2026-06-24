@@ -1,7 +1,7 @@
 """Test cycle_step -- Emma's glyph-cursor step, a real substrate-state RNN
 (rewritten 2026-05-28, Option B).
 
-New shape: `cycle_step(vector typed_onehot, scalar has_typed) -> vector`. The
+New shape: `cycle_step(vector typed_onehot, number has_typed) -> vector`. The
 glyph cursor is a 36-dim ONE-HOT held in a `recurring vector` slot that lives
 ON THE SUBSTRATE across ticks (non-halting-loop.md). Each tick advances it by
 one via a single matmul `next = P @ glyph` against the frozen 36x36

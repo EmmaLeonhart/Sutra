@@ -21,12 +21,11 @@ function fuzzy or_keyword(fuzzy a, fuzzy b) { return a or b; }
 // XOR — single keyword form.
 function fuzzy xor_keyword(fuzzy a, fuzzy b) { return a xor b; }
 
-// XNOR / IFF — two spellings.
+// XNOR — the biconditional connective.
 function fuzzy xnor_keyword(fuzzy a, fuzzy b) { return a xnor b; }
-function fuzzy iff_keyword(fuzzy a, fuzzy b) { return a iff b; }
 
-// Identifiers named `Iff`, `Nand`, etc. still work — the keywords
+// Identifiers named `Xnor`, `Nand`, etc. still work — the keywords
 // are CONTEXTUAL (only recognized in operator position).
-function fuzzy Iff(fuzzy a, fuzzy b) {
-    return a iff b;
+function fuzzy Xnor(fuzzy a, fuzzy b) {
+    return a xnor b;
 }

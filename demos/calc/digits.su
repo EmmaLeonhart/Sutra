@@ -17,8 +17,8 @@
 //
 // The host reads each digit with real() and assembles the string (I/O only);
 // the digit VALUES are substrate computations. 4-digit demo scope (0..9999).
-function vector digit(scalar n, scalar place) {
-    scalar q = Math.floor(n / place);
+function vector digit(number n, number place) {
+    number q = Math.floor(n / place);
     return make_real(Math.round(Math.mod(q + 0.5, 10.0) - 0.5));
 }
 
