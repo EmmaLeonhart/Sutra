@@ -1,3 +1,14 @@
+## 2026-06-24: H1 (unknown-type/function diagnostics) reclassified → deferred v0.2 symbol table
+
+Investigated the audit-top H1 item with a measured false-positive scan (scratchpad/h1_recon.py over all
+examples + corpus). Conclusion: it is the v0.2 name-resolution milestone the project DELIBERATELY defers
+(validator.py:21-29: "no name resolution … land in v0.2+ once we have a symbol table"). A naive
+diagnostic warns on EXISTING VALID code — 03_methods.su (valid corpus) uses undeclared Animal/Cat types,
+the arrow-fn examples call first-class function-valued locals (f/scale) — both need the real symbol table
++ local-scope tracking, not an allowlist. float/function are also missing from PRIMITIVE_TYPE_NAMES (gaps
+for when it lands). The newcomer gap is already mitigated at the doc level (Batch 5.1 tutorial-01 note).
+Reclassified in queue.md as the v0.2 milestone (Emma's call on when to build it). Finding committed.
+
 ## 2026-06-24: Batch 5.2 — argmax_cosine/select stdlib discoverability
 
 The audit flagged argmax_cosine/select (used in every tutorial) as undiscoverable — they appeared in
