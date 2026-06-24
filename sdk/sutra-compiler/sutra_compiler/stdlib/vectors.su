@@ -61,20 +61,6 @@
 // compile-time peephole on top of this spec definition.
 
 
-// basis_vector — alias for `embed`. Allocates a deterministic vector
-// keyed by the string name. Kept as a separate spelling for clarity
-// in VSA-style programs (role / filler allocation) vs pure embedding.
-//
-//   function vector basis_vector(string name) {
-//       return embed(name);
-//   }
-//
-// This one is actually writable as Sutra today — `embed(x)` is the
-// parsable primitive. Not listed as implemented above only because
-// the inliner to consume it doesn't exist yet; when it does, this
-// function becomes real.
-
-
 // permute — apply a permutation key to a vector. The permutation
 // scheme is a deterministic ±1 mask multiplied elementwise with
 // the vector.

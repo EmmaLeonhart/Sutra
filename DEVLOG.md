@@ -4,6 +4,18 @@
 
 `experiments/substrate_leak_sweep.py` from `sdk/sutra-compiler/`: 77 compiled, 18 skipped, **0 user-program leak(s), 0 runtime-prelude leak(s)** (the 2026-06-21 `_num`/`_num_re` allowlist still held). `scripts/check_promise_await_fit_to_spec.py` `EXIT=0` after bringing up the env on this fresh remote clone (`pip install pytest numpy torch sentence-transformers einops`) and exercising the new 2026-06-22 in-process backend (`SUTRA_EMBED_BACKEND=transformers` to override the suite's ollama pin in `tests/conftest.py`, since the daemon isn't installed here) — `[1/2] codegen lint PASS (no leak signature in await_value emission)`, `[2/2] regression tests PASS (4/4 expected)` against live `nomic-ai/nomic-embed-text-v1.5` in-process embeddings; the 2 semantic-preservation legs (`test_await_semantics_preserved_{torch,numpy}`) decoded `main()` ≈ 3.0 to 3 places, so the spec-2 algebraic reduction (`await_value(p) → self.value(p)`) holds end-to-end under the new default backend too. No `for _ in range(100)` / `if self.isPending` reappeared in `codegen_pytorch.py`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; the only commit since the 2026-06-22 audit is `da92a4f` (in-process embed default), which touches the `embed_texts` host boundary, not any op definition. 16 dossiers in `planning/open-questions/` + the spec `planning/sutra-spec/open-questions.md` cross-checked: README verdict table unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (kept as record per Emma); `2026-06-13-sutra-to-thrml-mapping.md` still an active exploration loop, not a settled question; no spec/todo/findings authoritative resolution surfaced for any other dossier since 2026-06-22. Dispatch-level audit; the three measurement-required checks (dim / state-locus / signal-separation) remain out of scope. Legitimate no-op; no code or doc changes shipped.
 
+## 2026-06-23: post-alias readability cleanup (Batch 4) — stale comments + docs
+
+Cleared the stale-reference residue the audit found (comments/docs still presenting removed spellings as
+usable). stdlib: dropped `basis_vector` from `embed.su`, DELETED the commented-out
+`function vector basis_vector` doc block in `vectors.su`, `axons.su` routing comments → `embed(k)`,
+removed the `basis_vector` entry from `stdlib/README.md`, deleted the "`iff` is the natural-language alias"
+line in `logic.su`. docs: `operators.md`/`capabilities.md`/`logical-operations.md` — `iff` dropped from the
+connective tables (or renamed → `xnor` where it was the biconditional's name), `basis_vector` to past
+tense. codegen: prose comments `basis_vector(`→`embed(`, simplify module docstring, and removed the
+now-dead legacy-`basis_vector` branch in thrml `_basis_atoms` (keys off `EmbedExpr` only). Verified: 62
+tests pass, site builds. The entire alias-removal arc (batches 3+4) is complete + clean.
+
 ## 2026-06-23: post-alias-batch audit — completed two INCOMPLETE removals (iff parser table, missed scalar sites)
 
 A readability/cleanliness audit caught real gaps in the alias removals — both still WORKED despite being

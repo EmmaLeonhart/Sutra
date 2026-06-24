@@ -55,28 +55,14 @@ AND parser tables). `embed`/`make_*`/`number`/`unknown`/`xnor` are the single ca
 logical-connective spellings stay (Emma). All verified (compiler 811, smoke PASS, demos 224). History in
 DEVLOG + git log. CLAUDE.md § "Deprecate aliases aggressively" records the rules + carve-outs._
 
-## Batch 4 — stale-reference cleanup (from the post-alias readability audit, 2026-06-23)
+_Batch 4 (stale-reference cleanup from the post-alias audit) DONE 2026-06-23: stdlib comments
+(`embed.su`/`vectors.su` block deleted/`axons.su`/`README`/`logic.su`), docs (`operators`/`capabilities`/
+`logical-operations` — `iff` dropped/→`xnor`, `basis_vector` past-tense), codegen prose comments, and the
+dead `basis_vector` branch in thrml `_basis_atoms` all cleaned. Verified: 62 tests pass, site builds.
+A few trivial historical-prose mentions of "basis_vector"/"scalar" remain in internal codegen/egglog
+comments (referencing the removed spelling as history) — not misleading, left as-is._
 
-The alias removals left STALE references in comments/docs that still present removed spellings as usable.
-These are readability/affordance debt (an agent reading them may think `basis_vector`/`scalar`/`iff`
-exist). Substrate-purity PROSE uses of the WORD "scalar" ("scalar extraction", "host scalar",
-"make_real(scalar)") are CORRECT — do NOT touch those; only the removed-TYPE/BUILTIN spellings. Barrel:
-
-1. **stdlib comments referencing removed spellings.** `stdlib/embed.su:36,40-41` (presents `basis_vector`
-   as a current alias — drop it); `stdlib/vectors.su:64-75` (DELETE the commented-out
-   `function vector basis_vector(string name)` doc block — documents a removed alias);
-   `stdlib/axons.su:12-13,16` (`bind(basis_vector(k), v)` → `embed(k)`); `stdlib/README.md:61` (remove the
-   `basis_vector` op entry); `stdlib/logic.su:116-117` (delete "`iff` is the natural-language alias the
-   lexer also accepts"). Verify the stdlib still loads + a smoke compile.
-
-2. **docs presenting removed `iff` / `basis_vector` as usable.** `docs/operators.md:363` (`basis_vector`
-   "being removed" → past tense, use `embed`) + `:25,:34` iff in the connective tables; `docs/capabilities.md:24,199`
-   + `docs/logical-operations.md:162,195` (drop `iff` now it errors). Verify site builds.
-
-3. **codegen prose comments.** `codegen.py` + `codegen_pytorch.py` (lines ~92/515/685/2153/2240) +
-   `multi_process.py:19` + `README.md:19` still say "basis_vector(...) string" describing the embed
-   pre-fetch collector (now `collect_embedded_strings`, keys off `embed`). Replace "basis_vector(...)" →
-   "embed(...)" in those comments. (Low value, internal — do last.)
+_ACTIVE list is empty — all alias work + its residue is done. The PINNED TAIL audit below refills next._
 
 ---
 

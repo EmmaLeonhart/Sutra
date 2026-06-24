@@ -89,7 +89,7 @@ class Codegen(BaseCodegen):
         self._semantic_dim = runtime_dim
         self._synthetic_dim = (synthetic_dim if synthetic_dim is not None
                                else self.DEFAULT_SYNTHETIC_DIM)
-        # List of strings that appear in `basis_vector("...")` calls,
+        # List of strings that appear in `embed("...")` calls,
         # populated by translate_module() between simplify and codegen.
         # The codegen emits a batched Ollama pre-fetch at module init
         # to replace N sequential HTTP round-trips with one call.
@@ -512,7 +512,7 @@ class Codegen(BaseCodegen):
         self._emit("# repeated bind/unbind with the same role O(d^2) lookup + matmul.")
         self._emit("self._rot_cache = {}")
         self._emit("# On-disk embedding cache. Second-and-later runs load every")
-        self._emit("# previously-seen basis_vector(...) string from disk instead of")
+        self._emit("# previously-seen embed(...) string from disk instead of")
         self._emit("# hitting Ollama. Cache is keyed by (model, dim) so changing")
         self._emit("# either invalidates cleanly (different cache file).")
         self._emit("import os as _os")
@@ -2150,7 +2150,7 @@ class Codegen(BaseCodegen):
             f"seed={self.runtime_seed}, "
             f"llm_model={self._llm_model!r})"
         )
-        # Batched pre-fetch of every basis_vector("...") string argument
+        # Batched pre-fetch of every embed("...") string argument
         # the program uses. One Ollama round-trip instead of N sequential
         # ones. Collected by the simplify pass (see translate_module).
         if self._prefetch_strings:
@@ -2237,7 +2237,7 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     Runs the simplification pass over the AST before handing to the
     codegen so identity rewrites (bundle(v) -> v, bundle flattening)
     happen in source-to-source form rather than in the emitted
-    Python. Also collects every `basis_vector("...")` string literal
+    Python. Also collects every `embed("...")` string literal
     so the codegen can emit a batched Ollama pre-fetch at module init
     (N HTTP round-trips collapse into one batched embed call).
     """

@@ -33,12 +33,9 @@
 //   }
 //
 // Intrinsic primitive. The compile-time prefetch (collecting every
-// `basis_vector("...")` / `embed("...")` string literal at module
-// init and batching them into one Ollama call) stays a codegen-
-// level optimization — it's transparent to the .su-level semantics.
-//
-// basis_vector is an alias for embed with a different spelling (VSA-
-// role allocation vs. pure embedding). Both hit the same intrinsic.
+// `embed("...")` string literal at module init and batching them into
+// one embed call) stays a codegen-level optimization — it's transparent
+// to the .su-level semantics.
 //
 // ==========================================================================
 
