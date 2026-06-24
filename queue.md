@@ -67,14 +67,26 @@ comments (referencing the removed spelling as history) — not misleading, left 
 Fresh readability/usability audit (onboarding + error messages + real-program reach). `iff` on the public
 `docs/primitive-classes.md` page (a Batch-4 miss) was fixed inline. Barrel the rest top to bottom:
 
-1. **Unknown-type + unknown-function diagnostics (H1 — ROOT CAUSE, highest leverage; careful tick).** The
-   validator is INTENTIONALLY lenient (`validator.py:21-29` documents "no name resolution / no arity
-   check"), so `vec x = …`, `scalar` (removed), `argmaxcosine(…)` (typo) all validate clean and fail
-   cryptically at runtime. Add a resolution pass: `SUT01xx unknown type` (TypeRef.name ∉ PRIMITIVE_TYPE_NAMES
-   ∪ declared classes ∪ generics) + `SUT01xx unknown function` (call callee ∉ builtins ∪ intrinsics ∪
-   file-scope decls). CAUTION: scope to avoid false positives (forward refs, dynamic patterns) — likely
-   WARNING level first, with the full allowlist; RUN THE FULL SUITE (many .su may trip it) + fix/allowlist
-   before claiming green. This also makes removed spellings (`scalar`, `iff`) finally visible. Own tick.
+1. **Unknown-type + unknown-function diagnostics (H1 — ROOT CAUSE, highest leverage; own careful tick).**
+   The validator is INTENTIONALLY lenient (`validator.py:21-29`: "no name resolution / no arity check"), so
+   `vec x=…`, removed `scalar`, `argmaxcosine(…)` (typo) all validate clean + fail cryptically at runtime.
+   Add WARNING-level diagnostics. **Reconnaissance done 2026-06-24 — allowlist sources all identified:**
+   - **Hook points:** types in `validator._record_type_usage` (TypeRef), calls in `_Walker.visit_Call`.
+     `_file_scope_names` already collects ALL top-level names in a pre-pass (so forward refs are covered);
+     `_class_decls` holds user classes (also needs a pre-pass collect for forward-ref'd class TYPES).
+   - **TYPE allowlist** = `lexer.PRIMITIVE_TYPE_NAMES` (= {Promise,bool,char,complex,fuzzy,int,map,matrix,
+     number,permutation,string,trit,tuple,vector,void}) ∪ container generics NOT in that set: `list`,`dict`,
+     `set`,`array` (verify how the parser treats these) ∪ `stdlib_loader.stdlib_class_parents().keys()`
+     (Axon,BigInt,Bits,Character,Embedding,JavaScript{Bool,Float,Int,Object,String},Math,Memory,Numbers,
+     Promise,String,Tensor) ∪ user `_class_decls` ∪ **generic type params** (`T`/`K`/`V` from class/function
+     `type_params` — MUST collect these or they false-positive).
+   - **FUNCTION allowlist** (bare-identifier callees ONLY — SKIP `a.method()`, `Math.log()`, `function.f()`
+     MemberAccess callees, can't resolve receiver in MVP) = `codegen_base.BUILTINS` keys ∪
+     `stdlib_loader.intrinsic_names()` ∪ `stdlib_loader.stdlib_function_names()` ∪ stdlib class methods ∪
+     `_file_scope_names` (functions/loop-fns).
+   - **Verify:** compile-validate ALL `examples/*.su` + `tests/corpus/valid/*.su` first (fast false-positive
+     scan), fix/extend allowlist, THEN run the FULL pytest suite. WARNING (not error) so a stray miss
+     doesn't break "valid" corpus. This finally makes removed `scalar`/`iff`/typos visible.
 
 2. **`snap` trap (M5).** Tutorial 03 is titled "Snap-to-nearest" and teaches `snap`, but `snap` is REJECTED
    at codegen (raw `CodegenNotSupported`). Make it a clear validator diagnostic ("`snap` not yet supported
