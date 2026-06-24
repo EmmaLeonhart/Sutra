@@ -1,3 +1,13 @@
+## 2026-06-23: Batch 5.1 — quick doc-accuracy fixes
+
+Tutorial 01: the `vec`→SUT0102 claim was false (the validator silently accepts unknown types) — replaced
+with a genuinely-caught missing-semicolon SUT0100 example + a note that name-resolution diagnostics are
+roadmap; reconciled the `void` contradiction (valid as a method return, not main()'s). Tutorials index:
+added the `[ts]` extra to prerequisites (tutorial 04 needs it), trimmed the speculative "coming soon" list
+(and removed a todo.md ref I almost leaked onto a website page). stdlib/README.md (ships in the package):
+updated `embed` from "hits Ollama" to the in-process default, dropped a repo-internal queue.md reference.
+No repo-internal refs in docs/, site builds.
+
 ## 2026-06-23: newcomer-usability audit → Batch 5 refill (+ fixed an iff Batch-4 miss)
 
 Ran a fresh readability/usability audit (onboarding, error messages, real-program reach). Headline: the

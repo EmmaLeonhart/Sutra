@@ -72,8 +72,7 @@ pipeline has three categories of stdlib entries:
   `Promise.isRejected`, `Promise.isPending`, `Promise.value`, `Promise.reason`
 - **Blocked pseudo-Sutra:** `then`, `catch`, `all`, `race` (need lambda /
   first-class-function support; substrate backing for the intrinsics
-  arrives with phase 6 of queue.md item 1, the Promise→while_loop
-  lowering pass)
+  arrives with the Promise→while_loop lowering pass)
 
 ### `rotation.su` — rotation matrices and eigenrotation
 - **Blocked pseudo-Sutra:** `make_random_rotation`,
@@ -81,8 +80,9 @@ pipeline has three categories of stdlib entries:
   `while` compile to)
 
 ### `embed.su` — LLM embedding intrinsic
-- **Intrinsic:** `embed(string) -> vector` — the pure leaf that hits
-  Ollama / caches / normalizes.
+- **Intrinsic:** `embed(string) -> vector` — the pure leaf that loads the
+  frozen model in-process (or Ollama if `SUTRA_EMBED_BACKEND=ollama`), caches,
+  and normalizes.
 
 ## Pipeline needed to make this live
 

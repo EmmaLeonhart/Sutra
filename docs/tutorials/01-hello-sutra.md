@@ -51,7 +51,7 @@ Five things to notice:
 
 3. **`argmax_cosine(greeting, [v_hello, v_goodbye, v_question])`** is the whole matching engine: it returns the candidate vector closest to `greeting` by cosine similarity. Here `greeting` *is* `v_hello`, so `v_hello` wins. (This is the cleanup primitive — [tutorial 03](03-snap-to-nearest.md) goes deep on it.)
 
-4. **`function string say()`** declares a free function returning a `string`. There is no `void` return; everything that returns must return a typed value. Functions are called by name — `say()` — directly.
+4. **`function string say()`** declares a free function returning a `string`. A free function that produces a value returns a typed value like this (not bare `void`) — `void` exists, but as a *method* return type for side-effect-style methods, not for `main()`. Functions are called by name — `say()` — directly.
 
 5. **`function string main()`** is the entry point. `sutrac --run` calls `main()` and prints whatever it returns. By convention `main()` is your clean entry point.
 
@@ -70,13 +70,13 @@ If the file is well-formed you'll see:
 ok: 1 file(s) validated, 0 diagnostics
 ```
 
-If you mistype something — say `vec` instead of `vector` — you get a structured diagnostic with a stable `SUT####` code and a 1-based `line:column`:
+If you make a syntax error — say, forget the semicolon after `return` — you get a structured diagnostic with a stable `SUT####` code and a 1-based `line:column`:
 
 ```
-examples/hello_world.su:1:1: error: SUT0102: expected return type, got `vec`
+examples/hello_world.su:34:24: error: SUT0100: expected `;` after `return`, got `}`
 ```
 
-Every Sutra diagnostic looks like this, on the command line and (via the same compiler) as red squiggles in the IntelliJ plugin.
+Every Sutra diagnostic looks like this, on the command line and (via the same compiler) as red squiggles in the IntelliJ plugin. (Note: the v0.1 validator checks syntax and structure, not yet name resolution — a mistyped *type* or *function name* isn't flagged at compile time today; that diagnostic pass is on the roadmap.)
 
 ## Run it
 
