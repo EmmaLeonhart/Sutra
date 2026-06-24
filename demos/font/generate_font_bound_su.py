@@ -62,7 +62,7 @@ _HEADER = """\
 
 
 def _basis_decl(name: str) -> str:
-    return f'vector {name} = basis_vector("font_bound_{name}");'
+    return f'vector {name} = embed("font_bound_{name}");'
 
 
 def gen_basis_block() -> str:

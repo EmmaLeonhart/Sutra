@@ -6,14 +6,14 @@
 // (basis_vector, bundle, bind, unbind, similarity, make_real) compose the
 // way the bound-vector rewrite needs them to before generating 36 glyphs.
 
-vector c_A = basis_vector("font_char_A");
-vector c_B = basis_vector("font_char_B");
+vector c_A = embed("font_char_A");
+vector c_B = embed("font_char_B");
 
-vector p_00 = basis_vector("font_pos_00");
-vector p_01 = basis_vector("font_pos_01");
+vector p_00 = embed("font_pos_00");
+vector p_01 = embed("font_pos_01");
 
-vector LIT   = basis_vector("font_lit");
-vector UNLIT = basis_vector("font_unlit");
+vector LIT   = embed("font_lit");
+vector UNLIT = embed("font_unlit");
 
 // A 2-cell "glyph" for c_A: pos_00 is unlit, pos_01 is lit.
 vector glyph_A = bundle(bind(p_00, UNLIT), bind(p_01, LIT));

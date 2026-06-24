@@ -3,7 +3,7 @@
 `experiments/dimension_audit_sweep.py` flags `.su` programs that use NO codebook
 (no basis_vector/embed, no axon string-keys) — they pay an LLM-sized dim² for
 nothing. This pins that `_uses_codebook` matches the SAME signal the compile-time
-dimension warning uses (`codegen_pytorch`: all of collect_basis_vector_strings +
+dimension warning uses (`codegen_pytorch`: all of collect_embedded_strings +
 the two collect_axon_keys sets empty ⇒ codebook unused), so the audit can't
 silently drift from the warning it promotes.
 """

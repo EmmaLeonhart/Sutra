@@ -2241,7 +2241,7 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     so the codegen can emit a batched Ollama pre-fetch at module init
     (N HTTP round-trips collapse into one batched embed call).
     """
-    from .simplify import simplify_module, collect_basis_vector_strings
+    from .simplify import simplify_module, collect_embedded_strings
     from .inliner import inline_stdlib_calls
     from .promise_desugar import desugar_promises
     from .loop_desugar import desugar_implicit_loops
@@ -2267,7 +2267,7 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     # absorption, which can fold parts of the inlined form.
     inline_stdlib_calls(module)
     simplify_module(module)
-    strings = collect_basis_vector_strings(module)
+    strings = collect_embedded_strings(module)
     cg = Codegen(**kwargs)
     cg._prefetch_strings = strings
     cg._axon_keys_bound = bound_keys

@@ -15,7 +15,7 @@ from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
 from sutra_compiler.simplify import (
     simplify_module,
-    collect_basis_vector_strings,
+    collect_embedded_strings,
 )
 
 
@@ -432,7 +432,7 @@ class TestBasisVectorCollection(unittest.TestCase):
             "function vector main() { return bundle(a, b); }"
         )
         simplify_module(m)
-        strings = collect_basis_vector_strings(m)
+        strings = collect_embedded_strings(m)
         self.assertEqual(strings, ["hello", "world"])
 
     def test_dedupes_duplicates(self):
@@ -442,7 +442,7 @@ class TestBasisVectorCollection(unittest.TestCase):
             "function vector main() { return bundle(a, b); }"
         )
         simplify_module(m)
-        strings = collect_basis_vector_strings(m)
+        strings = collect_embedded_strings(m)
         self.assertEqual(strings, ["hello"])
 
 
