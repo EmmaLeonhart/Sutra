@@ -3782,7 +3782,7 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     the torch backend benefits from every algebraic rewrite and the
     batched Ollama pre-fetch without duplicating that infrastructure.
     """
-    from .simplify import simplify_module, collect_basis_vector_strings
+    from .simplify import simplify_module, collect_embedded_strings
     from .inliner import inline_stdlib_calls
     from .promise_desugar import desugar_promises
     from .loop_desugar import desugar_implicit_loops
@@ -3803,7 +3803,7 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     # Inline stdlib calls — same pass as the CPU codegen uses.
     inline_stdlib_calls(module)
     simplify_module(module)
-    strings = collect_basis_vector_strings(module)
+    strings = collect_embedded_strings(module)
     cg = PyTorchCodegen(**kwargs)
     cg._prefetch_strings = strings
     cg._axon_keys_bound = bound_keys
@@ -3812,7 +3812,7 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     # substrate audit 2026-06-19): a program that embeds no codebook strings
     # (no basis_vector / embed) and binds no axon string-keys does not use the
     # LLM semantic subspace at all, so an LLM-sized semantic_dim is paid for
-    # nothing (matrices scale with dim^2). collect_basis_vector_strings covers
+    # nothing (matrices scale with dim^2). collect_embedded_strings covers
     # basis_vector + embed; bound_keys/read_keys cover axon string-keys, so
     # all-three-empty is a reliable "codebook unused" signal. Warn loudly but
     # still compile (Sutra is opinionated, not authoritarian).

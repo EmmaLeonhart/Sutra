@@ -23,8 +23,8 @@ from sutra_compiler.multi_process import MultiProcessRuntime, ProgramSpec  # noq
 
 _PROG = (
     "function vector on_axon(vector input_axon) {\n"
-    '    Axon a;\n    a.add("x", basis_vector("dog"));\n'
-    '    a.add("y", basis_vector("cat"));\n    a.add("z", input_axon);\n'
+    '    Axon a;\n    a.add("x", embed("dog"));\n'
+    '    a.add("y", embed("cat"));\n    a.add("z", input_axon);\n'
     "    return a;\n}\n"
 )
 

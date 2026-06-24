@@ -95,14 +95,6 @@ class CodegenNotSupported(Exception):
 # expression to emit. Keeping this as a single table means the list of
 # supported builtins is easy to audit against `planning/sutra-spec/21-builtins.md`.
 
-def _builtin_basis_vector(args: List[str]) -> str:
-    # DEPRECATED 2026-06-23 — pure alias for `embed` (identical lowering). Being
-    # removed (CLAUDE.md § "Deprecate aliases aggressively"); `embed` is canonical.
-    # Examples + docs were repointed 2026-06-23; this stays only until the corpus +
-    # inline-test-string sites + the demos/font and external/Yantra subtree migrate.
-    return f"_VSA.embed({args[0]})"
-
-
 def _builtin_permutation_key(args: List[str]) -> str:
     return f"_VSA.make_sign_flip_key({args[0]})"
 
@@ -413,7 +405,8 @@ def _builtin_load_matrix(args: List[str]) -> str:
 
 
 BUILTINS = {
-    "basis_vector": (_builtin_basis_vector, 1),
+    # (`basis_vector` was removed 2026-06-23 — it was a pure alias for `embed`,
+    # which is the canonical spelling. See CLAUDE.md § "Deprecate aliases aggressively".)
     "permutation_key": (_builtin_permutation_key, 1),
     "identity_permutation": (_builtin_identity_permutation, 0),
     "permute": (_builtin_permute, 2),

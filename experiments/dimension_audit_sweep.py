@@ -8,7 +8,7 @@ axon string-keys does not use the LLM semantic subspace at all, so an LLM-sized
 `semantic_dim` is paid for nothing (every rotation/codebook matrix scales as
 dim²). `codegen_pytorch` already warns about this PER PROGRAM at compile time;
 this sweep promotes it to a corpus-wide audit a reviewer / CI can run, using the
-SAME signal (`collect_basis_vector_strings` covers basis_vector + embed,
+SAME signal (`collect_embedded_strings` covers basis_vector + embed,
 `collect_axon_keys` covers axon string-keys — all three empty ⇒ codebook unused).
 
 It is a STATIC analysis (parse only, no compile / no torch), so it is fast and
@@ -34,13 +34,13 @@ import sys
 from sutra_compiler.axon_keys import collect_axon_keys
 from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
-from sutra_compiler.simplify import collect_basis_vector_strings
+from sutra_compiler.simplify import collect_embedded_strings
 
 
 def _uses_codebook(module) -> bool:
     """True iff the program touches the LLM semantic subspace — same signal the
     compile-time dimension warning uses."""
-    strings = collect_basis_vector_strings(module)
+    strings = collect_embedded_strings(module)
     bound, read = collect_axon_keys(module)
     return bool(strings or bound or read)
 

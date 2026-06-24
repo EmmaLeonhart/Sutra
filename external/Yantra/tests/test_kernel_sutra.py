@@ -397,9 +397,9 @@ def test_projected_payload_still_decodes_semantically(tmp_path: pathlib.Path) ->
     producer.write_text(
         "// Builds a 3-key axon with distinct embedded fillers, like\n"
         "// examples/multi_program_axon/producer.su but as a service.\n"
-        "vector v_dog   = basis_vector(\"dog\");\n"
-        "vector v_red   = basis_vector(\"red\");\n"
-        "vector v_alice = basis_vector(\"alice\");\n"
+        "vector v_dog   = embed(\"dog\");\n"
+        "vector v_red   = embed(\"red\");\n"
+        "vector v_alice = embed(\"alice\");\n"
         "\n"
         "function vector on_axon(vector input_axon) {\n"
         "    Axon a;\n"

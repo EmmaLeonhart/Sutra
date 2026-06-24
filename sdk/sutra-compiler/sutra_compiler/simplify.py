@@ -338,21 +338,18 @@ def _auto_embed_var_decl_init(decl: ast.VarDecl) -> None:
     # int/float with a string is a cast the validator catches too.
 
 
-def collect_basis_vector_strings(module: ast.Module) -> list[str]:
+def collect_embedded_strings(module: ast.Module) -> list[str]:
     """Return every string literal that will be embedded at runtime.
 
-    Covers two sources:
-    - `basis_vector("name")` — explicit source-level basis_vector call
-      with a string literal argument.
-    - `embed(<StringLiteral>)` — the `EmbedExpr` AST node, which the
-      auto-embed pass inserts in type-directed contexts (`vector v =
-      "foo"`, untyped `var x = "foo"`, etc.) and which may also be
-      written explicitly.
+    Source: `embed(<StringLiteral>)` — the `EmbedExpr` AST node, which the
+    auto-embed pass inserts in type-directed contexts (`vector v = "foo"`,
+    untyped `var x = "foo"`, etc.) and which may also be written explicitly.
+    (The `basis_vector("name")` spelling was removed 2026-06-23 — it was a pure
+    alias for `embed`.)
 
-    Used by the codegen to emit a batched Ollama pre-fetch at module
-    init: N sequential HTTP round-trips collapse into a single batched
-    embed call. Strings are returned in source order, deduplicated
-    (first-occurrence order preserved).
+    Used by the codegen to emit a batched embed pre-fetch at module init:
+    N sequential round-trips collapse into a single batched embed call.
+    Strings are returned in source order, deduplicated (first-occurrence order).
     """
     seen: set[str] = set()
     collected: list[str] = []
@@ -364,13 +361,6 @@ def collect_basis_vector_strings(module: ast.Module) -> list[str]:
 
     def visit(node) -> None:
         if node is None:
-            return
-        if isinstance(node, ast.Call):
-            if _is_basis_vector_literal_call(node):
-                record(node.args[0].value)  # type: ignore[attr-defined]
-            visit(node.callee)
-            for a in node.args:
-                visit(a)
             return
         if isinstance(node, ast.EmbedExpr) and isinstance(node.expr, ast.StringLiteral):
             record(node.expr.value)
@@ -535,11 +525,6 @@ def _is_call_named(expr, name: str, arity: Optional[int] = None) -> bool:
 def _is_zero_vector_call(expr) -> bool:
     """Match `zero_vector()` — the emitted zero primitive."""
     return _is_call_named(expr, "zero_vector", arity=0)
-
-
-def _is_basis_vector_literal_call(expr) -> bool:
-    return (_is_call_named(expr, "basis_vector", arity=1)
-            and isinstance(expr.args[0], ast.StringLiteral))
 
 
 def _mk_zero_vector(span: SourceSpan) -> ast.Call:

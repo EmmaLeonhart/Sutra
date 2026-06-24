@@ -71,18 +71,12 @@ _Resolution path CONFIRMED 2026-06-23: bare-call dispatch is `BUILTINS` → else
 `_VSA.<name>` → else user call. `make_real`/`make_truth`/`make_complex`/`embed` are all intrinsics, so
 deleting a `*_number`/`*_value`/`basis_vector` BUILTINS alias leaves the canonical form reachable._
 
-1. **`basis_vector` → `embed` — subtree repoint, THEN delete the builtin.** All SDK-owned surface is now
-   DONE: `examples/*.su` (233) + `docs/` (20) [2026-06-23], `tests/corpus/` (28) + the inline test-string
-   sites in `sdk/sutra-compiler/tests/*.py` (~153) [2026-06-23, 233 affected tests green]. The ONLY
-   remaining call sites are the subtree: `demos/font` etc. (156) + `external/Yantra` (19). `demos/font` is
-   in demos-ci, so `_builtin_basis_vector` MUST stay (kept as a DEPRECATED thin alias) until these are
-   repointed — deleting it now breaks demos-ci. REMAINING: (a) repoint `demos/**/*.su` → `embed`, verify
-   `pytest demos/` (font.su codegen is ~400s, slow); (b) repoint `external/Yantra/**/*.su` → `embed`
-   (subtree — behaviour-identical); (c) THEN delete `_builtin_basis_vector` + its BUILTINS entry + the now-
-   dead `_is_basis_vector_literal_call` basis_vector branch in `simplify.py`, and consider renaming
-   `collect_basis_vector_strings` → `collect_embedded_strings` (internal, references the dead name); (d) run
-   the FULL compiler suite + `pytest demos/` + smoke to prove identical. Finding:
-   `planning/findings/2026-06-23-basis-vector-is-embed-not-random.md`.
+_`basis_vector` → `embed` FULLY DONE 2026-06-23: subtree (`demos/**` + `external/Yantra/**` + the
+font-bound generators + a Yantra test + a bench script) repointed to `embed`, `_builtin_basis_vector` +
+its BUILTINS entry DELETED, the dead `_is_basis_vector_literal_call` branch removed, and
+`collect_basis_vector_strings` → `collect_embedded_strings` (collect now keys off `EmbedExpr` only).
+Zero `basis_vector(` call sites remain. `embed` is the one canonical spelling. Verification (full suite +
+demos + smoke) gating the commit._
 
 _`scalar` type → `number` and `iff` → `xnor` both FULLY REMOVED 2026-06-23 (Emma: paper unfrozen, so no
 frozen-archive reason; iff dropped too — but OTHER logical-connective spellings stay, her call). ~1300

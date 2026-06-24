@@ -64,7 +64,7 @@ _HEADER = """\
 def _basis_decl(name: str) -> str:
     # Distinct namespace from font_bound.su's keys so the two variants don't
     # share a codebook entry — each gets independent (semantic-fresh) embeddings.
-    return f'vector {name} = basis_vector("font_bound_antipodal_{name}");'
+    return f'vector {name} = embed("font_bound_antipodal_{name}");'
 
 
 def gen_basis_block() -> str:
