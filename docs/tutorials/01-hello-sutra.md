@@ -95,7 +95,7 @@ The first run downloads the frozen model once (a few hundred MB; it prints a one
 
 ## The mental model to start absorbing
 
-- A string in your source is *not* the value a function returns. The program returns a **vector**; `embed` is the bridge from "concept written as text" to "coordinate in the substrate."
+- A string in your source is *not* the value a function returns. The program returns a **vector**; `embed` is the bridge from "concept written as text" to "coordinate in the substrate." That return value is also the *only* thing the program hands back to the host — Sutra has no `print`/stdin/file-read. The full picture of what crosses that boundary is [The host bridge — Sutra's I/O model](../host-bridge.md).
 - A vector has no canonical numeric value — it depends on the substrate (`nomic-embed-text` by default). Different substrates produce different coordinates. The *structure* of the program is substrate-independent; the *numbers* are not.
 - Computation is geometry. The next tutorials operate on these vectors with Sutra's primitives — you will see *operations on vectors* far more often than you see numbers.
 

@@ -1,3 +1,21 @@
+## 2026-06-24: Batch 5 item 2 — the no-I/O model: a host-bridge concept page (M6)
+
+Newcomers hit a wall: core Sutra has no `print`/stdin/file-read, so tutorial 05's FAQ bot embeds its query
+string in the source and can't READ a live question — but that limit was stated once (tutorial 01) and
+never explained. Added `docs/host-bridge.md` — a concept page on the no-I/O model and the narrow host
+bridge: why there is no I/O (it's the same escape hatch as substrate readout, which the language forbids),
+what crosses the boundary (IN: `embed("…")` of source literals, `load_matrix("…csv")` for large data, the
+`@embedding` directive; OUT: `main()`'s single return value, decoded at the one terminal boundary), and what
+that means in practice (inputs fixed before the run; rerun per input). Referenced from tutorial 05's
+"Extend it" (the hardcoded-query bullet), reinforced from tutorial 01's mental-model section, and listed in
+the tutorials index concept guides.
+
+Per the queue's ⚠, I did NOT build an input primitive — whether core Sutra should grow a minimal live-input
+primitive is Emma's design call, so the page FLAGS it as genuinely open and points at the separate
+desktop-I/O direction (external axons / promises / the GUI surface, via docs/gui.md) where live input is
+envisioned. Docs-only; no repo-internal refs leaked onto the website (grep-clean); site builds, new page
+renders at /host-bridge/.
+
 ## 2026-06-24: Batch 5 item 1 — the `snap` trap (M5): warn early, reject clearly, steer to argmax_cosine
 
 `snap` is a spec'd cleanup primitive whose attractor circuit the substrate doesn't implement yet, so a
