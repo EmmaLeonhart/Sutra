@@ -1,15 +1,13 @@
 ---
-title: Paradigms — Sutra is not Java
-description: Sutra reads like Java but compiles to nothing like Java. Three side-by-side examples — assignment, loops, classes — and what changes underneath.
+title: "Paradigms: familiar syntax, foreign semantics"
+description: Sutra's syntax reads like an imperative language, but it compiles to nothing like one. Three side-by-side examples — assignment, loops, classes — show what changes underneath.
 ---
 
-# Paradigms — Sutra is not Java
+# Paradigms: familiar syntax, foreign semantics
 
-Sutra's surface looks like Java. `var`, `=`, `+=`, curly braces, `class` declarations. To anyone coming from Java, Python, JavaScript, C++, the syntax reads like ordinary imperative-OO code.
+Sutra's surface looks like an ordinary imperative-OO language: `var`, `=`, `+=`, curly braces, `class` declarations. To anyone coming from Java, Python, JavaScript, or C++, it reads like familiar code. Underneath, it is something else entirely — and this page shows where the two come apart.
 
-It is not that. The point of this page is to make that disconnect visible.
-
-Java is the right comparison because **Java is imperative — it just happens to also be object-oriented.** Variables are memory cells; assignment mutates them; loops have a runtime counter and a back-edge; classes package mutable state behind methods. That whole mental model is what Sutra throws out. Haskell programmers will already recognize most of what's left once it's gone.
+Imperative languages make the cleanest comparison, so the examples below put Sutra next to Java. The imperative model is built on memory: variables are cells, assignment mutates them, loops run a counter and a back-edge, and classes package mutable state behind methods. Sutra keeps the syntax and discards that whole model — and once it's gone, what remains looks a lot like a purely functional language.
 
 Three examples, side by side.
 
