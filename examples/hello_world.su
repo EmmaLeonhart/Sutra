@@ -1,12 +1,12 @@
 // Hello world — the minimal Sutra program.
 //
-// Traditional Hello World is IO-heavy: `print("Hello, world")`. Sutra
-// is a purely functional vector-space language — there is no print,
-// no IO primitive, no side effect a function body can invoke. Every
-// computation is a deterministic vector-to-vector map. The only
-// escape from the pure region is the final name lookup at the edge,
-// which is the thin boundary where values leave the language the way
-// Haskell programs surface results from an otherwise pure body.
+// Traditional Hello World prints mid-function: `print("Hello, world")`.
+// Sutra can't do that — not because it lacks I/O (I/O is core), but because
+// the whole program runs all at once as one synchronous neural network, so
+// there's no mid-computation moment to print at. I/O happens at the program's
+// boundaries instead; here the output is the value the program RETURNS at the
+// end. So "hello world" means: build the greeting vector, match it against a
+// codebook, and return the matching name as the program's result.
 //
 // This is also the smallest demonstration that the compiler + runtime
 // are real: source -> matrix ops -> named output.
@@ -26,9 +26,8 @@ map<vector, string> PHRASE_NAME = {
 };
 
 // `say` is the whole program: identify `greeting` against the codebook
-// by cosine similarity and return its name. No control flow, no IO
-// inside the language — the name lookup at the end is the single
-// bridge back to the host string world.
+// by cosine similarity and return its name. The return is the output —
+// I/O at the end-of-program boundary, not a print in the middle.
 function string say() {
     vector winner = argmax_cosine(greeting, [v_hello, v_goodbye, v_question]);
     return PHRASE_NAME[winner];

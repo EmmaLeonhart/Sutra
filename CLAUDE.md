@@ -208,7 +208,9 @@ Every Sutra operation must be a tensor operation (matmul, element-wise ops, nonl
 
 ### NO introspection — no readout, no logging, no monitoring, no debugging (Emma 2026-06-07)
 
-**Sutra has no way to read a value off the substrate, log, monitor, or debug — by design. There is no escape hatch.** This is load-bearing language identity, not a convenience to be reintroduced.
+**Sutra has no way to read a value off the substrate *mid-computation*, log, monitor, or debug — by design. There is no escape hatch.** This is load-bearing language identity, not a convenience to be reintroduced.
+
+> **This is NOT "Sutra has no I/O." I/O is the most core part of Sutra (Emma 2026-06-25).** It happens at four points — beginning/end of the program and beginning/end of every loop — via axons, with `await` being a loop in disguise; the spec is `planning/sutra-spec/axon-io.md`. The reason you can't `print`/`.real()` *in the middle* is that the whole program runs all at once as one synchronous, highly-concurrent neural network — there is no mid-computation moment to read at, so reads/writes can only attach at the boundaries. "No mid-computation readout" follows from the all-at-once execution; it does NOT mean "no print" or "no I/O." (A prior session conflated the two and wrote a whole `docs/host-bridge.md` claiming "Sutra has no I/O" — backwards. Don't.)
 
 - The accessors `real()`, `imag()`, `truth()`, `component()` (and `norm`) are **violations** and are being **removed from the language** (parser/codegen/runtime). They compile to `float(v[...].item())` — a host readout that (a) runs subsequent arithmetic on the CPU and (b) **detaches the autograd graph**, so any program touching them is neither substrate-pure nor end-to-end differentiable.
 - The prior ruling here ("accessors are monitoring/debugging only — fine") came from the 2026-04-30 purity audit and was **wrong**: it blessed a hole in the core invariant. `.real()` then spread into operations (the mini_wasm_machine) and into transpiler output.

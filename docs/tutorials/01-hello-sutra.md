@@ -1,6 +1,6 @@
 # 01 — Hello Sutra
 
-The smallest real Sutra program is `examples/hello_world.su`. There is no `print("hello world")` in Sutra — it is a purely functional vector-space language with no IO primitive. So "hello world" here means: construct the *vector* for a greeting, identify it against a small set of known phrases, and return the matching phrase's name. That return value is the single thin bridge back to the host string world.
+The smallest real Sutra program is `examples/hello_world.su`. You can't write `print("hello world")` halfway through a function — not because Sutra lacks I/O (I/O is core), but because the whole program runs all at once as one synchronous neural network, so there's no mid-computation point to print at. I/O happens at the program's boundaries; here the output is the value `main()` **returns** at the end. So "hello world" means: construct the *vector* for a greeting, identify it against a small set of known phrases, and return the matching phrase's name — that return is the program's output. (How inputs and outputs attach at the four program/loop boundaries: [the I/O model](../host-bridge.md).)
 
 ## What you'll learn
 
