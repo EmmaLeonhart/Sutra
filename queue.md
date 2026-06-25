@@ -85,7 +85,36 @@ DEVLOG + git log. → Run the PINNED TAIL audit to refill._
 > Building the v0.2 symbol table is Emma's call (language-direction; it tightens the deliberately-lenient
 > validator). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
 
-_(no concrete items — drained; the PINNED TAIL audit below refills this list)_
+## Batch 6 — fresh readability/usability audit (2026-06-24, post-Batch-5)
+
+Audit from an outsider trying to install, run, and read Sutra. Surfaced four concrete gaps — barrel top
+to bottom; delete each on completion + append to `DEVLOG.md` in the same commit.
+
+1. **Landing-page onboarding is git-clone-first, not pip-first (M, onboarding).** `docs/index.md`
+   "Get started" leads with `git clone … && python examples/_smoke_test.py` (a repo-internal script),
+   while EVERY tutorial uses `pip install sutra-dev` + `sutrac --run`. A stranger wanting to run their
+   first program in <5 min should get the pip path + a one-line `sutrac --run` + a link to tutorial 01
+   front-and-centre; demote git-clone to a "work from source" aside. Align with `tutorials/index.md`.
+
+2. **`docs/index.md` says "string I/O" but Sutra has no I/O (M, docs accuracy).** The "How it works"/"Why
+   Sutra" bullets list "conditionals, loops, string I/O" as compiling to one tensor expression — directly
+   contradicts the no-I/O model now documented in `docs/host-bridge.md`. Reword to string *operations* (no
+   I/O; the only host bridge is `embed`/`load_matrix` in + `main()`'s return out) so the landing page and
+   the host-bridge page agree.
+
+3. **CLI dumps a raw Python traceback for codegen rejections (M, error messages).** `sutrac --run` / `--emit`
+   on any construct the backend can't lower prints a Python stack trace ending in
+   `CodegenNotSupported: line:col: codegen: <msg>` instead of the clean `file:line:col: codegen: <msg>` the
+   exception already formats (verified live on `snap`). Catch `CodegenNotSupported` in the emit/run/compile
+   paths (`__main__.py` `_run_emit`/`_run_execute`/`_compile_to_python`), prepend the file path, print to
+   stderr as a diagnostic, exit 1. Newcomers hitting ANY unsupported feature currently see a scary trace.
+
+4. **Early unimplemented-builtin warning covers only `snap` (LOW, error messages).** `snap` now warns at
+   validate-time (SUT0151) + a codegen hint, but the sibling spec'd-but-unimplemented builtins
+   `make_rotation` / `compile_prototypes` / `geometric_loop` (`codegen.py` `_UNSUPPORTED_BUILTINS`) still
+   validate clean and die with a hint-less deep codegen error. Generalise: a validator warning for them too
+   + `_UNSUPPORTED_BUILTIN_HINTS` entries pointing at the implemented alternative (or, where there is none,
+   saying so plainly). Lower newcomer-exposure than snap (none are taught), but the same trap shape.
 
 ---
 
