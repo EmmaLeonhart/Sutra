@@ -14,6 +14,12 @@ name: Publish sutra-dev to PyPI
 #   3. Commit and push.
 #   4. Tag: `git tag sutra-dev-vX.Y.Z && git push origin sutra-dev-vX.Y.Z`.
 #
+# That single tag push does BOTH: it publishes to PyPI AND creates the matching
+# GitHub Release `vX.Y.Z` (marked latest) via the final step below — so the two
+# surfaces stay in sync automatically. You do NOT need a separate `gh release
+# create` anymore. (The `vX.Y.Z` release tag does not match this workflow's
+# `sutra-dev-v*` trigger, so creating it does not re-fire the publish.)
+#
 # Authentication uses PyPI Trusted Publishing (OpenID Connect) — no
 # long-lived API token in repo secrets. The publisher is configured at
 # https://pypi.org/manage/account/publishing/ for the sutra-dev project,
@@ -36,9 +42,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      # Required for PyPI Trusted Publishing.
+      # id-token: write — required for PyPI Trusted Publishing.
+      # contents: write — required so the final step can create the matching
+      # GitHub Release (keeps PyPI and GitHub Releases in sync).
       id-token: write
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -81,3 +89,26 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: sdk/sutra-compiler/dist/
+
+      # Keep the GitHub Releases page in sync with PyPI: after a successful
+      # publish, create (or re-point) the clean `vX.Y.Z` Release on this commit
+      # and mark it latest. This is the step whose absence let GitHub's "Latest"
+      # freeze at v0.7.0 while PyPI moved on to 0.9.x. Idempotent: if the release
+      # already exists (e.g. it was cut by hand), just re-mark it latest.
+      - name: Create matching GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF#refs/tags/sutra-dev-v}"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "Release v$version already exists; marking it latest."
+            gh release edit "v$version" --latest
+          else
+            echo "Creating Release v$version on $GITHUB_SHA."
+            gh release create "v$version" \
+              --target "$GITHUB_SHA" \
+              --title "Sutra v$version" \
+              --generate-notes \
+              --latest
+          fi
