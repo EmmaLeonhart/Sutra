@@ -1,3 +1,14 @@
+## 2026-06-25: Batch 7 #3 — keep model-load framework noise off program stdout (Batch 7 drained)
+
+`embedding._get_st_model` loads the in-process embedding model via `SentenceTransformer(hf_id,
+trust_remote_code=True)`, which prints framework chatter — `<All keys matched successfully>` from the
+state-dict load — to **stdout**, polluting a program's output stream (`main()`'s return / `--emit`). Our own
+"loading embedding model" notice already goes to stderr; this stray line didn't. Wrapped the load in
+`contextlib.redirect_stdout(sys.stderr)` so any load-time output lands on stderr. Verified: `sutrac --run` of
+`vector a = embed("cat"); function string main() { return "ok"; }` now prints only `ok` on stdout, with the
+chatter on stderr. Manual verification (a unit test would need to load the real model); the change is a
+3-line redirect. Drains Batch 7 — next work-loop tick runs the pinned-tail audit to refill.
+
 ## 2026-06-25: Batch 7 #2/#4 — `--run` surfaces runtime problems as diagnostics, not tracebacks
 
 Two `__main__._run_execute` fixes from the same newcomer-mistakes audit. (a) A runtime error in the

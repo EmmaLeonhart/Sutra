@@ -79,10 +79,18 @@ def _get_st_model(model: str):
             file=sys.stderr,
             flush=True,
         )
+    import contextlib
+    import sys
+
     from sentence_transformers import SentenceTransformer
 
-    # nomic-bert ships custom modeling code, hence trust_remote_code.
-    st = SentenceTransformer(hf_id, trust_remote_code=True)
+    # nomic-bert ships custom modeling code, hence trust_remote_code. That load
+    # (and sentence-transformers itself) prints framework chatter to stdout —
+    # e.g. "<All keys matched successfully>" from the state-dict load — which
+    # would pollute a program's stdout (main()'s output, or --emit). Route any
+    # such load-time output to stderr, where our own notice already goes.
+    with contextlib.redirect_stdout(sys.stderr):
+        st = SentenceTransformer(hf_id, trust_remote_code=True)
     _ST_CACHE[hf_id] = st
     return st
 
