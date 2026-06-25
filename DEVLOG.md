@@ -1,3 +1,27 @@
+## 2026-06-24: Batch 5 item 1 — the `snap` trap (M5): warn early, reject clearly, steer to argmax_cosine
+
+`snap` is a spec'd cleanup primitive whose attractor circuit the substrate doesn't implement yet, so a
+program that calls it parses + validates as structure but dies at codegen — and tutorial 03 taught it by
+name. Three changes close the trap:
+
+- **Validator (validator.py): new SUT0151 WARNING** on a bare `snap(...)` call. A warning, not an error,
+  on purpose — the source IS valid Sutra (corpus/valid/15 + 24 use `snap` and must keep validating with
+  zero errors; test_corpus checks `has_errors`, warnings allowed). `sutrac check` and the JSON/editor path
+  now surface it before codegen, with a hint pointing at `argmax_cosine(query, [a,b,c])`.
+- **Codegen (codegen.py): fixed the rejection message.** It hard-coded "not supported on the pure-numpy
+  substrate" even on the canonical PyTorch backend (the rejection is inherited by both). Now backend-
+  accurate ("not yet supported on the substrate — no runtime lowering on this backend") + a per-builtin
+  hint table so `snap` points at `argmax_cosine`. No test asserted the old text.
+- **Tutorial 03:** `argmax_cosine` is now stated as *the* cleanup primitive to reach for; `snap` demoted
+  to a clearly-marked "> **Future: `snap`**" sidebar that names the SUT0151 warning + codegen rejection.
+
+Verified (local checkout via `PYTHONPATH=sdk/sutra-compiler`, since `import sutra_compiler` resolves to
+the sibling `Github\Sutra` clone): new test_snap_diagnostic.py (5) + test_corpus/test_codegen/
+test_codegen_pytorch/test_stdlib_loader (116) + test_dimension_audit{,_warning} (16, +90 subtests) all
+pass; e2e `sutrac check` shows the SUT0151 warning and `--emit` shows the improved codegen message; site
+builds. Full 811-test suite left to CI (it is CPU-bound torch and the change is narrowly scoped to the
+validator/codegen paths the above suites already exercise).
+
 ## 2026-06-24: H1 (unknown-type/function diagnostics) reclassified → deferred v0.2 symbol table
 
 Investigated the audit-top H1 item with a measured false-positive scan (scratchpad/h1_recon.py over all

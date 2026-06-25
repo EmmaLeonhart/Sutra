@@ -17,6 +17,9 @@ Rules implemented in v0.1:
 - SUT0113: naming drift — the file uses class names in inconsistent
   casing (a warning, not an error, because both are currently
   accepted in the example code).
+- SUT0151: `snap(...)` — spec'd cleanup primitive that the substrate
+  can't lower yet (warning, not an error; the source is valid). Steers
+  the user to `argmax_cosine` against an explicit codebook.
 
 v0.1 deliberately does NOT do:
 
@@ -460,6 +463,27 @@ class _Walker:
         self.visit(node.expr)
 
     def visit_Call(self, node: ast.Call) -> None:
+        # SUT0151: `snap` is a spec'd cleanup primitive whose attractor
+        # circuit the substrate doesn't implement yet, so a program that
+        # calls it parses + validates as a structure but is rejected at
+        # codegen. Surface that early (a warning, not an error — the
+        # source is valid Sutra) and point the newcomer at the cleanup
+        # primitive the demos use today. Mirrors the codegen rejection in
+        # codegen.py (Codegen._UNSUPPORTED_BUILTINS / tutorial 03).
+        callee = node.callee
+        if isinstance(callee, ast.Identifier) and callee.name == "snap":
+            self.diagnostics.warning(
+                "`snap` is not yet supported on the PyTorch substrate (the "
+                "canonical compile target) — it is a spec'd cleanup primitive "
+                "whose attractor circuit isn't implemented yet, so a program "
+                "using it is rejected at codegen",
+                node.span,
+                code="SUT0151",
+                hint="use `argmax_cosine(query, [a, b, c])` to clean a vector "
+                     "up against an explicit codebook (the cleanup primitive "
+                     "the demos use today); keep `snap` for when the substrate "
+                     "circuit lands",
+            )
         for t in node.type_args:
             self._record_type_usage(t)
         self.visit(node.callee)

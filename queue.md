@@ -78,18 +78,13 @@ Fresh readability/usability audit (onboarding + error messages + real-program re
 > Building the v0.2 symbol table is Emma's call (language-direction; it tightens the deliberately-lenient
 > validator). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
 
-1. **`snap` trap (M5).** Tutorial 03 is titled "Snap-to-nearest" and teaches `snap`, but `snap` is REJECTED
-   at codegen (raw `CodegenNotSupported`). Make it a clear validator diagnostic ("`snap` not yet supported
-   on the PyTorch substrate — use `argmax_cosine` against an explicit codebook") AND adjust tutorial 03 to
-   lead with `argmax_cosine`, demoting `snap` to a clearly-marked "future" sidebar.
-
-2. **I/O reach + concept page (M6).** Sutra has no `print`/stdin/file-read; the only host bridge is
+1. **I/O reach + concept page (M6).** Sutra has no `print`/stdin/file-read; the only host bridge is
    `main()`'s return + `load_matrix`/embeddings as inputs. This is stated once (tutorial 01) and never
    reinforced; tutorial 05's FAQ bot can't actually READ a user question (hardcoded). Add a short concept
    page on the no-I/O model + the host-bridge, reference it from tutorial 05's "Extend it." ⚠ Whether a
    minimal INPUT primitive is on the roadmap is Emma's design call — FLAG it, don't build one.
 
-3. **`dict<K,V>` discoverability (L11, LOW).** The rotation-hashmap `dict<K,V>` is real but has no tutorial/
+2. **`dict<K,V>` discoverability (L11, LOW).** The rotation-hashmap `dict<K,V>` is real but has no tutorial/
    concept page; link `memory.su`'s `hashmap_*` from `docs/list-operations.md` "Related" or add a short example.
 
 ---
