@@ -87,29 +87,37 @@ DEVLOG + git log. → Run the PINNED TAIL audit to refill._
 
 ## Batch 6 — fresh readability/usability audit (2026-06-24, post-Batch-5)
 
-Audit from an outsider trying to install, run, and read Sutra. Surfaced four concrete gaps — barrel top
+Audit from an outsider trying to install, run, and read Sutra. Surfaced concrete gaps — barrel top
 to bottom; delete each on completion + append to `DEVLOG.md` in the same commit.
 
-1. **Landing-page onboarding is git-clone-first, not pip-first (M, onboarding).** `docs/index.md`
-   "Get started" leads with `git clone … && python examples/_smoke_test.py` (a repo-internal script),
-   while EVERY tutorial uses `pip install sutra-dev` + `sutrac --run`. A stranger wanting to run their
-   first program in <5 min should get the pip path + a one-line `sutrac --run` + a link to tutorial 01
-   front-and-centre; demote git-clone to a "work from source" aside. Align with `tutorials/index.md`.
+_Item (docs accuracy) DONE 2026-06-24: `docs/index.md` said "string I/O" but Sutra has no I/O — reworded
+to string *operations* + a parenthetical pointing at `docs/host-bridge.md`. History in DEVLOG._
 
-2. **`docs/index.md` says "string I/O" but Sutra has no I/O (M, docs accuracy).** The "How it works"/"Why
-   Sutra" bullets list "conditionals, loops, string I/O" as compiling to one tensor expression — directly
-   contradicts the no-I/O model now documented in `docs/host-bridge.md`. Reword to string *operations* (no
-   I/O; the only host bridge is `embed`/`load_matrix` in + `main()`'s return out) so the landing page and
-   the host-bridge page agree.
+1. **`pip install` onboarding can't actually run a program — examples aren't shipped + a bare string
+   return mis-decodes (M/H, onboarding — needs a packaging/semantics call).** MEASURED 2026-06-24 while
+   auditing the landing page: (a) the wheel ships only `sutra_compiler` + `stdlib/*.su` (`pyproject.toml`
+   §packages.find / package-data; no MANIFEST, no force-include), so `examples/` is **repo-root only** —
+   a pip-only user has no `examples/hello_world.su`, yet tutorials 01 & 05 *and* tutorials/index tell them
+   to `sutrac --run examples/…`. That path 404s without a clone. (b) The obvious pip-friendly substitute
+   doesn't work either: `function string main() { return "hello world"; }` run via `sutrac --run` prints
+   **`104.0`** (= codepoint of 'h') — a bare string-literal `main` return is a make_string codepoint-array
+   tensor and the terminal decode reads its REAL axis as a number. Only a *codebook/map-returned* string
+   stays a host `str` and prints as text (that's why tutorial 01's hello-world works — it returns
+   `PHRASE_NAME[winner]`). Net: "pip install and run your first program in <5 min" is not currently true.
+   Resolution is a call (FLAG, don't guess): ship `examples/*.su` in the wheel (packaging change — they sit
+   outside the package dir, so it needs force-include/relocate + doc-path updates), and/or make `main`'s
+   string-literal return decode back to text, and/or make onboarding explicitly clone-based. The landing
+   page's current git-clone path *works* (it gets examples), so don't replace it with a broken pip-run claim
+   until this is decided.
 
-3. **CLI dumps a raw Python traceback for codegen rejections (M, error messages).** `sutrac --run` / `--emit`
+2. **CLI dumps a raw Python traceback for codegen rejections (M, error messages).** `sutrac --run` / `--emit`
    on any construct the backend can't lower prints a Python stack trace ending in
    `CodegenNotSupported: line:col: codegen: <msg>` instead of the clean `file:line:col: codegen: <msg>` the
    exception already formats (verified live on `snap`). Catch `CodegenNotSupported` in the emit/run/compile
    paths (`__main__.py` `_run_emit`/`_run_execute`/`_compile_to_python`), prepend the file path, print to
    stderr as a diagnostic, exit 1. Newcomers hitting ANY unsupported feature currently see a scary trace.
 
-4. **Early unimplemented-builtin warning covers only `snap` (LOW, error messages).** `snap` now warns at
+3. **Early unimplemented-builtin warning covers only `snap` (LOW, error messages).** `snap` now warns at
    validate-time (SUT0151) + a codegen hint, but the sibling spec'd-but-unimplemented builtins
    `make_rotation` / `compile_prototypes` / `geometric_loop` (`codegen.py` `_UNSUPPORTED_BUILTINS`) still
    validate clean and die with a hint-less deep codegen error. Generalise: a validator warning for them too
