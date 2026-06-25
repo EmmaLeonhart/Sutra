@@ -1,3 +1,16 @@
+## 2026-06-24: Batch 6 #2 — clean CLI diagnostic for codegen rejections (no more raw traceback)
+
+`sutrac --run` / `--emit` on any construct the backend can't lower (e.g. `snap`) dumped a Python stack
+trace ending in `CodegenNotSupported: line:col: codegen: <msg>` — scary for a newcomer and inconsistent
+with how validator errors print. The exception already formats as `line:col: codegen: <msg>`, so the fix
+is a single catch at the one choke point: `__main__._compile_to_python` (which `--run`, `--emit`, and the
+runtime-viz path all call) now wraps the `translate_pytorch` call, prints `f"{path}:{exc}"` to stderr
+(matching the validator's `file:line:col: …` shape), and returns None → callers already map that to exit 1.
+Mirrors the existing `ThrmlCodegenNotSupported` handler in `_run_emit_thrml`. Verified: `--run`/`--emit` on
+snap now print one clean diagnostic line (exit 1), no traceback; new test in test_snap_diagnostic.py asserts
+None-not-raised + "codegen:" + no "Traceback" + the argmax_cosine steer + the file path. Success path
+unchanged (test_native_recursion + test_preeval, which compile real programs through this function, green).
+
 ## 2026-06-24: Batch 6 audit — fixed "string I/O" wording; measured two onboarding traps (queued, not guessed)
 
 Ran the pinned-tail audit after Batch 5 drained. Shipped one clean fix and BANKED two measured findings

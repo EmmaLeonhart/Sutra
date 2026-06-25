@@ -90,8 +90,10 @@ DEVLOG + git log. → Run the PINNED TAIL audit to refill._
 Audit from an outsider trying to install, run, and read Sutra. Surfaced concrete gaps — barrel top
 to bottom; delete each on completion + append to `DEVLOG.md` in the same commit.
 
-_Item (docs accuracy) DONE 2026-06-24: `docs/index.md` said "string I/O" but Sutra has no I/O — reworded
-to string *operations* + a parenthetical pointing at `docs/host-bridge.md`. History in DEVLOG._
+_Done 2026-06-24 (history in DEVLOG): (docs accuracy) `docs/index.md` "string I/O" → string *operations* +
+host-bridge pointer; (error messages) the CLI now catches `CodegenNotSupported` at the single
+`_compile_to_python` choke point and prints a clean `file:line:col: codegen: <msg>` diagnostic (exit 1)
+instead of an uncaught Python traceback — `--run`/`--emit` on `snap` verified, test_snap_diagnostic covers it._
 
 1. **`pip install` onboarding can't actually run a program — examples aren't shipped + a bare string
    return mis-decodes (M/H, onboarding — needs a packaging/semantics call).** MEASURED 2026-06-24 while
@@ -110,14 +112,7 @@ to string *operations* + a parenthetical pointing at `docs/host-bridge.md`. Hist
    page's current git-clone path *works* (it gets examples), so don't replace it with a broken pip-run claim
    until this is decided.
 
-2. **CLI dumps a raw Python traceback for codegen rejections (M, error messages).** `sutrac --run` / `--emit`
-   on any construct the backend can't lower prints a Python stack trace ending in
-   `CodegenNotSupported: line:col: codegen: <msg>` instead of the clean `file:line:col: codegen: <msg>` the
-   exception already formats (verified live on `snap`). Catch `CodegenNotSupported` in the emit/run/compile
-   paths (`__main__.py` `_run_emit`/`_run_execute`/`_compile_to_python`), prepend the file path, print to
-   stderr as a diagnostic, exit 1. Newcomers hitting ANY unsupported feature currently see a scary trace.
-
-3. **Early unimplemented-builtin warning covers only `snap` (LOW, error messages).** `snap` now warns at
+2. **Early unimplemented-builtin warning covers only `snap` (LOW, error messages).** `snap` now warns at
    validate-time (SUT0151) + a codegen hint, but the sibling spec'd-but-unimplemented builtins
    `make_rotation` / `compile_prototypes` / `geometric_loop` (`codegen.py` `_UNSUPPORTED_BUILTINS`) still
    validate clean and die with a hint-less deep codegen error. Generalise: a validator warning for them too

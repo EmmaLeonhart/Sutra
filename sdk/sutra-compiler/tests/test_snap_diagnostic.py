@@ -86,5 +86,39 @@ class TestSnapCodegenRejection(unittest.TestCase):
         self._assert_rejected(translate_pytorch)
 
 
+class TestCodegenRejectionIsCleanDiagnostic(unittest.TestCase):
+    """A backend codegen rejection must reach the user as a `file:line:col:
+    codegen: <msg>` diagnostic on stderr (and a None compile result that the
+    CLI turns into exit 1), NOT an uncaught Python traceback. Single choke
+    point: __main__._compile_to_python, which --run / --emit both call."""
+
+    def test_compile_to_python_prints_diagnostic_not_traceback(self):
+        import contextlib
+        import io
+        import os
+        import tempfile
+
+        from sutra_compiler.__main__ import _compile_to_python
+
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".su", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(_SNAP_SRC)
+            path = f.name
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                result = _compile_to_python(path, runtime_dim=64, runtime_seed=0)
+            # Rejected cleanly: None (→ CLI exit 1), not a raised exception.
+            self.assertIsNone(result)
+            msg = err.getvalue()
+            self.assertIn("codegen:", msg)        # diagnostic shape, not a traceback
+            self.assertNotIn("Traceback", msg)
+            self.assertIn("argmax_cosine", msg)   # still steers the user
+            self.assertIn(path, msg)              # file path prepended
+        finally:
+            os.unlink(path)
+
+
 if __name__ == "__main__":
     unittest.main()
