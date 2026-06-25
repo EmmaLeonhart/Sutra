@@ -1,3 +1,16 @@
+## 2026-06-24: Batch 6 #3 — generalise the unimplemented-builtin warning beyond `snap`
+
+`snap` warned early at SUT0151, but its three sibling spec'd-but-unimplemented substrate builtins —
+`make_rotation` / `compile_prototypes` / `geometric_loop` (the PyTorch `_UNSUPPORTED_BUILTINS`, i.e. the
+numpy set minus the array_* ops the PyTorch backend implements) — validated clean and only failed deep in
+codegen. Generalised the validator check from a hardcoded `== "snap"` to a `_UNIMPLEMENTED_SUBSTRATE_BUILTINS`
+table; all four now emit SUT0151 early. `snap` keeps its argmax_cosine steer; the other three carry an
+honest "no implemented substitute yet — forward-looking spec primitive" hint rather than an invented
+alternative (I don't have ground truth on their intended replacements, so I didn't fabricate one). Verified
+via `sutrac` check on make_rotation; new subtest in test_snap_diagnostic.py covers all three siblings (warn,
+no error, no argmax_cosine in their hint); corpus regression green. This drains Batch 6 except the flagged
+onboarding/packaging item (#1), which needs Emma's call.
+
 ## 2026-06-24: Batch 6 #2 — clean CLI diagnostic for codegen rejections (no more raw traceback)
 
 `sutrac --run` / `--emit` on any construct the backend can't lower (e.g. `snap`) dumped a Python stack

@@ -17,9 +17,11 @@ Rules implemented in v0.1:
 - SUT0113: naming drift — the file uses class names in inconsistent
   casing (a warning, not an error, because both are currently
   accepted in the example code).
-- SUT0151: `snap(...)` — spec'd cleanup primitive that the substrate
-  can't lower yet (warning, not an error; the source is valid). Steers
-  the user to `argmax_cosine` against an explicit codebook.
+- SUT0151: a call to a spec'd substrate builtin the canonical backend
+  can't lower yet (`snap` / `make_rotation` / `compile_prototypes` /
+  `geometric_loop`) — warning, not an error; the source is valid. For
+  `snap` it steers to `argmax_cosine`; the rest say there is no
+  implemented substitute yet.
 
 v0.1 deliberately does NOT do:
 
@@ -45,6 +47,26 @@ from .diagnostics import (
 )
 from .lexer import Lexer, TokenKind
 from .parser import Parser
+
+
+# Spec'd builtins the canonical (PyTorch) substrate can't lower yet: they
+# parse + validate as structure but are rejected at codegen. This is
+# `codegen.py` `Codegen._UNSUPPORTED_BUILTINS` MINUS the `array_*` ops, which
+# the PyTorch backend (the canonical target) DOES implement. Surfacing them as
+# a validator warning (SUT0151) gives an editor / `sutrac check` an early
+# signal before codegen. `snap` is the one with newcomer exposure (tutorial 03)
+# and a real implemented alternative (argmax_cosine); the rest are not taught
+# and have no drop-in substitute, so the diagnostic says so plainly rather than
+# invent one. Kept in sync with codegen by hand (four names; codegen is the
+# actual enforcer).
+_UNIMPLEMENTED_SUBSTRATE_BUILTINS = {
+    "snap": "use `argmax_cosine(query, [a, b, c])` to clean a vector up against "
+            "an explicit codebook (the cleanup primitive the demos use today); "
+            "keep `snap` for when the substrate circuit lands",
+    "make_rotation": None,
+    "compile_prototypes": None,
+    "geometric_loop": None,
+}
 
 
 def _fuzzy_literal_constant(expr: ast.Expr) -> Optional[float]:
@@ -471,18 +493,19 @@ class _Walker:
         # primitive the demos use today. Mirrors the codegen rejection in
         # codegen.py (Codegen._UNSUPPORTED_BUILTINS / tutorial 03).
         callee = node.callee
-        if isinstance(callee, ast.Identifier) and callee.name == "snap":
+        if (isinstance(callee, ast.Identifier)
+                and callee.name in _UNIMPLEMENTED_SUBSTRATE_BUILTINS):
+            hint = _UNIMPLEMENTED_SUBSTRATE_BUILTINS[callee.name]
             self.diagnostics.warning(
-                "`snap` is not yet supported on the PyTorch substrate (the "
-                "canonical compile target) — it is a spec'd cleanup primitive "
-                "whose attractor circuit isn't implemented yet, so a program "
-                "using it is rejected at codegen",
+                f"`{callee.name}` is not yet supported on the PyTorch substrate "
+                "(the canonical compile target) — it is a spec'd primitive with "
+                "no runtime lowering yet, so a program using it is rejected at "
+                "codegen",
                 node.span,
                 code="SUT0151",
-                hint="use `argmax_cosine(query, [a, b, c])` to clean a vector "
-                     "up against an explicit codebook (the cleanup primitive "
-                     "the demos use today); keep `snap` for when the substrate "
-                     "circuit lands",
+                hint=hint or ("no implemented substitute yet — it is a "
+                              "forward-looking spec primitive, not a callable "
+                              "operation on the current substrate"),
             )
         for t in node.type_args:
             self._record_type_usage(t)
