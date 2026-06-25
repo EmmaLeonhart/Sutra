@@ -1,3 +1,16 @@
+## 2026-06-25: Batch 7 #2/#4 — `--run` surfaces runtime problems as diagnostics, not tracebacks
+
+Two `__main__._run_execute` fixes from the same newcomer-mistakes audit. (a) A runtime error in the
+generated module — e.g. `function int main() { int x = "hello"; return x; }` hitting `TypeError: can't
+multiply sequence by non-int of type 'float'` — used to dump a full Python traceback. The earlier
+clean-diagnostic work only caught codegen-time `CodegenNotSupported`; this wraps the exec + `main()` call so
+a runtime exception prints `<file>: runtime error: <Type>: <msg>` to stderr and exits 1. KeyboardInterrupt /
+SystemExit subclass BaseException, not Exception, so Ctrl-C still works. (b) A file with no `main()` now
+prints `<file>: no main() found — nothing to run` instead of exiting 0 silently — a newcomer otherwise can't
+tell why nothing happened. New test_run_error_diagnostics.py covers both (return code + stderr shape + no
+"Traceback"). Leaves the deeper §"No runtime errors by mechanism" tension (a type mismatch should yield
+meaningless-but-valid output, not crash) to the type-story work; this is the clean-diagnostic wrapper.
+
 ## 2026-06-25: Batch 7 #1 — stop `print`/host builtins leaking to the host (no-I/O enforcement)
 
 Probing first-hour newcomer mistakes turned up a real leak: `function string main() { print("hi"); return

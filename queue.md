@@ -122,23 +122,16 @@ with SUT0152 — `print`/`input` steer to `main()`'s return + the host bridge �
 is declared (shadowing). Verified: print/eval rejected, user-defined `print` still validates, corpus +
 examples unaffected (no `.su` calls these); test_host_leak_builtins covers it._
 
-1. **Runtime exec errors during `--run` dump a raw Python traceback (MEDIUM, error messages).** `function
-   int main() { int x = "hello"; return x; }` → `TypeError: can't multiply sequence by non-int of type
-   'float'` with a full Python stack trace. The earlier clean-diagnostic fix only caught codegen-time
-   `CodegenNotSupported`; runtime exceptions from `mod.main()` in `__main__._run_execute` still spew. Wrap
-   the exec + `main()` call and print a clean `<file>: runtime error: <msg>` to stderr (exit 1) instead of a
-   traceback. (Note the deeper tension — §"No runtime errors by mechanism" says a type mismatch should yield
-   meaningless-but-valid output, not crash; full resolution needs the type story, so this item is just the
-   clean-diagnostic wrapper.)
+_Done 2026-06-25 (history in DEVLOG): two `--run` error-UX fixes in `__main__._run_execute`. (a) Runtime
+exceptions in the generated module (e.g. `int x = "hello"` → TypeError) now print a clean
+`<file>: runtime error: <Type>: <msg>` to stderr and exit 1 instead of an uncaught Python traceback
+(KeyboardInterrupt/SystemExit still propagate). (b) A file with no `main()` prints
+`<file>: no main() found — nothing to run` instead of exiting silently. test_run_error_diagnostics covers both._
 
-2. **Embedding-model load leaks framework noise to stdout (LOW, onboarding polish).** A first run prints
+1. **Embedding-model load leaks framework noise to stdout (LOW, onboarding polish).** A first run prints
    `<All keys matched successfully>` (transformers/torch state-dict load) to **stdout**, polluting
    `main()`'s output stream — the intended `[sutra] loading embedding model …` notice already goes to
    stderr, this stray line doesn't. Route model-load chatter to stderr / silence under `SUTRA_QUIET`.
-
-3. **A program with no `main()` runs silently (LOW, onboarding).** `sutrac --run` on a file with no `main()`
-   loads the model and exits 0 with no output and no explanation. Print a clear
-   `<file>: no main() found — nothing to run` notice so a newcomer knows why nothing happened.
 
 ---
 
