@@ -1,3 +1,24 @@
+## 2026-06-25: Batch 7 #1 — stop `print`/host builtins leaking to the host (no-I/O enforcement)
+
+Probing first-hour newcomer mistakes turned up a real leak: `function string main() { print("hi"); return
+"x"; }` run via `sutrac --run` actually printed `hi`. The codegen emits any non-builtin call identifier
+verbatim as a Python call (it can't tell a user function from a host name without the deferred v0.2 symbol
+table), so `print("hi")` lowered to a raw `print('hi')` — silently breaking the no-I/O model
+(docs/host-bridge.md) and substrate purity (CLAUDE.md §"NO introspection"). `input`/`open`/`eval`/`exec`/
+`compile`/`__import__` leak the same way (host I/O / eval escape hatches); a typo'd name NameErrors at
+runtime instead.
+
+Fix (bounded + safe — NOT the full symbol table): the validator now rejects a bare call to a denylisted
+host-Python builtin with SUT0152, UNLESS the program declares its own function of that name (checked against
+`_Walker._file_scope_names`, which the visit_module pre-pass fully populates before any call is walked).
+`print`/`input` get a hint steering to `main()`'s return + the host bridge; the rest get a generic "no host
+escape hatch" hint. Verified: `print("hi")`/`eval(...)` now error at validate time (so they never reach
+codegen, never leak); a user-defined `function void print()` still validates (shadowing); no `.su` in
+examples/corpus/demos calls any denylisted name (the two grep hits are comments), so nothing regressed.
+New test_host_leak_builtins.py + corpus/snap suites green. The codegen still emits unknown calls verbatim
+(the deeper v0.2 name-resolution issue) — this closes the I/O/eval leak specifically, which is the part
+that contradicts the language's identity.
+
 ## 2026-06-25 — daily audit: clean (79 .su compiled, 0 leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec)
 
 End-to-end CLEAN: after installing `numpy`+`torch`+`pytest`+`ollama` pkg + the `sutra_compiler` editable install + `sentence-transformers`+`einops` for the in-process HF embed backend (Ollama daemon not available in this proxied container, so `SUTRA_EMBED_BACKEND=hf` routes through `nomic-ai/nomic-embed-text-v1.5`), `scripts/check_promise_await_fit_to_spec.py` returns `EXIT=0` with `[2/2] regression tests PASS (4/4 expected)` — both substrate-purity tests AND both semantic-preservation tests pass to 3 places against the fixture's expected 3.0. `experiments/substrate_leak_sweep.py` reports `79 compiled, 18 skipped, 0 user-program leak(s) found, 0 runtime-prelude leak(s) found`. Audit.md REAL LEAK #1–#11 all still FIXED/NOT-A-LEAK at cited codegen sites; #3 (`await_value`) still the spec-compliant `return self.value(p)` reduction per `planning/sutra-spec/promises.md` Stage 2; #4 (`_TorchVSA.loop`) still the tensor-op fixed-T unroll (no `.item()`/`float()`/host branch on data). 16 open-question dossiers in `planning/open-questions/` + `sutra-spec/open-questions.md` cross-checked: README verdict table (14 entries) unchanged from 2026-05-28 pruning; `axon-string-filler-roundtrip.md` still marked RESOLVED 2026-06-08 inline (Emma kept as record; resolution mirrored authoritatively in `sutra-spec/axons.md`); `2026-06-13-sutra-to-thrml-mapping.md` is an active exploration loop (Emma 2026-06-13). No spec edits since 2026-06-19; no new code/spec activity could have resolved an open-question dossier silently. No code regression detected.
