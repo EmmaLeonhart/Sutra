@@ -334,17 +334,26 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int,
 
 
 def _decode_terminal_result(mod, result):
-    """Terminal/output boundary: decode a number-vector `main()` result to its
-    real-axis value for display. The language itself has no scalar-readout
-    accessor (`real()` was removed — substrate purity); the host reading the
-    FINAL result for display is the one external terminal boundary, the same as
-    printing a returned value in any runtime. A number-vector is a 1-D tensor of
-    length `_VSA.dim`; anything else (string, int, already-decoded) prints as-is."""
+    """Terminal/output boundary: decode a `main()` result to a host value for
+    display. The language has no scalar-readout accessor (`real()` was removed —
+    substrate purity); the host reading the FINAL result for display is the one
+    external terminal boundary, the same as printing a returned value in any
+    runtime.
+
+    Both a String and a number-vector are 1-D tensors of length `_VSA.dim`; the
+    AXIS_STRING_FLAG tells them apart. The string check MUST come first: a String
+    stores its codepoints on synthetic axes and the real axis coincides with the
+    first codepoint, so a String read as a number prints that char's codepoint
+    (e.g. `return "hello world"` would print 104.0 = 'h'). A String decodes to its
+    Python text via the sanctioned `string_to_python` terminal decode; a
+    number-vector decodes to its real-axis value; anything else prints as-is."""
     try:
         import torch as _t
         vsa = getattr(mod, "_VSA", None)
         if (vsa is not None and isinstance(result, _t.Tensor)
                 and result.ndim == 1 and result.shape[0] == vsa.dim):
+            if vsa.is_string(result):
+                return vsa.string_to_python(result)
             return float(result[vsa.semantic_dim + vsa.AXIS_REAL])
     except Exception:
         pass
