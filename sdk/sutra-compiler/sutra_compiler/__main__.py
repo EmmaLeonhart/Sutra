@@ -23,6 +23,7 @@ from typing import List
 
 from . import __version__
 from . import ast_nodes as ast
+from .codegen_base import CodegenNotSupported
 from .codegen_pytorch import translate_module as translate_pytorch
 from .diagnostics import Diagnostic, DiagnosticLevel
 from .lexer import Lexer
@@ -292,10 +293,20 @@ def _compile_to_python(path: str, *, runtime_dim: int,
     tabulate_module(module)
     if loop_T is None:
         loop_T = _read_atman_loop_T(path) or 50
-    return translate_pytorch(
-        module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-        loop_max_iterations=loop_T,
-    )
+    try:
+        return translate_pytorch(
+            module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+            loop_max_iterations=loop_T,
+        )
+    except CodegenNotSupported as exc:
+        # The backend can't lower this construct (an unsupported builtin like
+        # `snap`, an unsupported node, etc.). `exc` already formats as
+        # `line:col: codegen: <message>`; prepend the file path so it reads
+        # like every other Sutra diagnostic (`file:line:col: …`) instead of
+        # surfacing to the user as an uncaught Python traceback. Single choke
+        # point: --run / --emit / runtime-viz all route through here.
+        print(f"{path}:{exc}", file=sys.stderr)
+        return None
 
 
 def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int,
