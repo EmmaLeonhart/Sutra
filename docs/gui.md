@@ -79,7 +79,7 @@ Each press trains a small preference model on your choice (the pairwise Bradley-
 model real preference-learning uses), and an **Adam optimizer backpropagates your
 preference through the substrate render** to the picture's parameters — so the hero morphs
 toward what you reward, live. It is real reinforcement-from-preference, not a scripted
-animation: the gradient genuinely flows through the rendered frame.
+animation: the gradient flows through the rendered frame.
 
 We measured the loop end to end. A rater that consistently prefers brighter frames drives
 the displayed brightness from the neutral start to the top of its range; a rater that
@@ -108,7 +108,7 @@ once:
 python demos/gui/adam_window_rgb.py   # or double-click demos/gui/run_adam_rgb_gui.bat (Windows)
 ```
 
-(One honest detail surfaced while building this: a *normalised* position measure is
+(One wrinkle surfaced while building this: a *normalised* position measure is
 scale-invariant, so an optimiser can satisfy it by collapsing the frame to black — a
 degenerate win. We score position by a plain bottom-right-minus-top-left mass instead, which
 black cannot game.)

@@ -1,4 +1,4 @@
-# What Sutra implements — every keyword, operator, primitive, runtime method, and stdlib class, with the training status of each
+# What Sutra implements
 
 This page is the exhaustive inventory of every implemented thing in the Sutra language. Every keyword, every operator, every runtime primitive, every stdlib class, every control-flow form. For each item there's a **Training** note: whether training (in the constrain-train sense — train a parameter, bake it back into source as a literal, recompile) is implemented today on that item.
 
@@ -9,7 +9,7 @@ Training status legend used throughout:
 - **vision** — the item has a trainable surface in principle, but no harness exists yet.
 - **n/a** — not a trainable surface (compiler infrastructure, syntax, lexical forms, etc.).
 
-There is **one shipped** training instance in the whole language today (the equality `==` cosine scaling scalar) and **two mechanism** instances (rank-k `is_X` classification, defuzz gain). The bulk of trainable surfaces are **vision** — capable in principle, not yet built. This page states that distinction plainly rather than blurring it.
+There is **one shipped** training instance in the whole language today (the equality `==` cosine scaling scalar) and **two mechanism** instances (rank-k `is_X` classification, defuzz gain). The bulk of trainable surfaces are **vision** — capable in principle, not yet built.
 
 ---
 
