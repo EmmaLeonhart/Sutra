@@ -607,6 +607,29 @@ def main() -> int:
     )
     print("wrote index.html  ->  /")
 
+    # Custom 404 — rendered through the same shell() as every page, so it
+    # carries the identical Sutra identity (topbar, theme toggle, footer).
+    # GitHub Pages serves /404.html for any unmatched path under the site.
+    # noindex: an error page should never land in search results.
+    nf_paper_link = ('      <a href="/paper/">Read the paper</a>\n' if paper_ok else "")
+    not_found_inner = (
+        '    <span class="eyebrow">404</span>\n'
+        '    <div class="scroll" aria-hidden="true">📜</div>\n'
+        '    <h1>This thread unbinds to nothing</h1>\n'
+        '    <p class="lede">No page lives at that address &mdash; the path you '
+        'followed has no nearest neighbour here. Try the home page or the paper.</p>\n'
+        '    <div class="links">\n'
+        '      <a class="primary" href="/">Back to Sutra home</a>\n'
+        f'{nf_paper_link}'
+        '      <a href="https://github.com/EmmaLeonhart/Sutra">View source on GitHub</a>\n'
+        '    </div>\n'
+    )
+    (out / "404.html").write_text(
+        shell("404 — Sutra", not_found_inner, noindex=True),
+        encoding="utf-8",
+    )
+    print("wrote 404.html")
+
     web = repo / "web"
     for name in ("identity.css", "celestial.css", "CNAME"):
         shutil.copyfile(web / name, out / name)
