@@ -110,6 +110,42 @@ _Done 2026-06-24 (history in DEVLOG): generalised the SUT0151 validator warning 
 sibling unimplemented substrate builtins `make_rotation` / `compile_prototypes` / `geometric_loop` — they
 warn early too, with an honest "no implemented substitute yet" hint (snap keeps the argmax_cosine steer)._
 
+## Batch 7 — fresh usability audit (2026-06-25, error-messages + newcomer-mistakes pass)
+
+Probed the diagnostics a newcomer trips on their first hour (`print`, wrong types, no `main`). Barrel top
+to bottom; delete each on completion + append to `DEVLOG.md` in the same commit.
+
+1. **`print(...)` (and other host builtins) leak to host Python — silently breaking the no-I/O model
+   (HIGH, substrate purity + docs accuracy).** MEASURED 2026-06-25: `function string main() { print("hi");
+   return "x"; }` run via `sutrac --run` actually prints `hi` — because codegen emits `print("hi")` as a
+   raw Python `print('hi')`. This directly contradicts `docs/host-bridge.md` ("Sutra has no print") and
+   CLAUDE.md §"NO introspection". Root cause: the codegen emits ANY non-builtin call identifier verbatim as
+   a Python call (it can't tell a user function from a host builtin without the deferred v0.2 symbol table —
+   see the H1 note above), so host builtins (`print`/`input`/`open`/`eval`/`exec`/`__import__`) pass straight
+   through; a typo'd name would instead NameError at runtime. FIX (bounded + safe, NOT the full symbol
+   table): reject calls to a denylist of host-Python builtins in the validator UNLESS shadowed by a
+   user-declared name (`_Walker` already tracks `_file_scope_names`), with a clear message steering to
+   `main()`'s return + the host bridge. Verify `print` no longer compiles/leaks; verify a user function
+   named `print` (if anyone's perverse enough) still works.
+
+2. **Runtime exec errors during `--run` dump a raw Python traceback (MEDIUM, error messages).** `function
+   int main() { int x = "hello"; return x; }` → `TypeError: can't multiply sequence by non-int of type
+   'float'` with a full Python stack trace. The earlier clean-diagnostic fix only caught codegen-time
+   `CodegenNotSupported`; runtime exceptions from `mod.main()` in `__main__._run_execute` still spew. Wrap
+   the exec + `main()` call and print a clean `<file>: runtime error: <msg>` to stderr (exit 1) instead of a
+   traceback. (Note the deeper tension — §"No runtime errors by mechanism" says a type mismatch should yield
+   meaningless-but-valid output, not crash; full resolution needs the type story, so this item is just the
+   clean-diagnostic wrapper.)
+
+3. **Embedding-model load leaks framework noise to stdout (LOW, onboarding polish).** A first run prints
+   `<All keys matched successfully>` (transformers/torch state-dict load) to **stdout**, polluting
+   `main()`'s output stream — the intended `[sutra] loading embedding model …` notice already goes to
+   stderr, this stray line doesn't. Route model-load chatter to stderr / silence under `SUTRA_QUIET`.
+
+4. **A program with no `main()` runs silently (LOW, onboarding).** `sutrac --run` on a file with no `main()`
+   loads the model and exits 0 with no output and no explanation. Print a clear
+   `<file>: no main() found — nothing to run` notice so a newcomer knows why nothing happened.
+
 ---
 
 ## ⭐ PINNED TAIL — readability + usability audit → REFILL (self-perpetuating; Emma 2026-06-23)
