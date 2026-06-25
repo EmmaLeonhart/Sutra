@@ -95,22 +95,16 @@ host-bridge pointer; (error messages) the CLI now catches `CodegenNotSupported` 
 `_compile_to_python` choke point and prints a clean `file:line:col: codegen: <msg>` diagnostic (exit 1)
 instead of an uncaught Python traceback — `--run`/`--emit` on `snap` verified, test_snap_diagnostic covers it._
 
-1. **`pip install` onboarding can't actually run a program — examples aren't shipped + a bare string
-   return mis-decodes (M/H, onboarding — needs a packaging/semantics call).** MEASURED 2026-06-24 while
-   auditing the landing page: (a) the wheel ships only `sutra_compiler` + `stdlib/*.su` (`pyproject.toml`
-   §packages.find / package-data; no MANIFEST, no force-include), so `examples/` is **repo-root only** —
-   a pip-only user has no `examples/hello_world.su`, yet tutorials 01 & 05 *and* tutorials/index tell them
-   to `sutrac --run examples/…`. That path 404s without a clone. (b) The obvious pip-friendly substitute
-   doesn't work either: `function string main() { return "hello world"; }` run via `sutrac --run` prints
-   **`104.0`** (= codepoint of 'h') — a bare string-literal `main` return is a make_string codepoint-array
-   tensor and the terminal decode reads its REAL axis as a number. Only a *codebook/map-returned* string
-   stays a host `str` and prints as text (that's why tutorial 01's hello-world works — it returns
-   `PHRASE_NAME[winner]`). Net: "pip install and run your first program in <5 min" is not currently true.
-   Resolution is a call (FLAG, don't guess): ship `examples/*.su` in the wheel (packaging change — they sit
-   outside the package dir, so it needs force-include/relocate + doc-path updates), and/or make `main`'s
-   string-literal return decode back to text, and/or make onboarding explicitly clone-based. The landing
-   page's current git-clone path *works* (it gets examples), so don't replace it with a broken pip-run claim
-   until this is decided.
+_Done 2026-06-24 (Emma: "fix this"; history in DEVLOG): the `pip install` onboarding now actually runs a
+program. ROOT FIX (semantics): a bare string-literal `main` return printed `104.0` ('h') because a String
+is a `dim`-length tensor and `_decode_terminal_result` read the real axis (= the first codepoint) before
+checking for a string — now it checks `is_string` first and decodes via `string_to_python`, so
+`function string main() { return "hello world"; }` prints `hello world` (number returns still decode to
+the real axis; test_terminal_string_decode covers both). With that, the landing page leads with a verified
+pip-only first run (`pip install` → write a one-line `hello.su` → `sutrac --run`), and the docs are honest
+that the `examples/…` programs ship in the SOURCE repo, not the wheel (tutorials 01/05 + index note: clone
+or save the shown source). Did NOT ship examples in the wheel — unnecessary once inline programs run and the
+docs are accurate, and it would need an awkward force-include/relocate (examples sit outside the package dir)._
 
 _Done 2026-06-24 (history in DEVLOG): generalised the SUT0151 validator warning beyond `snap` to its
 sibling unimplemented substrate builtins `make_rotation` / `compile_prototypes` / `geometric_loop` — they

@@ -23,10 +23,28 @@ Sutra compiles to self-contained PyTorch and runs on an NVIDIA GPU (CUDA, select
 
 ## Get started
 
+Install from PyPI and run your first program — no clone, no server:
+
+```bash
+pip install "sutra-dev[runtime,embed]"
+printf 'function string main() { return "hello world"; }\n' > hello.su
+sutrac --run hello.su          # -> hello world
+```
+
+`pip install sutra-dev` alone gives you the validator + codegen (`sutrac hello.su` to
+check a file); the `[runtime,embed]` extras add PyTorch and the in-process embedding
+model so programs actually run. New to the ideas? Start with
+**[Tutorial 01 — Hello Sutra](tutorials/01-hello-sutra.md)**.
+
+**Working from source** (the full `examples/*.su` set, the smoke tests, the IntelliJ
+plugin, and the VS Code extension) lives in [the repository](https://github.com/EmmaLeonhart/Sutra):
+
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
 cd Sutra
 python examples/_smoke_test.py
 ```
 
-Read `examples/*.su` for the language itself. The compiler, runtime, IntelliJ plugin, and VS Code extension all live in [the repository](https://github.com/EmmaLeonhart/Sutra).
+The example programs the tutorials walk through (`examples/*.su`) ship in that source
+tree, not in the pip package — with a pip-only install, save the source shown in each
+tutorial to a local file (as with `hello.su` above) or clone the repo.

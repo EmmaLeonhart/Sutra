@@ -61,6 +61,10 @@ function string main() {
 sutrac --run examples/semantic_faq.su
 ```
 
+(As in tutorial 01, `examples/semantic_faq.su` ships in the
+[source repo](https://github.com/EmmaLeonhart/Sutra), not the pip package — save the
+program above to a local file if you installed only from PyPI.)
+
 You get back:
 
 ```

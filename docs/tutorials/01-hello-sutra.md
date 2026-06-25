@@ -91,6 +91,10 @@ sutrac --run examples/hello_world.su
 hello world
 ```
 
+(The `examples/` programs ship in the [source repo](https://github.com/EmmaLeonhart/Sutra),
+not the pip package — if you installed only from PyPI, save the source above to a local
+`hello_world.su` and run `sutrac --run hello_world.su`.)
+
 The first run downloads the frozen model once (a few hundred MB; it prints a one-line notice and caches it). `greeting` was identified against the codebook and `say()` returned the matching name.
 
 ## The mental model to start absorbing

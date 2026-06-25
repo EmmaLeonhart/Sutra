@@ -39,4 +39,11 @@ sutrac --help
 
 If that prints a usage message, you have everything you need to start.
 
+**A note on the `examples/…` paths.** Each tutorial walks through a program in the
+`examples/` directory and runs it with `sutrac --run examples/<name>.su`. Those files
+live in the [source repository](https://github.com/EmmaLeonhart/Sutra), **not** in the
+pip package — so either `git clone` the repo to get them, or just save the source shown
+in the tutorial to a local file and run that (e.g. `sutrac --run hello_world.su`). The
+toolchain itself is all you need from pip.
+
 **(Optional) JDK 21** if you want to run the IntelliJ plugin from a checkout of the source repository — not required for any of the command-line tutorials.

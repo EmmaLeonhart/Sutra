@@ -24,6 +24,26 @@ snap now print one clean diagnostic line (exit 1), no traceback; new test in tes
 None-not-raised + "codegen:" + no "Traceback" + the argmax_cosine steer + the file path. Success path
 unchanged (test_native_recursion + test_preeval, which compile real programs through this function, green).
 
+## 2026-06-24: Batch 6 #1 — pip onboarding actually runs now: fix the string-literal main() decode
+
+Emma: "fix this" on the flagged onboarding trap. The root cause was a real correctness bug, not a packaging
+gap: `function string main() { return "hello world"; }` printed `104.0`. A String value is a `dim`-length
+tensor (AXIS_STRING_FLAG + codepoints on synthetic axes), and `_decode_terminal_result` matched "1-D tensor
+of length dim → number-vector" and read the real axis — which coincides with the first codepoint ('h' = 104).
+Fix: check `vsa.is_string(result)` FIRST and decode via the runtime's existing `string_to_python` (the
+sanctioned substrate→host terminal decode, same boundary as the number real-axis read); number-vectors still
+decode to the real axis. Verified: string main → "hello world", `6*7` → 42.0 (no regression); new
+test_terminal_string_decode.py execs both through the torch runtime; the __main__-exercising suites
+(test_native_recursion, test_preeval, test_snap_diagnostic) stay green.
+
+With the root bug fixed, the onboarding is now true end-to-end without shipping examples: docs/index.md
+"Get started" leads with a verified pip-only first run (`pip install "sutra-dev[runtime,embed]"` → write a
+one-line `hello.su` → `sutrac --run hello.su` → `hello world`), git-clone demoted to "work from source." And
+the docs are now honest that the `examples/*.su` programs ship in the SOURCE repo, not the wheel — a note in
+tutorials/index + tutorials 01 & 05 says to clone or save the shown source (the wheel ships only
+`sutra_compiler` + `stdlib/*.su`; force-including repo-root examples is awkward and now unnecessary). Site
+builds; no repo-internal refs on the website. Drains Batch 6.
+
 ## 2026-06-24: Batch 6 audit — fixed "string I/O" wording; measured two onboarding traps (queued, not guessed)
 
 Ran the pinned-tail audit after Batch 5 drained. Shipped one clean fix and BANKED two measured findings
