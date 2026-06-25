@@ -258,6 +258,35 @@ necessary, not sufficient. Dim audit + state-locus audit + signal-
 separation audit are the sufficient set. Put the numbers in the commit
 message or the planning doc.
 
+## Releases: PyPI and GitHub are NOT auto-synced (keep them in sync by hand)
+
+There are **two separate release surfaces and no automation links them.** This is the
+gap that let PyPI reach 0.9.1 while GitHub's "Latest" sat frozen at v0.7.0 for weeks
+(no Release object was ever created for the 0.8/0.9 tags).
+
+- **PyPI** (`sutra-dev`): published by `.github/workflows/publish-sutra-compiler.yml`,
+  triggered by pushing a tag **`sutra-dev-vX.Y.Z`** (which must match `version =` in
+  `sdk/sutra-compiler/pyproject.toml`). Trusted Publishing (OIDC), no token. Pushing
+  this tag is the ONLY thing that publishes to PyPI — and it does **not** create a
+  GitHub Release.
+- **GitHub Releases**: created **only** by an explicit `gh release create` (or the
+  web UI). Historically these live on the plain milestone tags **`vX.Y.Z`**. Creating
+  a Release does **not** publish to PyPI; publishing to PyPI does **not** create a
+  Release. **We do not have a workflow that ties them together** — as of 2026-06-25,
+  keeping them consistent is a manual discipline, not something the CI does for you.
+
+**So every version bump is three actions, all in the same sitting:**
+1. Bump `version =` in `pyproject.toml` AND `__version__` in `sutra_compiler/__init__.py`
+   (they must match); commit + push.
+2. Publish to PyPI: `git tag sutra-dev-vX.Y.Z && git push origin sutra-dev-vX.Y.Z`.
+3. Cut the GitHub Release: `git tag vX.Y.Z && git push origin vX.Y.Z` then
+   `gh release create vX.Y.Z --title "Sutra vX.Y.Z" --generate-notes --latest`.
+
+Skipping step 3 is exactly how the two drift. If you publish to PyPI, you owe a matching
+GitHub Release the same day. (The dual-tag scheme — `sutra-dev-vX.Y.Z` triggers PyPI,
+`vX.Y.Z` carries the Release — is a wart; don't "simplify" it away without checking the
+trusted-publisher config, which is pinned to the `sutra-dev-v*` pattern.)
+
 ## Architecture and Conventions
 - **Stack:** Python + PyTorch + Ollama. Runtime uses `nomic-embed-text` (768-d, mean-centered). PyTorch is the canonical compile target (`codegen_pytorch.py`, CPU or CUDA).
 - **Numpy backend** (`codegen.py`) is deprecated and being retired. New code uses `PyTorchCodegen`.
