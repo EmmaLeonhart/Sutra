@@ -1,3 +1,26 @@
+## 2026-06-24: Batch 6 audit — fixed "string I/O" wording; measured two onboarding traps (queued, not guessed)
+
+Ran the pinned-tail audit after Batch 5 drained. Shipped one clean fix and BANKED two measured findings
+rather than barrel a wrong fix:
+
+- **Fixed (docs accuracy):** `docs/index.md` listed "conditionals, loops, string I/O" as compiling to one
+  tensor expression — but Sutra has no I/O (the new `docs/host-bridge.md` says so). Reworded to string
+  *operations* + a parenthetical pointing at the host-bridge page. Site builds.
+- **Measured + queued (Batch 6 #1), did NOT fix:** "pip install and run your first program in <5 min" is
+  not currently true. (a) The wheel ships only `sutra_compiler` + `stdlib/*.su` (verified: pyproject
+  packages.find/package-data, no MANIFEST, no force-include), so `examples/` is repo-root only — but
+  tutorials 01/05 + tutorials/index tell a pip user to `sutrac --run examples/…`, which 404s without a
+  clone. (b) The obvious substitute fails too: `function string main() { return "hello world"; }` run via
+  `sutrac --run` prints `104.0` (codepoint of 'h') — a bare string-literal main return is a make_string
+  codepoint tensor and the terminal decodes its REAL axis as a number; only a codebook/map-returned string
+  stays a host `str` and prints as text (why tutorial 01 works). Resolution is a packaging/semantics call
+  (ship examples in the wheel / decode string-literal main returns to text / make onboarding clone-based),
+  so it's FLAGGED in queue.md, not guessed. The landing page's git-clone path works today, so I left its
+  run mechanics alone.
+- Also queued: CLI prints a raw Python traceback for codegen rejections instead of the clean diagnostic the
+  exception already formats (Batch 6 #2); the early unimplemented-builtin warning covers only `snap`, not
+  its siblings (Batch 6 #3).
+
 ## 2026-06-24: Batch 5 item 3 — `dict<K,V>` discoverability (L11)
 
 The rotation-hashmap `dict<K,V>` is real and compiles (verified: corpus dict_and_list.su lowers to
