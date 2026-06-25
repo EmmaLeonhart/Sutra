@@ -1,3 +1,15 @@
+## 2026-06-24: Batch 5 item 3 — `dict<K,V>` discoverability (L11)
+
+The rotation-hashmap `dict<K,V>` is real and compiles (verified: corpus dict_and_list.su lowers to
+hashmap_new/set/get and the emitted module parses) but was undiscoverable — `docs/memory.md` explained the
+*mechanism* (rotation-binding storage) in depth yet never showed the `.su` *surface*, and the collections
+page (`docs/list-operations.md`) didn't point to it. Fixed both: added a "The `dict<K,V>` surface — how you
+write it" section to memory.md (declaration / `m[k]=v` / `m[k]`, the C#-style `new dict()`+`.Add` spelling,
+the fact that storage is one accumulator vector, and the two carry-overs from the mechanism — clean up the
+signal+noise read at the call site with argmax_cosine, and the ~32-entry capacity at d=868); and added a
+"Keyed collections: `dict<K,V>`" pointer + a Related link from list-operations.md. Docs-only, grep-clean of
+repo-internal refs, site builds (both pages render).
+
 ## 2026-06-24: Batch 5 item 2 — the no-I/O model: a host-bridge concept page (M6)
 
 Newcomers hit a wall: core Sutra has no `print`/stdin/file-read, so tutorial 05's FAQ bot embeds its query

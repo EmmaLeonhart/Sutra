@@ -65,7 +65,14 @@ comments (referencing the removed spelling as history) — not misleading, left 
 ## Batch 5 — newcomer-usability audit (2026-06-23, post-alias)
 
 Fresh readability/usability audit (onboarding + error messages + real-program reach). `iff` on the public
-`docs/primitive-classes.md` page (a Batch-4 miss) was fixed inline. Barrel the rest top to bottom:
+`docs/primitive-classes.md` page (a Batch-4 miss) was fixed inline.
+
+_Batch 5 concrete items DRAINED 2026-06-24: the `snap` trap (M5 — SUT0151 validator warning + backend-
+accurate codegen message + tutorial-03 future sidebar, all steering to `argmax_cosine`); the no-I/O
+host-bridge concept page (M6 — `docs/host-bridge.md`, wired into tutorials 01/05 + index; a live-input
+primitive FLAGGED as Emma's open call, not built); `dict<K,V>` discoverability (L11 — surface-syntax
+section added to `docs/memory.md` + a keyed-collection link from `docs/list-operations.md`). History in
+DEVLOG + git log. → Run the PINNED TAIL audit to refill._
 
 > **H1 (unknown-type/function diagnostics) RECLASSIFIED 2026-06-24 → the deferred v0.2 name-resolution
 > milestone, NOT a quick batch item.** `validator.py:21-29` EXPLICITLY defers name resolution to "v0.2+
@@ -78,8 +85,7 @@ Fresh readability/usability audit (onboarding + error messages + real-program re
 > Building the v0.2 symbol table is Emma's call (language-direction; it tightens the deliberately-lenient
 > validator). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
 
-1. **`dict<K,V>` discoverability (L11, LOW).** The rotation-hashmap `dict<K,V>` is real but has no tutorial/
-   concept page; link `memory.su`'s `hashmap_*` from `docs/list-operations.md` "Related" or add a short example.
+_(no concrete items — drained; the PINNED TAIL audit below refills this list)_
 
 ---
 

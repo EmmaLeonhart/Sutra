@@ -57,7 +57,17 @@ The list itself is a **binding array** on the substrate — a real tensor struct
 
 These operations are implemented on the canonical **PyTorch** backend (`codegen_pytorch.py`). The deprecated numpy backend implements only `array_length` / `array_get`, not the higher-order ops.
 
+## Keyed collections: `dict<K, V>`
+
+`list<T>` is the *ordered* collection. For a *keyed* one, Sutra has the built-in
+rotation-hashmap **`dict<K, V>`** — `m[key] = value` to store, `m[key]` to read, lowering
+to the stdlib `hashmap_*` operations. Unlike a list, a whole dict is a **single
+accumulator vector** (storage is `O(d)`, not `O(n)`), and a read recovers signal plus a
+little noise, so you clean it up at the call site. The [Memory page](memory.md) explains
+the mechanism and shows the `dict<K, V>` surface syntax end to end.
+
 ## Related
 
+- [Memory without control flow](memory.md) — the keyed `dict<K, V>` hashmap and how rotation-binding storage works.
 - [Operations and operators](operators.md) — the full primitive reference.
 - [Primitive classes](primitive-classes.md) — the built-in types, including `map<K, V>`.
