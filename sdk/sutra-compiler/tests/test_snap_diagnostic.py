@@ -57,6 +57,25 @@ class TestSnapValidatorWarning(unittest.TestCase):
         warn = next(d for d in bag.warnings if d.code == "SUT0151")
         self.assertIn("argmax_cosine", (warn.hint or "") + warn.message)
 
+    def test_sibling_unimplemented_builtins_also_warn(self):
+        # make_rotation / compile_prototypes / geometric_loop share snap's trap
+        # (codegen-rejected, spec'd-but-unimplemented) and now warn at SUT0151
+        # too — but with the "no implemented substitute" hint, not argmax_cosine.
+        for name in ("make_rotation", "compile_prototypes", "geometric_loop"):
+            with self.subTest(builtin=name):
+                src = (
+                    "vector q = embed(\"q\");\n"
+                    "function vector main() {\n"
+                    f"  return {name}(q);\n"
+                    "}\n"
+                )
+                bag = validate_source(src, file="<test>")
+                self.assertFalse(bag.has_errors())
+                warn = next((d for d in bag.warnings if d.code == "SUT0151"), None)
+                self.assertIsNotNone(warn, f"{name} should emit SUT0151")
+                self.assertIn(name, warn.message)
+                self.assertNotIn("argmax_cosine", (warn.hint or ""))
+
     def test_plain_argmax_cosine_does_not_warn(self):
         src = (
             "vector a = embed(\"a\");\n"

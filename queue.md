@@ -112,12 +112,9 @@ instead of an uncaught Python traceback — `--run`/`--emit` on `snap` verified,
    page's current git-clone path *works* (it gets examples), so don't replace it with a broken pip-run claim
    until this is decided.
 
-2. **Early unimplemented-builtin warning covers only `snap` (LOW, error messages).** `snap` now warns at
-   validate-time (SUT0151) + a codegen hint, but the sibling spec'd-but-unimplemented builtins
-   `make_rotation` / `compile_prototypes` / `geometric_loop` (`codegen.py` `_UNSUPPORTED_BUILTINS`) still
-   validate clean and die with a hint-less deep codegen error. Generalise: a validator warning for them too
-   + `_UNSUPPORTED_BUILTIN_HINTS` entries pointing at the implemented alternative (or, where there is none,
-   saying so plainly). Lower newcomer-exposure than snap (none are taught), but the same trap shape.
+_Done 2026-06-24 (history in DEVLOG): generalised the SUT0151 validator warning beyond `snap` to its
+sibling unimplemented substrate builtins `make_rotation` / `compile_prototypes` / `geometric_loop` — they
+warn early too, with an honest "no implemented substitute yet" hint (snap keeps the argmax_cosine steer)._
 
 ---
 
