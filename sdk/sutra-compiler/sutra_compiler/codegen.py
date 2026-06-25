@@ -119,6 +119,18 @@ class Codegen(BaseCodegen):
         "array_filter",
     })
 
+    # Steering hints attached to the CodegenNotSupported error for
+    # spec'd-but-unimplemented builtins. `snap` is the cleanup primitive
+    # backed by an attractor circuit the substrate doesn't have yet;
+    # argmax_cosine against an explicit codebook is the implemented form
+    # the demos use today (tutorial 03). Keeps the rejection message from
+    # being a dead end.
+    _UNSUPPORTED_BUILTIN_HINTS = {
+        "snap": "use `argmax_cosine(query, [a, b, c])` to clean a vector up "
+                "against an explicit codebook; `snap` (attractor-circuit "
+                "cleanup) is a future substrate primitive",
+    }
+
     def _char_literal_src(self, expr: ast.CharLiteral) -> str:
         """Lower `'a'` to a runtime make_char call with the code point."""
         return f"_VSA.make_char({int(expr.value)})"
@@ -444,10 +456,12 @@ class Codegen(BaseCodegen):
         callee = call.callee
         if isinstance(callee, ast.Identifier):
             if callee.name in self._UNSUPPORTED_BUILTINS:
+                hint = self._UNSUPPORTED_BUILTIN_HINTS.get(callee.name)
+                detail = f" — {hint}" if hint else ""
                 raise CodegenNotSupported(
                     call,
-                    f"`{callee.name}` is not supported on the pure-numpy "
-                    f"substrate (no cleanup circuit at runtime)",
+                    f"`{callee.name}` is not yet supported on the substrate "
+                    f"(no runtime lowering on this backend){detail}",
                 )
         if (isinstance(callee, ast.MemberAccess)
                 and callee.member in self._REMOVED_SCALAR_ACCESSORS):

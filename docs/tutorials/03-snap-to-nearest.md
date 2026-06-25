@@ -46,7 +46,9 @@ vector clean = argmax_cosine(noisy, [v_cat, v_dog, v_mouse, v_bird]);
 
 `argmax_cosine` returns the codebook vector closest to `noisy` by cosine. If you wired up the codebook with `cat`, `dog`, `mouse`, `bird`, and `noisy` is a noisy version of `cat`, you get the *exact* `cat` vector back, not the noisy one. From here on out, the noise that accumulated in the unbind is gone.
 
-The language also defines `snap` — a more general cleanup operation backed by a real attractor / cleanup circuit (rather than an explicit candidate list). The current PyTorch substrate doesn't have such a circuit, so `snap` is rejected at codegen time; programs use `argmax_cosine` against an explicit codebook instead.
+**`argmax_cosine` is the cleanup primitive to reach for** — it is what every demo and example in this repo uses, and it runs on the substrate today.
+
+> **Future: `snap`.** The language also *names* a more general cleanup operation, `snap`, backed by a real attractor / cleanup circuit rather than an explicit candidate list — `snap(noisy)` with no codebook argument, the circuit settling to the nearest stored attractor on its own. The current PyTorch substrate has no such circuit, so **`snap` is not implemented yet**: the validator warns on it (SUT0151) and codegen rejects it, both pointing you back to `argmax_cosine`. Treat `snap` as a forward-looking spec name; write `argmax_cosine` against an explicit codebook in real programs.
 
 ## Cost
 
