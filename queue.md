@@ -128,10 +128,11 @@ exceptions in the generated module (e.g. `int x = "hello"` → TypeError) now pr
 (KeyboardInterrupt/SystemExit still propagate). (b) A file with no `main()` prints
 `<file>: no main() found — nothing to run` instead of exiting silently. test_run_error_diagnostics covers both._
 
-1. **Embedding-model load leaks framework noise to stdout (LOW, onboarding polish).** A first run prints
-   `<All keys matched successfully>` (transformers/torch state-dict load) to **stdout**, polluting
-   `main()`'s output stream — the intended `[sutra] loading embedding model …` notice already goes to
-   stderr, this stray line doesn't. Route model-load chatter to stderr / silence under `SUTRA_QUIET`.
+_Done 2026-06-25 (history in DEVLOG): model-load stdout noise. `SentenceTransformer(...)` printed framework
+chatter (`<All keys matched successfully>`) to stdout, polluting `main()`'s output. `embedding._get_st_model`
+now wraps the load in `redirect_stdout(sys.stderr)`. Verified: `sutrac --run` of an `embed`-using program
+now emits only the program's output on stdout; the chatter is on stderr (where our load notice already is).
+→ Batch 7 drained; run the PINNED TAIL audit to refill next._
 
 ---
 
