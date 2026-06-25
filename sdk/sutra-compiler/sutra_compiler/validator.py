@@ -22,11 +22,6 @@ Rules implemented in v0.1:
   `geometric_loop`) — warning, not an error; the source is valid. For
   `snap` it steers to `argmax_cosine`; the rest say there is no
   implemented substitute yet.
-- SUT0152: a bare call to a host-Python builtin (`print` / `input` /
-  `open` / `eval` / `exec` / `compile` / `__import__`) that the codegen
-  would pass straight through to the host — error, since none has Sutra
-  meaning (`print` would silently break the no-I/O model). Skipped if a
-  same-named function is declared in the file.
 
 v0.1 deliberately does NOT do:
 
@@ -71,29 +66,6 @@ _UNIMPLEMENTED_SUBSTRATE_BUILTINS = {
     "make_rotation": None,
     "compile_prototypes": None,
     "geometric_loop": None,
-}
-
-
-# Host-Python builtins that "leak": the codegen emits any non-builtin call
-# identifier verbatim as a Python call (it can't tell a user function from a host
-# name without the deferred v0.2 symbol table), so a bare call to one of these
-# falls straight through to the host. `print`/`input`/`open` silently break the
-# no-I/O model — `print("x")` actually prints, a substrate-purity + no-readout
-# violation (CLAUDE.md §"NO introspection", docs/host-bridge.md) — and
-# `eval`/`exec`/`compile`/`__import__` are host escape hatches. None has any Sutra
-# meaning, so a bare call is an error (SUT0152) UNLESS the program declares its own
-# function of that name (checked against `_file_scope_names`). Per-name hint steers
-# the I/O ones to the host bridge; the rest get a generic "no host escape" hint.
-_HOST_LEAK_BUILTINS = {
-    "print": "Sutra has no I/O — a program returns ONE value from `main()` and the "
-             "host displays it. Build the value and `return` it instead of printing.",
-    "input": "Sutra has no I/O — there is no stdin. Feed inputs as embedded string "
-             "literals or a loaded matrix and rerun.",
-    "open": None,
-    "eval": None,
-    "exec": None,
-    "compile": None,
-    "__import__": None,
 }
 
 
@@ -534,25 +506,6 @@ class _Walker:
                 hint=hint or ("no implemented substitute yet — it is a "
                               "forward-looking spec primitive, not a callable "
                               "operation on the current substrate"),
-            )
-        # SUT0152: a bare call to a host-Python builtin that the codegen would
-        # pass straight through to the host (no Sutra meaning). `print`/`input`
-        # silently break the no-I/O model; `eval`/`exec`/etc. are host escape
-        # hatches. Skip if the program declares its own function of that name
-        # (shadowing) — `_file_scope_names` is fully populated by the visit_module
-        # pre-pass before any call is walked.
-        if (isinstance(callee, ast.Identifier)
-                and callee.name in _HOST_LEAK_BUILTINS
-                and callee.name not in self._file_scope_names):
-            hint = _HOST_LEAK_BUILTINS[callee.name]
-            self.diagnostics.error(
-                f"`{callee.name}` is not a Sutra function — it is a host-Python "
-                "builtin the compiler would otherwise pass straight through to the "
-                "host. Sutra exposes no host builtins, no I/O, and no eval",
-                node.span,
-                code="SUT0152",
-                hint=hint or ("Sutra has no host escape hatch — no file, eval, or "
-                              "import access in the language; remove the call"),
             )
         for t in node.type_args:
             self._record_type_usage(t)
