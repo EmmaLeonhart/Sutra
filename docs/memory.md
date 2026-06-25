@@ -177,8 +177,47 @@ This isn't because branching is bad; it's because the property **"every operatio
 
 ---
 
+## The `dict<K, V>` surface — how you write it
+
+Everything above is the *mechanism*. The everyday way to reach it is the built-in
+**`dict<K, V>`** type: a keyed hashmap whose subscript-assign and subscript-read lower
+to exactly the `hashmap_new` / `hashmap_set` / `hashmap_get` operations described here
+(defined in the stdlib `memory.su`).
+
+```c
+vector v_cat = embed("cat");
+vector v_dog = embed("dog");
+vector v_whiskers = embed("whiskers");
+vector v_bark = embed("bark");
+
+function vector lookup_cat() {
+    dict<vector, vector> concept_memory;   // empty accumulator (zero vector)
+    concept_memory[v_cat] = v_whiskers;     // += bind(v_cat, v_whiskers)
+    concept_memory[v_dog] = v_bark;         // += bind(v_dog, v_bark)
+    return concept_memory[v_cat];           // unbind(v_cat, accumulator)
+}
+```
+
+There is also a C#-flavoured spelling — `dict<vector, vector> m = new dict();` with
+`m.Add(k, v)` — that lowers to the same calls. Either way the runtime value is **one
+accumulator vector**, not a table of entries (this is the "storage is a single vector"
+claim above, made concrete).
+
+Two things to carry over from the mechanism into real code:
+
+- **A read returns signal + noise, so clean it up at the call site.** `concept_memory[v_cat]`
+  recovers `v_whiskers` *plus* the `~1/√d` background from the other entries. For a bare
+  structural demo (as above) you can return it raw, but to *use* the value you run it
+  through cleanup — `argmax_cosine(concept_memory[v_cat], [v_whiskers, v_bark, …])`
+  against your statically-known codebook of possible values. The dict stores no codebook
+  of its own; cleanup is the caller's job (see [Snap-to-nearest](tutorials/03-snap-to-nearest.md)).
+- **Mind the capacity.** Past ~32 entries at `d = 868` the accumulated noise starts
+  swamping lookups — the same limit the array section describes, since it is the same
+  primitive.
+
 ## Related reading
 
+- [List operations](list-operations.md) — the *ordered* collection (`list<T>` + `array_*`); `dict<K, V>` here is its keyed counterpart.
 - [Ontology](ontology.md) — where arrays, hashmaps, and user classes fit in the class tree.
 - [Primitive classes](primitive-classes.md) — the vector-as-substrate foundation.
 - [Logical operations](logical-operations.md) — polynomial logic, which shares the "control flow as algebra" principle.
