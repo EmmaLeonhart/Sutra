@@ -325,11 +325,24 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int,
         return 1
     mod = types.ModuleType("_sutra_run")
     mod.__file__ = f"<generated from {path}>"
-    exec(compile(py_src, mod.__file__, "exec"), mod.__dict__)
-    if hasattr(mod, "main") and callable(mod.main):
-        result = mod.main()
-        if result is not None:
-            print(_decode_terminal_result(mod, result))
+    try:
+        exec(compile(py_src, mod.__file__, "exec"), mod.__dict__)
+        if hasattr(mod, "main") and callable(mod.main):
+            result = mod.main()
+            if result is not None:
+                print(_decode_terminal_result(mod, result))
+        else:
+            # The substrate program is the body of main(); a file without one
+            # has nothing to run. Say so rather than exiting silently with no
+            # output (a newcomer otherwise can't tell why nothing happened).
+            print(f"{path}: no main() found — nothing to run", file=sys.stderr)
+    except Exception as exc:
+        # A runtime error in the generated module — e.g. a type mismatch the v0.1
+        # validator can't catch yet — should read like a Sutra diagnostic, not an
+        # uncaught Python traceback. KeyboardInterrupt / SystemExit are not caught
+        # (they subclass BaseException, not Exception), so Ctrl-C still works.
+        print(f"{path}: runtime error: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 1
     return 0
 
 
