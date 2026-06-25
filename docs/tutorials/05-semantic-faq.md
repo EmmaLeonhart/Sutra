@@ -90,6 +90,7 @@ Here the query shares almost no words with the question it matches — "I forgot
 - Add a sixth FAQ and a paraphrased query for it. Does it route correctly?
 - Try a deliberately ambiguous query ("I have a problem with my account") and see which answer wins — the failure modes here are the same *Voronoi-cell* boundaries from [Snap-to-nearest](03-snap-to-nearest.md): when a query sits near the boundary between two questions, the match can flip.
 - Add a confidence floor: if even the best match is weak, you would want to fall back to "let me connect you to a human." That needs a *threshold* on the top cosine — a natural next step once you have read the [operators reference](../operators.md).
+- Notice the query is **hardcoded** — `embed("I forgot my login and need to change it")` is written into the source, not read from a live user. That is not an oversight: core Sutra has no `read`/stdin/file-read, so input enters a program at the source (via `embed`) or as a loaded matrix, and you rerun per question. Why that is, and the small set of places data *does* cross the host boundary, is the subject of [The host bridge — Sutra's I/O model](../host-bridge.md).
 
 ## What to read next
 
