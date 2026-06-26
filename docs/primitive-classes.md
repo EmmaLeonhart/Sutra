@@ -162,7 +162,7 @@ graph LR
 
 Neutralness is the semantic distinction the `trit` primitive class exists to honor. When you defuzzify a trit near zero, it stays at zero. Defuzzify the same value as a `fuzzy`, and it gets pulled to one of the poles.
 
-### "Not initialized" is not a thing
+### There is no uninitialized state
 
 In most languages, a variable declared without a value is in an uninitialized limbo — reading it is a bug (or a null, or a segfault). In Sutra, **there is no uninitialized state.** Every primitive class has a natural neutral, and a variable that has been declared but not assigned already *has* that neutral as its value.
 
