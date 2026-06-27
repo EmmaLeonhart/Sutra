@@ -7,12 +7,12 @@
 Formal verification of conventional software means navigating control flow
 through large imperative codebases; for systems with a learned component it is
 usually abandoned outright. We show that **Sutra**, a typed purely-functional
-language, changes the shape of the problem for the non-learned part of a system,
-because its compiler turns an entire program (primitives, control flow, string
-I/O) into a single fused **tensor-op graph** over a frozen substrate, and that
-graph *is* the program's semantics (as a neural network's weights are its
-computation), not a residual to be interpreted. The construct that makes
-conventional verification expensive, the branch, does not survive into the
+language, changes the shape of the problem for the non-learned part of a system.
+Its compiler turns an entire program (primitives, control flow, string I/O) into
+a single fused **tensor-op graph** over a frozen substrate, and that graph *is*
+the program's semantics — as a neural network's weights are its computation —
+not a residual to be interpreted. The construct that makes conventional
+verification expensive, the branch, does not survive into the
 graph: `if/else` compiles to a **single three-valued-Kleene polynomial**,
 Lagrange-interpolated and exact on the {−1, 0, +1} truth grid, and each loop to a
 bounded soft-halt recurrence. Verifying the **trusted base** (kernel roles and
@@ -45,8 +45,8 @@ The reduction is meaningful because the substrate computes the compiled graph
 exactly, established with measured results (§4):
 rotation binding decodes bundles at 100% accuracy through width *k* = 8 on four
 frozen embedding substrates where the Hadamard baseline has collapsed to 2.5–7.5%,
-with a bind/unbind round-trip of 1.5 × 10⁻¹⁵; and Sutra's compiled arithmetic,
-operator selection included, runs exactly on the substrate
+with a bind/unbind round-trip of 1.5 × 10⁻¹⁵. Sutra's compiled arithmetic,
+operator selection included, also runs exactly on the substrate
 (`demos/calc` evaluates 11/11 expressions exactly against a rational oracle;
 `demos/echo` round-trips strings bit-exact at runtime dimension 16).
 §4.5 reports a worked example of why dispatch-level cleanliness is necessary
