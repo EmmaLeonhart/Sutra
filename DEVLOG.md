@@ -1,3 +1,35 @@
+## 2026-06-27: FV paper — trim aggressive bloat + demote bit-exactness (re-spine queued)
+
+Emma flagged that `paper/formal-verification/paper.md` drifted into an AI-generated grand framing
+that misrepresents the work: title claimed to verify "a **Neuro-Symbolic Substrate**", and
+**bit-exact formal arithmetic** was foregrounded as a headline result. Her intent is narrower and
+*probabilistic*: verify Sutra-the-language as an execution environment / ISA running on a
+**probabilistic** substrate (stochastic ODEs / Langevin-SDE for the sampler; Z-transforms for the
+loop recurrence). Bit-exactness fights the substrate's nature — it's bought by routing through
+synthetic axes and avoiding the probabilistic semantic codebook.
+
+Per Emma's "trim now, re-spine next" call, this session did the trim only (no faked probabilistic
+results — that analysis isn't built):
+- Retitled → "Verifying the Trusted Base of Sutra: Closed-Form Obligations for a Functional
+  Language on a Frozen Vector Substrate" (dropped the "neuro-symbolic substrate" grandiosity).
+- Abstract 68→~30 lines; demoted bit-exactness to an explicit "supporting precision measurement,
+  not the paper's claim"; compressed §3.4 (digit-array), the §4.3 GPU-determinism rebuttal essay,
+  and the §4.4–4.5 audit war-stories; cut repeated grandiosity; reframed §7 as "the **probabilistic**
+  substrate — the direction the work is moving". ~11.1k → 9.3k words. Kept every measured number
+  (no paper/spec drift).
+- Queued the real re-spine in `queue.md` § "FV PAPER RE-SPINE": build the Z-transform
+  loop-convergence criterion (spectral radius of `R` < 1) and the Langevin-SDE limit of the
+  sampler, make the probabilistic story the spine, demote the deterministic tensor-algebra half,
+  and sync `planning/sutra-spec/formal-verification.md` in the same session. Integrity guardrail:
+  the SDE + Z-transform analyses are NOT built — build and measure before claiming.
+
+Context on the reviews Emma asked about: the FV paper has 85 clawRxiv versions; the AI reviewer is
+stochastic (60 Reject / 16 Weak Reject / 5 Weak Accept / 4 Accept). The perceived "accepted then
+rejected" was v80–v81 (two Accepts) → v82–v85 (four Rejects); the paper text barely changed across
+that flip — same Lean/Schwartz–Zippel content praised by one reviewer and attacked by the next.
+Durable criticism across the run: vision-vs-built-gadgets gap, and the bit-exact-on-noisy-substrate
+tension — which the re-spine addresses head-on.
+
 ## 2026-06-27 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + `test_await_substrate_pure` 4/4 PASS under `SUTRA_EMBED_BACKEND=transformers`)
 
 ## 2026-06-26 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + `test_await_substrate_pure` 4/4 PASS under `SUTRA_EMBED_BACKEND=transformers`)

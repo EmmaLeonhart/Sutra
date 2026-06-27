@@ -37,6 +37,59 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
   codegen/stdlib go a stretch with NO source-breaking changes (Emma's call — too soon right after this
   week's arithmetic-semantics changes). No hard blocker; it's a source-compat-stability commitment.
 
+## ⭐ FV PAPER RE-SPINE — narrow + probabilistic (Emma 2026-06-27)
+
+**Why.** `paper/formal-verification/paper.md` drifted into an AI-generated grand framing —
+title "…Verifying the Non-Learned Trusted Base of a **Neuro-Symbolic Substrate**", with
+**bit-exact formal arithmetic** foregrounded as a headline result (§3.4 digit-array carry,
+§4.3 bit-exact dispatch + a 3-paragraph GPU-determinism essay). That is **not the paper**.
+Emma's intent: the paper is **narrow** — formally verify **Sutra-the-language as an execution
+environment / instruction-set architecture running on a *probabilistic* substrate**. The
+substrate is probabilistic; the verification should be probabilistic too. Bit-exact arithmetic
+fights the substrate's nature (it's bought by routing through synthetic axes and *avoiding* the
+probabilistic semantic codebook). Recurring project failure mode = **overambition**; keep this
+one narrow.
+
+**Trim pass DONE 2026-06-27** (this session, "trim now, re-spine next" — Emma): retitled away
+from "neuro-symbolic substrate"; abstract cut 68→~30 lines; demoted bit-exactness to an
+explicit "supporting precision measurement, not the paper's claim"; compressed §3.4 / the §4.3
+GPU-determinism essay / the §4.4–4.5 audit war-stories; removed grandiosity ("the more
+consequential direction… correctness at the level of the physics"); reframed §7 as "the
+**probabilistic** substrate — the direction the work is moving" (no faked results). ~11.1k→9.3k
+words. No paper/spec drift (kept every measured number).
+
+**RE-SPINE (the real work, not yet done) — build the probabilistic verification, don't just reword:**
+1. **Z-transform termination/convergence criterion for loops.** The loop is a linear
+   discrete-time recurrence `state ← R · state`. Replace the ad-hoc "halt signal is monotone"
+   obligation (§3.3) with the principled criterion: convergence ⟺ poles of `(zI − R)⁻¹` inside
+   the unit disk (spectral radius of `R` < 1). This is the DSP/control-theory tool Emma named.
+   **Build it** (compute `R`'s spectrum from the emitted recurrence; decide the criterion),
+   measure on real Sutra loops, THEN write it up. Not-yet-built ⇒ cite no numbers until measured.
+2. **Stochastic-ODE / Langevin-SDE limit of the sampler.** §7 proves discrete-chain
+   convergence (2-state mixing rate, spectral gap 1). The continuous-time view — the Langevin
+   SDE limit of block-Gibbs — is the named NOT-claimed piece (§7/§9 "What remains"). Build the
+   analysis for the gadget chain (start: the 2-state case as the SDE limit of the proven chain),
+   measure/prove, then claim. This is the probabilistic-verification spine the paper should lead
+   toward.
+3. **Make the probabilistic story the spine, demote the deterministic tensor-algebra half.**
+   Once 1–2 have real content: restructure so the narrow claim is "verify the ISA/execution
+   environment on a probabilistic substrate (loop-convergence via Z-transform; sampler
+   convergence via SDE)", with the §2–6 deterministic tensor-algebra + bit-exact material as
+   *supporting* sections, not the headline.
+4. **SPEC SYNC (do in the same session as the re-spine — CLAUDE.md "don't let paper + spec
+   drift").** `planning/sutra-spec/formal-verification.md` still enshrines bit-exact arithmetic
+   as headline evidence and frames termination as "monotone halt". Update it to: the
+   Z-transform loop-convergence criterion (Pillar 3), the SDE/sampler-convergence framing, and
+   bit-exactness reframed as supporting. The spec is the ground truth the paper must not contradict.
+
+**Guardrails:** integrity rules bind — the SDE + Z-transform analyses are NOT built; cite only
+measured numbers, build before claiming (no prose-only "results"). Keep it NARROW (per-contract,
+non-learned trusted base, the ISA-on-probabilistic-substrate frame); do NOT re-grow "verify the
+whole neuro-symbolic system". Each push to `paper/formal-verification/paper.md` triggers the
+clawRxiv resubmit CI (`fv-paper-ci.yml`) — intended; reviews are signal, not verdicts.
+
+---
+
 ## ACTIVE — barrel top to bottom
 
 **Theme (Emma 2026-06-22/23): USABILITY.** Make Sutra easy for an outside person to install, run,
