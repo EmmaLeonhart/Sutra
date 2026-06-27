@@ -146,7 +146,13 @@ learned part is quarantined behind contracts and monitoring.
    bit-exact arithmetic dispatch through the compiled substrate, restated self-
    containedly here.
 
-§5 states the boundary; §6 positions the work in the literature.
+§5 states the boundary; §6 positions the work in the literature. The core
+software-verification contribution is §§2–6. The paper then adds two clearly
+**delimited, complementary** parts that the core result does *not* depend on, and
+that should be read as such rather than as scope creep: **§7**, machine-checked
+Lean proofs for Sutra's energy-based *hardware* compile target; and **§8**, a
+deliberately *weaker* empirical (compile-and-run) check of the source-language
+frontends, explicitly not conflated with the formal guarantees above.
 
 ## 2. The compiled tensor-op graph
 
@@ -888,8 +894,9 @@ review is the compiler's tensor-graph output rather than imperative source.
 Everything to this point is **software** formal verification: we verify the
 *compiled program*, the tensor-op graph that is Sutra's non-learned trusted base,
 as a mathematical object, independently of the machine that runs it. This section
-adds the complementary half, **hardware** formal verification: verifying that the
-computation is correct on the *physical substrate that executes it*. Sutra's second,
+adds a complementary, secondary part — **hardware** formal verification: verifying
+that the computation is correct on the *physical substrate that executes it*. It
+stands apart from the core result of §§2–6 and the core does not depend on it. Sutra's second,
 energy-based compile target runs not on a deterministic tensor engine but on
 **thermodynamic, probabilistic-bit hardware**, the kind Extropic is building (a
 sparse, locally-connected grid of p-bits performing block-Gibbs sampling, with the
