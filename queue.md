@@ -58,29 +58,33 @@ consequential direction… correctness at the level of the physics"); reframed �
 **probabilistic** substrate — the direction the work is moving" (no faked results). ~11.1k→9.3k
 words. No paper/spec drift (kept every measured number).
 
-**RE-SPINE (the real work, not yet done) — build the probabilistic verification, don't just reword:**
-1. **Z-transform termination/convergence criterion for loops.** The loop is a linear
-   discrete-time recurrence `state ← R · state`. Replace the ad-hoc "halt signal is monotone"
-   obligation (§3.3) with the principled criterion: convergence ⟺ poles of `(zI − R)⁻¹` inside
-   the unit disk (spectral radius of `R` < 1). This is the DSP/control-theory tool Emma named.
-   **Build it** (compute `R`'s spectrum from the emitted recurrence; decide the criterion),
-   measure on real Sutra loops, THEN write it up. Not-yet-built ⇒ cite no numbers until measured.
-2. **Stochastic-ODE / Langevin-SDE limit of the sampler.** §7 proves discrete-chain
+**Z-transform loop-convergence criterion DONE 2026-06-27.** Built `fv_loop_convergence.py`
+(`fv.analyze_loop_recurrence`) — analyses the loop's linear core `state ← R · state` as a
+discrete-time LTI system via its Z-transform poles (eigenvalues of `R`), classifying
+asymptotically-stable / marginally-stable / unstable off the unit circle. **Measured** on the
+real emitted Haar bind rotation (dim 868): all 868 poles on the unit circle, spectral radius
+1.00000000, `R` orthogonal ⟹ *marginally stable* — so termination is the halt gate's job, not
+spectral decay (principled replacement for the ad-hoc "monotone halt" framing). `test_fv_loop_
+convergence.py` 6/6 (classifier on known operators + substrate cross-check on the real rotation).
+Wired into paper §3.3 + spec Pillar 3. (Env note: ran under pip-installed numpy+torch CPU here;
+the substrate test needs a no-`embed` program to avoid the missing embed backend in this sandbox.)
+
+**RE-SPINE — remaining (build the probabilistic verification, don't just reword):**
+1. **Stochastic-ODE / Langevin-SDE limit of the sampler.** §7 proves discrete-chain
    convergence (2-state mixing rate, spectral gap 1). The continuous-time view — the Langevin
    SDE limit of block-Gibbs — is the named NOT-claimed piece (§7/§9 "What remains"). Build the
    analysis for the gadget chain (start: the 2-state case as the SDE limit of the proven chain),
    measure/prove, then claim. This is the probabilistic-verification spine the paper should lead
-   toward.
-3. **Make the probabilistic story the spine, demote the deterministic tensor-algebra half.**
-   Once 1–2 have real content: restructure so the narrow claim is "verify the ISA/execution
-   environment on a probabilistic substrate (loop-convergence via Z-transform; sampler
-   convergence via SDE)", with the §2–6 deterministic tensor-algebra + bit-exact material as
-   *supporting* sections, not the headline.
-4. **SPEC SYNC (do in the same session as the re-spine — CLAUDE.md "don't let paper + spec
-   drift").** `planning/sutra-spec/formal-verification.md` still enshrines bit-exact arithmetic
-   as headline evidence and frames termination as "monotone halt". Update it to: the
-   Z-transform loop-convergence criterion (Pillar 3), the SDE/sampler-convergence framing, and
-   bit-exactness reframed as supporting. The spec is the ground truth the paper must not contradict.
+   toward. Not-yet-built ⇒ cite no numbers until measured.
+2. **Make the probabilistic story the spine, demote the deterministic tensor-algebra half.**
+   Once the SDE piece has real content: restructure so the narrow claim is "verify the ISA/
+   execution environment on a probabilistic substrate (loop-convergence via Z-transform — now
+   built; sampler convergence via SDE)", with the §2–6 deterministic tensor-algebra + bit-exact
+   material as *supporting* sections, not the headline.
+3. **SPEC SYNC continues alongside the re-spine** (CLAUDE.md "don't let paper + spec drift").
+   Pillar 3's Z-transform criterion is now synced. Still to reframe when the re-spine lands:
+   bit-exact arithmetic from headline evidence → supporting, and add the SDE/sampler-convergence
+   framing. The spec is the ground truth the paper must not contradict.
 
 **Guardrails:** integrity rules bind — the SDE + Z-transform analyses are NOT built; cite only
 measured numbers, build before claiming (no prose-only "results"). Keep it NARROW (per-contract,

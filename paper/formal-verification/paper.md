@@ -354,12 +354,38 @@ the torch substrate: a non-converging loop runs to the bound and stops
 **exactly frozen** across unroll depth, its state at `T=20` equals its state at
 `T=10`, **diff = 0.0**. (`test_fv_termination.py`.)
 
+**The convergence criterion made principled: the loop's poles.** The structural-
+plus-observational discharge above is a consequence of a sharper fact about the
+loop's *linear core*, which the **Z-transform** names exactly. The recurrence
+`state ← R · state` is a discrete-time linear time-invariant system; its one-sided
+Z-transform is `X(z) = (z·I − R)⁻¹ · z · x₀`, so the system's **poles** — the roots
+of `det(z·I − R)` — are precisely the **eigenvalues of `R`**. The standard
+discrete-time stability classification reads straight off the poles relative to the
+unit circle: all `|λ| < 1` gives geometric decay to a fixed point (termination from
+the linear dynamics alone); `|λ| = 1` with the on-circle poles *semisimple* gives a
+bounded, norm-preserving orbit with no decay; any `|λ| > 1` diverges and fails the
+bounded-state premise the whole obligation rests on. This is decidable on the
+*actual emitted operator*: a checker (`fv_loop_convergence.analyze_loop_recurrence`,
+exposed as `fv.analyze_loop_recurrence`) computes the eigenvalues of the `R` the
+loop runs and classifies the regime. Measured on the emitted bind rotation
+(dim 868): **all 868 poles lie exactly on the unit circle, spectral radius
+1.00000000, with `R` orthogonal** (hence normal, so the on-circle poles are
+genuinely semisimple, not defective) — *marginally stable*. The
+verification-relevant reading is sharp: the linear core neither decays nor grows,
+so termination is **not** a property of the recurrence — it is discharged entirely
+by the soft-halt gate above. The Z-transform makes precise *which* mechanism does
+the work, and the same check rules out the only way the linear core could break the
+obligation: a pole outside the unit disk, which would let the state blow up before
+the gate can fire. (`fv_loop_convergence.py`, `test_fv_loop_convergence.py`, 6/6;
+the substrate cross-check measures the eigenvalues of the real emitted rotation.)
+
 **Tooling.** Off-the-shelf SMT solvers target Boolean and linear arithmetic, not
 the polynomial obligations the compiled graph produces; §6 discusses where
 nonlinear solvers such as dReal fit. The per-construct discharges above use
 concrete finite methods: grid-exactness is a nine-point evaluation;
 range-soundness is a closed-form critical-point bound; termination is structural
-plus a saturation observation; equivalence is symbolic polynomial identity.
+plus a saturation observation plus a Z-transform pole-location check on the loop
+operator; equivalence is symbolic polynomial identity.
 
 **Range-soundness scales to arbitrary depth by composition, the bounder is NOT
 on the critical path for depth.** This is worth stating directly, because the
