@@ -69,22 +69,32 @@ convergence.py` 6/6 (classifier on known operators + substrate cross-check on th
 Wired into paper §3.3 + spec Pillar 3. (Env note: ran under pip-installed numpy+torch CPU here;
 the substrate test needs a no-`embed` program to avoid the missing embed backend in this sandbox.)
 
-**RE-SPINE — remaining (build the probabilistic verification, don't just reword):**
-1. **Stochastic-ODE / Langevin-SDE limit of the sampler.** §7 proves discrete-chain
-   convergence (2-state mixing rate, spectral gap 1). The continuous-time view — the Langevin
-   SDE limit of block-Gibbs — is the named NOT-claimed piece (§7/§9 "What remains"). Build the
-   analysis for the gadget chain (start: the 2-state case as the SDE limit of the proven chain),
-   measure/prove, then claim. This is the probabilistic-verification spine the paper should lead
-   toward. Not-yet-built ⇒ cite no numbers until measured.
+**Continuous-time multi-state sampler convergence MEASURED 2026-06-27.** Built
+`fv_sampler_convergence.py` (`fv.analyze_sampler_convergence`) — the continuous-time heat-bath
+generator `Q` on the machine-checked AND-gadget energy `E4`; law obeys the master ODE
+`dp/dt = Qᵀp` (the stochastic-ODE / Langevin distribution-level statement). **Measured** (β=1):
+Gibbs π stationary (`‖πᵀQ‖∞=1.4e-17`), reversible (db-viol `4.2e-22`), real spectrum, full **8-state**
+spectral gap `γ=0.0397`>0, and the master ODE's TV decay = `0.0397` = the gap to **ratio 1.0000**;
+clamped mode = correct AND output ×4. `test_fv_sampler_convergence.py` 6/6. This fills the
+multi-state + continuous-time piece `GibbsChain.lean`/§7 named as open (as a MEASUREMENT, marked
+not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
+
+**RE-SPINE — remaining:**
+1. **(Optional, harder) Machine-check the multi-state gap + continuous-SPACE Langevin diffusion.**
+   The continuous-time multi-state convergence is now *measured*; lifting it to a Lean proof, and
+   the continuous-space overdamped Langevin `dX=−∇U dt+√(2/β)dW` on a relaxed energy, are the
+   still-open pieces (named, not claimed). Lean toolchain is heavy (won't run on every clone);
+   gate before sinking time. Not-yet-built ⇒ cite no numbers until measured/proved.
 2. **Make the probabilistic story the spine, demote the deterministic tensor-algebra half.**
-   Once the SDE piece has real content: restructure so the narrow claim is "verify the ISA/
-   execution environment on a probabilistic substrate (loop-convergence via Z-transform — now
-   built; sampler convergence via SDE)", with the §2–6 deterministic tensor-algebra + bit-exact
-   material as *supporting* sections, not the headline.
+   Both probabilistic legs now have real measured content (loop-convergence via Z-transform;
+   sampler convergence via the master-ODE spectral gap). Restructure so the narrow claim leads —
+   "verify the ISA/execution environment on a probabilistic substrate" — with the §2–6
+   deterministic tensor-algebra + bit-exact material demoted to *supporting* sections, not the
+   headline. This is the big structural pass (Emma's "re-spine next").
 3. **SPEC SYNC continues alongside the re-spine** (CLAUDE.md "don't let paper + spec drift").
-   Pillar 3's Z-transform criterion is now synced. Still to reframe when the re-spine lands:
-   bit-exact arithmetic from headline evidence → supporting, and add the SDE/sampler-convergence
-   framing. The spec is the ground truth the paper must not contradict.
+   Pillar 3 (Z-transform) and the thrml section (sampler convergence) are now synced. Still to
+   reframe when the spine restructure lands: bit-exact arithmetic from headline evidence →
+   supporting. The spec is the ground truth the paper must not contradict.
 
 **Guardrails:** integrity rules bind — the SDE + Z-transform analyses are NOT built; cite only
 measured numbers, build before claiming (no prose-only "results"). Keep it NARROW (per-contract,

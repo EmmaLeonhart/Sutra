@@ -45,6 +45,12 @@ from .fv_loop_convergence import (
     analyze_loop_recurrence,
 )
 from .fv_poly_bound import RangeBound, bound_polynomial_over_box
+from .fv_sampler_convergence import (
+    SamplerConvergenceReport,
+    analyze_sampler_convergence,
+    integrate_master_equation,
+    measured_decay_rate,
+)
 
 __all__ = [
     # polynomial range bounding (the §3.2 branch-range obligation)
@@ -65,4 +71,9 @@ __all__ = [
     "ASYMPTOTICALLY_STABLE",
     "MARGINALLY_STABLE",
     "UNSTABLE",
+    # continuous-time convergence of the probabilistic sampler (the §7 SDE angle)
+    "analyze_sampler_convergence",
+    "SamplerConvergenceReport",
+    "integrate_master_equation",
+    "measured_decay_rate",
 ]

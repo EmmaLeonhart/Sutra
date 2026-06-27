@@ -856,13 +856,36 @@ decays as $|\lambda_2|^n$ (`two_state_tv_mixing`). Instantiated for the gadget's
 single-site Gibbs kernel, which fully resamples the spin, $\lambda_2 = 0$ exactly
 (`gibbs_lambda2_zero`): the chain reaches the Gibbs measure in a *single* step
 (`gibbs_mixes_in_one_step`; spectral gap $=1$). All `[propext, Classical.choice,
-Quot.sound]`, no `sorry`. So the full convergence picture for the gadget chain (the
-gadgets *correct*, the chain *ergodic with the right unique stationary Gibbs measure*,
-and now the *rate*) is machine-checked. What we do **not** claim: a mixing-rate bound
-for a general multi-state block-Gibbs chain (only the two-state case is mechanised),
-nor the continuous-time Langevin SDE limit. (Proofs: `fv-lean/`, core, no `mathlib`,
+Quot.sound]`, no `sorry`. So the full *discrete-time* convergence picture for the
+gadget chain (the gadgets *correct*, the chain *ergodic with the right unique
+stationary Gibbs measure*, and the two-state *rate*) is machine-checked.
+
+**The continuous-time, multi-state convergence, measured.** The Lean layer leaves
+two pieces open: the *general multi-state* spectral gap (only the two-state clamped
+decode is mechanised) and the *continuous-time* (Langevin/SDE) limit. We close them
+*numerically* — a measurement on the real gadget energy, not a machine-checked
+proof, and we mark the status as exactly that. The continuous-time limit of
+single-site block-Gibbs is a Markov jump process whose law obeys the master
+equation (the Kolmogorov-forward / Fokker–Planck ODE) $\dot p = Q^{\mathsf T} p$,
+the distribution-level statement of the Langevin dynamics. Building the heat-bath
+generator $Q$ on the machine-checked AND-gadget energy $E4$, the checker
+(`fv.analyze_sampler_convergence`) measures: the Gibbs measure is **stationary**
+($\lVert \pi^{\mathsf T} Q\rVert_\infty = 1.4\times10^{-17}$) and **reversible**
+(detailed-balance violation $4.2\times10^{-22}$), the generator's spectrum is real
+$\le 0$, and the full **eight-state** chain has a strictly positive **spectral gap
+$\gamma = 0.0397$** at $\beta=1$ — so the law converges exponentially, for the
+multi-state chain, not only the two-state case. Integrating the master ODE from a
+worst-case start, the total-variation distance to $\pi$ decays at a **measured rate
+$0.0397$, matching the spectral gap to ratio $1.0000$** — the gap *is* the
+continuous-time convergence rate, confirmed on the trajectory. The clamped-decode
+chain's stationary mode is the correct AND output for all four inputs.
+(`fv_sampler_convergence.py`, `test_fv_sampler_convergence.py`, 6/6.) What remains
+genuinely open: a *machine-checked* (rather than measured) multi-state gap, and the
+continuous-*space* overdamped Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$
+on a relaxed energy — named, not claimed. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
-measured exploration and the host/sampled hardware mapping: the companion findings.)
+measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled
+hardware mapping: the companion findings.)
 
 ## 8. Source-language frontends: empirical end-to-end verification
 
@@ -922,10 +945,14 @@ gadgets' ground-states are machine-checked correct, and the single-gadget Gibbs
 sampler is machine-checked to converge to its unique stationary Gibbs measure
 (ergodicity in core Lean; reversibility, stationarity, and uniqueness over the
 reals in `mathlib`; the two-state mixing rate mechanised — spectral gap 1, so it
-mixes in one step). What remains there is the harder and more representative
-work: the general multi-state spectral gap and the continuous-time Langevin/SDE
-limit of block-Gibbs — verifying the language as it genuinely runs on a
-probabilistic substrate, which is where this line of work is headed.
+mixes in one step). Beyond that, the *continuous-time, multi-state* convergence is
+now **measured** on the real gadget energy: the master-equation generator's Gibbs
+measure is stationary and reversible, the full eight-state chain has a positive
+spectral gap ($\gamma=0.0397$ at $\beta=1$), and the law's total-variation decay
+matches that gap (ratio $1.0000$). What remains is to lift that measurement to a
+*machine-checked* multi-state proof and to the continuous-space Langevin diffusion
+— verifying the language as it genuinely runs on a probabilistic substrate, which
+is where this line of work is headed.
 
 ---
 

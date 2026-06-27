@@ -1,3 +1,28 @@
+## 2026-06-27: FV re-spine #2 — continuous-time sampler convergence (the stochastic-ODE / Langevin angle, measured)
+
+Second probabilistic-verification leg. `GibbsChain.lean` names its own open piece in Emma's
+words — "the general multi-state spectral gap and the continuous-time Langevin/SDE limit"; the Lean
+layer mechanises only the discrete two-state rate. New `sutra_compiler/fv_sampler_convergence.py`
+(`fv.analyze_sampler_convergence`) closes the multi-state + continuous-time piece *numerically*
+(host verification analysis on the machine-checked AND-gadget energy `E4` — explicitly a
+MEASUREMENT, not a Lean proof).
+
+The continuous-time limit of single-site block-Gibbs is a Markov jump process whose law obeys the
+master ODE `dp/dt = Qᵀp` (Kolmogorov-forward / the distribution-level Langevin statement). Built the
+heat-bath generator `Q` and **measured** (β=1): Gibbs π stationary (`‖πᵀQ‖∞ = 1.4e-17`), reversible
+(detailed-balance violation `4.2e-22`), real spectrum, full **8-state** spectral gap `γ = 0.0397` > 0
+(exponential convergence, multi-state — not just 2-state). Integrating the master ODE from a
+worst-case start, TV(p(t),π) decays at a **measured rate 0.0397 = the spectral gap to ratio 1.0000**
+— the gap *is* the continuous-time convergence rate, confirmed on the trajectory. Clamped-decode
+mode = correct AND output for all 4 inputs. `test_fv_sampler_convergence.py` 6/6 (ran here under
+numpy; no torch / embed backend needed). Wired into paper §7 + §9 + spec thrml section, marked as
+measured-not-mechanised. Still open: a machine-checked multi-state gap, and the continuous-SPACE
+overdamped Langevin diffusion `dX = −∇U dt + √(2/β) dW`.
+
+With both legs built (Z-transform loop convergence + master-ODE sampler convergence), the remaining
+re-spine work is the structural pass: make the probabilistic story the paper's spine and demote the
+deterministic tensor-algebra / bit-exact half to supporting sections.
+
 ## 2026-06-27: FV re-spine #1 — Z-transform loop-convergence criterion (built + measured)
 
 First real piece of the probabilistic re-spine (Emma: "do everything offline you can, then run it
