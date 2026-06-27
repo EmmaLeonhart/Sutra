@@ -1,3 +1,5 @@
+## 2026-06-27 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + `test_await_substrate_pure` 4/4 PASS under `SUTRA_EMBED_BACKEND=transformers`)
+
 ## 2026-06-26 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + `test_await_substrate_pure` 4/4 PASS under `SUTRA_EMBED_BACKEND=transformers`)
 
 ## 2026-06-25: Batch 7 #3 — keep model-load framework noise off program stdout (Batch 7 drained)
