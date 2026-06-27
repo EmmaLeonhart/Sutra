@@ -1,76 +1,61 @@
-# Reducing Control Flow to Tensor Algebra: Verifying the Non-Learned Trusted Base of a Neuro-Symbolic Substrate
+# Verifying the Trusted Base of Sutra: Closed-Form Obligations for a Functional Language on a Frozen Vector Substrate
 
 ---
 
 ## Abstract
 
 Formal verification of conventional software means navigating control flow
-through large imperative codebases; for systems with a learned component it is
-usually abandoned outright. We show that **Sutra**, a typed purely-functional
-language, changes the shape of the problem for the non-learned part of a system.
-Its compiler turns an entire program (primitives, control flow, string I/O) into
-a single fused **tensor-op graph** over a frozen substrate, and that graph *is*
-the program's semantics — as a neural network's weights are its computation —
-not a residual to be interpreted. The construct that makes conventional
-verification expensive, the branch, does not survive into the
-graph: `if/else` compiles to a **single three-valued-Kleene polynomial**,
-Lagrange-interpolated and exact on the {−1, 0, +1} truth grid, and each loop to a
-bounded soft-halt recurrence. Verifying the **trusted base** (kernel roles and
-named critical programs) therefore becomes algebra over a small fixed set of
-tensor graphs rather than enumeration of control-flow paths.
+through large imperative codebases. We show that **Sutra**, a typed purely-
+functional language, changes the shape of that problem for the *non-learned*
+**trusted base** — the kernel roles and named critical programs whose behaviour is
+fixed at compile time. Sutra's compiler turns an entire program (primitives,
+control flow, string I/O) into a single fused **tensor-op graph** over a frozen
+vector substrate, and that graph *is* the program's semantics, as a neural
+network's weights are its computation, not a residual to be interpreted. The
+construct that makes conventional verification expensive, the branch, does not
+survive into the graph: `if/else` compiles to a **single three-valued-Kleene
+polynomial**, exact on the {−1, 0, +1} truth grid, and each loop to a bounded
+recurrence `state ← R · state`. Verifying the trusted base therefore becomes
+algebra over a small fixed set of tensor graphs rather than enumeration of
+control-flow paths.
 
-We make this precise as three per-construct obligation families (contract,
-branch-range, termination), and we give **mechanical checks for all three**,
-running on the real compile-and-execute substrate: a codegen-correspondence
-check that the polynomials the compiler emits agree with the spec on the Kleene
-grid (worst |error| = 0.0 across the nine {−1, 0, +1}² points, a regression
-guard against codegen drift, *not* a math-discovery claim about Lagrange
-interpolation, which is exact by construction; §3.2), connective range-soundness
-(a closed-form proof that outputs lie in [−1, +1] over the whole fuzzy domain),
-and loop termination (bounded, monotone halt). The termination story is sharper than a blanket "Sutra bans unbounded
-loops": the surface syntax distinguishes **`loop` / `while_loop`** (bounded
-soft-halt recurrence with a termination obligation) from **`recur`** (an
-explicitly non-halting form for event-driven recurrences, declared outside the
-trusted-base scope by construction); §3.3 names the split. We also discharge the kernel-enforced read/write confinement half of
-the contract obligation. We further give a **decision procedure for program equivalence over
-the polynomial fragment** (Boolean logic and integer arithmetic): a checker
-extracts each expression's polynomial via
-the compiler's own lowering and decides whether two programs compile to the same
-tensor graph by polynomial identity, exactly, or in poly time (Schwartz–Zippel),
-for arbitrary depth. This separates two notions that are usually conflated, compiling
-to the same graph versus being logically equivalent, and we exhibit
-distributivity as a clean witness that the former is strictly stronger.
+We make this precise as three per-construct obligation families — contract,
+branch-range, termination — each with a **mechanical check that runs on the real
+compile-and-execute substrate**: a codegen-correspondence check that the emitted
+polynomials match the spec on the Kleene grid (worst |error| = 0.0, a regression
+guard against codegen drift, not a claim about Lagrange interpolation, which is
+exact by construction; §3.2); closed-form connective range-soundness (outputs in
+[−1, +1] over the whole fuzzy domain, by induction on the expression tree, so it
+scales to any nesting depth); and loop termination (a bounded recurrence with a
+monotone halt). We also give a **decision procedure for program equivalence** over
+the Kleene-logic-plus-integer-arithmetic fragment: a checker extracts each
+expression's polynomial via the compiler's own lowering and decides same-graph by
+polynomial identity, exactly or in poly time (Schwartz–Zippel), for arbitrary
+depth — separating "compiles to the same graph" from "logically equivalent," with
+distributivity as the witness that the former is strictly stronger.
 
-The reduction is meaningful because the substrate computes the compiled graph
-exactly, established with measured results (§4):
-rotation binding decodes bundles at 100% accuracy through width *k* = 8 on four
-frozen embedding substrates where the Hadamard baseline has collapsed to 2.5–7.5%,
-with a bind/unbind round-trip of 1.5 × 10⁻¹⁵. Sutra's compiled arithmetic,
-operator selection included, also runs exactly on the substrate
-(`demos/calc` evaluates 11/11 expressions exactly against a rational oracle;
-`demos/echo` round-trips strings bit-exact at runtime dimension 16).
-§4.5 reports a worked example of why dispatch-level cleanliness is necessary
-but not sufficient: a runtime-prelude leak in the `eq()` method
-(`float(cos.item())` severed autograd, the exact host-extraction pattern the
-spec bans) survived the broader sweep, which greps user `.su` output, not the
-`_TorchVSA` prelude itself; a differentiability test caught it downstream. The
-fix shipped with a sweep-coverage extension that scans the prelude under a
-method-level allowlist of legitimate host↔substrate boundaries, and a second
-constrain-train experiment (training `beta` in `defuzzify_trit` end-to-end
-through the compiled graph) shows the substrate now carries autograd cleanly
-across the equality surface, both with measured numbers. The scope
-is the non-learned trusted base, per published contract; §5 states it precisely
-and §6 positions the work against neural-network verification, SMT for nonlinear
-arithmetic, partial evaluation, and vector-symbolic architectures. Then §7
-turns from software to **hardware** formal verification, on Sutra's
-**energy-based** thermodynamic compile target: Lean-machine-checked proofs that
-its gadgets have the correct output as the **strict global energy minimum** (a
-ground-state decode is exact), with sampler-*convergence* proven (stationary measure
-unique, and the two-state mixing rate mechanised: the gadget's Gibbs kernel mixes in
-one step). Finally, §8 is a brief note on a
-**separate, weaker** empirical layer, a compile-and-run-against-ground-truth
-suite for the source-language frontends that compile *into* Sutra, explicitly
-not conflated with the formal guarantees above.
+Substrate faithfulness — that the substrate computes the compiled graph as the
+algebra says — is established with measured results (§4): rotation binding decodes
+bundles at 100% through width *k* = 8 (and ≥99% through *k* = 32 on the 768-d
+substrate) where the Hadamard baseline collapses to 2.5–7.5%, with a bind/unbind
+round-trip of 1.5 × 10⁻¹⁵. The compiled integer-arithmetic dispatch runs exactly
+on the substrate within the IEEE-754 exact-integer range — a supporting precision
+measurement, not the paper's claim. §5 states the scope (non-learned trusted base
+only) and §6 positions the work against neural-network verification, SMT for
+nonlinear arithmetic, program specialization, arithmetic-circuit compilation, and
+vector-symbolic architectures.
+
+§7 carries the same obligation framework to Sutra's second, **energy-based**
+compile target, whose substrate is genuinely **probabilistic** — a sampler that
+settles into the answer rather than computing it deterministically. There the
+per-gadget obligation becomes a finite **ground-state** question, and we give
+Lean-machine-checked proofs that the gadgets' correct outputs are the strict
+global energy minima, with the single-gadget sampler's convergence to its unique
+stationary measure mechanised (the two-state mixing rate included). This is the
+direction the work is moving: verifying the language *as it runs on a
+probabilistic substrate*. §8 is a brief note on a separate, weaker empirical layer
+— a compile-and-run-against-ground-truth suite for the source-language frontends
+that compile *into* Sutra — explicitly not conflated with the formal guarantees.
 
 ---
 
@@ -142,17 +127,17 @@ learned part is quarantined behind contracts and monitoring.
 3. **An equivalence decision procedure for the Kleene fragment** (§2): deciding
    same-graph by polynomial identity, distinguished from logical equivalence,
    with distributivity as a witness.
-4. **The faithfulness evidence** (§4): measured substrate exactness, including
-   bit-exact arithmetic dispatch through the compiled substrate, restated self-
-   containedly here.
+4. **The faithfulness evidence** (§4): measured substrate results — rotation-
+   binding capacity and reversibility — with exact integer-arithmetic dispatch as
+   a supporting precision measurement, restated self-containedly here.
 
 §5 states the boundary; §6 positions the work in the literature. The core
-software-verification contribution is §§2–6. The paper then adds two clearly
-**delimited, complementary** parts that the core result does *not* depend on, and
-that should be read as such rather than as scope creep: **§7**, machine-checked
-Lean proofs for Sutra's energy-based *hardware* compile target; and **§8**, a
-deliberately *weaker* empirical (compile-and-run) check of the source-language
-frontends, explicitly not conflated with the formal guarantees above.
+contribution on the deterministic target is §§2–6. The paper then turns to where
+the work is headed: **§7** carries the same obligation framework to Sutra's second,
+**probabilistic** energy-based compile target — machine-checked Lean proofs of the
+gadgets' ground-states and the sampler's convergence — and **§8** is a deliberately
+*weaker* empirical (compile-and-run) check of the source-language frontends,
+explicitly not conflated with the formal guarantees above.
 
 ## 2. The compiled tensor-op graph
 
@@ -457,47 +442,22 @@ The degree grows ≈ `4^depth`, so beyond ~depth 30 a larger prime or CRT over s
 primes restores the margin, unnecessary for any realistic nesting. Full data:
 a companion finding in the repository (with the original expansion-cost table).
 
-**3.4 Range-soundness and termination for unbounded-precision arithmetic
-(digit-array carry propagation).** The three families above cover the
-control-flow surface (branches, loops, contracts). A fourth obligation shape
-appears once the trusted base does *arithmetic the substrate's native float
-range cannot hold exactly*: arbitrary-precision integers, represented as a
-fixed-width digit array with carry propagation. The `digit_array_add` substrate
-intrinsic computes radix-`r` addition entirely in tensor ops, pairwise sum,
-floor-division carry extraction, and an `N`-step shift-and-propagate, no
-`.item()` and no host scalar branch on a digit value. It carries two
-obligations, both discharged by the same finite reasoning the §3.2/§3.3
-families use, lifted to the digit-array domain.
-
-*Range-soundness (by induction on the step index).* The obligation is that
-every digit stays in `[0, r)` and every carry in `{0, 1}` at every step.
-Initially `s = a + b ∈ [0, 2r)`, so `c = ⌊s/r⌋ ∈ {0, 1}` and
-`d = s − cr ∈ [0, r)` by the floor-division identity. The invariant is
-preserved across each propagation step: `d_new = d + c_shifted ∈ [0, r+1)`
-(the maximal `d_new = r` is exactly the "9 + 1" cascade), so
-`new_c = ⌊d_new/r⌋ ∈ {0, 1}` (since `r+1 ≤ 2r`) and the re-extracted
-`d ∈ [0, r)` again. By induction the output digit array contains only values in
-`[0, r)`; the terminal carry is dropped (overflow saturates, by design). This is
-a closed-form invariant proof in the same spirit as the §3.2 range-bound, a
-fact about the arithmetic, independent of how the substrate executes it, for
-any positive integer radix (the shipped path uses `r = 10`).
-
-*Termination (structural, not measured).* The runtime is
-`for _step in range(n)` where `n` is the digit-array width, a *structural*
-shape parameter, not a data-dependent value. The body has no `break`/`continue`/early-exit and is a finite
-composition of tensor ops, so the loop runs exactly `n` iterations
-(`O(N²)` element-wise work; the queued Hillis–Steele form would be `O(N log N)`)
-and cannot fail to halt on any input. The loop count depends only on the width,
-never on a digit value, the same "the trusted base does not pose the halting
-problem" property as §3.3, here because the bound is a shape, not a soft-halt
-signal. End-to-end the shipped intrinsic is bit-exact on the worked cases
-(`"12345678" + "87654321" = "99999999"`; `"99999" + "1" = "100000"`; overflow
-saturates at `max_digits = 16`; `experiments/bigint_worked_example.py`, nine cases).
-
-What §3.4 does *not* yet cover: signed digit arrays (v1 is unsigned), and
-expressing these bounds in the §3.2 polynomial-Kleene style rather than as a
-step-indexed induction (a wiring task, not a new result). The obligations, proofs,
-and arbitrary-precision spec are given in full in the repository.
+**3.4 A fourth shape: digit-array carry propagation.** Once the trusted base does
+arithmetic the substrate's native float range cannot hold exactly (arbitrary-
+precision integers as a fixed-width digit array), the same finite reasoning lifts
+to a fourth obligation shape. The `digit_array_add` intrinsic does radix-`r`
+addition entirely in tensor ops (pairwise sum, floor-division carry extraction, an
+`N`-step shift-and-propagate; no `.item()`, no host scalar branch). *Range-
+soundness* is a step-indexed invariant — every digit stays in `[0, r)` and every
+carry in `{0, 1}`, preserved across each propagation step (the maximal `d_new = r`
+is the "9 + 1" cascade) — a closed-form fact about the arithmetic in the spirit of
+the §3.2 bound. *Termination* is structural: the runtime is `for _step in
+range(n)` over the digit-array *width*, not a data-dependent value, so it halts in
+exactly `n` steps. Shipped bit-exact on nine worked cases
+(`experiments/bigint_worked_example.py`); the full obligations, proofs, and spec
+are in the repository. Not yet covered: signed digit arrays, and expressing these
+bounds in the §3.2 polynomial-Kleene style rather than step-indexed induction (a
+wiring task, not a new result).
 
 ## 4. Faithfulness: the reduction is computed exactly
 
@@ -594,202 +554,76 @@ dispatch's, not an artifact of high dimension. Reproduce in-repo:
 nomic-embed-text). The property follows from the lowering, so it holds for any
 Sutra program that compiles arithmetic the same way.
 
-A fair objection, and the standard one against any "bit-exact on GPU" claim,
-is that float32 on a GPU is generally non-deterministic across runs: warp
-scheduling reorders work, and reductions (sum-of-many-elements, particularly
-under atomic add) accumulate in non-deterministic order, so identical inputs
-produce different bit patterns on different runs. We name the objection and
-dispatch it explicitly:
+The standard objection to any "bit-exact on GPU" claim is that float32 is
+non-deterministic across runs (warp scheduling reorders reductions). It does not
+bite here, briefly: the dispatch pipeline has no reductions over many elements (it
+is element-wise ops plus one saturated `select` per branch point); every
+intermediate is an exactly-representable integer below the exact-integer bound
+(2⁵³ in the float64 the calc demo runs), so each op's result is bit-identical
+regardless of order; and the saturated `select` multiplies off-branches by exact
+0.0 (`exp(−1000)` underflows below the smallest subnormal, independent of DAZ/FTZ
+flags). The scope is precise: exactness for *integer-valued computation in the
+exact range*, not a claim that arbitrary float pipelines are bit-portable — the
+soft-halt's `sigmoid` is a transcendental and deliberately outside it (§3.3 needs
+only monotone thresholding, not a bit-identity of the sigmoid).
 
-1. **The dispatch pipeline contains no reductions over many elements.**
-   It is element-wise tensor ops + a single saturated `select` per branch
-   point. Reduction non-determinism is a property of operations like `sum(x)`
-   over arrays where the addition order matters at floating-point precision;
-   our path has none.
-2. **Every intermediate is an exact float.** Integers below the exact-integer
-   bound (2²⁴ for float32, 2⁵³ for the float64 the calc demo runs) and the values
-   0.0/1.0 are represented exactly in IEEE-754; integer +/−/× of them is
-   exact (no rounding to be reordered); element-wise multiplication of two
-   exact floats is exact. So even if the *order* of element-wise ops differed
-   across warp schedules, the *result* of each op is identical to the bit
-   regardless.
-3. **The saturated `select` multiplies off-branches by *exact* zero.** This
-   does not depend on denormal-handling flags (DAZ/FTZ): `exp(−1000) ≈ 5×10⁻⁴³⁵`
-   is far below the smallest *subnormal* of both float32 (~1.4×10⁻⁴⁵) and
-   float64 (~4.9×10⁻³²⁴), so it rounds to 0.0 whether or not subnormals are
-   flushed; it is not a value DAZ/FTZ could change.
+This bit-exactness is a **supporting precision measurement, not the paper's
+claim.** It is bought precisely by routing arithmetic through the synthetic number
+axes and avoiding the probabilistic semantic codebook (zero `basis_vector` calls,
+`runtime_dim = 8`); it says the dispatch is faithful where the substrate is used
+deterministically. The harder and more representative question — how the language
+behaves when it *does* ride the probabilistic substrate — is the convergence story
+of §7, and the direction the work is headed.
 
-So these are not tolerance-band results and the measured |err| of 0.0
-reproduces across runs and across hardware revisions within the IEEE-754
-envelope. The scope is precise: this is exactness *for integer-valued computation
-in the exact range on IEEE-754 hardware*, not a claim that arbitrary float
-pipelines are bit-portable. In particular, the soft-halt's `sigmoid`, a
-transcendental, and indeed *not* bit-portable across hardware or library
-versions, is deliberately **outside** this claim: the termination obligation
-(§3.3) needs only that the halt signal is monotone and *eventually crosses* its
-threshold, an inequality/monotonicity property that is robust to the sigmoid's
-exact bits, not a bit-identity of the sigmoid. Bit-exactness is claimed for the
-*integer arithmetic dispatch*; termination rests on *monotone thresholding*; the
-two are separate properties and neither leans on a transcendental being
-bit-portable. This is the §3.1 contract property in miniature: the compiled graph
-computes exactly what the source denotes, end-to-end on the substrate.
+**4.4 Dispatch-level discharge is necessary, not sufficient.** Confirming that
+every operation dispatches to a substrate primitive (no host scalar branch, no
+`float()` extraction inside an op, no Python control flow on a substrate value) is
+necessary but not sufficient for the faithfulness §4 needs. Three further
+measurements separate "every op dispatched correctly" from "the substrate carries
+the claimed signal," each having caught a silent failure in a substrate-purity
+audit of downstream programs:
 
-These are existence results for exactness on the substrates and programs measured,
-which is what the reduction's premise requires.
+- **Dimension audit** — `runtime_dim` must match what the source needs. A program
+  with no `basis_vector` calls uses no semantic-codebook capacity, so its dimension
+  can drop from the 768 + 100 default to a small fraction with no change in output;
+  downstream apps ran at the full 768-d for weeks (~96× over-dimensioned) despite
+  zero `basis_vector` calls until the audit cut them.
+- **State-locus audit** — a "recurrent" claim requires the state vector to survive
+  across steps *on the substrate*, not in a host variable extracted between calls.
+  Counter/toggle/font-cycle demos were mislabelled RNNs until the audit reclassified
+  them as stateless substrate functions in a host loop (the fix: a real substrate
+  `loop`, §3.3).
+- **Signal-separation audit** — a substrate classifier must show a positive
+  `gap = min(positive-class) − max(negative-class)`. An initial font-glyph encoding
+  dispatched every op correctly yet had LIT/UNLIT cosines overlapping at every
+  dimension 16–256 (negative gap); the corrected encoding ships with a measured
+  positive gap.
 
-**4.4 Substrate-faithfulness: dispatch-level discharge is necessary, not
-sufficient.** A natural way to claim a Sutra program "runs on the substrate" is
-to confirm every operation dispatches to a substrate primitive, no host scalar
-branch, no `float()` extraction inside an op, no Python control flow on a
-substrate value. The repository's leak catalogue enumerates these dispatch-level
-breaches and which sites have been closed.
-Dispatch-level cleanliness is necessary, but it is not sufficient for the
-faithfulness claim §4 needs, three further measurements separate "every op
-dispatched correctly" from "the substrate carries the signal the claim asserts,"
-and we name them here because conflating the two has been the silent failure
-mode caught in a substrate-purity audit of downstream Sutra programs.
+§4.1's capacity table is itself a signal-separation report and §4.3's |err| = 0.0
+its strongest form; we name all three because they apply across the trusted base,
+and treating dispatch-level cleanliness as the full claim is the silent failure
+mode.
 
-- **Dimension audit.** A program can dispatch every op to the substrate but at
-  a runtime dimension that encodes nothing, paying substrate cost for unused
-  capacity. If a Sutra source has no `basis_vector` invocations, the
-  semantic-codebook capacity is unused and the synthetic axes carry all the
-  work; the runtime dimension can drop from the default of semantic + synthetic
-  (768 + 100 on nomic-embed-text) to a small fraction with no change in
-  observable output. A dimension audit confirms `runtime_dim` matches what the
-  source actually needs. *Caught downstream:* every audited downstream Sutra
-  application was at the default 768-d substrate despite zero `basis_vector`
-  calls, a ~96×
-  over-dimensioning paid silently for weeks until the audit cut each app to
-  the dimension its `.su` actually exercised.
-- **State-locus audit.** A function that takes a scalar, returns a substrate
-  vector, and is invoked in a host loop that extracts the scalar between calls
-  is not a recurrent network even when every internal op dispatches to the
-  substrate, the recurrence lives in a host variable, not on the substrate.
-  Any claim of "recurrent" or "substrate-pure state" requires the state vector
-  to survive across time steps without an intermediate host scalar extraction
-  (`vsa.real(...)`-style). The state-locus audit traces where the state lives
-  between steps. *Caught downstream:* counter and toggle demos and a font
-  cycle-step demo were labelled as RNNs until the audit corrected the framing
-  to "stateless substrate function in a host loop"; the rewrite to a real
-  substrate `loop` carrying the hidden state as a vector is the natural fix
-  (Sutra's `loop (cond)` lowers to a bounded substrate recurrence, §3.3).
-- **Signal-separation audit.** A substrate classifier, any function whose
-  output is a decision, can return numbers from substrate ops while those
-  numbers fail to distinguish the classes the function is supposed to
-  distinguish. The audit measures `gap = min(positive-class output) −
-  max(negative-class output)` over the program's input distribution; without a
-  positive gap the classifier is not separating the classes the dispatch claim
-  implies. *Caught downstream:* an initial font-glyph encoding (`bundle(bind(p,
-  LIT)) / bind(p, UNLIT)` per cell) returned LIT-cell cosines that overlapped
-  UNLIT-cell cosines at every runtime dimension between 16 and 256, every
-  dispatch correct, signal-separation gap negative. The corrected sparse-only
-  encoding ships with a measured positive gap reported alongside its rendered
-  output.
-
-The §4 results above already discharge the third check for the substrate
-primitives: §4.1's multi-width capacity table is a signal-separation report
-(positive-class accuracy across *k*, negative class being the alternative
-codebook entries) and §4.3's |err| = 0.0 is its strongest possible form. We
-name the three checks here because they apply across the trusted base, not
-only to the substrate primitives, and the silent failure mode is treating
-dispatch-level cleanliness as if it were the full claim. The composition with
-§3 is structural: dispatch-level cleanliness keeps the obligation-checker
-inputs faithful (the polynomial extracted from the lowered graph is the one the
-substrate executes); the three measurements keep the §4 faithfulness claim
-sound at the program level.
-
-**4.5 Coverage of the dispatch-level check itself: a worked failure.** §4.4
-argues dispatch-level cleanliness is necessary; this subsection reports a
-concrete leak the dispatch sweep silently missed, and how it surfaced. To be
-explicit about its status: the leak sweep is an **engineering defense-in-depth
-guard, not a formal method**, and it is deliberately *syntactic*, and this
-subsection's contribution is precisely to show that a syntactic check is
-*necessary but not sufficient*. There is no tension with the formal results: the
-formal claims are §3's obligations (Kleene-polynomial range-soundness, the
-termination convergence check, the equivalence decision procedure); the sweep is a
-separate, lighter-weight CI guard against a *different* failure class
-(substrate-purity breaches), and we report its blind spot rather than
-present grep as a proof. The repository ships this automated leak sweep (wired as
-a CI gate) that re-emits every user `.su` program in the test corpus to Python and
-greps the emitted module for the banned patterns,
-`float(...)`/`.item()` on a substrate tensor, host `for`/`if` on a scalar,
-libm calls on values pulled off the substrate. The sweep runs across 67 user
-programs and asserts zero operator leaks. It returns green.
-
-It missed a leak in the runtime prelude itself. The emitted `_TorchVSA.eq(a,
-b)` method computed the cosine similarity as a 0-D tensor with a live autograd
-chain (`cos = (av·bv) / (||av||·||bv|| + ε)`) and then returned
-`self.make_truth(float(cos.item()))`, a host scalar extraction followed by a
-re-wrap. The numerical value is identical to a substrate scatter, but the
-autograd connection is severed, and the pattern is the exact banned
-host-extraction-inside-an-op that the leak catalogue formalises. It survived
-because the sweep is over user programs' emitted Python; the `_TorchVSA` class
-that *is* the substrate prelude is not part of any user program's emitted
-output, so the sweep never reads it.
-
-The leak surfaced downstream rather than from any check named in this paper:
-a constrain-train experiment compiled a Sutra source that used `==`, made the
-output of `==` depend on a trainable scalar parameter, and called
-`loss.backward()` to update the parameter. The backward pass failed with
-"element 0 of tensors does not require grad and does not have a grad_fn"
-because the autograd chain ended inside `_TorchVSA.eq`. Tracing back through
-the chain, input tensor with `requires_grad=True` survives until the
-`make_truth(float(cos.item()))` line, then does not, located the leak in one
-read. The fix is a substrate-pure scatter: `out = zeros(self.dim, ...);
-out[truth_axis] = cos; return out`, with `cos` kept as a 0-D tensor; numerics
-identical, autograd preserved. After the fix, the differentiability test
-returned `out.requires_grad = True`, `out.grad_fn = <MulBackward0>`, and a
-non-None `gain.grad` after `backward()`.
-
-The lesson for the framework is structural, not a one-off bug report. The
-audit's BNF-shaped leak check (a syntactic grep) has a precise blind spot: it
-sees the surface where user programs touch the substrate, not the substrate's
-own surface where it touches PyTorch. Closing the blind spot is an
-implementation move, and the implementation move has now shipped: the leak
-sweep gains a second scan pass that targets the runtime prelude
-(`_TorchVSA`) with a **method-level allowlist of legitimate boundaries**,
-the `make_*` constructors, the `_st` / `_as_*_vector` entry boundaries, the
-`real` / `imag` / `truth` / `similarity` / `argmax_cosine` / `select` output
-edges, the Promise inspectors, the JS-interop coercion methods, embedding
-bootstrap, and the loop machinery's structural `for` ranges. Inside any other
-prelude method, `float()` / `.item()` / host scalar coercion is flagged.
-Conceptually this is the right shape because the allowlist names *what each
-boundary is for*: an entry boundary lifts a host literal into a substrate
-tensor; an output edge collapses a substrate value to a host scalar for
-monitoring. Both are documented host↔substrate edges by design. What lives
-*inside* an operation's definition between those edges should stay on the
-substrate. The leak is now recorded in the leak catalogue; the user-
-program sweep continues at zero leaks across the 67-program corpus; the
-runtime-prelude sweep also returns zero leaks after the `eq()` / `eq_synthetic`
-fix. A per-op differentiability unit test is an additional layer that can
-catch a leak even when both grep passes are clean, autograd connectivity
-is a semantic property the syntactic grep cannot fully discharge, but the
-sweep extension is now load-bearing, not aspirational. The conceptual point
-above the implementation: a syntactic audit family discharges a syntactic
-claim, and substrate faithfulness is a semantic claim. This is the
-positive-result side of §4.4's argument: when a dispatch-level check misses
-something, the §4 program-level measurements (here, an autograd-based
-differentiability probe of a trainable program) are what catch it.
-
-**A separate live evidence point that the substrate supports differentiable
-computation.** A second constrain-train experiment ships in the reference
-implementation: `defuzz β` trains a scalar `beta` parameter inside Sutra's
-`defuzzify_trit` operator against a polarization task, with the loss
-backpropagated end-to-end through the compiled tensor-op graph (3 seeds,
-40 epochs, baseline loss ≈ 0.21 → trained loss ≈ 0.01, `beta*` ≈ 6.5–6.8;
-`experiments/defuzz_gain_adjustment.py`). The diagnostic-with-teeth here:
-the task surface in the first iteration of the harness was the cosine-form
-`(gain * v) == true`, which is *scale-invariant* in `gain` (cosine
-normalizes away positive scaling), so gradient was zero everywhere despite
-the autograd chain being intact, caught as a measurement, not a guess,
-once the `eq()` autograd fix removed the prior obstruction. Rewriting the
-harness to `defuzzify_trit(v, iters=1, beta=beta)` (a scale-sensitive
-surface) put gradient on the parameter and the experiment converged. We
-flag this because it is the same shape as §4.4/§4.5's broader point: a
-"the substrate computes the graph faithfully" claim is only as strong as
-the experiment that distinguishes a working channel from a failing one,
-and the right experiment was an end-to-end training run that actually
-moved a parameter, not a syntactic check that the operator dispatched.
+**4.5 A worked failure: a syntactic check is not a semantic guarantee.** The
+repository ships a CI leak sweep that re-emits every user `.su` program and greps
+for banned host-readout patterns (`float()`/`.item()` on a substrate tensor, host
+`for`/`if` on a scalar). It is green across 67 programs — but it missed a leak in
+the runtime *prelude* itself: `_TorchVSA.eq` computed cosine similarity with a live
+autograd chain and then returned `make_truth(float(cos.item()))`, severing the
+graph. It survived because the sweep reads emitted user programs, not the prelude
+class. The leak surfaced from a program-level measurement, not the syntactic check:
+a constrain-train experiment that made `==`'s output depend on a trainable
+parameter failed `loss.backward()` ("does not have a grad_fn") because the chain
+ended inside `eq`. The fix is a substrate-pure scatter (`out[truth_axis] = cos`,
+`cos` kept as a 0-D tensor; numerics identical, autograd preserved), and the sweep
+gained a second pass over the prelude under a method-level allowlist of legitimate
+host↔substrate boundaries. The lesson is structural: a syntactic audit discharges a
+syntactic claim, but substrate faithfulness is semantic, so the program-level
+measurements (here an end-to-end differentiability probe) are what catch what grep
+cannot. A companion experiment confirms the substrate carries autograd cleanly once
+the leak is closed: `defuzz β` trains a `beta` parameter inside `defuzzify_trit`
+end-to-end through the compiled graph (3 seeds, baseline loss ≈ 0.21 → ≈ 0.01;
+`experiments/defuzz_gain_adjustment.py`).
 
 ## 5. Scope
 
@@ -889,36 +723,26 @@ encoding of branches as a verification lever is, to our knowledge, new.
 DO-178C, the avionics software-assurance standard, adapted so the artefact under
 review is the compiler's tensor-graph output rather than imperative source.
 
-## 7. Hardware formal verification: the thermodynamic compile target
+## 7. The probabilistic substrate: verifying an energy-based compile target
 
-Everything to this point is **software** formal verification: we verify the
-*compiled program*, the tensor-op graph that is Sutra's non-learned trusted base,
-as a mathematical object, independently of the machine that runs it. This section
-adds a complementary, secondary part — **hardware** formal verification: verifying
-that the computation is correct on the *physical substrate that executes it*. It
-stands apart from the core result of §§2–6 and the core does not depend on it. Sutra's second,
-energy-based compile target runs not on a deterministic tensor engine but on
-**thermodynamic, probabilistic-bit hardware**, the kind Extropic is building (a
-sparse, locally-connected grid of p-bits performing block-Gibbs sampling, with the
-host programming the weights and reading the result). There the computation is
-physical: a Sutra value is a register of spins, an operation is a *factor* (a local
-energy term), and the answer is the configuration the hardware *settles into*, the
-ground state of the gadget's energy. Verifying it means proving a property of the
-hardware's energy landscape, not of an emitted polynomial.
+The verification to this point is over the deterministic PyTorch tensor-op target.
+Sutra's second compile target is genuinely **probabilistic**: an energy-based model
+sampled on thermodynamic, probabilistic-bit hardware (a sparse grid of p-bits doing
+block-Gibbs sampling, the kind Extropic is building). There a Sutra value is a
+register of spins, an operation is a *factor* (a local energy term), and the answer
+is the configuration the sampler *settles into* — the ground state of the gadget's
+energy — rather than a value computed deterministically. Verifying it means proving
+a property of the energy landscape, and proving that the sampler *converges* to it.
+This is the substrate that matches Sutra's fuzzy-by-default premise, and the
+direction the verification work is moving.
 
-The reduction of §3 is what makes both halves one story. Turning verification into
-a small, fixed set of finite or closed-form obligations on the compiled object is
-not specific to the software target; it is portable, and on the hardware target it
-takes its cleanest possible form, a finite **ground-state** question. The
-verification is in principle hardware-portable: the same energy-gadget obligations
-would certify the computation on *any* sampler that minimizes the same energy. We
-instantiate it on the specific thermodynamic hardware we are building toward, and we
-regard this hardware-level verification as the more important direction the work
-opens, a route to computation that is correct by construction at the level of the
-*physics*, not only the software. The per-gadget obligation reads
-**"is the arithmetically-correct output the global minimum of the gadget's
-energy?"** rather than "is the polynomial exact?", because a ground-state /
-lowest-energy decode is exact precisely when it is.
+The §3 reduction carries over: turning verification into a small fixed set of
+finite obligations on the compiled object is target-agnostic, and on the
+energy-based target it takes its cleanest form, a finite **ground-state** question
+— *"is the arithmetically-correct output the global minimum of the gadget's
+energy?"* — because a lowest-energy decode is exact precisely when it is. The same
+obligations would certify the computation on any sampler that minimizes the same
+energy.
 
 This is a finite question for each gadget (the spins range over $\{-1,+1\}$), and
 finite questions are exactly where machine-checked proof is cheapest. We give Lean
@@ -1053,34 +877,29 @@ what it is: empirical, not formal.
 Compiling the non-learned trusted base to a tensor-op graph turns formal
 verification from imperative-path enumeration into algebra over a small fixed set
 of tensor graphs, with the load concentrated into three closed-form obligation
-families. All three have mechanical checks that run on the substrate,
+families. All three have mechanical checks that run on the substrate:
 Kleene-gate exactness (worst error 0.0), connective range-soundness (a closed-form
-proof of outputs in [−1, +1]), and loop termination, together with the
-kernel-enforced confinement half of the contract obligation, and a decision
+proof of outputs in [−1, +1]), and loop termination — together with the
+kernel-enforced confinement half of the contract obligation and a decision
 procedure for program equivalence over the Kleene-logic fragment that separates
-same-graph from logical equivalence. The premise that the compiled graph is
-computed exactly is borne out by measured substrate exactness, including bit-exact
-arithmetic dispatch through the compiled substrate. The reduction, framework, and
-discharged obligations are the contribution; extending the equivalence decision
-procedure beyond the Kleene fragment, and building the general checker that
-discharges an arbitrary reduced-graph obligation, are the road ahead. All of that
-is **software** formal verification, verifying the compiled program independent of
-its machine. The same reduction is target-agnostic, and §7 carries it to the
-complementary half, **hardware** formal verification: on Sutra's energy-based
-target the obligation collapses to a finite **ground-state** question about the
-*physical* energy landscape of thermodynamic, probabilistic-bit hardware, where the
-substrate physically realizes Sutra's fuzzy-by-default premise. There the gadgets'
-ground-states are already machine-checked correct, and the single-gadget Gibbs chain
-is machine-checked ergodic (irreducible, aperiodic) with a unique stationary Gibbs
-measure (reversibility, stationarity, and uniqueness verified over the reals in
-`mathlib`), and the convergence *rate* for that two-state chain is mechanised: its
-spectral gap is $1$ ($\lambda_2 = 0$, the kernel fully resamples) so it reaches the
-Gibbs measure in one step. The road ahead there is the general multi-state
-spectral-gap / Langevin limit of block-Gibbs. The verification is hardware-portable in principle, but we instantiate
-it on the specific thermodynamic hardware we are building toward; carrying the §3
-framework fully onto that hardware is, in our view, the more consequential direction
-this work opens, correctness established at the level of the physics, not only the
-software.
+same-graph from logical equivalence. The premise that the substrate computes the
+compiled graph faithfully is borne out by the measured results of §4. The
+reduction, framework, and discharged obligations are the contribution; extending
+the equivalence decision procedure beyond the Kleene fragment, and building the
+general checker that discharges an arbitrary reduced-graph obligation, are the road
+ahead on the deterministic target.
+
+The same framework is target-agnostic, and §7 carries it to the **probabilistic**
+energy-based target, where the obligation collapses to a finite **ground-state**
+question and the substrate matches Sutra's fuzzy-by-default premise. There the
+gadgets' ground-states are machine-checked correct, and the single-gadget Gibbs
+sampler is machine-checked to converge to its unique stationary Gibbs measure
+(ergodicity in core Lean; reversibility, stationarity, and uniqueness over the
+reals in `mathlib`; the two-state mixing rate mechanised — spectral gap 1, so it
+mixes in one step). What remains there is the harder and more representative
+work: the general multi-state spectral gap and the continuous-time Langevin/SDE
+limit of block-Gibbs — verifying the language as it genuinely runs on a
+probabilistic substrate, which is where this line of work is headed.
 
 ---
 
