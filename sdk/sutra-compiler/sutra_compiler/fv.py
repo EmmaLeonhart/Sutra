@@ -37,6 +37,13 @@ from .fv_obligation_checker import (
     range_sound_by_composition,
     reduces_to_same_graph,
 )
+from .fv_loop_convergence import (
+    ASYMPTOTICALLY_STABLE,
+    MARGINALLY_STABLE,
+    UNSTABLE,
+    LoopConvergenceReport,
+    analyze_loop_recurrence,
+)
 from .fv_poly_bound import RangeBound, bound_polynomial_over_box
 
 __all__ = [
@@ -52,4 +59,10 @@ __all__ = [
     # extraction + the verifiable-fragment boundary
     "extract_truth_polynomial",
     "NonPolynomialResidual",
+    # loop-convergence obligation via the Z-transform poles (the §3.3 linear core)
+    "analyze_loop_recurrence",
+    "LoopConvergenceReport",
+    "ASYMPTOTICALLY_STABLE",
+    "MARGINALLY_STABLE",
+    "UNSTABLE",
 ]

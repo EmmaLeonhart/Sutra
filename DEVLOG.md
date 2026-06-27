@@ -1,3 +1,30 @@
+## 2026-06-27: FV re-spine #1 — Z-transform loop-convergence criterion (built + measured)
+
+First real piece of the probabilistic re-spine (Emma: "do everything offline you can, then run it
+to fix it up"). The loop's linear core `state ← R · state` is a discrete-time LTI system, so its
+convergence is decided by its **Z-transform poles** = eigenvalues of `R` (roots of `det(zI − R)`)
+relative to the unit circle. New `sutra_compiler/fv_loop_convergence.py`
+(`fv.analyze_loop_recurrence`) computes the poles of the actual emitted operator and classifies
+asymptotically-stable (`|λ|<1`, decay) / marginally-stable (`|λ|=1` semisimple, bounded no decay) /
+unstable (`|λ|>1`, divergence — obligation fails).
+
+**Measured** on the real emitted Haar bind rotation (dim 868): all 868 poles on the unit circle,
+spectral radius 1.00000000, `R` orthogonal ⟹ marginally stable. The verification-relevant reading:
+the linear core neither decays nor grows, so termination is the §3.3 soft-halt gate's job, not the
+recurrence's — a principled replacement for the ad-hoc "monotone halt" framing, and the pole check
+rules out the one linear failure mode (a pole outside the unit disk). `test_fv_loop_convergence.py`
+6/6 — a numpy classifier layer on known operators (contraction/rotation/expansion/defective Jordan
+block) plus a substrate cross-check measuring the eigenvalues of the real rotation. Wired into
+paper §3.3 + spec Pillar 3 (DISCHARGED on the emitted operator).
+
+Run-environment notes (Emma's "not sure it'll run here" concern was right, partly): this sandbox
+had no numpy/torch/sympy — installed numpy + CPU torch via pip to run. The substrate cross-check
+needed a no-`embed` helper program (`function number main() { return 1; }`) because `embed("x")`
+forces an embedding at module-exec and there's no embed backend here (ollama/transformers absent);
+the loop rotation itself needs no model. Pre-existing `test_fv_termination` fails here for that same
+missing-backend reason (confirmed identical failure with my changes stashed) — environmental, green
+in CI, not a regression. `fv_loop_convergence` imports numpy only (no sympy), so it loads standalone.
+
 ## 2026-06-27: FV paper — trim aggressive bloat + demote bit-exactness (re-spine queued)
 
 Emma flagged that `paper/formal-verification/paper.md` drifted into an AI-generated grand framing

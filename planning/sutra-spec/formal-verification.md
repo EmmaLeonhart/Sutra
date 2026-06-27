@@ -231,6 +231,24 @@ termination; the state vector is fixed-width across iterations (O(1) state).
 - **Obligation (termination):** show the halt signal is **monotone within
   bounded steps** — a far smaller obligation than proving an arbitrary `while`
   terminates, but still discharged *per loop*.
+  - **Convergence criterion (Z-transform poles) — DISCHARGED on the emitted
+    operator, 2026-06-27.** The structural/observational halt check is a
+    consequence of a sharper fact about the loop's *linear core*. The recurrence
+    `state ← R · state` is a discrete-time LTI system; its Z-transform poles are
+    the **eigenvalues of `R`** (roots of `det(zI − R)`). Stability reads off the
+    pole locations vs. the unit circle: `|λ|<1` ⟹ geometric decay; `|λ|=1`
+    semisimple ⟹ bounded, no decay; any `|λ|>1` ⟹ divergence (bounded-state
+    premise fails). A checker (`fv_loop_convergence.analyze_loop_recurrence`,
+    public as `fv.analyze_loop_recurrence`) computes the eigenvalues of the actual
+    emitted `R` and classifies the regime. **Measured** on the emitted Haar bind
+    rotation (dim 868): all 868 poles on the unit circle, spectral radius
+    1.00000000, `R` orthogonal ⟹ *marginally stable*. So termination is NOT a
+    property of the recurrence (no spectral decay) — it is the soft-halt gate's
+    job; the pole check rules out the one linear failure mode (a pole outside the
+    unit disk). `tests/test_fv_loop_convergence.py` (6/6: classifier on known
+    operators + a substrate cross-check on the real emitted rotation). This is the
+    deterministic linear core; the *probabilistic* target's convergence (sampler /
+    Langevin-SDE) is the §7 / thrml story, still the open continuous-time piece.
 
 ## Why this is credible and not hand-waving — the exact-substrate evidence
 
