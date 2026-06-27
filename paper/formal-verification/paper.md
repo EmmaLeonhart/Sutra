@@ -130,14 +130,26 @@ learned part is quarantined behind contracts and monitoring.
 4. **The faithfulness evidence** (§4): measured substrate results — rotation-
    binding capacity and reversibility — with exact integer-arithmetic dispatch as
    a supporting precision measurement, restated self-containedly here.
+5. **Convergence on the probabilistic substrate** (§3.3, §7): the two pieces that
+   verify the language *as it runs*, not just as an algebraic object. The loop's
+   linear core `state ← R · state` is a discrete-time system whose **Z-transform
+   poles** decide convergence (measured: the emitted rotation is marginally stable,
+   so termination is the halt gate's job, not spectral decay); and the energy-based
+   target's sampler is a continuous-time Markov jump process whose **master-equation
+   spectral gap** decides convergence (measured: the full multi-state gadget chain
+   has a positive gap, and the law decays at exactly that rate). These are the
+   stochastic-ODE / Z-transform tools the probabilistic substrate calls for.
 
-§5 states the boundary; §6 positions the work in the literature. The core
-contribution on the deterministic target is §§2–6. The paper then turns to where
-the work is headed: **§7** carries the same obligation framework to Sutra's second,
-**probabilistic** energy-based compile target — machine-checked Lean proofs of the
-gadgets' ground-states and the sampler's convergence — and **§8** is a deliberately
-*weaker* empirical (compile-and-run) check of the source-language frontends,
-explicitly not conflated with the formal guarantees above.
+§5 states the boundary; §6 positions the work in the literature. The framing is
+narrow: this verifies Sutra as a fixed **execution environment** — kernel roles and
+named critical programs — running on a substrate that is, on its second target,
+genuinely **probabilistic**. §§2–6 develop the obligation framework on the
+deterministic tensor-op target; **§7** carries the same framework to the
+energy-based probabilistic target, where it takes its cleanest form (a ground-state
+question) and the sampler's convergence is machine-checked (discrete) and measured
+(continuous-time, multi-state). **§8** is a deliberately *weaker* empirical
+(compile-and-run) check of the source-language frontends, explicitly not conflated
+with the formal guarantees above.
 
 ## 2. The compiled tensor-op graph
 
