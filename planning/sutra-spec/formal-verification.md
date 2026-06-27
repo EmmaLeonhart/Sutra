@@ -430,7 +430,22 @@ All `[propext, Classical.choice, Quot.sound]`, no `sorry`, `lake build` green
 the full convergence picture — hypotheses (irreducibility/aperiodicity, `GibbsChain.lean`),
 stationary-limit object (detailed balance + uniqueness), AND the rate — is now machine-
 checked for the gadget chain. (The "stochastic ODEs" / Langevin-limit framing is the
-continuous-time view of the same convergence.) Lean **is** CI-checked: `.github/workflows/fv-lean-ci.yml`
+continuous-time view of the same convergence.)
+
+**Continuous-time, MULTI-state convergence — MEASURED (not Lean) 2026-06-27.** The Lean
+layer mechanises the *two-state* clamped-decode rate; the *general multi-state* gap and the
+*continuous-time* (stochastic-ODE / Langevin) limit are the named-open pieces (`GibbsChain.lean`).
+Closed *numerically* (host verification analysis on the machine-checked AND-gadget energy `E4`,
+NOT a machine-checked proof — status marked as such): `sutra_compiler/fv_sampler_convergence.py`
+(`fv.analyze_sampler_convergence`) builds the continuous-time single-site heat-bath generator `Q`,
+whose law obeys the master ODE `dp/dt = Qᵀp` (Kolmogorov-forward / the distribution-level Langevin
+statement). Measured (β=1): Gibbs `π` stationary (`‖πᵀQ‖∞ = 1.4e-17`), reversible (detailed-balance
+violation `4.2e-22`), real spectrum, full **8-state** spectral gap `γ = 0.0397` > 0 (exponential
+convergence, multi-state — not just 2-state). Integrating the master ODE from a worst-case start,
+TV(p(t),π) decays at a **measured rate 0.0397 = the spectral gap to ratio 1.0000**. Clamped-decode
+mode = correct AND output for all 4 inputs. `tests/test_fv_sampler_convergence.py` 6/6. STILL OPEN:
+a *machine-checked* multi-state gap, and the continuous-*space* overdamped Langevin diffusion
+`dX = −∇U dt + √(2/β) dW` — named, not claimed. Lean **is** CI-checked: `.github/workflows/fv-lean-ci.yml`
 runs `scripts/check_fv_lean.sh` on GitHub Actions, **path-filtered** to `fv-lean/**`
 (the toolchain install is heavy → only fires when a proof / the pin / the runner
 changes), toolchain pinned by `fv-lean/lean-toolchain`. The clawRxiv research-loop
