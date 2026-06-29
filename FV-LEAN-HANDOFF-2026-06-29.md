@@ -178,17 +178,31 @@ Session-local crons (in-memory, die with the session that created them). The **h
 | `b9791f64` | 08:03 daily | deep-briefing morning | hub (central-command) | **stays in hub** |
 | `8ce41dd8` | 00:02 daily | deep-briefing debrief | hub | **stays in hub** |
 | `1af316af` | 14:00 (today) | clawRxiv-clone-vs-website imitation analysis | research_library | **stays in hub** |
-| `fb3dfaa1` | 13:00 (today) | comprehensive work-through | hub | **CANCELLED** (per Emma) |
-| `120d904d` | 13:00/13:15/13:30 daily | re-insert queue item front+back if clobbered | Sutra | **funding session to take on** |
-| `1f941b74` | 14:00 daily | re-insert queue item front+back if clobbered | Sutra | **funding session to take on** |
-| `2fb00131` | 17:00 daily | assess this doc's completion; if done, delete doc + remove queue item + cancel `120d904d`/`1f941b74` | Sutra | **funding session to take on** |
+| `fb3dfaa1` | 13:00 (today) | comprehensive work-through | hub | **CANCELLED by the hub — RESTART on this funding session (see §6a)** |
+| `120d904d` | 13:00/13:15/13:30 daily | re-insert queue item front+back if clobbered | Sutra | hub-local — **do NOT recreate** (the hub runs these to guard this handoff) |
+| `1f941b74` | 14:00 daily | re-insert queue item front+back if clobbered | Sutra | hub-local — **do NOT recreate** |
+| `2fb00131` | 17:00 daily | assess this doc's completion; if done, delete doc + remove queue item + cancel `120d904d`/`1f941b74` | Sutra | hub-local — **do NOT recreate** |
 
-(IDs above are the hub session's session-local crons. The funding session should create its OWN
-equivalents via `CronCreate` so they persist if the hub session ends.)
+The watchdog + closeout crons (`120d904d`/`1f941b74`/`2fb00131`) are the **hub session's own**
+management crons — they are already running here, so the funding session does **not** recreate them.
+The briefing/debrief and the research_library 2 PM job stay in the hub.
 
-The **Sutra-related** crons (watchdogs + closeout) should be **re-created by the funding session**
-in its own session so they survive there — that is part of the queue.md item below. The hub crons
-(briefing/debrief) and the research_library 2 PM job **remain in the hub session as-is**.
+### 6a. KILLED cron to RESTART on this (funding) session
+
+The only cron the hub **killed** that carries forward is `fb3dfaa1` — the **1 PM comprehensive
+work-through**. The hub cancelled it in the *hub* session at Emma's instruction; the work belongs on
+the **funding/work session**, so **re-create it here** (via `CronCreate`, today or as a recurring
+~13:00 job — your call). Its intent, so you can rebuild the prompt:
+
+> At ~1 PM (Emma likely OUT — use `PushNotification` for anything needing her): sync first; assess
+> the live state of the work (queue, recent commits, CI); identify everything executable right now
+> and barrel through it autonomously; for any decision genuinely Emma's, use `AskUserQuestion` AND a
+> push notification, and keep working on whatever else is unblocked; honor the submodule-sync
+> protocol on every push; send a summary `PushNotification` when done or fully blocked.
+
+(For completeness: the morning power loss also killed the prior session's **noon Lean-FV cron**; it
+was *not* restored because this funding session's own noon cron already fired today — `13426365`,
+the half-adder proof. No action needed on that one unless you want a recurring Lean-FV work cron.)
 
 ---
 
@@ -198,8 +212,9 @@ This is the work to pick up (mirrored as the first `queue.md` item):
 
 1. **Read this whole doc.** Then run **AskUserQuestion** on any issue you hit that is genuinely
    Emma's call (phone notification — she is likely out).
-2. **Take on the Sutra-related cron jobs** (§6 watchdogs + 17:00 closeout) by re-creating them in
-   your session via `CronCreate` so they persist independently of the hub session.
+2. **Restart the KILLED cron** documented in §6a — the 1 PM comprehensive work-through (`fb3dfaa1`,
+   which the hub cancelled). Re-create it in THIS session via `CronCreate`. Do **not** recreate the
+   hub's watchdog/closeout crons (`120d904d`/`1f941b74`/`2fb00131`) — those run in the hub.
 3. **Confirm the mathlib layer compiles** (use the cache the hub re-fetched). If `GibbsMultiState`
    / `GibbsMathlib` do NOT compile, fix them — and do not claim them proven until `lean` accepts
    them (`#print axioms`, no `sorryAx`).
