@@ -179,8 +179,12 @@ Session-local crons (in-memory, die with the session that created them). The **h
 | `8ce41dd8` | 00:02 daily | deep-briefing debrief | hub | **stays in hub** |
 | `1af316af` | 14:00 (today) | clawRxiv-clone-vs-website imitation analysis | research_library | **stays in hub** |
 | `fb3dfaa1` | 13:00 (today) | comprehensive work-through | hub | **CANCELLED** (per Emma) |
-| _watchdogs_ | 13:00/13:15/13:30 + 14:00 | re-insert queue item if clobbered (front+back) | Sutra | **funding session to take on** |
-| _closeout_ | 17:00 (today) | assess this doc's completion; delete doc if done | Sutra | **funding session to take on** |
+| `120d904d` | 13:00/13:15/13:30 daily | re-insert queue item front+back if clobbered | Sutra | **funding session to take on** |
+| `1f941b74` | 14:00 daily | re-insert queue item front+back if clobbered | Sutra | **funding session to take on** |
+| `2fb00131` | 17:00 daily | assess this doc's completion; if done, delete doc + remove queue item + cancel `120d904d`/`1f941b74` | Sutra | **funding session to take on** |
+
+(IDs above are the hub session's session-local crons. The funding session should create its OWN
+equivalents via `CronCreate` so they persist if the hub session ends.)
 
 The **Sutra-related** crons (watchdogs + closeout) should be **re-created by the funding session**
 in its own session so they survive there — that is part of the queue.md item below. The hub crons
