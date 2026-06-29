@@ -617,13 +617,31 @@ exact range*, not a claim that arbitrary float pipelines are bit-portable — th
 soft-halt's `sigmoid` is a transcendental and deliberately outside it (§3.3 needs
 only monotone thresholding, not a bit-identity of the sigmoid).
 
-This bit-exactness is a **supporting precision measurement, not the paper's
-claim.** It is bought precisely by routing arithmetic through the synthetic number
-axes and avoiding the probabilistic semantic codebook (zero `basis_vector` calls,
-`runtime_dim = 8`); it says the dispatch is faithful where the substrate is used
-deterministically. The harder and more representative question — how the language
-behaves when it *does* ride the probabilistic substrate — is the convergence story
-of §7, and the direction the work is headed.
+This is **classical bit-exactness on the *deterministic* target, and it is a
+supporting precision measurement, not the paper's claim.** It is bought precisely
+by routing arithmetic through the synthetic number axes and avoiding the
+probabilistic semantic codebook (zero `basis_vector` calls, `runtime_dim = 8`); it
+says the dispatch is faithful where the substrate is used deterministically. We
+flag it as classical bit-exactness deliberately, because the headline exactness
+notion for this paper is a *different* one and must not be conflated with it.
+
+**The substrate's exactness notion is p-bit-exactness, not classical
+bit-exactness.** On the probabilistic (energy-based / p-bit) target the substrate
+does not deterministically compute the answer; it *samples*, settling into a
+stationary distribution. "Exact" there cannot mean "the float pipeline reproduces a
+bit pattern" — it means the distribution the sampler settles into is concentrated on
+the exact answer: the strict global energy minimum *is* the correct output, so as
+the sampler converges its mass goes to the right state and nowhere else. We call
+this **p-bit-exactness** — exactness in distribution on a probabilistic bit
+substrate. It is *not* bought by routing around the codebook; it is exactly the
+property the §7 convergence chain establishes — the gadget ground states are the
+strict minimizers (Lean-proven, §7.1), and the reversible sampler converges to the
+stationary measure that places all its mass there (self-adjointness → spectral gap →
+geometric decay, §7.2). So the exactness claim and the convergence claim are the
+*same* claim on the probabilistic substrate, viewed once as "the right answer is the
+unique minimizer" and once as "the dynamics reach it." The deterministic
+bit-exactness above is the easy, classical case; p-bit-exactness on the probabilistic
+target is the representative one, and it is the spine of §7.
 
 **4.4 Dispatch-level discharge is necessary, not sufficient.** Confirming that
 every operation dispatches to a substrate primitive (no host scalar branch, no
