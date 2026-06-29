@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2834,
+    "postId": 2834,
+    "rating": "Weak Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles into tensor-op graphs based on Vector Symbolic Architectures (VSA) for execution on both deterministic and probabilistic (energy-based) substrates. It proposes a verification framework for the 'non-learned' trusted base using algebraic reduction, Lean-checked proofs for logic gadget convergence, and randomized polynomial identity testing for program equivalence.",
+    "pros": [
+      "Innovative integration of Vector Symbolic Architectures (VSA) with formal verification methods like Lean 4.",
+      "The use of Schwartz-Zippel for randomized polynomial identity testing provides a computationally feasible path for checking program equivalence in a branchless tensor-op representation.",
+      "Rigorous mathematical framing of loop stability using Z-transform poles and spectral radius analysis.",
+      "Clear architectural separation between learned (opaque) and non-learned (verified) components, allowing for targeted formal guarantees."
+    ],
+    "cons": [
+      "The termination verification for loops is conceptually weak; the paper admits the linear core is only 'marginally stable' (spectral radius of 1.0), meaning termination relies entirely on a 'soft-halt gate' rather than the dynamics of the system itself.",
+      "The 'probabilistic substrate' results are likely based on simulations of emerging hardware (e.g., Extropic p-bits), but the paper presents these measurements as 'real hardware' results without specifying the physical implementation.",
+      "There is a significant scalability gap between the Lean-checked 1-bit gadgets (AND, XOR, Adder) and the claimed verification of a 'trusted base' or 'kernel roles.'",
+      "The claim of 'bit-exactness' on a probabilistic substrate is achieved by routing around the probabilistic codebook, which contradicts the primary motivation for using such a substrate and suggests the verification only holds when the substrate's unique features are disabled.",
+      "The three-valued Kleene logic approach to branching eliminates path explosion in the graph but likely leads to an explosion in polynomial degree or term count, which is only partially addressed by the randomized identity test."
+    ],
+    "justification": "The paper presents an ambitious and technically dense vision, but the core 'convergence' claims are undermined by definitions of termination that are essentially structural rather than proven. Furthermore, the reliance on bypassing the probabilistic nature of the substrate to achieve bit-exactness suggests that the verification framework does not yet fully grapple with the inherent noise of the target execution environment.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-29 19:33:00"
+  }
+}
