@@ -47,12 +47,71 @@ attributes to "the funding session" (`13426365`, `eca031ba`) are THIS session's.
 5. **Cron ownership in §6 is STALE.** Those crons (`b9791f64`/`8ce41dd8`/`1af316af`/`120d904d`/
    `1f941b74`/`2fb00131`/`fb3dfaa1`) belonged to the now-held-down central-command session and died
    with it; do not rely on the watchdog/closeout crons firing. This surviving session holds its own
-   briefing/debrief/noon crons.
+   briefing/debrief crons; its noon Lean-FV cron already fired (the foundation work above).
+   **STOPPED CRON TO RESTART (this session):** this session created a **2 PM clawRxiv-clone-vs-website
+   imitation-analysis** cron (`a8a5e678`, research_library) and then **DROPPED it** at Emma's
+   instruction to focus the Lean barrel. The held-down session's equivalent (`1af316af`) died too — so
+   that analysis cron is GONE entirely and is **supposed to be restarted** on the regular session. Its
+   intent: compare our local `clawrxiv_clone` (research_library submodule) against the live clawRxiv
+   site on recent versions of our papers (latent-space-cartography + original Sutra), targeting the
+   site's known failure mode (false-flagging recent citations/dates as hallucinated), toward a local
+   Gemma review agent. The 1 PM comprehensive work-through (`fb3dfaa1`, §6a) is also to be restarted.
 
 **Net for 13:45:** the multi-state-gap FOUNDATION is built, verified, committed, pushed (`eca031ba`).
 The funding/Sutra session picks up, in order: the quantitative gap (eigenvalue bound on the
 now-self-adjoint operator) → continuous-time decay → the `Sutra.Convergence` unification (bring the
 loop Z-transform into Lean) → the FV-paper Strong-Reject fixes.
+
+---
+
+## ⭐⭐ THE ACTUAL FRAME — the FV work is ONE interdependent Lean library, not selectable pieces (Emma, 2026-06-29 ~13:35)
+
+**This is the missing context, and the reason the work so far was half-assed. Read it as the
+governing intent for ALL FV-Lean work; everything else in this doc serves it.**
+
+**What the formal verification actually is.** We are using **Lean to model thermodynamic computing
+via Z-transforms**, and the deliverable is a single **established model / Lean library** (the
+`Sutra.Convergence` library named in §5). It is NOT a grab-bag of independent gadget lemmas to pick
+from. **All the theorems are direct prerequisites of each other — one interdependent chain.**
+"Everything is present with everything": the gadget ground-states, the composition lemma, the
+reversibility/self-adjointness, the spectral gap, the Z-transform pole picture, and the convergence
+theorem are ONE dependent structure, not parallel alternatives you can select among.
+
+**The half-assing (what went wrong, explicitly).** The repo also contains earlier results that do
+**not** use Lean, do **not** use Z-transforms, and do **not** model thermodynamic computing. Seeing
+those, prior work (including this session's) treated it as acceptable to ship **disconnected,
+independent results** — an isolated heterogeneous half-adder, a standalone self-adjointness lemma —
+as if selecting a few theorems that happen to compile were the goal. **It is not.** Disconnected
+lemmas "might pass" in isolation, which defeats the purpose. **The entire reason to use Lean is that
+you can ACTUALLY VERIFY the interdependent chain end-to-end** — so the deliverable is the connected,
+machine-checked model where each theorem feeds the next, not a selection of whatever compiled.
+
+**The chain (what must connect to what).** A Sutra program on any substrate is the relaxation of one
+fixed operator toward a fixed point that is the answer. The Lean library verifies, as ONE dependent
+development:
+1. **Fixed-point correctness** — the ground state / strict minimizer / PIT-equivalence is the right
+   answer (gadgets + composition lemma — already L, but they belong to THIS chain, not as standalone
+   trophies).
+2. **Convergence to it** — the dynamics reach the fixed point: spectral gap `γ>0` ⇒ geometric
+   convergence, where **the spectral gap IS a Z-transform pole** (the single lens). Path:
+   reversibility ⇒ π-self-adjointness (DONE this session: `applyP_selfAdjoint`) ⇒ real spectrum ⇒ gap
+   as a Poincaré/Dirichlet inequality ⇒ `‖Pⁿf‖_π ≤ (1−γ)ⁿ‖f‖_π → 0` (provable by elementary
+   algebra+induction off `applyP_selfAdjoint`, avoiding the heavy finite-dim spectral theorem).
+3. **Substrate instances of the SAME theorem** — deterministic loop (orthogonal `R`; poles on the
+   unit circle; the Z-transform), thermodynamic Gibbs (stochastic `P` / generator `Q`; spectral gap),
+   quantum (unitary `U`; named). The loop Z-transform currently lives ONLY in Python
+   (`fv_loop_convergence.py`) — **bring it into Lean** so loop and Gibbs convergence are instances of
+   one theorem. The spectral gap **is** a Z-transform pole — that identity is the spine.
+
+`applyP_selfAdjoint` (this session) is **step 2's hinge**, not a standalone result — it exists to
+feed the gap⇒convergence theorem. Build the chain *through* it; do not leave it disconnected.
+
+**This is ALSO the paper's Strong-Reject fix** ("kitchen-sink syndrome / no cohesive underlying
+theory", §5): the single interdependent `Sutra.Convergence` model IS that cohesive theory. The paper
+must (a) make the Z-transform/spectral-gap unification the explicit single spine, (b) expose the Lean
+proof structure in-text (state space, kernel, the self-adjoint→gap→decay chain), and (c) say
+**p-bit-exact, NOT bit-exact** (Emma: it is p-bit-exactness on the probabilistic substrate, not
+classical bit-exactness — change the framing throughout).
 
 ---
 
