@@ -80,21 +80,15 @@ multi-state + continuous-time piece `GibbsChain.lean`/§7 named as open (as a ME
 not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
 
 **RE-SPINE — remaining:**
-1. **(Optional, harder) Machine-check the multi-state gap + continuous-SPACE Langevin diffusion.**
-   The continuous-time multi-state convergence is now *measured*; lifting it to a Lean proof, and
-   the continuous-space overdamped Langevin `dX=−∇U dt+√(2/β)dW` on a relaxed energy, are the
-   still-open pieces (named, not claimed). Lean toolchain is heavy (won't run on every clone);
-   gate before sinking time. Not-yet-built ⇒ cite no numbers until measured/proved.
-2. **Make the probabilistic story the spine, demote the deterministic tensor-algebra half.**
-   Both probabilistic legs now have real measured content (loop-convergence via Z-transform;
-   sampler convergence via the master-ODE spectral gap). Restructure so the narrow claim leads —
-   "verify the ISA/execution environment on a probabilistic substrate" — with the §2–6
-   deterministic tensor-algebra + bit-exact material demoted to *supporting* sections, not the
-   headline. This is the big structural pass (Emma's "re-spine next").
-3. **SPEC SYNC continues alongside the re-spine** (CLAUDE.md "don't let paper + spec drift").
-   Pillar 3 (Z-transform) and the thrml section (sampler convergence) are now synced. Still to
-   reframe when the spine restructure lands: bit-exact arithmetic from headline evidence →
-   supporting. The spec is the ground truth the paper must not contradict.
+1. **(Optional, harder, Emma-GATED — do NOT write speculative Lean) Machine-check the multi-state
+   gap + continuous-SPACE Langevin diffusion.** The continuous-time multi-state convergence is
+   *measured*; lifting it to a Lean proof, and the continuous-space overdamped Langevin
+   `dX=−∇U dt+√(2/β)dW` on a relaxed energy, are the still-open pieces (named, not claimed). Lean
+   toolchain is heavy (won't run on every clone); Emma is new to FV and can't vet speculative
+   proofs — gate before sinking time, do not write unsupervised Lean. **Spec for what's needed:
+   `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
+   multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
+   cite no numbers until measured/proved.
 
 **Guardrails:** integrity rules bind — the SDE + Z-transform analyses are NOT built; cite only
 measured numbers, build before claiming (no prose-only "results"). Keep it NARROW (per-contract,

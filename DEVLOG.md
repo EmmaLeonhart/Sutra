@@ -1,3 +1,44 @@
+## 2026-06-29: FV re-spine #3 — probabilistic story is now the spine + Lean-gap audit
+
+The structural pass the prior two re-spine legs set up. Editorial reorganization of
+`paper/formal-verification/paper.md` (no new analysis — same measured/proved content):
+
+- **Title** → "Verifying Sutra as an Execution Environment on a Probabilistic Substrate:
+  Per-Contract Convergence and Closed-Form Obligations…" (was "Verifying the Trusted Base
+  of Sutra … on a Frozen Vector Substrate").
+- **Abstract** rewritten: leads with the narrow ISA-on-a-probabilistic-substrate claim,
+  makes **convergence** the spine (Z-transform loop poles + energy-sampler convergence),
+  demotes the tensor-op reduction / Kleene-polynomial / equivalence-procedure / bit-exact
+  material to explicitly *supporting*. Bit-exact restated as "supporting precision
+  measurement, not the paper's claim — bought by routing around the probabilistic codebook."
+- **Introduction** contributions reordered: convergence is #1 (the spine); reduction,
+  obligation framework, equivalence procedure, faithfulness are #2-5 marked *(supporting)*.
+- **§2** headed "(supporting machinery)" with a signpost that §§2-6 support the §3.3/§7
+  convergence spine. **§7** headed "(the spine)" with a signpost that the discrete picture
+  is Lean-machine-checked and the continuous-time/multi-state picture is measured-not-proved.
+- **§9 conclusion** now opens with the convergence spine; reduction/obligations framed as
+  supporting.
+
+**Lean-gap audit (Emma course-correction: do NOT write speculative Lean; inventory instead).**
+New `planning/findings/2026-06-29-lean-gap-audit.md`: a 24-row table tiering every FV claim as
+**L** Lean-machine-checked / **S** exact-symbolic Python-checker / **M** numerical measurement,
+with file:line pointers into paper.md and the `.lean`/`fv_*.py` sources, plus a prioritized
+TODO of the Lean work still needed (multi-state spectral gap → continuous-time decay →
+continuous-space Langevin). Headline: **8 Lean-proved, ~7 exact-symbolic checker, ~9
+measurement-only**; the convergence spine is split — discrete two-state is L, multi-state +
+continuous-time is M. Walked every prove/proof/measured occurrence in the paper; the
+measured-only convergence results are labeled "measured, not Lean-proved" at every headline
+location (abstract, contributions, §7 head/body, conclusion). No measured-as-proved overclaim found.
+
+**Spec sync** (`planning/sutra-spec/formal-verification.md`): added a "Paper spine" note (the
+probabilistic-convergence spine; everything else supporting) and reframed the bit-exact bullet
+in the exact-substrate-evidence section from headline → "supporting precision measurement, not
+a headline claim," with the route-around-the-codebook caveat. Pointer to the audit file added.
+
+Regression check (analysis code untouched): `test_fv_loop_convergence.py` +
+`test_fv_sampler_convergence.py` 12/12 pass. Each paper push fires the clawRxiv `fv-paper-ci.yml`
+resubmit (intended).
+
 ## 2026-06-27: FV re-spine #2 — continuous-time sampler convergence (the stochastic-ODE / Langevin angle, measured)
 
 Second probabilistic-verification leg. `GibbsChain.lean` names its own open piece in Emma's

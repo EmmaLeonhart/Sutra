@@ -1,61 +1,57 @@
-# Verifying the Trusted Base of Sutra: Closed-Form Obligations for a Functional Language on a Frozen Vector Substrate
+# Verifying Sutra as an Execution Environment on a Probabilistic Substrate: Per-Contract Convergence and Closed-Form Obligations for a Compiled Functional Language
 
 ---
 
 ## Abstract
 
-Formal verification of conventional software means navigating control flow
-through large imperative codebases. We show that **Sutra**, a typed purely-
-functional language, changes the shape of that problem for the *non-learned*
-**trusted base** — the kernel roles and named critical programs whose behaviour is
-fixed at compile time. Sutra's compiler turns an entire program (primitives,
-control flow, string I/O) into a single fused **tensor-op graph** over a frozen
-vector substrate, and that graph *is* the program's semantics, as a neural
-network's weights are its computation, not a residual to be interpreted. The
-construct that makes conventional verification expensive, the branch, does not
-survive into the graph: `if/else` compiles to a **single three-valued-Kleene
-polynomial**, exact on the {−1, 0, +1} truth grid, and each loop to a bounded
-recurrence `state ← R · state`. Verifying the trusted base therefore becomes
-algebra over a small fixed set of tensor graphs rather than enumeration of
-control-flow paths.
+We verify **Sutra** — a typed, purely functional language — as a fixed
+**execution environment**: an instruction-set architecture whose *non-learned*
+trusted base (kernel roles and named critical programs, behaviour fixed at compile
+time) runs on a substrate that is, on its second compile target, genuinely
+**probabilistic** — a sampler that *settles into* the answer rather than computing
+it deterministically. The claim is narrow and per-contract; we do not claim to
+verify a learned component or a whole running system. The substrate being
+probabilistic, the load-bearing question is **convergence** — does the language,
+*as it runs*, reach the answer? — and that is the spine of this paper.
 
-We make this precise as three per-construct obligation families — contract,
-branch-range, termination — each with a **mechanical check that runs on the real
-compile-and-execute substrate**: a codegen-correspondence check that the emitted
-polynomials match the spec on the Kleene grid (worst |error| = 0.0, a regression
-guard against codegen drift, not a claim about Lagrange interpolation, which is
-exact by construction; §3.2); closed-form connective range-soundness (outputs in
-[−1, +1] over the whole fuzzy domain, by induction on the expression tree, so it
-scales to any nesting depth); and loop termination (a bounded recurrence with a
-monotone halt). We also give a **decision procedure for program equivalence** over
-the Kleene-logic-plus-integer-arithmetic fragment: a checker extracts each
-expression's polynomial via the compiler's own lowering and decides same-graph by
-polynomial identity, exactly or in poly time (Schwartz–Zippel), for arbitrary
-depth — separating "compiles to the same graph" from "logically equivalent," with
-distributivity as the witness that the former is strictly stronger.
+Two convergence results carry it. (i) On the deterministic tensor-op target, each
+loop's linear core `state ← R · state` is a discrete-time system whose
+**Z-transform poles** decide convergence; measured on the real emitted rotation
+(dim 868), all poles lie on the unit circle (spectral radius 1.00000000, `R`
+orthogonal), so the core is marginally stable and termination is discharged by the
+soft-halt gate, not by spectral decay. (ii) On the second, **energy-based** target,
+the per-gadget obligation becomes a finite **ground-state** question; we give
+Lean-machine-checked proofs that the gadgets' correct outputs are the strict global
+energy minima and that the single-gadget Gibbs sampler converges to its unique
+stationary measure (ergodicity, reversibility, stationarity, uniqueness, and the
+two-state mixing rate, all mechanised), and we **measure** the continuous-time,
+multi-state convergence on the machine-checked AND-gadget energy: the master-ODE
+generator's Gibbs measure is stationary and reversible, the full eight-state chain
+has a positive spectral gap (`γ = 0.0397` at `β = 1`), and the law's
+total-variation decay matches that gap (ratio 1.0000). The continuous-time and
+multi-state results are measurements, explicitly not Lean proofs.
 
-Substrate faithfulness — that the substrate computes the compiled graph as the
-algebra says — is established with measured results (§4): rotation binding decodes
-bundles at 100% through width *k* = 8 (and ≥99% through *k* = 32 on the 768-d
-substrate) where the Hadamard baseline collapses to 2.5–7.5%, with a bind/unbind
-round-trip of 1.5 × 10⁻¹⁵. The compiled integer-arithmetic dispatch runs exactly
-on the substrate within the IEEE-754 exact-integer range — a supporting precision
-measurement, not the paper's claim. §5 states the scope (non-learned trusted base
-only) and §6 positions the work against neural-network verification, SMT for
-nonlinear arithmetic, program specialization, arithmetic-circuit compilation, and
-vector-symbolic architectures.
-
-§7 carries the same obligation framework to Sutra's second, **energy-based**
-compile target, whose substrate is genuinely **probabilistic** — a sampler that
-settles into the answer rather than computing it deterministically. There the
-per-gadget obligation becomes a finite **ground-state** question, and we give
-Lean-machine-checked proofs that the gadgets' correct outputs are the strict
-global energy minima, with the single-gadget sampler's convergence to its unique
-stationary measure mechanised (the two-state mixing rate included). This is the
-direction the work is moving: verifying the language *as it runs on a
-probabilistic substrate*. §8 is a brief note on a separate, weaker empirical layer
-— a compile-and-run-against-ground-truth suite for the source-language frontends
-that compile *into* Sutra — explicitly not conflated with the formal guarantees.
+The supporting machinery is a reduction: Sutra's compiler turns an entire program
+(primitives, control flow, string I/O) into a single fused **tensor-op graph**,
+and that graph *is* the program's semantics, as a neural network's weights are its
+computation. The branch, the construct that makes conventional verification
+expensive, does not survive into the graph — `if/else` compiles to a **single
+three-valued-Kleene polynomial** exact on the {−1, 0, +1} grid — so verifying the
+trusted base becomes algebra over a small fixed set of graphs rather than
+control-flow path enumeration (§§2–3). We discharge three per-construct obligation
+families (contract, branch-range, termination) with mechanical checks on the real
+substrate, and give a **decision procedure for program equivalence** over the
+Kleene-plus-integer-arithmetic fragment (polynomial identity, exact or poly-time
+Schwartz–Zippel; §2). Substrate faithfulness is measured (§4): rotation binding
+decodes bundles at 100% through width *k* = 8 (≥99% through *k* = 32 on the 768-d
+substrate) where the Hadamard baseline collapses to 2.5–7.5%, round-trip
+1.5 × 10⁻¹⁵. The compiled integer-arithmetic dispatch runs exactly within the
+IEEE-754 exact-integer range — a **supporting precision measurement, not the
+paper's claim**; bit-exactness is bought by routing around the probabilistic
+codebook, which is the opposite of what the substrate is for. §5 states the scope
+(non-learned trusted base only), §6 positions the work, and §8 is a brief note on a
+separate, weaker empirical layer — a compile-and-run-against-ground-truth suite for
+the source-language frontends — explicitly not conflated with the formal results.
 
 ---
 
@@ -115,43 +111,59 @@ boundary between "compiles to a checkable tensor graph" and "depends on a learne
 weight" is syntactically visible, so the trusted base can be verified while the
 learned part is quarantined behind contracts and monitoring.
 
-**Contributions.**
-1. **The reduction** (§2): why the compiled tensor-op graph is the program's
-   semantics rather than a constant-folded residual or a deep-learning
-   computation-graph optimization, and why equivalence on it is algebra.
-2. **The obligation framework with mechanical checks** (§3): three per-construct
-   obligation families (contract, branch-range, termination), each with a check
-   that runs on the substrate. The branch-range family (§3.2), built on
-   **three-valued polynomial Kleene logic**, is the one that removes path
-   explosion: branches become closed-form polynomials, not forks.
-3. **An equivalence decision procedure for the Kleene fragment** (§2): deciding
-   same-graph by polynomial identity, distinguished from logical equivalence,
-   with distributivity as a witness.
-4. **The faithfulness evidence** (§4): measured substrate results — rotation-
-   binding capacity and reversibility — with exact integer-arithmetic dispatch as
-   a supporting precision measurement, restated self-containedly here.
-5. **Convergence on the probabilistic substrate** (§3.3, §7): the two pieces that
-   verify the language *as it runs*, not just as an algebraic object. The loop's
-   linear core `state ← R · state` is a discrete-time system whose **Z-transform
-   poles** decide convergence (measured: the emitted rotation is marginally stable,
-   so termination is the halt gate's job, not spectral decay); and the energy-based
-   target's sampler is a continuous-time Markov jump process whose **master-equation
-   spectral gap** decides convergence (measured: the full multi-state gadget chain
-   has a positive gap, and the law decays at exactly that rate). These are the
-   stochastic-ODE / Z-transform tools the probabilistic substrate calls for.
+**Contributions.** The spine is convergence — verifying the language *as it runs*,
+on a substrate whose second target is probabilistic; the reduction and the
+closed-form obligations are the supporting machinery that makes that question
+tractable.
 
-§5 states the boundary; §6 positions the work in the literature. The framing is
-narrow: this verifies Sutra as a fixed **execution environment** — kernel roles and
-named critical programs — running on a substrate that is, on its second target,
-genuinely **probabilistic**. §§2–6 develop the obligation framework on the
-deterministic tensor-op target; **§7** carries the same framework to the
-energy-based probabilistic target, where it takes its cleanest form (a ground-state
-question) and the sampler's convergence is machine-checked (discrete) and measured
-(continuous-time, multi-state). **§8** is a deliberately *weaker* empirical
+1. **Convergence — the spine** (§3.3, §7): the two pieces that verify the language
+   *as it runs*, not just as an algebraic object. The loop's linear core
+   `state ← R · state` is a discrete-time system whose **Z-transform poles** decide
+   convergence (measured: the emitted rotation is marginally stable, so termination
+   is the halt gate's job, not spectral decay); and the energy-based target's
+   sampler is a continuous-time Markov jump process whose **master-equation
+   spectral gap** decides convergence (the discrete-time chain's ergodicity,
+   stationary measure, uniqueness and two-state rate are **Lean-machine-checked**;
+   the full multi-state gap and the continuous-time decay are **measured, not
+   Lean-proved** — the gadget chain has a positive gap and the law decays at exactly
+   that rate). These are the stochastic-ODE / Z-transform tools the probabilistic
+   substrate calls for.
+2. **The reduction** (§2, supporting): why the compiled tensor-op graph is the
+   program's semantics rather than a constant-folded residual or a deep-learning
+   computation-graph optimization, and why equivalence on it is algebra — the move
+   that turns the trusted base into a small fixed set of checkable graphs.
+3. **The obligation framework with mechanical checks** (§3, supporting): three
+   per-construct obligation families (contract, branch-range, termination), each
+   with a check that runs on the substrate. The branch-range family (§3.2), built on
+   **three-valued polynomial Kleene logic**, removes path explosion: branches become
+   closed-form polynomials, not forks.
+4. **An equivalence decision procedure for the Kleene fragment** (§2, supporting):
+   deciding same-graph by polynomial identity, distinguished from logical
+   equivalence, with distributivity as a witness.
+5. **The faithfulness evidence** (§4, supporting): measured substrate results —
+   rotation-binding capacity and reversibility — with exact integer-arithmetic
+   dispatch as a supporting precision measurement (it is bought by routing *around*
+   the probabilistic codebook, so it is not the paper's claim), restated
+   self-containedly here.
+
+The framing is narrow: this verifies Sutra as a fixed **execution environment** —
+kernel roles and named critical programs — running on a substrate that is, on its
+second target, genuinely **probabilistic**, and per-contract, not as a whole-system
+or learned-component proof. §§2–6 develop the supporting reduction and obligation
+framework on the deterministic tensor-op target; **§7** is where the spine takes its
+cleanest form, on the energy-based probabilistic target, where the obligation
+becomes a ground-state question and the sampler's convergence is machine-checked
+(discrete) and measured (continuous-time, multi-state). §5 states the boundary; §6
+positions the work in the literature; **§8** is a deliberately *weaker* empirical
 (compile-and-run) check of the source-language frontends, explicitly not conflated
 with the formal guarantees above.
 
-## 2. The compiled tensor-op graph
+## 2. The compiled tensor-op graph (supporting machinery)
+
+*§§2–6 are the supporting machinery: the reduction and the closed-form obligations
+that make the convergence question of §3.3 and §7 tractable. They are developed on
+the deterministic tensor-op target; the spine — convergence on the probabilistic
+substrate — is §7.*
 
 Sutra's compiler emits, for each program, a fused tensor-op graph over a frozen
 embedding substrate: compilation produces the weight/rotation structure, and
@@ -761,9 +773,16 @@ encoding of branches as a verification lever is, to our knowledge, new.
 DO-178C, the avionics software-assurance standard, adapted so the artefact under
 review is the compiler's tensor-graph output rather than imperative source.
 
-## 7. The probabilistic substrate: verifying an energy-based compile target
+## 7. The probabilistic substrate: verifying an energy-based compile target (the spine)
 
-The verification to this point is over the deterministic PyTorch tensor-op target.
+*This is the spine of the paper. The supporting machinery of §§2–6 was developed on
+the deterministic target; here it reaches its cleanest form on a substrate that is
+genuinely probabilistic, and the load-bearing question becomes convergence — does
+the sampler reach the answer? The discrete-time picture is **Lean-machine-checked**;
+the continuous-time, multi-state convergence is **measured, not Lean-proved**, and
+labeled as such throughout.*
+
+The verification of §§2–6 is over the deterministic PyTorch tensor-op target.
 Sutra's second compile target is genuinely **probabilistic**: an energy-based model
 sampled on thermodynamic, probabilistic-bit hardware (a sparse grid of p-bits doing
 block-Gibbs sampling, the kind Extropic is building). There a Sutra value is a
@@ -934,6 +953,16 @@ itself**. Formal verification of that step (a verified frontend, in the CompCert
 what it is: empirical, not formal.
 
 ## 9. Conclusion
+
+The spine of this paper is **convergence** — verifying Sutra as an execution
+environment *as it runs* on a substrate whose second target is genuinely
+probabilistic. On the deterministic target the loop's linear core is marginally
+stable (Z-transform poles on the unit circle, **measured**), so termination is the
+soft-halt gate's job; on the energy-based target the sampler converges to its unique
+stationary Gibbs measure (**Lean-machine-checked** in the discrete, two-state case;
+**measured** for the multi-state continuous-time gap). The reduction and the
+closed-form obligations below are the supporting machinery that makes that
+convergence question tractable.
 
 Compiling the non-learned trusted base to a tensor-op graph turns formal
 verification from imperative-path enumeration into algebra over a small fixed set
