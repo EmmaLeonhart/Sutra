@@ -1,0 +1,100 @@
+name: FV-in-Lean (mathlib layer) — check the Gibbs convergence proofs
+
+# Machine-checks the mathlib-backed Lean proofs under fv-lean/mathlib/
+# (GibbsMathlib: 2-state detailed-balance / contraction / TV-mixing;
+# GibbsMultiState: general finite-state reversibility + applyP_selfAdjoint,
+# the foundation for the multi-state spectral gap and the Sutra.Convergence
+# library). These back the §7 thrml / convergence claims in
+# paper/formal-verification/paper.md.
+#
+# WHY THIS EXISTS (FV-LEAN-HANDOFF-2026-06-29.md §3): the mathlib layer was
+# NEVER machine-checked — fv-lean-ci.yml is core-only (no mathlib, fast path),
+# so a non-compiling proof could land under fv-lean/mathlib/ undetected, and in
+# fact GibbsMultiState.lean was committed once without compiling. The layer also
+# cannot be built locally on Windows (MAX_PATH: the deep submodule nesting
+# overflows the 260-char path limit for mathlib's long-named oleans). Ubuntu has
+# no MAX_PATH limit and mathlib ships a prebuilt olean cache, so CI here both
+# VERIFIES the proofs and sidesteps the Windows problem entirely.
+#
+# PATH-FILTERED: only runs when a mathlib-layer proof, its lake config, the
+# toolchain pin, or this workflow changes — the mathlib download is heavy, so it
+# does not tax unrelated pushes (same discipline as fv-lean-ci.yml).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fv-lean/mathlib/**'
+      - '.github/workflows/fv-lean-mathlib-ci.yml'
+  pull_request:
+    paths:
+      - 'fv-lean/mathlib/**'
+      - '.github/workflows/fv-lean-mathlib-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: fv-lean-mathlib-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  check:
+    name: lake build fv-lean/mathlib (no error / no sorry)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: fv-lean/mathlib
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cache the elan toolchain, keyed on the mathlib-layer toolchain pin.
+      - name: Cache elan/Lean toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: elan-mathlib-${{ runner.os }}-${{ hashFiles('fv-lean/mathlib/lean-toolchain') }}
+
+      - name: Install elan + the pinned Lean toolchain
+        run: |
+          set -euxo pipefail
+          if [ ! -x "$HOME/.elan/bin/lean" ]; then
+            curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+              | sh -s -- -y --default-toolchain "$(cat lean-toolchain)"
+          fi
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Show Lean version
+        run: lean --version
+
+      # Pull mathlib's prebuilt olean cache (the fast path — no from-source
+      # mathlib build). Resolves the git dependency from lake-manifest.json,
+      # then downloads the matching oleans. This is what is impossible on the
+      # Windows checkout and trivial here.
+      - name: Fetch mathlib olean cache
+        run: |
+          set -euxo pipefail
+          lake exe cache get
+
+      # Build the two mathlib-layer libs. lake build fails on a hard error;
+      # `sorry` is only a warning, so we additionally fail on any sorry/error
+      # text in the build log (matches the no-sorry discipline of
+      # scripts/check_fv_lean.sh for the core layer).
+      - name: Build + verify mathlib-layer proofs
+        run: |
+          set -uxo pipefail
+          lake build 2>&1 | tee build.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "FAIL: lake build returned non-zero"
+            exit 1
+          fi
+          if grep -iE "error:|declaration uses 'sorry'|sorryAx" build.log; then
+            echo "FAIL: error or sorry detected in the mathlib layer"
+            exit 1
+          fi
+          echo "fv-lean/mathlib: GibbsMathlib + GibbsMultiState build clean (no error / no sorry)"

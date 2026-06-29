@@ -335,7 +335,7 @@ This is the work to pick up (mirrored as the first `queue.md` item):
 - [ ] (1) Doc read; AskUserQuestion run on open issues.
 - [ ] (2) Sutra-related crons re-created in the funding session.
 - [~] (3) mathlib layer confirmed compiling — **`GibbsMultiState` DONE** (clean, no `sorryAx`, via targeted imports); **`GibbsMathlib` still `import Mathlib`** → narrow or CI-verify.
-- [ ] (4) mathlib layer wired into CI.
+- [~] (4) mathlib layer wired into CI — **`.github/workflows/fv-lean-mathlib-ci.yml` added** (path-filtered `fv-lean/mathlib/**`, ubuntu, `lake exe cache get` + `lake build`, fails on error/sorry). Verifying it goes green on this push; flips to done when CI confirms GibbsMathlib + GibbsMultiState build clean on Linux.
 - [ ] (5) `Sutra.Convergence` unification built + verified.
 - [ ] (6) FV paper fixed (p-bit framing, exposed proofs, single spine) + pushed.
 - [ ] Closeout (17:00 cron): all above done → this doc removed, queue item removed.
