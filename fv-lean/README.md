@@ -72,11 +72,25 @@ aperiodicity, this is the reversible-chain picture: positive + irreducible + rev
 unique stationary = Gibbs. Build it (heavy — `.lake/` gitignored, NOT in CI):
 
 ```bash
-cd fv-lean/mathlib && lake exe cache get && lake build GibbsMathlib   # needs mathlib oleans
+cd fv-lean/mathlib && lake exe cache get && lake build GibbsMathlib GibbsMultiState
 ```
 
-Remaining (longer-horizon, beyond Emma's mid-size scope): the t→∞ **mixing rate** /
-spectral gap. The core no-mathlib proofs below stay CI-checked.
+`mathlib/GibbsMultiState.lean` (same Lake project) is the **general-finite-state** leg
+toward the *multi-state* gap (the measured `γ=0.0397` 8-state chain). For an arbitrary
+`Fintype S` it machine-checks (`[propext, Classical.choice, Quot.sound]`, no `sorry`):
+`innerPi_comm` (the π-weighted inner product is symmetric), `applyP_stationary`
+(detailed balance ⟹ stationarity, any finite chain), and the key `applyP_selfAdjoint`
+(reversibility ⟹ the transition operator is self-adjoint in the π-inner product — so the
+spectrum is real and the gap `γ=1−λ₂` is well-defined). This is the structural foundation
+the multi-state gap rests on; the *quantitative* eigenvalue bound (and the continuous-time
+decay) remain the open M→L pieces.
+
+Remaining (longer-horizon): the *quantitative* machine-checked multi-state gap (the
+eigenvalue bound on the now-self-adjoint operator) and the continuous-time/space limits.
+The `mathlib/` layer is verified locally (heavy, `.lake/` gitignored, NOT in CI — note: on
+Windows the deep submodule path can exceed the 260-char limit for the few uncached oleans;
+targeted imports keep `GibbsMultiState`'s closure cache-served). The core no-mathlib proofs
+above stay CI-checked.
 
 `scripts/check_fv_lean.sh` runs every top-level `.lean` here (NOT `mathlib/`). CI: `.github/workflows/fv-lean-ci.yml`
 runs the script on GitHub Actions — **path-filtered** to `fv-lean/**` (the toolchain

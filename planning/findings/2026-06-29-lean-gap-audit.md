@@ -68,17 +68,31 @@ open (neither). The convergence *spine* is split: the **discrete-time, two-state
 picture is L (rows 5-8); the **multi-state and continuous-time** pieces are M (rows
 9, 11); continuous-space Langevin is unbuilt (row 10).
 
+**Update 2026-06-29:** the general-finite-state FOUNDATION under row 9 is now Lean
+(`fv-lean/mathlib/GibbsMultiState.lean`): reversibility ⟹ π-self-adjointness
+(`applyP_selfAdjoint`) + general-S stationarity (`applyP_stationary`) + `innerPi_comm`,
+all `[propext, Classical.choice, Quot.sound]`, no `sorry`. Row 9's *gap value* stays M
+(the quantitative eigenvalue bound is the remaining L step); but the structural
+prerequisite that makes the multi-state gap real/well-defined is no longer 2-state-only.
+
 ## Prioritized TODO — the Lean work still needed ("what we didn't do in Lean")
 
-Gated on Emma's call (heavy toolchain; do not write speculative proofs unsupervised).
+Gate LIFTED (Emma 2026-06-29): do the Lean unsupervised + confidently — Lean is the
+checker, so a `sorry`-free `lake build` IS the supervision; faking is still barred.
 This list is the *spec* for queue.md re-spine item 1.
 
 1. **Machine-check the multi-state spectral gap (row 9).** Currently measured
    (γ=0.0397 on the 8-state AND-gadget chain via `fv_sampler_convergence.py`). The
    Lean target: lift `GibbsMathlib.lean`'s two-state rate to a general finite-state
    reversible chain — the gap is the second-largest eigenvalue of the π-self-adjoint
-   generator. Hardest piece; needs mathlib spectral-theory machinery. **Highest
-   value, highest cost.**
+   generator. **PARTLY DONE 2026-06-29** (`fv-lean/mathlib/GibbsMultiState.lean`, builds
+   clean against mathlib v4.30.0, `[propext, Classical.choice, Quot.sound]`, no `sorry`):
+   the general-finite-state FOUNDATION is now Lean — `applyP_selfAdjoint` (reversibility ⟹
+   transition operator self-adjoint in the π-inner product, so the spectrum is real and
+   `γ=1−λ₂` well-defined) + `applyP_stationary` (general-S stationarity) + `innerPi_comm`.
+   **Still open:** the *quantitative* eigenvalue bound (γ>0 with the measured value) on the
+   now-self-adjoint operator — needs mathlib's finite-dim spectral theorem. Cost lower now
+   that the foundation is in place.
 2. **Machine-check the continuous-time master-ODE decay (row 9, tail).** That
    `‖p(t)−π‖ ≤ e^{−γt}‖p(0)−π‖` for the jump-process generator Q. Depends on (1)
    (the gap) plus a Grönwall / semigroup-contraction argument. Do after (1).

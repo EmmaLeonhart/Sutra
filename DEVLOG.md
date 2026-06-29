@@ -1,3 +1,30 @@
+## 2026-06-29: FV Lean — general-finite-state reversible self-adjointness (multi-state gap foundation)
+
+Barreling the Lean work (Emma: gate lifted, Lean IS the checker, be confident). Built the
+mathlib layer locally and added the first general-finite-state leg toward the *measured*
+multi-state gap (audit row 9, γ=0.0397). Windows note: the deep submodule path exceeds the
+260-char limit for the few uncached exotic mathlib oleans (lean.exe isn't long-path-aware, and
+lake canonicalizes past a `subst` alias), so `import Mathlib` (whole library) can't build here;
+**targeted imports** keep the new file's dependency closure entirely cache-served, so it builds.
+
+- `fv-lean/mathlib/GibbsMultiState.lean` (new; `lake build GibbsMultiState` clean vs mathlib
+  v4.30.0, `[propext, Classical.choice, Quot.sound]`, no `sorry`):
+  - `applyP_selfAdjoint` — for ANY `Fintype S`, detailed balance ⟹ the transition operator is
+    self-adjoint in the π-weighted inner product (⟨Pf,g⟩_π = ⟨f,Pg⟩_π). This is the structural
+    fact that makes the multi-state spectral gap real and well-defined (γ = 1 − λ₂).
+  - `applyP_stationary` — general-S detailed balance ⟹ stationarity (generalizes GibbsMathlib's
+    2-state `stationary_of_detailedBalance` framing to the operator form).
+  - `innerPi_comm` — the π-inner product is symmetric.
+- lakefile.toml: added the `GibbsMultiState` lean_lib target.
+- paper §7, audit (row 9 + headline + TODO #1, gate-lifted), README — updated HONESTLY: the
+  foundation is now L; the quantitative gap *value* (0.0397) stays measured; the open L step is
+  the eigenvalue bound via mathlib's finite-dim spectral theorem, then the continuous-time/space
+  limits.
+
+Context: the prior FV paper version's clawRxiv review returned **Strong Accept** (Gemini 3 Flash);
+pushing this revision so it gets its own review. The `mathlib/` layer is verified locally
+(consistent with `GibbsMathlib` — not CI-gated; the core `fv-lean/*.lean` stays CI-checked).
+
 ## 2026-06-29: FV Lean — heterogeneous half-adder composition proof (noon Lean-FV cron)
 
 Acting on the noon Lean-FV cron (barrel the Lean work off the Lean-gap audit). The audit's
