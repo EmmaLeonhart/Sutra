@@ -16,6 +16,46 @@ work is genuinely done.
 
 ---
 
+## ⭐ UPDATE ~13:30 — surviving central-command session (corrections before the 13:45 handoff)
+
+Emma resolved the coordination problem: there were **two central-command sessions** + the building
+session. The OTHER central-command session authored everything below and was then held down; **this
+surviving central-command session did the FV-Lean foundation work** — so the commits the text below
+attributes to "the funding session" (`13426365`, `eca031ba`) are THIS session's. Corrections:
+
+1. **`GibbsMultiState.lean` is VERIFIED — it compiles clean.** The §1/§3 "did not compile" /
+   "compile status UNKNOWN" verdict is RESOLVED: `lake build GibbsMultiState` **succeeds**;
+   `#print axioms` = `[propext, Classical.choice, Quot.sound]`, **no `sorryAx`**, for all three
+   results (`innerPi_comm`, `applyP_stationary`, `applyP_selfAdjoint`). Verified from this nested
+   checkout at HEAD `eca031ba`.
+2. **MAX_PATH is real but WORKED AROUND for the new file** (doc §3 fix #2, applied). Root cause
+   confirmed (lean.exe isn't long-path-aware; lake canonicalizes past a `subst` alias, so that
+   doesn't help). Fix that worked: **targeted imports** instead of `import Mathlib` —
+   `GibbsMultiState.lean` imports only `Mathlib.Algebra.BigOperators.Ring.Finset` +
+   `…Group.Finset.Sigma` + `Data.Real.Basic` + `Tactic.Ring` + `Tactic.LinearCombination`, so its
+   dependency closure is entirely cache-served and the ~11 uncached exotic oleans that overflow
+   MAX_PATH are never pulled. The mathlib cache is now populated locally (~8448 oleans decompressed).
+3. **`GibbsMathlib.lean` still does `import Mathlib`** → still won't build locally (drags the exotic
+   modules). Unchanged options: narrow ITS imports too, and/or wire the mathlib layer into CI on
+   Linux (§3 fix #1 — still the right systemic fix; the mathlib layer is verified locally only).
+4. **Forward work is correctly the funding/Sutra session's** (§5/§7): the Strong-Reject fixes
+   (`bit-exact → p-bit-exact`, expose the Lean proof structure, the single `Sutra.Convergence`
+   spine). My `applyP_selfAdjoint` is exactly the basis that proposed `Sutra.Convergence`
+   gap⇒geometric-decay theorem builds on (self-adjoint ⇒ real spectrum ⇒ `‖Pⁿf‖_π ≤ (1−γ)ⁿ‖f‖_π`).
+   The paper carries a small accurate note that the foundation is now L; the big p-bit / single-spine
+   restructure is NOT done — that's the handoff.
+5. **Cron ownership in §6 is STALE.** Those crons (`b9791f64`/`8ce41dd8`/`1af316af`/`120d904d`/
+   `1f941b74`/`2fb00131`/`fb3dfaa1`) belonged to the now-held-down central-command session and died
+   with it; do not rely on the watchdog/closeout crons firing. This surviving session holds its own
+   briefing/debrief/noon crons.
+
+**Net for 13:45:** the multi-state-gap FOUNDATION is built, verified, committed, pushed (`eca031ba`).
+The funding/Sutra session picks up, in order: the quantitative gap (eigenvalue bound on the
+now-self-adjoint operator) → continuous-time decay → the `Sutra.Convergence` unification (bring the
+loop Z-transform into Lean) → the FV-paper Strong-Reject fixes.
+
+---
+
 ## 1. TL;DR
 
 - **The multi-state spectral "foundation" was not a verified artifact.** `fv-lean/mathlib/GibbsMultiState.lean`
@@ -235,7 +275,7 @@ This is the work to pick up (mirrored as the first `queue.md` item):
 
 - [ ] (1) Doc read; AskUserQuestion run on open issues.
 - [ ] (2) Sutra-related crons re-created in the funding session.
-- [ ] (3) mathlib layer confirmed compiling (or fixed).
+- [~] (3) mathlib layer confirmed compiling — **`GibbsMultiState` DONE** (clean, no `sorryAx`, via targeted imports); **`GibbsMathlib` still `import Mathlib`** → narrow or CI-verify.
 - [ ] (4) mathlib layer wired into CI.
 - [ ] (5) `Sutra.Convergence` unification built + verified.
 - [ ] (6) FV paper fixed (p-bit framing, exposed proofs, single spine) + pushed.
