@@ -25,6 +25,28 @@ otherwise would be exactly the fake this repo forbids.
 > tensor-op graph that is the program's semantics. Drop "TNF"/"normal form" from
 > outward writing.
 
+## Paper spine (2026-06-29 re-spine) — convergence on a probabilistic substrate
+
+The FV paper's **spine** is now the narrow claim: verify Sutra as a fixed
+**execution environment / ISA** running on a substrate that is, on its second
+target, genuinely **probabilistic**. Because the substrate is probabilistic, the
+load-bearing question is **convergence** — does the language reach the answer *as it
+runs*? Two legs carry it: (i) the loop linear core's Z-transform poles (Pillar 3
+below — *measured*, marginally stable), and (ii) the energy-based sampler's
+convergence (thrml section below — discrete two-state *Lean-machine-checked*,
+multi-state + continuous-time *measured, not Lean-proved*).
+
+Everything else in this spec — the tensor-op reduction, the polynomial Kleene
+branch logic, the equivalence decision procedure, and especially **bit-exact
+arithmetic** — is **supporting machinery, not the headline**. Bit-exactness is
+bought by routing arithmetic through the synthetic number axes and *avoiding* the
+probabilistic semantic codebook, which is the opposite of what the substrate is
+for; it is a supporting precision measurement that the dispatch is faithful where
+the substrate is used deterministically, not the paper's claim. The
+measured-vs-Lean-proved inventory is `planning/findings/2026-06-29-lean-gap-audit.md`
+(8 Lean-proved, ~7 exact-symbolic checker, ~9 measurement-only). The paper must not
+present a measured result as Lean-proved.
+
 ## The compiled tensor-op graph
 
 The compiled graph is not constant folding applied to an otherwise-conventional
@@ -250,21 +272,27 @@ termination; the state vector is fixed-width across iterations (O(1) state).
     deterministic linear core; the *probabilistic* target's convergence (sampler /
     Langevin-SDE) is the §7 / thrml story, still the open continuous-time piece.
 
-## Why this is credible and not hand-waving — the exact-substrate evidence
+## Why this is credible and not hand-waving — the exact-substrate evidence (supporting)
 
 The reduction is only meaningful if the substrate actually computes the reduced
-form *exactly*. It does, measured (cite these, do not paraphrase):
+form *exactly*. It does, measured (cite these, do not paraphrase). **This is
+supporting faithfulness evidence for the deterministic target, not the paper's
+spine** (the spine is convergence on the probabilistic substrate, above):
 
 - **Bundle decoding:** rotation binding decodes at **100% through width k=8** on
   four frozen substrates (three text encoders + ESM-2), where the Hadamard
   product has already collapsed (2.5% / 7.5%). (`paper/paper.md` §3.2.)
 - **Reversibility:** rotation round-trip mean
   `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵` (floating-point noise floor).
-- **Exact arithmetic through the trusted base:** Yantra runs full arithmetic
-  expressions on the substrate through the kernel, operator selection included,
-  **bit-exact within the float32 exact-integer range** (calc 18/18; 1024/1024
-  symbol fidelity, max |err| = 0.0). This is the contract-surface property in
-  miniature: the reduced graph computes exactly what the source denotes.
+- **Exact arithmetic — a SUPPORTING precision measurement, not a headline claim.**
+  Yantra runs full arithmetic expressions on the substrate through the kernel,
+  operator selection included, **bit-exact within the float32 exact-integer range**
+  (calc 18/18; 1024/1024 symbol fidelity, max |err| = 0.0). Note this is bought by
+  routing through the synthetic number axes and *avoiding* the probabilistic
+  semantic codebook — it says the dispatch is faithful where the substrate is used
+  *deterministically*. It is the contract-surface property in miniature, not the
+  representative question (how the language behaves when it rides the probabilistic
+  substrate — the convergence story).
 
 ## The certification-shaped argument (DO-178C-shaped)
 
