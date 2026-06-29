@@ -914,8 +914,16 @@ worst-case start, the total-variation distance to $\pi$ decays at a **measured r
 $0.0397$, matching the spectral gap to ratio $1.0000$** — the gap *is* the
 continuous-time convergence rate, confirmed on the trajectory. The clamped-decode
 chain's stationary mode is the correct AND output for all four inputs.
-(`fv_sampler_convergence.py`, `test_fv_sampler_convergence.py`, 6/6.) What remains
-genuinely open: a *machine-checked* (rather than measured) multi-state gap, and the
+(`fv_sampler_convergence.py`, `test_fv_sampler_convergence.py`, 6/6.) A first Lean leg
+of the multi-state gap is now machine-checked: its structural prerequisite — that a
+reversible chain's transition operator is **self-adjoint** in the $\pi$-weighted inner
+product (so its spectrum is real and the gap $\gamma=1-\lambda_2$ is well-defined) — is
+proved for an *arbitrary finite* state space, not just the two-state case
+(`fv-lean/mathlib/GibbsMultiState.lean`: `applyP_selfAdjoint`, with general-$S$
+stationarity `applyP_stationary`; `[propext, Classical.choice, Quot.sound]`, no `sorry`).
+What remains
+genuinely open: the *quantitative* machine-checked multi-state gap (the eigenvalue bound
+on the now-self-adjoint operator, rather than the measured $0.0397$), and the
 continuous-*space* overdamped Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$
 on a relaxed energy — named, not claimed. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the

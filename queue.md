@@ -80,12 +80,16 @@ multi-state + continuous-time piece `GibbsChain.lean`/§7 named as open (as a ME
 not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
 
 **RE-SPINE — remaining:**
-1. **(Optional, harder, Emma-GATED — do NOT write speculative Lean) Machine-check the multi-state
-   gap + continuous-SPACE Langevin diffusion.** The continuous-time multi-state convergence is
-   *measured*; lifting it to a Lean proof, and the continuous-space overdamped Langevin
-   `dX=−∇U dt+√(2/β)dW` on a relaxed energy, are the still-open pieces (named, not claimed). Lean
-   toolchain is heavy (won't run on every clone); Emma is new to FV and can't vet speculative
-   proofs — gate before sinking time, do not write unsupervised Lean. **Spec for what's needed:
+1. **Machine-check the multi-state gap + continuous-SPACE Langevin (GATE LIFTED — Emma 2026-06-29:
+   do the Lean unsupervised + confidently; Lean's `sorry`-free build IS the check; faking still barred).**
+   **FOUNDATION DONE 2026-06-29** (`fv-lean/mathlib/GibbsMultiState.lean`, builds clean vs mathlib
+   v4.30.0, `[propext, Classical.choice, Quot.sound]`, no `sorry`): general-finite-state
+   reversibility ⟹ π-self-adjointness (`applyP_selfAdjoint`) + general-S stationarity
+   (`applyP_stationary`) + `innerPi_comm` — the structural prerequisite that makes the multi-state
+   gap real/well-defined, now for ANY finite S (not just 2-state). **STILL OPEN:** the *quantitative*
+   eigenvalue bound (γ>0 / the measured 0.0397) on the now-self-adjoint operator via mathlib's
+   finite-dim spectral theorem; then the continuous-time master-ODE decay; then continuous-space
+   overdamped Langevin `dX=−∇U dt+√(2/β)dW`. **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
    multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
    cite no numbers until measured/proved. **PREREQ:** the mathlib layer (`fv-lean/mathlib/`) is
