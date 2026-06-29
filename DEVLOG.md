@@ -1,3 +1,25 @@
+## 2026-06-29: FV Lean — heterogeneous half-adder composition proof (noon Lean-FV cron)
+
+Acting on the noon Lean-FV cron (barrel the Lean work off the Lean-gap audit). The audit's
+high-value items (multi-state spectral gap M→L, continuous-time ODE decay, continuous-space
+Langevin) need the mathlib layer (NOT cached locally) + research-grade spectral-theory
+formalization — Emma-gated, not soundly completable in one autonomous run, and faking is
+barred. So this run did the sound, completable item (audit TODO #4):
+
+- `fv-lean/Composition.lean`: added `half_adder_strict_min` — a HETEROGENEOUS composed
+  circuit (XOR-gadget sum + AND-gadget carry over shared inputs), proving the general
+  composition lemma is gadget-type-agnostic, not AND-only (`and3_circuit` was AND+AND). Plus
+  `exorE`/`exorE_min`/`exorE_strict` inline (files are checked standalone, no cross-imports).
+  Verified: `lean fv-lean/Composition.lean` clean, sorry-free, `[propext, Quot.sound]` only;
+  full `scripts/check_fv_lean.sh` green (all 5 core files).
+- paper §7 (composition para): one sentence adding the heterogeneous half-adder instance.
+- audit row 4 + TODO #4 updated (heterogeneous instance done; 2×2 multiplier = illustration
+  only). Gap/ODE/Langevin remain M, Emma-gated; the mathlib build is their prerequisite.
+
+Honest status: the convergence spine's quantitative gap (γ=0.0397) stays measured-not-proved
+— promoting it to Lean is a dedicated mathlib session (fetch ~GB cache, formalize finite
+reversible-chain spectral gap), not done here. No proof was faked.
+
 ## 2026-06-29: FV re-spine #3 — probabilistic story is now the spine + Lean-gap audit
 
 The structural pass the prior two re-spine legs set up. Editorial reorganization of

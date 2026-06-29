@@ -39,7 +39,7 @@ Lean-proved" in the abstract (L32), contributions (L127-128), §7 head (L781-782
 | 1 | AND gadget: correct output is the strict global energy minimum | **L** | §7 L806-812 | `fv-lean/AndGadget.lean` (`_min`,`_strict`) |
 | 2 | XOR/parity gadget strict minimiser; correct sign (excludes XNOR bug) | **L** | §7 L813-815 | `fv-lean/XorGadget.lean` |
 | 3 | 1-bit full adder: (sum,carry) strict global min for all 8 inputs ⇒ addition's ground-state decode exact | **L** | §7 L816-819 | `fv-lean/FullAdder.lean` |
-| 4 | Gadget composition = sum of energies; `strict_global_min_of_terms` general lemma; `and3_circuit_strict_min` two-gate worked circuit | **L** | §7 L820-823 | `fv-lean/Composition.lean` |
+| 4 | Gadget composition = sum of energies; `strict_global_min_of_terms` general lemma; `and3_circuit_strict_min` two-gate worked circuit; `half_adder_strict_min` heterogeneous (XOR+AND) worked circuit | **L** | §7 L820-827 | `fv-lean/Composition.lean` |
 | 5 | Glauber chain on AND gadget irreducible + aperiodic (⇒ unique stationary π, convergence from any start) | **L** | §7 L825-832 | `fv-lean/GibbsChain.lean` (`irreducible`,`aperiodic`; no axioms) |
 | 6 | Correct output is strict unique **mode** of π for any strictly-antitone weight | **L** | §7 L833-837 | `fv-lean/GibbsChain.lean` (`and_gibbs_unique_mode`,`strict_min_is_strict_mode`) |
 | 7 | Detailed balance ⇒ stationarity; Gibbs kernel reversible w.r.t. Gibbs measure ⇒ stationary; 2-state Perron–Frobenius uniqueness | **L** | §7 L839-847 | `fv-lean/mathlib/GibbsMathlib.lean` (`stationary_of_detailedBalance`, `gibbsKernel_*`, `stationary_unique_two_state`) |
@@ -89,7 +89,10 @@ This list is the *spec* for queue.md re-spine item 1.
 4. **(Sharpening, optional) Multi-gate composed-circuit ground-state in Lean beyond
    the two-gate `and3_circuit` (row 4).** The general lemma already covers any size;
    a larger concrete worked instance (e.g. the 2×2 multiplier) would be illustration,
-   not new theory. Low value.
+   not new theory. Low value. **PARTLY DONE 2026-06-29:** added `half_adder_strict_min`
+   — a *heterogeneous* composed circuit (XOR-gadget sum + AND-gadget carry), proving the
+   composition lemma is gadget-type-agnostic, not AND-only. Sound, sorry-free,
+   `[propext, Quot.sound]`. The 2×2 multiplier remains as further illustration only.
 
 **Do NOT** attempt 1-3 as unsupervised proof-writing. They are the inventory of the
 gap; closing them is a deliberate, Emma-gated Lean session.

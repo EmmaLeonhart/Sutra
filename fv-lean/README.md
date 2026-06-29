@@ -31,8 +31,10 @@ every wrong output strictly higher → unique minimiser; no `sorry`)
   the gadgets' **proper penalties** (each raw energy shifted by its own strict minimum, so
   it is 0 when satisfied — the AND gadget's raw min is not a constant, the known Ising
   chaining subtlety). Includes a concrete **two-gate** worked circuit `and3_circuit_strict_min`
-  (a 3-input AND = two AND gadgets on a shared spin) verified via the general lemma. Answers
-  the reviewer con "no methodology for how the micro-proofs compose to a full program."
+  (a 3-input AND = two AND gadgets on a shared spin) and a **heterogeneous** worked circuit
+  `half_adder_strict_min` (XOR-gadget sum + AND-gadget carry — composition is gadget-type-
+  agnostic), both verified via the general lemma. Answers the reviewer con "no methodology
+  for how the micro-proofs compose to a full program."
 - `GibbsChain.lean` — the **single-gadget Gibbs chain reaches the ground state**
   (the "attempt a Lean convergence proof" item, Emma 2026-06-14). The bounded,
   mathlib-free floor under a full convergence theorem: the single-site (Glauber)
