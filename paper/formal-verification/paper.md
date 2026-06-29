@@ -837,7 +837,11 @@ own strict minimum, so it is `0` when the gadget is satisfied and `> 0` otherwis
 machine-check the lemma applied to a concrete *two-gate* circuit, a 3-input AND built from
 two AND gadgets wired on a shared spin (`and3_circuit_strict_min`), whose correct output
 is the strict global energy minimum for every input, discharged from the two gadget
-penalties via the general lemma rather than a re-proof of the composite. The 2×2 multiplier
+penalties via the general lemma rather than a re-proof of the composite. We further
+machine-check a *heterogeneous* instance, a half-adder whose two penalties are a XOR
+gadget (sum) and an AND gadget (carry) over the shared inputs (`half_adder_strict_min`),
+confirming the composition lemma is gadget-type-agnostic rather than specific to a single
+gadget. The 2×2 multiplier
 (AND + XOR + adder) is the larger worked gate instance, and the general lemma certifies the
 pattern at any size.
 

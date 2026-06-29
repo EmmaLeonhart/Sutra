@@ -167,6 +167,66 @@ theorem and3_circuit_strict_min (a b c : Bool) :
       show andE a b (a && b) - andE a b (a && b) < andE a b s.1 - andE a b (a && b)
       omega
 
+/-! ## A heterogeneous composed circuit: a half-adder (XOR sum + AND carry)
+
+`and3_circuit_strict_min` composes two AND gadgets (one gadget *type*, wired in series).
+This instance instead composes **two different gadget types** over a shared input
+register: a half-adder on inputs `(a, b)` emits `sum = a XOR b` (the XOR gadget,
+sign-pinned to XOR not the XNOR bug) and `carry = a ∧ b` (the AND gadget). The circuit
+energy is the sum of the XOR-gadget and AND-gadget penalties; the correct output
+`(a XOR b, a ∧ b)` is the strict global energy minimum for every input — discharged from
+the two heterogeneous gadget penalties via the same `strict_global_min_of_terms`, showing
+the composition lemma is gadget-type-agnostic. (XOR-gadget energy reproduced inline:
+these files are checked standalone with no cross-imports.) -/
+
+/-- The XOR/parity gadget energy: product of spins, minimised iff `z = a XOR b`. -/
+def exorE (a b z : Bool) : Int := sp a * sp b * sp z
+
+theorem exorE_min (a b z : Bool) : exorE a b (xor a b) ≤ exorE a b z := by
+  cases a <;> cases b <;> cases z <;> simp only [exorE, sp, Bool.xor_self, Bool.xor_true,
+    Bool.xor_false, Bool.true_xor, Bool.false_xor, Bool.not_true, Bool.not_false] <;> omega
+theorem exorE_strict (a b z : Bool) (h : z ≠ xor a b) :
+    exorE a b (xor a b) < exorE a b z := by
+  cases a <;> cases b <;> cases z <;>
+    first
+      | exact absurd rfl h
+      | (simp only [exorE, sp, Bool.xor_self, Bool.xor_true, Bool.xor_false,
+          Bool.true_xor, Bool.false_xor, Bool.not_true, Bool.not_false]; omega)
+
+/-- Half-adder sum penalty: XOR gadget shifted to 0 at `sum = a XOR b`, `> 0` otherwise. -/
+def hSum (a b : Bool) : Wire → Int := fun s => exorE a b s.1 - exorE a b (xor a b)
+/-- Half-adder carry penalty: AND gadget shifted to 0 at `carry = a ∧ b`, `> 0` otherwise. -/
+def hCarry (a b : Bool) : Wire → Int := fun s => andE a b s.2 - andE a b (a && b)
+
+/-- The half-adder's correct output `(a XOR b, a ∧ b)` is the STRICT global energy
+    minimum for every input — composed from a XOR gadget and an AND gadget (different
+    types) via the general lemma, not re-proved monolithically. -/
+theorem half_adder_strict_min (a b : Bool) :
+    ∀ s : Wire, s ≠ (xor a b, a && b) →
+      sumAt [hSum a b, hCarry a b] (xor a b, a && b) < sumAt [hSum a b, hCarry a b] s := by
+  refine strict_global_min_of_terms [hSum a b, hCarry a b] (xor a b, a && b) ?_ ?_
+  · -- hmin: each penalty is 0 at the correct output and ≥ 0 everywhere.
+    intro t ht s
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+    rcases ht with rfl | rfl
+    · show exorE a b (xor a b) - exorE a b (xor a b) ≤ exorE a b s.1 - exorE a b (xor a b)
+      have := exorE_min a b s.1; omega
+    · show andE a b (a && b) - andE a b (a && b) ≤ andE a b s.2 - andE a b (a && b)
+      have := andE_min a b s.2; omega
+  · -- hstrict: a wrong sum makes the XOR penalty strict; a wrong carry, the AND penalty.
+    intro s hs
+    by_cases hsum : s.1 = xor a b
+    · have hc : s.2 ≠ (a && b) := fun hc => hs (by cases s; simp_all)
+      have hstr := andE_strict a b s.2 hc
+      refine ⟨hCarry a b, List.mem_cons_of_mem _ (List.mem_cons_self ..), ?_⟩
+      show andE a b (a && b) - andE a b (a && b) < andE a b s.2 - andE a b (a && b)
+      omega
+    · have hstr := exorE_strict a b s.1 hsum
+      refine ⟨hSum a b, List.mem_cons_self .., ?_⟩
+      show exorE a b (xor a b) - exorE a b (xor a b) < exorE a b s.1 - exorE a b (xor a b)
+      omega
+
 #print axioms strict_global_min_of_terms
 #print axioms two_term_circuit_strict_min
 #print axioms and3_circuit_strict_min
+#print axioms half_adder_strict_min

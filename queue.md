@@ -88,7 +88,11 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    proofs — gate before sinking time, do not write unsupervised Lean. **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
    multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
-   cite no numbers until measured/proved.
+   cite no numbers until measured/proved. **PREREQ:** the mathlib layer (`fv-lean/mathlib/`) is
+   NOT cached locally — step 1 of that session is `cd fv-lean/mathlib && lake exe cache get`
+   (~GB) before any spectral-theory formalization. Audit TODO #4 (heterogeneous composed-circuit
+   instance, `half_adder_strict_min`) was DONE 2026-06-29 — mathlib-free, sound; only items 1-3
+   (gap/ODE/Langevin) remain, all needing mathlib.
 
 **Guardrails:** integrity rules bind — the SDE + Z-transform analyses are NOT built; cite only
 measured numbers, build before claiming (no prose-only "results"). Keep it NARROW (per-contract,
