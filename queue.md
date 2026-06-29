@@ -30,9 +30,9 @@ the known doc-drift. Then:
 
 1. Run **AskUserQuestion** on any issue in that doc that is genuinely Emma's call (she is likely
    out — it sends a phone notification; plain chat does not).
-2. **Take on the Sutra-related cron jobs** the doc lists (§6: the 13:00/13:15/13:30 + 14:00
-   queue-watchdogs and the 17:00 closeout) by re-creating them in THIS session via `CronCreate`,
-   so they persist independently of the hub session.
+2. **Restart the KILLED cron** the doc documents (§6a: the 1 PM comprehensive work-through
+   `fb3dfaa1`, which the hub cancelled — its work belongs on this session). Re-create it here via
+   `CronCreate`. Do NOT recreate the hub's own watchdog/closeout crons — those run in the hub.
 3. Work the doc's action list (§7): confirm/fix the mathlib layer compiling, wire the mathlib
    layer into CI, build the `Sutra.Convergence` Z-transform/spectral unification, and fix the FV
    paper (`bit-exact → p-bit-exact`, expose the Lean proof structure, single spine) — **commit +
