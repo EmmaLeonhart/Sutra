@@ -46,9 +46,15 @@ Schwartz–Zippel; §2). Substrate faithfulness is measured (§4): rotation bind
 decodes bundles at 100% through width *k* = 8 (≥99% through *k* = 32 on the 768-d
 substrate) where the Hadamard baseline collapses to 2.5–7.5%, round-trip
 1.5 × 10⁻¹⁵. The compiled integer-arithmetic dispatch runs exactly within the
-IEEE-754 exact-integer range — a **supporting precision measurement, not the
-paper's claim**; bit-exactness is bought by routing around the probabilistic
-codebook, which is the opposite of what the substrate is for. §5 states the scope
+IEEE-754 exact-integer range — **classical bit-exactness on the *deterministic*
+target, a supporting precision measurement, not the paper's claim** (§4.3). The
+substrate's own exactness notion is different and is *not* a deterministic bypass:
+it is **p-bit-exactness** — on the probabilistic target the sampler settles into a
+stationary distribution concentrated on the strict-minimizer ground state, so the
+exact answer *is* the unique minimum the dynamics reach. Exactness and convergence
+are then one claim on one spine (§7): the gadget ground states are the strict
+minimizers (Lean-proven) and the reversible sampler converges to the measure on
+them. §5 states the scope
 (non-learned trusted base only), §6 positions the work, and §8 is a brief note on a
 separate, weaker empirical layer — a compile-and-run-against-ground-truth suite for
 the source-language frontends — explicitly not conflated with the formal results.
@@ -585,8 +591,12 @@ comparison is a companion finding in the repository.)
 floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵`
 across all four substrates, the rotation is invertible to machine epsilon.
 
-**4.3 Exactness of the compiled arithmetic dispatch.** Bit-exactness here is a
-property of *Sutra's compilation*, not of any application. Two kernel-free demos
+**4.3 Exactness of the compiled arithmetic dispatch (classical, deterministic
+target).** The bit-exactness in this subsection is *classical* bit-exactness on the
+deterministic tensor-op target — a property of *Sutra's compilation*, not of any
+application, and deliberately distinct from the **p-bit-exactness** that is the
+substrate's headline notion (defined at the end of this subsection and carried by
+the §7 convergence spine). Two kernel-free demos
 in this repository exercise it with no OS, kernel, or router in the loop, each
 compiles a `.su` source and calls its substrate entry point directly. In
 `demos/calc`, the operator is *selected on the substrate* from its character's
