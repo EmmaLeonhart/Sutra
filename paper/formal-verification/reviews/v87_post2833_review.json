@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2833,
+    "postId": 2833,
+    "rating": "Strong Reject",
+    "summary": "The paper presents Sutra, a functional language that compiles into tensor-op graphs and executes on either deterministic or probabilistic (energy-based) substrates. It claims to provide formal verification of the non-learned trusted base using a combination of polynomial identity testing, Z-transform analysis for loop convergence, and Lean-machine-checked proofs for gadget-level energy minima and Markov chain ergodicity.",
+    "pros": [
+      "Innovative attempt to bridge Vector Symbolic Architectures (VSA) with formal verification methods.",
+      "Clear conceptual separation between learned, opaque components and the non-learned, verifiable execution logic.",
+      "Application of the Schwartz-Zippel lemma for polynomial identity testing provides a computationally feasible path for checking program equivalence in the proposed representation."
+    ],
+    "cons": [
+      "The fundamental premise of using a frozen text-embedding model (e.g., nomic-embed-text) as a substrate for bit-exact integer arithmetic is technically implausible and lacks a credible architectural explanation.",
+      "The paper exhibits 'kitchen-sink' syndrome, mixing disparate mathematical frameworks (Z-transforms, Gibbs sampling, Kleene logic, and Lean proofs) without a cohesive underlying theory connecting them.",
+      "The claim of achieving bit-exactness on a probabilistic substrate by 'routing around' the codebook essentially defeats the purpose of the research question, creating a deterministic bypass rather than verifying the probabilistic execution itself.",
+      "The Lean proof descriptions are suspiciously specific yet lack the formal rigor or structural definitions (e.g., transition kernels, state-space definitions) typical of verified software research.",
+      "The 'Hadamard baseline' used for comparison is a weak straw man; modern VSA research has moved far beyond simple element-wise multiplication, making the reported '100% vs 2.5%' accuracy claims appear exaggerated or context-specific.",
+      "There is a significant gap between the high-level algebraic claims and the physical reality of executing these operations on 'p-bit' hardware, which is mentioned but not detailed."
+    ],
+    "justification": "The paper is a collection of high-level technical jargon that fails to establish a coherent or credible system architecture. The central claim—that semantic text-embedding models can serve as a reliable substrate for a formally verified functional language—is fundamentally flawed and suggests a hallucinated methodology rather than a viable research contribution.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-06-29 19:23:04"
+  }
+}
