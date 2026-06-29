@@ -20,6 +20,29 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ---
 
+## ⭐⭐ FIRST — FV-Lean handoff (hub session, 2026-06-29; do this before anything else)
+
+**Read `FV-LEAN-HANDOFF-2026-06-29.md` (repo root) top to bottom before touching `fv-lean/`
+or the FV paper.** It records a multi-session collision and a set of real findings: the mathlib
+layer is not in CI, `GibbsMultiState.lean` was committed without compiling, the mathlib cache was
+corrupted (now re-fetched by the hub), and the FV paper swung to a Strong Reject whose cons match
+the known doc-drift. Then:
+
+1. Run **AskUserQuestion** on any issue in that doc that is genuinely Emma's call (she is likely
+   out — it sends a phone notification; plain chat does not).
+2. **Take on the Sutra-related cron jobs** the doc lists (§6: the 13:00/13:15/13:30 + 14:00
+   queue-watchdogs and the 17:00 closeout) by re-creating them in THIS session via `CronCreate`,
+   so they persist independently of the hub session.
+3. Work the doc's action list (§7): confirm/fix the mathlib layer compiling, wire the mathlib
+   layer into CI, build the `Sutra.Convergence` Z-transform/spectral unification, and fix the FV
+   paper (`bit-exact → p-bit-exact`, expose the Lean proof structure, single spine) — **commit +
+   push every paper edit** (the push triggers the clawRxiv review).
+4. **Check each item off in the doc's §8 checklist** as you finish it — but **remove THIS queue
+   item only when the whole handoff is genuinely done** (the 17:00 closeout cron verifies and then
+   deletes the doc). Do not claim anything proven that `lean` has not accepted.
+
+---
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.

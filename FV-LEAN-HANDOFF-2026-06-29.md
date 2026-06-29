@@ -1,0 +1,223 @@
+# FV-Lean / mathlib-layer handoff — 2026-06-29
+
+**Author:** central-command **hub** session (Emma's compartmentalized-life hub),
+not the funding/Sutra session. **Why this file exists:** on 2026-06-29 two Claude
+sessions operated on this Sutra checkout at the same time (the hub session and the
+funding-and-networking container's noon Lean-FV cron). This is the multi-session
+collision the six-session protocol is meant to prevent. Emma asked for a single
+comprehensive record of exactly what happened, what was found, what (if anything)
+was overwritten, and what the funding session must pick up. **Read this top to
+bottom before touching `fv-lean/` or the FV paper.**
+
+This file is referenced as the **first item of `queue.md`**. A set of session-local
+watchdog crons (see §6) re-inserts that queue item at the front AND back if it gets
+clobbered, and a 5 PM closeout cron assesses completion and deletes this doc when the
+work is genuinely done.
+
+---
+
+## 1. TL;DR
+
+- **The multi-state spectral "foundation" was not a verified artifact.** `fv-lean/mathlib/GibbsMultiState.lean`
+  was, earlier today, an **untracked, uncommitted file that did not compile** (real
+  `unsolved goals` error, `sorryAx` in the axiom closure). It has since been committed
+  by the funding session as `eca031ba`. **Compile status of the committed version: see §3 / VERDICT below.**
+- **The mathlib layer is not in CI.** `fv-lean-ci.yml` only checks the core `fv-lean/*.lean`
+  (no-mathlib, fast path). `fv-lean/mathlib/*.lean` is **never machine-checked by CI**, so a
+  non-compiling proof can be committed there undetected. This is the systemic hole.
+- **The mathlib layer can't be built from this checkout — it's a Windows `MAX_PATH` problem, not a
+  cache problem.** The hub force-refetched the cache; `leantar` failed to decompress 7576/8459
+  oleans and the from-source fallback hit `failed to create file …olean.server` because the deep
+  submodule nesting overflows the 260-char path limit (`GibbsMathlib.lean` does `import Mathlib`,
+  dragging in long-named modules). **Right fix = verify the mathlib layer in CI on Linux** (no
+  `MAX_PATH`); see §3.
+- **FV paper peer review swung Strong Accept → Strong Reject** between versions (see §5). The
+  reject's substance matches Emma's own "documentation drift / trying to be two things" diagnosis.
+- **The hub session committed NOTHING to Sutra and overwrote no source** (see §4). The only
+  source commits today are the funding session's (`13426365`, `eca031ba`) and the CI bot's.
+
+---
+
+## 2. Timeline (2026-06-29 afternoon, hub session)
+
+1. Power-loss recovery: verified the hub + all containers clean and synced; nothing stranded.
+2. Restored session-local crons killed by the power loss (briefing, debrief, a 2 PM job, a 1 PM
+   work-through). See §6.
+3. Noon Lean-FV review: re-verified the 8 core `fv-lean/*.lean` proofs — **all compile clean,
+   sorry-free**, axioms exactly as the paper claims. (These are fine; the problem is only the
+   mathlib layer.)
+4. Found the funding session's noon cron had already pushed `13426365` (the heterogeneous
+   half-adder composition proof, `half_adder_strict_min`) — re-verified clean.
+5. Fetched the FV paper peer review (it had not been committed back for the re-spine). Triggered
+   the clawRxiv loop; got the review for the current paper (§5).
+6. Started building the unified Z-transform/spectral library work; tried to build the mathlib
+   layer → discovered the corrupted cache AND that `GibbsMultiState.lean` was untracked and
+   did not compile.
+7. The file changed under the hub session mid-task (a `rw`-based proof became a `simp_rw +
+   linear_combination` proof) → identified the concurrent funding session. Hub session stopped
+   editing to avoid clobbering.
+8. The funding session committed + pushed `GibbsMultiState.lean` as `eca031ba`; hub working tree
+   went clean at that revision.
+9. Hub session force-refetched the mathlib cache and wrote this doc.
+
+---
+
+## 3. The mathlib-layer problem (the core technical issue)
+
+- `fv-lean/mathlib/GibbsMathlib.lean` — `import Mathlib` (whole library). Has the 2-state
+  detailed-balance / contraction / TV-mixing theorems. Build depends on the entire mathlib olean
+  set → broke when 11 cached oleans failed to decompress.
+- `fv-lean/mathlib/GibbsMultiState.lean` — general finite-state (`Fintype S`) reversibility:
+  `innerPi`, `applyP`, `applyP_stationary`, and the key `applyP_selfAdjoint` (transition operator
+  is self-adjoint in the π-weighted inner product). This is the **foundation** for the multi-state
+  spectral gap — but it stops at the foundation; the actual `gap > 0 ⇒ geometric convergence`
+  theorem (the M→L promotion of the measured `γ = 0.0397`) is **not built**.
+- **Earlier today this file did not compile** (`unsolved goals` at the `applyP_selfAdjoint` proof,
+  both the original `rw` version and the `simp_rw + linear_combination` rewrite). Committed as
+  `eca031ba` by the funding session.
+
+> **VERDICT (hub session, after `lake exe cache get!` + `lake build` from this checkout — 2026-06-29):**
+> **The mathlib layer cannot be built or verified from the hub's nested checkout.** `lake exe cache
+> get!` failed to decompress **7576 of ~8459 oleans** (`leantar exited with code 1`), and the
+> from-source fallback failed with **`failed to create file …OfLocalizedEquivalences.olean.server`**.
+> **Root cause: Windows `MAX_PATH` (260 chars).** The submodule nesting
+> (`central-command\containers\funding-and-networking\external\Sutra\fv-lean\mathlib\.lake\packages\mathlib\.lake\build\…`)
+> pushes mathlib's long-named module paths to ~256–270+ chars (measured: 256 for
+> `OfLocalizedEquivalences.olean.server` alone, before its `.c`/`.setup.json` siblings). `git
+> core.longpaths=true` is set but only affects git, not lean/leantar file I/O. **Consequence: the
+> committed `eca031ba` `GibbsMultiState` proof was NOT machine-verified by the hub — its compile
+> status is UNKNOWN from this checkout.** (The core `fv-lean/*.lean` proofs are fine — they don't
+> use mathlib and their paths are short.)
+
+**Fixes (for the funding session / CI) — in priority order:**
+
+1. **Wire the mathlib layer into CI on `ubuntu-latest`** (the existing `fv-lean-ci.yml` already runs
+   there). Linux has no `MAX_PATH` limit, so a path-filtered `fv-lean/mathlib/**` job both
+   **verifies** the proofs and **sidesteps the Windows problem entirely.** This is the right fix and
+   closes the systemic hole (mathlib-layer proofs currently get **zero** machine-checking).
+2. **Narrow `GibbsMathlib.lean`'s `import Mathlib`** to the specific modules it uses. `import Mathlib`
+   is what drags in the long-named `CategoryTheory.Localization.*` / `Analysis.SpecialFunctions.*`
+   modules that overflow `MAX_PATH`; a Gibbs convergence proof needs almost none of them. Narrowing
+   shrinks the olean set and likely removes the offending paths.
+3. **Local Windows builds:** enable `LongPathsEnabled` (registry + app manifest) OR build from a
+   shallower path (a `subst` drive / `C:\S\…` junction to the Sutra clone) so olean paths fit under 260.
+
+---
+
+## 4. What the hub session changed — and what it did NOT
+
+**Committed by the hub session: nothing.** No source file was overwritten by the hub.
+
+- `git restore fv-lean/mathlib/lake-manifest.json` — reverted a *local* LF→CRLF line-ending
+  artifact only (git autocrlf noise), no content change; tree is clean at `eca031ba` now, so no
+  lasting effect.
+- `lake exe cache get` / `lake build` — write only to the gitignored `.lake/`. No source impact.
+- One `Edit` to `GibbsMultiState.lean` was **attempted and failed** ("file modified since read") —
+  it applied nothing. The hub never successfully edited that file.
+
+**Revisions involved today** (so the funding session can audit):
+- `eca031ba` — FV Lean: general-finite-state reversible self-adjointness (multi-state gap foundation) — **current HEAD**, funding session.
+- `0309fc55` — FV mid-size mathlib step: detailed balance + stationary uniqueness.
+- `13426365` — FV Lean: heterogeneous half-adder composition proof (noon Lean-FV cron).
+- `7e982281` — fv-paper-ci: submission + review (post 2833 review committed).
+- `60523f25` — fv-paper-ci: submission (post 2832, `.post_id` bump, **no review fetched** — poll timed out).
+- `4d702e7d` — FV paper re-spine: probabilistic convergence is the spine + Lean-gap audit.
+
+---
+
+## 5. FV paper peer-review state (clawRxiv / Gemini 3 Flash)
+
+- **post 2831 (prior version): Strong Accept.**
+- **post 2833 (current re-spined paper): Strong Reject.** Substantive cons:
+  1. "kitchen-sink syndrome — Z-transforms, Gibbs, Kleene, Lean without a cohesive underlying
+     theory." (= the "trying to be two things at once" drift.)
+  2. "bit-exactness on a probabilistic substrate routes around the codebook — a deterministic
+     bypass that defeats the purpose." **Emma's correction: it is NOT classical bit-exactness; it
+     is p-bit-exactness. The paper's framing must change `bit-exact → p-bit-exact`.**
+  3. "Lean proof descriptions suspiciously specific yet lack structural definitions (transition
+     kernels, state-space)." The reviewer reads only the paper prose, not the `.lean` files — so
+     **expose the proof structure in the paper** (state space, kernel, the self-adjoint→gap→decay chain).
+  4. "Hadamard baseline is a weak straw man." (Defensible; lower priority.)
+
+### The unifying framework Emma has been pointing at (build this)
+
+A Sutra program on **any** substrate is the **relaxation of one fixed operator toward a fixed
+point that is the answer**. Verification splits into two substrate-agnostic questions:
+(1) **the fixed point is correct** (ground-state / strict-minimizer / PIT-equivalence), and
+(2) **the dynamics converge to it** (spectral gap / pole of the iteration operator). The
+Z-transform (discrete) / Laplace (continuous) / spectrum is the single lens; the substrate only
+changes the operator and its spectral condition:
+
+| Substrate | Operator | Spectral condition |
+|---|---|---|
+| Deterministic (PyTorch/CUDA loop) | orthogonal `R` (`state ← R·state`) | poles on unit circle ⇒ marginal; termination = halt gate |
+| Thermodynamic (p-bits / Gibbs) | stochastic `P` / generator `Q` | spectral gap `γ > 0` ⇒ geometric convergence |
+| Quantum (named, not built) | unitary `U` | spectrum of the Hamiltonian |
+
+The spectral gap **is** a Z-transform pole. Proposed Lean library: **`Sutra.Convergence`** (core:
+self-adjoint `P` + gap stated as a Poincaré/Dirichlet inequality ⇒ `‖Pⁿf‖_π ≤ (1−γ)ⁿ‖f‖_π → 0`,
+provable from `applyP_selfAdjoint` by elementary algebra + induction, avoiding the heavy finite-dim
+spectral theorem), with substrate instances `Thermo` / `Loop` / `Quantum`. The loop Z-transform
+analysis currently lives only in Python (`fv_loop_convergence.py`) — **bring it into Lean** so loop
+and Gibbs convergence are instances of the *same* theorem. That single theorem is the "cohesive
+underlying theory" the reviewer found missing.
+
+**Integrity rule (Emma, reinforced today):** do NOT mark anything proven that `lean` has not
+accepted. The gate on writing these proofs is LIFTED (do it unsupervised, confidently — FV is
+heavy but tractable); the real past failure was documentation drift + claiming-not-done, not lack
+of supervision.
+
+---
+
+## 6. Cron jobs (existence + ownership)
+
+Session-local crons (in-memory, die with the session that created them). The **hub session** holds:
+
+| ID | Schedule | Purpose | Repo | Disposition |
+|---|---|---|---|---|
+| `b9791f64` | 08:03 daily | deep-briefing morning | hub (central-command) | **stays in hub** |
+| `8ce41dd8` | 00:02 daily | deep-briefing debrief | hub | **stays in hub** |
+| `1af316af` | 14:00 (today) | clawRxiv-clone-vs-website imitation analysis | research_library | **stays in hub** |
+| `fb3dfaa1` | 13:00 (today) | comprehensive work-through | hub | **CANCELLED** (per Emma) |
+| _watchdogs_ | 13:00/13:15/13:30 + 14:00 | re-insert queue item if clobbered (front+back) | Sutra | **funding session to take on** |
+| _closeout_ | 17:00 (today) | assess this doc's completion; delete doc if done | Sutra | **funding session to take on** |
+
+The **Sutra-related** crons (watchdogs + closeout) should be **re-created by the funding session**
+in its own session so they survive there — that is part of the queue.md item below. The hub crons
+(briefing/debrief) and the research_library 2 PM job **remain in the hub session as-is**.
+
+---
+
+## 7. Instructions for the funding-and-networking / Sutra session
+
+This is the work to pick up (mirrored as the first `queue.md` item):
+
+1. **Read this whole doc.** Then run **AskUserQuestion** on any issue you hit that is genuinely
+   Emma's call (phone notification — she is likely out).
+2. **Take on the Sutra-related cron jobs** (§6 watchdogs + 17:00 closeout) by re-creating them in
+   your session via `CronCreate` so they persist independently of the hub session.
+3. **Confirm the mathlib layer compiles** (use the cache the hub re-fetched). If `GibbsMultiState`
+   / `GibbsMathlib` do NOT compile, fix them — and do not claim them proven until `lean` accepts
+   them (`#print axioms`, no `sorryAx`).
+4. **Wire the mathlib layer into CI** (path-filtered, cache-served) so this class of bug can't
+   recur silently.
+5. **Build the `Sutra.Convergence` unification** (§5) — the gap⇒geometric-convergence theorem and
+   the Thermo/Loop instances; bring the loop Z-transform into Lean.
+6. **Fix the FV paper** per the review (§5): `bit-exact → p-bit-exact`, expose the Lean proof
+   structure, make the spectral/Z-transform unification the explicit single spine. **Commit and
+   push every paper edit** (the push is what triggers the clawRxiv review CI — getting feedback is
+   the point).
+7. As you complete each item, **check it off in THIS doc** (mark done / adjusted), but **remove the
+   queue.md item itself only when the work is genuinely done** (per the delete-on-done queue rule).
+
+---
+
+## 8. Status checklist (the funding session ticks these off here)
+
+- [ ] (1) Doc read; AskUserQuestion run on open issues.
+- [ ] (2) Sutra-related crons re-created in the funding session.
+- [ ] (3) mathlib layer confirmed compiling (or fixed).
+- [ ] (4) mathlib layer wired into CI.
+- [ ] (5) `Sutra.Convergence` unification built + verified.
+- [ ] (6) FV paper fixed (p-bit framing, exposed proofs, single spine) + pushed.
+- [ ] Closeout (17:00 cron): all above done → this doc removed, queue item removed.
