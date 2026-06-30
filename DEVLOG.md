@@ -172,6 +172,8 @@ that flip — same Lean/Schwartz–Zippel content praised by one reviewer and at
 Durable criticism across the run: vision-vs-built-gadgets gap, and the bit-exact-on-noisy-substrate
 tension — which the re-spine addresses head-on.
 
+## 2026-06-30 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + `test_await_substrate_pure` 4/4 PASS under `SUTRA_EMBED_BACKEND=transformers`)
+
 ## 2026-06-29 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + `test_await_substrate_pure` 4/4 PASS under `SUTRA_EMBED_BACKEND=transformers`)
 
 ## 2026-06-27 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 16 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + `test_await_substrate_pure` 4/4 PASS under `SUTRA_EMBED_BACKEND=transformers`)
