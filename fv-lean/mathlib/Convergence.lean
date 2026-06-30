@@ -32,6 +32,7 @@ here a hypothesis — the spectral gap as a Poincaré/Dirichlet inequality — a
 chain has a gap; it proves gap ⇒ decay.
 -/
 import GibbsMultiState
+import Mathlib.Algebra.Order.BigOperators.Group.Finset
 
 open Finset
 
