@@ -188,6 +188,23 @@ theorem innerPi_cauchy_schwarz (π f g : S → ℝ) (hπ : ∀ s, 0 ≤ π s) :
   simp only [discrim] at hd
   nlinarith [hd]
 
+/-- The transition operator is additive: `P(f+g) = Pf + Pg`. Needed to expand the
+    polarization identity for the (open) numerical-radius capstone. -/
+theorem applyP_add (P : S → S → ℝ) (f g : S → ℝ) :
+    applyP P (f + g) = applyP P f + applyP P g := by
+  funext s
+  simp only [applyP, Pi.add_apply]
+  rw [← Finset.sum_add_distrib]
+  exact Finset.sum_congr rfl (fun t _ => by ring)
+
+/-- The transition operator respects subtraction: `P(f−g) = Pf − Pg`. -/
+theorem applyP_sub (P : S → S → ℝ) (f g : S → ℝ) :
+    applyP P (f - g) = applyP P f - applyP P g := by
+  funext s
+  simp only [applyP, Pi.sub_apply]
+  rw [← Finset.sum_sub_distrib]
+  exact Finset.sum_congr rfl (fun t _ => by ring)
+
 /-- **Loop (deterministic) instance — the marginal `r = 1` case of the SAME theorem.**
     On the deterministic tensor-op target the loop core is `state ← R · state` with `R`
     orthogonal: its poles lie ON the unit circle (the Z-transform picture; measured spectral
@@ -217,6 +234,8 @@ theorem loop_norm_preserved (π : S → ℝ) (R : S → S → ℝ)
 #print axioms normPiSq_nonneg
 #print axioms normPiSq_sub_smul
 #print axioms innerPi_cauchy_schwarz
+#print axioms applyP_add
+#print axioms applyP_sub
 #print axioms loop_norm_preserved
 
 end SutraConvergence
