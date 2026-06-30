@@ -109,8 +109,28 @@ theorem normPiSq_applyP_selfAdjoint (π : S → ℝ) (P : S → S → ℝ)
   unfold normPiSq
   exact applyP_selfAdjoint π P hdb f (applyP P f)
 
+/-- **Loop (deterministic) instance — the marginal `r = 1` case of the SAME theorem.**
+    On the deterministic tensor-op target the loop core is `state ← R · state` with `R`
+    orthogonal: its poles lie ON the unit circle (the Z-transform picture; measured spectral
+    radius `1.00000000`), so it is norm-PRESERVING, not contracting — the boundary `r = 1`
+    case of `geometric_convergence`. Stating `R` as a π-isometry (`hiso`: it preserves the
+    squared π-norm, the structural hypothesis the orthogonality of the emitted rotation
+    instantiates), the `n`-step iterate preserves the π-norm exactly. So loop and Gibbs
+    convergence are instances of ONE framework: contraction (`r < 1`, geometric decay) for
+    the thermodynamic target, marginal (`r = 1`, norm-preserving + halt-gate termination) for
+    the deterministic loop. Same `iterP`, same `normPiSq` — only the spectral condition on the
+    operator changes, exactly as the paper's substrate table claims. -/
+theorem loop_norm_preserved (π : S → ℝ) (R : S → S → ℝ)
+    (hiso : ∀ h : S → ℝ, normPiSq π (applyP R h) = normPiSq π h)
+    (f : S → ℝ) (n : ℕ) :
+    normPiSq π (iterP R n f) = normPiSq π f := by
+  induction n with
+  | zero => rw [iterP_zero]
+  | succ k ih => rw [iterP_succ, hiso, ih]
+
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
 #print axioms normPiSq_applyP_selfAdjoint
+#print axioms loop_norm_preserved
 
 end SutraConvergence
