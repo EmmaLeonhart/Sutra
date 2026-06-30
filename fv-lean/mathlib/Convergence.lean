@@ -140,6 +140,23 @@ theorem normPiSq_parallelogram (π f g : S → ℝ) :
   rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
   exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.add_apply, Pi.sub_apply]; ring)
 
+/-- `innerPi` is homogeneous in its left argument: `⟨c·f, g⟩_π = c⟨f,g⟩_π`. -/
+theorem innerPi_smul_left (π : S → ℝ) (c : ℝ) (f g : S → ℝ) :
+    innerPi π (c • f) g = c * innerPi π f g := by
+  unfold innerPi
+  rw [Finset.mul_sum]
+  exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.smul_apply, smul_eq_mul]; ring)
+
+/-- The π-weighted norm is **positive semidefinite** when `π ≥ 0`: `0 ≤ ‖f‖²_π`. This is
+    the PSD fact the Cauchy–Schwarz discriminant argument for the open spectral leg needs
+    (it makes `‖f − t·g‖²_π ≥ 0` a nonnegative quadratic in `t`). -/
+theorem normPiSq_nonneg (π f : S → ℝ) (hπ : ∀ s, 0 ≤ π s) : 0 ≤ normPiSq π f := by
+  unfold normPiSq innerPi
+  refine Finset.sum_nonneg (fun s _ => ?_)
+  have h : π s * f s * f s = π s * (f s * f s) := by ring
+  rw [h]
+  exact mul_nonneg (hπ s) (mul_self_nonneg (f s))
+
 /-- **Loop (deterministic) instance — the marginal `r = 1` case of the SAME theorem.**
     On the deterministic tensor-op target the loop core is `state ← R · state` with `R`
     orthogonal: its poles lie ON the unit circle (the Z-transform picture; measured spectral
@@ -165,6 +182,8 @@ theorem loop_norm_preserved (π : S → ℝ) (R : S → S → ℝ)
 #print axioms innerPi_add_left
 #print axioms innerPi_sub_left
 #print axioms normPiSq_parallelogram
+#print axioms innerPi_smul_left
+#print axioms normPiSq_nonneg
 #print axioms loop_norm_preserved
 
 end SutraConvergence
