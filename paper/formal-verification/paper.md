@@ -28,8 +28,14 @@ two-state mixing rate, all mechanised), and we **measure** the continuous-time,
 multi-state convergence on the machine-checked AND-gadget energy: the master-ODE
 generator's Gibbs measure is stationary and reversible, the full eight-state chain
 has a positive spectral gap (`γ = 0.0397` at `β = 1`), and the law's
-total-variation decay matches that gap (ratio 1.0000). The continuous-time and
-multi-state results are measurements, explicitly not Lean proofs.
+total-variation decay matches that gap (ratio 1.0000). For the general
+multi-state case we additionally **machine-check the structural chain** — for any
+finite reversible kernel, the transition operator is self-adjoint in the
+$\pi$-weighted inner product (`applyP_selfAdjoint`) and a one-step spectral-gap
+contraction implies geometric $L^2(\pi)$ decay (`geometric_convergence`), both
+`sorry`-free — so that what remains a *measurement*, explicitly not a Lean proof,
+is narrowed to the multi-state gap **value** (`γ = 0.0397`) and the
+continuous-time/continuous-space limits, not the gap⇒convergence implication itself.
 
 The supporting machinery is a reduction: Sutra's compiler turns an entire program
 (primitives, control flow, string I/O) into a single fused **tensor-op graph**,
@@ -942,18 +948,46 @@ worst-case start, the total-variation distance to $\pi$ decays at a **measured r
 $0.0397$, matching the spectral gap to ratio $1.0000$** — the gap *is* the
 continuous-time convergence rate, confirmed on the trajectory. The clamped-decode
 chain's stationary mode is the correct AND output for all four inputs.
-(`fv_sampler_convergence.py`, `test_fv_sampler_convergence.py`, 6/6.) A first Lean leg
-of the multi-state gap is now machine-checked: its structural prerequisite — that a
-reversible chain's transition operator is **self-adjoint** in the $\pi$-weighted inner
-product (so its spectrum is real and the gap $\gamma=1-\lambda_2$ is well-defined) — is
-proved for an *arbitrary finite* state space, not just the two-state case
-(`fv-lean/mathlib/GibbsMultiState.lean`: `applyP_selfAdjoint`, with general-$S$
-stationarity `applyP_stationary`; `[propext, Classical.choice, Quot.sound]`, no `sorry`).
-What remains
-genuinely open: the *quantitative* machine-checked multi-state gap (the eigenvalue bound
-on the now-self-adjoint operator, rather than the measured $0.0397$), and the
-continuous-*space* overdamped Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$
-on a relaxed energy — named, not claimed. (Proofs: `fv-lean/`, core, no `mathlib`,
+(`fv_sampler_convergence.py`, `test_fv_sampler_convergence.py`, 6/6.)
+
+**The multi-state convergence, exposed as Lean structure (two machine-checked legs).**
+Two general-finite-state legs of the multi-state gap are now machine-checked, on an
+explicit structure we state here in full so the proof is legible from the paper, not just
+named. Fix a finite state space — a `Fintype S` — and read observables as vectors
+$f:S\to\mathbb R$. The *kernel* is a row-stochastic matrix $P:S\times S\to\mathbb R$
+($\sum_t P_{st}=1$) that is *reversible* with respect to the Gibbs vector $\pi$: detailed
+balance $\pi_s P_{st}=\pi_t P_{ts}$. The transition operator acts as
+$(Pf)_s=\sum_t P_{st}f_t$ (`applyP`), and the relevant geometry is the $\pi$-weighted inner
+product $\langle f,g\rangle_\pi=\sum_s \pi_s f_s g_s$ (`innerPi`) with squared norm
+$\lVert f\rVert_\pi^2=\langle f,f\rangle_\pi$. On exactly this structure:
+
+1. **Reversibility ⇒ self-adjointness.** $\langle Pf,g\rangle_\pi=\langle f,Pg\rangle_\pi$
+   for an arbitrary finite $S$ (`GibbsMultiState.applyP_selfAdjoint`), together with
+   stationarity $\sum_s\pi_s P_{st}=\pi_t$ (`applyP_stationary`) — so the spectrum is real
+   and the gap $\gamma=1-\lambda_2$ is well-defined. Pure finite-sum algebra from detailed
+   balance, with no spectral-theory import.
+2. **Gap ⇒ geometric convergence.** If $P$ contracts the squared $\pi$-norm of the
+   deviation from $\pi$ by a factor $r=(1-\gamma)^2<1$ in one step, then
+   $\lVert P^n f\rVert_\pi^2\le r^n\,\lVert f\rVert_\pi^2$ — geometric decay to the
+   stationary mean (`SutraConvergence.geometric_convergence`), proved by elementary
+   induction off the one-step bound, *avoiding* the finite-dimensional spectral theorem.
+   The chain preserves the $\pi$-mean (`applyP_preserves_piMean`), so the mean-zero
+   subspace the contraction lives on is $P$-invariant and the induction goes through.
+
+Both legs are `[propext, Classical.choice, Quot.sound]`, no `sorry`, and CI-checked on
+`ubuntu-latest` (`fv-lean/mathlib/GibbsMultiState.lean` and `Convergence.lean`; the
+`fv-lean-mathlib-ci.yml` job runs `lake build` over all three mathlib-layer libraries on
+every change to them). This is the self-adjoint → gap → decay chain named in §1, now
+machine-checked end to end **given the gap as a one-step Dirichlet/Rayleigh contraction** —
+and that hypothesis is exactly what the measured $\gamma=0.0397$ instantiates.
+
+What remains genuinely open, named not claimed: (i) *deriving* the one-step contraction
+$r=(1-\gamma)^2$ from `applyP_selfAdjoint` and a scalar Dirichlet-form gap $\gamma>0$ (the
+self-adjoint ⇒ real-spectrum ⇒ Rayleigh-bound step), which would promote the measured
+$0.0397$ to a machine-checked eigenvalue bound; (ii) the deterministic-loop $Z$-transform
+expressed as the *same* `geometric_convergence` theorem on an orthogonal $R$ (unifying the
+loop and Gibbs targets under one theorem); and (iii) the continuous-*space* overdamped
+Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$ on a relaxed energy. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
 measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled
 hardware mapping: the companion findings.)
