@@ -179,7 +179,7 @@ theorem normPiSq_sub_smul (π f g : S → ℝ) (t : ℝ) :
 theorem innerPi_cauchy_schwarz (π f g : S → ℝ) (hπ : ∀ s, 0 ≤ π s) :
     innerPi π f g ^ 2 ≤ normPiSq π f * normPiSq π g := by
   have hq : ∀ t : ℝ,
-      0 ≤ normPiSq π g * t ^ 2 + (-2 * innerPi π f g) * t + normPiSq π f := by
+      0 ≤ normPiSq π g * (t * t) + (-2 * innerPi π f g) * t + normPiSq π f := by
     intro t
     have h := normPiSq_nonneg π (f - t • g) hπ
     rw [normPiSq_sub_smul] at h
