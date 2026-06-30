@@ -87,7 +87,7 @@ theorem geometric_convergence (π : S → ℝ) (P : S → S → ℝ) (r : ℝ) (
     (f : S → ℝ) (n : ℕ) :
     normPiSq π (iterP P n f) ≤ r ^ n * normPiSq π f := by
   induction n with
-  | zero => simp only [iterP_zero, pow_zero, one_mul]
+  | zero => simp only [iterP_zero, pow_zero, one_mul, le_refl]
   | succ k ih =>
     calc normPiSq π (iterP P (k + 1) f)
         = normPiSq π (applyP P (iterP P k f)) := by rw [iterP_succ]
