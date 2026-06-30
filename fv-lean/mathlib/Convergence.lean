@@ -33,6 +33,7 @@ chain has a gap; it proves gap ⇒ decay.
 -/
 import GibbsMultiState
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
+import Mathlib.Algebra.QuadraticDiscriminant
 
 open Finset
 
@@ -169,6 +170,24 @@ theorem normPiSq_sub_smul (π f g : S → ℝ) (t : ℝ) :
   exact Finset.sum_congr rfl (fun s _ => by
     simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]; ring)
 
+/-- **Cauchy–Schwarz for the π-weighted inner product** (π ≥ 0):
+    `⟨f,g⟩²_π ≤ ‖f‖²_π · ‖g‖²_π`. Proved by the classic discriminant argument: the quadratic
+    `q(t) = ‖f − t·g‖²_π = ‖g‖²_π t² − 2⟨f,g⟩_π t + ‖f‖²_π` is `≥ 0` for all `t`
+    (`normPiSq_nonneg` + `normPiSq_sub_smul`), so its discriminant is `≤ 0`
+    (`discrim_le_zero`), which is exactly the Cauchy–Schwarz inequality. The bound that
+    converts the Rayleigh gap into the operator-norm one-step contraction. -/
+theorem innerPi_cauchy_schwarz (π f g : S → ℝ) (hπ : ∀ s, 0 ≤ π s) :
+    innerPi π f g ^ 2 ≤ normPiSq π f * normPiSq π g := by
+  have hq : ∀ t : ℝ,
+      0 ≤ normPiSq π g * t ^ 2 + (-2 * innerPi π f g) * t + normPiSq π f := by
+    intro t
+    have h := normPiSq_nonneg π (f - t • g) hπ
+    rw [normPiSq_sub_smul] at h
+    nlinarith [h]
+  have hd := discrim_le_zero hq
+  simp only [discrim] at hd
+  nlinarith [hd]
+
 /-- **Loop (deterministic) instance — the marginal `r = 1` case of the SAME theorem.**
     On the deterministic tensor-op target the loop core is `state ← R · state` with `R`
     orthogonal: its poles lie ON the unit circle (the Z-transform picture; measured spectral
@@ -197,6 +216,7 @@ theorem loop_norm_preserved (π : S → ℝ) (R : S → S → ℝ)
 #print axioms innerPi_smul_left
 #print axioms normPiSq_nonneg
 #print axioms normPiSq_sub_smul
+#print axioms innerPi_cauchy_schwarz
 #print axioms loop_norm_preserved
 
 end SutraConvergence
