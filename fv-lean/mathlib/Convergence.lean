@@ -95,7 +95,22 @@ theorem geometric_convergence (π : S → ℝ) (P : S → S → ℝ) (r : ℝ) (
       _ ≤ r * (r ^ k * normPiSq π f) := mul_le_mul_of_nonneg_left ih hr0
       _ = r ^ (k + 1) * normPiSq π f := by ring
 
+/-- For a reversible (π-self-adjoint) chain, the one-step squared π-norm is the
+    `P²`-quadratic form: `‖Pf‖²_π = ⟨f, P²f⟩_π`. One line from `applyP_selfAdjoint`
+    (move one `P` across the inner product). This is the BRIDGE that the open spectral
+    leg needs: it turns the one-step contraction target `‖Pf‖²_π ≤ r‖f‖²_π` into a
+    bound on the quadratic form `⟨f, P²f⟩_π`, where a scalar Dirichlet/Rayleigh gap on
+    the self-adjoint `P` (still to be supplied) closes it. Concretely connects the
+    self-adjoint FOUNDATION (`applyP_selfAdjoint`) to the CONVERGENCE hypothesis
+    (`geometric_convergence`'s `hgap`), so the chain is one dependent development. -/
+theorem normPiSq_applyP_selfAdjoint (π : S → ℝ) (P : S → S → ℝ)
+    (hdb : DetailedBalance π P) (f : S → ℝ) :
+    normPiSq π (applyP P f) = innerPi π f (applyP P (applyP P f)) := by
+  unfold normPiSq
+  exact applyP_selfAdjoint π P hdb f (applyP P f)
+
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
+#print axioms normPiSq_applyP_selfAdjoint
 
 end SutraConvergence
