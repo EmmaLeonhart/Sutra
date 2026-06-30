@@ -80,14 +80,17 @@ jobs:
           set -euxo pipefail
           lake exe cache get
 
-      # Build the two mathlib-layer libs. lake build fails on a hard error;
-      # `sorry` is only a warning, so we additionally fail on any sorry/error
-      # text in the build log (matches the no-sorry discipline of
-      # scripts/check_fv_lean.sh for the core layer).
+      # Build the mathlib-layer libs. Named EXPLICITLY (not bare `lake build`,
+      # which builds only defaultTargets) so every lib is actually checked —
+      # GibbsMathlib (2-state), GibbsMultiState (general-S self-adjoint
+      # foundation), and Convergence (gap ⇒ geometric-decay spine). lake build
+      # fails on a hard error; `sorry` is only a warning, so we additionally
+      # fail on any sorry/error text in the build log (matches the no-sorry
+      # discipline of scripts/check_fv_lean.sh for the core layer).
       - name: Build + verify mathlib-layer proofs
         run: |
           set -uxo pipefail
-          lake build 2>&1 | tee build.log
+          lake build GibbsMathlib GibbsMultiState Convergence 2>&1 | tee build.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
             echo "FAIL: lake build returned non-zero"
