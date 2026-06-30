@@ -109,6 +109,37 @@ theorem normPiSq_applyP_selfAdjoint (π : S → ℝ) (P : S → S → ℝ)
   unfold normPiSq
   exact applyP_selfAdjoint π P hdb f (applyP P f)
 
+/-! ### Inner-product scaffold for the open spectral leg
+
+The remaining `gap ⇒ one-step contraction` leg (see
+`planning/open-questions/fv-convergence-spectral-gap-leg.md`) goes through polarization for
+the self-adjoint operator. These are the reusable bilinearity facts of `innerPi` it needs —
+pure finite-sum algebra, no analysis. Built here so the hard leg reduces to assembling
+already-checked pieces rather than one monolithic blind proof. -/
+
+/-- `innerPi` is additive in its left argument. -/
+theorem innerPi_add_left (π f g h : S → ℝ) :
+    innerPi π (f + g) h = innerPi π f h + innerPi π g h := by
+  unfold innerPi
+  rw [← Finset.sum_add_distrib]
+  exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.add_apply]; ring)
+
+/-- `innerPi` subtracts in its left argument. -/
+theorem innerPi_sub_left (π f g h : S → ℝ) :
+    innerPi π (f - g) h = innerPi π f h - innerPi π g h := by
+  unfold innerPi
+  rw [← Finset.sum_sub_distrib]
+  exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.sub_apply]; ring)
+
+/-- The parallelogram law in the π-weighted norm:
+    `‖f+g‖²_π + ‖f−g‖²_π = 2‖f‖²_π + 2‖g‖²_π`. The identity the polarization step of the
+    open spectral leg rests on. -/
+theorem normPiSq_parallelogram (π f g : S → ℝ) :
+    normPiSq π (f + g) + normPiSq π (f - g) = 2 * normPiSq π f + 2 * normPiSq π g := by
+  unfold normPiSq innerPi
+  rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
+  exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.add_apply, Pi.sub_apply]; ring)
+
 /-- **Loop (deterministic) instance — the marginal `r = 1` case of the SAME theorem.**
     On the deterministic tensor-op target the loop core is `state ← R · state` with `R`
     orthogonal: its poles lie ON the unit circle (the Z-transform picture; measured spectral
@@ -131,6 +162,9 @@ theorem loop_norm_preserved (π : S → ℝ) (R : S → S → ℝ)
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
 #print axioms normPiSq_applyP_selfAdjoint
+#print axioms innerPi_add_left
+#print axioms innerPi_sub_left
+#print axioms normPiSq_parallelogram
 #print axioms loop_norm_preserved
 
 end SutraConvergence
