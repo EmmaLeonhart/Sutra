@@ -158,6 +158,17 @@ theorem normPiSq_nonneg (π f : S → ℝ) (hπ : ∀ s, 0 ≤ π s) : 0 ≤ nor
   rw [h]
   exact mul_nonneg (hπ s) (mul_self_nonneg (f s))
 
+/-- The squared π-norm of `f − t·g` as an explicit quadratic in `t`:
+    `‖f − t·g‖²_π = ‖f‖²_π − 2t⟨f,g⟩_π + t²‖g‖²_π`. With `normPiSq_nonneg` this exhibits a
+    nonnegative quadratic whose discriminant is `≤ 0` — the Cauchy–Schwarz argument. -/
+theorem normPiSq_sub_smul (π f g : S → ℝ) (t : ℝ) :
+    normPiSq π (f - t • g)
+      = normPiSq π f - 2 * t * innerPi π f g + t ^ 2 * normPiSq π g := by
+  unfold normPiSq innerPi
+  rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
+  exact Finset.sum_congr rfl (fun s _ => by
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]; ring)
+
 /-- **Loop (deterministic) instance — the marginal `r = 1` case of the SAME theorem.**
     On the deterministic tensor-op target the loop core is `state ← R · state` with `R`
     orthogonal: its poles lie ON the unit circle (the Z-transform picture; measured spectral
@@ -185,6 +196,7 @@ theorem loop_norm_preserved (π : S → ℝ) (R : S → S → ℝ)
 #print axioms normPiSq_parallelogram
 #print axioms innerPi_smul_left
 #print axioms normPiSq_nonneg
+#print axioms normPiSq_sub_smul
 #print axioms loop_norm_preserved
 
 end SutraConvergence
