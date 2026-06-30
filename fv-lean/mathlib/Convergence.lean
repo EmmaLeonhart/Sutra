@@ -133,6 +133,16 @@ theorem innerPi_sub_left (π f g h : S → ℝ) :
   rw [← Finset.sum_sub_distrib]
   exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.sub_apply]; ring)
 
+/-- `innerPi` is additive in its right argument (via symmetry + left additivity). -/
+theorem innerPi_add_right (π f g h : S → ℝ) :
+    innerPi π f (g + h) = innerPi π f g + innerPi π f h := by
+  rw [innerPi_comm π f (g + h), innerPi_add_left, innerPi_comm π g f, innerPi_comm π h f]
+
+/-- `innerPi` subtracts in its right argument. -/
+theorem innerPi_sub_right (π f g h : S → ℝ) :
+    innerPi π f (g - h) = innerPi π f g - innerPi π f h := by
+  rw [innerPi_comm π f (g - h), innerPi_sub_left, innerPi_comm π g f, innerPi_comm π h f]
+
 /-- The parallelogram law in the π-weighted norm:
     `‖f+g‖²_π + ‖f−g‖²_π = 2‖f‖²_π + 2‖g‖²_π`. The identity the polarization step of the
     open spectral leg rests on. -/
@@ -205,6 +215,21 @@ theorem applyP_sub (P : S → S → ℝ) (f g : S → ℝ) :
   rw [← Finset.sum_sub_distrib]
   exact Finset.sum_congr rfl (fun t _ => by ring)
 
+/-- **Polarization for the self-adjoint form** `⟨P·,·⟩_π`:
+    `⟨P(f+g),f+g⟩_π − ⟨P(f−g),f−g⟩_π = 4⟨Pf,g⟩_π`. The cross terms `⟨Pg,f⟩_π` collapse to
+    `⟨Pf,g⟩_π` by self-adjointness (`applyP_selfAdjoint` + `innerPi_comm`); the diagonal
+    terms cancel. This is the identity that lets the scalar Rayleigh gap bound `⟨Pf,g⟩_π`,
+    the heart of the numerical-radius capstone. -/
+theorem innerPi_polarization (π : S → ℝ) (P : S → S → ℝ) (hdb : DetailedBalance π P)
+    (f g : S → ℝ) :
+    innerPi π (applyP P (f + g)) (f + g) - innerPi π (applyP P (f - g)) (f - g)
+      = 4 * innerPi π (applyP P f) g := by
+  have hsym : innerPi π (applyP P g) f = innerPi π (applyP P f) g := by
+    rw [applyP_selfAdjoint π P hdb g f, innerPi_comm]
+  simp only [applyP_add, applyP_sub, innerPi_add_left, innerPi_sub_left,
+             innerPi_add_right, innerPi_sub_right, hsym]
+  ring
+
 /-- **Loop (deterministic) instance — the marginal `r = 1` case of the SAME theorem.**
     On the deterministic tensor-op target the loop core is `state ← R · state` with `R`
     orthogonal: its poles lie ON the unit circle (the Z-transform picture; measured spectral
@@ -229,6 +254,9 @@ theorem loop_norm_preserved (π : S → ℝ) (R : S → S → ℝ)
 #print axioms normPiSq_applyP_selfAdjoint
 #print axioms innerPi_add_left
 #print axioms innerPi_sub_left
+#print axioms innerPi_add_right
+#print axioms innerPi_sub_right
+#print axioms innerPi_polarization
 #print axioms normPiSq_parallelogram
 #print axioms innerPi_smul_left
 #print axioms normPiSq_nonneg
