@@ -46,7 +46,26 @@ derivation, all on the `P`-invariant mean-zero subspace (closed under `±` and u
    `‖Pf‖²_π ≤ (1−γ)²‖f‖²_π`. (Equivalently: `‖Pf‖²_π = ⟨f,P²f⟩_π` via the bridge, then the
    numerical-radius bound on `P²`.)
 
-## Why it is not done yet
+## Progress update (2026-06-30): all the tooling is now CI-verified
+
+The whole inner-product toolkit the capstone needs is built and machine-checked in
+`Convergence.lean` (mathlib CI green): `innerPi_add_left`, `innerPi_sub_left`,
+`innerPi_smul_left`, `normPiSq_parallelogram`, `normPiSq_nonneg`, `normPiSq_sub_smul`,
+`normPiSq_applyP_selfAdjoint` (the `‖Pf‖²_π = ⟨f,P²f⟩_π` bridge), and
+**`innerPi_cauchy_schwarz`** (`⟨f,g⟩²_π ≤ ‖f‖²_π‖g‖²_π`, via the `discrim_le_zero`
+argument). So the remaining gap is **only the final assembly** — the numerical-radius =
+operator-norm step for the self-adjoint `applyP P`:
+
+> from `|⟨Ph,h⟩_π| ≤ (1−γ)‖h‖²_π` on mean-zero `h` (the Rayleigh gap), conclude
+> `‖Pf‖_π ≤ (1−γ)‖f‖_π` (hence the one-step contraction with `r=(1−γ)²`).
+
+Route, all tools now in hand: polarization `4⟨Pf,g⟩_π = ⟨P(f+g),f+g⟩_π − ⟨P(f−g),f−g⟩_π`
+(from `applyP_selfAdjoint` + the `innerPi_*_left` bilinearity), bound the two quadratic
+forms by the Rayleigh gap, collapse `‖f+g‖²_π+‖f−g‖²_π` by `normPiSq_parallelogram`, then
+normalize via `innerPi_cauchy_schwarz` (case-split on `‖Pf‖_π = 0`). `applyP_preserves_piMean`
+keeps every vector in the mean-zero subspace where the Rayleigh gap applies.
+
+## Why the capstone is not done yet
 
 This needs a small inner-product-space scaffold (bilinearity of `innerPi`, the
 parallelogram law, real polarization) built directly on `innerPi`, plus Cauchy–Schwarz.
