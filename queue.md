@@ -114,10 +114,17 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    Dirichlet/Rayleigh gap ⇒ one-step L²(π) contraction `‖Pf‖²_π ≤ (1−γ)²‖f‖²_π` (numerical-radius =
    operator-norm, elementary — polarization + parallelogram + CS discriminant, NO finite-dim spectral
    theorem), feeding `geometric_convergence` ⇒ **gap ⇒ geometric decay fully closed in Lean**; measured
-   `γ=0.0397` instantiates the scalar hypothesis. **STILL OPEN:** a machine-checked `λ₂`/eigenvalue
-   bound on the *concrete* 8-state kernel to discharge the Rayleigh hypothesis from the matrix entries
-   (γ currently a measured input); then the continuous-time master-ODE decay; then continuous-space
-   overdamped Langevin `dX=−∇U dt+√(2/β)dW`. **Spec for what's needed:
+   `γ=0.0397` instantiates the scalar hypothesis. **Z-TRANSFORM UNIFICATION DONE 2026-06-30, CI-green**
+   (`energy_gen_summable` + `energy_summable_of_contraction` + `loop_energy_gen_summable`,
+   `Convergence.lean`, no `sorryAx`): the energy generating function `G(z)=Σₙ‖Pⁿf‖²_π zⁿ` has pole
+   radius `1/r`, so **the Z-transform pole = the contraction rate `r`** — Gibbs (`r=(1−γ)²<1`, pole
+   inside; `G(1)` finite, chain settles) and the deterministic loop (`r=1`, π-isometry `R`, pole ON the
+   unit circle, marginal) are instances of ONE theorem (comparison with the geometric series, no
+   spectral theorem). This is the "single spine" that answers the clawRxiv kitchen-sink con. **STILL
+   OPEN:** a machine-checked `λ₂`/eigenvalue bound on the *concrete* 8-state kernel to discharge the
+   Rayleigh hypothesis from the matrix entries (γ currently a measured input); then continuous-space
+   overdamped Langevin `dX=−∇U dt+√(2/β)dW` (the continuous-time master-ODE decay is the discrete
+   `geometric_convergence`'s analogue — lower priority). **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
    multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
    cite no numbers until measured/proved. **PREREQ:** the mathlib layer (`fv-lean/mathlib/`) is

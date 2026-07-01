@@ -342,9 +342,13 @@ This is the work to pick up (mirrored as the first `queue.md` item):
   (1−γ)²‖f‖²_π` (numerical-radius = operator-norm; polarization + parallelogram + CS
   discriminant, no spectral theorem), `[propext, Classical.choice, Quot.sound]` no `sorryAx`.
   This is `geometric_convergence`'s `hgap` (`r=(1−γ)²`), so **gap ⇒ geometric decay is fully
-  closed in Lean**; the measured `γ=0.0397` instantiates the scalar hypothesis. Remaining leg
-  (b) the Loop (Z-transform) instance: the `r=1` norm-preserving boundary is already
-  `loop_norm_preserved`; bringing the actual Z-transform pole analysis into Lean is still open.
+  closed in Lean**; the measured `γ=0.0397` instantiates the scalar hypothesis. **Leg (b) — the
+  Loop / Z-transform instance — DONE 2026-06-30, CI-green** (`energy_gen_summable`,
+  `energy_summable_of_contraction`, `loop_energy_gen_summable`, no `sorryAx`): the energy
+  generating function's pole radius `= r`, so the Z-transform pole IS the contraction rate;
+  Gibbs (`r<1`, pole inside) and the loop (`r=1`, pole on the unit circle) are ONE theorem
+  (geometric-series comparison, no spectral theorem). This is the single spine that answers the
+  reviewer's kitchen-sink con; paper §7 now carries it as a fourth machine-checked leg.
   Remaining Gibbs item: a machine-checked `λ₂` bound on the concrete 8-state kernel to discharge
   the Rayleigh hypothesis from matrix entries (currently measured). Paper §7 + abstract updated.
   _Prior first-leg record:_ **`fv-lean/mathlib/Convergence.lean`** (builds on the foundation via `import GibbsMultiState`). CI green on push `59a3f918` (mathlib-layer job, success): `applyP_preserves_piMean` (detailed balance ⇒ π-mean preserved ⇒ mean-zero subspace P-invariant) and `geometric_convergence` (one-step L²(π) contraction by `r=(1-γ)²` ⇒ `‖Pⁿf‖²_π ≤ rⁿ‖f‖²_π`, elementary induction, no spectral theorem) both compile clean, no `sorry`. REMAINING legs (flagged, not faked, still open): (a) derive the one-step contraction `hgap` from `applyP_selfAdjoint` + a scalar Dirichlet gap `γ>0` (self-adjoint ⇒ real spectrum ⇒ Rayleigh bound) — this is what turns gap⇒decay into "this chain converges"; (b) the Loop (Z-transform) substrate instance of the same theorem. Also corrected §8(4): the CI now names `lake build GibbsMathlib GibbsMultiState Convergence` explicitly (bare `lake build` only built the default `GibbsMathlib`, so GibbsMultiState wasn't actually re-checked before — now all three libs are CI-checked on every `fv-lean/mathlib/**` change).
