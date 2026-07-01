@@ -653,8 +653,49 @@ theorem dirichlet_nonneg (π : S → ℝ) (P : S → S → ℝ)
   refine Finset.sum_nonneg (fun s _ => Finset.sum_nonneg (fun t _ => ?_))
   exact mul_nonneg (mul_nonneg (hπ s) (hP s t)) (sq_nonneg _)
 
+/-! ### Poincaré + laziness ⇒ geometric decay — the reusable multi-state engine
+
+Assembling the pieces: the Dirichlet bridge turns a **Poincaré inequality**
+`E(f) ≥ γ‖f‖²_π` on mean-zero f (the per-edge, spectral-theorem-free form of the gap) plus
+**laziness** (`⟨Pf,f⟩_π ≥ 0`, i.e. the operator is PSD / no eigenvalue near −1) into the full
+two-sided Rayleigh gap, which then drives geometric decay via the capstone and the mean-zero
+iteration. This is the engine ANY concrete reversible+lazy chain plugs into by supplying its own
+Poincaré constant γ — the 8-state gadget included, once its per-edge γ is bounded (Cheeger). -/
+
+/-- **Poincaré + laziness ⇒ the Rayleigh gap.** A Poincaré bound `γ‖h‖²_π ≤ E(h)` on mean-zero
+    `h` gives the upper side `⟨Ph,h⟩_π ≤ (1−γ)‖h‖²_π` (via `⟨Ph,h⟩_π = ‖h‖²_π − E(h)`), and
+    laziness `0 ≤ ⟨Ph,h⟩_π` gives the lower side, so together `|⟨Ph,h⟩_π| ≤ (1−γ)‖h‖²_π` — exactly
+    `applyP_gap_contraction`'s hypothesis. No γ-range needed here (usefulness needs `γ ≤ 1`). -/
+theorem gap_of_poincare_lazy (π : S → ℝ) (P : S → S → ℝ) (γ : ℝ)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (hpsd : ∀ h : S → ℝ, 0 ≤ innerPi π (applyP P h) h)
+    (hpoin : ∀ h : S → ℝ, piMean π h = 0 → γ * normPiSq π h ≤ dirichlet π P h)
+    (h : S → ℝ) (hmz : piMean π h = 0) :
+    |innerPi π (applyP P h) h| ≤ (1 - γ) * normPiSq π h := by
+  rw [abs_of_nonneg (hpsd h), innerPi_rayleigh_eq_dirichlet π P hrow hdb h]
+  nlinarith [hpoin h hmz]
+
+/-- **Poincaré + laziness ⇒ geometric decay — the reusable engine.** For a reversible chain with
+    `π ≥ 0`, a Poincaré constant `γ ∈ [0,1]`, and laziness, the mean-zero deviation-energy decays
+    as `‖Pⁿf‖²_π ≤ ((1−γ)²)ⁿ‖f‖²_π`. Concrete chains instantiate this by supplying their `γ`. -/
+theorem geometric_decay_of_poincare_lazy (π : S → ℝ) (P : S → S → ℝ) (γ : ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (hpsd : ∀ h : S → ℝ, 0 ≤ innerPi π (applyP P h) h)
+    (hpoin : ∀ h : S → ℝ, piMean π h = 0 → γ * normPiSq π h ≤ dirichlet π P h)
+    (f : S → ℝ) (hf0 : piMean π f = 0) (n : ℕ) :
+    normPiSq π (iterP P n f) ≤ ((1 - γ) ^ 2) ^ n * normPiSq π f := by
+  have hc0 : 0 ≤ 1 - γ := by linarith
+  have hstep : ∀ g : S → ℝ, piMean π g = 0 →
+      normPiSq π (applyP P g) ≤ (1 - γ) ^ 2 * normPiSq π g := fun g hg =>
+    applyP_gap_contraction π P (1 - γ) hπ hc0 hrow hdb
+      (fun h hmz => gap_of_poincare_lazy π P γ hrow hdb hpsd hpoin h hmz) g hg
+  exact geometric_convergence_meanZero π P ((1 - γ) ^ 2) (sq_nonneg _) hrow hdb hstep f hf0 n
+
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
+#print axioms gap_of_poincare_lazy
+#print axioms geometric_decay_of_poincare_lazy
 #print axioms dirichlet_eq
 #print axioms innerPi_rayleigh_eq_dirichlet
 #print axioms dirichlet_nonneg
