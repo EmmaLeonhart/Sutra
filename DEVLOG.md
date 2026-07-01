@@ -1,3 +1,24 @@
+## 2026-06-30: FV Lean — convergence to stationarity as a genuine limit (Tendsto → 0)
+
+The last step of the convergence spine: the deviation-energy doesn't just satisfy a rate bound,
+it TENDS TO ZERO — the chain reaches stationarity in the limit. `fv-lean/mathlib/Convergence.lean`,
+CI-green on `ubuntu-latest` (`fv-lean-mathlib-ci` run 28494873834), all three
+`[propext, Classical.choice, Quot.sound]`, **no `sorryAx`**:
+
+- `energy_summable_meanZero` — the mean-zero deviation-energy `Σₙ ‖Pⁿf‖²_π` is summable for
+  `r < 1` (comparison with the geometric series off `geometric_convergence_meanZero`); the
+  mean-zero analogue of `energy_summable_of_contraction`.
+- `meanZero_tendsto_zero` — `‖Pⁿf‖²_π → 0` (`Summable.tendsto_atTop_zero`). Upgrades
+  "convergence" from an inequality to a genuine `Tendsto` limit statement.
+- `twoState_tendsto_zero` — the concrete 2-state chain (`λ₂² < 1`) reaches stationarity, gap
+  computed from matrix entries, NO measured input.
+
+Reused the proven summability scaffolding rather than the rename-risky `tendsto_pow_atTop_…`
+lemma — green first try. clawRxiv verdict this session: Strong Reject → Reject → **Weak Reject**
+(post 2841) after the Z-transform leg; the kitchen-sink con is gone and the pros now credit the
+control-theory/Z-transform + Lean-ergodicity work. Remaining cons are misreads/scope — no paper
+churn (guardrail).
+
 ## 2026-06-30: FV Lean — mean-zero iteration fix + fully-discharged concrete 2-state instance
 
 Two honesty items on the `Sutra.Convergence` spine. `fv-lean/mathlib/Convergence.lean`,
