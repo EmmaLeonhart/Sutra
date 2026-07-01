@@ -131,9 +131,14 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    `twoState_tendsto_zero`, no `sorryAx`): the deviation-energy `‖Pⁿf‖²_π → 0` (a genuine `Tendsto`
    limit, not just a rate bound), incl. the concrete 2-state chain reaching stationarity with no
    measured input. clawRxiv verdict progressed Strong Reject → Weak Reject after the Z-transform leg.
-   **STILL OPEN:** the same
-   discharge for the *8-state* kernel (a machine-checked `λ₂` bound on that larger operator; γ=0.0397
-   still the measured input there); then continuous-space
+   **DIRICHLET-FORM BRIDGE DONE 2026-07-01 (Emma green-lit), CI-green** (`dirichlet_eq` +
+   `innerPi_rayleigh_eq_dirichlet` + `dirichlet_nonneg`, `Convergence.lean`, no `sorryAx`): for ANY finite
+   reversible chain, `E(f)=½∑π_s P_{st}(f_s−f_t)² = ‖f‖²_π − ⟨f,Pf⟩_π`, so `⟨Pf,f⟩_π = ‖f‖²_π − E(f)` and a
+   Poincaré bound `E(f) ≥ γ‖f‖²_π` on mean-zero f IS the Rayleigh gap feeding `applyP_gap_contraction`
+   (elementary per-edge algebra, NO spectral theorem). This reduces the 8-state gap to a per-edge
+   Cheeger/conductance/Poincaré lower bound. **STILL OPEN:** compose Poincaré + laziness into the full
+   Rayleigh gap ⇒ decay; then the concrete *8-state* per-edge bound (γ=0.0397 stays measured — its exact
+   eigenvalue is transcendental `exp(−βE)`, no closed form); then continuous-space
    overdamped Langevin `dX=−∇U dt+√(2/β)dW` (the continuous-time master-ODE decay is the discrete
    `geometric_convergence`'s analogue — lower priority). **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:

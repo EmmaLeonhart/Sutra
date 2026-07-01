@@ -1,3 +1,24 @@
+## 2026-07-01: FV Lean — Dirichlet-form bridge (8-state gap leg foundation; Emma green-lit)
+
+Emma green-lit the heavy FV legs. The exact 8-state γ=0.0397 is a transcendental eigenvalue
+(`exp(−βE)` entries — no closed form), so the route that avoids the finite-dim spectral theorem is
+the **Dirichlet form** `E(f) = ½∑_{s,t} π_s P_{st}(f_s−f_t)²`. Added, for ANY finite reversible chain
+(elementary finite-sum algebra, no spectral theory), `fv-lean/mathlib/Convergence.lean`, CI-green
+(`fv-lean-mathlib-ci` run 28534493850), all `[propext, Classical.choice, Quot.sound]`, no `sorryAx`:
+
+- `dirichlet_eq` — `E(f) = ‖f‖²_π − ⟨f, Pf⟩_π`. The bridge: the two diagonal terms of the expanded
+  square give `‖f‖²_π` (row-stochastic for the `f_s²` half; reversibility + row-stochastic, via a
+  `Finset.sum_comm` index swap, for the `f_t²` half); the cross term gives `⟨f, Pf⟩_π`.
+- `innerPi_rayleigh_eq_dirichlet` — `⟨Pf,f⟩_π = ‖f‖²_π − E(f)`, so a Poincaré bound `E(f) ≥ γ‖f‖²_π`
+  on mean-zero `f` IS exactly the spectral-gap Rayleigh bound feeding `applyP_gap_contraction`.
+- `dirichlet_nonneg` — `π,P ≥ 0 ⇒ E(f) ≥ 0`, hence `⟨Pf,f⟩_π ≤ ‖f‖²_π` (`λ₂ ≤ 1`, the trivial half).
+
+This reduces the multi-state gap to a per-edge (Cheeger/conductance/Poincaré) lower bound — the general
+infrastructure to lower-bound γ without the spectral theorem. The concrete 8-state γ=0.0397 stays a
+measurement (transcendental). CI caught one issue: `dirichlet` needed `noncomputable` (real division by
+2 — a proof-only object). Next leg: compose the Poincaré bound + laziness into the full Rayleigh gap ⇒
+geometric decay.
+
 ## 2026-07-01: daily audit watchdog no longer needs an Ollama daemon (use the in-process embedding backend that already exists)
 
 The daily audit script `scripts/check_promise_await_fit_to_spec.py` — the watchdog for
