@@ -170,14 +170,16 @@ clean, no-args CLI error correct (exit 2, clear message). Two concrete CLI items
   README/tutorials documenting it — a newcomer exploring via `--help` couldn't discover the REPL. Added
   an argparse epilog (RawDescriptionHelpFormatter) documenting `repl` + common `--run`/`--emit`/validate
   examples. Verified: `--help` now shows it, `repl` still launches, 27 CLI/repl/diagnostic tests pass._
-- **U2 — harden CLI/REPL output for non-UTF-8 consoles.** The REPL launch banner (`repl.py`) and much
-  argparse help text use non-ASCII em-dashes (`—`, U+2014). On a Windows cp1252 system these print fine
-  to a real console (WriteConsoleW) but raise `UnicodeEncodeError` when stdout is **redirected to a
-  pipe/file** (Python uses the locale encoding with strict errors for non-console streams) — a plausible
-  crash on Emma's own platform for `sutrac repl | tee`, `sutrac --help > f.txt`, CI capture, etc. Fix:
-  sweep CLI-emitted strings (repl banner/prompts, argparse help/description) to ASCII (`-`/`--`), or set
-  a UTF-8 stdout reconfigure at CLI entry. Verify: force `PYTHONIOENCODING=cp1252` + redirect and confirm
-  no `UnicodeEncodeError`. Bounded.
+- _U2 DONE 2026-06-30 (history in DEVLOG): hardened CLI/REPL output for non-UTF-8 consoles.
+  REPRODUCED first — `sutrac --help` and `sutrac repl` crashed with `UnicodeEncodeError` on the em-dash
+  (U+2014) under ascii / cp437 (classic US console) / cp932 (Japanese Windows) when stdout is redirected
+  to a pipe/file (cp1252 itself maps U+2014 so it was fine; the crash is the OEM/non-Latin consoles).
+  ASCII-swept the emitted CLI chrome (repl banner + `~` result line, argparse `--emit`/`--emit-thrml` help,
+  the "no main() found" error, the --run-viz tracing-shim comment) — em-dash→`-`, `≈`→`~`. Verified: no
+  `UnicodeEncodeError` under ascii/cp437/cp932; 27 CLI/repl/diagnostic tests pass. Comments/docstrings with
+  non-ASCII were left (not emitted, no crash risk)._
+
+→ Batch 8 concrete items (U1, U2) drained; run a fresh PINNED TAIL audit to refill next.
 
 _Batches 1–2 drained 2026-06-23 (in-process embeddings, first-run UX, package verify, semantic-FAQ +
 tutorial 05, list-ops, `sutrac repl`; tutorial 01/04 fixes, stale-count sweep, onboarding polish).

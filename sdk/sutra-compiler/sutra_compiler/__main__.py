@@ -335,7 +335,7 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int,
             # The substrate program is the body of main(); a file without one
             # has nothing to run. Say so rather than exiting silently with no
             # output (a newcomer otherwise can't tell why nothing happened).
-            print(f"{path}: no main() found — nothing to run", file=sys.stderr)
+            print(f"{path}: no main() found - nothing to run", file=sys.stderr)
     except Exception as exc:
         # A runtime error in the generated module — e.g. a type mismatch the v0.1
         # validator can't catch yet — should read like a Sutra diagnostic, not an
@@ -400,7 +400,7 @@ def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
     # Inject tracing shim: after the _VSA = _TorchVSA(...) line,
     # wrap every method with a tracing version.
     shim = '''
-# ── Tracing shim (injected by --run-viz) ──
+# -- Tracing shim (injected by --run-viz) --
 _orig_embed = _VSA.embed
 _orig_bind = _VSA.bind
 _orig_unbind = _VSA.unbind
@@ -430,7 +430,7 @@ _VSA.embed = _traced_embed
 _VSA.bind = _traced_bind
 _VSA.unbind = _traced_unbind
 _VSA.bundle = _traced_bundle
-# ── End tracing shim ──
+# -- End tracing shim --
 '''
     # Find the _VSA = _TorchVSA(...) line and inject after it
     lines = py_src.split('\n')
@@ -567,7 +567,7 @@ def main(argv: List[str] | None = None) -> int:
         help=(
             "Compile the first input file to self-contained torch Python and "
             "print it to stdout. Picks CUDA at module init if available; "
-            "falls back to CPU otherwise. This is the one main codegen target — "
+            "falls back to CPU otherwise. This is the one main codegen target - "
             "PyTorch is the runtime and the tensor-op library Sutra compiles "
             "against."
         ),
@@ -590,7 +590,7 @@ def main(argv: List[str] | None = None) -> int:
             "stdout. The default PyTorch path (--emit/--run) is untouched; this is "
             "the Extropic thermodynamic-sampling compile target (queue.md approach "
             "G). Requires jax + the thrml submodule. Lowering coverage is the "
-            "validated subset only — see codegen_thrml.py."
+            "validated subset only - see codegen_thrml.py."
         ),
     )
     parser.add_argument(
