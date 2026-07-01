@@ -1,3 +1,13 @@
+## 2026-07-01: FV Lean — lazy-uniform kernel (instance part b1: def + apply + reversibility + nonneg)
+
+Concrete n-state chain for the conductance route, CI-green (`fv-lean-mathlib-ci` run 28542653253),
+all `[propext, Classical.choice, Quot.sound]`, no `sorryAx`: `lazyUnifP ε s t = (1−ε)·[s=t] + ε/n`
+with `lazyUnif_apply` ((Pf)_s = (1−ε)f_s + (ε/n)∑f), `lazyUnifP_db` (reversible w.r.t. unifPi by
+indicator symmetry), `lazyUnifP_nonneg` (0≤ε≤1). CI caught: `if s = t` needs `[DecidableEq S]`
+(Fintype doesn't imply it) — added to the def + lemmas. Next (b2): row-stochastic + min-edge
+(δ=ε/n²) + laziness, then `unif_poincare` (γ=δn²=ε) + `geometric_decay_of_poincare_lazy` ⇒
+`‖(lazyUnifP ε)ⁿ f‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π`, no measured input.
+
 ## 2026-07-01: FV Lean — uniform-π conductance Poincaré bound γ=δn²
 
 Composed the conductance blocks into the uniform-chain Poincaré constant. `Convergence.lean`,
