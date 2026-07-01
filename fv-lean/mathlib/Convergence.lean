@@ -397,10 +397,8 @@ theorem energy_gen_summable (π : S → ℝ) (P : S → S → ℝ) (r z : ℝ)
       _ = normPiSq π f * (r * z) ^ n := by rw [mul_pow]; ring
   have hnonneg : ∀ n, 0 ≤ normPiSq π (iterP P n f) * z ^ n := fun n =>
     mul_nonneg (normPiSq_nonneg π _ hπ) (pow_nonneg hz0 n)
-  have hnorm : ‖r * z‖ < 1 := by
-    rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg hr0 hz0)]; exact hrz
   have hsum_geo : Summable (fun n => normPiSq π f * (r * z) ^ n) :=
-    (summable_geometric_of_norm_lt_one hnorm).mul_left (normPiSq π f)
+    (summable_geometric_of_lt_one (mul_nonneg hr0 hz0) hrz).mul_left (normPiSq π f)
   exact Summable.of_nonneg_of_le hnonneg hbound hsum_geo
 
 /-- **The chain settles (contraction ⇒ `G(1)` converges).** When `r < 1` the pole radius
@@ -428,8 +426,7 @@ theorem loop_energy_gen_summable (π : S → ℝ) (R : S → S → ℝ) (z : ℝ
               = (fun n => normPiSq π f * z ^ n) := by
     funext n; rw [loop_norm_preserved π R hiso f n]
   rw [hconst]
-  have hnorm : ‖z‖ < 1 := by rw [Real.norm_eq_abs, abs_of_nonneg hz0]; exact hz1
-  exact (summable_geometric_of_norm_lt_one hnorm).mul_left (normPiSq π f)
+  exact (summable_geometric_of_lt_one hz0 hz1).mul_left (normPiSq π f)
 
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
