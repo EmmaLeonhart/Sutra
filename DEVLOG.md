@@ -1,3 +1,33 @@
+## 2026-06-30: FV Lean — spectral CAPSTONE proved (scalar Rayleigh gap ⇒ one-step L²(π) contraction)
+
+Closed the last open leg of the `Sutra.Convergence` spine — the numerical-radius =
+operator-norm step for the self-adjoint transition operator. `fv-lean/mathlib/Convergence.lean`,
+CI-green on `ubuntu-latest` (`fv-lean-mathlib-ci` run 28486967459), all new results
+`[propext, Classical.choice, Quot.sound]`, **no `sorryAx`**:
+
+- `applyP_gap_contraction` — reversible + row-stochastic + a *scalar* Dirichlet/Rayleigh gap
+  `|⟨Ph,h⟩_π| ≤ (1−γ)‖h‖²_π` on the mean-zero subspace ⇒ the one-step contraction
+  `‖Pf‖²_π ≤ (1−γ)²‖f‖²_π`. This is exactly `geometric_convergence`'s `hgap` (with
+  `r = (1−γ)²`), so **gap ⇒ geometric decay is now fully closed in Lean** with the gap as a
+  scalar Rayleigh hypothesis that the measured `γ = 0.0397` instantiates.
+- Route (all elementary, no finite-dim spectral theorem): `rayleigh_polar_bound` — polarization
+  (`innerPi_polarization`) + the Rayleigh gap on `f±g` + `normPiSq_parallelogram` gives
+  `2⟨Pf,g⟩_π ≤ (1−γ)(‖f‖²+‖g‖²)_π` for every mean-zero `g`; then instantiate `g = t·Pf`
+  (mean-zero by `applyP_preserves_piMean`) for all `t` and read off the discriminant of the
+  nonnegative quadratic (`quad_to_bound`, the same `discrim_le_zero` pattern as
+  `innerPi_cauchy_schwarz`).
+- Supporting lemmas: `piMean_add/sub/smul`, `normPiSq_smul`.
+- CI caught one real error first pass (`neg_le_of_abs_le` is `|a|≤b → -b≤a` in this mathlib,
+  not `-a≤b`) — fixed by taking both bounds from `abs_le.mp`. Cannot build locally (Windows
+  MAX_PATH on the nested mathlib olean paths); CI is the checker, as flagged.
+- Honest boundary (unchanged, now sharper): the scalar gap `γ` for the *concrete* eight-state
+  kernel is still a measured input — computing a machine-checked `λ₂`/eigenvalue bound that
+  discharges the Rayleigh hypothesis from the matrix entries is the one remaining Gibbs-side
+  open item. The `r=1` deterministic-loop boundary is already `loop_norm_preserved`.
+- Paper §7 + abstract updated: the self-adjoint → **scalar-gap ⇒ contraction** → decay chain
+  is now three machine-checked legs, and the "genuinely open" list narrowed accordingly.
+- Resolves `planning/open-questions/fv-convergence-spectral-gap-leg.md`.
+
 ## 2026-06-29: FV Lean — general-finite-state reversible self-adjointness (multi-state gap foundation)
 
 Barreling the Lean work (Emma: gate lifted, Lean IS the checker, be confident). Built the
