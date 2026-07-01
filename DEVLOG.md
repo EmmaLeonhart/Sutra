@@ -1,3 +1,20 @@
+## 2026-06-30: Usability (Batch 9 F1) — `function main()` diagnostic steers to the typed form
+
+Error-message audit round. Probed common first-hour mistakes; one actively misdirected: `function main()`
+(return type omitted — a top newcomer mistake since most languages allow it) produced
+`expected function name, got \`(\` [SUT0100]`. Sutra's grammar is `function <type> <name>(...)`, so
+`_parse_type` consumed `main` as the return type and the trailing `(` tripped the name check — the
+diagnostic pointed at `(` and named the wrong problem.
+
+Fix (`parser.py` `_parse_function_decl`): after parsing the return type, if a `(` follows immediately and
+the type is a bare name (no generic args), emit **SUT0106** `function \`<name>\` is missing a return type`
+anchored at the name, with hint `functions declare their return type first: \`function <type> <name>(...)\`
+(e.g. \`function string <name>()\`)`. Sound because Sutra has no valid `function <name>()` form, so the tell
+is unambiguous — verified no false positives: all 50 examples validate clean, and valid / generic
+(`function T Identity<T>(...)`) / function-typed-param (`function int call(function f, int v)`) decls are
+unaffected. Added 2 regression tests to `test_parser.py` (48 pass); 146 parser/function/decl/diagnostic/cli
+tests green.
+
 ## 2026-06-30: Usability (Batch 8 U2) — CLI/REPL output hardened for non-UTF-8 consoles
 
 `sutrac --help` and `sutrac repl` crashed with `UnicodeEncodeError` on the em-dash (U+2014) when
