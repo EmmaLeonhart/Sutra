@@ -1,3 +1,23 @@
+## 2026-07-01: FV Lean — lazy-uniform n-state chain fully discharged via conductance (γ=ε, no input)
+
+Closed the concrete conductance instance (part b2), CI-green (`fv-lean-mathlib-ci` run 28544161443),
+all `[propext, Classical.choice, Quot.sound]`, no `sorryAx`:
+
+- `lazyUnifP_row` — row-stochastic (`(1−ε) + n·(ε/n) = 1`).
+- `lazyUnifP_min_edge` — every off-diagonal edge weight is exactly `ε/n²`, so `ε/n² ≤ π_s P_{st}` there.
+- `lazyUnifP_lazy` — laziness `0 ≤ ⟨Ph,h⟩_π` via the closed form `(1−ε)/n·∑h² + ε/n²·(∑h)²`.
+- `lazyUnif_geometric_decay` — the payoff: `unif_poincare` gives Poincaré constant `(ε/n²)·n² = ε`,
+  fed to `geometric_decay_of_poincare_lazy` ⇒ `‖(lazyUnifP ε)ⁿ f‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π` on the
+  mean-zero subspace.
+
+So a **genuine n-state (any finite S) reversible+lazy chain is now closed end-to-end via the
+Cheeger/conductance method — γ=ε COMPUTED from the matrix entries, no measured input, no spectral
+theorem.** This is the multi-state analogue of `twoState_geometric_decay`, and it exercises the whole
+conductance pipeline (sum_sq_diff → dirichlet_raw_ge_of_min_edge → unif_poincare → engine). Distinct
+from the 8-state Gibbs kernel, whose exact γ=0.0397 stays a transcendental measurement. b1's CI catch
+(`if s=t` needs `[DecidableEq S]`) carried through. Next Cheeger frontier: the non-uniform Gibbs case
+(path/comparison + rational `exp(−βE)` bounds — the genuinely hard remainder).
+
 ## 2026-07-01: FV Lean — lazy-uniform kernel (instance part b1: def + apply + reversibility + nonneg)
 
 Concrete n-state chain for the conductance route, CI-green (`fv-lean-mathlib-ci` run 28542653253),

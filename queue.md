@@ -148,12 +148,14 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    `δ∑(f_s−f_t)² ≤ ∑π_s P_{st}(f_s−f_t)²`, no `sorryAx`) — together lower-bound E(f) by δ(n∑f²−(∑f)²).
    **UNIFORM-π POINCARÉ DONE 2026-07-01, CI-green** (`unif_poincare`, no `sorryAx`): uniform π + per-edge
    `δ≤π_s P_{st}` ⇒ `(δn²)‖f‖²_π ≤ E(f)` on mean-zero f — the conductance⇒gap step, no spectral theorem;
-   feeds `geometric_decay_of_poincare_lazy`. **STILL OPEN (in progress):** (a1b) the concrete lazy-uniform
-   kernel `(1−ε)[s=t]+ε/n` as a named n-state instance (`δ=ε/n²` ⇒ γ=ε ⇒ `‖Pⁿf‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π`,
-   no measured input) — next; (a2) the non-uniform Gibbs 8-state case (path/comparison + rational
-   lower bounds on `exp(−βE)`; γ=0.0397 stays measured — transcendental — but a positive lower bound is the
-   target); (c) continuous-space overdamped Langevin `dX=−∇U dt+√(2/β)dW` — needs SDE/measure
-   theory, out of mathlib-light reach (deferred). **Spec for what's needed:
+   feeds `geometric_decay_of_poincare_lazy`. **LAZY-UNIFORM n-STATE INSTANCE DONE 2026-07-01, CI-green**
+   (`lazyUnifP` + `lazyUnif_apply`/`_db`/`_nonneg`/`_row`/`_min_edge`/`_lazy` + `lazyUnif_geometric_decay`,
+   no `sorryAx`): a genuine n-state reversible+lazy chain closed end-to-end via conductance — `δ=ε/n²` ⇒
+   γ=ε ⇒ `‖Pⁿf‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π`, γ COMPUTED from matrix entries, no measured input, no spectral
+   theorem. Paper §7 updated (triggers re-review). **STILL OPEN:** (a2) the non-uniform Gibbs 8-state case
+   (path/comparison + rational lower bounds on `exp(−βE)`; γ=0.0397 stays measured — transcendental — but a
+   positive lower bound is the target — the genuinely HARD remainder); (c) continuous-space overdamped
+   Langevin `dX=−∇U dt+√(2/β)dW` — needs SDE/measure theory, out of mathlib-light reach (deferred). **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
    multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
    cite no numbers until measured/proved. **PREREQ:** the mathlib layer (`fv-lean/mathlib/`) is

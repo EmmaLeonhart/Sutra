@@ -1027,11 +1027,22 @@ f\rVert_\pi^2$ (`gap_of_poincare_lazy`, `geometric_decay_of_poincare_lazy`) — 
 This is a reusable engine parameterized by the Poincaré constant $\gamma$: a concrete chain closes
 end to end by supplying $\gamma$ from the elementary per-edge form.
 
+The conductance route is exercised end to end on a genuine **multi-state** chain: for the
+lazy-uniform kernel on any finite state space (stay w.p. $1-\varepsilon$, else jump uniformly),
+every off-diagonal edge weight equals $\varepsilon/n^2$, so the complete-graph Dirichlet identity
+$\sum_{s,t}(f_s-f_t)^2=2n\sum f_s^2-2(\sum f)^2$ (`sum_sq_diff`) and the per-edge bound
+(`dirichlet_raw_ge_of_min_edge`) give the Poincaré constant $\gamma=(\varepsilon/n^2)\cdot n^2
+=\varepsilon$ (`unif_poincare`), and `lazyUnif_geometric_decay` closes $\lVert P^n f\rVert_\pi^2\le
+((1-\varepsilon)^2)^n\lVert f\rVert_\pi^2$ — an $n$-state chain, $\gamma$ **computed from the matrix
+entries**, no measured input and no spectral theorem (all `sorry`-free, CI-checked). This is the
+multi-state analogue of the two-state instance; it does not use the eight-state Gibbs kernel, whose
+exact $\gamma=0.0397$ remains a transcendental measurement.
+
 What remains genuinely open, named not claimed: (i) discharging the Rayleigh hypothesis the
-same way for the specific **eight-state** kernel — a per-edge (Cheeger/conductance) lower bound on
-$\gamma$ for that operator (the general Poincaré$\Rightarrow$decay engine and the two-state case are
-done; the eight-state $\gamma=0.0397$ is still taken as the measured input, its exact eigenvalue
-being transcendental); and (ii) the continuous-*space* overdamped
+same way for the specific **eight-state Gibbs** kernel — a per-edge (Cheeger/conductance) lower bound on
+$\gamma$ for that operator (the general Poincaré$\Rightarrow$decay engine, the two-state case, and a
+closed-form multi-state instance are done; the eight-state $\gamma=0.0397$ is still taken as the
+measured input, its exact eigenvalue being transcendental); and (ii) the continuous-*space* overdamped
 Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$ on a relaxed energy. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
 measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled
