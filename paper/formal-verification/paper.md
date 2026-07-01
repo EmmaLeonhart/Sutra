@@ -1025,7 +1025,13 @@ on the mean-zero subspace together with laziness ($\langle Pf,f\rangle_\pi\ge0$)
 two-sided Rayleigh gap and hence geometric decay $\lVert P^n f\rVert_\pi^2\le((1-\gamma)^2)^n\lVert
 f\rVert_\pi^2$ (`gap_of_poincare_lazy`, `geometric_decay_of_poincare_lazy`) — all `sorry`-free, CI-checked.
 This is a reusable engine parameterized by the Poincaré constant $\gamma$: a concrete chain closes
-end to end by supplying $\gamma$ from the elementary per-edge form.
+end to end by supplying $\gamma$ from the elementary per-edge form. That constant itself is now
+reduced to a **conductance** condition with no uniformity assumption: via the $\pi$-weighted variance
+identity $\sum_{s,t}\pi_s\pi_t(f_s-f_t)^2=2\lVert f\rVert_\pi^2$ (`piVar_eq`, for a probability law on
+the mean-zero subspace), a per-edge *ratio* bound $\kappa\le P_{st}/\pi_t$ yields the Poincaré
+constant $\gamma=\kappa$ for any reversible chain (`gen_poincare`, subsuming the uniform case) —
+so the Lean spectral gap of an arbitrary finite reversible chain reduces to the elementary quantity
+$\min_{s\ne t}P_{st}/\pi_t$, again with no finite-dimensional spectral theorem.
 
 The conductance route is exercised end to end on a genuine **multi-state** chain: for the
 lazy-uniform kernel on any finite state space (stay w.p. $1-\varepsilon$, else jump uniformly),

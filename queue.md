@@ -152,9 +152,16 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    (`lazyUnifP` + `lazyUnif_apply`/`_db`/`_nonneg`/`_row`/`_min_edge`/`_lazy` + `lazyUnif_geometric_decay`,
    no `sorryAx`): a genuine n-state reversible+lazy chain closed end-to-end via conductance — `δ=ε/n²` ⇒
    γ=ε ⇒ `‖Pⁿf‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π`, γ COMPUTED from matrix entries, no measured input, no spectral
-   theorem. Paper §7 updated (triggers re-review). **STILL OPEN:** (a2) the non-uniform Gibbs 8-state case
-   (path/comparison + rational lower bounds on `exp(−βE)`; γ=0.0397 stays measured — transcendental — but a
-   positive lower bound is the target — the genuinely HARD remainder); (c) continuous-space overdamped
+   theorem. **GENERAL-π CONDUCTANCE POINCARÉ DONE 2026-07-01, CI-green** (`piVar_eq` +
+   `dirichlet_ge_of_edge_ratio` + `gen_poincare`, no `sorryAx`): for ANY probability reversible chain, a
+   per-edge ratio `κ≤P_{st}/π_t` ⇒ Poincaré γ=κ ⇒ geometric decay (via the π-weighted variance identity;
+   subsumes unif_poincare; no spectral theorem, no uniformity). Paper §7 updated. **The FV conductance
+   gap⇒decay theory is COMPLETE** — any finite reversible chain's Lean spectral gap reduces to the
+   elementary per-edge ratio `κ=min_{s≠t} P_{st}/π_t`. clawRxiv reached **Accept** this session.
+   **STILL OPEN — EMMA-GATED (loop paused here 2026-07-01, notified):** (a2) the LITERAL 8-state Gibbs γ —
+   formalize the concrete AND-gadget kernel + rational-lower-bound its transcendental `exp(−βE)` entries to
+   extract a numeric κ (large, transcendental-arithmetic-heavy, no bounded increment; γ=0.0397 stays
+   measured); (c) continuous-space overdamped
    Langevin `dX=−∇U dt+√(2/β)dW` — needs SDE/measure theory, out of mathlib-light reach (deferred). **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
    multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
