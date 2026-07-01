@@ -2,10 +2,10 @@
 //
 // A sequence of tokens is stored as one flat vector:
 //
-//   encode(seq) = bundle(bind(token_0, pos_0),
-//                        bind(token_1, pos_1),
+//   encode(seq) = bundle(bind(pos_0, token_0),
+//                        bind(pos_1, token_1),
 //                        ...,
-//                        bind(token_N-1, pos_N-1))
+//                        bind(pos_N-1, token_N-1))
 //
 // Decoding the token at position i:
 //
@@ -13,11 +13,11 @@
 //       unbind(pos_i, record),
 //       token_codebook)
 //
-// In bind(filler, role), the filler (first argument) carries the
-// real-valued magnitude pattern that survives unbinding. The role
-// (second argument) is the lookup key. Here the token is the
-// filler and the position is the role, so unbinding by position
-// recovers the token.
+// In bind(role, filler) — Sutra's role-first convention — the role
+// (first argument) is the lookup key that seeds the rotation; the
+// filler (second argument) carries the real-valued magnitude pattern
+// that survives unbinding. Here the position is the role and the token
+// is the filler, so unbinding by position recovers the token.
 //
 // Two sequences share a single token codebook. Each is encoded into
 // a 256-dim vector and decoded position by position. This is the
