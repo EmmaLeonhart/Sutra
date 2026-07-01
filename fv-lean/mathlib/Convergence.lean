@@ -746,24 +746,25 @@ Gibbs kernel (whose entries are `exp(−βE)/Z`) via rational lower bounds on th
 theorem sum_sq_diff (f : S → ℝ) :
     ∑ s, ∑ t, (f s - f t) ^ 2
       = 2 * (Fintype.card S : ℝ) * (∑ s, f s * f s) - 2 * (∑ s, f s) * (∑ s, f s) := by
-  have hpt : ∀ s, ∑ t, (f s - f t) ^ 2
-           = (∑ t, f s * f s) - 2 * (∑ t, f s * f t) + (∑ t, f t * f t) := by
+  have hpt : ∀ s : S, ∑ t, (f s - f t) ^ 2
+           = (∑ _t : S, f s * f s) - 2 * (∑ t, f s * f t) + (∑ t, f t * f t) := by
     intro s
     rw [Finset.mul_sum, ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
     exact Finset.sum_congr rfl (fun t _ => by ring)
-  have hSS : ∑ s, ∑ t, f s * f s = (Fintype.card S : ℝ) * ∑ s, f s * f s := by
+  have hSS : ∑ s, ∑ _t : S, f s * f s = (Fintype.card S : ℝ) * ∑ s, f s * f s := by
     rw [Finset.mul_sum]
     refine Finset.sum_congr rfl (fun s _ => ?_)
     rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-  have hTT : ∑ s, ∑ t, f t * f t = (Fintype.card S : ℝ) * ∑ s, f s * f s := by
+  have hTT : ∑ _s : S, ∑ t, f t * f t = (Fintype.card S : ℝ) * ∑ s, f s * f s := by
     rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   have hST : ∑ s, ∑ t, f s * f t = (∑ s, f s) * (∑ s, f s) := by
-    have hin : ∀ s, ∑ t, f s * f t = f s * (∑ t, f t) := fun s => by rw [Finset.mul_sum]
+    have hin : ∀ s : S, ∑ t, f s * f t = f s * (∑ t, f t) := fun s => by rw [Finset.mul_sum]
     rw [Finset.sum_congr rfl (fun s _ => hin s), ← Finset.sum_mul]
   have hmerge : ∑ s, ∑ t, (f s - f t) ^ 2
-      = (∑ s, ∑ t, f s * f s) - 2 * (∑ s, ∑ t, f s * f t) + (∑ s, ∑ t, f t * f t) := by
+      = (∑ s, ∑ _t : S, f s * f s) - 2 * (∑ s, ∑ t, f s * f t)
+        + (∑ _s : S, ∑ t, f t * f t) := by
     calc ∑ s, ∑ t, (f s - f t) ^ 2
-        = ∑ s, ((∑ t, f s * f s) - 2 * (∑ t, f s * f t) + (∑ t, f t * f t)) :=
+        = ∑ s, ((∑ _t : S, f s * f s) - 2 * (∑ t, f s * f t) + (∑ t, f t * f t)) :=
           Finset.sum_congr rfl (fun s _ => hpt s)
       _ = _ := by rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
   rw [hmerge, hSS, hST, hTT]; ring
