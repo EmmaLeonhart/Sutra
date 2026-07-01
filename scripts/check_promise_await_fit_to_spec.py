@@ -24,6 +24,8 @@ Run directly: `python scripts/check_promise_await_fit_to_spec.py`.
 """
 from __future__ import annotations
 
+import importlib
+import os
 import re
 import subprocess
 import sys
@@ -33,6 +35,52 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CODEGEN = REPO_ROOT / "sdk" / "sutra-compiler" / "sutra_compiler" / "codegen_pytorch.py"
 TEST_FILE = "tests/test_await_substrate_pure.py"
 COMPILER_DIR = REPO_ROOT / "sdk" / "sutra-compiler"
+
+# Deps the regression tests need to actually execute a compiled .su end-to-end.
+# `torch`, `numpy` come from `sutra-dev[runtime]`; `sentence_transformers`,
+# `einops` come from `sutra-dev[embed]` and let embedding happen in-process
+# so no Ollama daemon is required. The daily-audit container has been running
+# without Ollama for months; this bootstrap makes that legitimate — the
+# in-process backend loads the same frozen nomic-embed-text weights.
+_REQUIRED_IMPORTS = (
+    ("torch", "torch>=2.1"),
+    ("numpy", "numpy>=1.26"),
+    ("sentence_transformers", "sentence-transformers>=3.0"),
+    ("einops", "einops>=0.7"),
+    ("pytest", "pytest"),
+)
+
+
+def bootstrap_deps() -> list[str]:
+    """Pip-install any missing regression-test dependency. Returns the list of
+    packages actually installed (empty = already present).
+
+    Idempotent: import first, install only what's missing. Runs `pip install`
+    with `--quiet`; stdout/stderr surface only on failure.
+    """
+    missing: list[str] = []
+    for mod, pkg in _REQUIRED_IMPORTS:
+        try:
+            importlib.import_module(mod)
+        except ImportError:
+            missing.append(pkg)
+    if not missing:
+        return []
+    print(f"  installing missing deps: {missing}")
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "--quiet", *missing],
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    if result.returncode != 0:
+        print("  pip install FAILED:")
+        print(result.stdout)
+        print(result.stderr)
+        raise RuntimeError(f"bootstrap failed: {missing}")
+    # Invalidate finder caches so newly-installed modules import cleanly.
+    importlib.invalidate_caches()
+    return missing
 
 # The two host-poll-loop signatures the 2026-05-17 fix removed.
 # Both must remain absent from await_value's emission.
@@ -85,18 +133,27 @@ def check_codegen() -> list[str]:
 
 
 def run_regression_tests() -> tuple[bool, str]:
-    """Run tests/test_await_substrate_pure.py. Returns (passed, output)."""
+    """Run tests/test_await_substrate_pure.py. Returns (passed, output).
+
+    Forces the in-process transformers embedding backend so this watchdog
+    never depends on an Ollama daemon (the daily-audit container has none).
+    conftest.py sets ollama via `setdefault`, so an explicit env var wins.
+    """
+    env = os.environ.copy()
+    env["SUTRA_EMBED_BACKEND"] = "transformers"
+    env.setdefault("SUTRA_QUIET", "1")
     try:
         result = subprocess.run(
             [sys.executable, "-m", "pytest", TEST_FILE, "-v", "--tb=short"],
             cwd=str(COMPILER_DIR),
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=600,
+            env=env,
         )
         return result.returncode == 0, result.stdout + result.stderr
     except subprocess.TimeoutExpired as e:
-        return False, f"TIMEOUT after 120s: {e}"
+        return False, f"TIMEOUT after 600s: {e}"
     except Exception as e:  # pragma: no cover
         return False, f"EXCEPTION: {e!r}"
 
@@ -119,6 +176,19 @@ def main() -> int:
             print(f"      {msg}")
     else:
         print("[1/2] codegen lint  PASS (no leak signature in await_value emission)")
+
+    print("[bootstrap] ensuring test deps present...")
+    try:
+        installed = bootstrap_deps()
+    except RuntimeError as e:
+        print(f"[bootstrap] FAIL: {e}")
+        print()
+        print("RESULT: AUDIT COULD NOT RUN — bootstrap failure.")
+        return 1
+    if installed:
+        print(f"[bootstrap] installed {installed}")
+    else:
+        print("[bootstrap] all deps present")
 
     print("[2/2] regression tests  running...")
     tests_ok, output = run_regression_tests()

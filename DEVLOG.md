@@ -1,3 +1,24 @@
+## 2026-07-01: daily audit watchdog no longer needs an Ollama daemon (use the in-process embedding backend that already exists)
+
+The daily audit script `scripts/check_promise_await_fit_to_spec.py` — the watchdog for
+Audit REAL LEAK #3 (promise/await bounded-poll leak) — has been flagging its regression-tests
+leg as "could not run: no Ollama daemon in the container" for months, because the compiler
+tests' `conftest.py` hard-pins `SUTRA_EMBED_BACKEND=ollama` and the daily-audit container
+has no Ollama service. Emma's call: this isn't hard, and we don't need Ollama here — the
+in-process sentence-transformers backend that landed 2026-06-22
+(`sutra_compiler/embedding.py`, backend `transformers`) loads the same frozen
+`nomic-embed-text` weights directly and works without a daemon. Two changes:
+(1) the watchdog forces `SUTRA_EMBED_BACKEND=transformers` + `SUTRA_QUIET=1` in the pytest
+subprocess env, so it never even tries Ollama (conftest uses `setdefault`, explicit wins);
+(2) it self-bootstraps its dependencies with `pip install` — `torch numpy
+sentence-transformers einops pytest` — idempotent, only installs what's missing. Verified:
+promise/await watchdog now runs clean end-to-end in this Ollama-less container (codegen
+lint PASS + 4/4 regression tests PASS, no host-scalar leak in await_value). Earlier
+today's audit line ("partial-clean … regression tests could not run") remains in the log
+as the accurate historical record of the pre-fix state; the next day's audit will run
+fully. Substrate leak sweep already worked (79 .su compiled, 0 user + 0 runtime-prelude
+leaks) because pure compilation doesn't need an embedder.
+
 ## 2026-07-01 daily audit: partial-clean (79 .su compiled, 0 user + 0 runtime-prelude leaks; 17 open-questions checked, 0 resolved-elsewhere; promise/await codegen lint PASS — regression tests could not run because container has no Ollama daemon, cannot report fit-to-spec on the runtime semantics leg)
 
 ## 2026-07-01: Usability audit converged (Batch 11) — stdlib reach + aliases clean; loop wound down
