@@ -303,15 +303,15 @@ theorem rayleigh_polar_bound (π : S → ℝ) (P : S → S → ℝ) (c : ℝ)
     2 * innerPi π (applyP P f) g ≤ c * (normPiSq π f + normPiSq π g) := by
   have hfg0 : piMean π (f + g) = 0 := by rw [piMean_add, hf0, hg0]; ring
   have hfmg0 : piMean π (f - g) = 0 := by rw [piMean_sub, hf0, hg0]; ring
-  have b1 : innerPi π (applyP P (f + g)) (f + g) ≤ c * normPiSq π (f + g) :=
-    le_of_abs_le (hray (f + g) hfg0)
-  have b2 : -(innerPi π (applyP P (f - g)) (f - g)) ≤ c * normPiSq π (f - g) :=
-    neg_le_of_abs_le (hray (f - g) hfmg0)
+  -- `|⟨Ph,h⟩_π| ≤ c‖h‖²_π` gives both an upper bound on `⟨P(f+g),f+g⟩_π` and a lower bound
+  -- on `⟨P(f−g),f−g⟩_π` — the two pieces the polarization difference needs.
+  have hb1 := abs_le.mp (hray (f + g) hfg0)
+  have hb2 := abs_le.mp (hray (f - g) hfmg0)
   have e := innerPi_polarization π P hdb f g
   have par := normPiSq_parallelogram π f g
   have parc : c * (normPiSq π (f + g) + normPiSq π (f - g))
             = c * (2 * normPiSq π f + 2 * normPiSq π g) := by rw [par]
-  nlinarith [e, b1, b2, parc]
+  nlinarith [e, hb1.1, hb1.2, hb2.1, hb2.2, parc]
 
 /-- Pure real-arithmetic core of the capstone: a quadratic `c·a·t² − 2a·t + c·b ≥ 0` for all
     `t` (with `a,b,c ≥ 0`) forces `a ≤ c²·b`, by the discriminant (Cauchy–Schwarz) argument
