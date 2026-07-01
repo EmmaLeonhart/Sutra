@@ -330,3 +330,9 @@ Emma's calibration on when "push to remote" appears: *she wouldn't say it during
 ## Cron + task requests: schedule the cron immediately, do the task now
 
 When Emma asks for a cron job at a given time AND a separate independent task in the same message: set up the cron IMMEDIATELY and do NOT ask questions about it or try to work out what it will do — the firing session figures that out when the time hits. The other task is genuinely urgent and must be done right away. This is a common, always-intentional request from Emma; spending time figuring out the cron's intent actively harms the urgent task. Just schedule the cron with whatever (even terse) description she gave, then go straight to the urgent task.
+
+## Long command series run in strict order
+When Emma gives a long series of commands, treat it as a long series of commands to be
+executed in relatively STRICT ORDER, one after another, EVEN IF the order seems not to
+make sense or seems inefficient. The sequencing is intentional — she organizes the steps
+so states change in the order she wants. Do not reorder, merge, or skip steps.
