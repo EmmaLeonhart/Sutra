@@ -1,3 +1,24 @@
+## 2026-06-30: Usability (Batch 10 A1) — `bind` argument order made consistent (role-first everywhere)
+
+Example-readability audit round. The `.su` examples are idiomatic and richly commented; the one real gap
+was a cross-surface inconsistency in the `bind`/`unbind` argument-order convention. Ground truth is
+role-first: `bind(role, filler) = Q_role @ filler` (codegen_pytorch.py, comment "matches numpy backend and
+the .su demos"), and the public surface agrees (docs/operators.md `bind(role, filler)`; tutorial 02 states
+"role-first… Sutra is consistent on this"; knowledge_graph.su, memory.md, rotation_hashmap.su all role-first).
+
+Two outliers contradicted that, and would confuse a newcomer reading them next to the tutorial's
+"consistent on this" claim:
+- `examples/sequence.su`: header formula wrote `bind(token_i, pos_i)` and prose said "In bind(filler, role),
+  the filler (first argument)…" — filler-first — even though its CODE is correct role-first `bind(pos, token)`
+  with `unbind(pos, record)`. Only the comments were wrong; fixed them to role-first (position = role, token
+  = filler). No code change; still validates; smoke behavior unchanged.
+- spec `planning/sutra-spec/binding.md`: wrote `bind(filler, R) = R @ filler` / `unbind(record, R)` —
+  filler-first notation. Aligned to `bind(role, filler) = R_role @ filler` + an explicit role-first note
+  (CLAUDE.md rule 5: resolve spec/impl disagreement rather than leave it).
+
+Verified no residual filler-first/token-first `bind(` mislabels across examples/ docs/ planning/sutra-spec/.
+Every surface — implementation, spec, docs, tutorials, all examples — now presents bind role-first.
+
 ## 2026-06-30: Usability (Batch 9 F1) — `function main()` diagnostic steers to the typed form
 
 Error-message audit round. Probed common first-hour mistakes; one actively misdirected: `function main()`

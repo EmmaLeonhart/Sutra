@@ -3,9 +3,13 @@
 Every `bind` in Sutra is **matrix-vector multiplication**:
 
 ```
-bind(filler, R) = R @ filler
-unbind(record, R) = R⁻¹ @ record
+bind(role, filler)  = R_role @ filler
+unbind(role, record) = R_role⁻¹ @ record
 ```
+
+Argument order is **role-first** — the role is the first argument at the surface
+(`bind(role, filler)`, `unbind(role, record)`), matching the implementation
+(`codegen_pytorch.py`) and the public docs. `R_role` is the rotation seeded by `role`.
 
 A record is the sum of bound role-filler pairs:
 

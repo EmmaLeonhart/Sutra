@@ -159,6 +159,25 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
+## Batch 10 — usability audit (2026-06-30, example/spec readability + consistency pass)
+
+Read example `.su` programs (idiomatic, richly commented — that surface is strong) and cross-checked the
+`bind`/`unbind` argument-order convention across examples, docs, and spec against the implementation.
+
+- _A1 DONE 2026-06-30 (history in DEVLOG): `bind` argument-order INCONSISTENCY. Ground truth is role-first
+  — `bind(role, filler) = Q_role @ filler` (codegen_pytorch.py; "matches numpy backend and the .su demos"),
+  and the public surface agrees (operators.md `bind(role, filler)`; tutorial 02 "role-first… Sutra is
+  consistent on this"; knowledge_graph.su; memory.md; rotation_hashmap.su). TWO outliers contradicted it:
+  (1) `examples/sequence.su` — its header wrote `bind(token_i, pos_i)` and prose "In bind(filler, role), the
+  filler (first argument)…" (filler-first), even though its CODE is correct role-first `bind(pos, token)`;
+  (2) spec `planning/sutra-spec/binding.md` wrote `bind(filler, R) = R @ filler` (filler-first notation).
+  Fixed both to role-first (doc/comment-only; no code change — sequence.su still validates, smoke behavior
+  unchanged). Now every surface (impl, spec, docs, tutorials, all examples) presents bind role-first, so a
+  newcomer reading any two doesn't hit a contradiction. Verified: no residual filler-first/token-first
+  `bind(` mislabels in examples/ docs/ planning/sutra-spec/._
+
+→ Batch 10: example readability strong; the one real gap was the bind arg-order doc inconsistency (A1).
+
 ## Batch 9 — usability audit (2026-06-30, error-message actionability pass)
 
 Probed the diagnostics a newcomer trips on their first hour (missing semicolon, missing return type,
