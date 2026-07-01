@@ -826,4 +826,49 @@ theorem unif_poincare [Nonempty S] (P : S → S → ℝ) (δ : ℝ)
 #print axioms unifPi
 #print axioms unif_poincare
 
+/-! ### Concrete instance: the lazy-uniform chain (γ = ε, computed via conductance)
+
+`lazyUnifP ε` stays put with probability `1−ε` and otherwise jumps to a uniformly random state;
+its stationary law is `unifPi`. It is reversible, lazy, and every off-diagonal edge weight is
+exactly `ε/n²`, so `unif_poincare` gives Poincaré constant `δ·n² = ε` and the decay engine closes
+`‖(lazyUnifP ε)ⁿ f‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π` — a genuine `n`-state chain, γ COMPUTED, no measured
+input. (A different, closed-form chain from the 8-state Gibbs kernel, whose exact γ=0.0397 stays a
+transcendental measurement.) -/
+
+/-- Lazy-uniform kernel: stay w.p. `1−ε`, else jump uniformly. `noncomputable` (real division). -/
+noncomputable def lazyUnifP (ε : ℝ) : S → S → ℝ :=
+  fun s t => (1 - ε) * (if s = t then 1 else 0) + ε / (Fintype.card S : ℝ)
+
+/-- Action of the lazy-uniform operator: `(Pf)_s = (1−ε)·f_s + (ε/n)·∑_t f_t`. -/
+theorem lazyUnif_apply (ε : ℝ) (h : S → ℝ) (s : S) :
+    applyP (lazyUnifP ε) h s = (1 - ε) * h s + (ε / (Fintype.card S : ℝ)) * ∑ t, h t := by
+  unfold applyP lazyUnifP
+  have hterm : ∀ t, ((1 - ε) * (if s = t then (1:ℝ) else 0) + ε / (Fintype.card S : ℝ)) * h t
+             = (1 - ε) * (if s = t then h t else 0) + (ε / (Fintype.card S : ℝ)) * h t := by
+    intro t; split_ifs <;> ring
+  rw [Finset.sum_congr rfl (fun t _ => hterm t), Finset.sum_add_distrib,
+      ← Finset.mul_sum, ← Finset.mul_sum, Finset.sum_ite_eq]
+  simp
+
+/-- The lazy-uniform chain is reversible w.r.t. the uniform law (symmetry of the indicator). -/
+theorem lazyUnifP_db (ε : ℝ) : DetailedBalance (unifPi : S → ℝ) (lazyUnifP ε) := by
+  intro s t
+  unfold unifPi lazyUnifP
+  by_cases hst : s = t
+  · rw [hst]
+  · rw [if_neg hst, if_neg (fun h => hst h.symm)]
+
+/-- The lazy-uniform kernel is nonnegative for `0 ≤ ε ≤ 1`. -/
+theorem lazyUnifP_nonneg (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1) (s t : S) :
+    0 ≤ lazyUnifP ε s t := by
+  unfold lazyUnifP
+  apply add_nonneg
+  · apply mul_nonneg (by linarith)
+    split_ifs <;> norm_num
+  · exact div_nonneg hε0 (Nat.cast_nonneg _)
+
+#print axioms lazyUnif_apply
+#print axioms lazyUnifP_db
+#print axioms lazyUnifP_nonneg
+
 end SutraConvergence
