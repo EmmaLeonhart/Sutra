@@ -1,3 +1,20 @@
+## 2026-07-01: FV Lean — Poincaré + laziness ⇒ geometric decay (the reusable multi-state engine)
+
+Assembled the Dirichlet bridge into the general gap⇒decay engine — the reusable piece any concrete
+reversible+lazy chain plugs into by supplying its own Poincaré constant. `Convergence.lean`, CI-green
+(`fv-lean-mathlib-ci` run 28536060558), both `[propext, Classical.choice, Quot.sound]`, no `sorryAx`:
+
+- `gap_of_poincare_lazy` — a Poincaré bound `γ‖h‖²_π ≤ E(h)` on mean-zero `h` gives the upper side
+  `⟨Ph,h⟩_π ≤ (1−γ)‖h‖²_π` (via `⟨Ph,h⟩_π = ‖h‖²_π − E(h)`), and laziness `0 ≤ ⟨Ph,h⟩_π` gives the
+  lower side, so `|⟨Ph,h⟩_π| ≤ (1−γ)‖h‖²_π` — exactly `applyP_gap_contraction`'s hypothesis (one
+  `nlinarith` off the Poincaré bound; no γ-range needed here).
+- `geometric_decay_of_poincare_lazy` — feeds that through `applyP_gap_contraction` +
+  `geometric_convergence_meanZero` ⇒ `‖Pⁿf‖²_π ≤ ((1−γ)²)ⁿ‖f‖²_π` for `γ ∈ [0,1]`.
+
+So the multi-state gap⇒decay chain is now fully general and machine-checked, parameterized by a
+Poincaré constant: the honest remaining work is bounding γ per-edge (Cheeger) for a concrete chain;
+the 8-state γ=0.0397 stays measured (transcendental eigenvalue) until that per-edge bound is built.
+
 ## 2026-07-01: FV Lean — Dirichlet-form bridge (8-state gap leg foundation; Emma green-lit)
 
 Emma green-lit the heavy FV legs. The exact 8-state γ=0.0397 is a transcendental eigenvalue

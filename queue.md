@@ -136,9 +136,14 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    reversible chain, `E(f)=½∑π_s P_{st}(f_s−f_t)² = ‖f‖²_π − ⟨f,Pf⟩_π`, so `⟨Pf,f⟩_π = ‖f‖²_π − E(f)` and a
    Poincaré bound `E(f) ≥ γ‖f‖²_π` on mean-zero f IS the Rayleigh gap feeding `applyP_gap_contraction`
    (elementary per-edge algebra, NO spectral theorem). This reduces the 8-state gap to a per-edge
-   Cheeger/conductance/Poincaré lower bound. **STILL OPEN:** compose Poincaré + laziness into the full
-   Rayleigh gap ⇒ decay; then the concrete *8-state* per-edge bound (γ=0.0397 stays measured — its exact
-   eigenvalue is transcendental `exp(−βE)`, no closed form); then continuous-space
+   Cheeger/conductance/Poincaré lower bound. **POINCARÉ⇒DECAY ENGINE DONE 2026-07-01, CI-green**
+   (`gap_of_poincare_lazy` + `geometric_decay_of_poincare_lazy`, no `sorryAx`): a Poincaré bound
+   `γ‖h‖²_π ≤ E(h)` on mean-zero h + laziness `⟨Ph,h⟩_π ≥ 0` ⇒ the full Rayleigh gap ⇒
+   `‖Pⁿf‖²_π ≤ ((1−γ)²)ⁿ‖f‖²_π` (γ∈[0,1]). The general multi-state gap⇒decay chain is now machine-checked,
+   parameterized by the Poincaré constant. Paper §7 updated (triggers re-review). **STILL OPEN:** the
+   concrete *8-state* per-edge (Cheeger) bound on γ (γ=0.0397 stays measured — its exact
+   eigenvalue is transcendental `exp(−βE)`, no closed form); a concrete small multi-state (e.g. symmetric
+   3-state) instance discharging its γ in closed form; then continuous-space
    overdamped Langevin `dX=−∇U dt+√(2/β)dW` (the continuous-time master-ODE decay is the discrete
    `geometric_convergence`'s analogue — lower priority). **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
