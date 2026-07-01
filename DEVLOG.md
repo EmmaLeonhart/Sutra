@@ -1,3 +1,21 @@
+## 2026-07-01: Usability audit converged (Batch 11) — stdlib reach + aliases clean; loop wound down
+
+Final audit rotation over the last unprobed surfaces, both found clean:
+- **stdlib reach / discoverability:** the documented list ops (`array_concat/map/filter/length/get`) match
+  the implementation exactly (codegen_pytorch.py); `hashmap_new/set/get` back `dict<K,V>`. No doc/impl
+  mismatch. New ops (reduce/reverse/slice) would be *features* (codegen + substrate semantics), not a
+  bounded usability fix — out of scope, not faked.
+- **aliases/affordances:** the retired set (basis_vector→embed, truth_value/complex_number/real_number→make_*,
+  unk→unknown, scalar type→number, iff→xnor) has NOT crept back into active code — every remaining hit is a
+  history/`was REMOVED` comment or "if-and-only-if" prose. No new dual-spelling redundancy.
+
+The usability audit has converged: across this session (Batches 8–11) docs leaks, dead links, pip extras,
+tutorial 01, CLI --help/no-args, console encoding, error messages, example/spec consistency, stdlib reach,
+and aliases were all covered — the shippable bounded items (U1, U2, F1, A1) are done. The remaining
+substantial Sutra work is the HEAVY FV-Lean legs (8-state λ₂ via the finite-dim spectral theorem;
+continuous-space Langevin) which need Emma's explicit go-ahead, so the autonomous loop wound down here and
+notified her rather than spinning on make-work.
+
 ## 2026-06-30: Usability (Batch 10 A1) — `bind` argument order made consistent (role-first everywhere)
 
 Example-readability audit round. The `.su` examples are idiomatic and richly commented; the one real gap
