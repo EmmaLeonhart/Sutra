@@ -751,6 +751,25 @@ class Parser:
             self._skip_to_statement_boundary()
             return None
 
+        # Common newcomer mistake: `function main()` — the return type was omitted,
+        # so the intended function *name* got parsed as the return *type* and the `(`
+        # trips a bare "expected function name". Sutra requires
+        # `function <type> <name>(...)`. Detect the tell (a bare type immediately
+        # followed by `(`) and steer them there instead of the confusing message.
+        if self._check(TokenKind.LPAREN) and not return_type.type_args:
+            self.diagnostics.error(
+                f"function `{return_type.name}` is missing a return type",
+                return_type.span,
+                code="SUT0106",
+                hint=(
+                    f"functions declare their return type first: "
+                    f"`function <type> {return_type.name}(...)` "
+                    f"(e.g. `function string {return_type.name}()`)"
+                ),
+            )
+            self._skip_to_statement_boundary()
+            return None
+
         name_tok = self._expect(TokenKind.IDENT, "function name")
         if name_tok is None:
             self._skip_to_statement_boundary()

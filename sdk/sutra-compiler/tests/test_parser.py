@@ -72,6 +72,31 @@ class TestTopLevel(unittest.TestCase):
         fn = module.items[0]
         self.assertEqual(fn.type_params, ["T"])
 
+    def test_missing_return_type_steers_to_typed_form(self):
+        # `function main()` omits the required return type — a top newcomer mistake.
+        # Instead of the confusing "expected function name, got `(`" (the intended
+        # name got parsed as the type), we emit SUT0106 pointing at the name with a
+        # hint to write `function <type> main(...)`.
+        module, diag = parse("function main() { return 1; }")
+        self.assertTrue(diag.has_errors())
+        self.assertTrue(any(d.code == "SUT0106" for d in diag), list(diag))
+        d = next(d for d in diag if d.code == "SUT0106")
+        self.assertIn("main", d.message)
+        self.assertIsNotNone(d.hint)
+        self.assertIn("function <type> main", d.hint)
+
+    def test_valid_typed_function_not_flagged_as_missing_return_type(self):
+        # The SUT0106 heuristic must not fire on well-formed declarations.
+        for src in (
+            "function string main() { return \"hi\"; }",
+            "function int call(function f, int v) { return f(v); }",
+            "function T Identity<T>(T value) { return value; }",
+        ):
+            _, diag = parse(src)
+            self.assertFalse(
+                any(d.code == "SUT0106" for d in diag), f"{src!r}: {list(diag)}"
+            )
+
 
 class TestDeclarations(unittest.TestCase):
     def test_var_inferred(self):

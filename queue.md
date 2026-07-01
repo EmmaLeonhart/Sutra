@@ -159,6 +159,23 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
+## Batch 9 — usability audit (2026-06-30, error-message actionability pass)
+
+Probed the diagnostics a newcomer trips on their first hour (missing semicolon, missing return type,
+missing `main`, undefined name). Most were clear; one actively misdirected. Bounded items:
+
+- _F1 DONE 2026-06-30 (history in DEVLOG): `function main()` (return type omitted — a top newcomer
+  mistake, since most languages allow it) gave the confusing `expected function name, got \`(\` [SUT0100]`.
+  Sutra's grammar is `function <type> <name>(...)`, so `main` parsed as the return *type* and the `(`
+  tripped the name check — the message pointed at `(` and blamed the wrong thing. Now: the parser detects
+  a bare type immediately followed by `(` and emits **SUT0106** `function \`main\` is missing a return type`
+  pointing at `main`, with hint `functions declare their return type first: \`function <type> main(...)\`
+  (e.g. \`function string main()\`)`. Verified: all 50 examples still validate clean (no false positives),
+  valid/generic/function-typed-param decls unaffected, 48 parser tests pass incl. 2 new regression tests._
+
+→ Batch 9: other probed diagnostics (missing `;` SUT0100, no-`main` on `--run`, undefined name) were already
+  clear/handled; F1 was the one real gap. Run a fresh PINNED TAIL audit to refill next.
+
 ## Batch 8 — usability audit (2026-06-30, CLI-discoverability + Windows-console pass)
 
 Outsider audit this round found the docs/onboarding in strong shape — no repo-internal leaks in
