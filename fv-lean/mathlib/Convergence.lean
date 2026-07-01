@@ -871,4 +871,73 @@ theorem lazyUnifP_nonneg [DecidableEq S] (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε
 #print axioms lazyUnifP_db
 #print axioms lazyUnifP_nonneg
 
+/-- Row-stochastic: `∑_t lazyUnifP ε s t = 1` (`(1−ε) + n·(ε/n)`). -/
+theorem lazyUnifP_row [DecidableEq S] [Nonempty S] (ε : ℝ) (s : S) :
+    ∑ t, lazyUnifP ε s t = 1 := by
+  have hn : (Fintype.card S : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  unfold lazyUnifP
+  rw [Finset.sum_add_distrib, ← Finset.mul_sum]
+  simp only [Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, if_true,
+             Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
+  linear_combination ε * mul_inv_cancel₀ hn
+
+/-- Every off-diagonal edge weight is exactly `ε/n²`, so `ε/n² ≤ π_s·P_{st}` there. -/
+theorem lazyUnifP_min_edge [DecidableEq S] [Nonempty S] (ε : ℝ) (s t : S) (hst : s ≠ t) :
+    ε / (Fintype.card S : ℝ) ^ 2 ≤ unifPi s * lazyUnifP ε s t := by
+  unfold unifPi lazyUnifP
+  rw [if_neg hst]
+  have hRHS : (1 / (Fintype.card S : ℝ)) * ((1 - ε) * (0 : ℝ) + ε / (Fintype.card S : ℝ))
+            = ε / (Fintype.card S : ℝ) ^ 2 := by
+    rw [mul_zero, zero_add, div_mul_div_comm, one_mul, pow_two]
+  exact le_of_eq hRHS.symm
+
+/-- The lazy-uniform chain is lazy (PSD): `0 ≤ ⟨Ph,h⟩_π`. Via `lazyUnif_apply`,
+    `⟨Ph,h⟩_π = (1−ε)/n·∑h² + ε/n²·(∑h)²`, both terms nonnegative. -/
+theorem lazyUnifP_lazy [DecidableEq S] [Nonempty S] (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1)
+    (h : S → ℝ) : 0 ≤ innerPi (unifPi : S → ℝ) (applyP (lazyUnifP ε) h) h := by
+  have hn : (0 : ℝ) < (Fintype.card S : ℝ) := by exact_mod_cast Fintype.card_pos
+  have key : innerPi (unifPi : S → ℝ) (applyP (lazyUnifP ε) h) h
+      = (1 - ε) / (Fintype.card S : ℝ) * (∑ s, h s * h s)
+        + ε / (Fintype.card S : ℝ) ^ 2 * ((∑ s, h s) * (∑ s, h s)) := by
+    unfold innerPi unifPi
+    have e : ∀ s, 1 / (Fintype.card S : ℝ) * (applyP (lazyUnifP ε) h s) * h s
+           = (1 - ε) / (Fintype.card S : ℝ) * (h s * h s)
+             + ε / (Fintype.card S : ℝ) ^ 2 * ((∑ t, h t) * h s) := by
+      intro s; rw [lazyUnif_apply]; ring
+    rw [Finset.sum_congr rfl (fun s _ => e s), Finset.sum_add_distrib,
+        ← Finset.mul_sum, ← Finset.mul_sum, ← Finset.mul_sum]
+  rw [key]
+  apply add_nonneg
+  · exact mul_nonneg (div_nonneg (by linarith) (le_of_lt hn))
+      (Finset.sum_nonneg (fun s _ => mul_self_nonneg _))
+  · exact mul_nonneg (div_nonneg hε0 (by positivity)) (mul_self_nonneg _)
+
+/-- **The lazy-uniform chain converges geometrically — γ = ε COMPUTED, no measured input.**
+    A genuine `n`-state reversible+lazy chain closed end-to-end via the conductance route:
+    the per-edge weight `ε/n²` gives Poincaré constant `(ε/n²)·n² = ε` (`unif_poincare`), and
+    the decay engine yields `‖Pⁿf‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π` on the mean-zero subspace. Distinct
+    from the 8-state Gibbs kernel (whose exact γ=0.0397 is a transcendental measurement). -/
+theorem lazyUnif_geometric_decay [DecidableEq S] [Nonempty S] (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1)
+    (f : S → ℝ) (hf0 : piMean (unifPi : S → ℝ) f = 0) (n : ℕ) :
+    normPiSq (unifPi : S → ℝ) (iterP (lazyUnifP ε) n f)
+      ≤ ((1 - ε) ^ 2) ^ n * normPiSq (unifPi : S → ℝ) f := by
+  have hn : (Fintype.card S : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hπ : ∀ s, 0 ≤ (unifPi : S → ℝ) s := by intro s; unfold unifPi; positivity
+  have hpoin : ∀ g : S → ℝ, piMean (unifPi : S → ℝ) g = 0 →
+      ε * normPiSq unifPi g ≤ dirichlet unifPi (lazyUnifP ε) g := by
+    intro g hg
+    have hup := unif_poincare (lazyUnifP ε) (ε / (Fintype.card S : ℝ) ^ 2)
+      (fun s t hst => lazyUnifP_min_edge ε s t hst) g hg
+    have hcoef : ε / (Fintype.card S : ℝ) ^ 2 * (Fintype.card S : ℝ) ^ 2 = ε := by
+      field_simp
+    rw [hcoef] at hup
+    exact hup
+  exact geometric_decay_of_poincare_lazy unifPi (lazyUnifP ε) ε hπ hε0 hε1
+    (lazyUnifP_row ε) (lazyUnifP_db ε) (lazyUnifP_lazy ε hε0 hε1) hpoin f hf0 n
+
+#print axioms lazyUnifP_row
+#print axioms lazyUnifP_min_edge
+#print axioms lazyUnifP_lazy
+#print axioms lazyUnif_geometric_decay
+
 end SutraConvergence
