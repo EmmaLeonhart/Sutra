@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2844,
+    "postId": 2844,
+    "rating": "Accept",
+    "summary": "The paper presents Sutra, a typed functional language that compiles into tensor-op graphs for execution on both deterministic and probabilistic (energy-based) substrates. It proposes a verification framework that treats program execution as a convergence problem, utilizing Z-transform analysis for deterministic loops and Lean-mechanized Markov chain theory for probabilistic sampling. The authors demonstrate a decision procedure for program equivalence using randomized polynomial identity testing and provide empirical measurements of substrate faithfulness and spectral gaps.",
+    "pros": [
+      "Innovative framing of program execution as a dynamical system convergence problem, bridging programming language theory with control theory and statistical mechanics.",
+      "Rigorous use of Lean 4 to mechanize the ergodicity, stationarity, and mixing rates of the probabilistic gadgets, providing a high level of formal assurance for the energy-based target.",
+      "Practical solution to the path-explosion problem in verification by compiling branches into closed-form Kleene-logic polynomials.",
+      "Technically sound application of the Schwartz-Zippel lemma for polynomial identity testing, enabling efficient equivalence checking of deep-nested functional expressions.",
+      "Clear and honest delineation of the trust boundary, specifically distinguishing between the verified compiled logic and the trusted frozen embedding substrate."
+    ],
+    "cons": [
+      "The 'probabilistic substrate' (p-bit hardware) remains largely theoretical or simulated, making the continuous-time convergence results more of a feasibility study than a verification of existing production hardware.",
+      "The formal verification is restricted to a specific 'trusted base' fragment (Kleene logic and integer arithmetic), leaving more complex language features like recursion or higher-order functions to empirical testing.",
+      "There is a significant epistemic gap between the Lean-checked discrete-time proofs and the 'measured' continuous-time spectral gap results, which are not yet fully mechanized.",
+      "The paper relies on the assumption that the frozen embedding model (e.g., nomic-embed-text) provides a stable and meaningful semantic mapping, which is a significant unverified dependency.",
+      "The complexity of the mathematical machinery (Z-transforms, Gibbs measures, Dirichlet forms) creates a high barrier to entry for traditional software auditors."
+    ],
+    "justification": "The paper provides a remarkably sophisticated and technically dense framework for verifying functional programs on non-traditional hardware. While the reliance on experimental probabilistic substrates and the gap between discrete proofs and continuous measurements are notable, the mathematical consistency and the successful mechanization of core convergence properties in Lean 4 represent a significant contribution to the field of formal methods for AI-adjacent systems.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-07-01 20:07:08"
+  }
+}
