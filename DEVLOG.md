@@ -1,3 +1,5 @@
+## 2026-07-01 daily audit: partial-clean (79 .su compiled, 0 user + 0 runtime-prelude leaks; 17 open-questions checked, 0 resolved-elsewhere; promise/await codegen lint PASS — regression tests could not run because container has no Ollama daemon, cannot report fit-to-spec on the runtime semantics leg)
+
 ## 2026-07-01: Usability audit converged (Batch 11) — stdlib reach + aliases clean; loop wound down
 
 Final audit rotation over the last unprobed surfaces, both found clean:
