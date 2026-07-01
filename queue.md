@@ -109,9 +109,14 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    v4.30.0, `[propext, Classical.choice, Quot.sound]`, no `sorry`): general-finite-state
    reversibility ⟹ π-self-adjointness (`applyP_selfAdjoint`) + general-S stationarity
    (`applyP_stationary`) + `innerPi_comm` — the structural prerequisite that makes the multi-state
-   gap real/well-defined, now for ANY finite S (not just 2-state). **STILL OPEN:** the *quantitative*
-   eigenvalue bound (γ>0 / the measured 0.0397) on the now-self-adjoint operator via mathlib's
-   finite-dim spectral theorem; then the continuous-time master-ODE decay; then continuous-space
+   gap real/well-defined, now for ANY finite S (not just 2-state). **SPECTRAL CAPSTONE DONE
+   2026-06-30, CI-green** (`applyP_gap_contraction`, `Convergence.lean`, no `sorryAx`): scalar
+   Dirichlet/Rayleigh gap ⇒ one-step L²(π) contraction `‖Pf‖²_π ≤ (1−γ)²‖f‖²_π` (numerical-radius =
+   operator-norm, elementary — polarization + parallelogram + CS discriminant, NO finite-dim spectral
+   theorem), feeding `geometric_convergence` ⇒ **gap ⇒ geometric decay fully closed in Lean**; measured
+   `γ=0.0397` instantiates the scalar hypothesis. **STILL OPEN:** a machine-checked `λ₂`/eigenvalue
+   bound on the *concrete* 8-state kernel to discharge the Rayleigh hypothesis from the matrix entries
+   (γ currently a measured input); then the continuous-time master-ODE decay; then continuous-space
    overdamped Langevin `dX=−∇U dt+√(2/β)dW`. **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
    multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒

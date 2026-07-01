@@ -1,7 +1,19 @@
 # Open Lean goal: self-adjoint + scalar Dirichlet gap ⇒ one-step L²(π) contraction
 
-**Status:** open (2026-06-30). The one precise remaining lemma of the `Sutra.Convergence`
-spine. Everything around it is machine-checked; this is the irreducible spectral step.
+**Status: RESOLVED (2026-06-30).** Proved as `SutraConvergence.applyP_gap_contraction` in
+`fv-lean/mathlib/Convergence.lean` — CI-green on `ubuntu-latest` (`fv-lean-mathlib-ci` run
+28486967459), `[propext, Classical.choice, Quot.sound]`, no `sorryAx`. The proof follows the
+route below exactly: `rayleigh_polar_bound` (polarization + Rayleigh gap on `f±g` +
+parallelogram) ⇒ `2⟨Pf,g⟩_π ≤ (1−γ)(‖f‖²+‖g‖²)_π` for mean-zero `g`; instantiate `g = t·Pf`
+for all `t`; `quad_to_bound` reads off the discriminant. Feeds `geometric_convergence` with
+`r = (1−γ)²`, closing gap ⇒ geometric decay. The one Gibbs-side item still open is a
+DIFFERENT, harder thing: computing a machine-checked `λ₂`/eigenvalue bound on the concrete
+eight-state kernel to *discharge* the scalar Rayleigh hypothesis from the matrix entries
+(the measured `γ = 0.0397` is currently the input). See DEVLOG 2026-06-30.
+
+---
+
+_Original statement (kept for the record):_
 
 ## What is already proven (CI-green, `fv-lean/mathlib/`)
 

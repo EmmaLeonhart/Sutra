@@ -31,11 +31,14 @@ has a positive spectral gap (`γ = 0.0397` at `β = 1`), and the law's
 total-variation decay matches that gap (ratio 1.0000). For the general
 multi-state case we additionally **machine-check the structural chain** — for any
 finite reversible kernel, the transition operator is self-adjoint in the
-$\pi$-weighted inner product (`applyP_selfAdjoint`) and a one-step spectral-gap
-contraction implies geometric $L^2(\pi)$ decay (`geometric_convergence`), both
-`sorry`-free — so that what remains a *measurement*, explicitly not a Lean proof,
-is narrowed to the multi-state gap **value** (`γ = 0.0397`) and the
-continuous-time/continuous-space limits, not the gap⇒convergence implication itself.
+$\pi$-weighted inner product (`applyP_selfAdjoint`), a scalar Dirichlet/Rayleigh
+gap implies a one-step $L^2(\pi)$ contraction (`applyP_gap_contraction`, the
+numerical-radius = operator-norm step, via polarization + Cauchy–Schwarz, no
+spectral theorem), and that contraction implies geometric $L^2(\pi)$ decay
+(`geometric_convergence`), all `sorry`-free — so that what remains a *measurement*,
+explicitly not a Lean proof, is narrowed to the multi-state gap **value**
+(`γ = 0.0397`) for the concrete kernel and the continuous-time/continuous-space
+limits, not the gap⇒convergence implication itself.
 
 The supporting machinery is a reduction: Sutra's compiler turns an entire program
 (primitives, control flow, string I/O) into a single fused **tensor-op graph**,
@@ -966,27 +969,37 @@ $\lVert f\rVert_\pi^2=\langle f,f\rangle_\pi$. On exactly this structure:
    stationarity $\sum_s\pi_s P_{st}=\pi_t$ (`applyP_stationary`) — so the spectrum is real
    and the gap $\gamma=1-\lambda_2$ is well-defined. Pure finite-sum algebra from detailed
    balance, with no spectral-theory import.
-2. **Gap ⇒ geometric convergence.** If $P$ contracts the squared $\pi$-norm of the
-   deviation from $\pi$ by a factor $r=(1-\gamma)^2<1$ in one step, then
-   $\lVert P^n f\rVert_\pi^2\le r^n\,\lVert f\rVert_\pi^2$ — geometric decay to the
-   stationary mean (`SutraConvergence.geometric_convergence`), proved by elementary
-   induction off the one-step bound, *avoiding* the finite-dimensional spectral theorem.
-   The chain preserves the $\pi$-mean (`applyP_preserves_piMean`), so the mean-zero
-   subspace the contraction lives on is $P$-invariant and the induction goes through.
+2. **Scalar Rayleigh gap ⇒ one-step contraction.** If the self-adjoint form obeys the
+   *scalar* Dirichlet/Rayleigh gap $\lvert\langle Ph,h\rangle_\pi\rvert\le(1-\gamma)\lVert
+   h\rVert_\pi^2$ on the mean-zero subspace, then $P$ contracts the squared $\pi$-norm by
+   $r=(1-\gamma)^2$ in one step: $\lVert Pf\rVert_\pi^2\le(1-\gamma)^2\lVert f\rVert_\pi^2$
+   (`SutraConvergence.applyP_gap_contraction`). This is the numerical-radius = operator-norm
+   step for a self-adjoint operator, proved *elementarily* off the reversibility foundation —
+   real polarization ($4\langle Pf,g\rangle_\pi=\langle P(f{+}g),f{+}g\rangle_\pi-\langle
+   P(f{-}g),f{-}g\rangle_\pi$), the parallelogram law, and the Cauchy–Schwarz discriminant
+   argument (instantiate $g=t\!\cdot\!Pf$ for all $t$ and read off the discriminant of the
+   resulting nonnegative quadratic) — with **no** finite-dimensional spectral theorem.
+3. **Gap ⇒ geometric convergence.** Feeding leg 2's one-step contraction ($r=(1-\gamma)^2<1$)
+   into the induction gives $\lVert P^n f\rVert_\pi^2\le r^n\,\lVert f\rVert_\pi^2$ —
+   geometric decay to the stationary mean (`SutraConvergence.geometric_convergence`). The
+   chain preserves the $\pi$-mean (`applyP_preserves_piMean`), so the mean-zero subspace the
+   contraction lives on is $P$-invariant and the induction goes through.
 
-Both legs are `[propext, Classical.choice, Quot.sound]`, no `sorry`, and CI-checked on
+All three legs are `[propext, Classical.choice, Quot.sound]`, no `sorry`, and CI-checked on
 `ubuntu-latest` (`fv-lean/mathlib/GibbsMultiState.lean` and `Convergence.lean`; the
 `fv-lean-mathlib-ci.yml` job runs `lake build` over all three mathlib-layer libraries on
 every change to them). This is the self-adjoint → gap → decay chain named in §1, now
-machine-checked end to end **given the gap as a one-step Dirichlet/Rayleigh contraction** —
-and that hypothesis is exactly what the measured $\gamma=0.0397$ instantiates.
+machine-checked end to end **from a scalar Rayleigh gap to geometric decay** — a scalar gap
+number in, a machine-checked operator-norm contraction and geometric-decay rate out. The
+gap *value* $\gamma=0.0397$ is the measured input that instantiates the scalar hypothesis.
 
-What remains genuinely open, named not claimed: (i) *deriving* the one-step contraction
-$r=(1-\gamma)^2$ from `applyP_selfAdjoint` and a scalar Dirichlet-form gap $\gamma>0$ (the
-self-adjoint ⇒ real-spectrum ⇒ Rayleigh-bound step), which would promote the measured
-$0.0397$ to a machine-checked eigenvalue bound; (ii) the deterministic-loop $Z$-transform
-expressed as the *same* `geometric_convergence` theorem on an orthogonal $R$ (unifying the
-loop and Gibbs targets under one theorem); and (iii) the continuous-*space* overdamped
+What remains genuinely open, named not claimed: (i) *computing* the scalar gap $\gamma>0$
+for the concrete operator inside Lean — i.e. a machine-checked eigenvalue/$\lambda_2$ bound
+on the specific eight-state kernel that discharges leg 2's Rayleigh hypothesis from the
+matrix entries, rather than taking the measured $0.0397$ as input; (ii) the deterministic-loop
+$Z$-transform expressed as the *same* `geometric_convergence` theorem on an orthogonal $R$
+(the norm-preserving $r=1$ boundary case is already in Lean as `loop_norm_preserved`,
+unifying the loop and Gibbs targets under one theorem); and (iii) the continuous-*space* overdamped
 Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$ on a relaxed energy. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
 measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled
