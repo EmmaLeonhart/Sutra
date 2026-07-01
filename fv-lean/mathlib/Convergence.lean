@@ -727,4 +727,63 @@ theorem geometric_decay_of_poincare_lazy (π : S → ℝ) (P : S → S → ℝ) 
 #print axioms applyP_sub
 #print axioms loop_norm_preserved
 
+/-! ### Conductance / Poincaré lower bound — building toward a per-edge spectral-gap bound
+
+Toward discharging the multi-state Poincaré constant `γ` from the *matrix entries* (the
+conductance/Cheeger route Emma green-lit), rather than taking it as a measured input. Two
+elementary, reusable building blocks (finite-sum algebra, no spectral theory):
+
+  • `sum_sq_diff` — the complete-graph Dirichlet identity `∑_{s,t}(f_s−f_t)² = 2n∑f_s² − 2(∑f)²`.
+  • `dirichlet_raw_ge_of_min_edge` — a uniform lower bound `δ ≤ π_s P_{st}` on every off-diagonal
+    edge pushes the π-Dirichlet sum below the complete-graph sum scaled by `δ`.
+
+Together these lower-bound `E(f)` by `δ·(n∑f²−(∑f)²)`; specialising `π` (e.g. uniform) and
+turning that into a Poincaré constant `γ` is the next step, and then bounding `δ` for the concrete
+Gibbs kernel (whose entries are `exp(−βE)/Z`) via rational lower bounds on the exponentials. -/
+
+/-- **Complete-graph Dirichlet identity:** `∑_{s,t}(f_s−f_t)² = 2n·∑_s f_s² − 2(∑_s f_s)²`
+    (`n = card S`). Pure finite-sum algebra; the unweighted "all-pairs" energy. -/
+theorem sum_sq_diff (f : S → ℝ) :
+    ∑ s, ∑ t, (f s - f t) ^ 2
+      = 2 * (Fintype.card S : ℝ) * (∑ s, f s * f s) - 2 * (∑ s, f s) * (∑ s, f s) := by
+  have hpt : ∀ s, ∑ t, (f s - f t) ^ 2
+           = (∑ t, f s * f s) - 2 * (∑ t, f s * f t) + (∑ t, f t * f t) := by
+    intro s
+    rw [Finset.mul_sum, ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
+    exact Finset.sum_congr rfl (fun t _ => by ring)
+  have hSS : ∑ s, ∑ t, f s * f s = (Fintype.card S : ℝ) * ∑ s, f s * f s := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl (fun s _ => ?_)
+    rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+  have hTT : ∑ s, ∑ t, f t * f t = (Fintype.card S : ℝ) * ∑ s, f s * f s := by
+    rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+  have hST : ∑ s, ∑ t, f s * f t = (∑ s, f s) * (∑ s, f s) := by
+    have hin : ∀ s, ∑ t, f s * f t = f s * (∑ t, f t) := fun s => by rw [Finset.mul_sum]
+    rw [Finset.sum_congr rfl (fun s _ => hin s), ← Finset.sum_mul]
+  have hmerge : ∑ s, ∑ t, (f s - f t) ^ 2
+      = (∑ s, ∑ t, f s * f s) - 2 * (∑ s, ∑ t, f s * f t) + (∑ s, ∑ t, f t * f t) := by
+    calc ∑ s, ∑ t, (f s - f t) ^ 2
+        = ∑ s, ((∑ t, f s * f s) - 2 * (∑ t, f s * f t) + (∑ t, f t * f t)) :=
+          Finset.sum_congr rfl (fun s _ => hpt s)
+      _ = _ := by rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
+  rw [hmerge, hSS, hST, hTT]; ring
+
+/-- **Min-edge lower bound on the raw Dirichlet sum.** If every off-diagonal edge weight
+    `π_s P_{st}` is at least `δ`, the π-weighted all-pairs energy dominates `δ` times the
+    unweighted one (diagonal terms vanish, off-diagonal are bounded term-by-term). This is the
+    conductance step: it turns a uniform per-edge bound into a Dirichlet lower bound. -/
+theorem dirichlet_raw_ge_of_min_edge (π : S → ℝ) (P : S → S → ℝ) (δ : ℝ)
+    (hedge : ∀ s t, s ≠ t → δ ≤ π s * P s t) (f : S → ℝ) :
+    δ * (∑ s, ∑ t, (f s - f t) ^ 2) ≤ ∑ s, ∑ t, π s * P s t * (f s - f t) ^ 2 := by
+  rw [Finset.mul_sum]
+  refine Finset.sum_le_sum (fun s _ => ?_)
+  rw [Finset.mul_sum]
+  refine Finset.sum_le_sum (fun t _ => ?_)
+  by_cases hst : s = t
+  · simp [hst]
+  · exact mul_le_mul_of_nonneg_right (hedge s t hst) (sq_nonneg _)
+
+#print axioms sum_sq_diff
+#print axioms dirichlet_raw_ge_of_min_edge
+
 end SutraConvergence
