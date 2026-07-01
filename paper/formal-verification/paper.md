@@ -1003,11 +1003,22 @@ the deterministic loop and the Gibbs chain under one theorem — a scalar gap nu
 machine-checked operator-norm contraction, geometric-decay rate, and pole-radius identity out.
 The gap *value* $\gamma=0.0397$ is the measured input that instantiates the scalar hypothesis.
 
-What remains genuinely open, named not claimed: (i) *computing* the scalar gap $\gamma>0$
-for the concrete operator inside Lean — i.e. a machine-checked eigenvalue/$\lambda_2$ bound
-on the specific eight-state kernel that discharges leg 2's Rayleigh hypothesis from the
-matrix entries, rather than taking the measured $0.0397$ as input; and (ii) the
-continuous-*space* overdamped
+The composition itself is machine-checked, not merely asserted: because leg 2 delivers the
+contraction only on the mean-zero subspace (the stationary direction is norm-preserving, so an
+all-observables contraction would be false), the iteration that reaches leg 3 is the mean-zero
+form `geometric_convergence_meanZero`, which keeps every iterate mean-zero via
+`applyP_preserves_piMean` (`iterP_piMean_zero`). And leg 2's Rayleigh hypothesis is not always
+an external input: for a concrete reversible **two-state** kernel it is *discharged from the
+matrix entries* — `twoState_rayleigh_eq` proves $\langle Pf,f\rangle_\pi=(1-P_{01}-P_{10})\lVert
+f\rVert_\pi^2$ on the mean-zero subspace (the second eigenvalue $\lambda_2=1-P_{01}-P_{10}$,
+computed by two-term algebra, no spectral theorem), and `twoState_geometric_decay` chains it
+through legs 2–3 to a fully-closed $\lVert P^n f\rVert_\pi^2\le(\lambda_2^2)^n\lVert f\rVert_\pi^2$
+with **no measured input**. So the Rayleigh hypothesis is demonstrably dischargeable, not vacuous.
+
+What remains genuinely open, named not claimed: (i) discharging the Rayleigh hypothesis the
+same way for the specific **eight-state** kernel — a machine-checked $\lambda_2$ bound on that
+larger operator (the two-state case above is done; the eight-state $\gamma=0.0397$ is still
+taken as the measured input); and (ii) the continuous-*space* overdamped
 Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$ on a relaxed energy. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
 measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled

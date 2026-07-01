@@ -1,3 +1,36 @@
+## 2026-06-30: FV Lean — mean-zero iteration fix + fully-discharged concrete 2-state instance
+
+Two honesty items on the `Sutra.Convergence` spine. `fv-lean/mathlib/Convergence.lean`,
+CI-green on `ubuntu-latest` (`fv-lean-mathlib-ci` run 28493857025), all four new results
+`[propext, Classical.choice, Quot.sound]`, **no `sorryAx`**:
+
+1. **Composition gap found + fixed.** `geometric_convergence` takes the one-step contraction
+   for ALL `h`, but `applyP_gap_contraction` only delivers it on the mean-zero subspace — on the
+   stationary direction the norm is preserved, so an all-`h` contraction is *false*. So the
+   capstone did not actually chain into `geometric_convergence` as the docstring implied. Fix:
+   - `iterP_piMean_zero` — iterates of a mean-zero observable stay mean-zero (`applyP_preserves_
+     piMean` inductively).
+   - `geometric_convergence_meanZero` — takes the contraction on mean-zero `h` only and uses
+     that invariance to conclude `‖Pⁿf‖²_π ≤ rⁿ‖f‖²_π` for mean-zero `f`. THIS is the theorem
+     that composes with the capstone; `geometric_convergence` (all-`h`) stays as the abstract
+     statement but is not what the gap feeds.
+
+2. **Rayleigh gap discharged from matrix entries (2-state).** The gap has been a *hypothesis*
+   (the measured `γ` instantiates it). For a concrete reversible two-state chain it is now
+   *computed*, not assumed:
+   - `twoState_rayleigh_eq` — `⟨Ph,h⟩_π = (1 − P₀₁ − P₁₀)·‖h‖²_π` on the mean-zero subspace, i.e.
+     the operator IS the scalar `λ₂ = 1 − P₀₁ − P₁₀` there. Two-term `Fin.sum_univ_two` algebra:
+     the difference factors as `(π₀h₀+π₁h₁)(P₁₀h₀+P₀₁h₁)`, killed by mean-zero. No spectral
+     theorem, no measurement.
+   - `twoState_geometric_decay` — feeds that through `applyP_gap_contraction` +
+     `geometric_convergence_meanZero` ⇒ `‖Pⁿf‖²_π ≤ (λ₂²)ⁿ‖f‖²_π`, gap COMPUTED, NO measured
+     input. The whole spine closing end-to-end on a concrete chain.
+
+Honest boundary: the measured 8-state `γ=0.0397` is still a measurement; this discharges the
+2-state case, showing the Rayleigh hypothesis is real and dischargeable, not vacuous. CI caught
+one issue: `Fin.sum_univ_two` needed `import Mathlib.Algebra.BigOperators.Fin`. Can't build
+locally (Windows MAX_PATH); CI is the checker.
+
 ## 2026-06-30: FV Lean — Z-transform pole = contraction rate (loop and Gibbs unified as one theorem)
 
 The spine's step 3 (loop and Gibbs as instances of the SAME convergence statement via the

@@ -120,9 +120,15 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    radius `1/r`, so **the Z-transform pole = the contraction rate `r`** — Gibbs (`r=(1−γ)²<1`, pole
    inside; `G(1)` finite, chain settles) and the deterministic loop (`r=1`, π-isometry `R`, pole ON the
    unit circle, marginal) are instances of ONE theorem (comparison with the geometric series, no
-   spectral theorem). This is the "single spine" that answers the clawRxiv kitchen-sink con. **STILL
-   OPEN:** a machine-checked `λ₂`/eigenvalue bound on the *concrete* 8-state kernel to discharge the
-   Rayleigh hypothesis from the matrix entries (γ currently a measured input); then continuous-space
+   spectral theorem). This is the "single spine" that answers the clawRxiv kitchen-sink con.
+   **MEAN-ZERO COMPOSITION FIX + 2-STATE INSTANCE DONE 2026-06-30, CI-green** (`geometric_convergence_
+   meanZero` + `iterP_piMean_zero` + `twoState_rayleigh_eq` + `twoState_geometric_decay`, no `sorryAx`):
+   fixed a real gap (the capstone's contraction is mean-zero-only; `geometric_convergence` wanted all-h,
+   false on the stationary direction) with the mean-zero iteration; and DISCHARGED the Rayleigh gap from
+   matrix entries for a concrete reversible 2-state chain (`λ₂=1−P₀₁−P₁₀` computed, `‖Pⁿf‖²_π ≤ (λ₂²)ⁿ‖f‖²`,
+   NO measured input) — the spine closing end-to-end on a concrete chain. **STILL OPEN:** the same
+   discharge for the *8-state* kernel (a machine-checked `λ₂` bound on that larger operator; γ=0.0397
+   still the measured input there); then continuous-space
    overdamped Langevin `dX=−∇U dt+√(2/β)dW` (the continuous-time master-ODE decay is the discrete
    `geometric_convergence`'s analogue — lower priority). **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
