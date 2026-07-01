@@ -1,3 +1,25 @@
+## 2026-07-01: FV Lean — general-π conductance Poincaré bound; conductance theory COMPLETE
+
+Generalised the conductance gap⇒decay to ANY probability law (no uniformity, no spectral theorem).
+`Convergence.lean`, CI-green (`fv-lean-mathlib-ci` run 28545794593), all `[propext,
+Classical.choice, Quot.sound]`, no `sorryAx`:
+
+- `piVar_eq` — π-weighted variance identity `∑_{s,t} π_s π_t (f_s−f_t)² = 2‖f‖²_π` for a probability
+  π on mean-zero f (diagonal terms give ‖f‖²_π each via ∑π=1; cross term (∑π_s f_s)²=0).
+- `dirichlet_ge_of_edge_ratio` — per-edge ratio `κ·π_t ≤ P_{st}` ⇒ `κ·∑π_sπ_t(f_s−f_t)² ≤ 2·E(f)`.
+- `gen_poincare` — combine ⇒ `κ·‖f‖²_π ≤ E(f)`: Poincaré constant γ=κ for any probability reversible
+  chain, feeding `geometric_decay_of_poincare_lazy`. Subsumes `unif_poincare` (uniform: κ=ε).
+
+**The FV conductance theory is now complete:** for any finite reversible chain, spectral-gap ⇒
+geometric decay is machine-checked end-to-end, with the gap reduced to the elementary per-edge ratio
+`κ = min_{s≠t} P_{st}/π_t` — no finite-dim spectral theorem anywhere. clawRxiv verdict this session
+reached **Accept** (Strong Reject → Reject → Weak Reject → Accept).
+
+**Remaining for the LITERAL 8-state γ=0.0397 (Emma-gated):** formalize the concrete AND-gadget Gibbs
+kernel in Lean and rational-lower-bound its transcendental `exp(−βE)` entries to extract a numeric κ
+— a large, transcendental-arithmetic-heavy effort with no bounded increment. The autonomous loop
+paused here and notified Emma: invest in that, or consider the FV-Lean conductance leg complete?
+
 ## 2026-07-01: FV Lean — lazy-uniform n-state chain fully discharged via conductance (γ=ε, no input)
 
 Closed the concrete conductance instance (part b2), CI-green (`fv-lean-mathlib-ci` run 28544161443),
