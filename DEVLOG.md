@@ -1,3 +1,23 @@
+## 2026-07-01: FV Lean — conductance building blocks (Emma: invest in the 8-state Cheeger bound)
+
+Emma green-lit investing in the per-edge (Cheeger/conductance) lower bound on the multi-state
+Poincaré constant γ — so γ is *derived from the matrix entries*, not taken as a measured input.
+First bounded pieces (elementary finite-sum algebra, no spectral theory), `Convergence.lean`,
+CI-green (`fv-lean-mathlib-ci` run 28539197330), both `[propext, Classical.choice, Quot.sound]`,
+no `sorryAx`:
+
+- `sum_sq_diff` — the complete-graph Dirichlet identity `∑_{s,t}(f_s−f_t)² = 2n·∑_s f_s² − 2(∑_s f_s)²`
+  (`n = card S`). Modeled on the CI-green `dirichlet_eq` (hSS/hST/hTT + hmerge).
+- `dirichlet_raw_ge_of_min_edge` — a uniform off-diagonal lower bound `δ ≤ π_s P_{st}` ⇒
+  `δ·∑_{s,t}(f_s−f_t)² ≤ ∑_{s,t} π_s P_{st}(f_s−f_t)²` (the raw π-Dirichlet sum, `= 2·dirichlet`):
+  the conductance step, per-edge bound ⇒ Dirichlet lower bound (term-by-term, diagonal vanishes).
+
+Together these lower-bound `E(f)` by `δ(n∑f²−(∑f)²)`. Next: specialise `π` (uniform) to turn that
+into a Poincaré constant `γ = δn²` and discharge the lazy-uniform n-state instance; then the
+non-uniform Gibbs case (path/comparison + rational lower bounds on `exp(−βE)`). CI caught a
+typeclass-stuck error: sums whose body ignores the bound variable (`∑ t, f s * f s`) need the index
+annotated (`∑ _t : S`).
+
 ## 2026-07-01: FV Lean — Poincaré + laziness ⇒ geometric decay (the reusable multi-state engine)
 
 Assembled the Dirichlet bridge into the general gap⇒decay engine — the reusable piece any concrete

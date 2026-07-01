@@ -142,15 +142,15 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    `‖Pⁿf‖²_π ≤ ((1−γ)²)ⁿ‖f‖²_π` (γ∈[0,1]). The general multi-state gap⇒decay chain is now machine-checked,
    parameterized by the Poincaré constant. Paper §7 updated. **The general multi-state gap⇒decay THEORY
    is now COMPLETE + CI-green** (Dirichlet bridge + Poincaré/laziness engine + 2-state discharged instance
-   + convergence-to-zero limit + Z-transform unification). **STILL OPEN — all Emma-gated (autonomous loop
-   paused here 2026-07-01 pending her call; do NOT auto-grind):** (a) the concrete *8-state* per-edge
-   (Cheeger) bound on γ — a LARGE effort (formalize conductance + the Cheeger inequality γ≥Φ²/2 + the
-   per-edge computation), and γ=0.0397 stays measured regardless (transcendental eigenvalue `exp(−βE)`);
-   (b) a concrete closed-form multi-state instance (e.g. lazy-uniform n-state, γ=ε) — straightforward but
-   fiddly `Fintype.card`/division/sum-splitting arithmetic, several CI cycles, marginal value now the
-   general engine exists; (c) continuous-space overdamped Langevin `dX=−∇U dt+√(2/β)dW` — needs SDE/measure
-   theory, out of mathlib-light reach. Emma notified 2026-07-01: invest in (a) the 8-state Cheeger bound,
-   or consider the FV-Lean leg complete? **Spec for what's needed:
+   + convergence-to-zero limit + Z-transform unification). **EMMA GREEN-LIT the 8-state Cheeger bound
+   2026-07-01 — investing.** CONDUCTANCE BUILDING BLOCKS DONE 2026-07-01, CI-green (`sum_sq_diff`:
+   complete-graph identity `∑(f_s−f_t)²=2n∑f²−2(∑f)²`; `dirichlet_raw_ge_of_min_edge`: `δ≤π_s P_{st}` ⇒
+   `δ∑(f_s−f_t)² ≤ ∑π_s P_{st}(f_s−f_t)²`, no `sorryAx`) — together lower-bound E(f) by δ(n∑f²−(∑f)²).
+   **STILL OPEN (in progress):** (a1) specialise π uniform ⇒ Poincaré `γ=δn²`, discharge the lazy-uniform
+   n-state instance (γ=ε) — next step; (a2) the non-uniform Gibbs 8-state case (path/comparison + rational
+   lower bounds on `exp(−βE)`; γ=0.0397 stays measured — transcendental — but a positive lower bound is the
+   target); (c) continuous-space overdamped Langevin `dX=−∇U dt+√(2/β)dW` — needs SDE/measure
+   theory, out of mathlib-light reach (deferred). **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
    multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
    cite no numbers until measured/proved. **PREREQ:** the mathlib layer (`fv-lean/mathlib/`) is
