@@ -513,8 +513,66 @@ theorem twoState_geometric_decay (π : Fin 2 → ℝ) (P : Fin 2 → Fin 2 → �
   exact geometric_convergence_meanZero π P ((1 - P 0 1 - P 1 0) ^ 2) (sq_nonneg _)
     hrow hdb hstep f hf0 n
 
+/-! ### Convergence to stationarity as a genuine limit (not just a rate bound)
+
+`geometric_convergence_meanZero` bounds `‖Pⁿf‖²_π` by `rⁿ‖f‖²_π`; here we take the last step
+and show the deviation-energy actually **tends to zero** — the chain reaches stationarity in the
+limit, not merely decays at a rate. Proved by summability (`energy_summable_meanZero`, comparison
+with the geometric series) + `Summable.tendsto_atTop_zero`. This upgrades "convergence" from an
+inequality to a `Tendsto` limit statement. -/
+
+/-- The deviation-energy is summable on the mean-zero subspace when `r < 1` (comparison with the
+    geometric series, off `geometric_convergence_meanZero`). The mean-zero analogue of
+    `energy_summable_of_contraction`. -/
+theorem energy_summable_meanZero (π : S → ℝ) (P : S → S → ℝ) (r : ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hr0 : 0 ≤ r) (hr1 : r < 1)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (hgap : ∀ h : S → ℝ, piMean π h = 0 → normPiSq π (applyP P h) ≤ r * normPiSq π h)
+    (f : S → ℝ) (hf0 : piMean π f = 0) :
+    Summable (fun n => normPiSq π (iterP P n f)) := by
+  have hbound : ∀ n, normPiSq π (iterP P n f) ≤ r ^ n * normPiSq π f :=
+    fun n => geometric_convergence_meanZero π P r hr0 hrow hdb hgap f hf0 n
+  have hnonneg : ∀ n, 0 ≤ normPiSq π (iterP P n f) := fun n => normPiSq_nonneg π _ hπ
+  have hsum : Summable (fun n => r ^ n * normPiSq π f) :=
+    (summable_geometric_of_lt_one hr0 hr1).mul_right (normPiSq π f)
+  exact Summable.of_nonneg_of_le hnonneg hbound hsum
+
+/-- **Convergence to stationarity as a limit.** For a mean-zero observable of a reversible chain
+    with a mean-zero one-step contraction rate `r < 1`, the deviation-energy `‖Pⁿf‖²_π → 0`: the
+    chain reaches its stationary mean in the limit. (`Summable.tendsto_atTop_zero` off
+    `energy_summable_meanZero`.) -/
+theorem meanZero_tendsto_zero (π : S → ℝ) (P : S → S → ℝ) (r : ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hr0 : 0 ≤ r) (hr1 : r < 1)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (hgap : ∀ h : S → ℝ, piMean π h = 0 → normPiSq π (applyP P h) ≤ r * normPiSq π h)
+    (f : S → ℝ) (hf0 : piMean π f = 0) :
+    Filter.Tendsto (fun n => normPiSq π (iterP P n f)) Filter.atTop (nhds 0) :=
+  (energy_summable_meanZero π P r hπ hr0 hr1 hrow hdb hgap f hf0).tendsto_atTop_zero
+
+/-- **Concrete two-state chain reaches stationarity — no measured input.** Combines the
+    discharged two-state Rayleigh gap (`twoState_rayleigh_eq`) through the capstone and the
+    limit above: for `λ₂² < 1` (a proper gap), `‖Pⁿf‖²_π → 0`. Fully closed, gap computed. -/
+theorem twoState_tendsto_zero (π : Fin 2 → ℝ) (P : Fin 2 → Fin 2 → ℝ)
+    (hπpos : ∀ s, 0 ≤ π s) (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (hgap0 : 0 ≤ 1 - P 0 1 - P 1 0) (hgap1 : (1 - P 0 1 - P 1 0) ^ 2 < 1)
+    (f : Fin 2 → ℝ) (hf0 : piMean π f = 0) :
+    Filter.Tendsto (fun n => normPiSq π (iterP P n f)) Filter.atTop (nhds 0) := by
+  have hray : ∀ g : Fin 2 → ℝ, piMean π g = 0 →
+      |innerPi π (applyP P g) g| ≤ (1 - P 0 1 - P 1 0) * normPiSq π g := by
+    intro g hg
+    rw [twoState_rayleigh_eq π P hrow g hg]
+    exact le_of_eq (abs_of_nonneg (mul_nonneg hgap0 (normPiSq_nonneg π g hπpos)))
+  have hstep : ∀ h : Fin 2 → ℝ, piMean π h = 0 →
+      normPiSq π (applyP P h) ≤ (1 - P 0 1 - P 1 0) ^ 2 * normPiSq π h := fun h hmz =>
+    applyP_gap_contraction π P (1 - P 0 1 - P 1 0) hπpos hgap0 hrow hdb hray h hmz
+  exact meanZero_tendsto_zero π P ((1 - P 0 1 - P 1 0) ^ 2) hπpos (sq_nonneg _) hgap1
+    hrow hdb hstep f hf0
+
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
+#print axioms energy_summable_meanZero
+#print axioms meanZero_tendsto_zero
+#print axioms twoState_tendsto_zero
 #print axioms iterP_piMean_zero
 #print axioms geometric_convergence_meanZero
 #print axioms twoState_rayleigh_eq
