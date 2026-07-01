@@ -146,8 +146,11 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    2026-07-01 — investing.** CONDUCTANCE BUILDING BLOCKS DONE 2026-07-01, CI-green (`sum_sq_diff`:
    complete-graph identity `∑(f_s−f_t)²=2n∑f²−2(∑f)²`; `dirichlet_raw_ge_of_min_edge`: `δ≤π_s P_{st}` ⇒
    `δ∑(f_s−f_t)² ≤ ∑π_s P_{st}(f_s−f_t)²`, no `sorryAx`) — together lower-bound E(f) by δ(n∑f²−(∑f)²).
-   **STILL OPEN (in progress):** (a1) specialise π uniform ⇒ Poincaré `γ=δn²`, discharge the lazy-uniform
-   n-state instance (γ=ε) — next step; (a2) the non-uniform Gibbs 8-state case (path/comparison + rational
+   **UNIFORM-π POINCARÉ DONE 2026-07-01, CI-green** (`unif_poincare`, no `sorryAx`): uniform π + per-edge
+   `δ≤π_s P_{st}` ⇒ `(δn²)‖f‖²_π ≤ E(f)` on mean-zero f — the conductance⇒gap step, no spectral theorem;
+   feeds `geometric_decay_of_poincare_lazy`. **STILL OPEN (in progress):** (a1b) the concrete lazy-uniform
+   kernel `(1−ε)[s=t]+ε/n` as a named n-state instance (`δ=ε/n²` ⇒ γ=ε ⇒ `‖Pⁿf‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π`,
+   no measured input) — next; (a2) the non-uniform Gibbs 8-state case (path/comparison + rational
    lower bounds on `exp(−βE)`; γ=0.0397 stays measured — transcendental — but a positive lower bound is the
    target); (c) continuous-space overdamped Langevin `dX=−∇U dt+√(2/β)dW` — needs SDE/measure
    theory, out of mathlib-light reach (deferred). **Spec for what's needed:

@@ -1,3 +1,20 @@
+## 2026-07-01: FV Lean — uniform-π conductance Poincaré bound γ=δn²
+
+Composed the conductance blocks into the uniform-chain Poincaré constant. `Convergence.lean`,
+CI-green (`fv-lean-mathlib-ci` run 28540808992), `[propext, Classical.choice, Quot.sound]`, no `sorryAx`:
+
+- `unifPi` (noncomputable) — the uniform stationary law `1/(card S)`.
+- `unif_poincare` — for uniform π and a per-edge lower bound `δ ≤ π_s P_{st}` (s≠t):
+  `(δ·n²)·‖f‖²_π ≤ E(f)` on mean-zero f (`n = card S`). Proof chains `dirichlet_raw_ge_of_min_edge`
+  (`2E = ∑π_s P_{st}(f_s−f_t)² ≥ δ∑(f_s−f_t)²`) + `sum_sq_diff` (`= δ(2n∑f²−2(∑f)²) = 2δn∑f²` since
+  mean-zero ⟹ `∑f=0`) with `‖f‖²_π=(∑f²)/n`. No spectral theorem. The `1/n` arithmetic is discharged
+  with `linear_combination (…)*mul_inv_cancel₀ hn` (avoids the field_simp no-goals hazard).
+
+So a uniform reversible+lazy chain now closes end-to-end via the conductance route: `unif_poincare`
+supplies `γ=δn²` to `gap_of_poincare_lazy`/`geometric_decay_of_poincare_lazy`. Next: the concrete
+lazy-uniform kernel (`δ=ε/n²` ⇒ γ=ε) as a named n-state instance; then the non-uniform Gibbs 8-state
+case (path/comparison + rational `exp(−βE)` bounds; exact γ stays measured).
+
 ## 2026-07-01: FV Lean — conductance building blocks (Emma: invest in the 8-state Cheeger bound)
 
 Emma green-lit investing in the per-edge (Cheeger/conductance) lower bound on the multi-state
