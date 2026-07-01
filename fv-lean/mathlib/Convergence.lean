@@ -42,6 +42,8 @@ line (a scalar Rayleigh number in, a machine-checked operator-norm contraction o
 import GibbsMultiState
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Algebra.QuadraticDiscriminant
+import Mathlib.Analysis.SpecificLimits.Basic
+import Mathlib.Topology.Algebra.InfiniteSum.Order
 
 open Finset
 
@@ -360,11 +362,83 @@ theorem applyP_gap_contraction (π : S → ℝ) (P : S → S → ℝ) (c : ℝ)
   rw [e1, e2] at hb
   nlinarith [hb]
 
+/-! ### The Z-transform pole = the contraction rate (loop and Gibbs as one theorem)
+
+The spine's step 3 (`FV-LEAN-HANDOFF-2026-06-29.md` §⭐⭐): the deterministic loop and the
+thermodynamic Gibbs chain are instances of the SAME convergence statement, unified by the
+Z-transform. The generating function of the energy sequence `aₙ = ‖Pⁿf‖²_π` is
+`G(z) = Σₙ aₙ zⁿ`; its radius of convergence is `1/r` where `r` is the one-step contraction
+rate, so **the pole of the Z-transform sits at `|z| = 1/r`, i.e. the pole radius (in the
+standard `z⁻¹` convention) equals `r`.** For the Gibbs chain `r = (1−γ)² < 1` (the spectral
+gap), the pole is strictly inside and `G(1)` converges — the chain settles with finite total
+deviation-energy. For the deterministic loop `r = 1` (orthogonal `R`, `loop_norm_preserved`),
+the pole is exactly ON the unit circle — marginal stability, norm-preserving, termination is
+the halt gate. Same `iterP`, same generating function; only the pole radius `= r` changes,
+which is exactly the paper's substrate table. Proved by comparison with the geometric series
+(`Mathlib.Analysis.SpecificLimits`), no finite-dim spectral theorem. This is the machine-checked
+form of "the spectral gap IS a Z-transform pole." -/
+
+/-- **Z-transform pole = contraction rate (Gibbs / contracting case).** If the transition
+    operator contracts the squared π-norm by `r` in one step (`hgap`, e.g. `r = (1−γ)²` from
+    the spectral gap), the energy generating function `G(z) = Σₙ ‖Pⁿf‖²_π zⁿ` is summable for
+    every `0 ≤ z` with `r·z < 1` — i.e. for `z < 1/r`. So the Z-transform's pole is at
+    `z = 1/r`: the pole radius equals the contraction rate `r`. -/
+theorem energy_gen_summable (π : S → ℝ) (P : S → S → ℝ) (r z : ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hr0 : 0 ≤ r) (hz0 : 0 ≤ z) (hrz : r * z < 1)
+    (hgap : ∀ h : S → ℝ, normPiSq π (applyP P h) ≤ r * normPiSq π h)
+    (f : S → ℝ) :
+    Summable (fun n => normPiSq π (iterP P n f) * z ^ n) := by
+  have hbound : ∀ n, normPiSq π (iterP P n f) * z ^ n ≤ normPiSq π f * (r * z) ^ n := by
+    intro n
+    have hg := geometric_convergence π P r hr0 hgap f n
+    have hz : (0 : ℝ) ≤ z ^ n := pow_nonneg hz0 n
+    calc normPiSq π (iterP P n f) * z ^ n
+        ≤ (r ^ n * normPiSq π f) * z ^ n := mul_le_mul_of_nonneg_right hg hz
+      _ = normPiSq π f * (r * z) ^ n := by rw [mul_pow]; ring
+  have hnonneg : ∀ n, 0 ≤ normPiSq π (iterP P n f) * z ^ n := fun n =>
+    mul_nonneg (normPiSq_nonneg π _ hπ) (pow_nonneg hz0 n)
+  have hnorm : ‖r * z‖ < 1 := by
+    rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg hr0 hz0)]; exact hrz
+  have hsum_geo : Summable (fun n => normPiSq π f * (r * z) ^ n) :=
+    (summable_geometric_of_norm_lt_one hnorm).mul_left (normPiSq π f)
+  exact Summable.of_nonneg_of_le hnonneg hbound hsum_geo
+
+/-- **The chain settles (contraction ⇒ `G(1)` converges).** When `r < 1` the pole radius
+    `1/r > 1`, so the Z-transform converges at `z = 1`: the total accumulated deviation-energy
+    `Σₙ ‖Pⁿf‖²_π` is finite. This is the `z = 1` value of `energy_gen_summable`. -/
+theorem energy_summable_of_contraction (π : S → ℝ) (P : S → S → ℝ) (r : ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hr0 : 0 ≤ r) (hr1 : r < 1)
+    (hgap : ∀ h : S → ℝ, normPiSq π (applyP P h) ≤ r * normPiSq π h)
+    (f : S → ℝ) :
+    Summable (fun n => normPiSq π (iterP P n f)) := by
+  have h := energy_gen_summable π P r 1 hπ hr0 (by norm_num) (by rw [mul_one]; exact hr1) hgap f
+  simpa using h
+
+/-- **Loop (`r = 1`) boundary — the pole ON the unit circle.** For a π-isometry `R` the energy
+    is CONSTANT (`loop_norm_preserved`), so its generating function is `‖f‖²_π · Σₙ zⁿ`, which
+    converges exactly for `0 ≤ z < 1`: the pole sits AT `z = 1`, on the unit circle. Marginal
+    stability — the same Z-transform picture as `energy_gen_summable`, at the boundary `r = 1`
+    (norm-preserving; termination is the halt gate, not spectral decay). -/
+theorem loop_energy_gen_summable (π : S → ℝ) (R : S → S → ℝ) (z : ℝ)
+    (hz0 : 0 ≤ z) (hz1 : z < 1)
+    (hiso : ∀ h : S → ℝ, normPiSq π (applyP R h) = normPiSq π h)
+    (f : S → ℝ) :
+    Summable (fun n => normPiSq π (iterP R n f) * z ^ n) := by
+  have hconst : (fun n => normPiSq π (iterP R n f) * z ^ n)
+              = (fun n => normPiSq π f * z ^ n) := by
+    funext n; rw [loop_norm_preserved π R hiso f n]
+  rw [hconst]
+  have hnorm : ‖z‖ < 1 := by rw [Real.norm_eq_abs, abs_of_nonneg hz0]; exact hz1
+  exact (summable_geometric_of_norm_lt_one hnorm).mul_left (normPiSq π f)
+
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
 #print axioms rayleigh_polar_bound
 #print axioms quad_to_bound
 #print axioms applyP_gap_contraction
+#print axioms energy_gen_summable
+#print axioms energy_summable_of_contraction
+#print axioms loop_energy_gen_summable
 #print axioms normPiSq_applyP_selfAdjoint
 #print axioms innerPi_add_left
 #print axioms innerPi_sub_left
