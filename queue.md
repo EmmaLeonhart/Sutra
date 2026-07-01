@@ -126,7 +126,12 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    fixed a real gap (the capstone's contraction is mean-zero-only; `geometric_convergence` wanted all-h,
    false on the stationary direction) with the mean-zero iteration; and DISCHARGED the Rayleigh gap from
    matrix entries for a concrete reversible 2-state chain (`λ₂=1−P₀₁−P₁₀` computed, `‖Pⁿf‖²_π ≤ (λ₂²)ⁿ‖f‖²`,
-   NO measured input) — the spine closing end-to-end on a concrete chain. **STILL OPEN:** the same
+   NO measured input) — the spine closing end-to-end on a concrete chain. **CONVERGENCE-TO-STATIONARITY
+   LIMIT DONE 2026-06-30, CI-green** (`energy_summable_meanZero` + `meanZero_tendsto_zero` +
+   `twoState_tendsto_zero`, no `sorryAx`): the deviation-energy `‖Pⁿf‖²_π → 0` (a genuine `Tendsto`
+   limit, not just a rate bound), incl. the concrete 2-state chain reaching stationarity with no
+   measured input. clawRxiv verdict progressed Strong Reject → Weak Reject after the Z-transform leg.
+   **STILL OPEN:** the same
    discharge for the *8-state* kernel (a machine-checked `λ₂` bound on that larger operator; γ=0.0397
    still the measured input there); then continuous-space
    overdamped Langevin `dX=−∇U dt+√(2/β)dW` (the continuous-time master-ODE decay is the discrete
