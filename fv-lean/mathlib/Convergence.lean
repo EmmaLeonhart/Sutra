@@ -836,11 +836,11 @@ input. (A different, closed-form chain from the 8-state Gibbs kernel, whose exac
 transcendental measurement.) -/
 
 /-- Lazy-uniform kernel: stay w.p. `1−ε`, else jump uniformly. `noncomputable` (real division). -/
-noncomputable def lazyUnifP (ε : ℝ) : S → S → ℝ :=
+noncomputable def lazyUnifP [DecidableEq S] (ε : ℝ) : S → S → ℝ :=
   fun s t => (1 - ε) * (if s = t then 1 else 0) + ε / (Fintype.card S : ℝ)
 
 /-- Action of the lazy-uniform operator: `(Pf)_s = (1−ε)·f_s + (ε/n)·∑_t f_t`. -/
-theorem lazyUnif_apply (ε : ℝ) (h : S → ℝ) (s : S) :
+theorem lazyUnif_apply [DecidableEq S] (ε : ℝ) (h : S → ℝ) (s : S) :
     applyP (lazyUnifP ε) h s = (1 - ε) * h s + (ε / (Fintype.card S : ℝ)) * ∑ t, h t := by
   unfold applyP lazyUnifP
   have hterm : ∀ t, ((1 - ε) * (if s = t then (1:ℝ) else 0) + ε / (Fintype.card S : ℝ)) * h t
@@ -851,7 +851,7 @@ theorem lazyUnif_apply (ε : ℝ) (h : S → ℝ) (s : S) :
   simp
 
 /-- The lazy-uniform chain is reversible w.r.t. the uniform law (symmetry of the indicator). -/
-theorem lazyUnifP_db (ε : ℝ) : DetailedBalance (unifPi : S → ℝ) (lazyUnifP ε) := by
+theorem lazyUnifP_db [DecidableEq S] (ε : ℝ) : DetailedBalance (unifPi : S → ℝ) (lazyUnifP ε) := by
   intro s t
   unfold unifPi lazyUnifP
   by_cases hst : s = t
@@ -859,7 +859,7 @@ theorem lazyUnifP_db (ε : ℝ) : DetailedBalance (unifPi : S → ℝ) (lazyUnif
   · rw [if_neg hst, if_neg (fun h => hst h.symm)]
 
 /-- The lazy-uniform kernel is nonnegative for `0 ≤ ε ≤ 1`. -/
-theorem lazyUnifP_nonneg (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1) (s t : S) :
+theorem lazyUnifP_nonneg [DecidableEq S] (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1) (s t : S) :
     0 ≤ lazyUnifP ε s t := by
   unfold lazyUnifP
   apply add_nonneg
