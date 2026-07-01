@@ -12,7 +12,7 @@ was removed for substrate purity. The REPL displays results only at the
   - a number-vector shows its real-axis value (the one external terminal read);
   - any other vector decodes to the nearest known concept (cosine argmax over the
     program's string codebook — the same `argmax_cosine`-over-codebook the demos
-    use), shown as `≈ "concept" (cos 0.NN)`;
+    use), shown as `~ "concept" (cos 0.NN)`;
   - an already-decoded host value (string / int) prints as-is.
 
 No `.real()` / `.item()` is used inside any Sutra operation; the decode happens
@@ -33,7 +33,7 @@ from .parser import Parser
 from .codegen_pytorch import translate_module as _translate
 
 _BANNER = (
-    "Sutra REPL — type an expression to evaluate it; end a line with ';' or '}' "
+    "Sutra REPL - type an expression to evaluate it; end a line with ';' or '}' "
     "to add a declaration.\n"
     "Commands: :help  :decls  :reset  :quit\n"
 )
@@ -104,7 +104,7 @@ def _decode_result(mod, result, *, concept_threshold: float = 0.5) -> str:
                 best_cos, best_name = cos, name
 
     if best_name is not None and best_cos >= concept_threshold:
-        return f'≈ "{best_name}"  (cos {best_cos:.2f})'
+        return f'~ "{best_name}"  (cos {best_cos:.2f})'
 
     # Otherwise treat it as a number-vector: show the real-axis value (the one
     # external terminal read, same boundary as `sutrac --run`).

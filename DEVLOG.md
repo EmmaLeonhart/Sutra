@@ -1,3 +1,18 @@
+## 2026-06-30: Usability (Batch 8 U2) — CLI/REPL output hardened for non-UTF-8 consoles
+
+`sutrac --help` and `sutrac repl` crashed with `UnicodeEncodeError` on the em-dash (U+2014) when
+stdout is redirected to a pipe/file under a non-UTF-8 encoding. REPRODUCED before fixing:
+`PYTHONIOENCODING={ascii,cp437,cp932} python -m sutra_compiler --help > f` → exit 1,
+`UnicodeEncodeError: ... can't encode character '—'` (cp437 = classic US OEM console; cp932 =
+Japanese Windows; cp1252 itself maps U+2014 at 0x97, so *that* console was fine — the crash is the
+OEM/non-Latin consoles + redirected streams, where Python uses the locale codec with strict errors).
+
+Fix = ASCII-sweep the emitted CLI chrome only (not comments/docstrings, which aren't emitted): the REPL
+banner and the `~ "concept" (cos …)` result line (`≈`→`~`), the argparse `--emit`/`--emit-thrml` help
+strings, the `no main() found` error, and the `--run-viz` tracing-shim comment injected into generated
+code (box-drawing `─`→`-`, em-dash→`-`). Verified: no `UnicodeEncodeError` under ascii/cp437/cp932 for
+`--help` and `repl`; 27 CLI/repl/diagnostic tests pass. Batch 8 concrete items (U1 + U2) now drained.
+
 ## 2026-06-30: Usability audit (Batch 8) — `sutrac repl` now discoverable in `--help`
 
 PINNED TAIL audit round (FV-Lean bounded work drained). Audited Sutra from an outsider's view:
