@@ -24,12 +24,20 @@ WHAT IS PROVED HERE (machine-checked):
   • `geometric_convergence` — a one-step squared-π-norm contraction by `r = (1-γ)² < 1`
     ⇒ `‖Pⁿf‖²_π ≤ rⁿ ‖f‖²_π`. Gap ⇒ geometric convergence.
 
-WHAT IS NOT YET PROVED (the honest remaining spectral leg, flagged not faked): deriving
-the one-step contraction hypothesis `hgap` from `applyP_selfAdjoint` + a scalar
-Dirichlet-form gap `γ > 0` (self-adjoint ⇒ real spectrum ⇒ Rayleigh bound). `hgap` is
-here a hypothesis — the spectral gap as a Poincaré/Dirichlet inequality — and the measured
-`γ` is its instance. Do NOT read `geometric_convergence` as a proof that any particular
-chain has a gap; it proves gap ⇒ decay.
+THE SPECTRAL CAPSTONE (`applyP_gap_contraction`) IS NOW PROVED (machine-checked): for a
+reversible (π-self-adjoint) row-stochastic chain, a *scalar* Dirichlet/Rayleigh gap
+`|⟨Ph,h⟩_π| ≤ (1−γ)‖h‖²_π` on the mean-zero subspace ⇒ the one-step L²(π) contraction
+`‖Pf‖²_π ≤ (1−γ)²‖f‖²_π`. This is the numerical-radius = operator-norm step for a
+self-adjoint operator, done elementarily (polarization + parallelogram + the
+Cauchy–Schwarz discriminant argument), with NO finite-dim spectral theorem. Feeding it
+(with `r = (1−γ)²`) into `geometric_convergence` closes the `gap ⇒ geometric decay` chain
+with the gap as a scalar Rayleigh hypothesis that the measured `γ = 0.0397` instantiates.
+
+WHAT REMAINS A HYPOTHESIS (honestly, not faked): the *scalar Rayleigh gap itself*
+(`hray` below) — that a particular chain HAS `γ > 0` — is an input, not proved here; its
+VALUE is the measured `0.0397`. `applyP_gap_contraction` proves gap ⇒ contraction; it does
+NOT prove any given chain has a gap. That measurement→bound boundary is the correct honest
+line (a scalar Rayleigh number in, a machine-checked operator-norm contraction out).
 -/
 import GibbsMultiState
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
@@ -249,8 +257,114 @@ theorem loop_norm_preserved (π : S → ℝ) (R : S → S → ℝ)
   | zero => rw [iterP_zero]
   | succ k ih => rw [iterP_succ, hiso, ih]
 
+/-! ### The spectral capstone: scalar Rayleigh gap ⇒ one-step L²(π) contraction
+
+`planning/open-questions/fv-convergence-spectral-gap-leg.md`. All the scaffold above is
+CI-verified; this is the final assembly (numerical radius = operator norm for a self-adjoint
+operator), proved elementarily off polarization + parallelogram + Cauchy–Schwarz, no
+finite-dim spectral theorem. -/
+
+/-- `piMean` is additive. -/
+theorem piMean_add (π f g : S → ℝ) : piMean π (f + g) = piMean π f + piMean π g := by
+  unfold piMean
+  rw [← Finset.sum_add_distrib]
+  exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.add_apply]; ring)
+
+/-- `piMean` subtracts. -/
+theorem piMean_sub (π f g : S → ℝ) : piMean π (f - g) = piMean π f - piMean π g := by
+  unfold piMean
+  rw [← Finset.sum_sub_distrib]
+  exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.sub_apply]; ring)
+
+/-- `piMean` is homogeneous: `Eπ[c·f] = c·Eπ[f]`. -/
+theorem piMean_smul (π : S → ℝ) (t : ℝ) (f : S → ℝ) :
+    piMean π (t • f) = t * piMean π f := by
+  unfold piMean
+  rw [Finset.mul_sum]
+  exact Finset.sum_congr rfl (fun s _ => by simp only [Pi.smul_apply, smul_eq_mul]; ring)
+
+/-- The squared π-norm is quadratic in a scalar: `‖t·f‖²_π = t²‖f‖²_π`. -/
+theorem normPiSq_smul (π : S → ℝ) (t : ℝ) (f : S → ℝ) :
+    normPiSq π (t • f) = t ^ 2 * normPiSq π f := by
+  unfold normPiSq
+  rw [innerPi_smul_left, innerPi_comm π f (t • f), innerPi_smul_left]
+  ring
+
+/-- **Rayleigh polarization bound.** If the self-adjoint form obeys the scalar Rayleigh gap
+    `|⟨Ph,h⟩_π| ≤ c‖h‖²_π` on every mean-zero `h`, then for mean-zero `f, g`:
+    `2⟨Pf,g⟩_π ≤ c(‖f‖²_π + ‖g‖²_π)`. Proof: polarization turns `4⟨Pf,g⟩_π` into the two
+    diagonal forms `⟨P(f±g),f±g⟩_π`, the gap bounds each by `c‖f±g‖²_π`, and the
+    parallelogram law collapses `‖f+g‖²_π + ‖f−g‖²_π` to `2‖f‖²_π + 2‖g‖²_π`. Pure bilinear
+    algebra off the already-checked scaffold. -/
+theorem rayleigh_polar_bound (π : S → ℝ) (P : S → S → ℝ) (c : ℝ)
+    (hdb : DetailedBalance π P)
+    (hray : ∀ h : S → ℝ, piMean π h = 0 → |innerPi π (applyP P h) h| ≤ c * normPiSq π h)
+    (f g : S → ℝ) (hf0 : piMean π f = 0) (hg0 : piMean π g = 0) :
+    2 * innerPi π (applyP P f) g ≤ c * (normPiSq π f + normPiSq π g) := by
+  have hfg0 : piMean π (f + g) = 0 := by rw [piMean_add, hf0, hg0]; ring
+  have hfmg0 : piMean π (f - g) = 0 := by rw [piMean_sub, hf0, hg0]; ring
+  have b1 : innerPi π (applyP P (f + g)) (f + g) ≤ c * normPiSq π (f + g) :=
+    le_of_abs_le (hray (f + g) hfg0)
+  have b2 : -(innerPi π (applyP P (f - g)) (f - g)) ≤ c * normPiSq π (f - g) :=
+    neg_le_of_abs_le (hray (f - g) hfmg0)
+  have e := innerPi_polarization π P hdb f g
+  have par := normPiSq_parallelogram π f g
+  have parc : c * (normPiSq π (f + g) + normPiSq π (f - g))
+            = c * (2 * normPiSq π f + 2 * normPiSq π g) := by rw [par]
+  nlinarith [e, b1, b2, parc]
+
+/-- Pure real-arithmetic core of the capstone: a quadratic `c·a·t² − 2a·t + c·b ≥ 0` for all
+    `t` (with `a,b,c ≥ 0`) forces `a ≤ c²·b`, by the discriminant (Cauchy–Schwarz) argument
+    plus cancellation of a positive `a`. Isolated from the substrate so the discriminant step
+    reuses the same `discrim_le_zero` pattern as `innerPi_cauchy_schwarz`. -/
+theorem quad_to_bound {a b c : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (_hc : 0 ≤ c)
+    (H : ∀ t : ℝ, 0 ≤ (c * a) * (t * t) + (-2 * a) * t + c * b) :
+    a ≤ c ^ 2 * b := by
+  have hd := discrim_le_zero H
+  simp only [discrim] at hd
+  by_cases hazero : a = 0
+  · rw [hazero]; nlinarith [sq_nonneg c, hb]
+  · have hapos : 0 < a := lt_of_le_of_ne ha (Ne.symm hazero)
+    have h2 : a * a ≤ c ^ 2 * b * a := by nlinarith [hd]
+    nlinarith [h2, hapos]
+
+/-- **THE SPECTRAL CAPSTONE — scalar Rayleigh gap ⇒ one-step L²(π) contraction.**
+    For a row-stochastic, reversible (π-self-adjoint) chain with `π ≥ 0`, if the self-adjoint
+    form obeys the scalar Dirichlet/Rayleigh gap `|⟨Ph,h⟩_π| ≤ c‖h‖²_π` on the mean-zero
+    subspace (with `c = 1 − γ` the measured gap complement), then the transition operator
+    contracts the squared π-norm of a mean-zero observable by `c²`:
+    `‖Pf‖²_π ≤ c²‖f‖²_π`.
+
+    This is exactly `geometric_convergence`'s hypothesis `hgap` (with `r = c² = (1−γ)²`), so
+    together they give a fully-closed `gap ⇒ geometric decay`. Proof = numerical-radius bound
+    for the self-adjoint `P`: `rayleigh_polar_bound` gives `2⟨Pf,g⟩_π ≤ c(‖f‖²_π + ‖g‖²_π)`
+    for every mean-zero `g`; instantiating `g = t·Pf` (mean-zero, by `applyP_preserves_piMean`)
+    for all `t` exhibits a nonnegative quadratic in `t` whose discriminant (`quad_to_bound`)
+    yields `‖Pf‖²_π ≤ c²‖f‖²_π`. No finite-dim spectral theorem. -/
+theorem applyP_gap_contraction (π : S → ℝ) (P : S → S → ℝ) (c : ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hc0 : 0 ≤ c)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (hray : ∀ h : S → ℝ, piMean π h = 0 → |innerPi π (applyP P h) h| ≤ c * normPiSq π h)
+    (f : S → ℝ) (hf0 : piMean π f = 0) :
+    normPiSq π (applyP P f) ≤ c ^ 2 * normPiSq π f := by
+  have hPf0 : piMean π (applyP P f) = 0 := by
+    rw [applyP_preserves_piMean π P hrow hdb f, hf0]
+  refine quad_to_bound (normPiSq_nonneg π _ hπ) (normPiSq_nonneg π _ hπ) hc0 ?_
+  intro t
+  have hg0 : piMean π (t • applyP P f) = 0 := by rw [piMean_smul, hPf0, mul_zero]
+  have hb := rayleigh_polar_bound π P c hdb hray f (t • applyP P f) hf0 hg0
+  have e1 : innerPi π (applyP P f) (t • applyP P f) = t * normPiSq π (applyP P f) := by
+    rw [innerPi_comm π (applyP P f) (t • applyP P f), innerPi_smul_left]; rfl
+  have e2 : normPiSq π (t • applyP P f) = t ^ 2 * normPiSq π (applyP P f) :=
+    normPiSq_smul π t (applyP P f)
+  rw [e1, e2] at hb
+  nlinarith [hb]
+
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
+#print axioms rayleigh_polar_bound
+#print axioms quad_to_bound
+#print axioms applyP_gap_contraction
 #print axioms normPiSq_applyP_selfAdjoint
 #print axioms innerPi_add_left
 #print axioms innerPi_sub_left
