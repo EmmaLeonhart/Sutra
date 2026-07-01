@@ -41,6 +41,7 @@ line (a scalar Rayleigh number in, a machine-checked operator-norm contraction o
 -/
 import GibbsMultiState
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
+import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Algebra.QuadraticDiscriminant
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.Order
