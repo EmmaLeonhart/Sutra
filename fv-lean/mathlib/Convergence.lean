@@ -787,4 +787,43 @@ theorem dirichlet_raw_ge_of_min_edge (π : S → ℝ) (P : S → S → ℝ) (δ 
 #print axioms sum_sq_diff
 #print axioms dirichlet_raw_ge_of_min_edge
 
+/-- The uniform distribution on a finite state space. `noncomputable` (real division). -/
+noncomputable def unifPi : S → ℝ := fun _ => 1 / (Fintype.card S : ℝ)
+
+/-- **Uniform-π conductance Poincaré bound.** For the uniform stationary law and a uniform
+    per-edge lower bound `δ ≤ π_s P_{st}` (s≠t), the π-Dirichlet form obeys the Poincaré
+    inequality with constant `γ = δ·n²` on the mean-zero subspace:
+    `(δ·n²)·‖f‖²_π ≤ E(f)`  (`n = card S`).
+    This is the conductance ⇒ spectral-gap step for uniform chains, with no spectral theorem:
+    `2E(f) = ∑π_s P_{st}(f_s−f_t)² ≥ δ∑(f_s−f_t)² = δ(2n∑f²−2(∑f)²) = 2δn∑f²` on mean-zero
+    (`∑f=0`), and `‖f‖²_π = (∑f²)/n`. Feeds `gap_of_poincare_lazy` / `geometric_decay_of_poincare_lazy`. -/
+theorem unif_poincare [Nonempty S] (P : S → S → ℝ) (δ : ℝ)
+    (hedge : ∀ s t, s ≠ t → δ ≤ unifPi s * P s t)
+    (f : S → ℝ) (hf0 : piMean unifPi f = 0) :
+    (δ * (Fintype.card S : ℝ) ^ 2) * normPiSq unifPi f ≤ dirichlet unifPi P f := by
+  have hn : (Fintype.card S : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hsum0 : ∑ s, f s = 0 := by
+    have e : (Fintype.card S : ℝ) * piMean unifPi f = ∑ s, f s := by
+      unfold piMean unifPi
+      rw [Finset.mul_sum]
+      exact Finset.sum_congr rfl (fun s _ => by
+        linear_combination (f s) * mul_inv_cancel₀ hn)
+    rw [hf0, mul_zero] at e; exact e.symm
+  have hnorm_n : (Fintype.card S : ℝ) * normPiSq unifPi f = ∑ s, f s * f s := by
+    unfold normPiSq innerPi unifPi
+    rw [Finset.mul_sum]
+    exact Finset.sum_congr rfl (fun s _ => by
+      linear_combination (f s * f s) * mul_inv_cancel₀ hn)
+  have hA : (∑ s, ∑ t, (f s - f t) ^ 2)
+          = 2 * (Fintype.card S : ℝ) * (∑ s, f s * f s) := by
+    rw [sum_sq_diff, hsum0]; ring
+  have hW : (∑ s, ∑ t, unifPi s * P s t * (f s - f t) ^ 2) = 2 * dirichlet unifPi P f := by
+    unfold dirichlet; ring
+  have hraw := dirichlet_raw_ge_of_min_edge unifPi P δ hedge f
+  rw [hA, hW, ← hnorm_n] at hraw
+  nlinarith [hraw]
+
+#print axioms unifPi
+#print axioms unif_poincare
+
 end SutraConvergence
