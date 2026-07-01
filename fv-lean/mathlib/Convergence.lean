@@ -940,4 +940,89 @@ theorem lazyUnif_geometric_decay [DecidableEq S] [Nonempty S] (ε : ℝ) (hε0 :
 #print axioms lazyUnifP_lazy
 #print axioms lazyUnif_geometric_decay
 
+/-! ### General-π conductance Poincaré bound (non-uniform; toward the Gibbs kernel)
+
+The uniform-π bound generalises to ANY probability law via the π-weighted variance identity
+`Var_π(f) = ½∑_{s,t} π_s π_t (f_s−f_t)²` (on the mean-zero subspace). Combined with a per-edge
+*ratio* bound `P_{st} ≥ κ·π_t`, this gives the Poincaré constant `γ = κ` with no spectral theorem
+and no uniformity assumption — the tool the non-uniform Gibbs kernel needs (its Lean gap then
+reduces to the per-edge ratio `κ = min_{s≠t} P_{st}/π_t`). Subsumes `unif_poincare`. -/
+
+/-- **π-weighted variance identity.** For a probability law (`∑ π = 1`) and mean-zero `f`,
+    `∑_{s,t} π_s π_t (f_s−f_t)² = 2·‖f‖²_π`. Pure finite-sum algebra: the two diagonal terms give
+    `‖f‖²_π` each (via `∑π=1`), the cross term is `(∑π_s f_s)² = 0` (mean-zero). -/
+theorem piVar_eq (π f : S → ℝ) (hprob : ∑ s, π s = 1) (hf0 : piMean π f = 0) :
+    ∑ s, ∑ t, π s * π t * (f s - f t) ^ 2 = 2 * normPiSq π f := by
+  have hf0' : (∑ s, π s * f s) = 0 := hf0
+  have hA : ∑ s, ∑ t, π s * π t * (f s * f s) = normPiSq π f := by
+    unfold normPiSq innerPi
+    refine Finset.sum_congr rfl (fun s _ => ?_)
+    calc ∑ t, π s * π t * (f s * f s)
+        = (π s * f s * f s) * ∑ t, π t := by
+          rw [Finset.mul_sum]; exact Finset.sum_congr rfl (fun t _ => by ring)
+      _ = π s * f s * f s := by rw [hprob]; ring
+  have hC : ∑ s, ∑ t, π s * π t * (f t * f t) = normPiSq π f := by
+    rw [Finset.sum_comm]
+    unfold normPiSq innerPi
+    refine Finset.sum_congr rfl (fun t _ => ?_)
+    calc ∑ s, π s * π t * (f t * f t)
+        = (π t * f t * f t) * ∑ s, π s := by
+          rw [Finset.mul_sum]; exact Finset.sum_congr rfl (fun s _ => by ring)
+      _ = π t * f t * f t := by rw [hprob]; ring
+  have hB : ∑ s, ∑ t, π s * π t * (f s * f t) = (∑ s, π s * f s) * (∑ s, π s * f s) := by
+    have hin : ∀ s, ∑ t, π s * π t * (f s * f t) = (π s * f s) * (∑ t, π t * f t) := by
+      intro s; rw [Finset.mul_sum]; exact Finset.sum_congr rfl (fun t _ => by ring)
+    rw [Finset.sum_congr rfl (fun s _ => hin s), ← Finset.sum_mul]
+  have hmerge : ∑ s, ∑ t, π s * π t * (f s - f t) ^ 2
+      = (∑ s, ∑ t, π s * π t * (f s * f s))
+        - 2 * (∑ s, ∑ t, π s * π t * (f s * f t))
+        + (∑ s, ∑ t, π s * π t * (f t * f t)) := by
+    calc ∑ s, ∑ t, π s * π t * (f s - f t) ^ 2
+        = ∑ s, ((∑ t, π s * π t * (f s * f s))
+                - 2 * (∑ t, π s * π t * (f s * f t))
+                + (∑ t, π s * π t * (f t * f t))) :=
+          Finset.sum_congr rfl (fun s _ => by
+            rw [Finset.mul_sum, ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
+            exact Finset.sum_congr rfl (fun t _ => by ring))
+      _ = _ := by rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
+  rw [hmerge, hA, hB, hC, hf0']; ring
+
+/-- **Per-edge ratio ⇒ Dirichlet lower bound.** If `κ·π_t ≤ P_{st}` on every off-diagonal edge
+    (`κ ≤ P_{st}/π_t`) and `π ≥ 0`, the π-Dirichlet sum dominates `κ` times the π-weighted all-pairs
+    energy (term-by-term; diagonal vanishes). -/
+theorem dirichlet_ge_of_edge_ratio (π : S → ℝ) (P : S → S → ℝ) (κ : ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hedge : ∀ s t, s ≠ t → κ * π t ≤ P s t) (f : S → ℝ) :
+    κ * (∑ s, ∑ t, π s * π t * (f s - f t) ^ 2)
+      ≤ ∑ s, ∑ t, π s * P s t * (f s - f t) ^ 2 := by
+  rw [Finset.mul_sum]
+  refine Finset.sum_le_sum (fun s _ => ?_)
+  rw [Finset.mul_sum]
+  refine Finset.sum_le_sum (fun t _ => ?_)
+  by_cases hst : s = t
+  · simp [hst]
+  · have h2 : κ * π t * π s ≤ P s t * π s := mul_le_mul_of_nonneg_right (hedge s t hst) (hπ s)
+    have h3 : κ * π t * π s * (f s - f t) ^ 2 ≤ P s t * π s * (f s - f t) ^ 2 :=
+      mul_le_mul_of_nonneg_right h2 (sq_nonneg _)
+    nlinarith [h3]
+
+/-- **General-π conductance Poincaré bound.** For a probability reversible chain with a per-edge
+    ratio `κ ≤ P_{st}/π_t`, the Poincaré inequality holds with constant `γ = κ` on the mean-zero
+    subspace: `κ·‖f‖²_π ≤ E(f)`. No spectral theorem, no uniformity — feeds
+    `geometric_decay_of_poincare_lazy`. Subsumes `unif_poincare` (uniform: `κ = ε`). -/
+theorem gen_poincare (π : S → ℝ) (P : S → S → ℝ) (κ : ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hprob : ∑ s, π s = 1)
+    (hedge : ∀ s t, s ≠ t → κ * π t ≤ P s t)
+    (f : S → ℝ) (hf0 : piMean π f = 0) :
+    κ * normPiSq π f ≤ dirichlet π P f := by
+  have hpv := piVar_eq π f hprob hf0
+  have hde := dirichlet_ge_of_edge_ratio π P κ hπ hedge f
+  have hd2 : ∑ s, ∑ t, π s * P s t * (f s - f t) ^ 2 = 2 * dirichlet π P f := by
+    unfold dirichlet; ring
+  rw [hpv, hd2] at hde
+  nlinarith [hde]
+
+#print axioms piVar_eq
+#print axioms dirichlet_ge_of_edge_ratio
+#print axioms gen_poincare
+
 end SutraConvergence
