@@ -527,6 +527,19 @@ def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="sutrac",
         description="Validate Sutra (.su) source files.",
+        epilog=(
+            "interactive REPL:\n"
+            "  sutrac repl          Launch the interactive evaluator (takes no\n"
+            "                       file). Type an expression to see its value;\n"
+            "                       declarations accumulate as session state.\n"
+            "\n"
+            "examples:\n"
+            "  sutrac file.su               Validate a source file.\n"
+            "  sutrac --run file.su         Compile and execute (needs torch).\n"
+            "  sutrac --emit file.su        Print the generated PyTorch module.\n"
+            "  sutrac repl                  Explore interactively."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "paths",

@@ -159,6 +159,26 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
+## Batch 8 — usability audit (2026-06-30, CLI-discoverability + Windows-console pass)
+
+Outsider audit this round found the docs/onboarding in strong shape — no repo-internal leaks in
+`docs/`, no dead `.md` links, `pip install` extras (`runtime`/`embed`/`ts`) all accurate, tutorial 01
+clean, no-args CLI error correct (exit 2, clear message). Two concrete CLI items surfaced:
+
+- _U1 DONE 2026-06-30 (history in DEVLOG): `sutrac repl` was invisible in `sutrac --help`. The `repl`
+  subcommand is intercepted before argparse (`__main__.py`), so `--help` never listed it despite the
+  README/tutorials documenting it — a newcomer exploring via `--help` couldn't discover the REPL. Added
+  an argparse epilog (RawDescriptionHelpFormatter) documenting `repl` + common `--run`/`--emit`/validate
+  examples. Verified: `--help` now shows it, `repl` still launches, 27 CLI/repl/diagnostic tests pass._
+- **U2 — harden CLI/REPL output for non-UTF-8 consoles.** The REPL launch banner (`repl.py`) and much
+  argparse help text use non-ASCII em-dashes (`—`, U+2014). On a Windows cp1252 system these print fine
+  to a real console (WriteConsoleW) but raise `UnicodeEncodeError` when stdout is **redirected to a
+  pipe/file** (Python uses the locale encoding with strict errors for non-console streams) — a plausible
+  crash on Emma's own platform for `sutrac repl | tee`, `sutrac --help > f.txt`, CI capture, etc. Fix:
+  sweep CLI-emitted strings (repl banner/prompts, argparse help/description) to ASCII (`-`/`--`), or set
+  a UTF-8 stdout reconfigure at CLI entry. Verify: force `PYTHONIOENCODING=cp1252` + redirect and confirm
+  no `UnicodeEncodeError`. Bounded.
+
 _Batches 1–2 drained 2026-06-23 (in-process embeddings, first-run UX, package verify, semantic-FAQ +
 tutorial 05, list-ops, `sutrac repl`; tutorial 01/04 fixes, stale-count sweep, onboarding polish).
 History in `DEVLOG.md` / `git log`._

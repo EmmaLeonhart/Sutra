@@ -1,3 +1,20 @@
+## 2026-06-30: Usability audit (Batch 8) — `sutrac repl` now discoverable in `--help`
+
+PINNED TAIL audit round (FV-Lean bounded work drained). Audited Sutra from an outsider's view:
+docs/onboarding are in strong shape — no repo-internal leaks in `docs/`, no dead `.md` links, the
+`pip install` extras (`runtime`/`embed`/`ts`) all match `pyproject.toml`, tutorial 01 clean, no-args
+CLI gives a correct `exit 2` + "arguments are required: paths". Two concrete CLI items surfaced:
+
+- **U1 (fixed):** `sutrac repl` — a real feature intercepted before argparse (`__main__.py:519`) — was
+  invisible in `sutrac --help`, though the README and tutorials document it. A newcomer exploring the
+  CLI via `--help` couldn't discover the interactive REPL. Added an argparse `epilog`
+  (`RawDescriptionHelpFormatter`) documenting `repl` and the common `--run`/`--emit`/validate examples.
+  Verified: `--help` now shows the REPL + examples, `repl` still launches (intercept intact), and 27
+  CLI/repl/diagnostic tests pass (`pytest -k "cli or main or repl or help or version or diagnostic"`).
+- **U2 (queued):** the REPL banner and much argparse help use non-ASCII em-dashes (U+2014); redirected
+  to a pipe/file on a Windows cp1252 system these raise `UnicodeEncodeError`. Queued in `queue.md`
+  Batch 8 as a bounded ASCII-hardening / UTF-8-reconfigure fix (not yet done — flagged, not faked).
+
 ## 2026-06-30: FV Lean — convergence to stationarity as a genuine limit (Tendsto → 0)
 
 The last step of the convergence spine: the deviation-energy doesn't just satisfy a rate bound,
