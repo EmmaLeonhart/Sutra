@@ -568,8 +568,95 @@ theorem twoState_tendsto_zero (π : Fin 2 → ℝ) (P : Fin 2 → Fin 2 → ℝ)
   exact meanZero_tendsto_zero π P ((1 - P 0 1 - P 1 0) ^ 2) hπpos (sq_nonneg _) hgap1
     hrow hdb hstep f hf0
 
+/-! ### The Dirichlet form — the per-edge bridge to the spectral gap (8-state leg foundation)
+
+Toward the multi-state gap (audit row 9: the 8-state AND-gadget chain, measured γ = 0.0397).
+The exact eigenvalue is transcendental (`exp(−βE)` entries), so it has no closed form; the route
+that avoids the finite-dim spectral theorem is the **Dirichlet form** `E(f) = ½∑_{s,t} π_s P_{st}
+(f_s − f_t)²`. For a reversible chain it equals `‖f‖²_π − ⟨f,Pf⟩_π`, so the Rayleigh form is
+`⟨Pf,f⟩_π = ‖f‖²_π − E(f)` and the spectral gap is exactly the best Poincaré constant
+`E(f) ≥ γ‖f‖²_π` on mean-zero f — a bound over the elementary per-edge sum (Cheeger/conductance),
+no spectral theorem. This section builds that bridge for ANY finite reversible chain. -/
+
+/-- The π-Dirichlet form of an observable: `E(f) = ½ ∑_{s,t} π_s P_{st} (f_s − f_t)²`. -/
+def dirichlet (π : S → ℝ) (P : S → S → ℝ) (f : S → ℝ) : ℝ :=
+  (∑ s, ∑ t, π s * P s t * (f s - f t) ^ 2) / 2
+
+/-- **Dirichlet-form identity.** For a reversible (`DetailedBalance`) row-stochastic chain,
+    `E(f) = ‖f‖²_π − ⟨f, Pf⟩_π`. The bridge from the per-edge form to the operator gap. Pure
+    finite-sum algebra: the diagonal terms give `‖f‖²_π` (row-stochastic, and reversibility for
+    the `f_t²` half), the cross term gives `⟨f, Pf⟩_π`. -/
+theorem dirichlet_eq (π : S → ℝ) (P : S → S → ℝ)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P) (f : S → ℝ) :
+    dirichlet π P f = normPiSq π f - innerPi π f (applyP P f) := by
+  have hA : ∑ s, ∑ t, π s * P s t * (f s * f s) = normPiSq π f := by
+    unfold normPiSq innerPi
+    refine Finset.sum_congr rfl (fun s _ => ?_)
+    calc ∑ t, π s * P s t * (f s * f s)
+        = (π s * f s * f s) * ∑ t, P s t := by
+          rw [Finset.mul_sum]; exact Finset.sum_congr rfl (fun t _ => by ring)
+      _ = π s * f s * f s := by rw [hrow s]; ring
+  have hB : ∑ s, ∑ t, π s * P s t * (f s * f t) = innerPi π f (applyP P f) := by
+    unfold innerPi applyP
+    refine Finset.sum_congr rfl (fun s _ => ?_)
+    rw [Finset.mul_sum]
+    exact Finset.sum_congr rfl (fun t _ => by ring)
+  have hC : ∑ s, ∑ t, π s * P s t * (f t * f t) = normPiSq π f := by
+    have hswap : ∑ s, ∑ t, π s * P s t * (f t * f t)
+               = ∑ s, ∑ t, π t * P t s * (f t * f t) :=
+      Finset.sum_congr rfl (fun s _ => Finset.sum_congr rfl (fun t _ => by rw [hdb s t]))
+    rw [hswap, Finset.sum_comm]
+    unfold normPiSq innerPi
+    refine Finset.sum_congr rfl (fun t _ => ?_)
+    calc ∑ s, π t * P t s * (f t * f t)
+        = (π t * f t * f t) * ∑ s, P t s := by
+          rw [Finset.mul_sum]; exact Finset.sum_congr rfl (fun s _ => by ring)
+      _ = π t * f t * f t := by rw [hrow t]; ring
+  have hpt : ∀ s, ∑ t, π s * P s t * (f s - f t) ^ 2
+           = (∑ t, π s * P s t * (f s * f s))
+             - 2 * (∑ t, π s * P s t * (f s * f t))
+             + (∑ t, π s * P s t * (f t * f t)) := by
+    intro s
+    rw [Finset.mul_sum, ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
+    exact Finset.sum_congr rfl (fun t _ => by ring)
+  have hmerge : (∑ s, ∑ t, π s * P s t * (f s - f t) ^ 2)
+        = (∑ s, ∑ t, π s * P s t * (f s * f s))
+          - 2 * (∑ s, ∑ t, π s * P s t * (f s * f t))
+          + (∑ s, ∑ t, π s * P s t * (f t * f t)) := by
+    calc ∑ s, ∑ t, π s * P s t * (f s - f t) ^ 2
+        = ∑ s, ((∑ t, π s * P s t * (f s * f s))
+                - 2 * (∑ t, π s * P s t * (f s * f t))
+                + (∑ t, π s * P s t * (f t * f t))) :=
+          Finset.sum_congr rfl (fun s _ => hpt s)
+      _ = _ := by
+          rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
+  unfold dirichlet
+  rw [hmerge, hA, hB, hC]; ring
+
+/-- The Rayleigh form of the transition operator equals "norm minus Dirichlet form":
+    `⟨Pf, f⟩_π = ‖f‖²_π − E(f)`. So a Poincaré bound `E(f) ≥ γ‖f‖²_π` on mean-zero `f` is
+    exactly the spectral-gap Rayleigh bound `⟨Pf,f⟩_π ≤ (1−γ)‖f‖²_π`. -/
+theorem innerPi_rayleigh_eq_dirichlet (π : S → ℝ) (P : S → S → ℝ)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P) (f : S → ℝ) :
+    innerPi π (applyP P f) f = normPiSq π f - dirichlet π P f := by
+  rw [dirichlet_eq π P hrow hdb f, innerPi_comm π (applyP P f) f]; ring
+
+/-- The Dirichlet form is nonnegative when `π ≥ 0` and `P ≥ 0` (each per-edge term
+    `π_s P_{st} (f_s − f_t)²` is a product of nonnegatives). Hence `⟨Pf,f⟩_π ≤ ‖f‖²_π`:
+    the operator's Rayleigh quotient never exceeds 1 (`λ₂ ≤ 1`, the trivial half of the gap). -/
+theorem dirichlet_nonneg (π : S → ℝ) (P : S → S → ℝ)
+    (hπ : ∀ s, 0 ≤ π s) (hP : ∀ s t, 0 ≤ P s t) (f : S → ℝ) :
+    0 ≤ dirichlet π P f := by
+  unfold dirichlet
+  apply div_nonneg _ (by norm_num)
+  refine Finset.sum_nonneg (fun s _ => Finset.sum_nonneg (fun t _ => ?_))
+  exact mul_nonneg (mul_nonneg (hπ s) (hP s t)) (sq_nonneg _)
+
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
+#print axioms dirichlet_eq
+#print axioms innerPi_rayleigh_eq_dirichlet
+#print axioms dirichlet_nonneg
 #print axioms energy_summable_meanZero
 #print axioms meanZero_tendsto_zero
 #print axioms twoState_tendsto_zero
