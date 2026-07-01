@@ -623,18 +623,13 @@ dispatch's, not an artifact of high dimension. Reproduce in-repo:
 nomic-embed-text). The property follows from the lowering, so it holds for any
 Sutra program that compiles arithmetic the same way.
 
-The standard objection to any "bit-exact on GPU" claim is that float32 is
-non-deterministic across runs (warp scheduling reorders reductions). It does not
-bite here, briefly: the dispatch pipeline has no reductions over many elements (it
-is element-wise ops plus one saturated `select` per branch point); every
-intermediate is an exactly-representable integer below the exact-integer bound
-(2⁵³ in the float64 the calc demo runs), so each op's result is bit-identical
-regardless of order; and the saturated `select` multiplies off-branches by exact
-0.0 (`exp(−1000)` underflows below the smallest subnormal, independent of DAZ/FTZ
-flags). The scope is precise: exactness for *integer-valued computation in the
-exact range*, not a claim that arbitrary float pipelines are bit-portable — the
-soft-halt's `sigmoid` is a transcendental and deliberately outside it (§3.3 needs
-only monotone thresholding, not a bit-identity of the sigmoid).
+The usual "bit-exact on GPU" objection — float32 non-determinism from reduction
+reordering — does not bite: the dispatch is element-wise ops plus one saturated
+`select`, with no many-element reductions, and every intermediate is an
+exactly-representable integer below 2⁵³, so each result is bit-identical regardless
+of order (off-branches are multiplied by exact `0.0`). The scope is precise —
+integer-valued computation in the exact range, not arbitrary float pipelines; the
+soft-halt `sigmoid` is transcendental and deliberately outside it.
 
 This is **classical bit-exactness on the *deterministic* target, and it is a
 supporting precision measurement, not the paper's claim.** It is bought precisely
