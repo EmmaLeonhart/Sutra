@@ -140,12 +140,17 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    (`gap_of_poincare_lazy` + `geometric_decay_of_poincare_lazy`, no `sorryAx`): a Poincaré bound
    `γ‖h‖²_π ≤ E(h)` on mean-zero h + laziness `⟨Ph,h⟩_π ≥ 0` ⇒ the full Rayleigh gap ⇒
    `‖Pⁿf‖²_π ≤ ((1−γ)²)ⁿ‖f‖²_π` (γ∈[0,1]). The general multi-state gap⇒decay chain is now machine-checked,
-   parameterized by the Poincaré constant. Paper §7 updated (triggers re-review). **STILL OPEN:** the
-   concrete *8-state* per-edge (Cheeger) bound on γ (γ=0.0397 stays measured — its exact
-   eigenvalue is transcendental `exp(−βE)`, no closed form); a concrete small multi-state (e.g. symmetric
-   3-state) instance discharging its γ in closed form; then continuous-space
-   overdamped Langevin `dX=−∇U dt+√(2/β)dW` (the continuous-time master-ODE decay is the discrete
-   `geometric_convergence`'s analogue — lower priority). **Spec for what's needed:
+   parameterized by the Poincaré constant. Paper §7 updated. **The general multi-state gap⇒decay THEORY
+   is now COMPLETE + CI-green** (Dirichlet bridge + Poincaré/laziness engine + 2-state discharged instance
+   + convergence-to-zero limit + Z-transform unification). **STILL OPEN — all Emma-gated (autonomous loop
+   paused here 2026-07-01 pending her call; do NOT auto-grind):** (a) the concrete *8-state* per-edge
+   (Cheeger) bound on γ — a LARGE effort (formalize conductance + the Cheeger inequality γ≥Φ²/2 + the
+   per-edge computation), and γ=0.0397 stays measured regardless (transcendental eigenvalue `exp(−βE)`);
+   (b) a concrete closed-form multi-state instance (e.g. lazy-uniform n-state, γ=ε) — straightforward but
+   fiddly `Fintype.card`/division/sum-splitting arithmetic, several CI cycles, marginal value now the
+   general engine exists; (c) continuous-space overdamped Langevin `dX=−∇U dt+√(2/β)dW` — needs SDE/measure
+   theory, out of mathlib-light reach. Emma notified 2026-07-01: invest in (a) the 8-state Cheeger bound,
+   or consider the FV-Lean leg complete? **Spec for what's needed:
    `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
    multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
    cite no numbers until measured/proved. **PREREQ:** the mathlib layer (`fv-lean/mathlib/`) is
