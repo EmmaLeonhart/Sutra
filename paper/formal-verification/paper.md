@@ -1015,10 +1015,23 @@ computed by two-term algebra, no spectral theorem), and `twoState_geometric_deca
 through legs 2–3 to a fully-closed $\lVert P^n f\rVert_\pi^2\le(\lambda_2^2)^n\lVert f\rVert_\pi^2$
 with **no measured input**. So the Rayleigh hypothesis is demonstrably dischargeable, not vacuous.
 
+For the *general* multi-state case the gap is now reduced to a **Poincaré/Dirichlet bound**, with
+no finite-dimensional spectral theorem. The $\pi$-Dirichlet form
+$\mathcal{E}(f)=\tfrac12\sum_{s,t}\pi_s P_{st}(f_s-f_t)^2$ satisfies
+$\mathcal{E}(f)=\lVert f\rVert_\pi^2-\langle f,Pf\rangle_\pi$ (`dirichlet_eq`), so
+$\langle Pf,f\rangle_\pi=\lVert f\rVert_\pi^2-\mathcal{E}(f)$
+(`innerPi_rayleigh_eq_dirichlet`); a Poincaré inequality $\mathcal{E}(f)\ge\gamma\lVert f\rVert_\pi^2$
+on the mean-zero subspace together with laziness ($\langle Pf,f\rangle_\pi\ge0$) then yields the full
+two-sided Rayleigh gap and hence geometric decay $\lVert P^n f\rVert_\pi^2\le((1-\gamma)^2)^n\lVert
+f\rVert_\pi^2$ (`gap_of_poincare_lazy`, `geometric_decay_of_poincare_lazy`) — all `sorry`-free, CI-checked.
+This is a reusable engine parameterized by the Poincaré constant $\gamma$: a concrete chain closes
+end to end by supplying $\gamma$ from the elementary per-edge form.
+
 What remains genuinely open, named not claimed: (i) discharging the Rayleigh hypothesis the
-same way for the specific **eight-state** kernel — a machine-checked $\lambda_2$ bound on that
-larger operator (the two-state case above is done; the eight-state $\gamma=0.0397$ is still
-taken as the measured input); and (ii) the continuous-*space* overdamped
+same way for the specific **eight-state** kernel — a per-edge (Cheeger/conductance) lower bound on
+$\gamma$ for that operator (the general Poincaré$\Rightarrow$decay engine and the two-state case are
+done; the eight-state $\gamma=0.0397$ is still taken as the measured input, its exact eigenvalue
+being transcendental); and (ii) the continuous-*space* overdamped
 Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$ on a relaxed energy. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
 measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled
