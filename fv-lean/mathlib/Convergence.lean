@@ -428,8 +428,96 @@ theorem loop_energy_gen_summable (π : S → ℝ) (R : S → S → ℝ) (z : ℝ
   rw [hconst]
   exact (summable_geometric_of_lt_one hz0 hz1).mul_left (normPiSq π f)
 
+/-! ### Mean-zero iteration + a fully-discharged concrete instance
+
+Two honesty items. First, `geometric_convergence` takes the one-step contraction for ALL `h`,
+but `applyP_gap_contraction` only delivers it on the mean-zero subspace (on the stationary
+direction the norm is preserved, so an all-`h` contraction is false). The correct composition
+is the mean-zero-restricted iteration below, which uses `applyP_preserves_piMean` to keep the
+iterates in the subspace where the contraction holds. Second, the Rayleigh gap has so far been
+a *hypothesis* (the measured `γ` instantiates it); here we **discharge it from the matrix
+entries** for a concrete reversible two-state chain — `γ = P₀₁ + P₁₀`, computed, not measured —
+giving a fully-closed `gap ⇒ geometric decay` with no measured input for that instance. -/
+
+/-- Iterates of a mean-zero observable stay mean-zero (detailed balance ⇒ `applyP` preserves
+    the π-mean, `applyP_preserves_piMean`, applied inductively). The invariance that makes the
+    mean-zero one-step contraction iterate. -/
+theorem iterP_piMean_zero (π : S → ℝ) (P : S → S → ℝ)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (f : S → ℝ) (hf0 : piMean π f = 0) (n : ℕ) :
+    piMean π (iterP P n f) = 0 := by
+  induction n with
+  | zero => rw [iterP_zero]; exact hf0
+  | succ k ih => rw [iterP_succ, applyP_preserves_piMean π P hrow hdb]; exact ih
+
+/-- **Gap ⇒ geometric convergence, mean-zero form — the CORRECT composition with the capstone.**
+    Takes the one-step contraction only on the mean-zero subspace (exactly what
+    `applyP_gap_contraction` delivers) and, using `iterP_piMean_zero` to keep every iterate
+    mean-zero, concludes `‖Pⁿf‖²_π ≤ rⁿ‖f‖²_π` for mean-zero `f`. Unlike `geometric_convergence`
+    (which needs the bound for ALL `h`, false on the stationary direction), this one actually
+    chains off the capstone. -/
+theorem geometric_convergence_meanZero (π : S → ℝ) (P : S → S → ℝ) (r : ℝ) (hr0 : 0 ≤ r)
+    (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (hgap : ∀ h : S → ℝ, piMean π h = 0 → normPiSq π (applyP P h) ≤ r * normPiSq π h)
+    (f : S → ℝ) (hf0 : piMean π f = 0) (n : ℕ) :
+    normPiSq π (iterP P n f) ≤ r ^ n * normPiSq π f := by
+  induction n with
+  | zero => simp only [iterP_zero, pow_zero, one_mul, le_refl]
+  | succ k ih =>
+    have hmz : piMean π (iterP P k f) = 0 := iterP_piMean_zero π P hrow hdb f hf0 k
+    calc normPiSq π (iterP P (k + 1) f)
+        = normPiSq π (applyP P (iterP P k f)) := by rw [iterP_succ]
+      _ ≤ r * normPiSq π (iterP P k f) := hgap _ hmz
+      _ ≤ r * (r ^ k * normPiSq π f) := mul_le_mul_of_nonneg_left ih hr0
+      _ = r ^ (k + 1) * normPiSq π f := by ring
+
+/-- **The two-state Rayleigh form is the scalar `λ₂` — discharged from the matrix entries.**
+    For any row-stochastic two-state kernel, on the (one-dimensional) mean-zero subspace the
+    self-adjoint form is exactly `λ₂ = 1 − P₀₁ − P₁₀` times the squared π-norm:
+    `⟨Ph,h⟩_π = (1 − P₀₁ − P₁₀)·‖h‖²_π`. Pure two-term algebra (`Fin.sum_univ_two`): the
+    difference factors as `(π₀h₀+π₁h₁)·(P₁₀h₀+P₀₁h₁)`, and mean-zero kills the first factor.
+    No spectral theorem, no measurement — this is the second eigenvalue, computed. -/
+theorem twoState_rayleigh_eq (π : Fin 2 → ℝ) (P : Fin 2 → Fin 2 → ℝ)
+    (hrow : ∀ s, ∑ t, P s t = 1)
+    (h : Fin 2 → ℝ) (hmz : piMean π h = 0) :
+    innerPi π (applyP P h) h = (1 - P 0 1 - P 1 0) * normPiSq π h := by
+  have hr0 : P 0 0 = 1 - P 0 1 := by have := hrow 0; rw [Fin.sum_univ_two] at this; linarith
+  have hr1 : P 1 1 = 1 - P 1 0 := by have := hrow 1; rw [Fin.sum_univ_two] at this; linarith
+  simp only [innerPi, applyP, normPiSq, piMean, Fin.sum_univ_two] at hmz ⊢
+  rw [hr0, hr1]
+  linear_combination (P 1 0 * h 0 + P 0 1 * h 1) * hmz
+
+/-- **Fully-closed concrete instance — geometric decay with NO measured input.** A reversible
+    row-stochastic two-state chain whose second eigenvalue `λ₂ = 1 − P₀₁ − P₁₀ ≥ 0` (a
+    "lazy-enough" chain) decays geometrically on the mean-zero subspace:
+    `‖Pⁿf‖²_π ≤ (λ₂²)ⁿ ‖f‖²_π`. The Rayleigh gap is *discharged* via `twoState_rayleigh_eq`
+    (computed from the matrix entries), fed through the capstone `applyP_gap_contraction` and
+    the mean-zero iteration `geometric_convergence_meanZero`. This is the whole spine closing
+    end-to-end on a concrete chain — gap COMPUTED, not assumed. (The measured eight-state
+    `γ = 0.0397` remains a measurement; this discharges the *two-state* case, showing the
+    Rayleigh hypothesis is real and dischargeable, not vacuous.) -/
+theorem twoState_geometric_decay (π : Fin 2 → ℝ) (P : Fin 2 → Fin 2 → ℝ)
+    (hπpos : ∀ s, 0 ≤ π s) (hrow : ∀ s, ∑ t, P s t = 1) (hdb : DetailedBalance π P)
+    (hgap0 : 0 ≤ 1 - P 0 1 - P 1 0)
+    (f : Fin 2 → ℝ) (hf0 : piMean π f = 0) (n : ℕ) :
+    normPiSq π (iterP P n f) ≤ ((1 - P 0 1 - P 1 0) ^ 2) ^ n * normPiSq π f := by
+  have hray : ∀ g : Fin 2 → ℝ, piMean π g = 0 →
+      |innerPi π (applyP P g) g| ≤ (1 - P 0 1 - P 1 0) * normPiSq π g := by
+    intro g hg
+    rw [twoState_rayleigh_eq π P hrow g hg]
+    exact le_of_eq (abs_of_nonneg (mul_nonneg hgap0 (normPiSq_nonneg π g hπpos)))
+  have hstep : ∀ h : Fin 2 → ℝ, piMean π h = 0 →
+      normPiSq π (applyP P h) ≤ (1 - P 0 1 - P 1 0) ^ 2 * normPiSq π h := fun h hmz =>
+    applyP_gap_contraction π P (1 - P 0 1 - P 1 0) hπpos hgap0 hrow hdb hray h hmz
+  exact geometric_convergence_meanZero π P ((1 - P 0 1 - P 1 0) ^ 2) (sq_nonneg _)
+    hrow hdb hstep f hf0 n
+
 #print axioms applyP_preserves_piMean
 #print axioms geometric_convergence
+#print axioms iterP_piMean_zero
+#print axioms geometric_convergence_meanZero
+#print axioms twoState_rayleigh_eq
+#print axioms twoState_geometric_decay
 #print axioms rayleigh_polar_bound
 #print axioms quad_to_bound
 #print axioms applyP_gap_contraction
