@@ -159,6 +159,17 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
+## Batch 11 — usability audit converged (2026-07-01, stdlib-reach + aliases pass)
+
+Final rotation, both surfaces CLEAN (history in DEVLOG): stdlib reach — documented list ops
+(`array_concat/map/filter/length/get`) match the implementation, `hashmap_*` back `dict<K,V>`, no
+doc/impl gap (new ops would be features, out of scope); aliases — the retired set has not crept back
+into active code (all hits are history comments / "iff" prose), no new dual-spelling redundancy. The
+usability audit has converged across Batches 8–11; shippable bounded items (U1/U2/F1/A1) done. Next
+substantial Sutra work = the HEAVY FV-Lean legs (8-state λ₂, continuous-space Langevin) which need
+Emma's go-ahead — the autonomous loop wound down here (2026-07-01) and notified her. Re-run the PINNED
+TAIL audit next session to refill if usability re-opens.
+
 ## Batch 10 — usability audit (2026-06-30, example/spec readability + consistency pass)
 
 Read example `.su` programs (idiomatic, richly commented — that surface is strong) and cross-checked the
