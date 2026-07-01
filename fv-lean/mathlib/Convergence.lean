@@ -578,8 +578,9 @@ that avoids the finite-dim spectral theorem is the **Dirichlet form** `E(f) = ½
 `E(f) ≥ γ‖f‖²_π` on mean-zero f — a bound over the elementary per-edge sum (Cheeger/conductance),
 no spectral theorem. This section builds that bridge for ANY finite reversible chain. -/
 
-/-- The π-Dirichlet form of an observable: `E(f) = ½ ∑_{s,t} π_s P_{st} (f_s − f_t)²`. -/
-def dirichlet (π : S → ℝ) (P : S → S → ℝ) (f : S → ℝ) : ℝ :=
+/-- The π-Dirichlet form of an observable: `E(f) = ½ ∑_{s,t} π_s P_{st} (f_s − f_t)²`.
+    `noncomputable` only because it divides reals by 2 (a proof-only object). -/
+noncomputable def dirichlet (π : S → ℝ) (P : S → S → ℝ) (f : S → ℝ) : ℝ :=
   (∑ s, ∑ t, π s * P s t * (f s - f t) ^ 2) / 2
 
 /-- **Dirichlet-form identity.** For a reversible (`DetailedBalance`) row-stochastic chain,
