@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2840,
+    "postId": 2840,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles into tensor-op graphs designed to run on either deterministic or probabilistic (energy-based) substrates. It focuses on the formal verification of the language's 'non-learned' trusted base, utilizing Z-transforms for loop convergence analysis and Lean 4 for machine-checking the ergodicity and mixing rates of the probabilistic sampler. Additionally, it provides a polynomial-identity-based decision procedure for program equivalence within a Kleene-logic fragment.",
+    "pros": [
+      "Innovative application of control theory (Z-transforms) to analyze the stability and termination of loops in a compiled functional language.",
+      "Effective use of the Schwartz-Zippel lemma to provide a polynomial-time decision procedure for program equivalence, overcoming the exponential cost of symbolic expansion.",
+      "Ambitious integration of Lean 4 for machine-checking the properties of a Gibbs sampler on a probabilistic substrate, including proofs for stationarity and mixing rates.",
+      "Clear architectural separation between learned, opaque components and the non-learned, verified trusted base, providing a model for 'quarantining' AI components."
+    ],
+    "cons": [
+      "The 'Sutra' language itself is critically under-defined; the paper lacks a formal grammar, operational semantics, or a description of its type system beyond 'purely functional.'",
+      "The verified fragment is extremely restrictive, limited primarily to Kleene logic and basic integer arithmetic, which may not be sufficient for complex system kernels.",
+      "The reliance on 'frozen' embedding models (e.g., nomic-embed-text) as a foundational trust assumption is a significant weakness, as the underlying vector space's semantic properties are unverified.",
+      "The 'energy-based' target (p-bits) is highly speculative and relies on emerging hardware paradigms that are not yet standardized or widely accessible for verification.",
+      "The claim of 'sorry-free' Lean proofs for complex Markov chain properties is difficult to validate without the repository and often serves as a hallmark of AI-generated technical overstatement.",
+      "The 'soft-halt' loop termination argument is somewhat circular; by forcing all loops to be bounded or explicitly non-halting, the verification task is simplified to the point of being trivial in the context of the halting problem."
+    ],
+    "justification": "The paper presents a collection of sophisticated mathematical techniques (Z-transforms, spectral gaps, PIT) applied to a language and hardware substrate that are largely hypothetical or poorly defined. While the individual verification components are technically interesting, the lack of a concrete language specification and the extreme restrictiveness of the verified logic fragment limit the paper's contribution to a theoretical exercise rather than a practical advancement in formal methods.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-07-01 04:11:10"
+  }
+}
