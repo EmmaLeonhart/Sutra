@@ -979,22 +979,35 @@ $\lVert f\rVert_\pi^2=\langle f,f\rangle_\pi$. On exactly this structure:
    geometric decay to the stationary mean (`SutraConvergence.geometric_convergence`). The
    chain preserves the $\pi$-mean (`applyP_preserves_piMean`), so the mean-zero subspace the
    contraction lives on is $P$-invariant and the induction goes through.
+4. **The Z-transform pole is the contraction rate — loop and Gibbs are one theorem.** The
+   energy sequence $a_n=\lVert P^n f\rVert_\pi^2$ has generating function
+   $G(z)=\sum_n a_n z^n$; comparison with the geometric series (no spectral theorem) gives
+   that $G(z)$ is summable exactly for $r\!\cdot\! z<1$, i.e. the **Z-transform pole sits at
+   $z=1/r$: the pole radius equals the contraction rate $r$** (`energy_gen_summable`), and at
+   $z=1$ the total deviation-energy $\sum_n a_n$ is finite when $r<1$ — the chain settles
+   (`energy_summable_of_contraction`). The deterministic loop is the SAME
+   statement at the boundary $r=1$: for an orthogonal (π-isometry) $R$ the energy is constant,
+   so $G(z)=\lVert f\rVert_\pi^2\sum_n z^n$ converges iff $z<1$ — the pole lies exactly on the
+   unit circle (`loop_energy_gen_summable`), marginal stability, termination by the halt gate.
+   So the loop ($r=1$, poles on $|z|=1$) and Gibbs ($r=(1-\gamma)^2<1$, pole inside) are
+   instances of one Z-transform theorem; only the pole radius, $=r$, changes — exactly the
+   substrate table below.
 
-All three legs are `[propext, Classical.choice, Quot.sound]`, no `sorry`, and CI-checked on
+All four legs are `[propext, Classical.choice, Quot.sound]`, no `sorry`, and CI-checked on
 `ubuntu-latest` (`fv-lean/mathlib/GibbsMultiState.lean` and `Convergence.lean`; the
 `fv-lean-mathlib-ci.yml` job runs `lake build` over all three mathlib-layer libraries on
 every change to them). This is the self-adjoint → gap → decay chain named in §1, now
-machine-checked end to end **from a scalar Rayleigh gap to geometric decay** — a scalar gap
-number in, a machine-checked operator-norm contraction and geometric-decay rate out. The
-gap *value* $\gamma=0.0397$ is the measured input that instantiates the scalar hypothesis.
+machine-checked end to end **from a scalar Rayleigh gap to geometric decay**, and the same
+convergence recast once more as a **Z-transform pole = contraction rate** identity that puts
+the deterministic loop and the Gibbs chain under one theorem — a scalar gap number in, a
+machine-checked operator-norm contraction, geometric-decay rate, and pole-radius identity out.
+The gap *value* $\gamma=0.0397$ is the measured input that instantiates the scalar hypothesis.
 
 What remains genuinely open, named not claimed: (i) *computing* the scalar gap $\gamma>0$
 for the concrete operator inside Lean — i.e. a machine-checked eigenvalue/$\lambda_2$ bound
 on the specific eight-state kernel that discharges leg 2's Rayleigh hypothesis from the
-matrix entries, rather than taking the measured $0.0397$ as input; (ii) the deterministic-loop
-$Z$-transform expressed as the *same* `geometric_convergence` theorem on an orthogonal $R$
-(the norm-preserving $r=1$ boundary case is already in Lean as `loop_norm_preserved`,
-unifying the loop and Gibbs targets under one theorem); and (iii) the continuous-*space* overdamped
+matrix entries, rather than taking the measured $0.0397$ as input; and (ii) the
+continuous-*space* overdamped
 Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$ on a relaxed energy. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
 measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled
