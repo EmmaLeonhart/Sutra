@@ -1,3 +1,5 @@
+## 2026-07-02 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 17 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + regression tests 4/4 PASS)
+
 ## 2026-07-01: FV Lean — general-π conductance Poincaré bound; conductance theory COMPLETE
 
 Generalised the conductance gap⇒decay to ANY probability law (no uniformity, no spectral theorem).
