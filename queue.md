@@ -186,104 +186,12 @@ and learn. The backlog elsewhere is all substrate-correctness; none of it is usa
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
 delete each on completion + append to `DEVLOG.md` in the same commit.
 
-## Batch 11 — usability audit converged (2026-07-01, stdlib-reach + aliases pass)
-
-Final rotation, both surfaces CLEAN (history in DEVLOG): stdlib reach — documented list ops
-(`array_concat/map/filter/length/get`) match the implementation, `hashmap_*` back `dict<K,V>`, no
-doc/impl gap (new ops would be features, out of scope); aliases — the retired set has not crept back
-into active code (all hits are history comments / "iff" prose), no new dual-spelling redundancy. The
-usability audit has converged across Batches 8–11; shippable bounded items (U1/U2/F1/A1) done. Next
-substantial Sutra work = the HEAVY FV-Lean legs (8-state λ₂, continuous-space Langevin) which need
-Emma's go-ahead — the autonomous loop wound down here (2026-07-01) and notified her. Re-run the PINNED
-TAIL audit next session to refill if usability re-opens.
-
-## Batch 10 — usability audit (2026-06-30, example/spec readability + consistency pass)
-
-Read example `.su` programs (idiomatic, richly commented — that surface is strong) and cross-checked the
-`bind`/`unbind` argument-order convention across examples, docs, and spec against the implementation.
-
-- _A1 DONE 2026-06-30 (history in DEVLOG): `bind` argument-order INCONSISTENCY. Ground truth is role-first
-  — `bind(role, filler) = Q_role @ filler` (codegen_pytorch.py; "matches numpy backend and the .su demos"),
-  and the public surface agrees (operators.md `bind(role, filler)`; tutorial 02 "role-first… Sutra is
-  consistent on this"; knowledge_graph.su; memory.md; rotation_hashmap.su). TWO outliers contradicted it:
-  (1) `examples/sequence.su` — its header wrote `bind(token_i, pos_i)` and prose "In bind(filler, role), the
-  filler (first argument)…" (filler-first), even though its CODE is correct role-first `bind(pos, token)`;
-  (2) spec `planning/sutra-spec/binding.md` wrote `bind(filler, R) = R @ filler` (filler-first notation).
-  Fixed both to role-first (doc/comment-only; no code change — sequence.su still validates, smoke behavior
-  unchanged). Now every surface (impl, spec, docs, tutorials, all examples) presents bind role-first, so a
-  newcomer reading any two doesn't hit a contradiction. Verified: no residual filler-first/token-first
-  `bind(` mislabels in examples/ docs/ planning/sutra-spec/._
-
-→ Batch 10: example readability strong; the one real gap was the bind arg-order doc inconsistency (A1).
-
-## Batch 9 — usability audit (2026-06-30, error-message actionability pass)
-
-Probed the diagnostics a newcomer trips on their first hour (missing semicolon, missing return type,
-missing `main`, undefined name). Most were clear; one actively misdirected. Bounded items:
-
-- _F1 DONE 2026-06-30 (history in DEVLOG): `function main()` (return type omitted — a top newcomer
-  mistake, since most languages allow it) gave the confusing `expected function name, got \`(\` [SUT0100]`.
-  Sutra's grammar is `function <type> <name>(...)`, so `main` parsed as the return *type* and the `(`
-  tripped the name check — the message pointed at `(` and blamed the wrong thing. Now: the parser detects
-  a bare type immediately followed by `(` and emits **SUT0106** `function \`main\` is missing a return type`
-  pointing at `main`, with hint `functions declare their return type first: \`function <type> main(...)\`
-  (e.g. \`function string main()\`)`. Verified: all 50 examples still validate clean (no false positives),
-  valid/generic/function-typed-param decls unaffected, 48 parser tests pass incl. 2 new regression tests._
-
-→ Batch 9: other probed diagnostics (missing `;` SUT0100, no-`main` on `--run`, undefined name) were already
-  clear/handled; F1 was the one real gap. Run a fresh PINNED TAIL audit to refill next.
-
-## Batch 8 — usability audit (2026-06-30, CLI-discoverability + Windows-console pass)
-
-Outsider audit this round found the docs/onboarding in strong shape — no repo-internal leaks in
-`docs/`, no dead `.md` links, `pip install` extras (`runtime`/`embed`/`ts`) all accurate, tutorial 01
-clean, no-args CLI error correct (exit 2, clear message). Two concrete CLI items surfaced:
-
-- _U1 DONE 2026-06-30 (history in DEVLOG): `sutrac repl` was invisible in `sutrac --help`. The `repl`
-  subcommand is intercepted before argparse (`__main__.py`), so `--help` never listed it despite the
-  README/tutorials documenting it — a newcomer exploring via `--help` couldn't discover the REPL. Added
-  an argparse epilog (RawDescriptionHelpFormatter) documenting `repl` + common `--run`/`--emit`/validate
-  examples. Verified: `--help` now shows it, `repl` still launches, 27 CLI/repl/diagnostic tests pass._
-- _U2 DONE 2026-06-30 (history in DEVLOG): hardened CLI/REPL output for non-UTF-8 consoles.
-  REPRODUCED first — `sutrac --help` and `sutrac repl` crashed with `UnicodeEncodeError` on the em-dash
-  (U+2014) under ascii / cp437 (classic US console) / cp932 (Japanese Windows) when stdout is redirected
-  to a pipe/file (cp1252 itself maps U+2014 so it was fine; the crash is the OEM/non-Latin consoles).
-  ASCII-swept the emitted CLI chrome (repl banner + `~` result line, argparse `--emit`/`--emit-thrml` help,
-  the "no main() found" error, the --run-viz tracing-shim comment) — em-dash→`-`, `≈`→`~`. Verified: no
-  `UnicodeEncodeError` under ascii/cp437/cp932; 27 CLI/repl/diagnostic tests pass. Comments/docstrings with
-  non-ASCII were left (not emitted, no crash risk)._
-
-→ Batch 8 concrete items (U1, U2) drained; run a fresh PINNED TAIL audit to refill next.
-
-_Batches 1–2 drained 2026-06-23 (in-process embeddings, first-run UX, package verify, semantic-FAQ +
-tutorial 05, list-ops, `sutrac repl`; tutorial 01/04 fixes, stale-count sweep, onboarding polish).
-History in `DEVLOG.md` / `git log`._
-
-_Batch 3 (ALIAS + AFFORDANCE sweep) DONE 2026-06-23: `truth_value`/`complex_number`/`real_number` →
-`make_*`; `basis_vector` → `embed` (builtin deleted, collect renamed); `unk` → `unknown`; `scalar` type
-→ `number` (fully removed incl. the parser/static-method sites); `iff` → `xnor` (removed from BOTH lexer
-AND parser tables). `embed`/`make_*`/`number`/`unknown`/`xnor` are the single canonical spellings. Other
-logical-connective spellings stay (Emma). All verified (compiler 811, smoke PASS, demos 224). History in
-DEVLOG + git log. CLAUDE.md § "Deprecate aliases aggressively" records the rules + carve-outs._
-
-_Batch 4 (stale-reference cleanup from the post-alias audit) DONE 2026-06-23: stdlib comments
-(`embed.su`/`vectors.su` block deleted/`axons.su`/`README`/`logic.su`), docs (`operators`/`capabilities`/
-`logical-operations` — `iff` dropped/→`xnor`, `basis_vector` past-tense), codegen prose comments, and the
-dead `basis_vector` branch in thrml `_basis_atoms` all cleaned. Verified: 62 tests pass, site builds.
-A few trivial historical-prose mentions of "basis_vector"/"scalar" remain in internal codegen/egglog
-comments (referencing the removed spelling as history) — not misleading, left as-is._
-
-## Batch 5 — newcomer-usability audit (2026-06-23, post-alias)
-
-Fresh readability/usability audit (onboarding + error messages + real-program reach). `iff` on the public
-`docs/primitive-classes.md` page (a Batch-4 miss) was fixed inline.
-
-_Batch 5 concrete items DRAINED 2026-06-24: the `snap` trap (M5 — SUT0151 validator warning + backend-
-accurate codegen message + tutorial-03 future sidebar, all steering to `argmax_cosine`); the no-I/O
-host-bridge concept page (M6 — `docs/host-bridge.md`, wired into tutorials 01/05 + index; a live-input
-primitive FLAGGED as Emma's open call, not built); `dict<K,V>` discoverability (L11 — surface-syntax
-section added to `docs/memory.md` + a keyed-collection link from `docs/list-operations.md`). History in
-DEVLOG + git log. → Run the PINNED TAIL audit to refill._
+**Usability audit CONVERGED across Batches 1–11 (2026-07-01).** All shippable bounded items
+drained; per the delete-on-done rule the batch records are cleared from this file — full history in
+`DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Next substantial Sutra work =
+the **HEAVY FV-Lean legs (8-state λ₂ bound, continuous-space Langevin) — gated on Emma's go-ahead**
+(requested + notified 2026-07-01; unanswered as of 2026-07-03). Re-run the PINNED TAIL audit next
+session to refill if usability re-opens.
 
 > **H1 (unknown-type/function diagnostics) RECLASSIFIED 2026-06-24 → the deferred v0.2 name-resolution
 > milestone, NOT a quick batch item.** `validator.py:21-29` EXPLICITLY defers name resolution to "v0.2+
@@ -295,55 +203,6 @@ DEVLOG + git log. → Run the PINNED TAIL audit to refill._
 > mitigated at the doc level (Batch 5.1 tutorial-01 note: v0.1 doesn't do name resolution, on the roadmap).
 > Building the v0.2 symbol table is Emma's call (language-direction; it tightens the deliberately-lenient
 > validator). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
-
-## Batch 6 — fresh readability/usability audit (2026-06-24, post-Batch-5)
-
-Audit from an outsider trying to install, run, and read Sutra. Surfaced concrete gaps — barrel top
-to bottom; delete each on completion + append to `DEVLOG.md` in the same commit.
-
-_Done 2026-06-24 (history in DEVLOG): (docs accuracy) `docs/index.md` "string I/O" → string *operations* +
-host-bridge pointer; (error messages) the CLI now catches `CodegenNotSupported` at the single
-`_compile_to_python` choke point and prints a clean `file:line:col: codegen: <msg>` diagnostic (exit 1)
-instead of an uncaught Python traceback — `--run`/`--emit` on `snap` verified, test_snap_diagnostic covers it._
-
-_Done 2026-06-24 (Emma: "fix this"; history in DEVLOG): the `pip install` onboarding now actually runs a
-program. ROOT FIX (semantics): a bare string-literal `main` return printed `104.0` ('h') because a String
-is a `dim`-length tensor and `_decode_terminal_result` read the real axis (= the first codepoint) before
-checking for a string — now it checks `is_string` first and decodes via `string_to_python`, so
-`function string main() { return "hello world"; }` prints `hello world` (number returns still decode to
-the real axis; test_terminal_string_decode covers both). With that, the landing page leads with a verified
-pip-only first run (`pip install` → write a one-line `hello.su` → `sutrac --run`), and the docs are honest
-that the `examples/…` programs ship in the SOURCE repo, not the wheel (tutorials 01/05 + index note: clone
-or save the shown source). Did NOT ship examples in the wheel — unnecessary once inline programs run and the
-docs are accurate, and it would need an awkward force-include/relocate (examples sit outside the package dir)._
-
-_Done 2026-06-24 (history in DEVLOG): generalised the SUT0151 validator warning beyond `snap` to its
-sibling unimplemented substrate builtins `make_rotation` / `compile_prototypes` / `geometric_loop` — they
-warn early too, with an honest "no implemented substitute yet" hint (snap keeps the argmax_cosine steer)._
-
-## Batch 7 — fresh usability audit (2026-06-25, error-messages + newcomer-mistakes pass)
-
-Probed the diagnostics a newcomer trips on their first hour (`print`, wrong types, no `main`). Barrel top
-to bottom; delete each on completion + append to `DEVLOG.md` in the same commit.
-
-_Done 2026-06-25 (history in DEVLOG): `print`/host-builtin leak. `print("hi")` lowered to a raw Python
-`print('hi')` and actually printed, breaking the no-I/O model + substrate purity. Validator now rejects a
-bare call to a host-Python builtin denylist (`print`/`input`/`open`/`eval`/`exec`/`compile`/`__import__`)
-with SUT0152 — `print`/`input` steer to `main()`'s return + the host bridge — unless a same-named function
-is declared (shadowing). Verified: print/eval rejected, user-defined `print` still validates, corpus +
-examples unaffected (no `.su` calls these); test_host_leak_builtins covers it._
-
-_Done 2026-06-25 (history in DEVLOG): two `--run` error-UX fixes in `__main__._run_execute`. (a) Runtime
-exceptions in the generated module (e.g. `int x = "hello"` → TypeError) now print a clean
-`<file>: runtime error: <Type>: <msg>` to stderr and exit 1 instead of an uncaught Python traceback
-(KeyboardInterrupt/SystemExit still propagate). (b) A file with no `main()` prints
-`<file>: no main() found — nothing to run` instead of exiting silently. test_run_error_diagnostics covers both._
-
-_Done 2026-06-25 (history in DEVLOG): model-load stdout noise. `SentenceTransformer(...)` printed framework
-chatter (`<All keys matched successfully>`) to stdout, polluting `main()`'s output. `embedding._get_st_model`
-now wraps the load in `redirect_stdout(sys.stderr)`. Verified: `sutrac --run` of an `embed`-using program
-now emits only the program's output on stdout; the chatter is on stderr (where our load notice already is).
-→ Batch 7 drained; run the PINNED TAIL audit to refill next._
 
 ---
 

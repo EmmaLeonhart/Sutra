@@ -1,3 +1,15 @@
+## 2026-07-03: queue.md hygiene — done Batch 1–11 usability records cleared (~10.8k chars)
+
+Applied the queue's own delete-on-done rule (Emma 2026-06-21: clearing is the SAFE default;
+done-paragraphs are the bloat that buries open work) to the ACTIVE section: removed the
+Batch 5/6/7/8/9/10/11 done-records and the Batches 1–4 summary paragraphs — every one carried
+"history in DEVLOG" and their full text remains in this file + git log. Kept the live items:
+the convergence note (usability audit converged 2026-07-01; next = the two Emma-gated heavy
+FV-Lean legs, 8-state λ₂ + continuous-space Langevin, paused + notified 2026-07-01), the H1
+blockquote (v0.2 name-resolution milestone, Emma's call), the pinned tail, and the session
+bracket. Done from the building session (bounded queue-file-only edit, serialized via
+pull-rebase-push).
+
 ## 2026-07-03 substrate-honesty audit (queue item of same date): clean — 2 commits since previous audit, both infra-only
 
 Reviewed `1847518d..f71a08c8` against CLAUDE.md § "Subtler substrate breaches": `ee170d5b`
