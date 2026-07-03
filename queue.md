@@ -158,7 +158,8 @@ not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
    subsumes unif_poincare; no spectral theorem, no uniformity). Paper §7 updated. **The FV conductance
    gap⇒decay theory is COMPLETE** — any finite reversible chain's Lean spectral gap reduces to the
    elementary per-edge ratio `κ=min_{s≠t} P_{st}/π_t`. clawRxiv reached **Accept** this session.
-   **STILL OPEN — EMMA-GATED (loop paused here 2026-07-01, notified):** (a2) the LITERAL 8-state Gibbs γ —
+   **STILL OPEN — GREEN-LIT 2026-07-03 (Emma, via AskUserQuestion in the building session: "Go: both
+   legs"; the 2026-07-01 pause is over — work them, (a2) first):** (a2) the LITERAL 8-state Gibbs γ —
    formalize the concrete AND-gadget kernel + rational-lower-bound its transcendental `exp(−βE)` entries to
    extract a numeric κ (large, transcendental-arithmetic-heavy, no bounded increment; γ=0.0397 stays
    measured); (c) continuous-space overdamped
@@ -188,10 +189,31 @@ delete each on completion + append to `DEVLOG.md` in the same commit.
 
 **Usability audit CONVERGED across Batches 1–11 (2026-07-01).** All shippable bounded items
 drained; per the delete-on-done rule the batch records are cleared from this file — full history in
-`DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Next substantial Sutra work =
-the **HEAVY FV-Lean legs (8-state λ₂ bound, continuous-space Langevin) — gated on Emma's go-ahead**
-(requested + notified 2026-07-01; unanswered as of 2026-07-03). Re-run the PINNED TAIL audit next
-session to refill if usability re-opens.
+`DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Re-run the PINNED TAIL audit
+next session to refill if usability re-opens.
+
+### ⭐ HEAVY FV-Lean legs — GREEN-LIT by Emma 2026-07-03 ("Go: both legs", via AskUserQuestion)
+
+The 2026-07-01 pause is over. Work, in order: **(a2) the literal 8-state Gibbs γ** (formalize the
+concrete AND-gadget kernel; rational-lower-bound the transcendental `exp(−βE)` entries to extract a
+numeric κ feeding `gen_poincare` — γ=0.0397 stays a measurement until the Lean bound lands), then
+**(c) continuous-space overdamped Langevin** `dX=−∇U dt+√(2/β)dW` (SDE/measure theory; expect
+mathlib-heavy). Full spec + tiering: `planning/findings/2026-06-29-lean-gap-audit.md` and the
+RE-SPINE item above. PREREQ unchanged: `cd fv-lean/mathlib && lake exe cache get` (~GB) first;
+verify via the `fv-lean-mathlib-ci` Linux job (local Windows builds hit MAX_PATH from nested
+checkouts). Integrity rules bind: nothing is proven until `lean` accepts it, no `sorryAx`; cite no
+numbers until measured/proved.
+
+### A1 demo — SHIP step = the web wrapper (Emma 2026-07-03, via AskUserQuestion)
+
+The gui-training A1 demo (1a θ render, 1b SPSA, 1c steering+window, 1d soak — DEVLOG 2026-06-14) is
+complete and measured; Emma has decided **the optional web wrapper IS the ship step**. Build the web
+wrapper for the steering demo: browser-served surface over the existing substrate demo (start from
+`demos/gui/` + `experiments/gui_steering_eval.py`; the host-surface pattern is
+`demos/gui/button_substrate_server.py` ↔ `external/Yantra/apps/gui-button/button_surface.py` — a
+web page replaces the desktop surface as I/O host; substrate stays the compute). Also still flagged
+from 1d: reward EMA smoothing (currently raw ±1 two-sided). Honest rails: render substrate-side,
+host does I/O only; measure before claiming.
 
 > **H1 (unknown-type/function diagnostics) RECLASSIFIED 2026-06-24 → the deferred v0.2 name-resolution
 > milestone, NOT a quick batch item.** `validator.py:21-29` EXPLICITLY defers name resolution to "v0.2+
