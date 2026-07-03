@@ -1,3 +1,13 @@
+## 2026-07-03 substrate-honesty audit (queue item of same date): clean — 2 commits since previous audit, both infra-only
+
+Reviewed `1847518d..f71a08c8` against CLAUDE.md § "Subtler substrate breaches": `ee170d5b`
+(daily-audit.yml anchor fix — the workflow had hard-failed 5 straight days on the renamed
+`## ACTIVE` heading; fixed + verified by real dispatch, run 28679212761 green) and `f71a08c8`
+(the bot's queue.md audit-task prepend, which proves the fix). Neither touches a `.su` or the
+compile path (runtime_dim check N/A), neither claims recurrence/substrate-purity (the "verified"
+in ee170d5b refers to the CI run itself, backed by the green run), neither ships a classifier
+(gap table N/A). Audited from the building session; queue item deleted in this commit.
+
 ## 2026-07-02 daily audit: clean (79 .su compiled, 0 user-program + 0 runtime-prelude leaks; 17 open-questions checked, 0 resolved-elsewhere; promise/await fit-to-spec — codegen lint PASS + regression tests 4/4 PASS)
 
 ## 2026-07-01: FV Lean — general-π conductance Poincaré bound; conductance theory COMPLETE
