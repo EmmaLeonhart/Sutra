@@ -1,3 +1,12 @@
+## 2026-07-03: Emma decisions landed (AskUserQuestion, building session) — FV heavy legs GREEN-LIT, A1 ship = web wrapper
+
+Two open gates resolved by Emma via phone-notified AskUserQuestion: (1) the heavy FV-Lean
+legs are GO, both of them — (a2) the literal 8-state Gibbs γ first, then (c) continuous-space
+Langevin — ending the 2026-07-01 pause; (2) the A1 demo's "ship" step is the optional web
+wrapper (demo itself complete-and-measured since 2026-06-14). Both recorded as concrete
+queue.md items with cold-execution context (prereqs, file pointers, integrity rails). No code
+in this commit — this is the direction handoff for the next Sutra work session.
+
 ## 2026-07-03: queue.md hygiene — done Batch 1–11 usability records cleared (~10.8k chars)
 
 Applied the queue's own delete-on-done rule (Emma 2026-06-21: clearing is the SAFE default;
