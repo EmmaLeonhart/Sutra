@@ -56,7 +56,7 @@ jobs:
         id: prepend
         shell: python {0}
         run: |
-          import datetime, os, pathlib, sys
+          import datetime, os, pathlib, re, sys
           today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
           marker = f"### \U0001f50d Daily substrate-honesty audit — {today}"
           body = (
@@ -84,12 +84,14 @@ jobs:
               out_path.write_text("changed=false\n", encoding="utf-8")
               print("Today's audit task already present — skipping prepend.")
               sys.exit(0)
-          anchor = "## Active"
-          idx = src.find(anchor)
-          if idx == -1:
-              print("queue.md missing ## Active section — bailing", file=sys.stderr)
+          # Anchor on the active-work heading whatever its exact spelling —
+          # queue.md restructures have renamed it (e.g. "## Active" →
+          # "## ACTIVE — barrel top to bottom"), which hard-failed this job daily.
+          m = re.search(r"(?im)^## active\b", src)
+          if m is None:
+              print("queue.md missing an '## Active…' section heading — bailing", file=sys.stderr)
               sys.exit(1)
-          insert_at = src.index("\n", idx) + 1
+          insert_at = src.index("\n", m.start()) + 1
           new_src = src[:insert_at] + body + src[insert_at:]
           q.write_text(new_src, encoding="utf-8")
           out_path.write_text("changed=true\n", encoding="utf-8")
