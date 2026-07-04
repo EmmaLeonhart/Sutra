@@ -53,7 +53,7 @@ namespace GibbsGadget
 
 open GibbsMultiState SutraConvergence
 
-variable {S : Type*} [Fintype S] [DecidableEq S]
+variable {S : Type*} [Fintype S]
 
 /-! ### The lazy uniform-proposal heat-bath (Barker) kernel, generically -/
 
@@ -64,7 +64,7 @@ noncomputable def hbWeight (π : S → ℝ) (s t : S) : ℝ :=
 
 /-- The lazy uniform-proposal heat-bath kernel: off-diagonal entries are `hbWeight`; the
     diagonal absorbs the remaining row mass (so rows sum to 1 by construction). -/
-noncomputable def hbP (π : S → ℝ) : S → S → ℝ :=
+noncomputable def hbP [DecidableEq S] (π : S → ℝ) : S → S → ℝ :=
   fun s t => (if s = t then 1 - ∑ u, hbWeight π s u else 0) + hbWeight π s t
 
 /-- The π-weighted jump weight is symmetric — the detailed-balance kernel identity.
@@ -76,14 +76,14 @@ theorem hbWeight_symm (π : S → ℝ) (s t : S) :
   ring
 
 /-- Rows of `hbP` sum to 1, by construction (the diagonal absorbs `1 − ∑ w`). -/
-theorem hbP_row (π : S → ℝ) (s : S) : ∑ t, hbP π s t = 1 := by
+theorem hbP_row [DecidableEq S] (π : S → ℝ) (s : S) : ∑ t, hbP π s t = 1 := by
   unfold hbP
   rw [Finset.sum_add_distrib, Finset.sum_ite_eq, if_pos (Finset.mem_univ s)]
   ring
 
 /-- `hbP` is reversible w.r.t. π (detailed balance), for ANY π: off-diagonal by
     `hbWeight_symm`, diagonal trivially. -/
-theorem hbP_db (π : S → ℝ) : DetailedBalance π (hbP π) := by
+theorem hbP_db [DecidableEq S] (π : S → ℝ) : DetailedBalance π (hbP π) := by
   intro s t
   unfold hbP
   by_cases hst : s = t
@@ -115,7 +115,7 @@ theorem hbWeight_le [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (s t :
            - π t / (2 * (Fintype.card S : ℝ) * (π s + π t))
            = π s / (2 * (Fintype.card S : ℝ) * (π s + π t)) := by
     field_simp
-    ring
+    try ring
   have hge : 0 ≤ π s / (2 * (Fintype.card S : ℝ) * (π s + π t)) :=
     div_nonneg (le_of_lt hs) (by nlinarith)
   linarith [key, hge]
@@ -136,7 +136,7 @@ theorem hbWeight_sum_le [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (s
 
 /-- `hbP` is a genuine (nonnegative) transition kernel: the laziness margin keeps the
     diagonal nonnegative. -/
-theorem hbP_nonneg [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (s t : S) :
+theorem hbP_nonneg [DecidableEq S] [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (s t : S) :
     0 ≤ hbP π s t := by
   unfold hbP
   by_cases hst : s = t
@@ -151,7 +151,7 @@ theorem hbP_nonneg [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (s t : 
     `⟨Ph,h⟩_π = ‖h‖²_π − E(h)`, this is `E(h) ≤ ‖h‖²_π`: the per-edge bound
     `(a−b)² ≤ 2a²+2b²`, the symmetry of the weighted edges, and the row-mass bound
     `∑_t w(s,t) ≤ 1/2` collapse the Dirichlet form below the norm. -/
-theorem hbP_lazy [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (h : S → ℝ) :
+theorem hbP_lazy [DecidableEq S] [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (h : S → ℝ) :
     0 ≤ innerPi π (applyP (hbP π) h) h := by
   rw [innerPi_rayleigh_eq_dirichlet π (hbP π) (hbP_row π) (hbP_db π) h]
   -- Reduce to `dirichlet ≤ normPiSq`.
@@ -199,9 +199,9 @@ theorem hbP_lazy [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (h : S �
     refine Finset.sum_le_sum (fun s _ => ?_)
     have hm : 0 ≤ π s * h s ^ 2 := mul_nonneg (le_of_lt (hπ s)) (sq_nonneg _)
     exact mul_le_mul_of_nonneg_left (hbWeight_sum_le π hπ s) hm
-  have hnorm : ∑ s, π s * h s ^ 2 * (1 / 2) = normPiSq π h / 2 := by
+  have hnorm : ∑ s, π s * h s ^ 2 * (1 / 2) = normPiSq π h * (1 / 2) := by
     unfold normPiSq innerPi
-    rw [Finset.sum_div]
+    rw [Finset.sum_mul]
     exact Finset.sum_congr rfl (fun s _ => by ring)
   -- Assemble: `E(h) = (ΣΣ)/2 ≤ ‖h‖²_π`.
   have hchain : ∑ s, ∑ t, π s * hbWeight π s t * (h s - h t) ^ 2 ≤ 2 * normPiSq π h := by
@@ -222,7 +222,8 @@ theorem hbP_lazy [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (h : S �
     `P s t / π t = 1/(2n(π s + π t))` is at least `1/(2n)` because `π s + π t ≤ 1`.
     This is `gen_poincare`'s `hedge` with the EXACT rational `κ = 1/(2n)` — no bound on
     any `exp(−βE)` entry is ever needed. -/
-theorem hbP_min_edge [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (hprob : ∑ s, π s = 1)
+theorem hbP_min_edge [DecidableEq S] [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s)
+    (hprob : ∑ s, π s = 1)
     (s t : S) (hst : s ≠ t) :
     (1 / (2 * (Fintype.card S : ℝ))) * π t ≤ hbP π s t := by
   have hn : (0 : ℝ) < (Fintype.card S : ℝ) := by exact_mod_cast Fintype.card_pos
@@ -244,7 +245,7 @@ theorem hbP_min_edge [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (hpro
            - 1 / (2 * (Fintype.card S : ℝ)) * π t
            = π t * (1 - (π s + π t)) / (2 * (Fintype.card S : ℝ) * (π s + π t)) := by
     field_simp
-    ring
+    try ring
   have hge : 0 ≤ π t * (1 - (π s + π t)) / (2 * (Fintype.card S : ℝ) * (π s + π t)) :=
     div_nonneg (mul_nonneg (le_of_lt ht) (by linarith)) (by nlinarith)
   linarith [key, hge]
@@ -255,7 +256,7 @@ theorem hbP_min_edge [Nonempty S] (π : S → ℝ) (hπ : ∀ s, 0 < π s) (hpro
     (`hbP_lazy`) the Rayleigh gap ⇒ one-step contraction ⇒
     `‖Pⁿf‖²_π ≤ ((1 − 1/(2n))²)ⁿ·‖f‖²_π` on the mean-zero subspace
     (`geometric_decay_of_poincare_lazy`). No spectral theorem, no measured input. -/
-theorem hbP_geometric_decay [Nonempty S] (π : S → ℝ)
+theorem hbP_geometric_decay [DecidableEq S] [Nonempty S] (π : S → ℝ)
     (hπ : ∀ s, 0 < π s) (hprob : ∑ s, π s = 1)
     (f : S → ℝ) (hf0 : piMean π f = 0) (n : ℕ) :
     normPiSq π (iterP (hbP π) n f)
@@ -319,9 +320,16 @@ theorem gibbsPi_pos (β : ℝ) : ∀ s, 0 < gibbsPi β s := by
     (Finset.sum_pos (fun u _ => Real.exp_pos _) Finset.univ_nonempty)
 
 theorem gibbsPi_prob (β : ℝ) : ∑ s, gibbsPi β s = 1 := by
+  have hZ : (0 : ℝ) < ∑ u, Real.exp (-(β * ((E4 u : ℝ) / 4))) :=
+    Finset.sum_pos (fun u _ => Real.exp_pos _) Finset.univ_nonempty
   unfold gibbsPi
-  rw [← Finset.sum_div]
-  exact div_self (ne_of_gt (Finset.sum_pos (fun u _ => Real.exp_pos _) Finset.univ_nonempty))
+  calc ∑ s, Real.exp (-(β * ((E4 s : ℝ) / 4))) / ∑ u, Real.exp (-(β * ((E4 u : ℝ) / 4)))
+      = ∑ s, Real.exp (-(β * ((E4 s : ℝ) / 4)))
+          * (∑ u, Real.exp (-(β * ((E4 u : ℝ) / 4))))⁻¹ :=
+        Finset.sum_congr rfl (fun s _ => div_eq_mul_inv _ _)
+    _ = (∑ s, Real.exp (-(β * ((E4 s : ℝ) / 4))))
+          * (∑ u, Real.exp (-(β * ((E4 u : ℝ) / 4))))⁻¹ := by rw [← Finset.sum_mul]
+    _ = 1 := mul_inv_cancel₀ (ne_of_gt hZ)
 
 /-- **The concrete 8-state AND-gadget Gibbs chain decays geometrically — γ = 1/16
     COMPUTED, for every β, with no measured input.** The lazy uniform-proposal heat-bath
