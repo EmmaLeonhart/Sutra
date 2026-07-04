@@ -83,6 +83,13 @@ def _decode_result(mod, result, *, concept_threshold: float = 0.5) -> str:
     except Exception:
         return repr(result)
     vsa = getattr(mod, "_VSA", None)
+    if isinstance(result, _t.Tensor) and result.numel() == 1:
+        # A scalar substrate result (similarity / dot / norm reductions land
+        # here as a 0-d tensor). Show the number at the sanctioned terminal
+        # display boundary — NOT torch's raw `tensor(0.68, device='cuda:0')`
+        # repr, which leaked CUDA/dtype internals a newcomer shouldn't see
+        # (REPL first-run finding 2026-07-04).
+        return f"= {float(result):g}"
     if not (vsa is not None and isinstance(result, _t.Tensor)
             and result.ndim == 1 and result.shape[0] == vsa.dim):
         return repr(result)

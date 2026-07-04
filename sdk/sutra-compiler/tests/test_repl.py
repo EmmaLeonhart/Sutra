@@ -71,3 +71,19 @@ def test_bad_declaration_is_rejected_not_kept():
 def test_help_command():
     out = _drive([":help", ":quit"])
     assert "Sutra REPL help" in out
+
+
+def test_scalar_tensor_result_shows_clean_number_not_repr():
+    # With real embed() vectors on CUDA, similarity/dot/norm reductions land in
+    # _decode_result as a 0-d tensor; before 2026-07-04 that fell through to
+    # torch's raw `tensor(0.68, device='cuda:0')` repr, leaking CUDA/dtype
+    # internals to a newcomer. Test the decode directly with a 0-d tensor
+    # (model-free + device-independent) so the regression guard is deterministic.
+    from sutra_compiler.repl import _decode_result
+
+    class _Mod:  # no _VSA: the scalar branch must fire regardless
+        pass
+
+    out = _decode_result(_Mod(), torch.tensor(0.6812))
+    assert "tensor(" not in out and "device=" not in out
+    assert out == "= 0.6812"
