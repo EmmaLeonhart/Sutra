@@ -43,10 +43,13 @@ def main() -> None:
     ap.add_argument("--size", type=int, default=64, help="frame grid resolution")
     ap.add_argument("--cell", type=int, default=6, help="display pixels per cell")
     ap.add_argument("--seed", type=int, default=0, help="SPSA seed")
+    ap.add_argument("--ema", type=float, default=1.0,
+                    help="reward EMA coefficient in (0,1]; 1.0 = raw presses (default)")
     args = ap.parse_args()
 
     steer = _load("gui_hero_steering", "hero_steering.py")
-    ctl = steer.HeroSteering(size=args.size, seed=args.seed, render_headline=True)
+    ctl = steer.HeroSteering(size=args.size, seed=args.seed, render_headline=True,
+                             ema_alpha=args.ema)
 
     import tkinter as tk
     from PIL import Image, ImageTk

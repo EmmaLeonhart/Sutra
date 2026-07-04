@@ -20,29 +20,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ---
 
-## ⭐⭐ FIRST — FV-Lean handoff (hub session, 2026-06-29; do this before anything else)
-
-**Read `FV-LEAN-HANDOFF-2026-06-29.md` (repo root) top to bottom before touching `fv-lean/`
-or the FV paper.** It records a multi-session collision and a set of real findings: the mathlib
-layer is not in CI, `GibbsMultiState.lean` was committed without compiling, the mathlib cache was
-corrupted (now re-fetched by the hub), and the FV paper swung to a Strong Reject whose cons match
-the known doc-drift. Then:
-
-1. Run **AskUserQuestion** on any issue in that doc that is genuinely Emma's call (she is likely
-   out — it sends a phone notification; plain chat does not).
-2. **Restart the KILLED cron** the doc documents (§6a: the 1 PM comprehensive work-through
-   `fb3dfaa1`, which the hub cancelled — its work belongs on this session). Re-create it here via
-   `CronCreate`. Do NOT recreate the hub's own watchdog/closeout crons — those run in the hub.
-3. Work the doc's action list (§7): confirm/fix the mathlib layer compiling, wire the mathlib
-   layer into CI, build the `Sutra.Convergence` Z-transform/spectral unification, and fix the FV
-   paper (`bit-exact → p-bit-exact`, expose the Lean proof structure, single spine) — **commit +
-   push every paper edit** (the push triggers the clawRxiv review).
-4. **Check each item off in the doc's §8 checklist** as you finish it — but **remove THIS queue
-   item only when the whole handoff is genuinely done** (the 17:00 closeout cron verifies and then
-   deletes the doc). Do not claim anything proven that `lean` has not accepted.
-
----
-
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.
@@ -54,129 +31,38 @@ the known doc-drift. Then:
   (`.item()`/`float(tensor)`) inside operations.
 - **Multi-clone**: editable `sutra_compiler` install points at the sibling `Github\Sutra`; verify
   changes here via `PYTHONPATH=sdk/sutra-compiler`. CI uses this repo's compiler.
-- **Version: 0.9.1** (Emma 2026-06-21) — `pyproject.toml` + `__init__.py` bumped to a fresh `0.9.1` (a clean
-  patch past the `v0.9.0` milestone tag, rather than forcing the package to exactly match the old tag).
-  Publish via a `sutra-dev-v0.9.1` tag (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until
-  codegen/stdlib go a stretch with NO source-breaking changes (Emma's call — too soon right after this
-  week's arithmetic-semantics changes). No hard blocker; it's a source-compat-stability commitment.
+- **Version: 0.9.2** (on PyPI; `pyproject.toml` + `__init__.py` match — verified by a fresh-venv
+  `pip install "sutra-dev[runtime,embed]"` 2026-07-04). Publish via `sutra-dev-vX.Y.Z` tags
+  (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until codegen/stdlib go a stretch
+  with NO source-breaking changes (Emma's call). No hard blocker; a source-compat-stability commitment.
 
-## ⭐ FV PAPER RE-SPINE — narrow + probabilistic (Emma 2026-06-27)
+## ⭐ FV PAPER — narrow + probabilistic spine (Emma 2026-06-27): frame + remaining legs
 
-**Why.** `paper/formal-verification/paper.md` drifted into an AI-generated grand framing —
-title "…Verifying the Non-Learned Trusted Base of a **Neuro-Symbolic Substrate**", with
-**bit-exact formal arithmetic** foregrounded as a headline result (§3.4 digit-array carry,
-§4.3 bit-exact dispatch + a 3-paragraph GPU-determinism essay). That is **not the paper**.
-Emma's intent: the paper is **narrow** — formally verify **Sutra-the-language as an execution
-environment / instruction-set architecture running on a *probabilistic* substrate**. The
-substrate is probabilistic; the verification should be probabilistic too. Bit-exact arithmetic
-fights the substrate's nature (it's bought by routing through synthetic axes and *avoiding* the
-probabilistic semantic codebook). Recurring project failure mode = **overambition**; keep this
-one narrow.
+**Frame (binding):** the FV paper verifies **Sutra-the-language as an ISA on a *probabilistic*
+substrate** — keep it NARROW (per-contract, non-learned trusted base); do NOT re-grow "verify the
+whole neuro-symbolic system". Recurring project failure mode = overambition.
 
-**Trim pass DONE 2026-06-27** (this session, "trim now, re-spine next" — Emma): retitled away
-from "neuro-symbolic substrate"; abstract cut 68→~30 lines; demoted bit-exactness to an
-explicit "supporting precision measurement, not the paper's claim"; compressed §3.4 / the §4.3
-GPU-determinism essay / the §4.4–4.5 audit war-stories; removed grandiosity ("the more
-consequential direction… correctness at the level of the physics"); reframed §7 as "the
-**probabilistic** substrate — the direction the work is moving" (no faked results). ~11.1k→9.3k
-words. No paper/spec drift (kept every measured number).
+**Shipped 2026-06-27 → 2026-07-04** (full history: `DEVLOG.md` + `git log`; clawRxiv reached
+**Accept** 2026-07-01): trim pass; Z-transform loop-convergence criterion (measured); continuous-time
+sampler-convergence measurement (γ=0.0397, 8-state); `GibbsMultiState` foundation; spectral capstone;
+Z-transform unification; mean-zero composition + 2-state discharged instance; convergence-to-
+stationarity limit; Dirichlet bridge; Poincaré⇒decay engine; conductance blocks + uniform- and
+general-π Poincaré; lazy-uniform n-state instance; and the concrete 8-state AND-gadget heat-bath
+instance (`GibbsGadget.lean`, κ=1/16 exact — the exp(−βE) factors cancel in the per-edge ratio).
 
-**Z-transform loop-convergence criterion DONE 2026-06-27.** Built `fv_loop_convergence.py`
-(`fv.analyze_loop_recurrence`) — analyses the loop's linear core `state ← R · state` as a
-discrete-time LTI system via its Z-transform poles (eigenvalues of `R`), classifying
-asymptotically-stable / marginally-stable / unstable off the unit circle. **Measured** on the
-real emitted Haar bind rotation (dim 868): all 868 poles on the unit circle, spectral radius
-1.00000000, `R` orthogonal ⟹ *marginally stable* — so termination is the halt gate's job, not
-spectral decay (principled replacement for the ad-hoc "monotone halt" framing). `test_fv_loop_
-convergence.py` 6/6 (classifier on known operators + substrate cross-check on the real rotation).
-Wired into paper §3.3 + spec Pillar 3. (Env note: ran under pip-installed numpy+torch CPU here;
-the substrate test needs a no-`embed` program to avoid the missing embed backend in this sandbox.)
+**REMAINING (after 2026-07-04: (a2) landed; Langevin SCOPED OUT per Emma's thrml reframe —
+the substrate object is the discrete block-Gibbs chain, finding
+`planning/findings/2026-07-04-langevin-lean-scoping.md`; the continuous-TIME master-ODE decay
+landed same day, `GibbsFlow.lean` CI-green):**
+1. *(named, NOT green-lit — do not start without Emma):* a Lean gap **value** for the literal
+   **single-spin-flip** kernel/generator needs the canonical-paths comparison method (a per-edge
+   conductance bound cannot see zeros between non-neighbours); until built, the measured γ=0.0397
+   stays a measurement. See DEVLOG 2026-07-04.
 
-**Continuous-time multi-state sampler convergence MEASURED 2026-06-27.** Built
-`fv_sampler_convergence.py` (`fv.analyze_sampler_convergence`) — the continuous-time heat-bath
-generator `Q` on the machine-checked AND-gadget energy `E4`; law obeys the master ODE
-`dp/dt = Qᵀp` (the stochastic-ODE / Langevin distribution-level statement). **Measured** (β=1):
-Gibbs π stationary (`‖πᵀQ‖∞=1.4e-17`), reversible (db-viol `4.2e-22`), real spectrum, full **8-state**
-spectral gap `γ=0.0397`>0, and the master ODE's TV decay = `0.0397` = the gap to **ratio 1.0000**;
-clamped mode = correct AND output ×4. `test_fv_sampler_convergence.py` 6/6. This fills the
-multi-state + continuous-time piece `GibbsChain.lean`/§7 named as open (as a MEASUREMENT, marked
-not-a-Lean-proof). Wired into paper §7/§9 + spec thrml section.
-
-**RE-SPINE — remaining:**
-1. **Machine-check the multi-state gap + continuous-SPACE Langevin (GATE LIFTED — Emma 2026-06-29:
-   do the Lean unsupervised + confidently; Lean's `sorry`-free build IS the check; faking still barred).**
-   **FOUNDATION DONE 2026-06-29** (`fv-lean/mathlib/GibbsMultiState.lean`, builds clean vs mathlib
-   v4.30.0, `[propext, Classical.choice, Quot.sound]`, no `sorry`): general-finite-state
-   reversibility ⟹ π-self-adjointness (`applyP_selfAdjoint`) + general-S stationarity
-   (`applyP_stationary`) + `innerPi_comm` — the structural prerequisite that makes the multi-state
-   gap real/well-defined, now for ANY finite S (not just 2-state). **SPECTRAL CAPSTONE DONE
-   2026-06-30, CI-green** (`applyP_gap_contraction`, `Convergence.lean`, no `sorryAx`): scalar
-   Dirichlet/Rayleigh gap ⇒ one-step L²(π) contraction `‖Pf‖²_π ≤ (1−γ)²‖f‖²_π` (numerical-radius =
-   operator-norm, elementary — polarization + parallelogram + CS discriminant, NO finite-dim spectral
-   theorem), feeding `geometric_convergence` ⇒ **gap ⇒ geometric decay fully closed in Lean**; measured
-   `γ=0.0397` instantiates the scalar hypothesis. **Z-TRANSFORM UNIFICATION DONE 2026-06-30, CI-green**
-   (`energy_gen_summable` + `energy_summable_of_contraction` + `loop_energy_gen_summable`,
-   `Convergence.lean`, no `sorryAx`): the energy generating function `G(z)=Σₙ‖Pⁿf‖²_π zⁿ` has pole
-   radius `1/r`, so **the Z-transform pole = the contraction rate `r`** — Gibbs (`r=(1−γ)²<1`, pole
-   inside; `G(1)` finite, chain settles) and the deterministic loop (`r=1`, π-isometry `R`, pole ON the
-   unit circle, marginal) are instances of ONE theorem (comparison with the geometric series, no
-   spectral theorem). This is the "single spine" that answers the clawRxiv kitchen-sink con.
-   **MEAN-ZERO COMPOSITION FIX + 2-STATE INSTANCE DONE 2026-06-30, CI-green** (`geometric_convergence_
-   meanZero` + `iterP_piMean_zero` + `twoState_rayleigh_eq` + `twoState_geometric_decay`, no `sorryAx`):
-   fixed a real gap (the capstone's contraction is mean-zero-only; `geometric_convergence` wanted all-h,
-   false on the stationary direction) with the mean-zero iteration; and DISCHARGED the Rayleigh gap from
-   matrix entries for a concrete reversible 2-state chain (`λ₂=1−P₀₁−P₁₀` computed, `‖Pⁿf‖²_π ≤ (λ₂²)ⁿ‖f‖²`,
-   NO measured input) — the spine closing end-to-end on a concrete chain. **CONVERGENCE-TO-STATIONARITY
-   LIMIT DONE 2026-06-30, CI-green** (`energy_summable_meanZero` + `meanZero_tendsto_zero` +
-   `twoState_tendsto_zero`, no `sorryAx`): the deviation-energy `‖Pⁿf‖²_π → 0` (a genuine `Tendsto`
-   limit, not just a rate bound), incl. the concrete 2-state chain reaching stationarity with no
-   measured input. clawRxiv verdict progressed Strong Reject → Weak Reject after the Z-transform leg.
-   **DIRICHLET-FORM BRIDGE DONE 2026-07-01 (Emma green-lit), CI-green** (`dirichlet_eq` +
-   `innerPi_rayleigh_eq_dirichlet` + `dirichlet_nonneg`, `Convergence.lean`, no `sorryAx`): for ANY finite
-   reversible chain, `E(f)=½∑π_s P_{st}(f_s−f_t)² = ‖f‖²_π − ⟨f,Pf⟩_π`, so `⟨Pf,f⟩_π = ‖f‖²_π − E(f)` and a
-   Poincaré bound `E(f) ≥ γ‖f‖²_π` on mean-zero f IS the Rayleigh gap feeding `applyP_gap_contraction`
-   (elementary per-edge algebra, NO spectral theorem). This reduces the 8-state gap to a per-edge
-   Cheeger/conductance/Poincaré lower bound. **POINCARÉ⇒DECAY ENGINE DONE 2026-07-01, CI-green**
-   (`gap_of_poincare_lazy` + `geometric_decay_of_poincare_lazy`, no `sorryAx`): a Poincaré bound
-   `γ‖h‖²_π ≤ E(h)` on mean-zero h + laziness `⟨Ph,h⟩_π ≥ 0` ⇒ the full Rayleigh gap ⇒
-   `‖Pⁿf‖²_π ≤ ((1−γ)²)ⁿ‖f‖²_π` (γ∈[0,1]). The general multi-state gap⇒decay chain is now machine-checked,
-   parameterized by the Poincaré constant. Paper §7 updated. **The general multi-state gap⇒decay THEORY
-   is now COMPLETE + CI-green** (Dirichlet bridge + Poincaré/laziness engine + 2-state discharged instance
-   + convergence-to-zero limit + Z-transform unification). **EMMA GREEN-LIT the 8-state Cheeger bound
-   2026-07-01 — investing.** CONDUCTANCE BUILDING BLOCKS DONE 2026-07-01, CI-green (`sum_sq_diff`:
-   complete-graph identity `∑(f_s−f_t)²=2n∑f²−2(∑f)²`; `dirichlet_raw_ge_of_min_edge`: `δ≤π_s P_{st}` ⇒
-   `δ∑(f_s−f_t)² ≤ ∑π_s P_{st}(f_s−f_t)²`, no `sorryAx`) — together lower-bound E(f) by δ(n∑f²−(∑f)²).
-   **UNIFORM-π POINCARÉ DONE 2026-07-01, CI-green** (`unif_poincare`, no `sorryAx`): uniform π + per-edge
-   `δ≤π_s P_{st}` ⇒ `(δn²)‖f‖²_π ≤ E(f)` on mean-zero f — the conductance⇒gap step, no spectral theorem;
-   feeds `geometric_decay_of_poincare_lazy`. **LAZY-UNIFORM n-STATE INSTANCE DONE 2026-07-01, CI-green**
-   (`lazyUnifP` + `lazyUnif_apply`/`_db`/`_nonneg`/`_row`/`_min_edge`/`_lazy` + `lazyUnif_geometric_decay`,
-   no `sorryAx`): a genuine n-state reversible+lazy chain closed end-to-end via conductance — `δ=ε/n²` ⇒
-   γ=ε ⇒ `‖Pⁿf‖²_π ≤ ((1−ε)²)ⁿ‖f‖²_π`, γ COMPUTED from matrix entries, no measured input, no spectral
-   theorem. **GENERAL-π CONDUCTANCE POINCARÉ DONE 2026-07-01, CI-green** (`piVar_eq` +
-   `dirichlet_ge_of_edge_ratio` + `gen_poincare`, no `sorryAx`): for ANY probability reversible chain, a
-   per-edge ratio `κ≤P_{st}/π_t` ⇒ Poincaré γ=κ ⇒ geometric decay (via the π-weighted variance identity;
-   subsumes unif_poincare; no spectral theorem, no uniformity). Paper §7 updated. **The FV conductance
-   gap⇒decay theory is COMPLETE** — any finite reversible chain's Lean spectral gap reduces to the
-   elementary per-edge ratio `κ=min_{s≠t} P_{st}/π_t`. clawRxiv reached **Accept** this session.
-   **STILL OPEN — GREEN-LIT 2026-07-03 (Emma, via AskUserQuestion in the building session: "Go: both
-   legs"; the 2026-07-01 pause is over — work them, (a2) first):** (a2) the LITERAL 8-state Gibbs γ —
-   formalize the concrete AND-gadget kernel + rational-lower-bound its transcendental `exp(−βE)` entries to
-   extract a numeric κ (large, transcendental-arithmetic-heavy, no bounded increment; γ=0.0397 stays
-   measured); (c) continuous-space overdamped
-   Langevin `dX=−∇U dt+√(2/β)dW` — needs SDE/measure theory, out of mathlib-light reach (deferred). **Spec for what's needed:
-   `planning/findings/2026-06-29-lean-gap-audit.md`** (the L/S/M tiering + prioritized Lean TODO:
-   multi-state spectral gap → continuous-time decay → continuous-space Langevin). Not-yet-built ⇒
-   cite no numbers until measured/proved. **PREREQ:** the mathlib layer (`fv-lean/mathlib/`) is
-   NOT cached locally — step 1 of that session is `cd fv-lean/mathlib && lake exe cache get`
-   (~GB) before any spectral-theory formalization. Audit TODO #4 (heterogeneous composed-circuit
-   instance, `half_adder_strict_min`) was DONE 2026-06-29 — mathlib-free, sound; only items 1-3
-   (gap/ODE/Langevin) remain, all needing mathlib.
-
-**Guardrails:** integrity rules bind — the SDE + Z-transform analyses are NOT built; cite only
-measured numbers, build before claiming (no prose-only "results"). Keep it NARROW (per-contract,
-non-learned trusted base, the ISA-on-probabilistic-substrate frame); do NOT re-grow "verify the
-whole neuro-symbolic system". Each push to `paper/formal-verification/paper.md` triggers the
-clawRxiv resubmit CI (`fv-paper-ci.yml`) — intended; reviews are signal, not verdicts.
+**Guardrails:** nothing is proven until `lean` accepts it (no `sorryAx`); every
+`paper/formal-verification/paper.md` push triggers the clawRxiv resubmit CI (intended). Mathlib-layer
+work is verified via the `fv-lean-mathlib-ci` Linux job (local Windows builds hit MAX_PATH; remote
+containers cannot reach the toolchain/cache hosts — iterate via branch pushes).
 
 ---
 
@@ -196,28 +82,34 @@ drained; per the delete-on-done rule the batch records are cleared from this fil
 `DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Re-run the PINNED TAIL audit
 next session to refill if usability re-opens.
 
-### ⭐ HEAVY FV-Lean legs — GREEN-LIT by Emma 2026-07-03 ("Go: both legs", via AskUserQuestion)
+### Usability audit round 12 (2026-07-04, pip-only onboarding) — remaining atomised items
 
-The 2026-07-01 pause is over. Work, in order: **(a2) the literal 8-state Gibbs γ** (formalize the
-concrete AND-gadget kernel; rational-lower-bound the transcendental `exp(−βE)` entries to extract a
-numeric κ feeding `gen_poincare` — γ=0.0397 stays a measurement until the Lean bound lands), then
-**(c) continuous-space overdamped Langevin** `dX=−∇U dt+√(2/β)dW` (SDE/measure theory; expect
-mathlib-heavy). Full spec + tiering: `planning/findings/2026-06-29-lean-gap-audit.md` and the
-RE-SPINE item above. PREREQ unchanged: `cd fv-lean/mathlib && lake exe cache get` (~GB) first;
-verify via the `fv-lean-mathlib-ci` Linux job (local Windows builds hit MAX_PATH from nested
-checkouts). Integrity rules bind: nothing is proven until `lean` accepts it, no `sorryAx`; cite no
-numbers until measured/proved.
+Round-12 evidence so far (fresh venv, PyPI 0.9.2): install clean; website `docs/index.md`
+quickstart verbatim-works (1.5s to "hello world"); the semantic hello runs correctly; the
+missing-semicolon diagnostic is precise (`SUT0100` with file:line:col). Fixed in this round:
+README fast-path referenced a repo path a pip-only user lacks (now inline-hello, matching the
+website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded items, in order:
 
-### A1 demo — SHIP step = the web wrapper (Emma 2026-07-03, via AskUserQuestion)
+1. **`sutrac repl` first-run experience:** launch as a newcomer, try 3–4 expressions from the
+   docs, note anything that errors or confuses; check Ctrl-C/exit behaviour.
+   (Diagnostics sweep DONE 2026-07-04: unclosed-brace SUT0100 precise; no-main/unknown-name/
+   wrong-type raw in released 0.9.2 but already fixed at HEAD — **tag `sutra-dev-v0.9.3` after
+   this branch merges so pip users get them**; NEW finding: Python builtins silently callable
+   from `.su` — `planning/findings/2026-07-04-python-builtin-fallthrough.md`, folded into H1.)
+3. **Website link sweep:** from the built site's pages (`scripts/build_site.py` output), check
+   internal links + tutorial ordering for dead ends (keep `docs/` free of repo-internal
+   scratchpad references while there).
 
-The gui-training A1 demo (1a θ render, 1b SPSA, 1c steering+window, 1d soak — DEVLOG 2026-06-14) is
-complete and measured; Emma has decided **the optional web wrapper IS the ship step**. Build the web
-wrapper for the steering demo: browser-served surface over the existing substrate demo (start from
-`demos/gui/` + `experiments/gui_steering_eval.py`; the host-surface pattern is
-`demos/gui/button_substrate_server.py` ↔ `external/Yantra/apps/gui-button/button_surface.py` — a
-web page replaces the desktop surface as I/O host; substrate stays the compute). Also still flagged
-from 1d: reward EMA smoothing (currently raw ±1 two-sided). Honest rails: render substrate-side,
-host does I/O only; measure before claiming.
+### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
+
+The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped
+2026-07-01) — 2026-07-04 this session VERIFIED it in a real Chromium (page loads, WARMER/COLDER
+click, 6 presses = 3 SPSA steps, the substrate frame visibly morphs, headline re-renders; only
+console noise is the browser's automatic `/favicon.ico` 404) and CLOSED the flagged 1d item:
+reward EMA smoothing (`HeroSteering(ema_alpha=…)`, default 1.0 = raw, `--ema` on the server/window;
+4 new tests incl. an exact ×0.5-damping check; 1d soak numbers reproduce unchanged). DEVLOG
+2026-07-04. **What remains is only the public URL:** deploying per `demos/gui/DEPLOY.md`
+(HF Spaces Docker recommended) needs Emma's hosting account — her step, not an agent's.
 
 > **H1 (unknown-type/function diagnostics) RECLASSIFIED 2026-06-24 → the deferred v0.2 name-resolution
 > milestone, NOT a quick batch item.** `validator.py:21-29` EXPLICITLY defers name resolution to "v0.2+
@@ -229,6 +121,12 @@ host does I/O only; measure before claiming.
 > mitigated at the doc level (Batch 5.1 tutorial-01 note: v0.1 doesn't do name resolution, on the roadmap).
 > Building the v0.2 symbol table is Emma's call (language-direction; it tightens the deliberately-lenient
 > validator). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
+> **NEW severity datum (2026-07-04, measured):** unknown call-position names lower to bare Python
+> names, so ALL Python builtins are silently callable from `.su` (`print` mid-function, `str(len(…))`
+> — an accidental host escape hatch, against the no-mid-computation-I/O identity). The v0.2 decision
+> should weigh that, not just late-failing typos:
+> `planning/findings/2026-07-04-python-builtin-fallthrough.md`. No interim blacklist shipped
+> (it would be a second name-resolution mechanism H1 would have to unwind).
 
 ---
 

@@ -68,12 +68,17 @@ The empirical foundation that motivated Sutra — relational-displacement struct
 
 ## Get started
 
-The fast path — install from PyPI, no daemon, no model server (requires **Python 3.11+**):
+The fast path — install from PyPI, no daemon, no model server, no clone (requires **Python 3.11+**):
 
 ```bash
 pip install "sutra-dev[runtime,embed]"   # compiler + torch runtime + in-process embedder
-sutrac --run examples/hello_world.su      # compiles and runs; first run downloads the frozen model once
+printf 'function string main() { return "hello world"; }\n' > hello.su
+sutrac --run hello.su                     # -> hello world
 ```
+
+(The `examples/*.su` programs ship in this source tree, not in the pip package — from a
+clone, `sutrac --run examples/hello_world.su` runs the semantic hello; its first run
+downloads the frozen embedding model once.)
 
 `[embed]` pulls the in-process embedding backend (`sentence-transformers`), which loads the same frozen `nomic-embed-text` model directly — so you do **not** need Ollama. (Programs that only use `make_real` / matrices / arithmetic embed nothing and need neither extra.) To use Ollama instead, set `SUTRA_EMBED_BACKEND=ollama` and run a daemon with the model pulled.
 

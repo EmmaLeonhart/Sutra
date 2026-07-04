@@ -125,3 +125,68 @@ def test_full_frame_with_headline_renders_clean() -> None:
     assert img.shape == (24, 24, 3)
     assert np.all(np.isfinite(img)) and float(img.max()) > 0.0
     assert headline in wf.HERO_HEADLINES
+
+
+def test_ema_alpha_one_is_exactly_raw() -> None:
+    """`ema_alpha=1.0` (the default) is byte-for-byte the raw two-sided behaviour:
+    two controllers with the same seed, one default and one explicit, land on the
+    identical optimizer state after the same press sequence — the smoothing path
+    is dormant unless opted into (the 1d-measured numbers stay valid)."""
+    steer = _load("gui_hero_steering", "hero_steering.py")
+    a = steer.HeroSteering(size=16, seed=3, render_headline=False)
+    b = steer.HeroSteering(size=16, seed=3, render_headline=False, ema_alpha=1.0)
+    seq = [steer.WARMER, steer.COLDER, steer.COLDER, steer.WARMER,
+           steer.WARMER, steer.WARMER]
+    for r in seq:
+        a.press(r)
+        b.press(r)
+    assert np.allclose(a.opt.theta, b.opt.theta)
+    assert a.batches_done == b.batches_done == 3
+
+
+def test_ema_smoothing_halves_a_contrarian_swing() -> None:
+    """With `ema_alpha=0.5`, the presses (+1, −1) score the batch as
+    (r₊, r₋) = (+1, 0) instead of (+1, −1): the EMA primes on the first press and
+    the contrarian second press is damped to 0. Since the SPSA step is
+    ∝ (r₊ − r₋)·delta with a seed-deterministic delta, the smoothed controller's
+    θ moves EXACTLY half as far as the raw one — the damping is measured, not
+    hand-waved."""
+    steer = _load("gui_hero_steering", "hero_steering.py")
+    raw = steer.HeroSteering(size=16, seed=4, render_headline=False)
+    ema = steer.HeroSteering(size=16, seed=4, render_headline=False, ema_alpha=0.5)
+    for ctl in (raw, ema):
+        ctl.press(steer.WARMER)
+        ctl.press(steer.COLDER)
+    d_raw = float(np.linalg.norm(raw.opt.theta))
+    d_ema = float(np.linalg.norm(ema.opt.theta))
+    assert d_raw > 0.0
+    assert d_ema == pytest.approx(d_raw / 2.0, rel=1e-9), (d_raw, d_ema)
+
+
+def test_ema_smoothed_steering_still_moves_brighter() -> None:
+    """Smoothing must damp noise, not kill the signal: with `ema_alpha=0.5` and a
+    brighter-preferring rater whose presses are 20% contrarian (seeded), the
+    steered brightness still ends ABOVE its start — directional steering survives
+    the smoothing and the noise."""
+    steer = _load("gui_hero_steering", "hero_steering.py")
+    rng = np.random.default_rng(7)
+    ctl = steer.HeroSteering(size=16, seed=5, render_headline=False, ema_alpha=0.5)
+    start = ctl.best_theta()["bright"]
+    for _ in range(160):
+        shown = ctl.current_theta()["bright"]
+        ref = ctl.best_theta()["bright"]
+        r = steer.WARMER if shown >= ref else steer.COLDER
+        if rng.random() < 0.2:
+            r = -r                      # contrarian flip
+        ctl.press(r)
+    final = ctl.best_theta()["bright"]
+    assert final > start + 0.15, (start, final)
+
+
+def test_ema_alpha_validation() -> None:
+    """Out-of-range coefficients are rejected loudly (0 < α ≤ 1)."""
+    steer = _load("gui_hero_steering", "hero_steering.py")
+    for bad in (0.0, -0.5, 1.5):
+        with pytest.raises(ValueError):
+            steer.HeroSteering(size=16, seed=0, render_headline=False,
+                               ema_alpha=bad)
