@@ -1041,14 +1041,29 @@ $\sum_{s,t}(f_s-f_t)^2=2n\sum f_s^2-2(\sum f)^2$ (`sum_sq_diff`) and the per-edg
 =\varepsilon$ (`unif_poincare`), and `lazyUnif_geometric_decay` closes $\lVert P^n f\rVert_\pi^2\le
 ((1-\varepsilon)^2)^n\lVert f\rVert_\pi^2$ — an $n$-state chain, $\gamma$ **computed from the matrix
 entries**, no measured input and no spectral theorem (all `sorry`-free, CI-checked). This is the
-multi-state analogue of the two-state instance; it does not use the eight-state Gibbs kernel, whose
-exact $\gamma=0.0397$ remains a transcendental measurement.
+multi-state analogue of the two-state instance.
 
-What remains genuinely open, named not claimed: (i) discharging the Rayleigh hypothesis the
-same way for the specific **eight-state Gibbs** kernel — a per-edge (Cheeger/conductance) lower bound on
-$\gamma$ for that operator (the general Poincaré$\Rightarrow$decay engine, the two-state case, and a
-closed-form multi-state instance are done; the eight-state $\gamma=0.0397$ is still taken as the
-measured input, its exact eigenvalue being transcendental); and (ii) the continuous-*space* overdamped
+The route then closes on the **gadget's own Gibbs law**. For the lazy uniform-proposal heat-bath
+(Barker) kernel targeting $\pi_\beta\propto e^{-\beta E_4/4}$ on the eight AND-gadget states — the
+same heat-bath acceptance $1/(1+e^{\beta\Delta E})=\pi_t/(\pi_s+\pi_t)$ as the measured sampler,
+with a full-support uniform proposal in place of single-spin flips — the per-edge ratio is
+$P_{st}/\pi_t=1/(2n(\pi_s+\pi_t))\ge1/(2n)$: the transcendental $e^{-\beta E}$ factors **cancel**,
+so `gen_poincare` receives the exact rational $\kappa=1/16$ and `andGadget_gibbs_geometric_decay`
+closes $\lVert P^n f\rVert_\pi^2\le((15/16)^2)^n\lVert f\rVert_\pi^2$ on the mean-zero subspace,
+for **every** $\beta$, with $\pi>0$ and $\sum\pi=1$ themselves proven (from the positivity of the
+exponential), reversibility, row-stochasticity and laziness of the kernel machine-checked
+(`GibbsGadget.lean`, all `sorry`-free, CI-checked). No numeric bound on any Gibbs entry is ever
+taken — the anticipated rational-lower-bounding of the transcendental entries turned out to be
+unnecessary. What this instance does **not** cover, stated plainly: the measured $\gamma=0.0397$
+belongs to the *single-spin-flip continuous-time* generator, whose kernel is zero between
+non-neighbouring configurations — a per-edge ratio bound cannot see such a chain, so that
+operator's own Lean gap would need the canonical-paths comparison method and $0.0397$ remains a
+measurement.
+
+What remains genuinely open, named not claimed: (i) a Lean gap for the **single-spin-flip**
+kernel itself (canonical-paths/comparison method; the general Poincaré$\Rightarrow$decay engine, the
+two-state case, a closed-form multi-state instance, and the full-support eight-state gadget instance
+are done); and (ii) the continuous-*space* overdamped
 Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$ on a relaxed energy. (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
 measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled
