@@ -1,3 +1,22 @@
+## 2026-07-04: usability round 12, diagnostics sweep — HEAD already fixes the newcomer runtime messages; NEW finding: Python builtins silently callable from .su
+
+Triggered the likely first mistakes in the pip-only venv (0.9.2) AND against repo HEAD:
+
+- Unclosed brace: precise `SUT0100` with file:line:col at validate time (both). Good.
+- Missing `main` / unknown function / wrong return type: in released 0.9.2 these are silent
+  (no-main exits 0 with NO output) or raw Python tracebacks; at repo HEAD all three already
+  produce one-line Sutra-style messages ("no main() found - nothing to run",
+  "runtime error: NameError: name 'frobnicate' is not defined") — fixed after 0.9.2 shipped.
+  ACTION queued: tag `sutra-dev-v0.9.3` once this branch merges so pip users get them.
+- **NEW finding (measured, both versions): Python builtins are silently callable from `.su`** —
+  `print("hi")` mid-function prints (mid-computation host I/O, against the language identity),
+  `str(len("abc"))` returns 3; unknown call names lower to bare Python names, so the accidental
+  surface includes every builtin. Recorded as a severity datum folded into the H1 v0.2
+  name-resolution decision (`planning/findings/2026-07-04-python-builtin-fallthrough.md`);
+  no interim blacklist shipped (it would be a second name-resolution mechanism H1 would unwind).
+
+Remaining round-12 items: repl first-run, website link sweep.
+
 ## 2026-07-04: usability audit round 12 (pip-only onboarding) — README quickstart was broken for pip-only users; fixed + measured
 
 Ran the PINNED TAIL audit as a real newcomer in a fresh venv against PyPI. Measured:

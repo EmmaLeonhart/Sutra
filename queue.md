@@ -86,12 +86,12 @@ missing-semicolon diagnostic is precise (`SUT0100` with file:line:col). Fixed in
 README fast-path referenced a repo path a pip-only user lacks (now inline-hello, matching the
 website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded items, in order:
 
-1. **Diagnostics sweep for newcomer errors:** trigger the next most-likely first mistakes
-   (calling an unknown function, wrong return type, missing `main`, unclosed brace, using `print`)
-   in the pip-only venv and check each `SUT####`/runtime message points at the fix. Fix only
-   messages that are measured-unhelpful; don't invent new diagnostics beyond that.
-2. **`sutrac repl` first-run experience:** launch as a newcomer, try 3–4 expressions from the
+1. **`sutrac repl` first-run experience:** launch as a newcomer, try 3–4 expressions from the
    docs, note anything that errors or confuses; check Ctrl-C/exit behaviour.
+   (Diagnostics sweep DONE 2026-07-04: unclosed-brace SUT0100 precise; no-main/unknown-name/
+   wrong-type raw in released 0.9.2 but already fixed at HEAD — **tag `sutra-dev-v0.9.3` after
+   this branch merges so pip users get them**; NEW finding: Python builtins silently callable
+   from `.su` — `planning/findings/2026-07-04-python-builtin-fallthrough.md`, folded into H1.)
 3. **Website link sweep:** from the built site's pages (`scripts/build_site.py` output), check
    internal links + tutorial ordering for dead ends (keep `docs/` free of repo-internal
    scratchpad references while there).
@@ -117,6 +117,12 @@ reward EMA smoothing (`HeroSteering(ema_alpha=…)`, default 1.0 = raw, `--ema` 
 > mitigated at the doc level (Batch 5.1 tutorial-01 note: v0.1 doesn't do name resolution, on the roadmap).
 > Building the v0.2 symbol table is Emma's call (language-direction; it tightens the deliberately-lenient
 > validator). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
+> **NEW severity datum (2026-07-04, measured):** unknown call-position names lower to bare Python
+> names, so ALL Python builtins are silently callable from `.su` (`print` mid-function, `str(len(…))`
+> — an accidental host escape hatch, against the no-mid-computation-I/O identity). The v0.2 decision
+> should weigh that, not just late-failing typos:
+> `planning/findings/2026-07-04-python-builtin-fallthrough.md`. No interim blacklist shipped
+> (it would be a second name-resolution mechanism H1 would have to unwind).
 
 ---
 
