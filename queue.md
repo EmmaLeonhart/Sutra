@@ -51,14 +51,14 @@ stationarity limit; Dirichlet bridge; Poincaré⇒decay engine; conductance bloc
 general-π Poincaré; lazy-uniform n-state instance; and the concrete 8-state AND-gadget heat-bath
 instance (`GibbsGadget.lean`, κ=1/16 exact — the exp(−βE) factors cancel in the per-edge ratio).
 
-**REMAINING (Emma green-lit both legs 2026-07-03; (a2) landed 2026-07-04):**
-1. **(c) continuous-space overdamped Langevin** `dX=−∇U dt+√(2/β)dW` — needs SDE/measure theory,
-   likely at/beyond mathlib's frontier; SCOPE HONESTLY before building (spec + tiering:
-   `planning/findings/2026-06-29-lean-gap-audit.md` item 3). Cite no numbers until proved.
-2. *(named, NOT green-lit — do not start without Emma):* a Lean gap for the literal
-   **single-spin-flip** kernel needs the canonical-paths comparison method (a per-edge conductance
-   bound cannot see a kernel with zero entries); until built, the measured γ=0.0397 stays a
-   measurement. See DEVLOG 2026-07-04.
+**REMAINING (after 2026-07-04: (a2) landed; Langevin SCOPED OUT per Emma's thrml reframe —
+the substrate object is the discrete block-Gibbs chain, finding
+`planning/findings/2026-07-04-langevin-lean-scoping.md`; the continuous-TIME master-ODE decay
+landed same day, `GibbsFlow.lean` CI-green):**
+1. *(named, NOT green-lit — do not start without Emma):* a Lean gap **value** for the literal
+   **single-spin-flip** kernel/generator needs the canonical-paths comparison method (a per-edge
+   conductance bound cannot see zeros between non-neighbours); until built, the measured γ=0.0397
+   stays a measurement. See DEVLOG 2026-07-04.
 
 **Guardrails:** nothing is proven until `lean` accepts it (no `sorryAx`); every
 `paper/formal-verification/paper.md` push triggers the clawRxiv resubmit CI (intended). Mathlib-layer
@@ -78,24 +78,6 @@ delete each on completion + append to `DEVLOG.md` in the same commit.
 drained; per the delete-on-done rule the batch records are cleared from this file — full history in
 `DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Re-run the PINNED TAIL audit
 next session to refill if usability re-opens.
-
-### ⭐ FV-Lean — the THRML chain's continuous-time decay (audit item 2; Emma reframe 2026-07-04)
-
-**Emma (2026-07-04, AskUserQuestion): "are we not using THRML for the formal verification lol?"
-— the verification target is the thrml compile target's actual sampler.** `codegen_thrml.py`
-executes discrete-state block-Gibbs over spin registers; its continuous-time law is the finite-state
-jump process `dp/dt = Qᵀp` that `fv_sampler_convergence.py` measures. Consequences (finding:
-`planning/findings/2026-07-04-langevin-lean-scoping.md`):
-- **Continuous-space Langevin is OUT OF SCOPE for the substrate** (and out of proof-assistant reach
-  anyway — no SDE/Fokker–Planck exists in any prover). Dropped; paper §7 says scoped-out.
-- **DO NOW — machine-check the thrml chain's continuous-time master-ODE decay:** `df/dt = Qf` ⇒
-  `d/dt‖f_t‖²_π = 2⟨Qf_t,f_t⟩_π = −2·E_Q(f_t) ≤ −2γ‖f_t‖²_π` ⇒ `‖f_t‖²_π ≤ e^{−2γt}‖f_0‖²_π`
-  (exp-factor monotonicity instead of a Gronwall import; generator Dirichlet identity by the same
-  algebra as `dirichlet_eq`, rows sum to 0). γ VALUE stays measured (0.0397). Verify via
-  `fv-lean-mathlib-ci` branch pushes (local/remote builds blocked; shallow-clone mathlib4 v4.30.0
-  for lemma-name grepping). No `sorryAx`; nothing proven until `lean` accepts it.
-- *(named, NOT green-lit)* the literal single-site block-Gibbs kernel's own discrete-time gap still
-  needs canonical paths (zeros between non-neighbours).
 
 ### A1 demo — SHIP step = the web wrapper (Emma 2026-07-03, via AskUserQuestion)
 
