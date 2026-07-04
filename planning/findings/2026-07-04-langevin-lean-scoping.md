@@ -58,13 +58,27 @@ session, iterating through `fv-lean-mathlib-ci` (this container cannot build loc
 egress policy; note a shallow `git clone --branch v4.30.0` of mathlib4 IS possible here for
 lemma-name grepping, only building is blocked).
 
-## Disposition
+## Disposition — UPDATED after Emma's answer (2026-07-04)
 
-- Leg (c) **as stated (continuous-space SDE): blocked — negative result, recorded here.**
-  Do not wire anything downstream; the paper keeps it "named, not claimed."
-- Recommended substitute, pending Emma's confirmation (AskUserQuestion sent this session):
-  audit item 2, the continuous-time finite-state Grönwall decay above.
-- Revisit the SDE leg only if/when mathlib's stochastic-processes stream lands Itô + SDEs.
+Emma's response to the AskUserQuestion: *"I mean are we not using THRML for the formal
+verification lol?"* — i.e. the verification target is the **thrml compile target's actual
+sampler**, not textbook SDE theory. Checked against `codegen_thrml.py`: the thrml backend
+executes **discrete-state block-Gibbs sampling** over spin registers (`SpinNode`,
+`BlockGibbsSpec`, `SpinGibbsConditional` — single-site heat-bath blocks on a schedule). Its
+continuous-time law is the finite-state **jump process** (`dp/dt = Qᵀp`, exactly what
+`fv_sampler_convergence.py` measures) — NOT a continuous-space diffusion. So:
+
+- Leg (c) as stated (continuous-space SDE) is **out of scope for the substrate**, on top of
+  being out of proof-assistant reach — the diffusion was the audit's "further limit," not the
+  thrml object. Dropped from the agenda (paper §7 updated to say scoped-out, not open).
+- The thrml-relevant continuous-time statement IS audit item 2: the master-ODE /
+  jump-process decay `‖f_t‖²_π ≤ e^{−2γt}‖f_0‖²_π` above. **Proceeding with it** as the
+  next Lean leg (this session), framed explicitly as the thrml chain's continuous-time law.
+- The most thrml-faithful *discrete-time* object (single-site block-Gibbs kernel — zeros
+  between non-neighbours) still needs canonical paths for its own gap; unchanged, named in
+  the queue as not-green-lit.
+- Revisit the SDE leg only if the substrate ever becomes a continuous-space analog device
+  AND mathlib lands Itô/SDEs.
 
 Sources: [arXiv:2606.15089](https://arxiv.org/abs/2606.15089) (machine-checked Itô calculus,
 scope + non-goals), [arXiv:2511.20118](https://arxiv.org/abs/2511.20118) (Brownian motion in

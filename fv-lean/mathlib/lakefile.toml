@@ -1,5 +1,5 @@
 name = "gibbsMathlib"
-defaultTargets = ["GibbsMathlib", "GibbsMultiState", "Convergence", "GibbsGadget"]
+defaultTargets = ["GibbsMathlib", "GibbsMultiState", "Convergence", "GibbsGadget", "GibbsFlow"]
 
 # Mid-size mathlib step for the Sutra->thrml Gibbs-chain convergence proof
 # (Emma 2026-06-14): detailed balance + finite-chain stationary uniqueness
@@ -24,3 +24,6 @@ name = "Convergence"
 
 [[lean_lib]]
 name = "GibbsGadget"
+
+[[lean_lib]]
+name = "GibbsFlow"

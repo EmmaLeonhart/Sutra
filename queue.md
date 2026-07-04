@@ -79,22 +79,23 @@ drained; per the delete-on-done rule the batch records are cleared from this fil
 `DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Re-run the PINNED TAIL audit
 next session to refill if usability re-opens.
 
-### ⭐ FV-Lean — continuous-TIME finite-state decay (audit item 2), pending Emma's confirm
+### ⭐ FV-Lean — the THRML chain's continuous-time decay (audit item 2; Emma reframe 2026-07-04)
 
-**Leg (c) as stated is BLOCKED — negative scoping result 2026-07-04**
-(`planning/findings/2026-07-04-langevin-lean-scoping.md`): no proof assistant has SDE
-existence/uniqueness, Fokker–Planck, or Langevin dynamics; mathlib has no Itô calculus (the June-2026
-state of the art is a standalone C³-bounded Itô formula). Do NOT start the SDE leg; the paper keeps
-it "named, not claimed". Revisit only when mathlib lands Itô + SDEs.
-
-**Recommended substitute (audit item 2, ordered before Langevin by the audit itself; AskUserQuestion
-sent to Emma 2026-07-04):** machine-check the continuous-time FINITE-STATE master-ODE decay —
-`df/dt = Qf` ⇒ `d/dt‖f_t‖²_π = 2⟨Qf_t,f_t⟩_π ≤ −2γ‖f_t‖²_π` ⇒ (Grönwall) `‖f_t‖²_π ≤ e^{−2γt}‖f_0‖²_π`,
-generator-side Dirichlet identity by the same algebra as `dirichlet_eq`. This is the chain the
-measured γ=0.0397 lives on. Verify via `fv-lean-mathlib-ci` branch pushes (local/remote builds
-blocked — MAX_PATH on Windows, egress policy in remote containers; a shallow clone of mathlib4
-v4.30.0 IS possible remotely for lemma-name grepping). Integrity rules bind: nothing is proven until
-`lean` accepts it, no `sorryAx`.
+**Emma (2026-07-04, AskUserQuestion): "are we not using THRML for the formal verification lol?"
+— the verification target is the thrml compile target's actual sampler.** `codegen_thrml.py`
+executes discrete-state block-Gibbs over spin registers; its continuous-time law is the finite-state
+jump process `dp/dt = Qᵀp` that `fv_sampler_convergence.py` measures. Consequences (finding:
+`planning/findings/2026-07-04-langevin-lean-scoping.md`):
+- **Continuous-space Langevin is OUT OF SCOPE for the substrate** (and out of proof-assistant reach
+  anyway — no SDE/Fokker–Planck exists in any prover). Dropped; paper §7 says scoped-out.
+- **DO NOW — machine-check the thrml chain's continuous-time master-ODE decay:** `df/dt = Qf` ⇒
+  `d/dt‖f_t‖²_π = 2⟨Qf_t,f_t⟩_π = −2·E_Q(f_t) ≤ −2γ‖f_t‖²_π` ⇒ `‖f_t‖²_π ≤ e^{−2γt}‖f_0‖²_π`
+  (exp-factor monotonicity instead of a Gronwall import; generator Dirichlet identity by the same
+  algebra as `dirichlet_eq`, rows sum to 0). γ VALUE stays measured (0.0397). Verify via
+  `fv-lean-mathlib-ci` branch pushes (local/remote builds blocked; shallow-clone mathlib4 v4.30.0
+  for lemma-name grepping). No `sorryAx`; nothing proven until `lean` accepts it.
+- *(named, NOT green-lit)* the literal single-site block-Gibbs kernel's own discrete-time gap still
+  needs canonical paths (zeros between non-neighbours).
 
 ### A1 demo — SHIP step = the web wrapper (Emma 2026-07-03, via AskUserQuestion)
 

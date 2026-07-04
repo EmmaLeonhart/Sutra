@@ -22,7 +22,10 @@ name: FV-in-Lean (mathlib layer) — check the Gibbs convergence proofs
 
 on:
   push:
-    branches: [main]
+    # claude/queue-processing-xs14f1 is TEMPORARY (2026-07-04): workflow_dispatch is not
+    # permitted for the remote-session integration, so the branch iterates the GibbsFlow
+    # proof via its own pushes. Remove the branch entry when the leg lands on main.
+    branches: [main, claude/queue-processing-xs14f1]
     paths:
       - 'fv-lean/mathlib/**'
       - '.github/workflows/fv-lean-mathlib-ci.yml'
@@ -90,7 +93,7 @@ jobs:
       - name: Build + verify mathlib-layer proofs
         run: |
           set -uxo pipefail
-          lake build GibbsMathlib GibbsMultiState Convergence GibbsGadget 2>&1 | tee build.log
+          lake build GibbsMathlib GibbsMultiState Convergence GibbsGadget GibbsFlow 2>&1 | tee build.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
             echo "FAIL: lake build returned non-zero"
