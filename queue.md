@@ -79,16 +79,16 @@ drained; per the delete-on-done rule the batch records are cleared from this fil
 `DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Re-run the PINNED TAIL audit
 next session to refill if usability re-opens.
 
-### A1 demo — SHIP step = the web wrapper (Emma 2026-07-03, via AskUserQuestion)
+### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 
-The gui-training A1 demo (1a θ render, 1b SPSA, 1c steering+window, 1d soak — DEVLOG 2026-06-14) is
-complete and measured; Emma has decided **the optional web wrapper IS the ship step**. Build the web
-wrapper for the steering demo: browser-served surface over the existing substrate demo (start from
-`demos/gui/` + `experiments/gui_steering_eval.py`; the host-surface pattern is
-`demos/gui/button_substrate_server.py` ↔ `external/Yantra/apps/gui-button/button_surface.py` — a
-web page replaces the desktop surface as I/O host; substrate stays the compute). Also still flagged
-from 1d: reward EMA smoothing (currently raw ±1 two-sided). Honest rails: render substrate-side,
-host does I/O only; measure before claiming.
+The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped
+2026-07-01) — 2026-07-04 this session VERIFIED it in a real Chromium (page loads, WARMER/COLDER
+click, 6 presses = 3 SPSA steps, the substrate frame visibly morphs, headline re-renders; only
+console noise is the browser's automatic `/favicon.ico` 404) and CLOSED the flagged 1d item:
+reward EMA smoothing (`HeroSteering(ema_alpha=…)`, default 1.0 = raw, `--ema` on the server/window;
+4 new tests incl. an exact ×0.5-damping check; 1d soak numbers reproduce unchanged). DEVLOG
+2026-07-04. **What remains is only the public URL:** deploying per `demos/gui/DEPLOY.md`
+(HF Spaces Docker recommended) needs Emma's hosting account — her step, not an agent's.
 
 > **H1 (unknown-type/function diagnostics) RECLASSIFIED 2026-06-24 → the deferred v0.2 name-resolution
 > milestone, NOT a quick batch item.** `validator.py:21-29` EXPLICITLY defers name resolution to "v0.2+
