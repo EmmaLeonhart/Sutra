@@ -31,11 +31,10 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
   (`.item()`/`float(tensor)`) inside operations.
 - **Multi-clone**: editable `sutra_compiler` install points at the sibling `Github\Sutra`; verify
   changes here via `PYTHONPATH=sdk/sutra-compiler`. CI uses this repo's compiler.
-- **Version: 0.9.1** (Emma 2026-06-21) — `pyproject.toml` + `__init__.py` bumped to a fresh `0.9.1` (a clean
-  patch past the `v0.9.0` milestone tag, rather than forcing the package to exactly match the old tag).
-  Publish via a `sutra-dev-v0.9.1` tag (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until
-  codegen/stdlib go a stretch with NO source-breaking changes (Emma's call — too soon right after this
-  week's arithmetic-semantics changes). No hard blocker; it's a source-compat-stability commitment.
+- **Version: 0.9.2** (on PyPI; `pyproject.toml` + `__init__.py` match — verified by a fresh-venv
+  `pip install "sutra-dev[runtime,embed]"` 2026-07-04). Publish via `sutra-dev-vX.Y.Z` tags
+  (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until codegen/stdlib go a stretch
+  with NO source-breaking changes (Emma's call). No hard blocker; a source-compat-stability commitment.
 
 ## ⭐ FV PAPER — narrow + probabilistic spine (Emma 2026-06-27): frame + remaining legs
 
@@ -78,6 +77,24 @@ delete each on completion + append to `DEVLOG.md` in the same commit.
 drained; per the delete-on-done rule the batch records are cleared from this file — full history in
 `DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Re-run the PINNED TAIL audit
 next session to refill if usability re-opens.
+
+### Usability audit round 12 (2026-07-04, pip-only onboarding) — remaining atomised items
+
+Round-12 evidence so far (fresh venv, PyPI 0.9.2): install clean; website `docs/index.md`
+quickstart verbatim-works (1.5s to "hello world"); the semantic hello runs correctly; the
+missing-semicolon diagnostic is precise (`SUT0100` with file:line:col). Fixed in this round:
+README fast-path referenced a repo path a pip-only user lacks (now inline-hello, matching the
+website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded items, in order:
+
+1. **Diagnostics sweep for newcomer errors:** trigger the next most-likely first mistakes
+   (calling an unknown function, wrong return type, missing `main`, unclosed brace, using `print`)
+   in the pip-only venv and check each `SUT####`/runtime message points at the fix. Fix only
+   messages that are measured-unhelpful; don't invent new diagnostics beyond that.
+2. **`sutrac repl` first-run experience:** launch as a newcomer, try 3–4 expressions from the
+   docs, note anything that errors or confuses; check Ctrl-C/exit behaviour.
+3. **Website link sweep:** from the built site's pages (`scripts/build_site.py` output), check
+   internal links + tutorial ordering for dead ends (keep `docs/` free of repo-internal
+   scratchpad references while there).
 
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 

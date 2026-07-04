@@ -1,3 +1,21 @@
+## 2026-07-04: usability audit round 12 (pip-only onboarding) — README quickstart was broken for pip-only users; fixed + measured
+
+Ran the PINNED TAIL audit as a real newcomer in a fresh venv against PyPI. Measured:
+`pip install "sutra-dev[runtime,embed]"` installs 0.9.2 cleanly; the WEBSITE quickstart
+(docs/index.md) works verbatim — inline hello.su runs in 1.5s; the semantic hello_world.su
+(pasted from the repo) returns "hello world" correctly; the missing-semicolon diagnostic is
+precise and actionable (`broken.su:1:38: error: expected ';' after return, got '}' [SUT0100]`).
+
+THE DEFECT: the repo README's "Get started" fast path told a pip-only user to run
+`sutrac --run examples/hello_world.su` — a repo path that does not exist without a clone
+(measured: "error: file not found" immediately after a successful pip install). Fixed by
+mirroring the website's inline-hello pattern and noting explicitly that `examples/*.su` ship in
+the source tree, not the pip package. Also corrected the stale queue Context version note
+(0.9.1 → 0.9.2, verified against PyPI + pyproject + __init__).
+
+Remaining round-12 items atomised into ACTIVE per the pinned tail: newcomer diagnostics sweep,
+`sutrac repl` first-run, website link sweep.
+
 ## 2026-07-04: A1 web wrapper VERIFIED in a real browser; reward EMA smoothing (the 1d flag) closed
 
 The queue's A1 "ship = web wrapper" item turned out to be mostly built already
