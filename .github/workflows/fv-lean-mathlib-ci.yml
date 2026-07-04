@@ -22,7 +22,10 @@ name: FV-in-Lean (mathlib layer) — check the Gibbs convergence proofs
 
 on:
   push:
-    branches: [main]
+    # claude/queue-processing-xs14f1 is TEMPORARY (2026-07-04): workflow_dispatch is not
+    # permitted for the remote-session integration, so the branch iterates the GibbsGadget
+    # proof via its own pushes. Remove the branch entry when the leg lands on main.
+    branches: [main, claude/queue-processing-xs14f1]
     paths:
       - 'fv-lean/mathlib/**'
       - '.github/workflows/fv-lean-mathlib-ci.yml'
