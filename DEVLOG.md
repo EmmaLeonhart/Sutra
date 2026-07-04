@@ -1,3 +1,33 @@
+## 2026-07-04: REPL first-run (usability round 12 item 1) — scalar-display leak FIXED; REPL is undocumented + 2 residuals filed
+
+Launched `sutrac repl` as a newcomer (Ollama backend, CUDA), drove it with naive
+guesses and the documented `embed()`-first pattern. Finding:
+`planning/findings/2026-07-04-repl-first-run-newcomer.md`.
+
+- **FIXED: scalar results leaked torch's raw tensor repr.** `similarity(a, b)` on
+  real `embed()` vectors displayed `tensor(0.6812, device='cuda:0')` — CUDA/dtype
+  guts. `_decode_result` only formatted 1-d codebook vectors; a 0-d reduction
+  tensor fell through to `repr()`. Now any 1-element tensor formats as
+  `= {float:g}` at the sanctioned terminal-display boundary → `= 0.681239`
+  (verified against the real embed scenario, not a proxy). Regression test
+  `test_scalar_tensor_result_shows_clean_number_not_repr`; test_repl.py 7 green.
+- **Filed (queue item 1): the REPL is 100% undocumented** — zero `docs/` mentions
+  of `sutrac repl`/`:help`/`:decls`/`:quit` though `sutrac` advertises it. Write a
+  REPL doc page.
+- **Filed (1a): bare string literal `"hello"` crashes** with an internal codegen
+  `TypeError` (string-literal lowering) — needs a compiler fix + test.
+- **Filed (1b): naive `similarity("cat","dog")`** gives an opaque
+  `linalg_norm ... not str` — another symptom of the deferred H1 type-check gap,
+  no new work.
+- Verified working + kept: number exprs (`= 5`), `embed("hello")` →
+  `~ "hello" (cos 1.00)`, declarations, `:help/:decls/:reset/:quit` (exit 0),
+  errors don't kill the loop.
+
+Also cleared the stale **daily substrate-honesty audit** queue item: it was
+performed at HEAD (`239fd679`, leak sweep exit 0 / 79 compiled / 0 leaks /
+promise-await fit-to-spec / open-questions cross-checked) with zero commits
+after it — done, so removed from queue.md per delete-on-done.
+
 ## 2026-07-04: usability round 12, diagnostics sweep — HEAD already fixes the newcomer runtime messages; NEW finding: Python builtins silently callable from .su
 
 Triggered the likely first mistakes in the pip-only venv (0.9.2) AND against repo HEAD:

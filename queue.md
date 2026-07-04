@@ -68,10 +68,6 @@ containers cannot reach the toolchain/cache hosts — iterate via branch pushes)
 
 ## ACTIVE — barrel top to bottom
 
-### 🔍 Daily substrate-honesty audit — 2026-07-04
-
-Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
-
 **Theme (Emma 2026-06-22/23): USABILITY.** Make Sutra easy for an outside person to install, run,
 and learn. The backlog elsewhere is all substrate-correctness; none of it is usability. The
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
@@ -90,12 +86,26 @@ missing-semicolon diagnostic is precise (`SUT0100` with file:line:col). Fixed in
 README fast-path referenced a repo path a pip-only user lacks (now inline-hello, matching the
 website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded items, in order:
 
-1. **`sutrac repl` first-run experience:** launch as a newcomer, try 3–4 expressions from the
-   docs, note anything that errors or confuses; check Ctrl-C/exit behaviour.
-   (Diagnostics sweep DONE 2026-07-04: unclosed-brace SUT0100 precise; no-main/unknown-name/
-   wrong-type raw in released 0.9.2 but already fixed at HEAD — **tag `sutra-dev-v0.9.3` after
-   this branch merges so pip users get them**; NEW finding: Python builtins silently callable
-   from `.su` — `planning/findings/2026-07-04-python-builtin-fallthrough.md`, folded into H1.)
+1. **Write a REPL doc page** (`docs/` — the REPL first-run 2026-07-04 found it
+   is 100% undocumented, yet `sutrac` advertises "sutrac repl → Explore
+   interactively"). Cover: launch, the `embed()`-first pattern (strings must
+   become vectors), the `~ "concept" (cos)` vs `= number` result forms, and
+   `:help/:decls/:reset/:quit`. Finding:
+   `planning/findings/2026-07-04-repl-first-run-newcomer.md`. (The
+   scalar-tensor-repr display leak from that same run is already FIXED at
+   HEAD; three residuals filed — this + items 1a/1b below.)
+   - 1a. **Bare string literal crashes the REPL:** top-level `"hello"` (not
+     `embed("hello")`) throws an internal `TypeError: can't multiply sequence
+     by non-int of type 'float'` — a codegen bug lowering a bare string-literal
+     expression. Needs a compiler fix + its own test (not a display fix).
+   - 1b. **Naive `similarity("cat","dog")` (string args) gives an opaque
+     `linalg_norm ... not str`** — a fresh newcomer-facing symptom of the
+     deferred H1 type-check gap (folds into
+     `2026-06-24-h1-name-resolution-is-deferred-v0.2.md`, no new work).
+   - Also still open from the diagnostics sweep: **tag `sutra-dev-v0.9.3`**
+     after this branch merges so pip users get the no-main/unknown-name/
+     wrong-type diagnostic fixes already at HEAD; Python-builtin fall-through
+     (`2026-07-04-python-builtin-fallthrough.md`, folded into H1).
 3. **Website link sweep:** from the built site's pages (`scripts/build_site.py` output), check
    internal links + tutorial ordering for dead ends (keep `docs/` free of repo-internal
    scratchpad references while there).
