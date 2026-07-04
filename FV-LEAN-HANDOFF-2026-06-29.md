@@ -332,9 +332,20 @@ This is the work to pick up (mirrored as the first `queue.md` item):
 
 ## 8. Status checklist (the funding session ticks these off here)
 
-- [ ] (1) Doc read; AskUserQuestion run on open issues.
-- [ ] (2) Sutra-related crons re-created in the funding session.
-- [~] (3) mathlib layer confirmed compiling — **`GibbsMultiState` DONE** (clean, no `sorryAx`, via targeted imports); **`GibbsMathlib` still `import Mathlib`** → narrow or CI-verify.
+- [x] (1) Doc read (2026-07-04 queue session, top to bottom). AskUserQuestion: NO open
+  Emma-call issues remain — the two decisions this doc left open (the Lean gate; which heavy
+  legs to work) were both answered by Emma 2026-07-03 via AskUserQuestion in the building
+  session ("Go: both legs", recorded in queue.md), so re-asking would be noise.
+- [x] (2) The §6a 1 PM comprehensive work-through cron re-created 2026-07-04 (CronCreate
+  `d95de17d`, daily 13:03, session-local in the queue-processing session; 7-day auto-expiry —
+  recreate again if that session ends). NOTE: the 2 PM clawRxiv-clone imitation-analysis cron
+  (§ ⭐UPDATE item 5) targets `research_library`, which is outside this container's repo scope —
+  it still needs restarting from a session that can reach that repo.
+- [x] (3) mathlib layer confirmed compiling — **`GibbsMultiState` DONE** (clean, no `sorryAx`,
+  via targeted imports); **`GibbsMathlib` resolved via the CI-verify branch of the fork**: it is
+  built explicitly (`lake build GibbsMathlib …`) by `fv-lean-mathlib-ci` on ubuntu on every
+  `fv-lean/mathlib/**` change, green since push `54a691ac` — narrowing its `import Mathlib` is
+  now merely a local-Windows convenience, not a verification gap.
 - [x] (4) mathlib layer wired into CI — **`.github/workflows/fv-lean-mathlib-ci.yml`** (path-filtered `fv-lean/mathlib/**`, ubuntu, `lake exe cache get` + `lake build`, fails on error/sorry). **CI GREEN on push `54a691ac` (run 28402221677, success in 2m0s):** GibbsMathlib + GibbsMultiState build clean on Linux (no error / no sorry). The systemic hole (mathlib layer never machine-checked) is closed, and the Windows MAX_PATH problem is sidestepped — the layer is now verified on every change to `fv-lean/mathlib/**`.
 - [~] (5) `Sutra.Convergence` unification — **SPECTRAL CAPSTONE DONE + CI-GREEN 2026-06-30**
   (`fv-lean-mathlib-ci` run 28486967459): `SutraConvergence.applyP_gap_contraction` — scalar
