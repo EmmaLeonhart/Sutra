@@ -1,3 +1,34 @@
+## 2026-07-04: A1 web wrapper VERIFIED in a real browser; reward EMA smoothing (the 1d flag) closed
+
+The queue's A1 "ship = web wrapper" item turned out to be mostly built already
+(`hero_server.py` + `hero_page.html`, shipped 2026-07-01). What was genuinely missing, per the
+server's own docstring ("Do NOT claim the live page works without running it in a browser"), was
+the browser verification and the flagged 1d item. Both done, measured:
+
+- **Live-page verification (real Chromium via Playwright, headless container):** page serves at
+  the URL, title correct, WARMER/COLDER buttons present; 6 presses = 3 SPSA steps; the
+  substrate-rendered frame VISIBLY morphs (screenshots: blue-grey hero → warm pink, glyph
+  headline SUTRA → WARMER, counters "SPSA steps: 3 · presses: 6"); frame PNG hash changes; the
+  only console error is the browser's automatic `/favicon.ico` 404 (cosmetic, no page resource
+  fails). Repeated end-to-end with `--ema 0.5`: same seed → same starting frame, different final
+  frame (damped updates), all endpoints 200.
+- **Reward EMA smoothing** (1d flag: "raw ±1 two-sided — flagged, not faked"):
+  `HeroSteering(ema_alpha=…)` smooths the press stream (`ema ← (1−α)ema + α·r`, primed on the
+  first press) before it scores SPSA; default `1.0` is byte-for-byte the raw behaviour. Wired as
+  `--ema` on `hero_server.py` (+ `HERO_EMA` env) and `steering_window.py`. Tests 6→10 in
+  `test_hero_steering.py`: identity at α=1 (same θ trajectory), an EXACT ×0.5-damping check
+  (presses (+1,−1) score as (+1,0) ⇒ θ moves exactly half — SPSA step ∝ (r₊−r₋)·delta with
+  seed-fixed delta), directional steering survives α=0.5 + 20% contrarian presses
+  (bright still ends >+0.15 above start), and range validation. demos/gui suite: 101 passed,
+  1 skipped.
+- **1d soak reproduces unchanged** post-change (`experiments/gui_steering_eval.py`, defaults):
+  101/101 clean frames both raters, bright delta +0.800/−0.800, trend corr ±0.446 — identical to
+  the 2026-06-14 measured numbers, as the default-α design intended.
+
+Honest rails held: render substrate-side, host does I/O only; the EMA is host-side bookkeeping on
+an explicitly host-side optimizer (the a1 spec's declared boundary). REMAINING for A1: only the
+public deployment (DEPLOY.md, HF Spaces Docker) — needs Emma's hosting account; noted in queue.
+
 ## 2026-07-04: GibbsFlow.lean — the thrml chain's continuous-time decay MACHINE-CHECKED (audit item 2; Langevin scoped out per Emma's thrml reframe)
 
 Emma's AskUserQuestion answer ("are we not using THRML for the formal verification lol?")

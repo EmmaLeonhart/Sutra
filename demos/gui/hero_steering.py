@@ -12,6 +12,14 @@ perturbation and the first press scores it (r₊); it then shows the − perturb
 and the second press scores it (r₋); it runs one `HeroSPSA.update(r₊, r₋)` and
 begins the next batch. Reward is +1 (warmer) / −1 (colder).
 
+**Reward EMA smoothing (the 1d flag, closed 2026-07-04).** With `ema_alpha < 1`
+the raw ±1 press stream is exponentially smoothed before it feeds SPSA:
+`ema ← (1−α)·ema + α·r` (primed with the first press), and the *smoothed* value
+scores the shown perturbation. A lone contrarian press inside a consistent streak
+then shrinks the update magnitude instead of producing a full-strength reversed
+gradient — damping fickle-rater noise. The default `ema_alpha = 1.0` is exactly
+the raw two-sided behaviour the 1d soak measured (nothing cited changes).
+
 Honesty (a1 spec): the render is substrate (colour channels + glyph pixels); the
 optimizer and the warmer/colder bookkeeping are host-side. This is steering of
 substrate-rendered output by a present rater — not substrate-native training, not
@@ -49,7 +57,7 @@ class HeroSteering:
     `batches_done` counts completed SPSA steps (one per two presses)."""
 
     def __init__(self, size: int = 48, seed: int = 0, band: tuple = (0.08, 0.30),
-                 render_headline: bool = True):
+                 render_headline: bool = True, ema_alpha: float = 1.0):
         self._wf = _load("gui_whole_frame_steer", "whole_frame.py")
         self._spsa = _load("hero_spsa_steer", "hero_spsa.py")
         self.size = int(size)
@@ -59,6 +67,11 @@ class HeroSteering:
         # can be skipped (the colour hero still renders + steers). The live window
         # and the soak (1d) keep it on.
         self.render_headline = bool(render_headline)
+        if not (0.0 < float(ema_alpha) <= 1.0):
+            raise ValueError(f"ema_alpha must be in (0, 1], got {ema_alpha}")
+        self.ema_alpha = float(ema_alpha)
+        self._ema = 0.0
+        self._ema_primed = False
         n_headlines = len(self._wf.HERO_HEADLINES)
         self.opt = self._spsa.HeroSPSA(n_headlines=n_headlines, seed=seed)
         self._pair = None        # (theta_plus, theta_minus) render dicts for this batch
@@ -93,8 +106,19 @@ class HeroSteering:
 
     def press(self, reward: float):
         """Apply a warmer (+1) / colder (-1) press to the CURRENT frame and return
-        the next frame to show. Every two presses complete one SPSA batch."""
-        r = float(reward)
+        the next frame to show. Every two presses complete one SPSA batch. With
+        `ema_alpha < 1` the press is EMA-smoothed before scoring (see the module
+        docstring); at the default 1.0 the raw reward feeds SPSA unchanged."""
+        raw = float(reward)
+        if self.ema_alpha >= 1.0:
+            r = raw
+        else:
+            if self._ema_primed:
+                self._ema = (1.0 - self.ema_alpha) * self._ema + self.ema_alpha * raw
+            else:
+                self._ema = raw
+                self._ema_primed = True
+            r = self._ema
         if self._phase == 0:
             self._r_plus = r
             self._phase = 1

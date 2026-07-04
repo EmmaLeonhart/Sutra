@@ -73,10 +73,11 @@ class HeroBridge:
     shell over these methods."""
 
     def __init__(self, size: int = 48, seed: int = 0, scale: int = 9,
-                 render_headline: bool = True):
+                 render_headline: bool = True, ema_alpha: float = 1.0):
         steer = _load("gui_hero_steering_web", "hero_steering.py")
         self.ctl = steer.HeroSteering(size=size, seed=seed,
-                                      render_headline=render_headline)
+                                      render_headline=render_headline,
+                                      ema_alpha=ema_alpha)
         self.scale = int(scale)
         self.presses = 0
         self._img, self._headline = self.ctl.frame()   # prime the first frame
@@ -159,6 +160,8 @@ def main() -> None:
     ap.add_argument("--scale", type=int, default=int(os.environ.get("HERO_SCALE", "9")),
                     help="upscale factor for the served PNG")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--ema", type=float, default=float(os.environ.get("HERO_EMA", "1.0")),
+                    help="reward EMA coefficient in (0,1]; 1.0 = raw presses (default)")
     ap.add_argument("--no-headline", action="store_true",
                     help="skip the substrate glyph headline (the headline shows as text "
                          "instead). The glyph font is VSA-encoded and needs the embedding "
@@ -170,7 +173,7 @@ def main() -> None:
     args = ap.parse_args()
 
     bridge = HeroBridge(size=args.size, seed=args.seed, scale=args.scale,
-                        render_headline=not args.no_headline)
+                        render_headline=not args.no_headline, ema_alpha=args.ema)
     if args.warmup:
         print("warmup done (compile cache primed); exiting")
         return
