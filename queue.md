@@ -79,15 +79,22 @@ drained; per the delete-on-done rule the batch records are cleared from this fil
 `DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Re-run the PINNED TAIL audit
 next session to refill if usability re-opens.
 
-### ⭐ HEAVY FV-Lean leg (c) — continuous-space Langevin (green-lit 2026-07-03; (a2) landed 2026-07-04)
+### ⭐ FV-Lean — continuous-TIME finite-state decay (audit item 2), pending Emma's confirm
 
-**(c) continuous-space overdamped Langevin** `dX=−∇U dt+√(2/β)dW` — SDE/measure theory, likely
-at/beyond mathlib's frontier. FIRST STEP IS A SCOPING PASS, not proof-writing: survey what mathlib
-v4.30 actually has (Itô/SDE/Fokker–Planck coverage), write the honest scope into
-`planning/findings/` (per lean-gap-audit item 3), and only then decide what is provable. Verify any
-Lean via the `fv-lean-mathlib-ci` Linux job (iterate via branch pushes; local/remote builds are
-blocked — MAX_PATH on Windows, egress policy in remote containers). Integrity rules bind: nothing
-is proven until `lean` accepts it, no `sorryAx`; cite no numbers until measured/proved.
+**Leg (c) as stated is BLOCKED — negative scoping result 2026-07-04**
+(`planning/findings/2026-07-04-langevin-lean-scoping.md`): no proof assistant has SDE
+existence/uniqueness, Fokker–Planck, or Langevin dynamics; mathlib has no Itô calculus (the June-2026
+state of the art is a standalone C³-bounded Itô formula). Do NOT start the SDE leg; the paper keeps
+it "named, not claimed". Revisit only when mathlib lands Itô + SDEs.
+
+**Recommended substitute (audit item 2, ordered before Langevin by the audit itself; AskUserQuestion
+sent to Emma 2026-07-04):** machine-check the continuous-time FINITE-STATE master-ODE decay —
+`df/dt = Qf` ⇒ `d/dt‖f_t‖²_π = 2⟨Qf_t,f_t⟩_π ≤ −2γ‖f_t‖²_π` ⇒ (Grönwall) `‖f_t‖²_π ≤ e^{−2γt}‖f_0‖²_π`,
+generator-side Dirichlet identity by the same algebra as `dirichlet_eq`. This is the chain the
+measured γ=0.0397 lives on. Verify via `fv-lean-mathlib-ci` branch pushes (local/remote builds
+blocked — MAX_PATH on Windows, egress policy in remote containers; a shallow clone of mathlib4
+v4.30.0 IS possible remotely for lemma-name grepping). Integrity rules bind: nothing is proven until
+`lean` accepts it, no `sorryAx`.
 
 ### A1 demo — SHIP step = the web wrapper (Emma 2026-07-03, via AskUserQuestion)
 

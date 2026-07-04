@@ -1,3 +1,17 @@
+## 2026-07-04: FV leg (c) scoping — continuous-space Langevin in Lean is OUT OF REACH (negative result); item-2 substitute proposed
+
+Ran the scoping pass queue.md required before any (c) proof-writing. Verdict
+(`planning/findings/2026-07-04-langevin-lean-scoping.md`): the leg as stated cannot be built —
+mathlib has Brownian motion/Wiener measure (arXiv:2511.20118) but NO Itô calculus; the June-2026
+state of the art (arXiv:2606.15089, standalone ~7.9k-line repo) reaches a C³-bounded Itô formula
+and explicitly lacks SDE existence/uniqueness; Fokker–Planck and Langevin dynamics are formalized
+nowhere. All three layers the leg needs (SDE solutions, diffusion generator/stationarity,
+continuous-space Poincaré/log-Sobolev) are missing — person-months-to-years of library building,
+not a queue leg. Not started, not claimed; the FV paper already carries it as "named, not
+claimed" so no paper edit was needed. Recommended substitute recorded in the queue: lean-gap-audit
+item 2 (continuous-time FINITE-state master-ODE decay via Grönwall — the chain the measured
+γ=0.0397 actually lives on), pending Emma's confirmation via AskUserQuestion.
+
 ## 2026-07-04: FV Lean leg (a2) LANDED — concrete 8-state AND-gadget Gibbs chain, gap COMPUTED (κ=1/16, every β; the transcendentals cancel)
 
 New `fv-lean/mathlib/GibbsGadget.lean`, CI-green (`fv-lean-mathlib-ci` run 28694242038 on
