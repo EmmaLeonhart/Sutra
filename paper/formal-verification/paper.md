@@ -1060,11 +1060,16 @@ non-neighbouring configurations — a per-edge ratio bound cannot see such a cha
 operator's own Lean gap would need the canonical-paths comparison method and $0.0397$ remains a
 measurement.
 
-What remains genuinely open, named not claimed: (i) a Lean gap for the **single-spin-flip**
+What remains genuinely open, named not claimed: a Lean gap for the **single-spin-flip**
 kernel itself (canonical-paths/comparison method; the general Poincaré$\Rightarrow$decay engine, the
 two-state case, a closed-form multi-state instance, and the full-support eight-state gadget instance
-are done); and (ii) the continuous-*space* overdamped
-Langevin diffusion $dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$ on a relaxed energy. (Proofs: `fv-lean/`, core, no `mathlib`,
+are done). The continuous-*space* overdamped Langevin diffusion
+$dX=-\nabla U\,dt+\sqrt{2/\beta}\,dW$, previously listed here as open, is now **scoped out
+rather than open**: the thermodynamic compile target executes discrete-state block-Gibbs
+sampling over spin registers, whose continuous-time law is the finite-state jump process —
+not a continuous-space diffusion — so the diffusion is not the substrate's object (and no
+proof assistant currently has SDE existence/uniqueness or Fokker–Planck to build on; the
+2026 state of the art stops at a $C^3$-bounded Itô formula). (Proofs: `fv-lean/`, core, no `mathlib`,
 and `fv-lean/mathlib/` for the reversibility/stationarity/uniqueness/rate layer; the
 measured continuous-time analysis: `fv_sampler_convergence.py`; the host/sampled
 hardware mapping: the companion findings.)
