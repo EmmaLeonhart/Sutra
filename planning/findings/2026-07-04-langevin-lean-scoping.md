@@ -72,8 +72,13 @@ continuous-time law is the finite-state **jump process** (`dp/dt = Qᵀp`, exact
   being out of proof-assistant reach — the diffusion was the audit's "further limit," not the
   thrml object. Dropped from the agenda (paper §7 updated to say scoped-out, not open).
 - The thrml-relevant continuous-time statement IS audit item 2: the master-ODE /
-  jump-process decay `‖f_t‖²_π ≤ e^{−2γt}‖f_0‖²_π` above. **Proceeding with it** as the
-  next Lean leg (this session), framed explicitly as the thrml chain's continuous-time law.
+  jump-process decay `‖f_t‖²_π ≤ e^{−2γt}‖f_0‖²_π` above. **DONE same session, CI-green**
+  (`fv-lean/mathlib/GibbsFlow.lean`, run 28694691387, first-try, no `sorryAx`):
+  `gen_applyP_piMean_zero`, `gen_rayleigh_eq_neg_dirichlet`, `flow_piMean_const`,
+  `flow_energy_hasDeriv`, `flow_energy_decay` — Grönwall by hand (antitone
+  exponentially-weighted energy), no ODE-library import. The γ value for the single-flip
+  generator stays the measured 0.0397 (its rates vanish between non-neighbours; per-edge
+  route can't compute it — canonical paths remain the open route).
 - The most thrml-faithful *discrete-time* object (single-site block-Gibbs kernel — zeros
   between non-neighbours) still needs canonical paths for its own gap; unchanged, named in
   the queue as not-green-lit.

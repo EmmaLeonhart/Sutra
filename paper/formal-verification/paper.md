@@ -35,10 +35,15 @@ $\pi$-weighted inner product (`applyP_selfAdjoint`), a scalar Dirichlet/Rayleigh
 gap implies a one-step $L^2(\pi)$ contraction (`applyP_gap_contraction`, the
 numerical-radius = operator-norm step, via polarization + Cauchy–Schwarz, no
 spectral theorem), and that contraction implies geometric $L^2(\pi)$ decay
-(`geometric_convergence`), all `sorry`-free — so that what remains a *measurement*,
-explicitly not a Lean proof, is narrowed to the multi-state gap **value**
-(`γ = 0.0397`) for the concrete kernel and the continuous-time/continuous-space
-limits, not the gap⇒convergence implication itself.
+(`geometric_convergence`), all `sorry`-free — and the same data closes **continuous
+time**: any trajectory of the observable master equation for a reversible generator,
+started mean-zero, decays as $e^{-2\gamma t}$ from a Poincaré constant
+(`flow_energy_decay`). What remains a *measurement*, explicitly not a Lean proof, is
+narrowed to the gap **value** (`γ = 0.0397`) of the concrete single-spin-flip
+generator — the gap⇒convergence implication is machine-checked in both discrete and
+continuous time, and a full-support eight-state heat-bath sampler for the gadget's
+own Gibbs law carries a fully *computed* gap (`κ = 1/16`, the transcendental
+entries cancelling).
 
 The supporting machinery is a reduction: Sutra's compiler turns an entire program
 (primitives, control flow, string I/O) into a single fused **tensor-op graph**,
@@ -138,11 +143,12 @@ tractable.
    is the halt gate's job, not spectral decay); and the energy-based target's
    sampler is a continuous-time Markov jump process whose **master-equation
    spectral gap** decides convergence (the discrete-time chain's ergodicity,
-   stationary measure, uniqueness and two-state rate are **Lean-machine-checked**;
-   the full multi-state gap and the continuous-time decay are **measured, not
-   Lean-proved** — the gadget chain has a positive gap and the law decays at exactly
-   that rate). These are the stochastic-ODE / Z-transform tools the probabilistic
-   substrate calls for.
+   stationary measure, uniqueness, two-state rate, the gap⇒decay implication in
+   discrete AND continuous time, and a full-support eight-state instance with
+   computed gap are **Lean-machine-checked**; the single-spin-flip chain's gap
+   **value** is **measured, not Lean-proved** — γ = 0.0397, and the law decays at
+   exactly that rate). These are the stochastic-ODE / Z-transform tools the
+   probabilistic substrate calls for.
 2. **The reduction** (§2, supporting): why the compiled tensor-op graph is the
    program's semantics rather than a constant-folded residual or a deep-learning
    computation-graph optimization, and why equivalence on it is algebra — the move
@@ -810,9 +816,9 @@ review is the compiler's tensor-graph output rather than imperative source.
 *This is the spine of the paper. The supporting machinery of §§2–6 was developed on
 the deterministic target; here it reaches its cleanest form on a substrate that is
 genuinely probabilistic, and the load-bearing question becomes convergence — does
-the sampler reach the answer? The discrete-time picture is **Lean-machine-checked**;
-the continuous-time, multi-state convergence is **measured, not Lean-proved**, and
-labeled as such throughout.*
+the sampler reach the answer? The discrete-time picture is **Lean-machine-checked**,
+and so is the continuous-time gap⇒decay implication; the single-spin-flip chain's
+gap **value** is **measured, not Lean-proved**, and labeled as such throughout.*
 
 The verification of §§2–6 is over the deterministic PyTorch tensor-op target.
 Sutra's second compile target is genuinely **probabilistic**: an energy-based model
@@ -927,11 +933,12 @@ Quot.sound]`, no `sorry`. So the full *discrete-time* convergence picture for th
 gadget chain (the gadgets *correct*, the chain *ergodic with the right unique
 stationary Gibbs measure*, and the two-state *rate*) is machine-checked.
 
-**The continuous-time, multi-state convergence, measured.** The Lean layer leaves
-two pieces open: the *general multi-state* spectral gap (only the two-state clamped
-decode is mechanised) and the *continuous-time* (Langevin/SDE) limit. We close them
-*numerically* — a measurement on the real gadget energy, not a machine-checked
-proof, and we mark the status as exactly that. The continuous-time limit of
+**The continuous-time, multi-state convergence, measured.** For the concrete
+single-spin-flip chain the gap *value* is not Lean-derived (its heat-bath rates
+vanish between non-neighbouring configurations, out of the per-edge route's reach),
+so we measure it — a measurement on the real gadget energy, not a machine-checked
+proof, and we mark the status as exactly that; the decay *implication* the value
+feeds is machine-checked below. The continuous-time limit of
 single-site block-Gibbs is a Markov jump process whose law obeys the master
 equation (the Kolmogorov-forward / Fokker–Planck ODE) $\dot p = Q^{\mathsf T} p$,
 the distribution-level statement of the Langevin dynamics. Building the heat-bath
@@ -947,6 +954,25 @@ $0.0397$, matching the spectral gap to ratio $1.0000$** — the gap *is* the
 continuous-time convergence rate, confirmed on the trajectory. The clamped-decode
 chain's stationary mode is the correct AND output for all four inputs.
 (`fv_sampler_convergence.py`, `test_fv_sampler_convergence.py`, 6/6.)
+
+**The continuous-time decay, machine-checked in structure.** The measured picture
+above now has a Lean spine of its own (`GibbsFlow.lean`, all `sorry`-free,
+CI-checked): for any finite reversible *generator* (rows summing to zero + detailed
+balance), the π-mean of observables is conserved (`gen_applyP_piMean_zero`), the
+Rayleigh form is the negative Dirichlet form $\langle Qf,f\rangle_\pi=-\mathcal
+E_Q(f)$ (`gen_rayleigh_eq_neg_dirichlet` — the generator-side twin of
+`dirichlet_eq`), any trajectory of the observable master equation $\dot f=Qf$ stays
+mean-zero if started mean-zero (`flow_piMean_const`), and a Poincaré bound
+$\gamma\lVert h\rVert_\pi^2\le\mathcal E_Q(h)$ on mean-zero observables forces
+$\lVert f_t\rVert_\pi^2\le e^{-2\gamma t}\lVert f_0\rVert_\pi^2$ for all $t\ge0$
+(`flow_energy_decay` — Grönwall by hand: the exponentially-weighted energy has
+nonpositive derivative, hence is antitone; no ODE-library import). So the
+continuous-time statement whose *rate* is measured above is itself a machine-checked
+implication: what the measurement supplies is exactly the Poincaré/gap **value** for
+the single-spin-flip generator, nothing else. (That generator's rates vanish between
+non-neighbouring configurations, so the per-edge `gen_poincare` route cannot compute
+its value — the canonical-paths comparison remains the open route, exactly as for
+the discrete-time single-flip kernel.)
 
 **The multi-state convergence, exposed as Lean structure (two machine-checked legs).**
 Two general-finite-state legs of the multi-state gap are now machine-checked, on an
@@ -1115,8 +1141,10 @@ environment *as it runs* on a substrate whose second target is genuinely
 probabilistic. On the deterministic target the loop's linear core is marginally
 stable (Z-transform poles on the unit circle, **measured**), so termination is the
 soft-halt gate's job; on the energy-based target the sampler converges to its unique
-stationary Gibbs measure (**Lean-machine-checked** in the discrete, two-state case;
-**measured** for the multi-state continuous-time gap). The reduction and the
+stationary Gibbs measure (**Lean-machine-checked**: the two-state case in full, the
+gap⇒decay implication in discrete and continuous time, and a full-support
+eight-state instance with computed gap; **measured**: the single-spin-flip
+multi-state gap value). The reduction and the
 closed-form obligations below are the supporting machinery that makes that
 convergence question tractable.
 
@@ -1146,10 +1174,14 @@ mixes in one step). Beyond that, the *continuous-time, multi-state* convergence 
 now **measured** on the real gadget energy: the master-equation generator's Gibbs
 measure is stationary and reversible, the full eight-state chain has a positive
 spectral gap ($\gamma=0.0397$ at $\beta=1$), and the law's total-variation decay
-matches that gap (ratio $1.0000$). What remains is to lift that measurement to a
-*machine-checked* multi-state proof and to the continuous-space Langevin diffusion
-— verifying the language as it genuinely runs on a probabilistic substrate, which
-is where this line of work is headed.
+matches that gap (ratio $1.0000$). The lift of that measurement's *structure* to
+machine-checked form is now done — the gap⇒decay implication holds in Lean in both
+discrete and continuous time, and a full-support eight-state sampler for the
+gadget's own Gibbs law closes end-to-end with a computed gap. What remains is the
+single-spin-flip kernel's own gap value (canonical-paths comparison); the
+continuous-space Langevin diffusion is scoped out — the substrate's object is the
+discrete-state chain — and verifying the language as it genuinely runs on a
+probabilistic substrate is where this line of work is headed.
 
 ---
 

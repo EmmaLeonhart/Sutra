@@ -1,3 +1,44 @@
+## 2026-07-04: GibbsFlow.lean — the thrml chain's continuous-time decay MACHINE-CHECKED (audit item 2; Langevin scoped out per Emma's thrml reframe)
+
+Emma's AskUserQuestion answer ("are we not using THRML for the formal verification lol?")
+re-anchored the FV target on the thrml compile target's actual sampler: `codegen_thrml.py`
+executes discrete-state block-Gibbs over spin registers, whose continuous-time law is the
+finite-state jump process `fv_sampler_convergence.py` measures — NOT a continuous-space
+diffusion. The Langevin leg therefore moved from "blocked" to **scoped out for the substrate**
+(finding updated; paper §7 now says scoped-out rather than open), and the thrml-relevant
+continuous-time statement — lean-gap-audit item 2 — was built the same session.
+
+New `fv-lean/mathlib/GibbsFlow.lean`, **CI-green first try** (`fv-lean-mathlib-ci` run
+28694691387 on `25371f8`), every declaration `[propext, Classical.choice, Quot.sound]`, no
+`sorryAx`:
+
+- `gen_applyP_piMean_zero` — a reversible generator (rows sum 0 + detailed balance) conserves
+  the π-mean of observables.
+- `gen_rayleigh_eq_neg_dirichlet` — generator Dirichlet identity `⟨Qf,f⟩_π = −E_Q(f)` (the
+  generator-side twin of `dirichlet_eq`; zero row sums kill the diagonal terms).
+- `flow_piMean_const` — any trajectory of the observable master equation `df/dt = Qf` has
+  constant π-mean (derivative-zero ⇒ antitone AND monotone ⇒ constant).
+- `flow_energy_hasDeriv` + `flow_energy_decay` — along any such trajectory started mean-zero,
+  a Poincaré bound `γ‖h‖²_π ≤ E_Q(h)` forces `‖f_t‖²_π ≤ e^{−2γt}‖f_0‖²_π` for all t ≥ 0.
+  Grönwall done by hand: the exponentially-weighted energy has nonpositive derivative
+  (`antitone_of_deriv_nonpos`), no ODE-library import.
+
+HONEST BOUNDARY, unchanged: the γ VALUE for the single-spin-flip generator stays the measured
+0.0397 — its heat-bath rates vanish between non-neighbouring configurations, so the per-edge
+`gen_poincare` route cannot compute it (canonical-paths comparison = the open route, named in
+the paper and queue, NOT started, NOT green-lit). The theorem verifies that ANY law obeying
+the thrml chain's master equation decays at the gap rate; it does not construct `e^{tQ}`.
+
+Paper updates in this commit (each push to main triggers the clawRxiv resubmit): abstract +
+contributions + §7 intro/body + §9 now say the gap⇒decay implication is machine-checked in
+BOTH discrete and continuous time and narrow the measured remainder to the single-flip gap
+value; §7 gained "The continuous-time decay, machine-checked in structure" (the GibbsFlow
+chain in-text). queue.md: thrml ACTIVE item deleted (this entry is its record); FV section
+REMAINING now lists only the not-green-lit canonical-paths value. Method note for future
+sessions: a shallow `git clone --branch v4.30.0` of mathlib4 IS possible in remote containers
+and made lemma-name grepping cheap — that plus the CI-branch-push loop got both GibbsGadget
+(2 iterations) and GibbsFlow (1 iteration) green.
+
 ## 2026-07-04: FV leg (c) scoping — continuous-space Langevin in Lean is OUT OF REACH (negative result); item-2 substitute proposed
 
 Ran the scoping pass queue.md required before any (c) proof-writing. Verdict
