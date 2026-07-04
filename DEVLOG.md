@@ -1,3 +1,53 @@
+## 2026-07-04: FV Lean leg (a2) LANDED — concrete 8-state AND-gadget Gibbs chain, gap COMPUTED (κ=1/16, every β; the transcendentals cancel)
+
+New `fv-lean/mathlib/GibbsGadget.lean`, CI-green (`fv-lean-mathlib-ci` run 28694242038 on
+`4f6f8c39`), every declaration `[propext, Classical.choice, Quot.sound]`, no `sorryAx`:
+
+- `hbP` — lazy uniform-proposal heat-bath (Barker) kernel for ANY strictly positive probability
+  target π: propose uniformly among the n states, accept with π_t/(π_s+π_t), laziness 1/2, the
+  diagonal absorbing the row. Machine-checked: row-stochastic (`hbP_row`), reversible (`hbP_db`),
+  nonnegative (`hbP_nonneg`), lazy/PSD (`hbP_lazy`, via the Dirichlet identity + off-diagonal row
+  mass ≤ 1/2).
+- **The key simplification, found doing the math:** the queue item anticipated rational-lower-
+  bounding the transcendental `exp(−βE)` kernel entries to extract κ. Unnecessary — for the Barker
+  acceptance the transcendentals CANCEL in the per-edge ratio `gen_poincare` needs:
+  `P_st/π_t = 1/(2n(π_s+π_t)) ≥ 1/(2n)`, EXACT and rational, uniform in β and in the energy
+  (`hbP_min_edge`). No transcendental arithmetic anywhere in the proof.
+- `hbP_geometric_decay` — for any positive probability π on any finite S:
+  `‖Pⁿf‖²_π ≤ ((1−1/(2n))²)ⁿ‖f‖²_π` on mean-zero f, via `gen_poincare` (κ=1/(2n)) + the
+  Poincaré/laziness engine. γ COMPUTED, no measured input.
+- `andGadget_gibbs_geometric_decay` — the instance at the LITERAL AND-gadget Gibbs law
+  `π_β ∝ exp(−βE4/4)` (E4 mirrored from `AndGadget.lean` — separate Lake package, keep in sync),
+  8 states, EVERY β: `‖Pⁿf‖²_π ≤ ((15/16)²)ⁿ‖f‖²_π`, with π>0 and ∑π=1 themselves proven from
+  `Real.exp_pos`. No free hypothesis about the chain, no measured number.
+
+HONEST SCOPE: this kernel is the full-support uniform-proposal heat-bath sampler for the gadget's
+Gibbs law — the same Barker acceptance as the measured chain, full-support proposal instead of
+single-spin flips. The measured γ=0.0397 belongs to the single-flip CONTINUOUS-TIME generator and
+STAYS a measurement: a per-edge conductance bound cannot see a kernel with zeros between
+non-neighbours; that operator's own Lean gap would need the canonical-paths comparison method
+(named in paper §7 as open, NOT started, NOT green-lit). Paper §7 updated in the same push; the
+clawRxiv resubmit fires when this reaches main (fv-paper-ci is main-only).
+
+Environment note (why iteration went through CI): this remote container cannot build the mathlib
+layer — the Lean toolchain binaries and the mathlib cache sit behind hosts the session egress
+policy blocks, and `workflow_dispatch` is not permitted for the integration — so
+`fv-lean-mathlib-ci` was temporarily push-triggered on the working branch (reverted in this
+commit) and the proof iterated via branch pushes. Two iterations: `Finset.sum_div` absent from the
+narrow import closure (restated via `Finset.sum_mul` / `div_eq_mul_inv`); `field_simp` fully
+closing a goal whose trailing `ring` then hit "no goals".
+
+Also this session: **FV-LEAN-HANDOFF-2026-06-29.md CLOSED and deleted.** §8 disposition: (1) read,
+no open Emma-calls left (both gates answered 2026-07-03); (2) the §6a 1 PM work-through cron
+re-created (`d95de17d`, session-local; the research_library 2 PM cron is outside this container's
+repo scope and still needs a session that can reach it); (3) `GibbsMathlib` resolved via the
+CI-verify branch of the fork; (4) CI wiring was already green; (5) the `Sutra.Convergence` spine
+is complete through this 8-state instance; (6) p-bit framing + exposed proof structure landed
+earlier (the Hadamard-baseline con #4 stays as-is — the doc itself marks it defensible/low
+priority). The hub's 17:00 closeout cron died with the hub session, so this session performed the
+closeout. queue.md: the ⭐⭐ handoff item and the RE-SPINE done-records cleared per delete-on-done;
+remaining FV work = leg (c) Langevin, scoping pass first.
+
 ## 2026-07-03: Emma decisions landed (AskUserQuestion, building session) — FV heavy legs GREEN-LIT, A1 ship = web wrapper
 
 Two open gates resolved by Emma via phone-notified AskUserQuestion: (1) the heavy FV-Lean
