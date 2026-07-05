@@ -73,6 +73,16 @@ def test_help_command():
     assert "Sutra REPL help" in out
 
 
+def test_bare_string_literal_steers_to_embed_not_typeerror():
+    # The vector-typed eval wrapper can't evaluate a bare string yet
+    # (queue.md item 1). Until the real fix, the REPL must steer to embed(...)
+    # instead of leaking the internal `TypeError: can't multiply sequence...`.
+    out = _drive(['"hello"', ":quit"])
+    assert "TypeError" not in out
+    assert "can't multiply sequence" not in out
+    assert "embed(" in out and '"hello"' in out
+
+
 def test_scalar_tensor_result_shows_clean_number_not_repr():
     # With real embed() vectors on CUDA, similarity/dot/norm reductions land in
     # _decode_result as a 0-d tensor; before 2026-07-04 that fell through to
