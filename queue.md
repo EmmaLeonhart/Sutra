@@ -86,27 +86,21 @@ missing-semicolon diagnostic is precise (`SUT0100` with file:line:col). Fixed in
 README fast-path referenced a repo path a pip-only user lacks (now inline-hello, matching the
 website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded items, in order:
 
-1. **Write a REPL doc page** (`docs/` — the REPL first-run 2026-07-04 found it
-   is 100% undocumented, yet `sutrac` advertises "sutrac repl → Explore
-   interactively"). Cover: launch, the `embed()`-first pattern (strings must
-   become vectors), the `~ "concept" (cos)` vs `= number` result forms, and
-   `:help/:decls/:reset/:quit`. Finding:
-   `planning/findings/2026-07-04-repl-first-run-newcomer.md`. (The
-   scalar-tensor-repr display leak from that same run is already FIXED at
-   HEAD; three residuals filed — this + items 1a/1b below.)
-   - 1a. **Bare string literal crashes the REPL:** top-level `"hello"` (not
-     `embed("hello")`) throws an internal `TypeError: can't multiply sequence
-     by non-int of type 'float'` — a codegen bug lowering a bare string-literal
-     expression. Needs a compiler fix + its own test (not a display fix).
-   - 1b. **Naive `similarity("cat","dog")` (string args) gives an opaque
-     `linalg_norm ... not str`** — a fresh newcomer-facing symptom of the
-     deferred H1 type-check gap (folds into
-     `2026-06-24-h1-name-resolution-is-deferred-v0.2.md`, no new work).
-   - Also still open from the diagnostics sweep: **tag `sutra-dev-v0.9.3`**
-     after this branch merges so pip users get the no-main/unknown-name/
-     wrong-type diagnostic fixes already at HEAD; Python-builtin fall-through
-     (`2026-07-04-python-builtin-fallthrough.md`, folded into H1).
-3. **Website link sweep:** from the built site's pages (`scripts/build_site.py` output), check
+1. **Bare string literal crashes the REPL:** top-level `"hello"` (not
+   `embed("hello")`) throws an internal `TypeError: can't multiply sequence by
+   non-int of type 'float'` — a codegen bug lowering a bare string-literal
+   expression. Needs a compiler fix + its own test (not a display fix). Finding:
+   `planning/findings/2026-07-04-repl-first-run-newcomer.md`.
+2. **Naive `similarity("cat","dog")` (string args) gives an opaque
+   `linalg_norm ... not str`** — a fresh newcomer-facing symptom of the deferred
+   H1 type-check gap (folds into
+   `2026-06-24-h1-name-resolution-is-deferred-v0.2.md`, no new work unless H1
+   is green-lit).
+3. **Tag `sutra-dev-v0.9.3`** after this branch merges so pip users get the
+   no-main / unknown-name / wrong-type diagnostic fixes already at HEAD; also
+   the Python-builtin fall-through (`2026-07-04-python-builtin-fallthrough.md`,
+   folded into H1).
+4. **Website link sweep:** from the built site's pages (`scripts/build_site.py` output), check
    internal links + tutorial ordering for dead ends (keep `docs/` free of repo-internal
    scratchpad references while there).
 
