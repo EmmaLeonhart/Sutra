@@ -23,6 +23,7 @@ iterable of input lines and writes transcript to `out`.
 """
 from __future__ import annotations
 
+import re
 import sys
 import types
 from typing import Iterable, List, Optional, TextIO
@@ -126,6 +127,21 @@ def _decode_result(mod, result, *, concept_threshold: float = 0.5) -> str:
     return f"= {val:g}{extra}"
 
 
+_BARE_STRING_RE = re.compile(r'^(?:"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')$')
+
+
+def _bare_string_literal(expr: str) -> Optional[str]:
+    """If `expr` is nothing but a single string literal, return its text; else
+    None. The REPL wraps expressions as `function vector __eval__() { return
+    <expr>; }`, and a raw string sent through that vector-typed path throws an
+    internal `TypeError` (a Sutra string is a codepoint vector that needs a
+    `string`-typed wrapper — see queue.md item 1). Until that fix lands, catch
+    the bare-literal case up front and steer the newcomer to `embed(...)`."""
+    s = expr.strip()
+    m = _BARE_STRING_RE.match(s)
+    return s if m else None
+
+
 def _looks_like_declaration(line: str) -> bool:
     """A line that ends a statement (`;`) or a block (`}`) is session state;
     anything else is an expression to evaluate."""
@@ -192,6 +208,14 @@ def run_repl(
             else:
                 decls.append(buf)
                 out.write("(added)\n")
+            out.flush()
+            continue
+
+        # Bare string literal: the vector-typed eval wrapper can't evaluate it
+        # yet (queue.md item 1). Steer to embed() instead of the raw TypeError.
+        lit = _bare_string_literal(buf)
+        if lit is not None:
+            out.write(f"strings live on the substrate via embed(...). Try: embed({lit})\n")
             out.flush()
             continue
 
