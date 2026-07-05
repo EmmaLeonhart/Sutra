@@ -1,3 +1,16 @@
+## 2026-07-04: REPL doc page written (usability round 12) — closes the "undocumented REPL" gap
+
+Wrote `docs/repl.md`: launch (`sutrac repl`), the model-load note, the
+expression-vs-declaration distinction, the load-bearing `embed()`-first rule
+(strings must become vectors — steering newcomers away from the bare-string /
+`similarity(str,str)` paths that error), the `= number` vs `~ "concept" (cos)`
+result forms, and the `:help/:decls/:reset/:quit` commands. Linked from the
+landing page's "Get started" (`docs/index.md`) so it's discoverable, not an
+orphan. `scripts/build_site.py` builds clean; `_site/repl/index.html` emitted
+and the built index links it. No repo-internal scratchpad refs (website
+discipline). The three residuals from the first-run inspection (bare-string
+crash, naive-similarity→H1, v0.9.3 tag) remain as their own queue items.
+
 ## 2026-07-04: REPL first-run (usability round 12 item 1) — scalar-display leak FIXED; REPL is undocumented + 2 residuals filed
 
 Launched `sutrac repl` as a newcomer (Ollama backend, CUDA), drove it with naive

@@ -34,7 +34,8 @@ sutrac --run hello.su          # -> hello world
 `pip install sutra-dev` alone gives you the validator + codegen (`sutrac hello.su` to
 check a file); the `[runtime,embed]` extras add PyTorch and the in-process embedding
 model so programs actually run. New to the ideas? Start with
-**[Tutorial 01 — Hello Sutra](tutorials/01-hello-sutra.md)**.
+**[Tutorial 01 — Hello Sutra](tutorials/01-hello-sutra.md)**, or open **[the
+interactive REPL](repl.md)** (`sutrac repl`) to try expressions live.
 
 **Working from source** (the full `examples/*.su` set, the smoke tests, the IntelliJ
 plugin, and the VS Code extension) lives in [the repository](https://github.com/EmmaLeonhart/Sutra):
