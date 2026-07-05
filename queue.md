@@ -86,10 +86,22 @@ missing-semicolon diagnostic is precise (`SUT0100` with file:line:col). Fixed in
 README fast-path referenced a repo path a pip-only user lacks (now inline-hello, matching the
 website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded items, in order:
 
-1. **Bare string literal crashes the REPL:** top-level `"hello"` (not
-   `embed("hello")`) throws an internal `TypeError: can't multiply sequence by
-   non-int of type 'float'` — a codegen bug lowering a bare string-literal
-   expression. Needs a compiler fix + its own test (not a display fix). Finding:
+1. **Bare string literal crashes the REPL — ROOT CAUSE FOUND 2026-07-04
+   (needs a design call, not a quick patch).** `run_repl` wraps EVERY
+   expression as `function vector __eval__() { return <expr>; }` (repl.py:199),
+   hardcoding the return type as `vector`. A Sutra string is a codepoint-array
+   vector, and the `vector`-typed codegen path does vector math on the raw str
+   → `TypeError: can't multiply sequence by non-int`. Measured: the SAME
+   expression wrapped as `function string __eval__()` compiles + runs fine and
+   returns the string's codepoint tensor (h=104,e=101,l,l,o=111 on the axes).
+   So the real fix needs the REPL to pick the return type from the expression's
+   TYPE — which is the deferred v0.2 name-resolution/symbol-table work
+   (`2026-06-24-h1-name-resolution-is-deferred-v0.2.md`) — OR a targeted
+   "try vector, catch that TypeError, retry as string" fallback PLUS a new
+   synthetic-axis codepoint→text decoder for display (no such decoder is
+   exposed today; `nearest_string` is codebook-lookup, not raw decode). Both
+   are real work in sensitive codegen/string-layout territory; neither is a
+   2-line patch. Emma's call on approach (v0.2 vs fallback). Finding:
    `planning/findings/2026-07-04-repl-first-run-newcomer.md`.
 2. **Naive `similarity("cat","dog")` (string args) gives an opaque
    `linalg_norm ... not str`** — a fresh newcomer-facing symptom of the deferred
@@ -100,9 +112,6 @@ website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded item
    no-main / unknown-name / wrong-type diagnostic fixes already at HEAD; also
    the Python-builtin fall-through (`2026-07-04-python-builtin-fallthrough.md`,
    folded into H1).
-4. **Website link sweep:** from the built site's pages (`scripts/build_site.py` output), check
-   internal links + tutorial ordering for dead ends (keep `docs/` free of repo-internal
-   scratchpad references while there).
 
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 

@@ -1,3 +1,26 @@
+## 2026-07-04: website link sweep — clean; REPL linked from the tutorials index too; bare-string crash root-caused
+
+Link sweep over all 32 `docs/` pages (usability round 12): every internal link
+resolves — the 8 that a naive relative-path check flags are absolute site-root
+links (`/paper/`, `/paper.pdf`, `/formal-verification.pdf`,
+`/sutra-replication-package.zip`, `/arxiv/`) that `pages.yml` builds with
+pandoc/TeX Live and stages at the site root at deploy (locally-absent by
+design; `/paper/` + `/arxiv/` pages present in the local build). Zero
+repo-internal scratchpad references on any website page (discipline holds). All
+5 tutorials linked from `tutorials/index.md` in order, no dead ends. One
+improvement made: linked the new REPL page from the tutorials index too (was
+only on the landing page) — site rebuilds clean, `_site/tutorials/index.html`
+links `/repl/`.
+
+Also **root-caused the bare-string-literal REPL crash** while it was the top
+item: `run_repl` hardcodes the eval wrapper's return type as `vector`
+(repl.py:199), but a Sutra string is a codepoint-array vector — wrapping the
+same expr as `string` compiles + runs fine (returns the h/e/l/l/o codepoint
+tensor). Proper fix = pick the wrapper return type from the expression's type
+(the deferred v0.2 symbol-table work) or a try-vector/catch/retry-as-string
+fallback plus a synthetic-axis codepoint→text decoder (none exposed today).
+Sharpened queue item 1 with this; it's Emma's design call, not a quick patch.
+
 ## 2026-07-04: REPL doc page written (usability round 12) — closes the "undocumented REPL" gap
 
 Wrote `docs/repl.md`: launch (`sutrac repl`), the model-load note, the
