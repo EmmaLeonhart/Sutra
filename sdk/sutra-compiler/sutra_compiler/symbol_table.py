@@ -226,6 +226,17 @@ class SymbolTable:
             or (self.include_extern and name in extern_function_names())
         )
 
+    def function_arity(self, name: str):
+        """The declared parameter count of a file-scope plain FUNCTION `name`, or
+        None if `name` is not a file-declared function. Restricted to functions on
+        purpose: Sutra params are fixed-arity (no defaults/varargs — checked against
+        the AST), so `len(args) == arity` is exact for a function. METHODS are
+        excluded here because their bare/desugared call forms thread the implicit
+        `this` separately, which the pre-desugar AST does not make unambiguous;
+        builtins/stdlib are excluded because the table does not carry their arity."""
+        sig = self.functions.get(name)
+        return sig.arity if sig is not None else None
+
     def unknown_function_suggestion(self, name: str, locals_in_scope=frozenset()):
         """For the unknown-FUNCTION diagnostic (rung 5): if a bare call to `name`
         is an unresolved LIKELY TYPO, return the suggested known function; else None.
