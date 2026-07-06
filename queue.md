@@ -76,6 +76,43 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
 
 Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
 
+### ⭐ v0.2 symbol table / name resolution (H1) — GREEN-LIT by Emma 2026-07-06
+
+Emma green-lit the deferred v0.2 name-resolution milestone — the proper fix that unblocks BOTH
+the REPL bare-string crash AND the opaque `similarity("cat","dog")` error (same root cause: no
+symbol table). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
+Barrel the rungs top to bottom; each is bounded and verified against the valid corpus. **The bar
+is ZERO false positives** — the v0.1 validator is deliberately lenient and a naive diagnostic
+warns on existing valid code (`03_methods.su` references `Animal`/`Cat` declared in no file), so
+every diagnostic rung must scan `examples/*.su` ∪ `tests/corpus/valid/*.su` and fire on none.
+
+**Rung 1 SHIPPED 2026-07-06** — `sutra_compiler/symbol_table.py` + `tests/test_symbol_table.py`
+(6 tests, PASS): the file-scope collector (user classes + members, top-level functions + methods
++ arity), pure, no diagnostics, nothing imports it yet. Foundation for the rest.
+
+1. **Local-scope tracking.** Extend the table with a scope stack: function/method params,
+   `var`/`const` bindings, and first-class function-valued locals (the arrow-fn `f`/`scale`
+   case — a local holding a function is legitimately callable, so the unknown-function diagnostic
+   must not fire on it). Tests over the arrow-function examples.
+2. **Stdlib + builtins resolution.** Fold in `BUILTINS`, intrinsic names, stdlib function names,
+   and `stdlib_class_parents()` so `is_known_*` become diagnostic-grade. Add the measured
+   primitive-type gaps `float` + `function` to the type allowlist ONLY after confirming they
+   appear as type annotations in the valid corpus (measure first — CLAUDE.md canonical-`number`
+   rule; `float` may be an alias to reject, not add).
+3. **Cross-file / external-type handling.** Resolve or scope so intentionally-open corpus files
+   (`03_methods.su`) stay clean. Gate: full valid-corpus scan = 0 false positives.
+4. **Unknown-TYPE diagnostic** (new SUT02xx, warning) using rungs 1–3. Verify 0 corpus false positives.
+5. **Unknown-FUNCTION diagnostic** (warning, incl. the `argmaxcosine` typo case) using the
+   local-scope table for first-class functions. Verify 0 corpus false positives.
+6. **Arity checking** on calls to known functions/methods.
+7. **REPL return-type inference** (supersedes round-12 item 1): pick `__eval__`'s return type from
+   the expression's type via the symbol table, fixing the bare-string REPL crash properly; needs
+   the codepoint→text display path in `planning/findings/2026-07-04-repl-first-run-newcomer.md`.
+8. **Precise wrong-arg-type diagnostic for `similarity("cat","dog")`** (supersedes round-12 item 2);
+   fold in the Python-builtin escape-hatch call (`planning/findings/2026-07-04-python-builtin-fallthrough.md`).
+
+---
+
 **Theme (Emma 2026-06-22/23): USABILITY.** Make Sutra easy for an outside person to install, run,
 and learn. The backlog elsewhere is all substrate-correctness; none of it is usability. The
 in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
