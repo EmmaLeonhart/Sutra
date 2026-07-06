@@ -98,12 +98,33 @@ and the parser has no varargs/optional/spread, so Sutra functions are fixed-arit
 arity` is exact. Scoped to plain functions (methods thread implicit `this`; builtins have no table
 arity) via `symbol_table.function_arity`. Measured: 0 mismatches across the 111 file-declared-function
 calls in the corpus. `test_arity_diagnostic.py` (6) + corpus sweep; 53 validator-touching tests green.
-6. **Arity checking** on calls to known functions/methods.
-7. **REPL return-type inference** (supersedes round-12 item 1): pick `__eval__`'s return type from
-   the expression's type via the symbol table, fixing the bare-string REPL crash properly; needs
-   the codepoint→text display path in `planning/findings/2026-07-04-repl-first-run-newcomer.md`.
-8. **Precise wrong-arg-type diagnostic for `similarity("cat","dog")`** (supersedes round-12 item 2);
-   fold in the Python-builtin escape-hatch call (`planning/findings/2026-07-04-python-builtin-fallthrough.md`).
+
+### ⭐ Expression type inference — GREEN-LIT by Emma 2026-07-06 (chose "build full type inference")
+
+Emma chose the largest-scope path for the last two H1 items: build a real expression-type-inference
+subsystem, then do items 7 (REPL) and 8 (wrong-arg-type) on top. Same measured discipline as rungs 1-6
+— every diagnostic rung scans the valid corpus and fires on NONE (0 false positives), and inference is
+CONSERVATIVE (return None/unknown rather than ever guess a wrong type). Barrel top to bottom:
+
+T1. **FunctionSig return types + callee return-type table.** Add `return_type` to `FunctionSig`
+    (build_symbol_table already sees `FunctionDecl.return_type`/`MethodDecl.return_type`); fold in builtin
+    + stdlib-intrinsic return types so a call's result type is queryable. Pure; unit-tested.
+T2. **`infer_type(expr, symbols, local_types) -> Optional[str]`** — conservative bottom-up inference:
+    literals (StringLiteral→string, Int/Float→int/number, bool), `embed(...)`→vector, casts→target type,
+    calls→callee return type, identifiers→local var/param type, operators→operand-derived. Unknown→None.
+    Unit tests over representative expressions; NO diagnostic wired yet.
+T3. **Item 8 — wrong-arg-type diagnostic SUT0203.** Warn when an arg's inferred type conflicts with the
+    callee's declared param type (the `similarity("cat","dog")` string-where-vector case). Needs callee
+    param types (user decls + stdlib intrinsics). Gate: 0 corpus false positives (measure first).
+T4. **Codepoint→text display decoder.** A display-boundary (sanctioned terminal I/O, not mid-computation)
+    decoder that reconstructs text from a string's synthetic-axis codepoint-array tensor. Spec:
+    `planning/sutra-spec/strings.md`. Verify decoded == original for a set of strings.
+T5. **Item 7 — REPL return-type inference.** Wrap `__eval__` with the inferred return type instead of
+    hardcoded `vector`; display strings via T4's decoder, numbers/vectors via the existing paths. Replaces
+    the current bare-string-literal steer with real evaluation. Newcomer-drive to verify.
+
+(The Python-builtin host-escape-hatch datum, `2026-07-04-python-builtin-fallthrough.md`, remains a
+SEPARATE blacklist concern — not folded into the above.)
 
 ---
 
