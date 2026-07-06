@@ -92,7 +92,12 @@ it; `symbol_table.unknown_function_suggestion` / `function_typo_suggestion` do t
 (The Python-builtin host-escape-hatch datum from `2026-07-04-python-builtin-fallthrough.md` is a
 SEPARATE concern — a blacklist, not typo detection — and is deliberately not folded in here.)
 
-6. **Arity checking** on calls to known functions/methods. (FunctionSig.arity is already collected.)
+**Arity checking SUT0202 SHIPPED 2026-07-06** — `validator.visit_Call` warns when a call to a
+file-declared FUNCTION passes the wrong arg count. Safe by construction: `Param` has no default value
+and the parser has no varargs/optional/spread, so Sutra functions are fixed-arity and `len(args) ==
+arity` is exact. Scoped to plain functions (methods thread implicit `this`; builtins have no table
+arity) via `symbol_table.function_arity`. Measured: 0 mismatches across the 111 file-declared-function
+calls in the corpus. `test_arity_diagnostic.py` (6) + corpus sweep; 53 validator-touching tests green.
 6. **Arity checking** on calls to known functions/methods.
 7. **REPL return-type inference** (supersedes round-12 item 1): pick `__eval__`'s return type from
    the expression's type via the symbol table, fixing the bare-string REPL crash properly; needs

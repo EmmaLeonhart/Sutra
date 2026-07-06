@@ -545,6 +545,22 @@ class _Walker:
                          "stdlib call, or local — the closest known name is "
                          f"`{suggestion}`",
                 )
+            # SUT0202 (v0.2 name resolution): arity check on a call to a
+            # file-declared function. Sutra params are fixed-arity (no defaults
+            # or varargs), so an arg-count mismatch is a real error surfaced as a
+            # warning (source is still valid v0.1 Sutra). Only plain functions —
+            # methods thread the implicit `this` separately; see `function_arity`.
+            arity = self._symbols.function_arity(callee.name)
+            if arity is not None and len(node.args) != arity:
+                plural = "argument" if arity == 1 else "arguments"
+                self.diagnostics.warning(
+                    f"function `{callee.name}` expects {arity} {plural} but "
+                    f"got {len(node.args)}",
+                    callee.span,
+                    code="SUT0202",
+                    hint="check the call against the function's parameter list — "
+                         "Sutra functions take a fixed number of arguments",
+                )
         for t in node.type_args:
             self._record_type_usage(t)
         self.visit(node.callee)

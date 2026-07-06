@@ -1,3 +1,22 @@
+## 2026-07-06: v0.2 symbol table (H1) — arity checking SUT0202
+
+Rung 6, and the cheapest of the set because the arity was already collected (`FunctionSig.arity`).
+`validator.visit_Call` now warns (SUT0202) when a bare call to a file-declared function passes the
+wrong number of arguments. This is exact rather than heuristic: `ast.Param` carries only a type and a
+name — no default-value field — and the parser has no varargs / optional / spread syntax, so every
+Sutra function is fixed-arity and `len(args) == arity` admits no legitimate exception. Verified by
+inspecting the AST + a recon: 0 mismatches across the 111 calls-to-file-declared-functions in the whole
+corpus, so the check ships clean.
+
+Scoped to plain FUNCTIONS via `symbol_table.function_arity(name)` (returns None for anything else):
+methods are excluded because their bare/desugared call forms thread the implicit `this` separately and
+the pre-desugar AST doesn't make that unambiguous; builtins/stdlib are excluded because the table
+doesn't carry their arity. Extending to those is a later refinement, noted not silently skipped.
+
+`tests/test_arity_diagnostic.py` (6: too-few / too-many / exact / zero-arg / builtin-not-checked / corpus
+sweep). All validator-touching suites green together: arity 6, unknown-function 10, unknown-type 7,
+symbol-table 21, corpus 96 subtests, snap 7 — 53 tests.
+
 ## 2026-07-06: v0.2 symbol table (H1) — unknown-FUNCTION diagnostic SUT0201 (did-you-mean)
 
 Rung 5. Measured the bare-call FP surface first (recon over all 109 corpus+example files): 25 unresolved
