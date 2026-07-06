@@ -424,6 +424,33 @@ def infer_type(expr, symbols: "SymbolTable", local_types: Optional[Dict[str, str
     return None
 
 
+# The wrong-arg-type diagnostic (SUT0203) fires ONLY on this narrow, measured
+# conflict: passing a `string` where a concrete non-text primitive is expected, or
+# the reverse. `string` is vector-ENCODED on the substrate, but semantically it is
+# text — passing a raw codepoint array where an embedding vector is wanted
+# (`similarity("cat","dog")`) is the exact newcomer error to catch. Everything else
+# is deliberately NOT a conflict: the numeric/vector family (vector/complex/number/
+# Axon/Promise/…) freely interconverts on the substrate, a generic `T` accepts any
+# type, and user classes / unknowns are out of scope. Measured 2026-07-06: 0 false
+# positives across the whole valid corpus with exactly this set.
+_TEXT_TYPES: Set[str] = {"string"}
+_CONCRETE_NONTEXT_TYPES: Set[str] = {
+    "vector", "number", "int", "complex", "matrix", "fuzzy", "bool",
+    "permutation", "trit",
+}
+
+
+def arg_type_conflict(param_type: Optional[str], arg_type: Optional[str]) -> bool:
+    """Whether passing an `arg_type` value to a `param_type` slot is a definite
+    type error worth a warning. Conservative — only the text-vs-concrete-non-text
+    mismatch (see the note above); None on either side, or any other pairing,
+    returns False."""
+    if not param_type or not arg_type:
+        return False
+    return ((arg_type in _TEXT_TYPES and param_type in _CONCRETE_NONTEXT_TYPES)
+            or (param_type in _TEXT_TYPES and arg_type in _CONCRETE_NONTEXT_TYPES))
+
+
 def build_symbol_table(module: ast.Module) -> SymbolTable:
     """Collect file-scope declarations from a parsed module. Pure; no diagnostics."""
     table = SymbolTable()

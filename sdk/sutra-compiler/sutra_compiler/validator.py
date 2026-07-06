@@ -47,7 +47,15 @@ from .diagnostics import (
 )
 from .lexer import Lexer, TokenKind
 from .parser import Parser
-from .symbol_table import SymbolTable, _walk, build_symbol_table, local_names
+from .symbol_table import (
+    SymbolTable,
+    _walk,
+    arg_type_conflict,
+    build_symbol_table,
+    infer_type,
+    local_names,
+    local_type_env,
+)
 
 
 # Spec'd builtins the canonical (PyTorch) substrate can't lower yet: they
@@ -193,6 +201,12 @@ class _Walker:
         # only ever SUPPRESSES a typo warning, and the warning itself already
         # fires solely on near-misses of known builtins.
         self._all_local_names: Set[str] = set()
+        # name -> declared type for the params/typed-locals of the ENCLOSING
+        # function/method, set on entry to its body and restored on exit. Powers
+        # `infer_type` of an Identifier arg for the wrong-arg-type diagnostic. Kept
+        # per-decl (not a file-wide union) so an identifier never picks up a
+        # same-named local's type from a different function and mis-fires.
+        self._local_type_env: dict = {}
 
     # ---- module ----------------------------------------------------
 
@@ -324,7 +338,12 @@ class _Walker:
         for p in node.params:
             self._record_type_usage(p.type_ref)
         self._enter_function_scope()
-        self.visit(node.body)
+        saved_env = self._local_type_env
+        self._local_type_env = local_type_env(node)
+        try:
+            self.visit(node.body)
+        finally:
+            self._local_type_env = saved_env
         self._exit_function_scope()
 
     def visit_MethodDecl(self, node: ast.MethodDecl) -> None:
@@ -340,10 +359,13 @@ class _Walker:
         # decls are seen inside the body.
         saved_method_scope = self._method_local_names
         self._method_local_names = {p.name for p in node.params}
+        saved_env = self._local_type_env
+        self._local_type_env = local_type_env(node)
         try:
             self.visit(node.body)
         finally:
             self._method_local_names = saved_method_scope
+            self._local_type_env = saved_env
         self._exit_function_scope()
 
     def visit_VarDecl(self, node: ast.VarDecl) -> None:
@@ -561,6 +583,31 @@ class _Walker:
                     hint="check the call against the function's parameter list — "
                          "Sutra functions take a fixed number of arguments",
                 )
+            # SUT0203 (v0.2 name resolution): a definitively-wrong argument type.
+            # Only the text-vs-concrete-non-text conflict fires (see
+            # `arg_type_conflict`) — e.g. `similarity("cat","dog")` passing a raw
+            # string where an embedding vector is required. Inference is
+            # conservative (None = unknown = never a conflict), so this stays at 0
+            # corpus false positives. Warning, not error.
+            param_types = self._symbols.param_types_of(callee.name)
+            if param_types:
+                for i, arg in enumerate(node.args):
+                    if i >= len(param_types):
+                        break
+                    pt = param_types[i]
+                    at = infer_type(arg, self._symbols, self._local_type_env)
+                    if arg_type_conflict(pt, at):
+                        self.diagnostics.warning(
+                            f"argument {i + 1} of `{callee.name}` has type "
+                            f"`{at}` but a `{pt}` is expected",
+                            getattr(arg, "span", callee.span),
+                            code="SUT0203",
+                            hint=(f"`{callee.name}` expects a `{pt}` here — if you "
+                                  "meant to use text as a value, embed it first "
+                                  "(`embed(\"...\")`) to get a vector"
+                                  if pt == "vector" and at == "string"
+                                  else f"convert the value to `{pt}` before the call"),
+                        )
         for t in node.type_args:
             self._record_type_usage(t)
         self.visit(node.callee)

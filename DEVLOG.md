@@ -17,6 +17,29 @@ doesn't carry their arity. Extending to those is a later refinement, noted not s
 sweep). All validator-touching suites green together: arity 6, unknown-function 10, unknown-type 7,
 symbol-table 21, corpus 96 subtests, snap 7 — 53 tests.
 
+## 2026-07-06: v0.2 type inference (H1 T3) — wrong-arg-type diagnostic SUT0203
+
+First diagnostic built on `infer_type`. `validator.visit_Call` warns when an argument's inferred type
+conflicts with the callee's declared parameter type. Measured the conflict surface first (recon over the
+corpus): 16 param≠arg mismatches on VALID code, ALL legitimate — generic `T` params (accept anything),
+the vector-ish family (`vector`/`complex`/`Axon`/`Promise`/`number` interconvert on the substrate), and
+method `this`-threading misalignment from member-access calls (`String` param vs `int` arg). So a naive
+param≠arg rule would false-positive 16 times.
+
+The fix is a narrow, measured conflict predicate `arg_type_conflict`: fire ONLY when one side is `string`
+and the other a concrete non-text primitive (`vector`/`number`/`int`/`complex`/`matrix`/`fuzzy`/`bool`/
+`permutation`/`trit`). A string is vector-encoded but semantically text, so handing a raw codepoint array
+to an embedding-vector slot (`similarity("cat","dog")`) is the real error; the vector-ish family, generics,
+and user classes are all excluded. Scoped to Identifier-callee calls (member-access method calls have the
+this-threading offset) with a per-enclosing-decl `local_type_env` so an identifier never borrows a
+same-named local's type from another function. Measured: 0 corpus false positives; both args of
+`similarity("cat","dog")` flagged, and the embed-first path stays silent. The hint steers string→vector
+to `embed(...)`.
+
+`tests/test_wrong_arg_type_diagnostic.py` (6). Validator-touching suites green: corpus 96 subtests, type
+inference 10, wrong-arg-type 6, unknown-type 7, unknown-function 10, arity 6, symbol-table 21, snap 7 —
+63 tests. Item 8 done; remaining T4 (codepoint→text decoder) + T5 (REPL) close out item 7.
+
 ## 2026-07-06: v0.2 type inference (H1 T1+T2) — signatures + infer_type (unwired)
 
 Emma green-lit the full expression-type-inference path for the last two H1 items (over the bounded slice
