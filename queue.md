@@ -20,23 +20,60 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ---
 
-## Stuff to  do in session
+## ⭐ ACTIVE INTERVENTION (Emma, 2026-07-06) — a completely neural computer running Linux utilities
 
-Okay, so the queue is extremely bloated, and I'm not sure what stuff there actually is in it. I think the reason, but this is important. What I'm saying here actually is the priority.
+Emma's directive (verbatim in `DEVLOG.md` / `git show 863c0e30`). **GOAL: neural implementations of
+all the big Unix utilities, in order of difficulty**, running on a **completely neural computer —
+NTM-style, RAM AND disk, NOT an RNN — an entire filesystem** (external addressable memory, the
+NTM/DNC route, not substrate-recurrence). **If a utility is too hard or needs a prerequisite, BUILD
+the prerequisite — a prerequisite or issue is the signal for the next thing to build.** The FV paper
+is moved to the END of this queue (last-executed) per the same intervention.
 
-Just to be clear, the queue is a mess. It's extremely bloated. It has turned into a narrative and lost a phase. We moved into in Devlog. Whatever it is that is currently being done in the session is a thing that should be at the front of the queue. Stuff that's already finished or whatever should be put in the Devlog.
+**Substrate already in hand (build on it, don't restart):** external RAM device + orchestrator +
+VRAM mailbox (`experiments/ntm_ram/`, spec `planning/sutra-spec/ram-pointers.md`); a worked NTM in
+`WASM/` (argmax-attention LOAD/STORE against real per-process host RAM); finding
+`planning/findings/2026-06-06-iso5-ram-based-machine-dispatch-works.md`.
 
-I don't know what's going on with the formal verification paper, but it should be put at the end of the queue, at the end of the real queue, so it's the last thing that's executed. We're going to be working on stuff that we're going to be trying to get the Linux command line environment working with a completely neural computer. This goes at the end of the queue because it's supposed to happen after the other stuff that we're doing, and this intervention that I'm adding to the queue is supposed to be taken as an intervention for the active session. 
+### Prerequisites — build/verify as the utilities force them (order = first need)
+- **P0 — stdin/stdout as boundary axons.** A utility = read an input byte-stream axon → transform on
+  the substrate → write an output byte-stream axon (I/O only at program/loop boundaries per
+  `planning/sutra-spec/axon-io.md`). The first rung needs this harness; verify
+  `experiments/ntm_ram/orchestrator.py` can carry a byte stream.
+- **P1 — external DISK device + filesystem namespace.** Persistent addressable regions + a
+  path→region map, serviced by the orchestrator like RAM but persistent. Forced first by `cat FILE`
+  / `ls`; spec it in `planning/sutra-spec/` before building.
+- **P2 — neural regex / NFA matcher.** Forced by `grep`/`sed`: compile a pattern to an on-substrate
+  argmax-attention state machine over the stream.
 
-I think fv paper is finished but not sure
+### Utilities, ordered by difficulty — barrel top to bottom; each verified decoded-output == coreutils ground truth
+Tier A — pure stream transforms (RAM buffer only, no filesystem):
+1. `echo` — args → stdout. Establishes the P0 stdin/stdout-axon harness. **FIRST DO-NOW RUNG.**
+2. `cat` (stdin passthrough) — stream copy.
+3. `wc` — byte/word/line counts via substrate streaming accumulators.
+4. `head` / `tail -n` — first/last N lines (RAM ring buffer).
+5. `tr` — per-byte translate/delete (codebook argmax map — Sutra's strength).
+6. `rev` / `tac` — reverse within a line / reverse line order (permutation + full RAM buffer).
+7. `cut` — select columns/fields.
 
-decompose this to neural inplementation of all the big unix utikities in order of difficulty
+Tier B — ordering / comparison / dedup (more RAM, comparison networks):
+8. `uniq` — adjacent-dup removal (prev-vs-current similarity).
+9. `sort` — full-buffer on-substrate comparison network (the hard leap of Tier B).
 
-if one is too hard or requires prerequidites you gotta make them
+Tier C — pattern matching (needs P2):
+10. `grep` (fixed string) — substring attention over the RAM buffer.
+11. `grep` (regex) → `sed` → `awk` — escalating; `awk` is a whole language (hardest; the Sutra
+    compiler itself is the engine).
 
-prerequisites or issues are signal that we need a thing
+Tier D — filesystem (needs P1):
+12. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.
 
-and to be clear this means running with ram and disk NTM style no rnn entire filesystem
+**First do-now rung: `echo` + the P0 stdin/stdout-axon harness** on the existing orchestrator — the
+smallest end-to-end slice proving a Unix utility runs on the neural computer (decoded output ==
+`echo`). Everything else builds on that harness.
+
+_(Queue-hygiene note per the intervention: this front section is the active work; the v0.2 symbol
+table below stays as secondary in-flight work; FV paper is at the END; finished narrative lives in
+`DEVLOG.md`.)_
 
 ## Context (read first, do not work on)
 
@@ -53,36 +90,6 @@ and to be clear this means running with ram and disk NTM style no rnn entire fil
   `pip install "sutra-dev[runtime,embed]"` 2026-07-04). Publish via `sutra-dev-vX.Y.Z` tags
   (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until codegen/stdlib go a stretch
   with NO source-breaking changes (Emma's call). No hard blocker; a source-compat-stability commitment.
-
-## ⭐ FV PAPER — narrow + probabilistic spine (Emma 2026-06-27): frame + remaining legs
-
-**Frame (binding):** the FV paper verifies **Sutra-the-language as an ISA on a *probabilistic*
-substrate** — keep it NARROW (per-contract, non-learned trusted base); do NOT re-grow "verify the
-whole neuro-symbolic system". Recurring project failure mode = overambition.
-
-**Shipped 2026-06-27 → 2026-07-04** (full history: `DEVLOG.md` + `git log`; clawRxiv reached
-**Accept** 2026-07-01): trim pass; Z-transform loop-convergence criterion (measured); continuous-time
-sampler-convergence measurement (γ=0.0397, 8-state); `GibbsMultiState` foundation; spectral capstone;
-Z-transform unification; mean-zero composition + 2-state discharged instance; convergence-to-
-stationarity limit; Dirichlet bridge; Poincaré⇒decay engine; conductance blocks + uniform- and
-general-π Poincaré; lazy-uniform n-state instance; and the concrete 8-state AND-gadget heat-bath
-instance (`GibbsGadget.lean`, κ=1/16 exact — the exp(−βE) factors cancel in the per-edge ratio).
-
-**REMAINING (after 2026-07-04: (a2) landed; Langevin SCOPED OUT per Emma's thrml reframe —
-the substrate object is the discrete block-Gibbs chain, finding
-`planning/findings/2026-07-04-langevin-lean-scoping.md`; the continuous-TIME master-ODE decay
-landed same day, `GibbsFlow.lean` CI-green):**
-1. *(named, NOT green-lit — do not start without Emma):* a Lean gap **value** for the literal
-   **single-spin-flip** kernel/generator needs the canonical-paths comparison method (a per-edge
-   conductance bound cannot see zeros between non-neighbours); until built, the measured γ=0.0397
-   stays a measurement. See DEVLOG 2026-07-04.
-
-**Guardrails:** nothing is proven until `lean` accepts it (no `sorryAx`); every
-`paper/formal-verification/paper.md` push triggers the clawRxiv resubmit CI (intended). Mathlib-layer
-work is verified via the `fv-lean-mathlib-ci` Linux job (local Windows builds hit MAX_PATH; remote
-containers cannot reach the toolchain/cache hosts — iterate via branch pushes).
-
----
 
 ## ACTIVE — barrel top to bottom
 
@@ -265,6 +272,24 @@ The rest are genuinely gated on resources this clone lacks._
 - **§2 WASM source frontend.** Sibling-owned (its own work-loop / `:33` cron) and largely
   clang/uv/wat2wasm-blocked here. Coordinate via CI; do not collide with the subtree agent. Decompose
   from `todo.md` §"Phase 3 — WASM" only if it lands on this clone with a toolchain.
+
+---
+
+## ⭐ FV PAPER — LAST in the queue (Emma 2026-07-06: execute after everything above)
+
+Emma 2026-07-06: "I think fv paper is finished but not sure" — moved to the END; do it only after
+the neural-Unix-utilities work above. **First action when this item is reached: verify whether it's
+actually finished** (clawRxiv reached **Accept** 2026-07-01; shipped legs are in `DEVLOG.md` +
+`git log`). If finished, delete this item. Frame (binding): the FV paper verifies Sutra-the-language
+as an ISA on a *probabilistic* substrate — keep it NARROW (per-contract, non-learned trusted base);
+do NOT re-grow "verify the whole neuro-symbolic system" (recurring overambition failure mode).
+
+Only remaining leg (**named, NOT green-lit — do not start without Emma**): a Lean gap **value** for
+the literal single-spin-flip kernel needs the canonical-paths comparison method (a per-edge
+conductance bound can't see zeros between non-neighbours); until built, the measured γ=0.0397 stays
+a measurement (DEVLOG 2026-07-04). Guardrails: nothing proven until `lean` accepts (no `sorryAx`);
+every `paper/formal-verification/paper.md` push triggers the clawRxiv resubmit CI; Mathlib work
+verified via `fv-lean-mathlib-ci` (local Windows hits MAX_PATH — iterate via branch pushes).
 
 ---
 

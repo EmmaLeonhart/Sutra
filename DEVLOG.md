@@ -1,3 +1,30 @@
+## 2026-07-06: Emma intervention — pivot to a completely neural computer running Linux utilities
+
+Emma pushed a queue intervention (`git show 863c0e30`, her own commit) redirecting the active
+session. Captured verbatim (scattered detail is intentional):
+
+> the queue is extremely bloated... Whatever it is that is currently being done in the session is
+> a thing that should be at the front of the queue. Stuff that's already finished or whatever
+> should be put in the Devlog.
+> the formal verification paper... should be put at the end of the queue... so it's the last thing
+> that's executed. We're going to be working on stuff that we're going to be trying to get the
+> Linux command line environment working with a completely neural computer... this intervention...
+> is supposed to be taken as an intervention for the active session.
+> I think fv paper is finished but not sure
+> decompose this to neural inplementation of all the big unix utikities in order of difficulty
+> if one is too hard or requires prerequidites you gotta make them
+> prerequisites or issues are signal that we need a thing
+> and to be clear this means running with ram and disk NTM style no rnn entire filesystem
+
+Executed this session: (1) queue de-bloat + FV PAPER section moved to the END (last-executed),
+trimmed to the frame + the one not-green-lit remaining leg (its shipped narrative already lives in
+DEVLOG / clawRxiv Accept 2026-07-01). (2) New FRONT-of-queue section: neural Unix utilities on a
+completely neural computer — NTM-style external RAM + disk + filesystem (NOT RNN recurrence),
+decomposed into difficulty-ordered tiers A–D with the prerequisites (P0 stdin/stdout boundary
+axons, P1 disk/filesystem, P2 neural regex matcher) built as the utilities force them. Grounded in
+the existing NTM/RAM substrate (`experiments/ntm_ram/`, `ram-pointers.md`, the WASM argmax-attention
+NTM, the 2026-06-06 RAM-machine-dispatch finding). First do-now rung: `echo` + the P0 harness.
+
 ## 2026-07-06: v0.2 symbol table (H1) rung 1 — file-scope collector (foundation)
 
 Emma green-lit the deferred v0.2 name-resolution milestone (the proper fix for both the REPL
