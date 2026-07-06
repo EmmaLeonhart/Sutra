@@ -113,9 +113,16 @@ T2. **`infer_type(expr, symbols, local_types) -> Optional[str]`** — conservati
     literals (StringLiteral→string, Int/Float→int/number, bool), `embed(...)`→vector, casts→target type,
     calls→callee return type, identifiers→local var/param type, operators→operand-derived. Unknown→None.
     Unit tests over representative expressions; NO diagnostic wired yet.
-T3. **Item 8 — wrong-arg-type diagnostic SUT0203.** Warn when an arg's inferred type conflicts with the
-    callee's declared param type (the `similarity("cat","dog")` string-where-vector case). Needs callee
-    param types (user decls + stdlib intrinsics). Gate: 0 corpus false positives (measure first).
+**T1+T2+T3 SHIPPED 2026-07-06.** T1: `FunctionSig` return/param types + `extern_signatures()` (stdlib
+intrinsic types, bare+qualified) + `call_return_type`/`param_types_of`. T2: conservative `infer_type`
+(literals, `embed`→vector, casts, parenthesised, identifiers via `local_type_env`, calls via callee
+return type; else None). T3: **wrong-arg-type SUT0203** — `validator.visit_Call` warns when an arg's
+inferred type conflicts with the callee's declared param type. Measured the conflict surface first (16
+legit mismatches on valid code: generic `T`, the vector-ish family, method `this`-misalignment), then
+scoped the conflict to the ONE safe case — `string` ↔ concrete-non-text primitive (`arg_type_conflict`),
+Identifier-callee only, per-enclosing-decl type env — giving 0 corpus FP while flagging both args of
+`similarity("cat","dog")`. `test_type_inference.py` (10) + `test_wrong_arg_type_diagnostic.py` (6);
+63 validator-touching tests green.
 T4. **Codepoint→text display decoder.** A display-boundary (sanctioned terminal I/O, not mid-computation)
     decoder that reconstructs text from a string's synthetic-axis codepoint-array tensor. Spec:
     `planning/sutra-spec/strings.md`. Verify decoded == original for a set of strings.
