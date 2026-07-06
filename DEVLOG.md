@@ -1,3 +1,22 @@
+## 2026-07-06: v0.2 symbol table (H1) rung 3 — stdlib + builtins resolution (diagnostic-grade)
+
+`is_known_type` / `is_known_function` now consult global name sets so they are usable by the
+unknown-name diagnostics (rungs 4-5). `extern_function_names()` = substrate `BUILTINS` ∪
+`stdlib_function_names()` ∪ `intrinsic_names()`, in BOTH qualified (`Embedding.embed`) and bare
+(`embed`) forms; `extern_type_names()` = `stdlib_class_parents()` keys ∪ `{float}`. Both lru_cached
+(stdlib load reads files once). Over-inclusive on purpose: the v0.2 bar is ZERO false positives, so
+any resolvable name must never be flagged; typo detection is tuned separately at rung 5.
+
+Type-gap measurement (CLAUDE.md measure-first): `float` IS a real type — the parent of
+`JavaScriptFloat` in `stdlib_class_parents` — so it's added to the symbol-table allowlist (NOT to
+`lexer.PRIMITIVE_TYPE_NAMES`, keeping the canonical primitive set untouched). `function` is NOT
+added: the 187 corpus occurrences are the `function` keyword, with no type-position use. `include_
+extern=False` restricts a table to module-declared symbols only (for tests).
+
+tests/test_symbol_table.py now 14 cases, all PASS (PYTHONPATH=. pytest): the 9 rung-1/2 cases +
+builtins known, stdlib known (qualified+bare), stdlib classes + float known types, genuinely-unknown
+still unknown, include_extern=False restricts to module scope. Still pure/unwired — zero regression risk.
+
 ## 2026-07-06: v0.2 symbol table (H1) rung 2 — local-scope tracking
 
 `symbol_table.local_names(decl)` returns the local names in scope inside a function/method body:

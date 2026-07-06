@@ -56,19 +56,18 @@ is ZERO false positives** — the v0.1 validator is deliberately lenient and a n
 warns on existing valid code (`03_methods.su` references `Animal`/`Cat` declared in no file), so
 every diagnostic rung must scan `examples/*.su` ∪ `tests/corpus/valid/*.su` and fire on none.
 
-**Rungs 1–2 SHIPPED 2026-07-06** — `sutra_compiler/symbol_table.py` + `tests/test_symbol_table.py`
-(9 tests, PASS): (1) the file-scope collector (user classes + members, top-level functions + methods
-+ arity); (2) local-scope tracking — `local_names(decl)` returns params ∪ every var/const in the body
-(nested blocks included via a generic dataclass `_walk`), so first-class function-valued locals
-(arrows desugar at parse time to a hoisted top-level function held in a local) are in scope and won't
-be flagged as unknown functions. Pure, no diagnostics wired yet. Foundation for the rest.
+**Rungs 1–3 SHIPPED 2026-07-06** — `sutra_compiler/symbol_table.py` + `tests/test_symbol_table.py`
+(14 tests, PASS): (1) file-scope collector (user classes + members, top-level functions + methods +
+arity); (2) local-scope tracking — `local_names(decl)` returns params ∪ every var/const in the body
+(nested blocks via a generic dataclass `_walk`), so first-class function-valued locals are in scope;
+(3) stdlib + builtins resolution — `is_known_*` now fold in `BUILTINS`, `stdlib_function_names()`
+(qualified + bare), `intrinsic_names()`, and `stdlib_class_parents()` (making them diagnostic-grade,
+over-inclusive for the zero-false-positive bar). Measured the type gaps: `float` added (it is the
+parent of `JavaScriptFloat` — a real type), `function` NOT added (the 187 corpus hits are the
+`function` keyword, not a type). Pure, still no diagnostics wired. `include_extern=False` restricts
+queries to module scope for tests.
 
-1. **Stdlib + builtins resolution.** Fold in `BUILTINS`, intrinsic names, stdlib function names,
-   and `stdlib_class_parents()` so `is_known_*` become diagnostic-grade. Add the measured
-   primitive-type gaps `float` + `function` to the type allowlist ONLY after confirming they
-   appear as type annotations in the valid corpus (measure first — CLAUDE.md canonical-`number`
-   rule; `float` may be an alias to reject, not add).
-3. **Cross-file / external-type handling.** Resolve or scope so intentionally-open corpus files
+1. **Cross-file / external-type handling.** Resolve or scope so intentionally-open corpus files
    (`03_methods.su`) stay clean. Gate: full valid-corpus scan = 0 false positives.
 4. **Unknown-TYPE diagnostic** (new SUT02xx, warning) using rungs 1–3. Verify 0 corpus false positives.
 5. **Unknown-FUNCTION diagnostic** (warning, incl. the `argmaxcosine` typo case) using the

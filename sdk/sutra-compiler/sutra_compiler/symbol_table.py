@@ -24,6 +24,7 @@ in no file; resolving those without a false positive is a later rung's job.
 from __future__ import annotations
 
 import dataclasses
+import functools
 from dataclasses import dataclass, field
 from typing import Dict, Iterator, List, Set
 
@@ -34,6 +35,41 @@ from .lexer import PRIMITIVE_TYPE_NAMES
 # primitive `map`/`tuple`, which are already primitives but named here too for
 # clarity). These are types a program can name without declaring.
 CONTAINER_TYPE_NAMES: Set[str] = {"list", "dict", "set", "array"}
+
+
+@functools.lru_cache(maxsize=1)
+def extern_function_names() -> frozenset:
+    """Global callable names the diagnostics must treat as known: substrate
+    BUILTINS, stdlib functions, and intrinsics — in BOTH qualified
+    (`Embedding.embed`) and bare (`embed`) forms. Over-inclusive on purpose: the
+    v0.2 bar is ZERO false positives, so any name the compiler can actually resolve
+    must never be flagged as unknown; typo detection (rung 5) is tuned separately.
+    Cached — the stdlib load reads files once."""
+    from .codegen_base import BUILTINS
+    from .stdlib_loader import intrinsic_names, stdlib_function_names
+
+    names: Set[str] = set(BUILTINS.keys())
+    for n in list(stdlib_function_names()) + list(intrinsic_names()):
+        names.add(n)
+        if "." in n:
+            names.add(n.rsplit(".", 1)[1])  # bare last component
+    return frozenset(names)
+
+
+@functools.lru_cache(maxsize=1)
+def extern_type_names() -> frozenset:
+    """Global type names the diagnostics must treat as known: stdlib class names
+    plus measured primitive-type gaps. `float` is added here because it is a real
+    first-class type (the parent of `JavaScriptFloat` in `stdlib_class_parents`) —
+    but into THIS allowlist, NOT `lexer.PRIMITIVE_TYPE_NAMES`, leaving the canonical
+    primitive set untouched (CLAUDE.md alias-hygiene). `function` is deliberately
+    NOT added: the corpus scan (2026-07-06) shows it is the `function` keyword, not
+    a type annotation — deferred until it is measured as a real type."""
+    from .stdlib_loader import stdlib_class_parents
+
+    names: Set[str] = set(stdlib_class_parents().keys())
+    names.add("float")
+    return frozenset(names)
 
 
 @dataclass
@@ -68,10 +104,15 @@ class SymbolTable:
     # Generic type parameters declared on file-scope functions/methods, in scope
     # for their signatures (e.g. the `T` in `function T id<T>(T x)`).
     type_params: Set[str] = field(default_factory=set)
+    # Whether the queries also consult the global stdlib/builtins name sets
+    # (rung 3). True makes `is_known_*` diagnostic-grade; set False for tests that
+    # want to inspect only what THIS module declared.
+    include_extern: bool = True
 
     def is_known_type(self, name: str) -> bool:
-        """Whether `name` resolves to a type this table can see. NOT yet
-        diagnostic-grade (stdlib/cross-file types are added in a later rung)."""
+        """Whether `name` resolves to a type: a primitive, container, a class
+        declared in this module, an in-scope generic param, or (rung 3) a stdlib
+        class / measured primitive-type gap. Cross-file user types are rung 4."""
         if not name:
             return False
         # Numeric type-args (e.g. the `512` in `BigInt<512>`) are values, not
@@ -83,12 +124,18 @@ class SymbolTable:
             or name in CONTAINER_TYPE_NAMES
             or name in self.classes
             or name in self.type_params
+            or (self.include_extern and name in extern_type_names())
         )
 
     def is_known_function(self, name: str) -> bool:
-        """Whether `name` resolves to a file-scope function or method. NOT yet
-        diagnostic-grade (builtins/intrinsics/first-class locals come later)."""
-        return name in self.functions or name in self.methods
+        """Whether `name` resolves to a file-scope function/method or (rung 3) a
+        substrate builtin, stdlib function, or intrinsic. Local first-class
+        function values are checked separately via `local_names` (rung 2)."""
+        return (
+            name in self.functions
+            or name in self.methods
+            or (self.include_extern and name in extern_function_names())
+        )
 
 
 def _walk(node: ast.Node) -> Iterator[ast.Node]:

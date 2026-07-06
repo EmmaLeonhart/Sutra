@@ -135,5 +135,38 @@ class LocalScopeTest(unittest.TestCase):
         self.assertIn("scale", names)
 
 
+class ExternResolutionTest(unittest.TestCase):
+    """Rung 3: stdlib + builtins fold into the queries (diagnostic-grade)."""
+
+    def test_builtin_functions_are_known(self):
+        t = build_symbol_table(_module(""))
+        for name in ("bundle", "bind", "argmax_cosine"):  # substrate BUILTINS
+            self.assertTrue(t.is_known_function(name), name)
+
+    def test_stdlib_functions_known_qualified_and_bare(self):
+        t = build_symbol_table(_module(""))
+        self.assertTrue(t.is_known_function("Embedding.embed"))
+        self.assertTrue(t.is_known_function("embed"))  # bare last component
+
+    def test_stdlib_classes_and_float_are_known_types(self):
+        t = build_symbol_table(_module(""))
+        for name in ("Axon", "BigInt", "Embedding"):  # stdlib class names
+            self.assertTrue(t.is_known_type(name), name)
+        self.assertTrue(t.is_known_type("float"))  # measured real type gap
+
+    def test_genuinely_unknown_still_unknown(self):
+        t = build_symbol_table(_module(""))
+        self.assertFalse(t.is_known_function("definitely_not_a_function_xyz"))
+        self.assertFalse(t.is_known_type("Wobble"))
+
+    def test_include_extern_false_restricts_to_module_scope(self):
+        m = _module("function number f(number a) { return a; }\n")
+        t = build_symbol_table(m)
+        t.include_extern = False
+        self.assertTrue(t.is_known_function("f"))        # declared here
+        self.assertFalse(t.is_known_function("bundle"))  # extern, now excluded
+        self.assertFalse(t.is_known_type("Axon"))        # extern, now excluded
+
+
 if __name__ == "__main__":
     unittest.main()
