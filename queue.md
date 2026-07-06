@@ -28,6 +28,12 @@ Just to be clear, the queue is a mess. It's extremely bloated. It has turned int
 
 I don't know what's going on with the formal verification paper, but it should be put at the end of the queue, at the end of the real queue, so it's the last thing that's executed. We're going to be working on stuff that we're going to be trying to get the Linux command line environment working with a completely neural computer. This goes at the end of the queue because it's supposed to happen after the other stuff that we're doing, and this intervention that I'm adding to the queue is supposed to be taken as an intervention for the active session. 
 
+I think fv paper is finished but not sure
+
+decompose this to neural inplementation of all the big unix utikities in order of difficulty
+
+if one is too hard or requires prerequidites you gotta make them
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.
