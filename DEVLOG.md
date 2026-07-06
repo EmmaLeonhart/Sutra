@@ -1,3 +1,25 @@
+## 2026-07-06: v0.2 symbol table (H1) rung 1 — file-scope collector (foundation)
+
+Emma green-lit the deferred v0.2 name-resolution milestone (the proper fix for both the REPL
+bare-string crash and the opaque `similarity("cat","dog")` error — same missing-symbol-table
+root cause). Decomposed the milestone into 8 rungs in `queue.md` (local-scope tracking → stdlib
+resolution → cross-file/external-type handling → unknown-type diag → unknown-function diag →
+arity → REPL return-type inference → wrong-arg-type diag), each gated on ZERO valid-corpus false
+positives (the v0.1 validator is deliberately lenient; `03_methods.su` references undeclared
+`Animal`/`Cat` and is valid).
+
+**Rung 1 shipped:** `sutra_compiler/symbol_table.py` — a pure `build_symbol_table(module)` that
+collects file-scope declarations (user classes + method/field names; top-level functions AND
+top-level methods with declared arity; file-scope generic type params) into a queryable
+`SymbolTable` with `is_known_type` / `is_known_function`. Collection only — emits no diagnostics,
+changes no runtime behavior, and nothing imports it yet, so zero regression risk. `is_known_*`
+consult primitives + container names + collected symbols; NOT yet diagnostic-grade (stdlib/
+cross-file resolution are rungs 2–3) and deliberately not wired anywhere. `is_known_type` already
+skips numeric type-args (`BigInt<512>` → "512"). Tests: `tests/test_symbol_table.py`, 6 cases,
+all PASS (`PYTHONPATH=. pytest`) — functions+arity, top-level methods (implicit `this` excluded
+from arity), classes+members, primitive/container types, numeric type-arg not flagged, genuinely-
+unknown reads unknown.
+
 ## 2026-07-04: website link sweep — clean; REPL linked from the tutorials index too; bare-string crash root-caused
 
 Link sweep over all 32 `docs/` pages (usability round 12): every internal link
