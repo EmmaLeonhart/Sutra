@@ -1,3 +1,17 @@
+## 2026-07-06: daily substrate-honesty audit — clean (07-05 + 07-06 batches)
+
+Audited every commit since the last recorded clean audit (2084b944). Only one substrate-touching
+commit: 4099e757 (neural echo rung 1). Verified against CLAUDE.md § "Subtler substrate breaches":
+(a) dim audit — `text_scan.su` has zero `basis_vector`/`embed` calls (grep-confirmed), so the
+`semantic_dim=2` in run_echo.py is honest, not a silently-oversized model dim; (b) state-locus —
+run_echo.py explicitly frames the arg-join as host-side RAM layout and only the scan/emit cursor as
+substrate work, no false "RNN"/"recurrent" claim; (c) signal-separation — echo is passthrough, and
+the char-for-char check RAN: 5/5 cases match real coreutils echo.exe (re-run this session). The three
+symbol-table rungs (046b77b4/71107f0a/60013b6b) are pure compiler-side Python — no `.su`, no substrate
+claims — so the (a)/(b)/(c) criteria don't apply; re-ran their suite to confirm the "14 tests PASS"
+claim (14 passed). Both the 07-05 and 07-06 audit queue items had been committed clean earlier
+(4c5792a7, 2084b944) but never deleted from queue.md — removed both here.
+
 ## 2026-07-06: v0.2 symbol table (H1) rung 3 — stdlib + builtins resolution (diagnostic-grade)
 
 `is_known_type` / `is_known_function` now consult global name sets so they are usable by the
