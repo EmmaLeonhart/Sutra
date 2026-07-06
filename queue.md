@@ -34,6 +34,10 @@ decompose this to neural inplementation of all the big unix utikities in order o
 
 if one is too hard or requires prerequidites you gotta make them
 
+prerequisites or issues are signal that we need a thing
+
+and to be clear this means running with ram and disk NTM style no rnn entire filesystem
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.
