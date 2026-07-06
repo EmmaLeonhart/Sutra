@@ -17,6 +17,26 @@ doesn't carry their arity. Extending to those is a later refinement, noted not s
 sweep). All validator-touching suites green together: arity 6, unknown-function 10, unknown-type 7,
 symbol-table 21, corpus 96 subtests, snap 7 — 53 tests.
 
+## 2026-07-06: v0.2 type inference (H1 T1+T2) — signatures + infer_type (unwired)
+
+Emma green-lit the full expression-type-inference path for the last two H1 items (over the bounded slice
+/ checkpoint options). T1+T2 build the substrate; no diagnostic wired yet.
+
+T1 — signatures. `FunctionSig` gains `return_type` + `param_types`, populated in `build_symbol_table`
+from `FunctionDecl`/`MethodDecl` (`return_type.name`, `[p.type_ref.name]`). `extern_signatures()` folds
+in stdlib-declared types via `stdlib_loader.load_stdlib()` (full typed `FunctionDecl`s, bare + qualified
+names): `similarity`→(number,[vector,vector]), `embed`→(vector,[string]). The untyped raw BUILTINS
+(`bind`/`bundle`/`argmax_cosine` — `(fn, arity)` only, no stdlib decl) are ABSENT, so a missing entry
+means "cannot check", never "conflict". `SymbolTable.call_return_type` / `param_types_of` query user
+decls then extern.
+
+T2 — `infer_type(expr, symbols, local_types)`. Conservative bottom-up: every unambiguous literal
+(string/char/bool/int/number/complex), `embed(...)`→vector, cast→target type, parenthesised→inner,
+identifier→its annotated local/param type (`local_type_env`), call→callee return type. Everything else
+(operators, array literals, member access, un-annotated `var x = expr`) returns None. None is always the
+safe answer: the downstream diagnostics act only on a definitively-inferred type, so unknown never
+becomes a false positive. `tests/test_type_inference.py` (10). Pure/unwired — zero regression risk.
+
 ## 2026-07-06: v0.2 symbol table (H1) — unknown-FUNCTION diagnostic SUT0201 (did-you-mean)
 
 Rung 5. Measured the bare-call FP surface first (recon over all 109 corpus+example files): 25 unresolved
