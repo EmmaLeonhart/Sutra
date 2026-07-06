@@ -23,8 +23,9 @@ in no file; resolving those without a false positive is a later rung's job.
 """
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
-from typing import Dict, List, Set
+from typing import Dict, Iterator, List, Set
 
 from . import ast_nodes as ast
 from .lexer import PRIMITIVE_TYPE_NAMES
@@ -88,6 +89,41 @@ class SymbolTable:
         """Whether `name` resolves to a file-scope function or method. NOT yet
         diagnostic-grade (builtins/intrinsics/first-class locals come later)."""
         return name in self.functions or name in self.methods
+
+
+def _walk(node: ast.Node) -> Iterator[ast.Node]:
+    """Yield `node` and every descendant ast Node (generic dataclass traversal).
+    The AST is a tree (no cycles); non-Node fields — spans, strings, enums like
+    `Modifiers` — are skipped."""
+    yield node
+    for f in dataclasses.fields(node):
+        val = getattr(node, f.name, None)
+        if isinstance(val, ast.Node):
+            yield from _walk(val)
+        elif isinstance(val, (list, tuple)):
+            for item in val:
+                if isinstance(item, ast.Node):
+                    yield from _walk(item)
+
+
+def local_names(decl) -> Set[str]:
+    """The local names in scope inside a function's/method's body: its parameter
+    names plus every `var`/`const` declared anywhere in the body (nested blocks
+    included). These are legitimately referenceable — and, if function-valued
+    (an arrow desugared to a hoisted function held in a local), legitimately
+    CALLABLE — so the later unknown-name / unknown-function diagnostics must treat
+    them as known. This is the local half of name resolution (rung 2); it does not
+    yet model shadowing or block-level lifetime, which the diagnostics don't need
+    to avoid false positives (a name in scope anywhere in the body is not unknown)."""
+    names: Set[str] = set()
+    for p in getattr(decl, "params", []) or []:
+        names.add(p.name)
+    body = getattr(decl, "body", None)
+    if isinstance(body, ast.Node):
+        for n in _walk(body):
+            if isinstance(n, ast.VarDecl):
+                names.add(n.name)
+    return names
 
 
 def build_symbol_table(module: ast.Module) -> SymbolTable:
