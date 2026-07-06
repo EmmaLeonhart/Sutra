@@ -78,10 +78,21 @@ still valid v0.1 Sutra, so the valid corpus stays error-clean (corpus test = err
 `vec`/`scalar` warn, `Animal`/`vector`/`function`/`List<T>` don't; new `tests/test_unknown_type_
 diagnostic.py` + a corpus sweep assert 0 SUT0200 across every valid file (31 tests PASS w/ corpus).
 
-5. **Unknown-FUNCTION diagnostic** (warning, incl. the `argmaxcosine` typo case) using the
-   local-scope table for first-class functions. Verify 0 corpus false positives. NOTE the measured
-   severity datum: unknown call-position names lower to bare Python names (host escape hatch,
-   `2026-07-04-python-builtin-fallthrough.md`) — measure the function FP surface first, as with types.
+**Unknown-FUNCTION diagnostic SUT0201 SHIPPED 2026-07-06** — measured the bare-call FP surface first
+(25 names across the corpus): unlike types, the case heuristic FAILS — unresolved lowercase names are
+also legitimate (`matrix_rows()` stub, `await network_lookup(q)` external producer), and PascalCase
+cross-file method calls (`Cosine`,`Bind`,`Blend`) are everywhere. So a plain unresolved→warn rule can't
+hit zero FP. Instead SUT0201 is a **"did you mean" typo detector**: warn only when an unresolved
+LOWERCASE bare call is within Levenshtein ≤2 of a known lowercase function. Measured gap is decisive —
+real typos 1-2 (`argmaxcosine`→`argmax_cosine`=1, `bundel`→`bundle`=2), legitimate externals 7-9
+(`matrix_rows`, `network_lookup`) — so 0 corpus FPs with wide margin. Resolves through the local-scope
+table first (first-class function values skipped) + classes + type params. `validator.visit_Call` emits
+it; `symbol_table.unknown_function_suggestion` / `function_typo_suggestion` do the work.
+`test_unknown_function_diagnostic.py` (10) + a corpus sweep assert 0 SUT0201 on every valid file.
+(The Python-builtin host-escape-hatch datum from `2026-07-04-python-builtin-fallthrough.md` is a
+SEPARATE concern — a blacklist, not typo detection — and is deliberately not folded in here.)
+
+6. **Arity checking** on calls to known functions/methods. (FunctionSig.arity is already collected.)
 6. **Arity checking** on calls to known functions/methods.
 7. **REPL return-type inference** (supersedes round-12 item 1): pick `__eval__`'s return type from
    the expression's type via the symbol table, fixing the bare-string REPL crash properly; needs

@@ -1,3 +1,33 @@
+## 2026-07-06: v0.2 symbol table (H1) — unknown-FUNCTION diagnostic SUT0201 (did-you-mean)
+
+Rung 5. Measured the bare-call FP surface first (recon over all 109 corpus+example files): 25 unresolved
+bare-call names. The type-diagnostic's case heuristic does NOT transfer to functions — two of the 25 are
+lowercase and legitimate (`matrix_rows()` in the subscript smoke test, `await network_lookup(q)` the
+async external producer in async_promise_basic.su), and the other 23 are PascalCase cross-file method
+calls (`Cosine`, `Bind`, `Blend`, `DefaultCat`, …). A plain unresolved→warn rule therefore cannot reach
+zero false positives.
+
+So SUT0201 is a **"did you mean" typo detector**, not an unresolved-name warning. It fires only when an
+unresolved LOWERCASE bare call is within Levenshtein ≤2 of a known lowercase function. The margin is
+decisive and measured: real typos land at distance 1-2 (`argmaxcosine`→`argmax_cosine`=1, `argmax_cosin`
+=1, `similarty`→`similarity`=1, `bundel`→`bundle`=2) while the legitimate externals land at 7-9
+(`matrix_rows`→`matrix_literal`=7, `network_lookup`→`tensor_product`=9). PascalCase names are excluded
+entirely (method convention → possible cross-file sibling, not a builtin typo), so `Bind`/`Cosine` never
+compare against `bind`/`cosine`.
+
+Resolution order in `SymbolTable.unknown_function_suggestion(name, locals)`: known function/method,
+builtin/stdlib/intrinsic, first-class function value in local scope (the local-scope table — rung 2),
+class (constructor-style), generic type param — only what survives all of those is typo-tested. The
+validator builds a file-wide union of `local_names` in `visit_module` and `visit_Call` emits the
+warning. New `symbol_table.function_typo_suggestion` + short-circuiting `_levenshtein` (caps at 2). The
+Python-builtin host-escape-hatch finding (2026-07-04) is a distinct concern (it wants a blacklist of
+resolvable-but-forbidden host names, the opposite of typo detection) and is intentionally not folded in.
+
+New `tests/test_unknown_function_diagnostic.py` (10 cases: suggestion unit tests, the argmaxcosine warn,
+legit-builtin/external/PascalCase/first-class-local silence, and a valid-corpus sweep asserting 0
+SUT0201). Validator-touching suites all green: unknown-function 10, unknown-type 7, symbol-table 21,
+corpus 96 subtests, snap 7 (47 together), plus the earlier run-error/parser/arrow 56.
+
 ## 2026-07-06: v0.2 symbol table (H1) — unknown-TYPE diagnostic SUT0200 wired
 
 The name-resolution work now emits a real diagnostic. `validator.py` builds the module symbol table
