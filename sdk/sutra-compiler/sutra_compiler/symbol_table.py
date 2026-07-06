@@ -26,7 +26,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 from dataclasses import dataclass, field
-from typing import Dict, Iterator, List, Set
+from typing import Dict, Iterator, List, Optional, Set
 
 from . import ast_nodes as ast
 from .lexer import PRIMITIVE_TYPE_NAMES
@@ -66,6 +66,26 @@ def extern_function_names() -> frozenset:
         if "." in n:
             names.add(n.rsplit(".", 1)[1])  # bare last component
     return frozenset(names)
+
+
+@functools.lru_cache(maxsize=1)
+def extern_signatures() -> dict:
+    """`name -> (return_type, param_types)` for stdlib functions / intrinsics that
+    carry real type annotations, under BOTH bare (`similarity`, `embed`) and
+    qualified (`Embedding.embed`) names. Substrate BUILTINS that have no stdlib
+    declaration (`bind`, `bundle`, `argmax_cosine`) are absent — their argument
+    and result types are genuinely unknown, so callers must treat a missing entry
+    as "cannot check", never as a conflict. Cached; the stdlib load reads files
+    once. (`_type_name` is defined further down but resolved at call time.)"""
+    from .stdlib_loader import load_stdlib
+
+    sigs: dict = {}
+    for name, decl in load_stdlib().items():
+        rt = _type_name(getattr(decl, "return_type", None))
+        pts = [_type_name(getattr(p, "type_ref", None))
+               for p in getattr(decl, "params", []) or []]
+        sigs[name] = (rt, pts)
+    return sigs
 
 
 @functools.lru_cache(maxsize=1)
@@ -144,6 +164,13 @@ class FunctionSig:
     is_intrinsic: bool = False
     is_operator: bool = False
     is_method: bool = False
+    # Declared return-type name (the base name of the return TypeRef), or None
+    # when not known. Consumed by expression type inference (a call's result type
+    # is its callee's return_type) — see `infer_type`.
+    return_type: Optional[str] = None
+    # Declared parameter type names, positionally (base names; None for a param
+    # with no resolvable type). Consumed by the wrong-arg-type diagnostic.
+    param_types: List[Optional[str]] = field(default_factory=list)
 
 
 @dataclass
@@ -226,6 +253,34 @@ class SymbolTable:
             or (self.include_extern and name in extern_function_names())
         )
 
+    def call_return_type(self, name: str) -> Optional[str]:
+        """The result type of a call to `name`: a file-scope function/method's
+        declared return type, else (extern) a stdlib function/intrinsic's return
+        type. None when unknown — including for untyped builtins. Used by
+        `infer_type` for `Call` nodes."""
+        sig = self.functions.get(name) or self.methods.get(name)
+        if sig is not None and sig.return_type:
+            return sig.return_type
+        if self.include_extern:
+            entry = extern_signatures().get(name)
+            if entry is not None:
+                return entry[0]
+        return None
+
+    def param_types_of(self, name: str) -> Optional[List[Optional[str]]]:
+        """Declared parameter types of `name` (positionally), or None when the
+        callee is unknown or carries no type info (e.g. the untyped builtins
+        `bind`/`bundle`/`argmax_cosine`). Used by the wrong-arg-type diagnostic —
+        a None result means "cannot check", never "conflict"."""
+        sig = self.functions.get(name) or self.methods.get(name)
+        if sig is not None and sig.param_types:
+            return sig.param_types
+        if self.include_extern:
+            entry = extern_signatures().get(name)
+            if entry is not None:
+                return entry[1]
+        return None
+
     def function_arity(self, name: str):
         """The declared parameter count of a file-scope plain FUNCTION `name`, or
         None if `name` is not a file-declared function. Restricted to functions on
@@ -294,6 +349,81 @@ def local_names(decl) -> Set[str]:
     return names
 
 
+def _type_name(type_ref) -> Optional[str]:
+    """The base name of a TypeRef, or None if absent (e.g. a void/omitted type)."""
+    return getattr(type_ref, "name", None) if type_ref is not None else None
+
+
+def local_type_env(decl) -> Dict[str, str]:
+    """name -> declared type for the params and explicitly-typed var/const decls in
+    a function/method body. The type half of `local_names`: it powers `infer_type`
+    of an `Identifier`. CONSERVATIVE — only names with an explicit type annotation
+    are recorded; a `var x = <expr>` with no annotation is omitted (its type would
+    need initializer inference, which we do not do here) so inference returns None
+    for it rather than guessing."""
+    env: Dict[str, str] = {}
+    for p in getattr(decl, "params", []) or []:
+        t = _type_name(getattr(p, "type_ref", None))
+        if t:
+            env[p.name] = t
+    body = getattr(decl, "body", None)
+    if isinstance(body, ast.Node):
+        for n in _walk(body):
+            if isinstance(n, ast.VarDecl):
+                t = _type_name(getattr(n, "type_ref", None)) or _type_name(getattr(n, "var_type", None))
+                if t:
+                    env[n.name] = t
+    return env
+
+
+# Literal AST node -> Sutra type name. Only the unambiguous literals; anything
+# needing context (ArrayLiteral element type, operator result type) is left to the
+# caller / returns None, keeping inference conservative.
+_LITERAL_TYPES = {
+    "StringLiteral": "string",
+    "InterpolatedString": "string",
+    "CharLiteral": "char",
+    "BoolLiteral": "bool",
+    "IntLiteral": "int",
+    "FloatLiteral": "number",
+    "ComplexLiteral": "complex",
+    "ImaginaryLiteral": "complex",
+}
+
+
+def infer_type(expr, symbols: "SymbolTable", local_types: Optional[Dict[str, str]] = None) -> Optional[str]:
+    """Best-effort, CONSERVATIVE type of an expression: the Sutra type name, or
+    None when it cannot be determined. None is always safe — the diagnostics only
+    act on a definitively-inferred type, never on None — so unknown constructs
+    (operators, array literals, member access, un-annotated locals) return None
+    rather than a guess. Handled precisely: every unambiguous literal, `embed(...)`
+    (→vector), a cast (→its target type), a parenthesised inner expr, an identifier
+    (→its declared local/param type), and a call (→its callee's return type)."""
+    local_types = local_types or {}
+    kind = type(expr).__name__
+    if kind in _LITERAL_TYPES:
+        return _LITERAL_TYPES[kind]
+    if isinstance(expr, ast.EmbedExpr):
+        return "vector"
+    if isinstance(expr, (ast.CastExpr, ast.UnsafeCastExpr)):
+        return _type_name(getattr(expr, "target_type", None))
+    if isinstance(expr, ast.Parenthesized):
+        return infer_type(expr.inner, symbols, local_types)
+    if isinstance(expr, ast.Identifier):
+        return local_types.get(expr.name)
+    if isinstance(expr, ast.Call):
+        callee = expr.callee
+        if isinstance(callee, ast.Identifier):
+            return symbols.call_return_type(callee.name)
+        if isinstance(callee, ast.MemberAccess):
+            base = callee.obj
+            if isinstance(base, ast.Identifier):
+                return (symbols.call_return_type(f"{base.name}.{callee.member}")
+                        or symbols.call_return_type(callee.member))
+            return symbols.call_return_type(callee.member)
+    return None
+
+
 def build_symbol_table(module: ast.Module) -> SymbolTable:
     """Collect file-scope declarations from a parsed module. Pure; no diagnostics."""
     table = SymbolTable()
@@ -305,6 +435,8 @@ def build_symbol_table(module: ast.Module) -> SymbolTable:
                 type_params=list(item.type_params),
                 is_intrinsic=item.is_intrinsic,
                 is_operator=item.is_operator,
+                return_type=_type_name(item.return_type),
+                param_types=[_type_name(p.type_ref) for p in item.params],
             )
             table.type_params.update(item.type_params)
         elif isinstance(item, ast.MethodDecl):
@@ -315,6 +447,8 @@ def build_symbol_table(module: ast.Module) -> SymbolTable:
                 is_intrinsic=item.is_intrinsic,
                 is_operator=item.is_operator,
                 is_method=True,
+                return_type=_type_name(item.return_type),
+                param_types=[_type_name(p.type_ref) for p in item.params],
             )
             table.type_params.update(item.type_params)
         elif isinstance(item, ast.ClassDecl):
