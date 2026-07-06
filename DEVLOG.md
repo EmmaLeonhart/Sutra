@@ -17,6 +17,35 @@ doesn't carry their arity. Extending to those is a later refinement, noted not s
 sweep). All validator-touching suites green together: arity 6, unknown-function 10, unknown-type 7,
 symbol-table 21, corpus 96 subtests, snap 7 — 53 tests.
 
+## 2026-07-06: v0.2 type inference (H1 T4+T5) — codepoint→text decoder + REPL return-type inference
+
+Closes item 7 and the whole H1 name-resolution/type-inference milestone.
+
+T4 — `repl._decode_string(vsa, result)`. Reconstructs a Python `str` from a Sutra String vector by
+reading the codepoints off its synthetic axes with the runtime's OWN accessors — `is_string`,
+`string_length`, `string_char_at` — which already exist. This is a raw codepoint read at the terminal
+DISPLAY boundary (the sanctioned terminal-I/O point, not a mid-computation readout), and is a different
+operation from the codebook-nearest decode used for embedding vectors: a `make_string("hi")` value carries
+"hi" literally on its axes, it is not a codebook concept. Wired into `_decode_result` ahead of the concept
+path, so a string result shows as `"hi"` instead of a spurious nearest-concept or a bare `104.0`.
+
+T5 — REPL return-type inference. `run_repl` now calls `_infer_eval_type(decls, expr)` (a parse+infer pass
+over the session's symbol table + top-level var types) and types the `__eval__` wrapper with the result
+instead of the hardcoded `vector`. A string expression wraps as `function string __eval__()`, runs, and
+decodes via T4 — so the bare-string REPL crash (`"hello"` → `TypeError: can't multiply sequence`) is fixed
+by REAL evaluation: `"hello"` → `"hello"`. This replaces the interim embed() steer, so the now-dead
+`_bare_string_literal` / `_BARE_STRING_RE` / `import re` are removed (vibe-code remove-legacy rule). The
+wrapper override is gated to a verified set (`_EVAL_WRAP_TYPES = {"string"}`) so numbers still show `= 5`
+and concepts `~ "hello" (cos 1.00)` through their existing, working paths — only the broken string case
+changes behavior. Verified by driving the REPL end-to-end (string / number / concept) and `test_repl.py`
+(9 cases incl. a `make_string` codepoint round-trip through `_decode_string`). 78 tests green across the
+inference/diagnostic/repl surface.
+
+H1 milestone summary (all 0-corpus-FP): rung 1-3 symbol table → cross-file/external-type handling →
+SUT0200 unknown-type → SUT0201 unknown-function did-you-mean → SUT0202 arity → T1-T2 type inference →
+SUT0203 wrong-arg-type → T4-T5 REPL string evaluation. Only H1-adjacent item still open: the Python-builtin
+host-escape-hatch blacklist (2026-07-04 finding), deliberately separate.
+
 ## 2026-07-06: v0.2 type inference (H1 T3) — wrong-arg-type diagnostic SUT0203
 
 First diagnostic built on `infer_type`. `validator.visit_Call` warns when an argument's inferred type
