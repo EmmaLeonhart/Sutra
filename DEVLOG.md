@@ -1,3 +1,20 @@
+## 2026-07-06: v0.2 symbol table (H1) rung 2 — local-scope tracking
+
+`symbol_table.local_names(decl)` returns the local names in scope inside a function/method body:
+params ∪ every `var`/`const` declared anywhere in the body, collected via a generic dataclass
+`_walk` that traverses the AST tree (so nested-block locals are included). This is the local half
+of name resolution — first-class function-valued locals must be treated as known/callable so the
+later unknown-function diagnostic doesn't false-positive on them.
+
+Finding while testing: an arrow `(u) => u` assigned to a local desugars AT PARSE TIME into a hoisted
+top-level function (`__arrow_N`); the arrow becomes its own module item and the local holds a
+reference to it. So `m.items[0]` is not necessarily the enclosing function — the test locates the
+target function by name. `local_names` correctly returns {param, local} for the enclosing function
+(the `var scale = ...` VarDecl survives desugaring as a local binding).
+
+Pure, no diagnostics wired yet. tests/test_symbol_table.py now 9 cases, all PASS (PYTHONPATH=. pytest):
+the 6 rung-1 collector cases + params/body-locals, nested-block local, function-valued local.
+
 ## 2026-07-06: echo runs on the neural computer — Unix-utility rung 1 (5/5 vs coreutils)
 
 `experiments/ntm_ram/run_echo.py`: echo on the completely-neural computer. The echo output bytes

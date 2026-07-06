@@ -56,15 +56,14 @@ is ZERO false positives** — the v0.1 validator is deliberately lenient and a n
 warns on existing valid code (`03_methods.su` references `Animal`/`Cat` declared in no file), so
 every diagnostic rung must scan `examples/*.su` ∪ `tests/corpus/valid/*.su` and fire on none.
 
-**Rung 1 SHIPPED 2026-07-06** — `sutra_compiler/symbol_table.py` + `tests/test_symbol_table.py`
-(6 tests, PASS): the file-scope collector (user classes + members, top-level functions + methods
-+ arity), pure, no diagnostics, nothing imports it yet. Foundation for the rest.
+**Rungs 1–2 SHIPPED 2026-07-06** — `sutra_compiler/symbol_table.py` + `tests/test_symbol_table.py`
+(9 tests, PASS): (1) the file-scope collector (user classes + members, top-level functions + methods
++ arity); (2) local-scope tracking — `local_names(decl)` returns params ∪ every var/const in the body
+(nested blocks included via a generic dataclass `_walk`), so first-class function-valued locals
+(arrows desugar at parse time to a hoisted top-level function held in a local) are in scope and won't
+be flagged as unknown functions. Pure, no diagnostics wired yet. Foundation for the rest.
 
-1. **Local-scope tracking.** Extend the table with a scope stack: function/method params,
-   `var`/`const` bindings, and first-class function-valued locals (the arrow-fn `f`/`scale`
-   case — a local holding a function is legitimately callable, so the unknown-function diagnostic
-   must not fire on it). Tests over the arrow-function examples.
-2. **Stdlib + builtins resolution.** Fold in `BUILTINS`, intrinsic names, stdlib function names,
+1. **Stdlib + builtins resolution.** Fold in `BUILTINS`, intrinsic names, stdlib function names,
    and `stdlib_class_parents()` so `is_known_*` become diagnostic-grade. Add the measured
    primitive-type gaps `float` + `function` to the type allowlist ONLY after confirming they
    appear as type annotations in the valid corpus (measure first — CLAUDE.md canonical-`number`

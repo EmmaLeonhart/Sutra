@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import unittest
 
+from sutra_compiler import ast_nodes as ast
 from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
-from sutra_compiler.symbol_table import build_symbol_table
+from sutra_compiler.symbol_table import build_symbol_table, local_names
 
 
 def _module(src: str):
@@ -84,6 +85,54 @@ class SymbolTableCollectionTest(unittest.TestCase):
         t = build_symbol_table(_module(""))
         self.assertFalse(t.is_known_type("Wobble"))
         self.assertFalse(t.is_known_type(""))
+
+
+class LocalScopeTest(unittest.TestCase):
+    """Rung 2: local-scope tracking — params + body var/const are in scope."""
+
+    def test_params_and_body_locals(self):
+        m = _module(
+            "function number f(number a, number b) {\n"
+            "  var x = a;\n"
+            "  const y = b;\n"
+            "  return x;\n"
+            "}\n"
+        )
+        f = m.items[0]
+        self.assertEqual(local_names(f), {"a", "b", "x", "y"})
+
+    def test_nested_block_local_is_in_scope(self):
+        # a var declared inside a nested block (loop body) is still collected
+        m = _module(
+            "function number g(number n) {\n"
+            "  loop (n) {\n"
+            "    var inner = n;\n"
+            "  }\n"
+            "  return n;\n"
+            "}\n"
+        )
+        g = m.items[0]
+        names = local_names(g)
+        self.assertIn("n", names)
+        self.assertIn("inner", names)
+
+    def test_function_valued_local_is_callable_name(self):
+        # An arrow assigned to a local desugars at PARSE TIME into a hoisted
+        # top-level function (`__arrow_N`), and the local holds a reference to it.
+        # So the arrow lands as its own module item (do not assume m.items[0] is
+        # `h`); the local name `scale` must still be in scope inside `h` so it
+        # isn't later flagged as an unknown function when called.
+        m = _module(
+            "function vector h(vector v) {\n"
+            "  var scale = (vector u) => u;\n"
+            "  return scale(v);\n"
+            "}\n"
+        )
+        h = next(it for it in m.items
+                 if isinstance(it, ast.FunctionDecl) and it.name == "h")
+        names = local_names(h)
+        self.assertIn("v", names)
+        self.assertIn("scale", names)
 
 
 if __name__ == "__main__":
