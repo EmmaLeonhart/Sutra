@@ -1,3 +1,23 @@
+## 2026-07-06: echo runs on the neural computer — Unix-utility rung 1 (5/5 vs coreutils)
+
+`experiments/ntm_ram/run_echo.py`: echo on the completely-neural computer. The echo output bytes
+(args single-space-joined + newline, or no newline for -n) are laid into the host RAM device; the
+compiled non-halting substrate read-head (`text_scan.su`, model-free, semantic_dim=2 — honest tiny
+dim, no basis_vector/embed) scans them cell by cell via the orchestrator; the decoded emit-stream
+is compared char-for-char to the REAL coreutils `echo.exe` (PATH `bash`/`echo` resolve to a broken
+WSL relay on this box, so ground truth is the Git-for-Windows `echo.exe` by full path). Result:
+5/5 cases PASS incl. the `-n` no-newline case. "It ran" is not success — measured against ground
+truth per the integrity rules.
+
+Honest scope (CLAUDE.md § substrate breaches): echo is the identity/passthrough utility, so the
+substrate's genuine work is only the sequential scan/emit; arg-joining is trivial host RAM layout,
+stated plainly. Real substrate transforms begin at `wc` (counting) / `tr` (codebook map). This
+establishes the P0 stdin/stdout path the rest of the Unix ladder builds on.
+
+Queue reorder per Emma's 2026-07-06 sequencing: echo first (done) → the other doable items (v0.2
+symbol table, usability round 12, A1 deploy — all intact, NOT drained) → the rest of the Unix
+utilities → FV paper last. The Unix section moved from the front to just before FV accordingly.
+
 ## 2026-07-06: Emma intervention — pivot to a completely neural computer running Linux utilities
 
 Emma pushed a queue intervention (`git show 863c0e30`, her own commit) redirecting the active

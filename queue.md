@@ -20,61 +20,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ---
 
-## ⭐ ACTIVE INTERVENTION (Emma, 2026-07-06) — a completely neural computer running Linux utilities
-
-Emma's directive (verbatim in `DEVLOG.md` / `git show 863c0e30`). **GOAL: neural implementations of
-all the big Unix utilities, in order of difficulty**, running on a **completely neural computer —
-NTM-style, RAM AND disk, NOT an RNN — an entire filesystem** (external addressable memory, the
-NTM/DNC route, not substrate-recurrence). **If a utility is too hard or needs a prerequisite, BUILD
-the prerequisite — a prerequisite or issue is the signal for the next thing to build.** The FV paper
-is moved to the END of this queue (last-executed) per the same intervention.
-
-**Substrate already in hand (build on it, don't restart):** external RAM device + orchestrator +
-VRAM mailbox (`experiments/ntm_ram/`, spec `planning/sutra-spec/ram-pointers.md`); a worked NTM in
-`WASM/` (argmax-attention LOAD/STORE against real per-process host RAM); finding
-`planning/findings/2026-06-06-iso5-ram-based-machine-dispatch-works.md`.
-
-### Prerequisites — build/verify as the utilities force them (order = first need)
-- **P0 — stdin/stdout as boundary axons.** A utility = read an input byte-stream axon → transform on
-  the substrate → write an output byte-stream axon (I/O only at program/loop boundaries per
-  `planning/sutra-spec/axon-io.md`). The first rung needs this harness; verify
-  `experiments/ntm_ram/orchestrator.py` can carry a byte stream.
-- **P1 — external DISK device + filesystem namespace.** Persistent addressable regions + a
-  path→region map, serviced by the orchestrator like RAM but persistent. Forced first by `cat FILE`
-  / `ls`; spec it in `planning/sutra-spec/` before building.
-- **P2 — neural regex / NFA matcher.** Forced by `grep`/`sed`: compile a pattern to an on-substrate
-  argmax-attention state machine over the stream.
-
-### Utilities, ordered by difficulty — barrel top to bottom; each verified decoded-output == coreutils ground truth
-Tier A — pure stream transforms (RAM buffer only, no filesystem):
-1. `echo` — args → stdout. Establishes the P0 stdin/stdout-axon harness. **FIRST DO-NOW RUNG.**
-2. `cat` (stdin passthrough) — stream copy.
-3. `wc` — byte/word/line counts via substrate streaming accumulators.
-4. `head` / `tail -n` — first/last N lines (RAM ring buffer).
-5. `tr` — per-byte translate/delete (codebook argmax map — Sutra's strength).
-6. `rev` / `tac` — reverse within a line / reverse line order (permutation + full RAM buffer).
-7. `cut` — select columns/fields.
-
-Tier B — ordering / comparison / dedup (more RAM, comparison networks):
-8. `uniq` — adjacent-dup removal (prev-vs-current similarity).
-9. `sort` — full-buffer on-substrate comparison network (the hard leap of Tier B).
-
-Tier C — pattern matching (needs P2):
-10. `grep` (fixed string) — substring attention over the RAM buffer.
-11. `grep` (regex) → `sed` → `awk` — escalating; `awk` is a whole language (hardest; the Sutra
-    compiler itself is the engine).
-
-Tier D — filesystem (needs P1):
-12. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.
-
-**First do-now rung: `echo` + the P0 stdin/stdout-axon harness** on the existing orchestrator — the
-smallest end-to-end slice proving a Unix utility runs on the neural computer (decoded output ==
-`echo`). Everything else builds on that harness.
-
-_(Queue-hygiene note per the intervention: this front section is the active work; the v0.2 symbol
-table below stays as secondary in-flight work; FV paper is at the END; finished narrative lives in
-`DEVLOG.md`.)_
-
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.
@@ -272,6 +217,57 @@ The rest are genuinely gated on resources this clone lacks._
 - **§2 WASM source frontend.** Sibling-owned (its own work-loop / `:33` cron) and largely
   clang/uv/wat2wasm-blocked here. Coordinate via CI; do not collide with the subtree agent. Decompose
   from `todo.md` §"Phase 3 — WASM" only if it lands on this clone with a toolchain.
+
+---
+
+## ⭐ NEURAL UNIX UTILITIES — the big Unix tools on a completely neural computer (Emma 2026-07-06)
+
+Ordered AFTER the doable items above and BEFORE the FV paper, per Emma's 2026-07-06 sequencing
+(echo first → other doable items → the rest of the Unix stuff → FV last). **GOAL: neural
+implementations of all the big Unix utilities, in order of difficulty**, on a **completely neural
+computer — NTM-style, RAM AND disk, NOT an RNN — an entire filesystem** (external addressable
+memory, the NTM/DNC route, not substrate-recurrence). **If a utility is too hard or needs a
+prerequisite, BUILD the prerequisite — a prerequisite or issue is the signal for the next thing to
+build.** Verbatim intervention in `DEVLOG.md`. Substrate already in hand: external RAM device +
+orchestrator + VRAM mailbox (`experiments/ntm_ram/`, spec `planning/sutra-spec/ram-pointers.md`);
+the `WASM/` argmax-attention NTM; finding `2026-06-06-iso5-ram-based-machine-dispatch-works.md`.
+
+**Rung 1 `echo` SHIPPED 2026-07-06** — `experiments/ntm_ram/run_echo.py`: lays the echo output
+bytes into the RAM device, the compiled substrate read-head (`text_scan.su`) scans + emits them,
+decoded stream == real coreutils `echo.exe` char-for-char (5/5 cases incl. `-n`). Establishes the
+P0 stdin/stdout path. (Honest scope: echo is the passthrough base case — the substrate work is the
+scan/emit; real transforms start at `wc`/`tr`.)
+
+### Prerequisites — build/verify as the utilities force them (order = first need)
+- **P0 — stdin/stdout as boundary axons.** DONE for the read/emit direction via rung 1. Extend to a
+  true streamed stdin axon when a utility consumes piped input.
+- **P1 — external DISK device + filesystem namespace.** Persistent addressable regions + a
+  path→region map, serviced by the orchestrator like RAM but persistent. Forced first by `cat FILE`
+  / `ls`; spec it in `planning/sutra-spec/` before building.
+- **P2 — neural regex / NFA matcher.** Forced by `grep`/`sed`: compile a pattern to an on-substrate
+  argmax-attention state machine over the stream.
+
+### Utilities, ordered by difficulty — barrel top to bottom; each verified decoded-output == coreutils ground truth
+Tier A — pure stream transforms (RAM buffer only, no filesystem):
+1. `cat` (stdin passthrough) — stream copy. **NEXT DO-NOW RUNG** (extends rung 1's harness to a
+   streamed input axon).
+2. `wc` — byte/word/line counts via substrate streaming accumulators (first real transform).
+3. `head` / `tail -n` — first/last N lines (RAM ring buffer).
+4. `tr` — per-byte translate/delete (codebook argmax map — Sutra's strength).
+5. `rev` / `tac` — reverse within a line / reverse line order (permutation + full RAM buffer).
+6. `cut` — select columns/fields.
+
+Tier B — ordering / comparison / dedup (more RAM, comparison networks):
+7. `uniq` — adjacent-dup removal (prev-vs-current similarity).
+8. `sort` — full-buffer on-substrate comparison network (the hard leap of Tier B).
+
+Tier C — pattern matching (needs P2):
+9. `grep` (fixed string) — substring attention over the RAM buffer.
+10. `grep` (regex) → `sed` → `awk` — escalating; `awk` is a whole language (hardest; the Sutra
+    compiler itself is the engine).
+
+Tier D — filesystem (needs P1):
+11. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.
 
 ---
 
