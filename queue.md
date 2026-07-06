@@ -20,6 +20,14 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ---
 
+## Stuff to  do in session
+
+Okay, so the queue is extremely bloated, and I'm not sure what stuff there actually is in it. I think the reason, but this is important. What I'm saying here actually is the priority.
+
+Just to be clear, the queue is a mess. It's extremely bloated. It has turned into a narrative and lost a phase. We moved into in Devlog. Whatever it is that is currently being done in the session is a thing that should be at the front of the queue. Stuff that's already finished or whatever should be put in the Devlog.
+
+I don't know what's going on with the formal verification paper, but it should be put at the end of the queue, at the end of the real queue, so it's the last thing that's executed. We're going to be working on stuff that we're going to be trying to get the Linux command line environment working with a completely neural computer. This goes at the end of the queue because it's supposed to happen after the other stuff that we're doing, and this intervention that I'm adding to the queue is supposed to be taken as an intervention for the active session. 
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.
