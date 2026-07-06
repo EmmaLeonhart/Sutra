@@ -55,13 +55,24 @@ arity); (2) local-scope tracking — `local_names(decl)` returns params ∪ ever
 (3) stdlib + builtins resolution — `is_known_*` now fold in `BUILTINS`, `stdlib_function_names()`
 (qualified + bare), `intrinsic_names()`, and `stdlib_class_parents()` (making them diagnostic-grade,
 over-inclusive for the zero-false-positive bar). Measured the type gaps: `float` added (it is the
-parent of `JavaScriptFloat` — a real type), `function` NOT added (the 187 corpus hits are the
-`function` keyword, not a type). Pure, still no diagnostics wired. `include_extern=False` restricts
-queries to module scope for tests.
+parent of `JavaScriptFloat` — a real type). Pure, still no diagnostics wired. `include_extern=False`
+restricts queries to module scope for tests.
 
-1. **Cross-file / external-type handling.** Resolve or scope so intentionally-open corpus files
-   (`03_methods.su`) stay clean. Gate: full valid-corpus scan = 0 false positives.
-4. **Unknown-TYPE diagnostic** (new SUT02xx, warning) using rungs 1–3. Verify 0 corpus false positives.
+**Cross-file / external-type handling SHIPPED 2026-07-06** (21 tests, PASS) — measured the exact
+type-position false-positive surface over the full corpus (109 files): `['Animal','Array','Cat','List',
+'function']`. Three fixes, each measured: (a) `function` IS a real type in TYPE position — the
+first-class function-value annotation (`function f` params) — correcting rung 3's keyword-only note;
+(b) container names now match case-INSENSITIVELY, so `List<T>`/`Array<int,10>` resolve like `list`;
+(c) the genuinely-undeclared sibling types `Animal`/`Cat` are handled by open-world scoping —
+`is_reportable_unknown_type` reports a LOWERCASE unresolved name (a primitive typo, `vec`→`vector`,
+the H1 surface) but NOT a PascalCase one (a possible sibling `.su` object file), keyed off the
+measured convention that every primitive is lowercase and every class is PascalCase. `closed_world`
+mode + `build_project_symbol_table(modules, file_type_names)` union sibling files so PascalCase
+unknowns become reportable once the whole project is present. **GATE MET: full-corpus scan = 0
+reportable false positives** (test `test_full_valid_corpus_zero_reportable_false_positives`).
+
+4. **Unknown-TYPE diagnostic** (new SUT02xx, warning): wire `is_reportable_unknown_type` (open-world)
+   into an emitted warning. Verify 0 corpus false positives (the gate test already proves the set).
 5. **Unknown-FUNCTION diagnostic** (warning, incl. the `argmaxcosine` typo case) using the
    local-scope table for first-class functions. Verify 0 corpus false positives.
 6. **Arity checking** on calls to known functions/methods.

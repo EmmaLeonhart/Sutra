@@ -13,7 +13,12 @@ import unittest
 from sutra_compiler import ast_nodes as ast
 from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
-from sutra_compiler.symbol_table import build_symbol_table, local_names
+from sutra_compiler.symbol_table import (
+    _walk,
+    build_project_symbol_table,
+    build_symbol_table,
+    local_names,
+)
 
 
 def _module(src: str):
@@ -166,6 +171,79 @@ class ExternResolutionTest(unittest.TestCase):
         self.assertTrue(t.is_known_function("f"))        # declared here
         self.assertFalse(t.is_known_function("bundle"))  # extern, now excluded
         self.assertFalse(t.is_known_type("Axon"))        # extern, now excluded
+
+
+class CrossFileExternalTypeTest(unittest.TestCase):
+    """Rung: cross-file / external-type handling. `function`, capitalised
+    containers, and open-world scoping of undeclared sibling types."""
+
+    def test_function_value_type_is_known(self):
+        # `function f` as a parameter type — the type of a first-class function
+        # value (14_arrow_functions.su / higher_order_functions.su).
+        t = build_symbol_table(_module(""))
+        self.assertTrue(t.is_known_type("function"))
+
+    def test_capitalised_containers_are_known(self):
+        # `List<vector>`, `Array<int, 10>` — same containers, PascalCase spelling.
+        t = build_symbol_table(_module(""))
+        for name in ("List", "Array", "Dict", "Set"):
+            self.assertTrue(t.is_known_type(name), name)
+
+    def test_pascalcase_unknown_not_reported_open_world(self):
+        # An undeclared sibling class (Animal/Cat) may be another file — open
+        # world must NOT flag it (keeps 03_methods.su clean).
+        t = build_symbol_table(_module(""))
+        self.assertFalse(t.is_reportable_unknown_type("Animal"))
+        self.assertFalse(t.is_reportable_unknown_type("Cat"))
+
+    def test_lowercase_typo_is_reported_open_world(self):
+        # A lowercase unresolved name can only be a primitive/container typo —
+        # this is the H1 surface the diagnostic must still catch.
+        t = build_symbol_table(_module(""))
+        self.assertTrue(t.is_reportable_unknown_type("vec"))    # -> vector
+        self.assertTrue(t.is_reportable_unknown_type("scalar"))  # removed type
+
+    def test_closed_world_flags_pascalcase_unknown(self):
+        # With the whole project unioned in, an unresolved PascalCase name is
+        # genuinely unknown (a real typo of a class), so it becomes reportable.
+        proj = build_project_symbol_table([_module("")])
+        self.assertTrue(proj.closed_world)
+        self.assertTrue(proj.is_reportable_unknown_type("Aniaml"))  # typo of Animal
+
+    def test_project_union_resolves_sibling_types(self):
+        # Animal declared in one module resolves a Cat-in-another reference;
+        # file-type-names stand in for sibling `.su` object files.
+        mod_animal = _module("class Animal extends object { field vector fur; }\n")
+        mod_ref = _module("method fuzzy f(Animal a) { return unsafeCast<fuzzy>(0.5); }\n")
+        proj = build_project_symbol_table([mod_animal, mod_ref], file_type_names=["Cat"])
+        self.assertTrue(proj.is_known_type("Animal"))  # declared in a sibling module
+        self.assertTrue(proj.is_known_type("Cat"))     # a sibling .su object file
+        self.assertFalse(proj.is_reportable_unknown_type("Animal"))
+
+    def test_full_valid_corpus_zero_reportable_false_positives(self):
+        """THE GATE for this rung: scanning every valid corpus file + every
+        example, the unknown-type diagnostic must fire on NONE of them (0 false
+        positives). This is what makes the intentionally-open files stay clean."""
+        import glob
+        import os
+
+        root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        files = sorted(
+            glob.glob(os.path.join(os.path.dirname(__file__), "corpus", "valid", "**", "*.su"), recursive=True)
+            + glob.glob(os.path.join(root, "examples", "**", "*.su"), recursive=True)
+        )
+        self.assertGreater(len(files), 50, "corpus scan found too few files")
+        offenders = {}
+        for f in files:
+            src = open(f, encoding="utf-8").read()
+            m = _module(src)
+            st = build_symbol_table(m)
+            bad = sorted({n.name for n in _walk(m)
+                          if isinstance(n, ast.TypeRef)
+                          and st.is_reportable_unknown_type(n.name)})
+            if bad:
+                offenders[os.path.relpath(f, root)] = bad
+        self.assertEqual(offenders, {}, f"reportable-unknown type false positives: {offenders}")
 
 
 if __name__ == "__main__":

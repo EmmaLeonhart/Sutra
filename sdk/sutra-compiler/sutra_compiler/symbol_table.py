@@ -33,8 +33,20 @@ from .lexer import PRIMITIVE_TYPE_NAMES
 
 # Built-in generic container type names (the H1 finding's allowlist ∪ the
 # primitive `map`/`tuple`, which are already primitives but named here too for
-# clarity). These are types a program can name without declaring.
+# clarity). These are types a program can name without declaring. Matched
+# case-INSENSITIVELY: the corpus uses both `list<T>` and the PascalCase generic
+# spelling `List<T>` / `Array<int,10>`, and the diagnostic must not false-positive
+# on either (which spelling is canonical is a separate style/deprecation call —
+# this only keeps the unknown-type diagnostic from lying).
 CONTAINER_TYPE_NAMES: Set[str] = {"list", "dict", "set", "array"}
+
+# First-class function-value types: a callable passed as a value is annotated
+# `function` (e.g. `function int apply(function f, int v)` in 14_arrow_functions.su
+# / higher_order_functions.su). MEASURED CORRECTION to rung 3's note: `function` is
+# not ONLY the declaration keyword — it also appears in TYPE position as the type of
+# a first-class function value, so it is a real known type. Spec:
+# planning/open-questions/function-taxonomy-and-closure.md.
+FIRST_CLASS_TYPE_NAMES: Set[str] = {"function"}
 
 
 @functools.lru_cache(maxsize=1)
@@ -108,11 +120,18 @@ class SymbolTable:
     # (rung 3). True makes `is_known_*` diagnostic-grade; set False for tests that
     # want to inspect only what THIS module declared.
     include_extern: bool = True
+    # Resolution mode for the unknown-type diagnostic (rung "cross-file / external
+    # types"). False = OPEN world (single-file compile): an unresolved PascalCase
+    # name may be a not-yet-seen sibling class/file, so it is NOT reportable. True =
+    # CLOSED world (the whole project's modules were unioned in via
+    # `build_project_symbol_table`), so any unresolved name is genuinely unknown.
+    closed_world: bool = False
 
     def is_known_type(self, name: str) -> bool:
-        """Whether `name` resolves to a type: a primitive, container, a class
-        declared in this module, an in-scope generic param, or (rung 3) a stdlib
-        class / measured primitive-type gap. Cross-file user types are rung 4."""
+        """Whether `name` resolves to a type: a primitive, container (case-
+        insensitive), first-class `function`, a class declared in this module (or,
+        closed-world, a sibling module), an in-scope generic param, or (rung 3) a
+        stdlib class / measured primitive-type gap."""
         if not name:
             return False
         # Numeric type-args (e.g. the `512` in `BigInt<512>`) are values, not
@@ -121,11 +140,33 @@ class SymbolTable:
             return True
         return (
             name in PRIMITIVE_TYPE_NAMES
-            or name in CONTAINER_TYPE_NAMES
+            or name.lower() in CONTAINER_TYPE_NAMES
+            or name in FIRST_CLASS_TYPE_NAMES
             or name in self.classes
             or name in self.type_params
             or (self.include_extern and name in extern_type_names())
         )
+
+    def is_reportable_unknown_type(self, name: str) -> bool:
+        """Whether the unknown-type diagnostic (rung 4) should FLAG `name`. A known
+        type is never reported. For an UNRESOLVED name the answer depends on the
+        world model, which rests on Sutra's naming convention (measured 2026-07-06:
+        every primitive/container is lowercase — bar `Promise`, itself a stdlib
+        class — and every declarable class is PascalCase):
+
+        - Open world (single-file): only a LOWERCASE unresolved name is reportable —
+          it can only be a typo of a primitive/container/stdlib type (`vec`→`vector`,
+          the removed `scalar`), the exact H1 typo surface. A PascalCase unresolved
+          name (`Animal`, `Cat` in 03_methods.su) may be an external sibling
+          class/file and is deliberately NOT reported — this is what keeps the
+          intentionally-open corpus files clean.
+        - Closed world (full project unioned in): any unresolved name is genuinely
+          unknown, so PascalCase names become reportable too."""
+        if self.is_known_type(name) or not name or name.isdigit():
+            return False
+        if self.closed_world:
+            return True
+        return name[:1].islower()
 
     def is_known_function(self, name: str) -> bool:
         """Whether `name` resolves to a file-scope function/method or (rung 3) a
@@ -203,4 +244,26 @@ def build_symbol_table(module: ast.Module) -> SymbolTable:
             for fld in item.fields:
                 info.field_names.add(fld.name)
             table.classes[item.name] = info
+    return table
+
+
+def build_project_symbol_table(modules, file_type_names=None) -> SymbolTable:
+    """Union the file-scope declarations of several modules into one CLOSED-world
+    table — the cross-file half of external-type handling. A Sutra file acts as an
+    object declaration, so besides each module's declared classes/functions/methods
+    the caller may pass `file_type_names` (e.g. the sibling `.su` basenames) which
+    become known class types too: that is how a reference like `Cat` resolves to a
+    sibling `Cat.su` when the whole project is present. The result has
+    `closed_world=True`, so `is_reportable_unknown_type` will flag any name that
+    still does not resolve — including PascalCase typos an open single-file compile
+    cannot safely judge."""
+    table = SymbolTable(closed_world=True)
+    for m in modules:
+        sub = build_symbol_table(m)
+        table.functions.update(sub.functions)
+        table.methods.update(sub.methods)
+        table.classes.update(sub.classes)
+        table.type_params.update(sub.type_params)
+    for fname in file_type_names or []:
+        table.classes.setdefault(fname, ClassInfo(name=fname, parent_name=""))
     return table
