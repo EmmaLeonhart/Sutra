@@ -286,6 +286,13 @@ a measurement (DEVLOG 2026-07-04). Guardrails: nothing proven until `lean` accep
 every `paper/formal-verification/paper.md` push triggers the clawRxiv resubmit CI; Mathlib work
 verified via `fv-lean-mathlib-ci` (local Windows hits MAX_PATH — iterate via branch pushes).
 
+
+## Fix the failing tests
+
+We have a few tests that have just been consistently failing constantly, and I don't know why it is we haven't addressed them, but we probably should fix them here. I'm a bit confused about the general rule about why it is we haven't fixed them, especially since we distinguish between an X fail and a regular fail, but there are some that we just have not been fixing up. 
+
+And to be clear, this is at the end of the queue. It means you don't start it. It means you don't jump onto it just because of the fact that this is recently added. 
+
 ---
 
 ## Pointers
