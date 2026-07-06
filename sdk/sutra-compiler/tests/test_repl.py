@@ -73,14 +73,31 @@ def test_help_command():
     assert "Sutra REPL help" in out
 
 
-def test_bare_string_literal_steers_to_embed_not_typeerror():
-    # The vector-typed eval wrapper can't evaluate a bare string yet
-    # (queue.md item 1). Until the real fix, the REPL must steer to embed(...)
-    # instead of leaking the internal `TypeError: can't multiply sequence...`.
+def test_bare_string_literal_evaluates_to_its_text():
+    # The bare-string REPL crash is fixed for real (T5): the REPL infers the
+    # expression's type, wraps __eval__ as `function string`, runs it, and decodes
+    # the codepoint array back to text at the display boundary (T4). No TypeError,
+    # no embed() steer — the string round-trips to itself. make_string is
+    # model-free, so this runs without an embedding backend.
     out = _drive(['"hello"', ":quit"])
     assert "TypeError" not in out
     assert "can't multiply sequence" not in out
-    assert "embed(" in out and '"hello"' in out
+    assert '"hello"' in out
+
+
+def test_string_char_roundtrip_decoder():
+    # T4: the display decoder reconstructs text from a make_string codepoint
+    # vector via the runtime's String accessors (is_string/string_length/
+    # string_char_at), distinct from the codebook-nearest decode.
+    from sutra_compiler.repl import _compile_and_exec, _decode_string
+
+    mod, errs = _compile_and_exec(
+        'function string s() { return "Hi, RAM!"; }',
+        runtime_dim=64, runtime_seed=42,
+    )
+    assert errs is None, errs
+    result = mod.s()
+    assert _decode_string(mod._VSA, result) == "Hi, RAM!"
 
 
 def test_scalar_tensor_result_shows_clean_number_not_repr():

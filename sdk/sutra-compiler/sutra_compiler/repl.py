@@ -23,15 +23,24 @@ iterable of input lines and writes transcript to `out`.
 """
 from __future__ import annotations
 
-import re
 import sys
 import types
 from typing import Iterable, List, Optional, TextIO
 
+from . import ast_nodes as ast
 from .diagnostics import DiagnosticLevel
 from .lexer import Lexer
 from .parser import Parser
+from .symbol_table import build_symbol_table, infer_type
 from .codegen_pytorch import translate_module as _translate
+
+# Inferred expression types the REPL will use to type the __eval__ wrapper. `string`
+# is the one that MUST override the default `vector` wrapper — a Sutra string is a
+# codepoint vector, and the vector-typed path does vector math on it and throws
+# (the bare-string REPL crash). Other types keep the default vector wrapper, which
+# already displays numbers/concepts correctly; they are added here only as they are
+# verified to round-trip through the wrapper + `_decode_result`.
+_EVAL_WRAP_TYPES = {"string"}
 
 _BANNER = (
     "Sutra REPL - type an expression to evaluate it; end a line with ';' or '}' "
@@ -76,6 +85,27 @@ def _compile_and_exec(src: str, *, runtime_dim: int, runtime_seed: int):
     return mod, None
 
 
+def _decode_string(vsa, result) -> Optional[str]:
+    """If `result` is a Sutra String vector, reconstruct its text; else None.
+
+    Reads the codepoints stored on the string's synthetic axes back into a Python
+    `str` using the runtime's own String accessors (`is_string` / `string_length` /
+    `string_char_at`). This is a RAW codepoint read at the terminal DISPLAY
+    boundary — the sanctioned terminal I/O point, not a mid-computation readout —
+    and is distinct from the codebook-nearest decode used for embedding vectors: a
+    `make_string("hello")` value carries "hello" literally on its axes, it is not a
+    concept in the codebook."""
+    try:
+        if not (hasattr(vsa, "is_string") and bool(vsa.is_string(result))):
+            return None
+        n = int(vsa.string_length(result))
+        return "".join(
+            chr(int(round(float(vsa.string_char_at(result, i))))) for i in range(n)
+        )
+    except Exception:
+        return None
+
+
 def _decode_result(mod, result, *, concept_threshold: float = 0.5) -> str:
     """Decode a FINAL result for terminal display (no in-operation readout)."""
     # Already a host value (string / int / float) — print as-is.
@@ -94,6 +124,12 @@ def _decode_result(mod, result, *, concept_threshold: float = 0.5) -> str:
     if not (vsa is not None and isinstance(result, _t.Tensor)
             and result.ndim == 1 and result.shape[0] == vsa.dim):
         return repr(result)
+
+    # A Sutra String decodes to its literal text (raw codepoint read at the
+    # display boundary), NOT to a nearest codebook concept.
+    text = _decode_string(vsa, result)
+    if text is not None:
+        return f'"{text}"'
 
     # Nearest known concept: cosine argmax over the string codebook the program
     # built. This is the sanctioned argmax-over-codebook decode (demos do it in
@@ -127,19 +163,37 @@ def _decode_result(mod, result, *, concept_threshold: float = 0.5) -> str:
     return f"= {val:g}{extra}"
 
 
-_BARE_STRING_RE = re.compile(r'^(?:"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')$')
-
-
-def _bare_string_literal(expr: str) -> Optional[str]:
-    """If `expr` is nothing but a single string literal, return its text; else
-    None. The REPL wraps expressions as `function vector __eval__() { return
-    <expr>; }`, and a raw string sent through that vector-typed path throws an
-    internal `TypeError` (a Sutra string is a codepoint vector that needs a
-    `string`-typed wrapper — see queue.md item 1). Until that fix lands, catch
-    the bare-literal case up front and steer the newcomer to `embed(...)`."""
-    s = expr.strip()
-    m = _BARE_STRING_RE.match(s)
-    return s if m else None
+def _infer_eval_type(decls: List[str], expr: str) -> Optional[str]:
+    """Infer the Sutra type of a REPL expression in the session context, so the
+    `__eval__` wrapper can be typed correctly (a string expression needs a
+    string-typed wrapper, not the default `vector`). Returns None when the type
+    can't be determined — the caller then keeps the `vector` wrapper. Purely a
+    parse+inference pass; it neither compiles nor runs anything."""
+    try:
+        lx = Lexer("\n".join(decls), file="<repl>")
+        m = Parser(lx.tokenize(), file="<repl>", diagnostics=lx.diagnostics).parse_module()
+        symbols = build_symbol_table(m)
+        # Top-level session vars (e.g. `vector a = embed("cat");`) give an
+        # identifier its type when the expression references them.
+        env = {}
+        for item in m.items:
+            if isinstance(item, ast.VarDecl):
+                t = (getattr(getattr(item, "type_ref", None), "name", None)
+                     or getattr(getattr(item, "var_type", None), "name", None))
+                if t:
+                    env[item.name] = t
+        elx = Lexer(f"function vector __repl_probe__() {{ return {expr}; }}", file="<repl>")
+        em = Parser(elx.tokenize(), file="<repl>",
+                    diagnostics=elx.diagnostics).parse_module()
+        if elx.diagnostics.has_errors():
+            return None
+        ret = next((s for s in em.items[0].body.statements
+                    if type(s).__name__ == "ReturnStmt"), None)
+        if ret is None:
+            return None
+        return infer_type(ret.value, symbols, env)
+    except Exception:
+        return None
 
 
 def _looks_like_declaration(line: str) -> bool:
@@ -211,16 +265,13 @@ def run_repl(
             out.flush()
             continue
 
-        # Bare string literal: the vector-typed eval wrapper can't evaluate it
-        # yet (queue.md item 1). Steer to embed() instead of the raw TypeError.
-        lit = _bare_string_literal(buf)
-        if lit is not None:
-            out.write(f"strings live on the substrate via embed(...). Try: embed({lit})\n")
-            out.flush()
-            continue
-
-        # Expression: wrap, compile the whole session, run, decode.
-        program = "\n".join(decls + [f"function vector {_EVAL_FN}() {{ return {buf}; }}"])
+        # Expression: infer its type so the wrapper is typed correctly (a string
+        # expression needs a `string` wrapper — the default `vector` one does
+        # vector math on the codepoint array and throws). Falls back to `vector`
+        # when the type is unknown or not in the verified wrap set.
+        inferred = _infer_eval_type(decls, buf)
+        eval_type = inferred if inferred in _EVAL_WRAP_TYPES else "vector"
+        program = "\n".join(decls + [f"function {eval_type} {_EVAL_FN}() {{ return {buf}; }}"])
         mod, errs = _compile_and_exec(program, runtime_dim=runtime_dim, runtime_seed=runtime_seed)
         if errs:
             out.write("error: " + "; ".join(errs) + "\n"); out.flush(); continue

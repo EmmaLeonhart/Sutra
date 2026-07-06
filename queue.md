@@ -123,15 +123,20 @@ scoped the conflict to the ONE safe case — `string` ↔ concrete-non-text prim
 Identifier-callee only, per-enclosing-decl type env — giving 0 corpus FP while flagging both args of
 `similarity("cat","dog")`. `test_type_inference.py` (10) + `test_wrong_arg_type_diagnostic.py` (6);
 63 validator-touching tests green.
-T4. **Codepoint→text display decoder.** A display-boundary (sanctioned terminal I/O, not mid-computation)
-    decoder that reconstructs text from a string's synthetic-axis codepoint-array tensor. Spec:
-    `planning/sutra-spec/strings.md`. Verify decoded == original for a set of strings.
-T5. **Item 7 — REPL return-type inference.** Wrap `__eval__` with the inferred return type instead of
-    hardcoded `vector`; display strings via T4's decoder, numbers/vectors via the existing paths. Replaces
-    the current bare-string-literal steer with real evaluation. Newcomer-drive to verify.
+**T4+T5 SHIPPED 2026-07-06 — item 7 done, H1 milestone COMPLETE.** T4: `repl._decode_string` reconstructs
+text from a string's codepoint-array tensor using the runtime's own `is_string`/`string_length`/
+`string_char_at` accessors (a raw codepoint read at the sanctioned terminal DISPLAY boundary, distinct
+from the codebook-nearest decode); wired into `_decode_result` before the concept path. T5: `run_repl`
+infers each expression's type (`_infer_eval_type`) and types the `__eval__` wrapper accordingly — a string
+expr now wraps as `function string` and decodes to its text, so the bare-string crash is fixed by REAL
+evaluation (`"hello"`→`"hello"`), replacing the old embed() steer (removed, with the now-dead
+`_bare_string_literal`/`_BARE_STRING_RE`/`import re`). Numbers (`= 5`) and concepts (`~ "hello" cos 1.00`)
+still display via the existing paths (wrapper override gated to the verified `_EVAL_WRAP_TYPES={string}`).
+Newcomer-driven end-to-end + `test_repl.py` (9, incl. a codepoint round-trip). 78 tests green across the
+inference/diagnostic/repl surface.
 
 (The Python-builtin host-escape-hatch datum, `2026-07-04-python-builtin-fallthrough.md`, remains a
-SEPARATE blacklist concern — not folded into the above.)
+SEPARATE blacklist concern — not folded into the above; it is the one H1-adjacent item still open.)
 
 ---
 
