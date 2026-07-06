@@ -71,10 +71,17 @@ mode + `build_project_symbol_table(modules, file_type_names)` union sibling file
 unknowns become reportable once the whole project is present. **GATE MET: full-corpus scan = 0
 reportable false positives** (test `test_full_valid_corpus_zero_reportable_false_positives`).
 
-4. **Unknown-TYPE diagnostic** (new SUT02xx, warning): wire `is_reportable_unknown_type` (open-world)
-   into an emitted warning. Verify 0 corpus false positives (the gate test already proves the set).
+**Unknown-TYPE diagnostic SUT0200 SHIPPED 2026-07-06** — `validator.py` builds the symbol table in
+`visit_module` and `_record_type_usage` (already called at every type position, recursing type_args)
+emits a SUT0200 WARNING when `is_reportable_unknown_type` fires. Warning, not error — the source is
+still valid v0.1 Sutra, so the valid corpus stays error-clean (corpus test = errors-only). Verified:
+`vec`/`scalar` warn, `Animal`/`vector`/`function`/`List<T>` don't; new `tests/test_unknown_type_
+diagnostic.py` + a corpus sweep assert 0 SUT0200 across every valid file (31 tests PASS w/ corpus).
+
 5. **Unknown-FUNCTION diagnostic** (warning, incl. the `argmaxcosine` typo case) using the
-   local-scope table for first-class functions. Verify 0 corpus false positives.
+   local-scope table for first-class functions. Verify 0 corpus false positives. NOTE the measured
+   severity datum: unknown call-position names lower to bare Python names (host escape hatch,
+   `2026-07-04-python-builtin-fallthrough.md`) — measure the function FP surface first, as with types.
 6. **Arity checking** on calls to known functions/methods.
 7. **REPL return-type inference** (supersedes round-12 item 1): pick `__eval__`'s return type from
    the expression's type via the symbol table, fixing the bare-string REPL crash properly; needs
