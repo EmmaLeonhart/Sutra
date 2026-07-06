@@ -1,3 +1,19 @@
+## 2026-07-06: v0.2 symbol table (H1) — unknown-TYPE diagnostic SUT0200 wired
+
+The name-resolution work now emits a real diagnostic. `validator.py` builds the module symbol table
+in `visit_module` (before the item walk) and `_record_type_usage` — already invoked at every type
+position (return types, params, var/cast types) and recursing into `type_args` — emits a **SUT0200
+warning** whenever `is_reportable_unknown_type(name)` fires. It is a WARNING, not an error, because the
+source is still valid v0.1 Sutra (the validator stays deliberately lenient); the valid-corpus test
+asserts errors-only, so a warning cannot regress it.
+
+Open-world scoping carries straight through: `vec`→`vector` and the removed `scalar` warn (lowercase =
+primitive/container typo, the H1 surface), while `Animal`/`Cat` (PascalCase possible sibling files),
+`vector`, `function`, and `List<vector>` stay silent. New `tests/test_unknown_type_diagnostic.py` (7
+cases) covers the positives, the negatives, and a full valid-corpus sweep asserting 0 SUT0200 anywhere;
+run together with the corpus + symbol-table suites, 31 tests pass (corpus = 93 subtests, all error- and
+SUT0200-clean). This is rung 4 of the H1 milestone; rung 5 is the unknown-FUNCTION diagnostic.
+
 ## 2026-07-06: v0.2 symbol table (H1) — cross-file / external-type handling
 
 Measured the exact type-position false-positive surface first (recon over all valid corpus + example

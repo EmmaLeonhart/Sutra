@@ -47,6 +47,7 @@ from .diagnostics import (
 )
 from .lexer import Lexer, TokenKind
 from .parser import Parser
+from .symbol_table import SymbolTable, build_symbol_table
 
 
 # Spec'd builtins the canonical (PyTorch) substrate can't lower yet: they
@@ -182,10 +183,17 @@ class _Walker:
         # in _file_scope_names AND not in _method_local_names while
         # _method_local_names is non-None.
         self._method_local_names: Optional[Set[str]] = None
+        # The module's symbol table (v0.2 name resolution). Built in
+        # visit_module before the item walk; consulted by the unknown-type
+        # diagnostic (SUT0200) in _record_type_usage. None until built.
+        self._symbols: Optional[SymbolTable] = None
 
     # ---- module ----------------------------------------------------
 
     def visit_module(self, module: ast.Module) -> None:
+        # Build the symbol table up front so type/name checks during the
+        # walk can resolve declarations from anywhere in the file.
+        self._symbols = build_symbol_table(module)
         # Pre-pass: collect every top-level declaration's name into the
         # file-scope set, EXCEPT class names. Class names are
         # namespace anchors — `Math.log(x)` from inside a method is
@@ -589,6 +597,24 @@ class _Walker:
         }
         if type_ref.name not in PRIMITIVES:
             self._class_name_usages.add(type_ref.name)
+        # SUT0200 (v0.2 name resolution): warn on a type name that cannot
+        # resolve. Open-world scoped — `is_reportable_unknown_type` only
+        # fires on a LOWERCASE unresolved name (a primitive/container typo
+        # such as `vec`→`vector`), never on a PascalCase one (which may be a
+        # sibling `.su` object file the single-file compile can't see). This
+        # keeps the intentionally-open corpus files clean; the gate test
+        # `test_full_valid_corpus_zero_reportable_false_positives` proves 0
+        # false positives across the whole corpus.
+        if self._symbols is not None and self._symbols.is_reportable_unknown_type(type_ref.name):
+            self.diagnostics.warning(
+                f"unknown type `{type_ref.name}` — it is not a primitive, a "
+                "container, a declared class, or a known stdlib type",
+                type_ref.span,
+                code="SUT0200",
+                hint="check the spelling against the built-in types (e.g. "
+                     "`vector`, `number`, `string`, `fuzzy`), or declare the "
+                     "type before using it",
+            )
         for arg in type_ref.type_args:
             self._record_type_usage(arg)
 
