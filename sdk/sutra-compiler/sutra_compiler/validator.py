@@ -47,7 +47,7 @@ from .diagnostics import (
 )
 from .lexer import Lexer, TokenKind
 from .parser import Parser
-from .symbol_table import SymbolTable, build_symbol_table
+from .symbol_table import SymbolTable, _walk, build_symbol_table, local_names
 
 
 # Spec'd builtins the canonical (PyTorch) substrate can't lower yet: they
@@ -187,6 +187,12 @@ class _Walker:
         # visit_module before the item walk; consulted by the unknown-type
         # diagnostic (SUT0200) in _record_type_usage. None until built.
         self._symbols: Optional[SymbolTable] = None
+        # Union of every function/method's local names (params + body var/const),
+        # used by the unknown-FUNCTION diagnostic to skip first-class function
+        # values called by name. Over-inclusive across decls, which is safe: it
+        # only ever SUPPRESSES a typo warning, and the warning itself already
+        # fires solely on near-misses of known builtins.
+        self._all_local_names: Set[str] = set()
 
     # ---- module ----------------------------------------------------
 
@@ -194,6 +200,9 @@ class _Walker:
         # Build the symbol table up front so type/name checks during the
         # walk can resolve declarations from anywhere in the file.
         self._symbols = build_symbol_table(module)
+        for node in _walk(module):
+            if isinstance(node, (ast.FunctionDecl, ast.MethodDecl)):
+                self._all_local_names |= local_names(node)
         # Pre-pass: collect every top-level declaration's name into the
         # file-scope set, EXCEPT class names. Class names are
         # namespace anchors — `Math.log(x)` from inside a method is
@@ -515,6 +524,27 @@ class _Walker:
                               "forward-looking spec primitive, not a callable "
                               "operation on the current substrate"),
             )
+        # SUT0201 (v0.2 name resolution): a bare call whose name is an unresolved
+        # LIKELY TYPO of a known function. `unknown_function_suggestion` returns a
+        # suggestion only when the name resolves nowhere (file-scope, builtins,
+        # stdlib, first-class function locals, classes) AND is a near-miss of a
+        # known lowercase function — so legitimate undeclared cross-file methods
+        # (`Cosine`) and external producers (`network_lookup`) never warn. Warning,
+        # not error: the source is still valid v0.1 Sutra.
+        if isinstance(callee, ast.Identifier) and self._symbols is not None:
+            suggestion = self._symbols.unknown_function_suggestion(
+                callee.name, self._all_local_names
+            )
+            if suggestion is not None:
+                self.diagnostics.warning(
+                    f"unknown function `{callee.name}` — did you mean "
+                    f"`{suggestion}`?",
+                    callee.span,
+                    code="SUT0201",
+                    hint=f"`{callee.name}` resolves to no function, builtin, "
+                         "stdlib call, or local — the closest known name is "
+                         f"`{suggestion}`",
+                )
         for t in node.type_args:
             self._record_type_usage(t)
         self.visit(node.callee)

@@ -69,6 +69,54 @@ def extern_function_names() -> frozenset:
 
 
 @functools.lru_cache(maxsize=1)
+def _known_bare_lowercase_functions() -> frozenset:
+    """Known callable names in the function convention (lowercase, unqualified) —
+    the candidate set the unknown-FUNCTION typo detector suggests from. PascalCase
+    method names and qualified `Class.method` forms are excluded on purpose: they
+    are the METHOD convention, and an unresolved PascalCase call may be a cross-file
+    sibling method (open world), not a typo of a lowercase builtin."""
+    return frozenset(n for n in extern_function_names()
+                     if "." not in n and n[:1].islower())
+
+
+def _levenshtein(a: str, b: str, cap: int) -> int:
+    """Edit distance, short-circuiting once it provably exceeds `cap` (returns
+    cap+1). Cheap: the corpus names are short and the cap is 2."""
+    if abs(len(a) - len(b)) > cap:
+        return cap + 1
+    prev = list(range(len(b) + 1))
+    for i in range(1, len(a) + 1):
+        cur = [i] + [0] * len(b)
+        best = cur[0]
+        for j in range(1, len(b) + 1):
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1,
+                         prev[j - 1] + (a[i - 1] != b[j - 1]))
+            best = min(best, cur[j])
+        if best > cap:
+            return cap + 1
+        prev = cur
+    return prev[len(b)]
+
+
+def function_typo_suggestion(name: str, max_distance: int = 2):
+    """If `name` is a likely misspelling of a known lowercase function, return that
+    function name; else None. Only LOWERCASE names are considered — an unresolved
+    PascalCase call is a method-convention name (possibly a cross-file sibling
+    method), not a builtin typo. Measured 2026-07-06: real typos sit 1-2 edits from
+    their target (`argmaxcosine`→`argmax_cosine`=1, `bundel`→`bundle`=2) while
+    legitimately-undeclared externals sit far away (`matrix_rows`=7, `network_lookup`
+    =9), so a max_distance of 2 separates the two with a wide margin."""
+    if not name or not name[:1].islower():
+        return None
+    best, best_d = None, max_distance + 1
+    for cand in _known_bare_lowercase_functions():
+        d = _levenshtein(name, cand, max_distance)
+        if d < best_d and d > 0:
+            best, best_d = cand, d
+    return best
+
+
+@functools.lru_cache(maxsize=1)
 def extern_type_names() -> frozenset:
     """Global type names the diagnostics must treat as known: stdlib class names
     plus measured primitive-type gaps. `float` is added here because it is a real
@@ -177,6 +225,27 @@ class SymbolTable:
             or name in self.methods
             or (self.include_extern and name in extern_function_names())
         )
+
+    def unknown_function_suggestion(self, name: str, locals_in_scope=frozenset()):
+        """For the unknown-FUNCTION diagnostic (rung 5): if a bare call to `name`
+        is an unresolved LIKELY TYPO, return the suggested known function; else None.
+
+        A call is left alone (returns None) when `name` resolves to a file-scope
+        function/method, a substrate builtin / stdlib fn / intrinsic, a first-class
+        function value in local scope (`local_names`), a class (constructor-style),
+        or a generic type param. Only what remains is tested — and even then a
+        warning is raised ONLY if the name is a near-miss of a known lowercase
+        function (see `function_typo_suggestion`). This is deliberately NOT a
+        plain unresolved→warn rule: the corpus is full of legitimate undeclared
+        cross-file method calls (`Cosine`, `Bind`) and external producers
+        (`network_lookup`, `matrix_rows`), so only the typo signal is safe at the
+        zero-false-positive bar."""
+        if (self.is_known_function(name)
+                or name in locals_in_scope
+                or name in self.classes
+                or name in self.type_params):
+            return None
+        return function_typo_suggestion(name)
 
 
 def _walk(node: ast.Node) -> Iterator[ast.Node]:
