@@ -1,3 +1,36 @@
+## 2026-07-06: v0.2 symbol table (H1) — cross-file / external-type handling
+
+Measured the exact type-position false-positive surface first (recon over all valid corpus + example
+`.su`, 109 files): a naive `is_known_type` check leaves `['Animal','Array','Cat','List','function']`
+unresolved. Split into three measured buckets and fixed each:
+
+- **`function` is a real type** (not only the declaration keyword — the rung-3 note was measured at
+  the raw-token level and missed type position). It annotates a first-class function value:
+  `function int apply(function f, int v)` (14_arrow_functions.su, higher_order_functions.su,
+  first_class_functions.su). Added `FIRST_CLASS_TYPE_NAMES = {"function"}` to `is_known_type`.
+- **Capitalised containers.** `List<vector>`, `Array<int,10>` are the same containers as `list`/`array`
+  in PascalCase spelling. `CONTAINER_TYPE_NAMES` now matches case-insensitively (`name.lower() in …`).
+  This only stops the diagnostic lying; which spelling is canonical stays a separate style call.
+- **Undeclared sibling types `Animal`/`Cat`.** Genuinely declared in no corpus file — `03_methods.su`
+  and ~11 others reference them as the example domain. Handled by an OPEN-WORLD model on a new
+  `is_reportable_unknown_type(name)`: an unresolved LOWERCASE name can only be a primitive/container
+  typo (`vec`→`vector`, the removed `scalar`) → reportable (the exact H1 typo surface); an unresolved
+  PascalCase name may be a not-yet-seen sibling class/`.su` object file → NOT reportable in single-file
+  mode. This rests on a measured convention (2026-07-06): every primitive/container is lowercase (bar
+  `Promise`, itself a stdlib class), every declarable class is PascalCase — 0 counterexamples in
+  `PRIMITIVE_TYPE_NAMES` or `stdlib_class_parents()`.
+
+For the closed-world case, `build_project_symbol_table(modules, file_type_names)` unions class/function/
+method declarations across sibling modules (and treats each sibling `.su` basename as a declarable type)
+and sets `closed_world=True`, so a PascalCase name that still doesn't resolve becomes reportable — a real
+typo of a class the project does contain. Open single-file compiles can't safely make that call, so they
+don't.
+
+**Gate met:** `test_full_valid_corpus_zero_reportable_false_positives` scans all 109 corpus+example
+files and asserts the unknown-type diagnostic would fire on NONE (0 reportable false positives).
+tests/test_symbol_table.py now 21 cases (was 14), all PASS. Still pure/unwired — rung 4 emits the
+actual SUT02xx warning on top of `is_reportable_unknown_type`.
+
 ## 2026-07-06: daily substrate-honesty audit — clean (07-05 + 07-06 batches)
 
 Audited every commit since the last recorded clean audit (2084b944). Only one substrate-touching
