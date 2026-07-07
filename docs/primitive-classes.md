@@ -144,7 +144,7 @@ Most languages have "truthiness" (values that read as true — nonzero ints, non
 
 Sutra has a third: **neutralness**.
 
-A truth-axis value at `0.0` isn't "falsy" — it's explicitly not taking a side. Writing `unknown` (short form `unk`) in your code says "this value is on the truth axis, at the neutral point, not because we don't know what it is but because *it is* the neutral."
+A truth-axis value at `0.0` isn't "falsy" — it's explicitly not taking a side. Writing `unknown` in your code says "this value is on the truth axis, at the neutral point, not because we don't know what it is but because *it is* the neutral."
 
 ```mermaid
 graph LR

@@ -1,3 +1,16 @@
+## 2026-07-06: docs — retire the stale `unk` alias from the docs; smoke test verifies H1 didn't regress examples
+
+Aliases-audit tick (PINNED TAIL). CLAUDE.md records `unk -> unknown` as retired 2026-06-23, and the lexer
+keyword map indeed has only `unknown` (the `unk` short-alias is gone) — but FOUR docs pages still
+advertised `unk` as a live shorthand (`capabilities.md` x2, `compilation.md`, `logical-operations.md`,
+`primitive-classes.md`). A newcomer writing `unk` per the docs now gets a silent undefined identifier
+(not the truth-neutral), only masked by v0.1 leniency. Fixed all five references to `unknown` (and
+corrected compilation.md's false 'both lex to the same token' claim to note the alias was retired).
+`scripts/build_site.py` clean. Also ran `examples/_smoke_test.py` as a measured regression check after all
+the H1/SUT0200-0204 diagnostic work: 12/12 example programs compile + run + match expected output (the
+warnings don't block codegen, as designed). Plus delete-on-done queue hygiene (removed the SUT0204-shipped
+block + round-12 done item). Docs + queue only.
+
 ## 2026-07-06: SUT0204 — Python-builtin host-escape-hatch diagnostic (closes the last H1-adjacent gap)
 
 The 2026-07-04 finding: unknown call-position names lower to bare Python names, so Python builtins were
