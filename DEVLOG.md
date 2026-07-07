@@ -1,3 +1,20 @@
+## 2026-07-06: neural Unix rung 7 — `cut -c` (per-column gated emit; Tier A COMPLETE)
+
+`experiments/ntm_ram/run_cut.py`. `cut -c LIST` selects character columns per line — a gated stream
+filter like head/tail, but the gate keys on the COLUMN index within the line rather than the line index.
+A recurring column counter increments per character and resets to 0 at each newline (`col_cur = col +
+(1 - is_nl)`, `col_next = (1 - is_nl) * col_cur`), and each char is emitted `served * gate` where
+`gate = is_nl + (1 - is_nl) * membership` — newlines always pass and reset, other chars pass iff their
+column is in a selected range. Range membership is `ge1(Σ in_range_i)` with `in_range(c,lo,hi) =
+ge1(c-lo+1) * ge1(hi-c+1)`, all exact integer steps; the ranges (the only per-invocation data) are baked
+into a generated `.su`. Open ends (`3-`, `-2`) use 1 / a large sentinel bound.
+
+8/8 vs coreutils `cut -c`: `2-4`, `1-5`, single `2`, open `3-` and `-3`, comma list `1,3,5`, a range past
+a short line, and empty input; `-c LIST` consumes a real pipe. This is the 7th neural-Unix rung and
+**closes Tier A** (echo, cat, wc, head/tail, tr, rev/tac, cut). Dim audit: model-free, semantic_dim=2
+honest. Guard: `test_ntm_ram.py::test_neural_cut_c_column_gated_emit`. `cut -f` (delimiter fields) is a
+follow-on; the next queued rung is Tier B `uniq` (adjacent-dup removal via prev-vs-current comparison).
+
 ## 2026-07-06: neural Unix rung 6 — `rev` / `tac` (substrate reverse permutation)
 
 `experiments/ntm_ram/rev_head.su` + `run_rev.py`. rev (reverse chars per line) and tac (reverse line
