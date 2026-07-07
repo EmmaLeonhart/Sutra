@@ -1,3 +1,15 @@
+## 2026-07-06: SUT0204 — Python-builtin host-escape-hatch diagnostic (closes the last H1-adjacent gap)
+
+The 2026-07-04 finding: unknown call-position names lower to bare Python names, so Python builtins were
+silently callable from `.su` (`print` mid-function, `str(len(...))`) — a host escape hatch against the
+no-mid-computation-I/O identity. Built the diagnostic the H1 way: measured the corpus first (0 valid-
+corpus calls to a non-Sutra Python builtin), then `symbol_table.python_builtin_names()` + `is_python_builtin_escape(name, locals)` (callable Python builtin AND resolves to no Sutra fn/local/class) and a
+`validator` SUT0204 WARNING. Gave SUT0204 PRIORITY over the SUT0201 typo guess — `len` was drawing a
+misleading "did you mean `ln`?"; naming it as a Python builtin is correct. Warning-level (the source
+still compiles); the error-level tightening that actually forbids the call is a separate step, Emma's
+call. `test_python_builtin_escape.py` (6, incl. priority-over-typo + a corpus sweep) + docs code-list
+entry; 39 validator-touching tests green. This closes the one item left open from the H1 milestone.
+
 ## 2026-07-06: docs — demos.md neural-computer showcase (usability round-14 item 2; round COMPLETE)
 
 Added a newcomer-facing 'The big Unix tools, on a completely neural computer' section to `docs/demos.md`:

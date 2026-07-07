@@ -68,6 +68,17 @@ def extern_function_names() -> frozenset:
     return frozenset(names)
 
 
+
+@functools.lru_cache(maxsize=1)
+def python_builtin_names() -> frozenset:
+    """CALLABLE Python builtins (functions, types, exceptions) — the names that, if
+    a `.su` call resolves to none of Sutra's own functions, lower to a BARE Python
+    call and silently execute on the host. That is the accidental escape hatch the
+    `2026-07-04-python-builtin-fallthrough.md` finding names (`print` mid-function,
+    `str(len(...))`), against the no-mid-computation-I/O identity. Cached."""
+    import builtins as _b
+    return frozenset(n for n in dir(_b) if callable(getattr(_b, n, None)))
+
 @functools.lru_cache(maxsize=1)
 def extern_signatures() -> dict:
     """`name -> (return_type, param_types)` for stdlib functions / intrinsics that
@@ -291,6 +302,16 @@ class SymbolTable:
         builtins/stdlib are excluded because the table does not carry their arity."""
         sig = self.functions.get(name)
         return sig.arity if sig is not None else None
+
+    def is_python_builtin_escape(self, name: str, locals_in_scope=frozenset()) -> bool:
+        """Whether a bare call to `name` is a host escape hatch: `name` is a callable
+        Python builtin AND resolves to NO Sutra function/method/builtin/stdlib fn, no
+        first-class local, and no class. Such a call lowers to a bare Python name and
+        runs on the host (SUT0204 warning). Measured 2026-07-06: 0 valid-corpus calls
+        hit this, so it is safe to warn."""
+        if self.is_known_function(name) or name in locals_in_scope or name in self.classes:
+            return False
+        return name in python_builtin_names()
 
     def unknown_function_suggestion(self, name: str, locals_in_scope=frozenset()):
         """For the unknown-FUNCTION diagnostic (rung 5): if a bare call to `name`
