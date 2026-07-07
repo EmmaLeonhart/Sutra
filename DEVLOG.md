@@ -1,3 +1,27 @@
+## 2026-07-06: neural Unix rung 14 — filesystem `cat FILE` / `ls` / `cp`/`mv`/`rm` (Tier D; P1 disk device)
+
+Opened Tier D by building prerequisite P1 (the disk device) and the first filesystem tools on it. Spec
+`planning/sutra-spec/disk-device.md` first (like P2's regex spec), then `disk_device.py`: a persistent,
+NAMED store backed by a real host sandbox directory — the two things the volatile RAM buffer lacks, a path
+namespace and persistence. It is an I/O device exactly as RAM is (the spec's honesty line): reading a
+file, listing a directory, and mutating entries are host I/O at the wire; the SUBSTRATE work is unchanged
+byte processing. Flat namespace for now (path→region); nested directories are deferred to `find`.
+
+`run_fs.py`: `cat FILE [FILE2…]` resolves each path to a RAM region (host I/O) and drives the SAME
+`text_scan.su` read head that streamed stdin for the Tier-A `cat` — the disk changes only WHERE the bytes
+come from, not what the substrate does. `ls` streams the directory entries through the same scan/emit, one
+name per record. `cp`/`mv`/`rm` are host directory ops, verified by reading the result back ON THE
+SUBSTRATE. All pass vs coreutils `cat` / `ls -1` over a temp sandbox: single / multiple / missing file
+(missing → empty, no error, like RAM OOB), sorted listing, and cp→cat / mv / rm round-trips.
+
+Fixed a state bug found by the multi-file case: the read head's recurring cursor is a module global that
+persisted across scans (the module is reused), so the second `cat` started mid-file — reset the cursor
+state before each scan. Guard: `test_ntm_ram.py::test_neural_filesystem_cat_file_and_ls`.
+
+14 neural-Unix rungs now (Tiers A + B + C, Tier D opened). Next Tier D: `find [DIR] [-name PAT]` —
+recursive walk + `-name` via the on-substrate NFA (fnmatch→regex), which needs the nested-directory tree
+(disk-device.md open-question 1).
+
 ## 2026-07-06: neural Unix rung 13 — `awk` (common subset; substrate field splitting)
 
 `experiments/ntm_ram/{field_head,field_delim_head}.su` + `run_awk.py`. awk is a whole language; this rung

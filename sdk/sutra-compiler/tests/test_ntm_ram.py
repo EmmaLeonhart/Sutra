@@ -138,6 +138,32 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_filesystem_cat_file_and_ls(self):
+        # Unix rung 14 (Tier D, prerequisite P1): the disk device gives named,
+        # persistent files. cat FILE loads a file's codepoints into RAM and drives
+        # the SAME substrate read head as stdin cat; ls streams the namespace.
+        import shutil
+        import tempfile
+        from disk_device import DiskDevice
+        from run_fs import _VSA, neural_cat_file, neural_ls
+        sandbox = tempfile.mkdtemp(prefix="neural_fs_test_")
+        try:
+            disk = DiskDevice(_VSA, sandbox)
+            disk.write_text("a.txt", "alpha\n")
+            disk.write_text("b.txt", "beta\ngamma\n")
+            self.assertEqual(neural_cat_file(disk, "a.txt"), "alpha\n")
+            self.assertEqual(neural_cat_file(disk, "b.txt"), "beta\ngamma\n")
+            self.assertEqual(neural_cat_file(disk, "a.txt", "b.txt"),
+                             "alpha\nbeta\ngamma\n")
+            self.assertEqual(neural_cat_file(disk, "missing.txt"), "")  # OOB -> empty
+            self.assertEqual(neural_ls(disk), "a.txt\nb.txt\n")
+            disk.copy("a.txt", "c.txt")
+            self.assertEqual(neural_cat_file(disk, "c.txt"), "alpha\n")
+            disk.remove("c.txt")
+            self.assertFalse(disk.exists("c.txt"))
+        finally:
+            shutil.rmtree(sandbox, ignore_errors=True)
+
     def test_neural_awk_field_subset(self):
         # Unix rung 13: awk common subset. Field splitting runs on the substrate
         # (recurring field counter + exact-indicator gate); $N / NF / NR / $0 /
