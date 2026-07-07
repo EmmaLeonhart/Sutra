@@ -38,6 +38,17 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
+
+Real-program-reach audit: `2 <= 2` and `2 >= 2` evaluate to the truth-axis NEUTRAL (0), not true; the
+strict `<`/`>`, `==`, and non-tie `<=`/`>=` are correct. Deliberate — `stdlib/logic.su` defines `le`/`ge`
+as the strict operators (comment: `<=`/`>=` collapse to `<`/`>`, ties give tanh(0)=0) for the
+differentiable-tanh scheme. But it is mathematically wrong and newcomer-hostile (a loop guard `i <= n`
+misbehaves at the boundary). Fix `le = or(<, ==)` restores tie-correctness (measured +1 at ties) but folds
+in cosine-`==`, possibly costing differentiability — a training-vs-correctness tradeoff, EMMA'S call. Not
+touched. Finding: `planning/findings/2026-07-06-le-ge-tie-returns-neutral.md`. Options: (a) keep strict +
+document the tie behaviour on the operators page; (b) adopt `or(<, ==)`, verify no fuzzy/training regress.
+
 ### Usability audit round 12 (2026-07-04, pip-only onboarding) — remaining atomised items
 
 Round-12 evidence so far (fresh venv, PyPI 0.9.2): install clean; website `docs/index.md`
