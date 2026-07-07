@@ -96,10 +96,10 @@ No hex literals yet.
 |---|---|---|
 | `{ ... }` | block | n/a |
 | `if (cond) { ... } else { ... }` / `else if` | branch | vision — the branch threshold (currently 0.0 on truth axis) is a trainable surface |
-| `while (cond) { ... }` | bounded loop | vision — `max_iters` per loop |
-| `for (init; cond; step) { ... }` | C-style for | vision — same as `while` |
+| `while (cond) { ... }` | **RETIRED** — the C-style imperative loop was rejected at codegen in the 2026-04-30 substrate-purity audit. Use a `while_loop NAME(cond, ...state) { ...; pass ...; }` declaration + `loop NAME(cond, args);` call (see [loops.md](loops.md)). | n/a |
+| `for (init; cond; step) { ... }` | **RETIRED** — same audit. Use `iterative_loop NAME(count, ...state) { ... }` for fixed-count iteration, or `while_loop` for data-dependent (see [loops.md](loops.md)). | n/a |
 | `foreach (TYPE name in iterable) { ... }` | iterate over binding-array | n/a |
-| `do { ... } while (cond);` | trailing-test loop | vision — same as `while` |
+| `do { ... } while (cond);` | **RETIRED** — same audit. Use a `while_loop` / `iterative_loop` declaration (see [loops.md](loops.md)). | n/a |
 | `loop (10) { ... }` | bounded count | vision — count is currently a literal; trainable count would discover the right unroll |
 | `loop (10 as i) { ... }` | bounded with index variable | vision — same |
 | `loop (expr) { ... }` | condition-based eigenrotation | vision — the halt threshold is a trainable surface |

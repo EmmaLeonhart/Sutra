@@ -38,6 +38,20 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Usability audit round 16 (2026-07-06) — real-program-reach drive (codegen vs docs)
+
+Drove newcomer programs; most ops correct (foreach=6, array index, arithmetic, casts-of-literals). Gaps:
+
+1. **C-style `while`/`for`/`do-while` docs were stale — DONE 2026-07-06.** codegen REJECTS them (retired
+   in the 2026-04-30 substrate-purity audit, steering to `while_loop`/`iterative_loop`), and `loops.md`
+   says so, but `capabilities.md` §8 still listed them as supported 'bounded loop' rows. Fixed the 3 rows
+   to RETIRED + steer to the loop-function forms; `build_site.py` clean.
+2. **VERIFY: interpolated strings + casts may not codegen.** `$"n={n}"` and `(number)x` both raised
+   `CodegenNotSupported: unsupported expression: InterpolatedString / CastExpr` in a bare `int main` test.
+   But `capabilities.md` §5 lists interpolated strings as a literal form and casts are documented — so
+   either they need a specific context my test missed, or they're genuine codegen gaps (doc mismatch).
+   NEXT: reproduce minimally, determine real vs test-artifact, then fix the code or the docs.
+
 ### 🔍 Daily substrate-honesty audit — 2026-07-07
 
 Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
