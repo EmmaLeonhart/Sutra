@@ -438,12 +438,23 @@ named-not-built far-out remainder. Per Emma's 2026-07-06 sequencing, the **FV pa
 
 ## ⭐ FV PAPER — LAST in the queue (Emma 2026-07-06: execute after everything above)
 
-Emma 2026-07-06: "I think fv paper is finished but not sure" — moved to the END; do it only after
-the neural-Unix-utilities work above. **First action when this item is reached: verify whether it's
-actually finished** (clawRxiv reached **Accept** 2026-07-01; shipped legs are in `DEVLOG.md` +
-`git log`). If finished, delete this item. Frame (binding): the FV paper verifies Sutra-the-language
-as an ISA on a *probabilistic* substrate — keep it NARROW (per-contract, non-learned trusted base);
-do NOT re-grow "verify the whole neuro-symbolic system" (recurring overambition failure mode).
+Emma 2026-07-06: "I think fv paper is finished but not sure" — moved to the END; done after the
+neural-Unix-utilities work above. **VERIFIED 2026-07-06** (read-only, no paper.md edit → no CI trigger):
+`planning/findings/2026-07-06-fv-paper-finished-verification.md`. Findings: (1) Lean proofs machine-checked
+and CLEAN — no `sorry`/`sorryAx`/`admit` in any proof body, `#print axioms` guards present, standard axiom
+footprint; guardrail met. (2) Work CLOSED OUT at commit `1ef8e022` (GibbsFlow CI-green closeout). (3)
+clawRxiv **correction to the stale "reached Accept" claim**: v96/post2844 got Accept (07-01 20:07) but the
+CURRENT version v97/post2845 (the `.post_id`) drew a **Reject** 30 min later — the ratings oscillate
+WR/WR/Accept/Reject on the same closed-out content, i.e. high-variance AI-review NOISE (reviews are signal
+not verdicts, CLAUDE.md), not a content regression. **Substantively FINISHED**: proofs done, closed out,
+reached Accept; the only remaining leg is optional + gated. Frame (binding): verifies Sutra-the-language
+as an ISA on a *probabilistic* substrate — keep it NARROW (per-contract, non-learned trusted base); do NOT
+re-grow "verify the whole neuro-symbolic system" (recurring overambition failure mode).
+
+**DISPOSITION — NEEDS-DECISION (Emma):** not deleted unilaterally (Emma "not sure" + the optional leg
+exists) and not edited (resubmit CI). Her call: **(a)** declare finished → delete this item (single-spin
+γ=0.0397 stays a documented measurement; v96 Accept stands, v97 Reject = noise); or **(b)** green-light
+the optional leg below, build it, re-close. No correctness work is outstanding.
 
 Only remaining leg (**named, NOT green-lit — do not start without Emma**): a Lean gap **value** for
 the literal single-spin-flip kernel needs the canonical-paths comparison method (a per-edge

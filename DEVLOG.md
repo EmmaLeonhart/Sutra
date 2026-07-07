@@ -1,3 +1,29 @@
+## 2026-07-06: FV paper — "is it finished?" verification (read-only audit)
+
+The neural-Unix epic done, the queue's tail item is the FV paper (Emma: "I think fv paper is finished but
+not sure"), whose first action is to verify whether it is actually finished. Did that as a READ-ONLY audit
+— no edit to `paper/formal-verification/paper.md` (would trip the clawRxiv resubmit CI), and the one
+named-but-not-green-lit leg was NOT started. Finding:
+`planning/findings/2026-07-06-fv-paper-finished-verification.md`.
+
+Measured: (1) the Lean proofs are machine-checked and CLEAN — no `sorry`/`sorryAx`/`admit` in any proof
+body (only comments that say "no sorry"), each theorem carries a `#print axioms` guard with the standard
+`[propext, Classical.choice, Quot.sound]` footprint; the "no sorryAx" guardrail is met, CI workflows exist.
+(2) The FV work was CLOSED OUT at commit `1ef8e022` (GibbsFlow CI-green closeout). (3) Correction to a
+stale framing claim (substrate-honesty rule applied to the paper track): the queue said "reached Accept
+2026-07-01" — true of v96/post2844 (Accept, 20:07), but the CURRENT version v97/post2845 (the `.post_id`)
+drew a Reject 30 min later. The ratings oscillate across the last versions (v93 R, v94 WR, v95 WR, v96
+Accept, v97 R) on the same closed-out content — high-variance AI-reviewer NOISE (reviews are signal not
+verdicts, CLAUDE.md), not a content regression; the Reject's cons are the reviewer's recurring scope
+critique, present in accepted and rejected versions alike.
+
+Conclusion: **substantively finished** — proofs machine-checked, work closed out, reached Accept; the sole
+remaining leg (a Lean gap-VALUE for the single-spin-flip kernel via canonical-paths; until built γ=0.0397
+stays a measurement) is explicitly not-green-lit, an OPTIONAL refinement Emma controls, not a blocker.
+Disposition is NEEDS-DECISION (Emma): declare finished + delete the item, or green-light the optional leg
+and re-close. No correctness work outstanding; nothing proven by `sorry`. Queue item annotated with the
+verification + the Accept→Reject correction; paper.md untouched.
+
 ## 2026-07-06: neural Unix rung 15 — `find` (recursive walk + NFA -name) — EPIC COMPLETE
 
 `experiments/ntm_ram/run_fs.py`. `find [DIR] [-name GLOB]` does a pre-order recursive walk of the disk
