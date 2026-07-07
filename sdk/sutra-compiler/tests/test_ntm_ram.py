@@ -138,6 +138,18 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_cut_c_column_gated_emit(self):
+        # Unix rung 7: cut -c = per-column gated emit. A recurring column counter
+        # resets at each newline; each char is emitted iff its column is in the
+        # selected range set (exact ge1 integer steps). Closes Tier A.
+        from run_cut import neural_cut
+        self.assertEqual(neural_cut("abcdef\nghijkl\n", "2-4"), "bcd\nhij\n")
+        self.assertEqual(neural_cut("abcdefgh\n", "3-"), "cdefgh\n")
+        self.assertEqual(neural_cut("abcdefgh\n", "-3"), "abc\n")
+        self.assertEqual(neural_cut("columns\n", "1,3,5"), "clm\n")
+        self.assertEqual(neural_cut("one\ntwo\n", "2"), "n\nw\n")
+        self.assertEqual(neural_cut("", "1-3"), "")
+
     def test_neural_rev_tac_reverse_permutation(self):
         # Unix rung 6: rev/tac = reverse permutations over a RAM buffer, computed
         # on the substrate (pointer = limit - cursor emits addresses in reverse).

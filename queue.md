@@ -342,10 +342,16 @@ Tier A — pure stream transforms (RAM buffer only, no filesystem):
    per-line reference — coreutils `rev` is util-linux, absent on Windows; tac vs coreutils `tac.exe`):
    multi-line, no-trailing-newline, empty, uneven lengths. `--rev`/`--tac` pipe modes. Guard:
    `test_ntm_ram.py::test_neural_rev_tac_reverse_permutation`.
-6. `cut` — select columns/fields. **NEXT DO-NOW RUNG.**
+6. `cut` **SHIPPED 2026-07-06 (cut -c) — Tier A COMPLETE** — `run_cut.py`: per-column gated emit. A
+   recurring column counter increments per char and RESETS at each newline; each char is emitted iff its
+   column is in the selected range set (`ge1` exact integer steps; ranges OR-ed via `ge1(Σ)`; newlines
+   always pass + reset). 8/8 vs coreutils `cut -c` (ranges, open `3-`/`-3`, comma `1,3,5`, short lines);
+   `-c LIST` pipe mode. Ranges baked into a generated `.su`. Guard:
+   `test_ntm_ram.py::test_neural_cut_c_column_gated_emit`. (`cut -f` field mode = a follow-on: delimiter
+   field counting.)
 
 Tier B — ordering / comparison / dedup (more RAM, comparison networks):
-7. `uniq` — adjacent-dup removal (prev-vs-current similarity).
+7. `uniq` — adjacent-dup removal (prev-vs-current similarity). **NEXT DO-NOW RUNG.**
 8. `sort` — full-buffer on-substrate comparison network (the hard leap of Tier B).
 
 Tier C — pattern matching (needs P2):
