@@ -1,0 +1,23 @@
+// rev_head.su — reverse-addressing read head (Unix rung 6: rev / tac).
+//
+// `rev` reverses the characters within each line; `tac` reverses the order of
+// whole lines. Both are PERMUTATIONS over a RAM buffer, and the permutation is
+// computed on the substrate: a recurring cursor counts up 0,1,2,... and the head
+// emits `pointer = limit - cursor`, so the addresses it asks the orchestrator to
+// serve run DOWN from `limit` to 0 — the reverse read order. `limit` (the last
+// index to read, e.g. line_length-1 for rev, or the last element index for tac)
+// is passed in each tick, so the address arithmetic is a substrate subtract, not
+// a host counter. The orchestrator serves RAM at each emitted address; the served
+// stream is the reversed content.
+//
+// This mirrors text_scan.su (forward cursor -> forward order); here the same
+// recurring cursor drives a reversed emission via one substrate subtraction.
+function vector rev_head(vector limit) {
+    recurring vector cursor = make_real(0.0);
+    vector pointer = limit - cursor;      // limit, limit-1, ..., 0
+    vector next = cursor + make_real(1.0);
+    recur(next);
+    return pointer;
+}
+
+function string main() { return "ok"; }

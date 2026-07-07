@@ -335,9 +335,14 @@ Tier A — pure stream transforms (RAM buffer only, no filesystem):
    generated `.su` compiled per translation. 7/7 vs coreutils `tr` (a-z/A-Z both ways, translate, vowels,
    -d digits/letters, SET2-padding); pipe modes `tr a-z A-Z` / `tr -d 0-9`. Guard:
    `test_ntm_ram.py::test_neural_tr_codebook_translate_and_delete`.
-5. `rev` / `tac` — reverse within a line / reverse line order (permutation + full RAM buffer).
-   **NEXT DO-NOW RUNG.**
-6. `cut` — select columns/fields.
+5. `rev` / `tac` **SHIPPED 2026-07-06** — `run_rev.py` + `rev_head.su`: reverse permutations over a RAM
+   buffer, computed on the substrate. A recurring cursor counts up and the head emits
+   `pointer = limit - cursor`, so the served address sequence runs DOWN (reverse order) via one substrate
+   subtract/tick. rev reverses codepoints per line; tac reverses line order. 14/14 checks (rev vs a
+   per-line reference — coreutils `rev` is util-linux, absent on Windows; tac vs coreutils `tac.exe`):
+   multi-line, no-trailing-newline, empty, uneven lengths. `--rev`/`--tac` pipe modes. Guard:
+   `test_ntm_ram.py::test_neural_rev_tac_reverse_permutation`.
+6. `cut` — select columns/fields. **NEXT DO-NOW RUNG.**
 
 Tier B — ordering / comparison / dedup (more RAM, comparison networks):
 7. `uniq` — adjacent-dup removal (prev-vs-current similarity).
