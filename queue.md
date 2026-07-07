@@ -38,6 +38,29 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Usability audit round 13 (2026-07-06) — the new v0.2 diagnostics' docs surface
+
+PINNED-TAIL refill after the H1 + neural-Unix epics drained. Audited the ERROR-MESSAGES + DOCS surfaces
+against the just-shipped SUT0200–0203 diagnostics. Findings, atomised:
+
+1. **SUT0200–0203 undocumented in the diagnostic-code reference — DONE 2026-07-06.** `docs/capabilities.md`
+   §10's code list stopped at SUT0145 and skipped straight to SUT2002 — the v0.2 name-resolution codes
+   (and SUT0151) were absent. Added SUT0151 + SUT0200 (unknown type) + SUT0201 (unknown-function did-you-
+   mean) + SUT0202 (arg count) + SUT0203 (arg type, steers to `embed`), matching the shipped behaviour.
+2. **compilation.md example-diagnostics list is stale** — it walks through SUT0120/0111/0110/0112/0113 as
+   the "what the validator catches" examples but predates the v0.2 name-resolution pass. Add a short
+   example for each of SUT0200/0201/0203 (typo'd type, `argmaxcosine`, `similarity("cat","dog")`) so a
+   newcomer sees the language now catches typos/wrong-args, not just the v0.1 structural rules.
+3. **repl.md doesn't mention bare string literals now evaluate.** The T5 fix made `"hello"` at the REPL
+   print `"hello"` (was an opaque crash / embed-steer). The page only covers `embed(...)` for semantic
+   vectors; add a line showing a bare string literal round-trips to its text, so the newcomer's natural
+   first thing to type works and is documented.
+4. **Diagnostics reference is scattered** (capabilities.md §10 paragraph, compilation.md, ontology.md,
+   primitive-classes.md each list a subset). A newcomer who hits `SUT0201` has to grep. Consider making
+   capabilities.md §10 the single canonical index (it is the most complete) and cross-linking the others
+   to it — or a small dedicated `docs/diagnostics.md`. Bounded doc-organisation item; pick one canonical
+   home. (Do NOT reference queue.md/planning in docs — website discipline.)
+
 ### v0.2 symbol table / name resolution (H1) — COMPLETE 2026-07-06 (Emma green-lit)
 
 All rungs shipped: symbol table (file/local/stdlib scope), cross-file/external-type handling, four

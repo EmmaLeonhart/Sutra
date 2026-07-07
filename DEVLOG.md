@@ -1,3 +1,17 @@
+## 2026-07-06: usability audit round 13 — document the new v0.2 diagnostics (SUT0200–0203)
+
+PINNED-TAIL refill now that the H1 + neural-Unix epics drained. Audited the error-messages + docs surface
+against the just-shipped v0.2 name-resolution diagnostics and found a concrete gap: `docs/capabilities.md`
+§10 (the diagnostic-code reference) listed codes through SUT0145 and then jumped to SUT2002 — so SUT0151
+(snap) AND the entire v0.2 set (SUT0200 unknown-type, SUT0201 unknown-function did-you-mean, SUT0202 arg
+count, SUT0203 arg type) were undocumented. A newcomer who hits "SUT0201: did you mean `argmax_cosine`?"
+had no reference. Added all five to the list, each description matching the shipped behaviour (verified —
+I built them). Website discipline kept (no queue/planning refs). Atomised three more findings into
+queue.md round-13 for the next fires: compilation.md's example-diagnostics walkthrough predates the v0.2
+pass; repl.md doesn't show that a bare string literal now evaluates to its text (the T5 fix); and the
+diagnostic reference is scattered across four pages (pick one canonical home). Docs-only + queue — no
+source or paper touched.
+
 ## 2026-07-06: queue.md cleanup — delete-on-done for the two finished epics (487→224 lines)
 
 The two big epics completed this session (the v0.2/H1 name-resolution+type-inference milestone and the
