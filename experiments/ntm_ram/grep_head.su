@@ -1,0 +1,29 @@
+// grep_head.su — substrate substring matcher (Unix rung 10: grep fixed-string).
+//
+// Fixed-string grep prints the lines that CONTAIN a pattern. Containment is a
+// substring match, and the match test runs on the substrate: for a candidate
+// window (the pattern aligned at some start position in the line), `match_step`
+// streams the (line_char, pattern_char) pairs and accumulates a PRODUCT of exact
+// codepoint indicators in a recurring VRAM slot — `*= is_cp(line_c, pat_c)`. The
+// product stays 1 only while every character matches and collapses to 0 at the
+// first mismatch, so after the pattern's length the returned value is 1 iff the
+// window equals the pattern. The host slides the window across the line (I/O
+// addressing) and OR's the per-window results; the per-window all-equal test is
+// the substrate work — a length-|pattern| attention over the RAM buffer.
+//
+// (Fixed-string only. The full regex/NFA matcher — prerequisite P2 — is a later
+// rung; this needs just substring equality.)
+function vector is_cp(vector served, vector center) {
+    vector d = served - center;
+    vector tri = make_real(1.0) - make_real(abs(d));
+    return (tri + make_real(abs(tri))) * make_real(0.5);
+}
+
+function vector match_step(vector line_c, vector pat_c) {
+    recurring vector prod = make_real(1.0);
+    vector next = prod * is_cp(line_c, pat_c);
+    recur(next);
+    return next;
+}
+
+function string main() { return "ok"; }

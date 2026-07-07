@@ -368,10 +368,17 @@ Tier B — ordering / comparison / dedup (more RAM, comparison networks):
    `test_ntm_ram.py::test_neural_sort_substrate_comparator`.
 
 Tier C — pattern matching (needs P2 — neural regex/NFA; `grep` fixed-string needs only substring match):
-9. `grep` (fixed string) — substring attention over the RAM buffer. **NEXT DO-NOW RUNG** (fixed-string
-   grep needs a substring matcher, not yet the full P2 regex NFA).
-10. `grep` (regex) → `sed` → `awk` — escalating; `awk` is a whole language (hardest; the Sutra
-    compiler itself is the engine).
+9. `grep` (fixed string) **SHIPPED 2026-07-06** — `run_grep.py` + `grep_head.su`: print lines CONTAINING
+   the pattern via a substrate substring match. A sliding window's all-equal test is a PRODUCT of exact
+   codepoint indicators (`*= is_cp(line_c, pat_c)`) — 1 iff the window equals the pattern, 0 at the first
+   mismatch. Host slides the window (I/O) + OR's per-window results; the length-|pattern| attention is
+   substrate. 9/9 vs coreutils `grep -F` (multi-match lines, overlapping windows `aa`/`aaa`, `-v` invert,
+   empty pattern/input). `PATTERN` / `-v PATTERN` pipe modes. Guard:
+   `test_ntm_ram.py::test_neural_grep_substring_match`.
+10. **P2 prerequisite — neural regex/NFA matcher** — compile a pattern to an on-substrate
+    argmax-attention state machine over the stream (forced by regex `grep`/`sed`). **NEXT DO-NOW RUNG** —
+    spec it in `planning/sutra-spec/` first, then `grep` (regex) → `sed` → `awk` (escalating; `awk` is a
+    whole language — the Sutra compiler itself is the engine).
 
 Tier D — filesystem (needs P1):
 11. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.
