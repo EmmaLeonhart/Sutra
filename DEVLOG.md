@@ -1,3 +1,19 @@
+## 2026-07-06: CORRECTION — `unsafeCast` ALSO has no codegen (I mis-stated it yesterday); cast item re-scoped
+
+Investigating the CastExpr build item (round-16 item 2a), I found the previous fire's claim was WRONG:
+I wrote that `unsafeCast<Type>(value)` 'executes' / is 'the executable cast form'. It does NOT —
+`unsafeCast<fuzzy>(0.5)` fails at codegen with `unsupported expression: UnsafeCastExpr`, exactly like the
+`(Type) expr` form. NEITHER cast form codegens. There is no cast-lowering pass (loop_desugar and
+promise_desugar are the only desugars; simplify/inliner just recurse into the cast's inner expr). It went
+unnoticed because NO executed example or test uses a cast — the corpus + unit tests that mention casts
+only parse/validate, never run (the one `examples/tutorial.su` 'cast' is a code comment). Per the
+integrity rule, corrected the record plainly: capabilities.md's unsafeCast row (was 'the executable cast
+form' — now 'codegen not yet implemented'), the finding, and the queue build item — which is re-scoped to
+'implement cast codegen for BOTH forms' via a source→target semantics table (identity for same-axis,
+axis-move for numeric↔truth like number→fuzzy, embed for string→vector). That table is a design step, not
+a cron-sized fix, so not built this fire; shipping a partial identity-only lowering would silently produce
+wrong values for numeric→truth casts (worse than the current honest error). Docs+finding+queue only.
+
 ## 2026-07-06: CONFIRMED — `(Type)` casts + interpolated strings have no codegen; docs fixed (round-16 item 2)
 
 Followed the previous fire's lead. Both `(Type) expr` casts and `$"..."` interpolated strings parse and

@@ -120,8 +120,8 @@ No hex literals yet.
 
 | Name | Form | Training |
 |---|---|---|
-| `unsafeCast<Type>(value)` | type-system escape — **the executable cast form** | n/a |
-| `(Type) value` (C-style cast) | parses + validates (with guard SUT0111 on string→vector) but **codegen is NOT yet implemented** (`unsupported expression: CastExpr`) — use `unsafeCast<Type>(value)` or `embed(...)` at runtime | n/a |
+| `unsafeCast<Type>(value)` | type-system escape — parses + validates but **codegen is NOT yet implemented** (`unsupported expression: UnsafeCastExpr`) | n/a |
+| `(Type) value` (C-style cast) | parses + validates (with guard SUT0111 on string→vector) but **codegen is NOT yet implemented** (`unsupported expression: CastExpr`) | n/a |
 | `unsafeOverride(value)` | type-system escape | n/a |
 | `defuzzy(value)` | truth-axis polarizer | mechanism — the cosine `(v == true)` loop body is scale-invariant in any input gain (`cos(g*v, true) = sign(x)`), so a wrapper gain on top of `defuzzy` is degenerate. The shipped trainable polarizer is `defuzzify_trit` below |
 | `defuzzify_trit(v, iters, beta)` | three-way β-sharpening polarizer (Sutra-source intrinsic since 2026-05-28) | **shipped** — β is the trainable scalar; a training run with `--body trit --iters 1` converges to β\* = 6.58 ± 0.17 across 3 seeds; baseline 0.2126 → trained 0.0146 (~15× loss reduction); bake-back round-trip max\|Δ\| = 1.19e-7 (bit-exact within float32 precision). Second shipped constrain-train instance after `==` cosine-scale T. Runtime iters became runtime-variable 2026-05-28; default iters=10 preserves prior behavior |
