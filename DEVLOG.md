@@ -1,3 +1,22 @@
+## 2026-07-06: neural Unix P2 — regex/NFA matcher SPEC (planning/sutra-spec/neural-regex-nfa.md)
+
+Regex `grep`/`sed` need a matcher beyond the substring PRODUCT that fixed-string grep uses, so — per the
+queue's "spec it in planning/sutra-spec/ before building" instruction for prerequisite P2 — wrote the
+design first. `neural-regex-nfa.md`: Thompson-construct the pattern to an NFA at COMPILE time (host, the
+same class of work as tr's codebook / cut's ranges), then simulate it on the SUBSTRATE by carrying the
+active-state SET as an N-dim 0/1 vector and stepping it per character with `s' = ge1(E @ (T_c @ s))` — a
+transition matmul, an epsilon-closure matmul, and the exact `ge1` collapse back to a reachability
+indicator (no residual). `T_c` is selected on the substrate from compile-time class matrices via the same
+exact-indicator / range tests proven in cut/tr; accept = `ge1(accept · s)`; grep uses a `.*`-prefixed
+search NFA. First-cut subset: literals, `.`, classes, `* + ?`, `|`, `( )`, `^ $`. Open questions recorded
+(match-span extraction for sed, dim cost of N-state vectors, leftmost-longest).
+
+This is the honest boundary of the session: the 10 shipped rungs are all scalar streaming accumulators /
+comparators; the regex matcher is the FIRST that needs a genuinely vector-valued substrate state
+(N components + transition matmuls) — a different paradigm that warrants spec-first + a dedicated build
+rather than a rushed tail-of-session implementation. Next rung: implement the NFA stepper on a small
+subset (literal + `.` + `*`) verified against Python `re`, then widen.
+
 ## 2026-07-06: neural Unix rung 10 — `grep` (fixed-string; substrate substring match; Tier C entry)
 
 `experiments/ntm_ram/grep_head.su` + `run_grep.py`. Fixed-string grep prints the lines that CONTAIN the
