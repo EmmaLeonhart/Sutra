@@ -393,8 +393,19 @@ Tier C — pattern matching (needs P2 — neural regex/NFA; `grep` fixed-string 
     substrate at each end position); host splices repl into the span (`&` = whole match). `s///` + `s///g`.
     **10/10 vs coreutils `sed -E`** (leftmost-longest `a+`→`A`, global, `[0-9]+`, `&`, no-match). Pipe
     `'s/re/repl/[g]'`. (Backreferences `\1` need capture groups the NFA doesn't track — out of scope,
-    named not dropped.) Guard: `test_ntm_ram.py::test_neural_sed_substitute`. **NEXT: `awk`** — a whole
-    language (the Sutra compiler is the engine; far out). Then Tier D (filesystem, needs P1 disk device).
+    named not dropped.) Guard: `test_ntm_ram.py::test_neural_sed_substitute`.
+13. `awk` (common subset) **SHIPPED 2026-07-06** — `run_awk.py` + `field_head.su` + `field_delim_head.su`.
+    awk's SUBSTRATE core is field splitting: a recurring field counter (exact, via the wc word-transition
+    / delimiter-count logic) drives an exact-indicator gate emitting the chars of `$N`; `NF` = the final
+    counter. Whitespace FS (`field_head`) + `-F<c>` single-char FS (`field_delim_head`). Host interprets
+    `print` (`$0`/`$N`/`$NF`/`NF`/`NR`/string literals, `,`→OFS) and patterns (`/regex/` via the NFA,
+    `NR<op>k`). **12/12 vs coreutils awk** (`{print $1,$3}`, `$NF`, `NF`, `NR,NF`, `/keep/`, `NR==2`,
+    `NR>2`, `-F:`/`-F,`, `/error/{print $2}`). Guard: `test_ntm_ram.py::test_neural_awk_field_subset`.
+    **Honest scope:** user variables, arithmetic expressions, BEGIN/END, arrays, functions, printf,
+    multiple rules, field assignment are NOT supported — that "whole language" (Sutra-compiler-as-engine)
+    is far out, named not dropped. **NEXT: Tier D (filesystem)** — needs prerequisite P1 (persistent disk
+    device + path→region map); spec it in `planning/sutra-spec/` first, then `cat FILE`→`ls`→`cp/mv/rm`
+    →`find`.
 
 Tier D — filesystem (needs P1):
 11. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.
