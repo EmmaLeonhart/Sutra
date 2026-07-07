@@ -15,7 +15,7 @@ There is **one shipped** training instance in the whole language today (the equa
 
 ## 1. Keywords (reserved)
 
-`function`, `method`, `static`, `public`, `private`, `var`, `const`, `return`, `if`, `else`, `while`, `for`, `foreach`, `in`, `do`, `loop`, `do_while`, `while_loop`, `iterative_loop`, `foreach_loop`, `pass`, `recur`, `recurring`, `replace`, `as`, `try`, `catch`, `this`, `operator`, `new`, `implicit`, `intrinsic`, `class`, `extends`, `slot`, `field`, `true`, `false`, `unknown` (alias `unk`), `wait`, `async`, `await`.
+`function`, `method`, `static`, `public`, `private`, `var`, `const`, `return`, `if`, `else`, `while`, `for`, `foreach`, `in`, `do`, `loop`, `do_while`, `while_loop`, `iterative_loop`, `foreach_loop`, `pass`, `recur`, `recurring`, `replace`, `as`, `try`, `catch`, `this`, `operator`, `new`, `implicit`, `intrinsic`, `class`, `extends`, `slot`, `field`, `true`, `false`, `unknown`, `wait`, `async`, `await`.
 
 **Training: n/a** — keywords are syntax.
 
@@ -52,7 +52,7 @@ There is **one shipped** training instance in the whole language today (the equa
 | Interpolated string | `$"x={x}"` | n/a |
 | Char | `'a'`, `'\n'`, `'\''` | n/a |
 | Bool | `true`, `false` | n/a |
-| `unknown` (alias `unk`) | `unknown` | n/a — the truth-axis neutral; no parameter |
+| `unknown` | `unknown` | n/a — the truth-axis neutral; no parameter |
 | `wait` | `var v : T = wait;` | n/a — deferred-initializer marker |
 | Array literal | `[a, b, c]` | n/a (compile-time aggregate) |
 | Map literal | `{k1: v1, k2: v2}` | vision — a learned key-value mapping |

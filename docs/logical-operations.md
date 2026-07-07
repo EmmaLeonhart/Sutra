@@ -34,7 +34,7 @@ The runtime representation is identical — a truth-axis scalar — but the comp
 Literals:
 - `true` → `+1`
 - `false` → `-1`
-- `unknown` (or `unk`) → `0`
+- `unknown` → `0`
 - Plain numeric literals like `0.7` in a fuzzy-typed slot → `+0.7`
 
 These are all truth-axis *vectors* at runtime — there is no hidden Python-bool path. That fact is what makes differentiable logic possible: every value in a logical expression is a substrate vector, and every operator is vector arithmetic.

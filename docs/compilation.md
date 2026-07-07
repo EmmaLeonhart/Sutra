@@ -49,7 +49,7 @@ The lexer takes text and produces tokens. Most of the interesting lexer behavior
 
 - **Numeric suffix disambiguation.** `5i` scans as one imaginary-literal token when the character after the `i` is not an identifier continuation; `5 * i` scans as three tokens (literal, operator, identifier). Same rule as Rust / C# numeric suffixes.
 - **Character literals.** `'a'` produces a `CHAR_LIT` token with the Unicode code point as its value.
-- **`unknown` / `unk` keywords.** Both lex to the same `KW_UNKNOWN` token — no special parser logic, just alias handling in the keyword map.
+- **`unknown` keyword.** Lexes to a single `KW_UNKNOWN` token — the truth-axis neutral. (The old `unk` short-alias was retired 2026-06-23; write `unknown`.)
 - **Interpolated strings.** `$"foo {x} bar"` lexes to a sequence of `STRING_INTERP_START`, `STRING_LIT_CHUNK`, `INTERP_OPEN`, inner tokens, `INTERP_CLOSE`, `STRING_INTERP_END` — not a single big string.
 
 Nothing polynomial happens yet. The lexer is text-wrangling only.
