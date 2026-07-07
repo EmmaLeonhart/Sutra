@@ -1,3 +1,35 @@
+## 2026-07-06: neural Unix rung 15 — `find` (recursive walk + NFA -name) — EPIC COMPLETE
+
+`experiments/ntm_ram/run_fs.py`. `find [DIR] [-name GLOB]` does a pre-order recursive walk of the disk
+device's tree (host I/O, `os.walk` over the nested sandbox — resolving disk-device.md open-question 1's
+nested-directory need for this case), emitting each path; `-name` keeps entries whose BASENAME matches the
+glob. The glob is converted to the neural_regex subset by `_fnmatch_to_regex` (`*`→`.*`, `?`→`.`,
+`[!..]`→`[^..]`, other regex-specials escaped) and matched with the on-substrate NFA's `fullmatch` — so
+the name filter is the substrate NFA, the traversal is I/O, the same division as every rung. All pass vs
+coreutils `find` (unsorted, so compared as sets): full recursive listing, `*.txt`, `*.log`, exact `sub`,
+single-char `?.txt`, and a no-match glob. Guard: `test_ntm_ram.py::test_neural_find_recursive_name_filter`.
+
+**⭐ THE NEURAL UNIX UTILITIES EPIC IS COMPLETE** (Emma's 2026-07-06 goal: "neural implementations of all
+the big Unix utilities … on a completely neural computer"). 15 rungs, every one verified against the real
+coreutils binary (or Python `re`), each with a regression guard — 20 tests in test_ntm_ram.py:
+
+  echo · cat · wc · head/tail · tr · rev/tac · cut · uniq · sort · grep -F · grep -E · sed · awk (subset)
+  · cat FILE / ls / cp / mv / rm · find
+
+Two prerequisites built and spec'd along the way: **P2** the on-substrate regex NFA
+(`neural-regex-nfa.md`) and **P1** the persistent disk device (`disk-device.md`). The recurring substrate
+keystone across the scalar rungs is the EXACT codepoint indicator `relu(1-|c-center|)` — 1 at the center,
+a hard 0 elsewhere, measured gap 1.0 with no saturation residual (chosen after measuring that exp/tanh
+clamp at e⁻¹⁰) — composed into streaming accumulators (wc), gated emits (head/tail/cut/awk-fields),
+codebook maps (tr), comparators (uniq/sort), and substring products (grep -F). The regex rungs (grep -E /
+sed / awk-patterns) run the NFA as a genuinely vector-valued substrate state (N-dim state-set stepped by
+transition + epsilon-closure matmuls). The honest remainder: full-language `awk`
+(variables/arithmetic/BEGIN-END/printf) — named, not built (the Sutra-compiler-as-engine, far out).
+
+Per Emma's 2026-07-06 sequencing (echo first → other doable items → the rest of the Unix stuff → FV last),
+the next queue item is the **FV paper** at the tail — whose first action is to verify whether it is
+actually finished (clawRxiv reached Accept 2026-07-01).
+
 ## 2026-07-06: neural Unix rung 14 — filesystem `cat FILE` / `ls` / `cp`/`mv`/`rm` (Tier D; P1 disk device)
 
 Opened Tier D by building prerequisite P1 (the disk device) and the first filesystem tools on it. Spec

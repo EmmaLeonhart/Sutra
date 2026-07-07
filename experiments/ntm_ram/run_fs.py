@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from ram_device import RamDevice          # noqa: E402  (re-exported for parity)
 from orchestrator import Orchestrator      # noqa: E402
 from disk_device import DiskDevice         # noqa: E402
+from neural_regex import NeuralRegex        # noqa: E402
 from run_demo import compile_su            # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -56,6 +57,50 @@ def neural_cat_file(disk: DiskDevice, *paths: str) -> str:
         ram, n = disk.read_region(p)
         out.append(_scan_region(ram, n))
     return "".join(out)
+
+
+def _fnmatch_to_regex(pat: str) -> str:
+    """Convert a shell glob to the neural_regex subset: `*`->`.*`, `?`->`.`,
+    `[...]`/`[!...]`->`[...]`/`[^...]`, every other regex-special char escaped."""
+    out, i = [], 0
+    while i < len(pat):
+        c = pat[i]
+        if c == "*":
+            out.append(".*")
+        elif c == "?":
+            out.append(".")
+        elif c == "[":
+            j = i + 1
+            if j < len(pat) and pat[j] == "!":
+                out.append("[^"); j += 1
+            else:
+                out.append("[")
+            while j < len(pat) and pat[j] != "]":
+                out.append(pat[j]); j += 1
+            out.append("]"); i = j
+        elif c in ".+(){}|^$\\":
+            out.append("\\" + c)
+        else:
+            out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def neural_find(start: str, name: str | None = None) -> str:
+    """find START [-name GLOB]: pre-order walk of the tree (host I/O) emitting each
+    path; `-name` keeps entries whose BASENAME matches GLOB via the on-substrate NFA
+    (fnmatch -> regex -> fullmatch). Traversal is I/O; the name test is substrate."""
+    nfa = NeuralRegex(_fnmatch_to_regex(name)) if name is not None else None
+    paths = [start]
+    for dp, dns, fns in os.walk(start):
+        for n in dns + fns:
+            paths.append(os.path.join(dp, n))
+    out = []
+    for p in paths:
+        base = os.path.basename(p.rstrip(os.sep)) or p
+        if nfa is None or nfa.fullmatch(base):
+            out.append(p.replace(os.sep, "/"))
+    return "".join(s + "\n" for s in out)
 
 
 def neural_ls(disk: DiskDevice, include_hidden: bool = False) -> str:
@@ -128,7 +173,28 @@ def _self_test() -> int:
     ok = ok and m
     print(f"[{'OK ' if m else 'FAIL'}] rm")
 
+    # find (recursive walk + -name via the substrate NFA). Rebuild a nested tree.
     import shutil
+    shutil.rmtree(sandbox, ignore_errors=True)
+    sandbox = tempfile.mkdtemp(prefix="neural_fs_")
+    os.makedirs(os.path.join(sandbox, "sub"))
+    open(os.path.join(sandbox, "a.txt"), "w").write("x")
+    open(os.path.join(sandbox, "sub", "b.log"), "w").write("y")
+    open(os.path.join(sandbox, "sub", "c.txt"), "w").write("z")
+    find_exe = _find("find")
+
+    def _sorted(s):
+        return sorted(l for l in s.splitlines() if l)
+
+    for name in (None, "*.txt", "*.log", "sub", "?.txt"):
+        neural = neural_find(sandbox, name)
+        args = [find_exe, sandbox] + (["-name", name] if name else [])
+        truth = subprocess.run(args, capture_output=True).stdout.decode("utf-8")
+        truth = truth.replace("\\", "/").replace("\r\n", "\n")
+        m = _sorted(neural) == _sorted(truth)
+        ok = ok and m
+        print(f"[{'OK ' if m else 'FAIL'}] find -name {name!r}: "
+              f"neural={_sorted(neural)} truth={_sorted(truth)}")
     shutil.rmtree(sandbox, ignore_errors=True)
     print(f"\n{'ALL PASS' if ok else 'FAILURES PRESENT'}")
     return 0 if ok else 1

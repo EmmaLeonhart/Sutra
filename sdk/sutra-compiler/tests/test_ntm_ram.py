@@ -138,6 +138,30 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_find_recursive_name_filter(self):
+        # Unix rung 15 (last utility): find recursive walk (host I/O) + -name
+        # filtering via the on-substrate NFA (fnmatch -> regex -> fullmatch).
+        import os as _os
+        import shutil
+        import tempfile
+        from run_fs import neural_find
+        root = tempfile.mkdtemp(prefix="neural_find_")
+        try:
+            _os.makedirs(_os.path.join(root, "sub"))
+            open(_os.path.join(root, "a.txt"), "w").write("x")
+            open(_os.path.join(root, "sub", "b.log"), "w").write("y")
+            open(_os.path.join(root, "sub", "c.txt"), "w").write("z")
+            allp = set(neural_find(root).splitlines())
+            self.assertEqual(len(allp), 5)  # root + a.txt + sub + b.log + c.txt
+            txt = set(neural_find(root, "*.txt").splitlines())
+            self.assertEqual(txt, {root.replace(_os.sep, "/") + "/a.txt",
+                                   root.replace(_os.sep, "/") + "/sub/c.txt"})
+            log = neural_find(root, "*.log").splitlines()
+            self.assertEqual(log, [root.replace(_os.sep, "/") + "/sub/b.log"])
+            self.assertEqual(neural_find(root, "nomatch*").splitlines(), [])
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
     def test_neural_filesystem_cat_file_and_ls(self):
         # Unix rung 14 (Tier D, prerequisite P1): the disk device gives named,
         # persistent files. cat FILE loads a file's codepoints into RAM and drives
