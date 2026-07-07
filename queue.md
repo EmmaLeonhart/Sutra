@@ -375,17 +375,20 @@ Tier C — pattern matching (needs P2 — neural regex/NFA; `grep` fixed-string 
    substrate. 9/9 vs coreutils `grep -F` (multi-match lines, overlapping windows `aa`/`aaa`, `-v` invert,
    empty pattern/input). `PATTERN` / `-v PATTERN` pipe modes. Guard:
    `test_ntm_ram.py::test_neural_grep_substring_match`.
-10. **P2 prerequisite — neural regex/NFA matcher.** **SPEC WRITTEN 2026-07-06** —
-    `planning/sutra-spec/neural-regex-nfa.md`: Thompson NFA (compile-time, host — it's compilation) →
-    state-set as an N-dim substrate vector → per-char step `s' = ge1(E @ (T_c @ s))` (transition matmul +
-    epsilon-closure, char-class selection via the exact-indicator machinery), accept = `ge1(accept·s)`;
-    grep uses a `.*`-prefixed search NFA. First-cut subset: literals, `.`, `[...]`, `* + ?`, `|`, `( )`,
-    `^ $`. This is the FIRST rung using a genuinely vector-valued substrate state (not a scalar
-    accumulator) — a new paradigm, so it's spec-first and a dedicated build. **NEXT DO-NOW RUNG: implement
-    the NFA stepper per the spec** (validate the N-dim state matmul on the substrate on a small subset —
-    literal + `.` + `*` — verified vs Python `re`, then widen), then `grep` (regex) → `sed` (needs
-    match-span extraction, spec open-question 1) → `awk` (a whole language — the Sutra compiler is the
-    engine; far out).
+10. **P2 — neural regex/NFA matcher. SHIPPED 2026-07-06** — spec `planning/sutra-spec/neural-regex-nfa.md`
+    + `experiments/ntm_ram/neural_regex.py`. Thompson-constructs the pattern to an NFA (compile-time,
+    host), then simulates it on the substrate: the active-state SET is an N-dim 0/1 buffer stepped by
+    `s' = ge1(E @ (M_dot @ s + Σ_lit is_cp(c,lit)·(M_lit·s)))` — transition + epsilon-closure MATMULS
+    (`_VSA.matmul`), char-class coefficients assembled on the substrate via the exact `relu(1-|c-lit|)`
+    indicator (a 0-d device scalar), `ge1` collapse (no residual). First rung using vector-valued substrate
+    state. Subset: literals, `.`, `[...]`/`[^...]`/ranges, `* + ?`, `|`, `( )`, `^ $` — **29/29 vs Python
+    `re`**. Guard: `test_ntm_ram.py::test_neural_regex_nfa_matches_python_re`.
+11. `grep` (regex) **SHIPPED 2026-07-06** — `run_grep_regex.py`: `grep -E` on the substrate NFA (one NFA
+    per pattern, reused per line). **10/10 vs coreutils `grep -E`** (`colou?r`, `[0-9]+`, `gr[ae]y`,
+    `cat|dog`, `^`/`$`, `-v`). Pipe `-E PATTERN` / `-v -E PATTERN`. Guard:
+    `test_ntm_ram.py::test_neural_grep_regex_matches_coreutils`. **NEXT: `sed`** (needs match-span
+    extraction — spec open-question 1: carry the earliest start position on the winning path) → `awk`
+    (a whole language — the Sutra compiler is the engine; far out). Then Tier D (filesystem, needs P1).
 
 Tier D — filesystem (needs P1):
 11. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.
