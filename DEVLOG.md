@@ -1,3 +1,21 @@
+## 2026-07-07: daily substrate-honesty audit — CLEAN (post-656e888f batch: neural-Unix rungs 2–15, H1 symtable/type-inference, make_string bugfix, SUT0204)
+
+Reviewed every commit since the previous completed audit (`656e888f`) against CLAUDE.md § "Subtler
+substrate breaches". Scope: the whole neural-Unix epic (rungs 2–15 + P1/P2 prerequisites), the H1
+symtable/type-inference series (SUT0200–0204), the `make_string` idempotency bugfix (`229fe18c`), and
+docs/queue commits (out of scope for the three checks). (a) **Dim audit:** `experiments/ntm_ram/` run
+scripts pick deliberate small dims where model-free (`runtime_dim=2` tr/cut, `4` trainable_read, `8`
+font) and 768 only where axon keys genuinely embed (`run_write.py`, `run_demo.py` — documented in-file
+per ram-pointers.md). PASS. (b) **Claim-vs-measurement:** re-RAN the guards now rather than trusting
+commit text — `test_ntm_ram.py` + `test_make_string_idempotent.py` + `test_python_builtin_escape.py`:
+**38/38 passed (305s)**. Rung commits carry their measured N/N-vs-coreutils counts. PASS. (c)
+**Signal-separation:** the epic's scalar rungs document the exact `relu(1-|c-center|)` indicator with
+MEASURED gap 1.0 / no residual (rung-3 wc commit body); rung 11's NFA documents the ge1 collapse
+(no-residual) and its host work is compile-time NFA construction — the sanctioned compilation role.
+State-locus: rung 3 explicitly keeps counts as vectors surviving across calls, not host counters. PASS.
+No findings, no fix items. Note: the 07-07 audit fire (`de6ffc56`) had queued the fv-convergence
+doc-reduction finding but left the audit item itself in the queue; this completes and deletes it.
+
 ## 2026-07-06: CORRECTION — `unsafeCast` ALSO has no codegen (I mis-stated it yesterday); cast item re-scoped
 
 Investigating the CastExpr build item (round-16 item 2a), I found the previous fire's claim was WRONG:
