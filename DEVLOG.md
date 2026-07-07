@@ -1,3 +1,21 @@
+## 2026-07-06: neural Unix rung 9 — `sort` (substrate comparison network; Tier B COMPLETE)
+
+`experiments/ntm_ram/sort_head.su` + `run_sort.py`. sort is Tier B's hard leap — a full-buffer
+comparison network — and the comparator is neural. `line_less_step` decides lexicographic A<B on the
+substrate: it streams the two lines' codepoints and carries two packed state values in one complex
+recurring slot (real=`decided`, imag=`result`); at the FIRST position where the codepoints differ it
+latches result = `ge1(b_i - a_i)` (exactly 1 iff a_i<b_i) and sets decided, ignoring later positions.
+The host pads the shorter line with a sentinel below every real codepoint, so a shorter prefix-equal line
+latches "less" at the pad position. The host sequences the comparisons (the sorting network, via
+`functools.cmp_to_key` over the substrate comparator) and moves the lines — same substrate-decides /
+host-does-I/O division as every other rung; here every ORDERING decision is the neural comparator.
+
+9/9 vs coreutils `sort` (LC_ALL=C for byte order): lexical-not-numeric ordering (`1,10,2,3`), C-locale
+case ordering (uppercase before lowercase), prefix ordering (`a` < `ab` < `abc`), duplicates preserved,
+singletons, empty. `--sort` consumes a real pipe. Dim audit: model-free, semantic_dim=2 honest. Guard:
+`test_ntm_ram.py::test_neural_sort_substrate_comparator`. **Tier B complete** (uniq + sort). Next: Tier C
+`grep` (fixed-string substring match; the full P2 regex/NFA is a later prerequisite).
+
 ## 2026-07-06: neural Unix rung 8 — `uniq` (substrate line comparison; Tier B entry)
 
 `experiments/ntm_ram/uniq_head.su` + `run_uniq.py`. uniq collapses ADJACENT identical lines, and the

@@ -358,10 +358,18 @@ Tier B — ordering / comparison / dedup (more RAM, comparison networks):
    (adjacent runs, all-distinct, length-diff adjacency, unterminated last line, empty). `--uniq` pipe
    mode. First Tier-B rung — COMPARES two buffered lines. Guard:
    `test_ntm_ram.py::test_neural_uniq_adjacent_dedup`.
-8. `sort` — full-buffer on-substrate comparison network (the hard leap of Tier B). **NEXT DO-NOW RUNG.**
+8. `sort` **SHIPPED 2026-07-06 — Tier B COMPLETE** — `run_sort.py` + `sort_head.su`: full-buffer
+   comparison network whose comparator is the substrate. `line_less_step` streams two lines' codepoints
+   and latches, at the first differing position, whether A<B via `ge1(b_i-a_i)`, packing (decided,result)
+   into one complex recurring slot; shorter prefix-equal line sorts first via a sentinel pad below every
+   codepoint. The host sequences the comparisons (network) + moves lines (I/O); every ordering decision
+   is the neural comparator. 9/9 vs coreutils `sort` LC_ALL=C (lexical numeric 1/10/2/3, C-locale case,
+   prefix a/ab/abc, dups). `--sort` pipe mode. Guard:
+   `test_ntm_ram.py::test_neural_sort_substrate_comparator`.
 
-Tier C — pattern matching (needs P2):
-9. `grep` (fixed string) — substring attention over the RAM buffer.
+Tier C — pattern matching (needs P2 — neural regex/NFA; `grep` fixed-string needs only substring match):
+9. `grep` (fixed string) — substring attention over the RAM buffer. **NEXT DO-NOW RUNG** (fixed-string
+   grep needs a substring matcher, not yet the full P2 regex NFA).
 10. `grep` (regex) → `sed` → `awk` — escalating; `awk` is a whole language (hardest; the Sutra
     compiler itself is the engine).
 

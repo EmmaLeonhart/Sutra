@@ -1,0 +1,44 @@
+// sort_head.su — substrate lexicographic line comparator (Unix rung 9: sort).
+//
+// sort orders lines; the primitive it needs is a comparison, and the lexicographic
+// "is line A < line B" decision runs on the substrate. `line_less_step` streams the
+// two lines' codepoints position by position, carrying two packed state values in
+// one complex recurring slot: real = `decided` (has the order been settled by an
+// earlier position?), imag = `result` (1 if A<B). At the FIRST position where the
+// codepoints differ it latches result = (a_i < b_i) via `ge1(b_i - a_i)` (exactly 1
+// iff a_i < b_i for integer codepoints) and sets decided; once decided, later
+// positions are ignored. The host pads the shorter line with a sentinel BELOW every
+// real codepoint, so a shorter prefix-equal line latches "less" at the pad
+// position. After streaming, the returned value is 1 iff A<B, else 0.
+//
+// The host sequences the comparisons (the sorting network) and moves the lines
+// (I/O); every ordering DECISION is this substrate comparator. All exact integer
+// tensor ops (is_cp / ge1 relu-of-triangle) — no host branch, 0 residual.
+function vector is_cp(vector served, vector center) {
+    vector d = served - center;
+    vector tri = make_real(1.0) - make_real(abs(d));
+    return (tri + make_real(abs(tri))) * make_real(0.5);
+}
+
+function vector relu(vector x) { return (x + make_real(abs(x))) * make_real(0.5); }
+
+function vector ge1(vector x) {
+    vector r = relu(x);
+    return make_real(1.0) - relu(make_real(1.0) - r);
+}
+
+function vector line_less_step(vector a_i, vector b_i) {
+    recurring vector state = make_real(0.0);            // real=decided, imag=result
+    vector decided = make_real(state);
+    vector result = make_real(state * make_complex(0.0, -1.0));   // imag -> real
+    vector one_m_dec = make_real(1.0) - decided;
+    vector diff = make_real(1.0) - is_cp(a_i, b_i);
+    vector this_less = ge1(b_i - a_i);                  // 1 iff a_i < b_i
+    vector nd = decided + one_m_dec * diff;
+    vector nr = result * decided + one_m_dec * diff * this_less;
+    vector next = nd + make_complex(0.0, 1.0) * nr;     // repack (real=nd, imag=nr)
+    recur(next);
+    return nr;
+}
+
+function string main() { return "ok"; }

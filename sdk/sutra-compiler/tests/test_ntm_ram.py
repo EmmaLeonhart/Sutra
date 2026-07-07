@@ -138,6 +138,19 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_sort_substrate_comparator(self):
+        # Unix rung 9 (Tier B hard leap): sort orders lines with a substrate
+        # lexicographic comparator (line_less_step latches a<b at the first
+        # differing codepoint; shorter prefix-equal line sorts first via the pad).
+        from run_sort import neural_sort
+        self.assertEqual(neural_sort("banana\napple\ncherry\n"),
+                         "apple\nbanana\ncherry\n")
+        self.assertEqual(neural_sort("3\n1\n2\n10\n"), "1\n10\n2\n3\n")  # lexical
+        self.assertEqual(neural_sort("ab\nabc\na\n"), "a\nab\nabc\n")   # prefix
+        self.assertEqual(neural_sort("b\na\nc\nb\na\n"), "a\na\nb\nb\nc\n")
+        self.assertEqual(neural_sort("one\n"), "one\n")
+        self.assertEqual(neural_sort(""), "")
+
     def test_neural_uniq_adjacent_dedup(self):
         # Unix rung 8 (Tier B entry): uniq collapses ADJACENT identical lines. The
         # prev-vs-current line-equality test runs on the substrate — a recurring
