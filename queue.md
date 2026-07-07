@@ -47,10 +47,11 @@ against the just-shipped SUT0200–0203 diagnostics. Findings, atomised:
    §10's code list stopped at SUT0145 and skipped straight to SUT2002 — the v0.2 name-resolution codes
    (and SUT0151) were absent. Added SUT0151 + SUT0200 (unknown type) + SUT0201 (unknown-function did-you-
    mean) + SUT0202 (arg count) + SUT0203 (arg type, steers to `embed`), matching the shipped behaviour.
-2. **compilation.md example-diagnostics list is stale** — it walks through SUT0120/0111/0110/0112/0113 as
-   the "what the validator catches" examples but predates the v0.2 name-resolution pass. Add a short
-   example for each of SUT0200/0201/0203 (typo'd type, `argmaxcosine`, `similarity("cat","dog")`) so a
-   newcomer sees the language now catches typos/wrong-args, not just the v0.1 structural rules.
+2. **compilation.md example-diagnostics list is stale — DONE 2026-07-06.** Added a "since v0.2 the
+   validator also has a symbol table" block to Stage 3 with a worked example for each of SUT0200 (typo'd
+   `vec`), SUT0201 (`argmaxcosine` did-you-mean), SUT0202 (arg count), SUT0203 (`similarity("cat","dog")`
+   → embed first) — real messages verified against the validator, rendered as quoted text (no nested
+   backticks), cross-linked to capabilities.md §10; `build_site.py` clean.
 3. **repl.md doesn't mention bare string literals now evaluate.** The T5 fix made `"hello"` at the REPL
    print `"hello"` (was an opaque crash / embed-steer). The page only covers `embed(...)` for semantic
    vectors; add a line showing a bare string literal round-trips to its text, so the newcomer's natural

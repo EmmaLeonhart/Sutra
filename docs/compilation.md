@@ -74,6 +74,17 @@ The validator walks the parsed AST to check things that the grammar alone can't 
 - **Modifier conflicts.** `public private f()` is rejected (SUT0112).
 - **Naming consistency.** A file using both `Cat` and `cat` as class names gets a casing-drift warning (SUT0113).
 
+Since v0.2 the validator also has a **symbol table**, so it resolves names and catches typos and
+mismatches the v0.1 structural rules above could not:
+
+- **Unknown types.** A mistyped type gets a warning — `vec` produces *"unknown type `vec` — it is not a primitive, a container, a declared class, or a known stdlib type"* (SUT0200). (A PascalCase name it can't resolve is assumed to be a not-yet-seen sibling class, so it is *not* flagged — the check is tuned to zero false positives on valid code.)
+- **Unknown functions, with a suggestion.** A misspelled call gets a "did you mean" hint — `argmaxcosine(...)` produces *"unknown function `argmaxcosine` — did you mean `argmax_cosine`?"* (SUT0201).
+- **Wrong argument count.** Calling a declared two-parameter `add` as `add(1)` warns *"function `add` expects 2 arguments but got 1"* (SUT0202).
+- **Wrong argument type.** Passing text where a vector is wanted warns and points at the fix — `similarity("cat", "dog")` produces *"argument 1 of `similarity` has type `string` but a `vector` is expected"* (SUT0203); embed the strings first, `similarity(embed("cat"), embed("dog"))`.
+
+All four are **warnings**, not errors: valid v0.1 code still compiles, and the checks are deliberately
+tuned so they never fire on the example corpus. (Full code list: `capabilities.md` §10.)
+
 No code transformation happens here — the AST goes in and comes out unchanged, possibly with a bag of diagnostics attached.
 
 ---
