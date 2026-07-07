@@ -1,3 +1,17 @@
+## 2026-07-06: CONFIRMED — `(Type)` casts + interpolated strings have no codegen; docs fixed (round-16 item 2)
+
+Followed the previous fire's lead. Both `(Type) expr` casts and `$"..."` interpolated strings parse and
+validate but hit `unsupported expression` at codegen — verified across every cast form (incl. the corpus's
+own `07_casts.su`, which is VALIDATE-ONLY: the corpus test asserts 0 errors, never runs it, so this was
+invisible). Only `unsafeCast<Type>(value)` executes. A newcomer writing `(int)x` or `$"n={n}"` from the
+docs hits the error. Corrected the docs (capabilities.md §5 interpolated-string row + a new `(Type) value`
+cast row, both marked parse/validate-only and steering to unsafeCast / make_string+string_concat).
+build_site clean. Wrote `planning/findings/2026-07-06-castexpr-and-interp-string-no-codegen.md` and
+atomised two genuine BUILD items: (a) CastExpr codegen (a source->target cast-semantics lowering table,
+bounded) and (b) InterpolatedString codegen (desugar to string_concat; blocked on a substrate
+number->string formatter for non-string interpolants). Neither is cron-sized; both need a design step.
+Docs+queue+finding only — no code changed.
+
 ## 2026-07-06: docs — capabilities §8 marks C-style while/for/do-while RETIRED (real-program-reach audit)
 
 Newcomer drive: `while(i<n){...}` and `for(...)` and `do{...}while` all raise a codegen rejection ('C-style

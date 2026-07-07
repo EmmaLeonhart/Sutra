@@ -63,11 +63,16 @@ Drove newcomer programs; most ops correct (foreach=6, array index, arithmetic, c
    in the 2026-04-30 substrate-purity audit, steering to `while_loop`/`iterative_loop`), and `loops.md`
    says so, but `capabilities.md` §8 still listed them as supported 'bounded loop' rows. Fixed the 3 rows
    to RETIRED + steer to the loop-function forms; `build_site.py` clean.
-2. **VERIFY: interpolated strings + casts may not codegen.** `$"n={n}"` and `(number)x` both raised
-   `CodegenNotSupported: unsupported expression: InterpolatedString / CastExpr` in a bare `int main` test.
-   But `capabilities.md` §5 lists interpolated strings as a literal form and casts are documented — so
-   either they need a specific context my test missed, or they're genuine codegen gaps (doc mismatch).
-   NEXT: reproduce minimally, determine real vs test-artifact, then fix the code or the docs.
+2. **Interpolated strings + `(Type)` casts have NO codegen — CONFIRMED + docs fixed 2026-07-06.** Both
+   parse + validate but hit `unsupported expression` at codegen (EVERY cast form, incl. the corpus's own
+   `07_casts.su` which is validate-only). Only `unsafeCast<Type>` executes. Docs corrected (capabilities.md
+   §5 interp row + a `(Type) value` cast row both marked parse/validate-only, steering to unsafeCast /
+   make_string). Finding: `planning/findings/2026-07-06-castexpr-and-interp-string-no-codegen.md`. Two
+   genuine BUILD items remain (each its own rung, needs a design step — not cron-sized):
+   - **(a) CastExpr codegen** — a per-source→target-pair lowering table (`(vector)`≈identity, numeric-axis
+     routes, truth-axis reinterpretations), reusing the var-decl coercion. Bounded.
+   - **(b) InterpolatedString codegen** — desugar to `string_concat`; blocked on a substrate number→string
+     formatter for non-string interpolants (a prerequisite subsystem). String-typed interpolants are easy.
 
 ### 🔍 Daily substrate-honesty audit — 2026-07-07
 
