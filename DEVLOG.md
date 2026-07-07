@@ -1,3 +1,14 @@
+## 2026-07-06: docs — consolidate the SUT#### diagnostics reference (round-13 item 4; round COMPLETE)
+
+The diagnostic-code reference was scattered — `capabilities.md` §10 (the fullest list), plus subsets in
+`compilation.md`, `ontology.md`, `primitive-classes.md` — so a newcomer who hit `SUT0201` had to grep.
+Made `capabilities.md` §10 the single CANONICAL index (labelled it in-page as the complete reference) and
+cross-linked the pages that mention a specific code to it: `compilation.md` already pointed there (added
+this round), and added links from `ontology.md` (class-decl codes) and `primitive-classes.md` (`wait`
+codes) to §10. `scripts/build_site.py` clean. Docs source only. This closes **usability audit round 13**
+(all 4 items done: document SUT0200–0203 in the code reference; compilation.md Stage-3 walkthrough;
+repl.md bare-string eval; consolidate the reference). Next queue drain → re-run the PINNED TAIL to refill.
+
 ## 2026-07-06: docs — repl.md shows bare string literals now evaluate (round-13 item 3)
 
 `docs/repl.md` covered `embed(...)` for semantic vectors but not that a bare string literal now evaluates
