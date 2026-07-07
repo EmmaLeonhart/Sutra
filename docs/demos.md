@@ -29,6 +29,23 @@ The smoke test compiles each `.su` source through the reference codegen path, ex
 
 Loops use first-class declared functions. The canonical example is [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/do_while_adder.su), with coverage in the `test_loop_function_decl.py` suite (23 tests). See the [Loops page](loops.md) for the surface.
 
+## The big Unix tools, on a completely neural computer
+
+The substrate can run the classic Unix utilities — not as a metaphor, but with the actual byte-processing
+done on the substrate and checked **char-for-char against the real coreutils binaries**. The machine is
+NTM-style (external addressable RAM and a persistent disk, not a plain RNN); the host does only I/O, the
+substrate does the transform. Fifteen tools are implemented and verified:
+
+> `echo` · `cat` · `wc` · `head`/`tail` · `tr` · `rev`/`tac` · `cut` · `uniq` · `sort` · `grep` (fixed
+> string **and** regex) · `sed` · `awk` (field/pattern subset) · `cat FILE`/`ls`/`cp`/`mv`/`rm` · `find`
+
+One primitive does most of the work: an **exact codepoint indicator** — `1` at the target character, a
+hard `0` at every other — which composes into counters (`wc`), gates (`head`/`cut`), codebook maps (`tr`),
+and comparators (`uniq`/`sort`). Regex (`grep -E`/`sed`/`awk`) runs a Thompson NFA as a genuine
+vector-valued substrate state, stepped by matrix multiplications. Source + per-tool self-tests:
+[`experiments/ntm_ram/`](https://github.com/EmmaLeonhart/Sutra/tree/main/experiments/ntm_ram) (see its
+README).
+
 ## Other examples in the directory
 
 `examples/` contains additional programs that aren't part of the smoke-test asserted-output table but exist as reference material:

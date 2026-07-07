@@ -49,10 +49,10 @@ neural-Unix epic (a completely-neural computer running the big Unix tools, all v
    state), the 15 rungs by tier with their `run_*.py` entry points + how to run the self-tests, and the
    machine underneath (RAM/disk devices, orchestrator, read heads). Agent-facing (experiments/ is the
    right home).
-2. **Website has no neural-computer showcase.** `docs/demos.md` doesn't mention the neural-Unix utilities.
-   A short newcomer-facing blurb (or a `demos.md` entry) — "Sutra runs the big Unix tools on a completely
-   neural computer, verified char-for-char vs coreutils" — would surface a compelling capability. Keep it
-   newcomer-level; link to nothing under `experiments/`/`planning/` from the website (discipline). Bounded.
+2. **Website neural-computer showcase — DONE 2026-07-06.** Added a "The big Unix tools, on a completely
+   neural computer" section to `docs/demos.md`: the 15 verified tools, the exact-codepoint-indicator
+   keystone + the regex NFA's vector-valued state, GitHub source link to `experiments/ntm_ram/` (no
+   docs-internal planning/queue refs). `build_site.py` clean. **Round-14 COMPLETE** (both items).
 
 ### Usability audit round 13 (2026-07-06) — the new v0.2 diagnostics' docs surface
 
