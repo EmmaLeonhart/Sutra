@@ -1,0 +1,73 @@
+// wc_heads.su — substrate streaming accumulators for `wc` (Unix rung 3).
+//
+// The first REAL transform on the neural computer: not a passthrough but a
+// COUNT. The orchestrator streams the input codepoints in (host addressing is
+// I/O), and each head maintains a recurring VRAM accumulator that is updated by
+// substrate tensor ops every tick — the count lives on the substrate (a vector
+// surviving across calls via substrate add), never in a host variable
+// (CLAUDE.md § state-locus audit). v1 allows one `recurring` slot per function,
+// so each count is its own head; `word_count` packs its two state values
+// (running count + was-previous-nonspace) into the real/imag axes of one complex
+// recurring slot.
+//
+// is_cp is an EXACT codepoint indicator: relu(1 - |c - center|). Since every
+// codepoint is an integer >=1 apart, the triangle is 1 only AT the center and a
+// hard 0 (the relu clamp) at every other codepoint — no saturation residual, so
+// the accumulated counts are exact integers (measured: 0 leakage).
+
+function vector is_cp(vector served, vector center) {
+    // abs(...) returns a bare real scalar; wrap each in make_real so it lands
+    // cleanly on the real axis (an un-wrapped scalar gets mis-coerced onto the
+    // imag axis by the complex ops, which would corrupt word_count's imag-packed
+    // state — real-only accumulators never saw it).
+    vector d = served - center;
+    vector ad = make_real(abs(d));
+    vector tri = make_real(1.0) - ad;
+    vector at = make_real(abs(tri));
+    return (tri + at) * make_real(0.5);   // relu(tri)
+}
+
+// bytes: +1 per streamed codepoint (the substrate holds the running total).
+function vector byte_count(vector served) {
+    recurring vector n = make_real(0.0);
+    vector next = n + make_real(1.0);
+    recur(next);
+    return next;
+}
+
+// lines: += 1 exactly when the codepoint is a newline (10). `wc -l` counts
+// newline characters, so this is the exact line count.
+function vector line_count(vector served) {
+    recurring vector n = make_real(0.0);
+    vector next = n + is_cp(served, make_real(10.0));
+    recur(next);
+    return next;
+}
+
+// words: count maximal non-whitespace runs. state.real = running word count,
+// state.imag = was the PREVIOUS codepoint non-whitespace (1/0). A word starts on
+// a nonspace whose predecessor was not a nonspace. Whitespace = {9,10,11,12,13,32}.
+function vector word_count(vector served) {
+    recurring vector state = make_real(0.0);
+    vector words = make_real(state);                          // real axis
+    vector prev_nonspace = make_real(state * make_complex(0.0, -1.0));  // imag -> real
+
+    vector is_space = is_cp(served, make_real(9.0))
+                    + is_cp(served, make_real(10.0))
+                    + is_cp(served, make_real(11.0))
+                    + is_cp(served, make_real(12.0))
+                    + is_cp(served, make_real(13.0))
+                    + is_cp(served, make_real(32.0));
+    vector is_nonspace = make_real(1.0) - is_space;
+    vector word_start = is_nonspace * (make_real(1.0) - prev_nonspace);
+
+    vector new_words = words + word_start;
+    // pack: real = new_words, imag = is_nonspace. make_complex takes host scalars,
+    // so lift is_nonspace (a number-vector) onto the imag axis by multiplying the
+    // unit imaginary i, then complex-add it to the real-valued running count.
+    vector next = new_words + (make_complex(0.0, 1.0) * is_nonspace);
+    recur(next);
+    return make_real(next);
+}
+
+function string main() { return "ok"; }

@@ -312,9 +312,16 @@ Tier A — pure stream transforms (RAM buffer only, no filesystem):
    cases: multi-line, empty, punctuation, multi-chunk-boundary; `--stdin` consumes a real pipe). Honest
    scope: still a passthrough (no substrate transform over echo) — the new work is the P0 stdin axon.
    Regression guard in `test_ntm_ram.py::test_neural_cat_streams_stdin_passthrough`.
-2. `wc` — byte/word/line counts via substrate streaming accumulators (first real transform).
-   **NEXT DO-NOW RUNG.**
-3. `head` / `tail -n` — first/last N lines (RAM ring buffer).
+2. `wc` **SHIPPED 2026-07-06** — `run_wc.py` + `wc_heads.su`: the first REAL transform. Substrate
+   streaming accumulators (recurring VRAM vectors, updated by substrate tensor ops every tick — the
+   count survives across calls as a vector, never a host counter) compute (lines, words, bytes) exactly:
+   10/10 vs coreutils `wc` (tabs, multi-space, empty, no-trailing-newline, blank lines); `--stdin` mode
+   matches on a real pipe. Key primitive: EXACT codepoint indicator `is_cp(c,center)=relu(1-|c-center|)`
+   — MEASURED gap 1.0 (exactly 1 at center, hard 0 elsewhere; the relu clamp avoids the exp/tanh
+   saturation residual that would accumulate). words packs count+prev-nonspace into one complex recurring
+   slot (v1 = one recurring slot/function). Guard: `test_ntm_ram.py::test_neural_wc_counts_match_
+   coreutils_exactly`.
+3. `head` / `tail -n` — first/last N lines (RAM ring buffer). **NEXT DO-NOW RUNG.**
 4. `tr` — per-byte translate/delete (codebook argmax map — Sutra's strength).
 5. `rev` / `tac` — reverse within a line / reverse line order (permutation + full RAM buffer).
 6. `cut` — select columns/fields.
