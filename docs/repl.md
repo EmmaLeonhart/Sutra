@@ -60,12 +60,24 @@ sutra> embed("hello")
 ~ "hello"  (cos 1.00)
 ```
 
+A **bare string literal** is a different thing from an embedding, and the REPL now evaluates it directly —
+it round-trips to its own text:
+
+```
+sutra> "hello"
+"hello"
+```
+
+So `"hello"` is the literal text (a string value on the substrate), while `embed("hello")` is that text
+resolved to its *meaning* vector — the two are distinct, and the REPL shows each for what it is.
+
 ## Reading results
 
 - **`= <number>`** — a numeric result (a similarity, a real value).
 - **`~ "concept"  (cos 0.NN)`** — a `vector` result, decoded to the nearest string
   the session knows, with the cosine similarity to it. `cos 1.00` means it landed
   exactly on that concept.
+- **`"text"`** — a `string` result, shown as its own text (e.g. a bare string literal).
 - **`(added)`** — a declaration was accepted into the session.
 
 ## Commands

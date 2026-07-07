@@ -52,10 +52,10 @@ against the just-shipped SUT0200–0203 diagnostics. Findings, atomised:
    `vec`), SUT0201 (`argmaxcosine` did-you-mean), SUT0202 (arg count), SUT0203 (`similarity("cat","dog")`
    → embed first) — real messages verified against the validator, rendered as quoted text (no nested
    backticks), cross-linked to capabilities.md §10; `build_site.py` clean.
-3. **repl.md doesn't mention bare string literals now evaluate.** The T5 fix made `"hello"` at the REPL
-   print `"hello"` (was an opaque crash / embed-steer). The page only covers `embed(...)` for semantic
-   vectors; add a line showing a bare string literal round-trips to its text, so the newcomer's natural
-   first thing to type works and is documented.
+3. **repl.md doesn't mention bare string literals now evaluate — DONE 2026-07-06.** Added a short block
+   after the `embed(...)` section showing `"hello"` → `"hello"` (verified in a real REPL run), drawing the
+   distinction between a bare string literal (its own text) and `embed("hello")` (its meaning vector), plus
+   a `"text"` entry in the "Reading results" list. `build_site.py` clean.
 4. **Diagnostics reference is scattered** (capabilities.md §10 paragraph, compilation.md, ontology.md,
    primitive-classes.md each list a subset). A newcomer who hits `SUT0201` has to grep. Consider making
    capabilities.md §10 the single canonical index (it is the most complete) and cross-linking the others

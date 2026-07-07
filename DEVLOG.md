@@ -1,3 +1,14 @@
+## 2026-07-06: docs — repl.md shows bare string literals now evaluate (round-13 item 3)
+
+`docs/repl.md` covered `embed(...)` for semantic vectors but not that a bare string literal now evaluates
+to its own text (the T5 fix — `"hello"` was an opaque crash / embed-steer before, now round-trips). Added
+a short block after the embed section — verified in a real REPL run (`"hello"` → `"hello"`) — drawing the
+distinction a newcomer needs: a bare string literal is its literal text (a string value on the substrate),
+while `embed("hello")` is that text resolved to its meaning vector; the REPL shows each for what it is.
+Also added a `"text"` entry to the "Reading results" list alongside `= number` / `~ concept`.
+`scripts/build_site.py` clean. Docs source only. Round-13 item 3 done; only item 4 (consolidate the
+scattered diagnostics reference) remains.
+
 ## 2026-07-06: docs — compilation.md Stage-3 shows the v0.2 name-resolution diagnostics (round-13 item 2)
 
 `docs/compilation.md`'s Stage-3 (Validator) walkthrough listed only the v0.1 structural checks
