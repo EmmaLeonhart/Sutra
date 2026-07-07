@@ -1,3 +1,30 @@
+## 2026-07-06: neural Unix rung 3 — `wc` (first real transform, substrate streaming accumulators)
+
+`experiments/ntm_ram/wc_heads.su` + `run_wc.py`. The first rung that TRANSFORMS rather than passes
+through: it counts (lines, words, bytes), and the counting runs on the substrate as streaming
+accumulators — recurring VRAM vectors updated by substrate tensor ops each tick. Per the state-locus
+audit, the count is a vector surviving across calls via substrate add, never a host counter; the host
+only streams codepoints in (addressing = I/O) and reads the final accumulators at the terminal boundary.
+Verified exact: 10/10 vs coreutils `wc` (multi-space, tabs, empty, no-trailing-newline, blank lines),
+and `--stdin` matches on a real pipe.
+
+The keystone is an EXACT codepoint indicator, `is_cp(c, center) = relu(1 - |c - center|)`. Because every
+codepoint is an integer ≥1 apart, the triangle is 1 only AT the center and a hard 0 (the relu clamp) at
+every other codepoint. **Measured gap = 1.0** (positive class exactly 1.0, negative class exactly 0.0 —
+signal-separation audit satisfied). This matters: I first tried `exp(-k·(c-10)²)` and a tanh threshold,
+but the substrate's exp lookup table CLAMPS at its edge (e⁻¹⁰ ≈ 4.5e-5), leaving a constant residual on
+every non-target codepoint that would accumulate over a long stream (~1 spurious count per ~11k chars).
+The relu-of-triangle form has no such floor, so the accumulated counts are exact integers at any length.
+
+Substrate detail worth recording: `abs()` returns a bare real scalar, and an un-wrapped scalar fed to the
+complex ops gets mis-coerced onto the IMAG axis. Harmless for the real-only byte/line accumulators (they
+never read imag), but it corrupted word_count, which packs its two state values — running count (real) and
+was-previous-nonspace (imag) — into one complex recurring slot (v1 permits one recurring slot per
+function). Wrapping each `abs(...)` in `make_real(...)` keeps it on the real axis and fixed it. bytes = +1
+per codepoint; lines = += is_cp(c,10); words counts whitespace→nonspace transitions over
+{9,10,11,12,13,32}. Dim audit: model-free heads (no basis_vector/embed), semantic_dim=2 honest. Guard:
+`test_ntm_ram.py::test_neural_wc_counts_match_coreutils_exactly`; 14 ntm_ram tests green. Next: head/tail.
+
 ## 2026-07-06: neural Unix rung 2 — `cat` (streamed stdin axon)
 
 `experiments/ntm_ram/run_cat.py`. cat with no file operands is stdin→stdout passthrough, so — like echo

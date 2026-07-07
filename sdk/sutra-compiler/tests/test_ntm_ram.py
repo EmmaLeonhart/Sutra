@@ -138,6 +138,26 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_wc_counts_match_coreutils_exactly(self):
+        # Unix rung 3: wc = the first REAL transform. Substrate streaming
+        # accumulators (recurring VRAM vectors) count (lines, words, bytes) via
+        # EXACT codepoint indicators (relu(1-|c-center|), 0 leakage), so the
+        # counts are exact integers. Checked against known wc values (model-free;
+        # the coreutils comparison lives in run_wc.py's self-test).
+        from run_wc import neural_wc
+        expected = {
+            "hello world\n": (1, 2, 12),
+            "one two three\nfour five\n": (2, 5, 24),
+            "  spaced  out  \n": (1, 2, 16),
+            "single": (0, 1, 6),
+            "a\nb\nc\n": (3, 3, 6),
+            "": (0, 0, 0),
+            "tab\tsep\ttext\n": (1, 3, 13),
+            "no newline at end": (0, 4, 17),
+        }
+        for text, want in expected.items():
+            self.assertEqual(neural_wc(text), want, repr(text))
+
     def test_neural_cat_streams_stdin_passthrough(self):
         # Unix rung 2: `cat` = streamed stdin -> substrate scan/emit -> stdout.
         # The decoded emit stream must equal the piped input byte-for-byte across
