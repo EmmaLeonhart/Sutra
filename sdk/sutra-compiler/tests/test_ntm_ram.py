@@ -138,6 +138,18 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_tr_codebook_translate_and_delete(self):
+        # Unix rung 5: tr = a substrate codebook map. Each byte's output is a
+        # weighted sum of EXACT codepoint indicators — matched codepoints become
+        # their paired value, unmatched pass through; delete masks matches to 0.
+        from run_tr import neural_tr
+        self.assertEqual(neural_tr("hello world\n", "a-z", "A-Z"), "HELLO WORLD\n")
+        self.assertEqual(neural_tr("Hello\n", "A-Z", "a-z"), "hello\n")
+        self.assertEqual(neural_tr("abcdef\n", "abc", "xyz"), "xyzdef\n")
+        self.assertEqual(neural_tr("a1b2c3\n", "abc", delete=True), "123\n")
+        self.assertEqual(neural_tr("phone 555\n", "0-9", delete=True), "phone \n")
+        self.assertEqual(neural_tr("map it\n", "a-z", "X"), "XXX XX\n")  # SET2 padding
+
     def test_neural_head_tail_line_gated_filters(self):
         # Unix rung 4: head/tail = substrate line-gated stream filters. A recurring
         # line accumulator + an EXACT integer gate mask each emitted codepoint by

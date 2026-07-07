@@ -1,3 +1,25 @@
+## 2026-07-06: neural Unix rung 5 — `tr` (substrate codebook map)
+
+`experiments/ntm_ram/run_tr.py`. tr is the codebook lookup the queue flagged as "Sutra's strength", done
+on the substrate with EXACT codepoint indicators. Each input byte's output is one substrate expression —
+a weighted sum of indicators:
+
+    out(c) = Σ_i is_cp(c, key_i) * val_i  +  c * (1 - Σ_i is_cp(c, key_i))
+
+with is_cp(c,k) = relu(1 - |c-k|) exactly 1 at k and hard 0 elsewhere. A matched codepoint becomes its
+paired value (the first term selects exactly one val_i), an unmatched one passes through (the second term,
+since Σ = 0); `tr -d` uses out(c) = c * (1 - Σ is_cp) so matched codepoints go to 0 and are dropped at
+decode. The codebook — the codepoints of SET1→SET2, with `a-z` ranges expanded and SET2 padded by
+repeating its last char, exactly as coreutils does — is baked into a generated `.su` compiled once per
+translation (the codepoints ARE the codebook). The host streams bytes and drives the table; the substrate
+does the match + select.
+
+7/7 vs coreutils `tr`: a-z↔A-Z both directions, `abc`→`xyz`, vowels→caps, `-d 0-9`, `-d abc`, and the
+SET2-shorter padding case (`a-z`→`X`). Pipe modes `tr a-z A-Z` and `tr -d 0-9` consume a real pipe. Dim
+audit: model-free (no basis_vector/embed), semantic_dim=2 honest. Guard:
+`test_ntm_ram.py::test_neural_tr_codebook_translate_and_delete`. Next: `rev`/`tac` (permutation over a
+full RAM buffer).
+
 ## 2026-07-06: neural Unix rung 4 — `head` / `tail -n` (substrate line-gated filters)
 
 `experiments/ntm_ram/filter_heads.su` + `run_head_tail.py`. head and tail are one substrate machine: a

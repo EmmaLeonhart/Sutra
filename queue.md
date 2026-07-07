@@ -328,8 +328,15 @@ Tier A — pure stream transforms (RAM buffer only, no filesystem):
    head/tail (6 inputs × 6 N × 2 utils), incl. unterminated last line (+1 boundary correction) and blank
    lines. `--head`/`--tail -n K` pipe modes. Guard: `test_ntm_ram.py::test_neural_head_tail_line_gated_
    filters`.
-4. `tr` — per-byte translate/delete (codebook argmax map — Sutra's strength). **NEXT DO-NOW RUNG.**
+4. `tr` **SHIPPED 2026-07-06** — `run_tr.py`: per-byte substrate codebook map. Each byte's output is a
+   weighted sum of EXACT codepoint indicators — `out(c) = Σ is_cp(c,key_i)*val_i + c*(1-Σ is_cp(c,key_i))`
+   — so matched codepoints become their paired value, unmatched pass through; `-d` masks matches to 0.
+   The codebook (SET1→SET2 codepoints, ranges expanded, SET2 padded like coreutils) is baked into a
+   generated `.su` compiled per translation. 7/7 vs coreutils `tr` (a-z/A-Z both ways, translate, vowels,
+   -d digits/letters, SET2-padding); pipe modes `tr a-z A-Z` / `tr -d 0-9`. Guard:
+   `test_ntm_ram.py::test_neural_tr_codebook_translate_and_delete`.
 5. `rev` / `tac` — reverse within a line / reverse line order (permutation + full RAM buffer).
+   **NEXT DO-NOW RUNG.**
 6. `cut` — select columns/fields.
 
 Tier B — ordering / comparison / dedup (more RAM, comparison networks):
