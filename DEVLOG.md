@@ -1,3 +1,13 @@
+## 2026-07-06: neural-Unix epic gets a catalogue README (usability round-14 item 1)
+
+Audited discoverability: the completed 15-utility neural-Unix epic had no overview — no README in
+`experiments/ntm_ram/`, nothing in `docs/`. Wrote `experiments/ntm_ram/README.md`: the goal (all the big
+Unix tools on a completely neural computer, verified vs coreutils), the substrate keystones (the exact
+`relu(1-|c-center|)` indicator; the regex NFA's vector-valued N-dim state stepped by matmuls), the 15
+rungs by tier with their `run_*.py` entry points + how to run the self-tests, and the machine underneath
+(ram_device/disk_device/orchestrator/read heads). Agent-facing (experiments/ is the home; the website
+stays newcomer-facing). Round-14 item 2 (a short newcomer blurb on docs/demos.md) refilled for a next fire.
+
 ## 2026-07-06: docs — consolidate the SUT#### diagnostics reference (round-13 item 4; round COMPLETE)
 
 The diagnostic-code reference was scattered — `capabilities.md` §10 (the fullest list), plus subsets in

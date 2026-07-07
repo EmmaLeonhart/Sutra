@@ -38,6 +38,22 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Usability audit round 14 (2026-07-06) — discoverability of the neural-Unix epic
+
+PINNED-TAIL refill (round 13 drained). Audited DISCOVERABILITY / real-program-reach: the 15-utility
+neural-Unix epic (a completely-neural computer running the big Unix tools, all verified vs coreutils) had
+**zero discoverability** — no README in `experiments/ntm_ram/`, no mention in `docs/`. Findings:
+
+1. **No catalogue for the neural-Unix epic — DONE 2026-07-06.** Wrote `experiments/ntm_ram/README.md`: the
+   goal + substrate keystones (the exact `relu(1-|c-center|)` indicator; the regex NFA's vector-valued
+   state), the 15 rungs by tier with their `run_*.py` entry points + how to run the self-tests, and the
+   machine underneath (RAM/disk devices, orchestrator, read heads). Agent-facing (experiments/ is the
+   right home).
+2. **Website has no neural-computer showcase.** `docs/demos.md` doesn't mention the neural-Unix utilities.
+   A short newcomer-facing blurb (or a `demos.md` entry) — "Sutra runs the big Unix tools on a completely
+   neural computer, verified char-for-char vs coreutils" — would surface a compelling capability. Keep it
+   newcomer-level; link to nothing under `experiments/`/`planning/` from the website (discipline). Bounded.
+
 ### Usability audit round 13 (2026-07-06) — the new v0.2 diagnostics' docs surface
 
 PINNED-TAIL refill after the H1 + neural-Unix epics drained. Audited the ERROR-MESSAGES + DOCS surfaces
