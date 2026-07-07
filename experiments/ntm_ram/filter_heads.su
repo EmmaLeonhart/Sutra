@@ -1,0 +1,65 @@
+// filter_heads.su — substrate line-gated stream filters (Unix rung 4: head/tail).
+//
+// head -n N emits the first N lines; tail -n N the last N. Both are the same
+// substrate machine: a recurring line accumulator + an EXACT integer gate that
+// masks each emitted codepoint by whether the current line index is in range.
+// The output codepoint is `served * gate` (gate in {0,1}); the orchestrator
+// collects the emitted stream and drops the zeros (masked-out chars). The line
+// index and the gate are computed by substrate tensor ops — no host branch.
+//
+// `n` (the line budget / offset) is passed IN as a number-vector each tick, so
+// the comparison against the running count happens on the substrate.
+
+// exact codepoint indicator: 1 iff served == center, else 0 (relu of triangle).
+function vector is_cp(vector served, vector center) {
+    vector d = served - center;
+    vector ad = make_real(abs(d));
+    vector tri = make_real(1.0) - ad;
+    vector at = make_real(abs(tri));
+    return (tri + at) * make_real(0.5);
+}
+
+// relu(x) on the real axis (abs wrapped so it stays off the imag axis).
+function vector relu(vector x) {
+    return (x + make_real(abs(x))) * make_real(0.5);
+}
+
+// exact step: 1 iff x >= 1 (for integer x), else 0. = 1 - relu(1 - relu(x)).
+function vector ge1(vector x) {
+    vector r = relu(x);
+    return make_real(1.0) - relu(make_real(1.0) - r);
+}
+
+// pass-1 line total for tail: += 1 per newline (substrate accumulator). The host
+// reads this at the boundary and computes the start offset (L - N), pointer
+// arithmetic at the wire, then drives pass 2.
+function vector count_lines(vector served) {
+    recurring vector n = make_real(0.0);
+    vector next = n + is_cp(served, make_real(10.0));
+    recur(next);
+    return next;
+}
+
+// head -n N: emit while the pre-increment line count < N (so the N-th newline is
+// included). gate = ge1(N - lines): 1 while N-lines >= 1 i.e. lines <= N-1.
+function vector head_filter(vector served, vector n) {
+    recurring vector lines = make_real(0.0);
+    vector gate = ge1(n - lines);
+    vector out = served * gate;
+    vector new_lines = lines + is_cp(served, make_real(10.0));
+    recur(new_lines);
+    return out;
+}
+
+// tail -n N (second pass): emit while lines >= start, where start = total - N is
+// passed in as `n`. gate = ge1(lines - n + 1) => 1 once lines >= n.
+function vector tail_filter(vector served, vector n) {
+    recurring vector lines = make_real(0.0);
+    vector gate = ge1(lines - n + make_real(1.0));
+    vector out = served * gate;
+    vector new_lines = lines + is_cp(served, make_real(10.0));
+    recur(new_lines);
+    return out;
+}
+
+function string main() { return "ok"; }

@@ -321,8 +321,14 @@ Tier A — pure stream transforms (RAM buffer only, no filesystem):
    saturation residual that would accumulate). words packs count+prev-nonspace into one complex recurring
    slot (v1 = one recurring slot/function). Guard: `test_ntm_ram.py::test_neural_wc_counts_match_
    coreutils_exactly`.
-3. `head` / `tail -n` — first/last N lines (RAM ring buffer). **NEXT DO-NOW RUNG.**
-4. `tr` — per-byte translate/delete (codebook argmax map — Sutra's strength).
+3. `head` / `tail -n` **SHIPPED 2026-07-06** — `run_head_tail.py` + `filter_heads.su`: substrate
+   line-gated stream filters. A recurring line accumulator + an EXACT integer gate (`ge1(x)=1 iff x>=1`,
+   built from relu) mask each emitted codepoint (`served * gate`); head gates `line_idx < N`, tail counts
+   the total on the substrate (pass 1) then gates `line_idx >= total-N`. 72/72 checks vs coreutils
+   head/tail (6 inputs × 6 N × 2 utils), incl. unterminated last line (+1 boundary correction) and blank
+   lines. `--head`/`--tail -n K` pipe modes. Guard: `test_ntm_ram.py::test_neural_head_tail_line_gated_
+   filters`.
+4. `tr` — per-byte translate/delete (codebook argmax map — Sutra's strength). **NEXT DO-NOW RUNG.**
 5. `rev` / `tac` — reverse within a line / reverse line order (permutation + full RAM buffer).
 6. `cut` — select columns/fields.
 

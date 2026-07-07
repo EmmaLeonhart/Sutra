@@ -138,6 +138,23 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_head_tail_line_gated_filters(self):
+        # Unix rung 4: head/tail = substrate line-gated stream filters. A recurring
+        # line accumulator + an EXACT integer gate mask each emitted codepoint by
+        # line index; tail counts the total on the substrate first. Checked against
+        # known head/tail outputs (model-free).
+        from run_head_tail import neural_head, neural_tail
+        text = "a\nb\nc\nd\ne\n"
+        self.assertEqual(neural_head(text, 2), "a\nb\n")
+        self.assertEqual(neural_head(text, 0), "")
+        self.assertEqual(neural_head(text, 9), text)          # N > lines => all
+        self.assertEqual(neural_tail(text, 2), "d\ne\n")
+        self.assertEqual(neural_tail(text, 3), "c\nd\ne\n")
+        self.assertEqual(neural_tail(text, 9), text)
+        # final line with no trailing newline (the +1 boundary correction)
+        self.assertEqual(neural_tail("x\ny\nz", 2), "y\nz")
+        self.assertEqual(neural_head("x\ny\nz", 2), "x\ny\n")
+
     def test_neural_wc_counts_match_coreutils_exactly(self):
         # Unix rung 3: wc = the first REAL transform. Substrate streaming
         # accumulators (recurring VRAM vectors) count (lines, words, bytes) via
