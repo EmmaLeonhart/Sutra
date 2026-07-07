@@ -300,5 +300,37 @@ class NeuralRegex:
         return False
 
 
+    def _longest_from(self, text, start):
+        """Longest end index (exclusive) at which an accept state is active for a
+        match ANCHORED at `start` (start injected only at `start`, not re-injected),
+        or None. Respects `$` (accept counts only at end-of-text when $-anchored)."""
+        st = self.s0
+        n = len(text)
+        best = None
+        if self._accept_active(st) and (not self.anchored_end or start == n):
+            best = start
+        for e in range(start, n):
+            st = self._char_trans(st, text[e])
+            if self._accept_active(st) and (not self.anchored_end or e + 1 == n):
+                best = e + 1
+        return best
+
+    def match_span(self, text, from_pos=0):
+        """Leftmost-longest match span (start, end) at or after `from_pos`, or None.
+        Leftmost start wins; for that start, the longest match is taken. A
+        `^`-anchored pattern can only match at position 0."""
+        n = len(text)
+        if self.anchored_start:
+            if from_pos != 0:
+                return None
+            end = self._longest_from(text, 0)
+            return (0, end) if end is not None else None
+        for s in range(from_pos, n + 1):
+            end = self._longest_from(text, s)
+            if end is not None:
+                return (s, end)
+        return None
+
+
 def regex_search(pattern: str, text: str) -> bool:
     return NeuralRegex(pattern).search(text)
