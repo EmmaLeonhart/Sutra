@@ -1,3 +1,20 @@
+## 2026-07-06: neural Unix rung 4 — `head` / `tail -n` (substrate line-gated filters)
+
+`experiments/ntm_ram/filter_heads.su` + `run_head_tail.py`. head and tail are one substrate machine: a
+recurring line accumulator plus an EXACT integer gate that masks each emitted codepoint by line index.
+The emitted value is `served * gate` with gate in {0,1}; the orchestrator collects the stream and drops
+the masked-out zeros. The gate is `ge1(x) = 1 - relu(1 - relu(x))` — exactly 1 for integer x>=1, else 0
+— reusing the relu-of-triangle exactness from wc (no saturation residual). head gates `line_index < N`;
+tail runs two passes — pass 1 counts the total lines on the substrate (`count_lines`), the host reads it
+at the boundary and computes `start = total - N` (offset arithmetic at the wire, plus a +1 correction
+when the input has no trailing newline — a last-byte inspection, I/O), pass 2 gates `line_index >= start`.
+
+72/72 checks vs coreutils head/tail (6 inputs × 6 N values × 2 utilities), including the unterminated
+final line and blank-line cases; `--head`/`--tail -n K` consume a real pipe. The line budget/offset `n`
+is passed in as a number-vector so the comparison happens on the substrate. Dim audit: model-free heads,
+semantic_dim=2 honest. Guard: `test_ntm_ram.py::test_neural_head_tail_line_gated_filters`; 15 ntm_ram
+tests green. Next: `tr` (per-byte codebook translate — Sutra's argmax strength).
+
 ## 2026-07-06: neural Unix rung 3 — `wc` (first real transform, substrate streaming accumulators)
 
 `experiments/ntm_ram/wc_heads.su` + `run_wc.py`. The first rung that TRANSFORMS rather than passes
