@@ -418,8 +418,21 @@ Tier D — filesystem (needs P1):
     verified by reading back on the substrate. All pass vs coreutils `cat`/`ls -1` over a sandbox (single/
     multi/missing file, sorted listing, mutation round-trips). Guard:
     `test_ntm_ram.py::test_neural_filesystem_cat_file_and_ls`.
-15. `find [DIR] [-name PAT]` **NEXT DO-NOW RUNG** — recursive directory walk + `-name` filtering via the
-    on-substrate NFA (fnmatch→regex); needs the nested-directory tree (disk-device.md open-question 1).
+15. `find [DIR] [-name PAT]` **SHIPPED 2026-07-06 — NEURAL UNIX UTILITIES EPIC COMPLETE** — `run_fs.py`:
+    pre-order recursive walk of the tree (host I/O, `os.walk` over the disk device's nested dirs) emitting
+    each path; `-name GLOB` keeps entries whose BASENAME matches, via `_fnmatch_to_regex` (glob→regex) +
+    the on-substrate NFA `fullmatch`. All pass vs coreutils `find` (full listing, `*.txt`, `*.log`, exact
+    `sub`, single-char `?.txt`, no-match) over a nested sandbox; traversal is I/O, the name test is
+    substrate. Guard: `test_ntm_ram.py::test_neural_find_recursive_name_filter`.
+
+**⭐ THE NEURAL UNIX UTILITIES EPIC IS COMPLETE (Emma 2026-07-06 goal).** 15 rungs, every one verified
+against the real coreutils binary / Python `re`, each with a regression guard in `test_ntm_ram.py`
+(20 tests): echo · cat · wc · head/tail · tr · rev/tac · cut · uniq · sort · grep(-F,-E) · sed · awk(subset)
+· cat FILE/ls/cp/mv/rm · find. Two prerequisites built + spec'd (P2 on-substrate regex NFA, P1 persistent
+disk device). Substrate keystones: the exact codepoint indicator `relu(1-|c-center|)` (gap 1.0, no
+saturation residual) for all scalar rungs; the N-dim state-set + transition matmuls for the regex NFA
+(first vector-valued substrate state). Full-language `awk` (variables/arithmetic/BEGIN-END) is the one
+named-not-built far-out remainder. Per Emma's 2026-07-06 sequencing, the **FV paper** (queue tail) is next.
 
 ---
 
