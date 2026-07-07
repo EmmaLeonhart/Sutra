@@ -38,27 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Python-builtin host-escape-hatch — SUT0204 SHIPPED 2026-07-06
-
-The last H1-adjacent gap: unknown call-position names lower to bare Python names, so Python builtins
-(`print`, `str(len(...))`) were silently callable from `.su` — a host escape hatch. `symbol_table.is_python_builtin_escape` (callable Python builtin ∧ resolves to no Sutra fn/local/class) +
-`validator` SUT0204 WARNING, given PRIORITY over the SUT0201 typo guess (naming the builtin beats
-"did you mean <near Sutra fn>"). Measured 0 valid-corpus false positives; `test_python_builtin_escape.py`
-(6) + corpus sweep, 39 validator-touching tests green. Shipped as a WARNING (source still compiles);
-making it an ERROR that actually blocks the escape hatch is a separate tightening — Emma's call.
-
----
-
-**Theme (Emma 2026-06-22/23): USABILITY.** Make Sutra easy for an outside person to install, run,
-and learn. The backlog elsewhere is all substrate-correctness; none of it is usability. The
-in-process-embedding change (drop the Ollama daemon) shipped 2026-06-22. Barrel these top to bottom;
-delete each on completion + append to `DEVLOG.md` in the same commit.
-
-**Usability audit CONVERGED across Batches 1–11 (2026-07-01).** All shippable bounded items
-drained; per the delete-on-done rule the batch records are cleared from this file — full history in
-`DEVLOG.md` + `git log` (queue.md's own history holds the batch text). Re-run the PINNED TAIL audit
-next session to refill if usability re-opens.
-
 ### Usability audit round 12 (2026-07-04, pip-only onboarding) — remaining atomised items
 
 Round-12 evidence so far (fresh venv, PyPI 0.9.2): install clean; website `docs/index.md`
@@ -67,8 +46,6 @@ missing-semicolon diagnostic is precise (`SUT0100` with file:line:col). Fixed in
 README fast-path referenced a repo path a pip-only user lacks (now inline-hello, matching the
 website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded items, in order:
 
-1. **REPL bare-string crash + `similarity("cat","dog")` opaque error — DONE via H1** (SUT0203 +
-   REPL T4/T5 string evaluation).
 2. **Tag `sutra-dev-v0.9.3` — READY, needs a go (outward PyPI publish).** Ships the WHOLE H1 milestone
    now at HEAD (symbol table + SUT0200–0203 + type inference + REPL string-eval), well beyond the
    2026-07-04 diagnostic-fixes scope this item was written for — so re-confirm before publishing. Steps
