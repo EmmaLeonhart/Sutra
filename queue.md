@@ -296,8 +296,9 @@ P0 stdin/stdout path. (Honest scope: echo is the passthrough base case — the s
 scan/emit; real transforms start at `wc`/`tr`.)
 
 ### Prerequisites — build/verify as the utilities force them (order = first need)
-- **P0 — stdin/stdout as boundary axons.** DONE for the read/emit direction via rung 1. Extend to a
-  true streamed stdin axon when a utility consumes piped input.
+- **P0 — stdin/stdout as boundary axons.** DONE. Read/emit shipped via rung 1 (echo); the streamed
+  STDIN axon shipped via rung 2 (cat) — `_stream_load` feeds RAM in chunks (as a pipe delivers), the
+  substrate scans the assembled stream, `--stdin` mode consumes a real pipe.
 - **P1 — external DISK device + filesystem namespace.** Persistent addressable regions + a
   path→region map, serviced by the orchestrator like RAM but persistent. Forced first by `cat FILE`
   / `ls`; spec it in `planning/sutra-spec/` before building.
@@ -306,9 +307,13 @@ scan/emit; real transforms start at `wc`/`tr`.)
 
 ### Utilities, ordered by difficulty — barrel top to bottom; each verified decoded-output == coreutils ground truth
 Tier A — pure stream transforms (RAM buffer only, no filesystem):
-1. `cat` (stdin passthrough) — stream copy. **NEXT DO-NOW RUNG** (extends rung 1's harness to a
-   streamed input axon).
+1. `cat` **SHIPPED 2026-07-06** — `experiments/ntm_ram/run_cat.py`: streamed stdin (`_stream_load`, 8-byte
+   chunks) → substrate scan/emit read head → decoded stdout == coreutils `cat.exe` byte-for-byte (7/7
+   cases: multi-line, empty, punctuation, multi-chunk-boundary; `--stdin` consumes a real pipe). Honest
+   scope: still a passthrough (no substrate transform over echo) — the new work is the P0 stdin axon.
+   Regression guard in `test_ntm_ram.py::test_neural_cat_streams_stdin_passthrough`.
 2. `wc` — byte/word/line counts via substrate streaming accumulators (first real transform).
+   **NEXT DO-NOW RUNG.**
 3. `head` / `tail -n` — first/last N lines (RAM ring buffer).
 4. `tr` — per-byte translate/delete (codebook argmax map — Sutra's strength).
 5. `rev` / `tac` — reverse within a line / reverse line order (permutation + full RAM buffer).
