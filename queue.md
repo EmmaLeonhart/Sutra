@@ -38,23 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Daily audit finding 2026-07-07 — `fv-convergence-spectral-gap-leg.md` is resolved-elsewhere; reduce to a pointer
-
-Doc: `planning/open-questions/fv-convergence-spectral-gap-leg.md`. Its top line already says
-"**Status: RESOLVED (2026-06-30).** Proved as `SutraConvergence.applyP_gap_contraction`" — but the
-rest of the doc is still the pre-resolution statement + proof route + a "why the capstone is not
-done yet" section. Per the folder rule (`planning/open-questions/README.md` §Rules 3: "Resolving an
-open question means updating the spec or the implementation, then removing the doc from this
-folder. Don't let resolved questions rot here."), reduce to a one-line pointer at:
-- authoritative resolution: `fv-lean/mathlib/Convergence.lean:347` (`theorem applyP_gap_contraction`,
-  CI-green run 28486967459, `[propext, Classical.choice, Quot.sound]`, no `sorryAx`);
-- already cited from `paper/formal-verification/paper.md:35, 997`.
-The doc's own last paragraph names a DIFFERENT still-open item (a machine-checked `λ₂`/eigenvalue
-bound on the concrete 8-state kernel to discharge the scalar Rayleigh hypothesis from the matrix
-entries; measured `γ = 0.0397` is currently just the input) — if that lives on, promote it to its
-OWN dossier under a fresh filename, not as a footer on this one. Delete this queue item once the
-reduce/split is committed.
-
 ### Usability audit round 16 (2026-07-06) — real-program-reach drive (codegen vs docs)
 
 Drove newcomer programs; most ops correct (foreach=6, array index, arithmetic, casts-of-literals). Gaps:

@@ -1,3 +1,17 @@
+## 2026-07-07: open-questions hygiene — fv-convergence-spectral-gap-leg.md reduced to pointer; λ₂ leg split to its own dossier
+
+The 07-07 audit fire flagged that `planning/open-questions/fv-convergence-spectral-gap-leg.md` was
+resolved (2026-06-30, `applyP_gap_contraction`) but still carried the full pre-resolution statement +
+proof route + "why the capstone is not done yet" — exactly the resolved-question rot the folder README
+§Rule 3 forbids. Reduced it to a pointer at the authoritative resolution (verified the theorem sits at
+`fv-lean/mathlib/Convergence.lean:346`, CI run 28486967459). The doc's genuinely-live tail — a
+machine-checked `λ₂`/gap VALUE for the literal 8-state single-spin-flip kernel (measured `γ = 0.0397`
+is currently an instantiation input, not Lean-derived) — got its OWN dossier,
+`gibbs-8state-lambda2-machine-checked-gap.md`, stating: per-edge conductance can't work (zeros between
+non-neighbours), the viable route is canonical-paths comparison, and the leg is named-NOT-green-lit
+(Emma's call, consistent with queue.md § FV PAPER — the queue's 07-06 NOT-green-lit framing is more
+recent and more specific than building/todo.md's 07-03 "both legs green-lit" note, so it governs).
+
 ## 2026-07-07: daily substrate-honesty audit — CLEAN (post-656e888f batch: neural-Unix rungs 2–15, H1 symtable/type-inference, make_string bugfix, SUT0204)
 
 Reviewed every commit since the previous completed audit (`656e888f`) against CLAUDE.md § "Subtler
