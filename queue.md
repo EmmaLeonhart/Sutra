@@ -386,9 +386,15 @@ Tier C — pattern matching (needs P2 — neural regex/NFA; `grep` fixed-string 
 11. `grep` (regex) **SHIPPED 2026-07-06** — `run_grep_regex.py`: `grep -E` on the substrate NFA (one NFA
     per pattern, reused per line). **10/10 vs coreutils `grep -E`** (`colou?r`, `[0-9]+`, `gr[ae]y`,
     `cat|dog`, `^`/`$`, `-v`). Pipe `-E PATTERN` / `-v -E PATTERN`. Guard:
-    `test_ntm_ram.py::test_neural_grep_regex_matches_coreutils`. **NEXT: `sed`** (needs match-span
-    extraction — spec open-question 1: carry the earliest start position on the winning path) → `awk`
-    (a whole language — the Sutra compiler is the engine; far out). Then Tier D (filesystem, needs P1).
+    `test_ntm_ram.py::test_neural_grep_regex_matches_coreutils`.
+12. `sed s/re/repl/[g]` **SHIPPED 2026-07-06** — `run_sed.py`: regex substitute on the substrate NFA.
+    Adds match-SPAN extraction (spec open-question 1 resolved pragmatically): `NeuralRegex.match_span`
+    finds the leftmost start, then the longest end at which an accept state is active (accept test on the
+    substrate at each end position); host splices repl into the span (`&` = whole match). `s///` + `s///g`.
+    **10/10 vs coreutils `sed -E`** (leftmost-longest `a+`→`A`, global, `[0-9]+`, `&`, no-match). Pipe
+    `'s/re/repl/[g]'`. (Backreferences `\1` need capture groups the NFA doesn't track — out of scope,
+    named not dropped.) Guard: `test_ntm_ram.py::test_neural_sed_substitute`. **NEXT: `awk`** — a whole
+    language (the Sutra compiler is the engine; far out). Then Tier D (filesystem, needs P1 disk device).
 
 Tier D — filesystem (needs P1):
 11. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.

@@ -138,6 +138,18 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_sed_substitute(self):
+        # Unix rung 12: sed s/re/repl/[g]. Adds match-SPAN extraction on the
+        # substrate NFA (leftmost-longest via accept-active at each end position);
+        # host splices repl into the located span, & = whole match.
+        from run_sed import neural_sed
+        self.assertEqual(neural_sed("hello\n", "s/l/L/"), "heLlo\n")
+        self.assertEqual(neural_sed("hello\n", "s/l/L/g"), "heLLo\n")
+        self.assertEqual(neural_sed("aaa bbb aaa\n", "s/a+/A/g"), "A bbb A\n")
+        self.assertEqual(neural_sed("2024-01\n", "s/[0-9]+/N/g"), "N-N\n")
+        self.assertEqual(neural_sed("wrap\n", "s/wrap/[&]/"), "[wrap]\n")
+        self.assertEqual(neural_sed("no x\n", "s/zzz/Q/g"), "no x\n")
+
     def test_neural_regex_nfa_matches_python_re(self):
         # Unix rung 11 / prerequisite P2: on-substrate NFA. The active-state SET is
         # an N-dim buffer stepped by transition + epsilon-closure MATMULS on the

@@ -1,3 +1,25 @@
+## 2026-07-06: neural Unix rung 12 — `sed s/re/repl/[g]` (regex substitute; match-span extraction)
+
+`experiments/ntm_ram/run_sed.py`. sed's substitute needs to know WHERE the match is, not just whether one
+exists — so this rung resolves the spec's open-question 1 (match-span extraction) pragmatically on top of
+the substrate NFA. `NeuralRegex.match_span` returns the leftmost-longest span: it scans start positions
+(only 0 for a `^`-pattern), and for the first start with a match runs the NFA anchored there, recording
+the LONGEST end index at which an accept state is active — the accept test runs on the substrate at each
+end position. The host then splices the replacement into the located span (`&` expands to the matched
+text), for the leftmost match (`s///`) or every non-overlapping match (`s///g`, with empty-match
+advance-by-one to avoid looping).
+
+10/10 vs coreutils `sed -E`: single vs global, leftmost-LONGEST (`a+`→`A` eats the whole run), character
+classes (`[0-9]+`→`N` collapses each number), `&` whole-match expansion, and no-match passthrough. Pipe
+`'s/re/repl/[g]'` works. Backreferences (`\1`) need capture-group tracking the NFA doesn't do — out of
+scope, named not silently dropped. The match decisions are substrate (the NFA); the splice is host I/O.
+Guard: `test_ntm_ram.py::test_neural_sed_substitute`.
+
+12 neural-Unix rungs now (Tiers A + B complete; Tier C: grep-F, regex NFA, grep-E, sed). Remaining Tier C:
+`awk` — a whole language, where the Sutra compiler itself is the engine (far out). Then Tier D
+(filesystem: `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find`), which needs prerequisite P1 (a persistent disk
+device + path→region map) — spec that first.
+
 ## 2026-07-06: neural Unix rung 11 — regex NFA matcher + `grep -E` (P2 BUILT; vector-valued substrate state)
 
 Implemented the P2 prerequisite spec'd earlier today, and `grep -E` on top. `experiments/ntm_ram/
