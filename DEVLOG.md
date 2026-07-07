@@ -1,3 +1,16 @@
+## 2026-07-06: docs — compilation.md Stage-3 shows the v0.2 name-resolution diagnostics (round-13 item 2)
+
+`docs/compilation.md`'s Stage-3 (Validator) walkthrough listed only the v0.1 structural checks
+(SUT0120/0111/0110/0112/0113) and predated the v0.2 symbol table. Added a "since v0.2 the validator also
+has a symbol table" block with a worked example for each new diagnostic: SUT0200 (typo'd type `vec`),
+SUT0201 (`argmaxcosine` → did-you-mean `argmax_cosine`), SUT0202 (wrong arg count), SUT0203
+(`similarity("cat","dog")` → embed the strings first). The messages are the REAL validator output
+(verified by running `validate_source` on each case), rendered as quoted text with only the code names in
+backticks so the nested backticks don't break markdown, and cross-linked to the capabilities.md §10 code
+index. `scripts/build_site.py` builds clean (exit 0). Docs source only (built HTML is a gitignored
+artifact). Round-13 item 2 done; items 3 (repl.md bare-string eval) + 4 (consolidate the scattered
+diagnostics reference) remain for the next fires.
+
 ## 2026-07-06: usability audit round 13 — document the new v0.2 diagnostics (SUT0200–0203)
 
 PINNED-TAIL refill now that the H1 + neural-Unix epics drained. Audited the error-messages + docs surface
