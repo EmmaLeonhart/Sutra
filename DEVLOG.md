@@ -1,3 +1,14 @@
+## 2026-07-06: finding — `<=`/`>=` return neutral at exact ties (real-program-reach audit)
+
+Newcomer drive continued from the make_string fix: `2 <= 2` / `2 >= 2` evaluate to the truth-axis NEUTRAL
+(0), not true (strict `<`/`>`, `==`, non-tie `<=`/`>=` all correct). It's DELIBERATE — `stdlib/logic.su`
+defines `le`/`ge` as the strict operators for the differentiable-tanh scheme (ties give tanh(0)=0) — but
+mathematically wrong and newcomer-hostile. The composable fix `le = or(<, ==)` restores tie-correctness
+(measured +1 at ties) but folds in cosine-`==`, possibly costing differentiability — a real training-vs-
+newcomer-correctness tradeoff, so NOT changed unilaterally (core operator semantics = Emma's call). Wrote
+`planning/findings/2026-07-06-le-ge-tie-returns-neutral.md` + a NEEDS-DECISION queue item. No test asserts
+the current tie=0 (grep clean), so either disposition is test-open.
+
 ## 2026-07-06: BUGFIX — make_string double-wrap corrupted every String (usability audit, real-program reach)
 
 Real-program-reach audit (PINNED TAIL): drove a newcomer string program and hit a genuine correctness
