@@ -1,3 +1,11 @@
+## 2026-07-06: docs — demos.md neural-computer showcase (usability round-14 item 2; round COMPLETE)
+
+Added a newcomer-facing 'The big Unix tools, on a completely neural computer' section to `docs/demos.md`:
+the 15 verified tools listed, the exact-codepoint-indicator keystone and the regex NFA's vector-valued
+matmul-stepped state, and a GitHub source link to `experiments/ntm_ram/` (website discipline: no docs-
+internal queue/planning refs). `scripts/build_site.py` clean. Closes usability audit round 14 (README +
+showcase). Docs source only.
+
 ## 2026-07-06: neural-Unix epic gets a catalogue README (usability round-14 item 1)
 
 Audited discoverability: the completed 15-utility neural-Unix epic had no overview — no README in
