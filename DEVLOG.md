@@ -1,3 +1,21 @@
+## 2026-07-06: neural Unix rung 8 — `uniq` (substrate line comparison; Tier B entry)
+
+`experiments/ntm_ram/uniq_head.su` + `run_uniq.py`. uniq collapses ADJACENT identical lines, and the
+prev-vs-current line-equality test — the first rung that COMPARES two buffered pieces of content rather
+than transforming one stream — runs on the substrate. `line_cmp` streams the two lines' codepoints
+position by position and accumulates a MISMATCH count in a recurring VRAM slot: `+= (1 - is_cp(a_i,
+b_i))`, is_cp the exact codepoint indicator (1 iff equal). The host pads the shorter line to the longer
+length with a sentinel (-1) that no real codepoint equals, so a length difference also produces
+mismatches; mismatch == 0 iff the two lines are identical. The host reads that count at the boundary and
+drops a line iff it equals its predecessor.
+
+8/8 vs coreutils `uniq`: adjacent runs collapsed while a non-adjacent repeat is kept, all-distinct,
+all-same, a length-difference adjacency (`ab`/`abc`), an unterminated last line (uniq still terminates
+emitted lines with a newline), and empty input. `--uniq` consumes a real pipe. Line model matches uniq's
+(a trailing newline adds no empty line; an unterminated final line is still a line). Dim audit:
+model-free, semantic_dim=2 honest. Guard: `test_ntm_ram.py::test_neural_uniq_adjacent_dedup`. Next: Tier
+B `sort` — the full-buffer on-substrate comparison network (the hard leap).
+
 ## 2026-07-06: neural Unix rung 7 — `cut -c` (per-column gated emit; Tier A COMPLETE)
 
 `experiments/ntm_ram/run_cut.py`. `cut -c LIST` selects character columns per line — a gated stream

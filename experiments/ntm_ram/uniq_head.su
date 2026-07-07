@@ -1,0 +1,27 @@
+// uniq_head.su — substrate line-equality comparator (Unix rung 8: uniq).
+//
+// uniq collapses ADJACENT identical lines. The decision is a prev-vs-current line
+// comparison, done on the substrate: `line_cmp` streams the two lines' codepoints
+// position by position and accumulates a MISMATCH count in a recurring VRAM slot —
+// += (1 - is_cp(a_i, b_i)) per position, where is_cp is the exact codepoint
+// indicator (1 iff equal). The host pads the shorter line with a sentinel that no
+// real codepoint equals, so a length difference shows up as mismatches too. After
+// streaming, mismatch == 0 iff the two lines are identical (a substrate all-equal
+// test); the host reads that at the boundary and drops the line when it is a dup.
+//
+// The comparison itself — the "prev-vs-current similarity" — is the substrate
+// work; the host only drives the position pairing and reads the final count.
+function vector is_cp(vector served, vector center) {
+    vector d = served - center;
+    vector tri = make_real(1.0) - make_real(abs(d));
+    return (tri + make_real(abs(tri))) * make_real(0.5);
+}
+
+function vector line_cmp(vector a_i, vector b_i) {
+    recurring vector mismatch = make_real(0.0);
+    vector next = mismatch + (make_real(1.0) - is_cp(a_i, b_i));
+    recur(next);
+    return next;
+}
+
+function string main() { return "ok"; }

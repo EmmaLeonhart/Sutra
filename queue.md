@@ -351,8 +351,14 @@ Tier A — pure stream transforms (RAM buffer only, no filesystem):
    field counting.)
 
 Tier B — ordering / comparison / dedup (more RAM, comparison networks):
-7. `uniq` — adjacent-dup removal (prev-vs-current similarity). **NEXT DO-NOW RUNG.**
-8. `sort` — full-buffer on-substrate comparison network (the hard leap of Tier B).
+7. `uniq` **SHIPPED 2026-07-06** — `run_uniq.py` + `uniq_head.su`: collapse ADJACENT identical lines via
+   a substrate prev-vs-current comparison. `line_cmp` accumulates a MISMATCH count over exact per-position
+   char indicators (`+= 1 - is_cp(a_i,b_i)`); the shorter line is padded with a sentinel no codepoint
+   equals, so length differences register too; mismatch==0 iff identical. 8/8 vs coreutils `uniq`
+   (adjacent runs, all-distinct, length-diff adjacency, unterminated last line, empty). `--uniq` pipe
+   mode. First Tier-B rung — COMPARES two buffered lines. Guard:
+   `test_ntm_ram.py::test_neural_uniq_adjacent_dedup`.
+8. `sort` — full-buffer on-substrate comparison network (the hard leap of Tier B). **NEXT DO-NOW RUNG.**
 
 Tier C — pattern matching (needs P2):
 9. `grep` (fixed string) — substring attention over the RAM buffer.

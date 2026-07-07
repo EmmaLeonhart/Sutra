@@ -138,6 +138,19 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_uniq_adjacent_dedup(self):
+        # Unix rung 8 (Tier B entry): uniq collapses ADJACENT identical lines. The
+        # prev-vs-current line-equality test runs on the substrate — a recurring
+        # mismatch accumulator over exact per-position char indicators, with the
+        # shorter line padded so length differences register.
+        from run_uniq import neural_uniq
+        self.assertEqual(neural_uniq("a\na\nb\nb\nb\nc\na\n"), "a\nb\nc\na\n")
+        self.assertEqual(neural_uniq("same\nsame\nsame\n"), "same\n")
+        self.assertEqual(neural_uniq("ab\nabc\nabc\nab\n"), "ab\nabc\nab\n")
+        self.assertEqual(neural_uniq("all\ndistinct\n"), "all\ndistinct\n")
+        self.assertEqual(neural_uniq("trailing\ntrailing"), "trailing\n")
+        self.assertEqual(neural_uniq(""), "")
+
     def test_neural_cut_c_column_gated_emit(self):
         # Unix rung 7: cut -c = per-column gated emit. A recurring column counter
         # resets at each newline; each char is emitted iff its column is in the
