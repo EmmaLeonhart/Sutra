@@ -1,3 +1,22 @@
+## 2026-07-06: neural Unix rung 2 — `cat` (streamed stdin axon)
+
+`experiments/ntm_ram/run_cat.py`. cat with no file operands is stdin→stdout passthrough, so — like echo
+— the substrate does no transform; the genuine new work is the P0 boundary's other half: a STREAMED
+STDIN axon. `_stream_load` hands the input to the RAM device in successive 8-byte chunks (as a pipe
+delivers it), each appended at the growing write offset, the end-of-stream zero-cell sentinel left only
+after the final chunk; the compiled `text_scan.su` read head then scans the assembled stream and emits it
+cell by cell, and the decoded emit stream IS cat's stdout. Verified char-for-char against the real
+coreutils `cat.exe` (7/7: multi-line, empty stdin, trailing-newline-or-not, leading/trailing spaces,
+punctuation, and a paragraph spanning several chunk boundaries). `--stdin` mode consumes a real pipe end
+to end.
+
+Honest scope (CLAUDE.md § subtler breaches): no new substrate op over echo — cat is the passthrough base
+case for PIPED input, and I'm stating that plainly rather than dressing it up. The read head is still
+model-free (no basis_vector/embed), so semantic_dim=2 stays the honest dim. Real transforms begin at `wc`
+(streaming byte/word/line accumulators) — the next rung. Regression guard:
+`test_ntm_ram.py::test_neural_cat_streams_stdin_passthrough` (model-free; the coreutils comparison lives
+in run_cat.py's self-test). 13 ntm_ram tests green.
+
 ## 2026-07-06: v0.2 symbol table (H1) — arity checking SUT0202
 
 Rung 6, and the cheapest of the set because the arity was already collected (`FunctionSig.arity`).

@@ -138,6 +138,17 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_cat_streams_stdin_passthrough(self):
+        # Unix rung 2: `cat` = streamed stdin -> substrate scan/emit -> stdout.
+        # The decoded emit stream must equal the piped input byte-for-byte across
+        # multi-line, empty, and multi-chunk-boundary content (the streamed loader
+        # feeds RAM in 8-byte chunks). Model-free; the coreutils cat.exe
+        # comparison lives in run_cat.py's own self-test.
+        from run_cat import neural_cat
+        for data in ("hello world\n", "one\ntwo\nthree\n", "no trailing newline",
+                     "", "spans several eight-byte chunk boundaries here.\n"):
+            self.assertEqual(neural_cat(data), data, repr(data))
+
     def test_pointer_chase_follows_links(self):
         from ram_device import RamDevice
         from orchestrator import Orchestrator
