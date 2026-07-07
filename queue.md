@@ -38,54 +38,15 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Usability audit round 14 (2026-07-06) — discoverability of the neural-Unix epic
+### Python-builtin host-escape-hatch — the one H1-adjacent item still open
 
-PINNED-TAIL refill (round 13 drained). Audited DISCOVERABILITY / real-program-reach: the 15-utility
-neural-Unix epic (a completely-neural computer running the big Unix tools, all verified vs coreutils) had
-**zero discoverability** — no README in `experiments/ntm_ram/`, no mention in `docs/`. Findings:
-
-1. **No catalogue for the neural-Unix epic — DONE 2026-07-06.** Wrote `experiments/ntm_ram/README.md`: the
-   goal + substrate keystones (the exact `relu(1-|c-center|)` indicator; the regex NFA's vector-valued
-   state), the 15 rungs by tier with their `run_*.py` entry points + how to run the self-tests, and the
-   machine underneath (RAM/disk devices, orchestrator, read heads). Agent-facing (experiments/ is the
-   right home).
-2. **Website neural-computer showcase — DONE 2026-07-06.** Added a "The big Unix tools, on a completely
-   neural computer" section to `docs/demos.md`: the 15 verified tools, the exact-codepoint-indicator
-   keystone + the regex NFA's vector-valued state, GitHub source link to `experiments/ntm_ram/` (no
-   docs-internal planning/queue refs). `build_site.py` clean. **Round-14 COMPLETE** (both items).
-
-### Usability audit round 13 (2026-07-06) — the new v0.2 diagnostics' docs surface
-
-PINNED-TAIL refill after the H1 + neural-Unix epics drained. Audited the ERROR-MESSAGES + DOCS surfaces
-against the just-shipped SUT0200–0203 diagnostics. Findings, atomised:
-
-1. **SUT0200–0203 undocumented in the diagnostic-code reference — DONE 2026-07-06.** `docs/capabilities.md`
-   §10's code list stopped at SUT0145 and skipped straight to SUT2002 — the v0.2 name-resolution codes
-   (and SUT0151) were absent. Added SUT0151 + SUT0200 (unknown type) + SUT0201 (unknown-function did-you-
-   mean) + SUT0202 (arg count) + SUT0203 (arg type, steers to `embed`), matching the shipped behaviour.
-2. **compilation.md example-diagnostics list is stale — DONE 2026-07-06.** Added a "since v0.2 the
-   validator also has a symbol table" block to Stage 3 with a worked example for each of SUT0200 (typo'd
-   `vec`), SUT0201 (`argmaxcosine` did-you-mean), SUT0202 (arg count), SUT0203 (`similarity("cat","dog")`
-   → embed first) — real messages verified against the validator, rendered as quoted text (no nested
-   backticks), cross-linked to capabilities.md §10; `build_site.py` clean.
-3. **repl.md doesn't mention bare string literals now evaluate — DONE 2026-07-06.** Added a short block
-   after the `embed(...)` section showing `"hello"` → `"hello"` (verified in a real REPL run), drawing the
-   distinction between a bare string literal (its own text) and `embed("hello")` (its meaning vector), plus
-   a `"text"` entry in the "Reading results" list. `build_site.py` clean.
-4. **Diagnostics reference scattered — DONE 2026-07-06.** Made `capabilities.md` §10 the single canonical
-   `SUT####` index (labelled it so in-page) and cross-linked the other pages that mention a specific code
-   (`compilation.md` already; added links from `ontology.md` and `primitive-classes.md` to §10).
-   `build_site.py` clean. **Round-13 audit round COMPLETE** (all 4 items done) — re-run the PINNED TAIL
-   next drain to refill.
-
-### v0.2 symbol table / name resolution (H1) — COMPLETE 2026-07-06 (Emma green-lit)
-
-All rungs shipped: symbol table (file/local/stdlib scope), cross-file/external-type handling, four
-diagnostics (SUT0200 unknown-type, SUT0201 unknown-function did-you-mean, SUT0202 arity, SUT0203
-wrong-arg-type), expression type inference, and the REPL string-evaluation fix — each measured to 0
-corpus false positives. Full history in DEVLOG.md + git log. One H1-adjacent item still OPEN: the
-Python-builtin host-escape-hatch blacklist (`planning/findings/2026-07-04-python-builtin-fallthrough.md`)
-— a separate blacklist concern, not started.
+The v0.2/H1 name-resolution milestone shipped in full (symbol table, SUT0200-0203, type inference, REPL
+string-eval - history in DEVLOG + git log). One adjacent gap remains, NOT started: unknown call-position
+names lower to bare Python names, so Python builtins (`print` mid-function, `str(len(...))`) are silently
+callable from `.su` - an accidental host escape hatch against the no-mid-computation-I/O identity. Finding:
+`planning/findings/2026-07-04-python-builtin-fallthrough.md`. Distinct from the did-you-mean typo detector
+(a blacklist of resolvable-but-forbidden host names), so it needs its own design pass - likely Emma's call
+(it tightens what compiles). Measure the corpus FP surface first, as with every H1 diagnostic.
 
 ---
 
