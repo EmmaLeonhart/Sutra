@@ -1,3 +1,20 @@
+## 2026-07-06: BUGFIX — make_string double-wrap corrupted every String (usability audit, real-program reach)
+
+Real-program-reach audit (PINNED TAIL): drove a newcomer string program and hit a genuine correctness
+bug. `String g = make_string("hello"); string_length(g)` returned **97 for every string** (empty, hello,
+concat — all 97). Root cause: a String-typed var-decl runs a type-coercion pass that wraps the
+initializer in `make_string`, EVEN when the initializer already produces a String — so the codegen
+emitted `_VSA.make_string(_VSA.make_string('hello'))`. The old `make_string(s)` did `s = str(s)` when `s`
+was not a Python str, so the inner String vector got `str(tensor)`-encoded (its repr as text) and
+re-made → garbage length 97. Fix: make `make_string` IDEMPOTENT — if `s` is already a String vector
+(is_string flag set), return it unchanged, mirroring `make_real`'s idempotence on a number-vector.
+
+After the fix: `make_string("hello")` len 5, `""` len 0, `concat(hello,world)` len 10, literal
+`String g="hi"` len 2 — all correct. New `test_make_string_idempotent.py` (5) + string_equality +
+terminal_string_decode + repl suites green (17), and `examples/_smoke_test.py` PASS (12/12, no
+regression). A codegen change verified end-to-end. This is the first real correctness bug the usability
+loop has surfaced (vs the doc gaps of rounds 13-15) — driving newcomer programs, not just reading docs.
+
 ## 2026-07-06: docs — retire the stale `unk` alias from the docs; smoke test verifies H1 didn't regress examples
 
 Aliases-audit tick (PINNED TAIL). CLAUDE.md records `unk -> unknown` as retired 2026-06-23, and the lexer

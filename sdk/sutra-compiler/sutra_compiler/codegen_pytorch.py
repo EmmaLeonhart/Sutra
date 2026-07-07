@@ -2828,7 +2828,16 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def make_string(self, s):")
         self._indent += 1
-        self._emit('"""Construct a String value from a Python str."""')
+        self._emit('"""Construct a String value from a Python str. IDEMPOTENT on an')
+        self._emit('already-String vector: the type-coercion pass can wrap a String-typed')
+        self._emit("initializer in make_string even when it is already a String (e.g.")
+        self._emit('`String g = make_string(\"hi\")`), so a double make_string must return')
+        self._emit('the value unchanged, not `str(tensor)`-encode its repr as text."""')
+        self._emit("if _torch.is_tensor(s) and s.ndim >= 1 and "
+                   "s.shape[-1] == self.dim and bool(self.is_string(s)):")
+        self._indent += 1
+        self._emit("return s")
+        self._indent -= 1
         self._emit("if not isinstance(s, str):")
         self._indent += 1
         self._emit("s = str(s)")
