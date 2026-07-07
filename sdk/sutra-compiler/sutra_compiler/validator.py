@@ -554,19 +554,37 @@ class _Walker:
         # (`Cosine`) and external producers (`network_lookup`) never warn. Warning,
         # not error: the source is still valid v0.1 Sutra.
         if isinstance(callee, ast.Identifier) and self._symbols is not None:
-            suggestion = self._symbols.unknown_function_suggestion(
-                callee.name, self._all_local_names
-            )
-            if suggestion is not None:
+            # SUT0204 takes priority over the SUT0201 typo guess: a call to a
+            # CALLABLE PYTHON BUILTIN that is not a Sutra name lowers to a bare
+            # Python call and runs on the host (`print`, `str(len(...))`) — the
+            # accidental escape hatch against the no-mid-computation-I/O identity.
+            # Naming it plainly beats "did you mean <near Sutra fn>?". Warning (the
+            # source still compiles); measured 0 valid-corpus false positives.
+            if self._symbols.is_python_builtin_escape(callee.name, self._all_local_names):
                 self.diagnostics.warning(
-                    f"unknown function `{callee.name}` — did you mean "
-                    f"`{suggestion}`?",
+                    f"`{callee.name}` is a Python builtin, not a Sutra function — "
+                    "calling it lowers to a host call, which Sutra does not allow "
+                    "(no host execution mid-computation)",
                     callee.span,
-                    code="SUT0201",
-                    hint=f"`{callee.name}` resolves to no function, builtin, "
-                         "stdlib call, or local — the closest known name is "
-                         f"`{suggestion}`",
+                    code="SUT0204",
+                    hint=f"there is no Sutra `{callee.name}`; use the Sutra "
+                         "operation for what you need (see the stdlib), not the "
+                         "host builtin",
                 )
+            else:
+                suggestion = self._symbols.unknown_function_suggestion(
+                    callee.name, self._all_local_names
+                )
+                if suggestion is not None:
+                    self.diagnostics.warning(
+                        f"unknown function `{callee.name}` — did you mean "
+                        f"`{suggestion}`?",
+                        callee.span,
+                        code="SUT0201",
+                        hint=f"`{callee.name}` resolves to no function, builtin, "
+                             "stdlib call, or local — the closest known name is "
+                             f"`{suggestion}`",
+                    )
             # SUT0202 (v0.2 name resolution): arity check on a call to a
             # file-declared function. Sutra params are fixed-arity (no defaults
             # or varargs), so an arg-count mismatch is a real error surfaced as a

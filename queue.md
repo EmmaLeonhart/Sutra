@@ -38,15 +38,14 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Python-builtin host-escape-hatch — the one H1-adjacent item still open
+### Python-builtin host-escape-hatch — SUT0204 SHIPPED 2026-07-06
 
-The v0.2/H1 name-resolution milestone shipped in full (symbol table, SUT0200-0203, type inference, REPL
-string-eval - history in DEVLOG + git log). One adjacent gap remains, NOT started: unknown call-position
-names lower to bare Python names, so Python builtins (`print` mid-function, `str(len(...))`) are silently
-callable from `.su` - an accidental host escape hatch against the no-mid-computation-I/O identity. Finding:
-`planning/findings/2026-07-04-python-builtin-fallthrough.md`. Distinct from the did-you-mean typo detector
-(a blacklist of resolvable-but-forbidden host names), so it needs its own design pass - likely Emma's call
-(it tightens what compiles). Measure the corpus FP surface first, as with every H1 diagnostic.
+The last H1-adjacent gap: unknown call-position names lower to bare Python names, so Python builtins
+(`print`, `str(len(...))`) were silently callable from `.su` — a host escape hatch. `symbol_table.is_python_builtin_escape` (callable Python builtin ∧ resolves to no Sutra fn/local/class) +
+`validator` SUT0204 WARNING, given PRIORITY over the SUT0201 typo guess (naming the builtin beats
+"did you mean <near Sutra fn>"). Measured 0 valid-corpus false positives; `test_python_builtin_escape.py`
+(6) + corpus sweep, 39 validator-touching tests green. Shipped as a WARNING (source still compiles);
+making it an ERROR that actually blocks the escape hatch is a separate tightening — Emma's call.
 
 ---
 
