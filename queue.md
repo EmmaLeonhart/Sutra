@@ -375,10 +375,17 @@ Tier C — pattern matching (needs P2 — neural regex/NFA; `grep` fixed-string 
    substrate. 9/9 vs coreutils `grep -F` (multi-match lines, overlapping windows `aa`/`aaa`, `-v` invert,
    empty pattern/input). `PATTERN` / `-v PATTERN` pipe modes. Guard:
    `test_ntm_ram.py::test_neural_grep_substring_match`.
-10. **P2 prerequisite — neural regex/NFA matcher** — compile a pattern to an on-substrate
-    argmax-attention state machine over the stream (forced by regex `grep`/`sed`). **NEXT DO-NOW RUNG** —
-    spec it in `planning/sutra-spec/` first, then `grep` (regex) → `sed` → `awk` (escalating; `awk` is a
-    whole language — the Sutra compiler itself is the engine).
+10. **P2 prerequisite — neural regex/NFA matcher.** **SPEC WRITTEN 2026-07-06** —
+    `planning/sutra-spec/neural-regex-nfa.md`: Thompson NFA (compile-time, host — it's compilation) →
+    state-set as an N-dim substrate vector → per-char step `s' = ge1(E @ (T_c @ s))` (transition matmul +
+    epsilon-closure, char-class selection via the exact-indicator machinery), accept = `ge1(accept·s)`;
+    grep uses a `.*`-prefixed search NFA. First-cut subset: literals, `.`, `[...]`, `* + ?`, `|`, `( )`,
+    `^ $`. This is the FIRST rung using a genuinely vector-valued substrate state (not a scalar
+    accumulator) — a new paradigm, so it's spec-first and a dedicated build. **NEXT DO-NOW RUNG: implement
+    the NFA stepper per the spec** (validate the N-dim state matmul on the substrate on a small subset —
+    literal + `.` + `*` — verified vs Python `re`, then widen), then `grep` (regex) → `sed` (needs
+    match-span extraction, spec open-question 1) → `awk` (a whole language — the Sutra compiler is the
+    engine; far out).
 
 Tier D — filesystem (needs P1):
 11. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.
