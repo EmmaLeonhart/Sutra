@@ -1,3 +1,20 @@
+## 2026-07-06: neural Unix rung 10 — `grep` (fixed-string; substrate substring match; Tier C entry)
+
+`experiments/ntm_ram/grep_head.su` + `run_grep.py`. Fixed-string grep prints the lines that CONTAIN the
+pattern, and containment is a substrate substring match. For each candidate window (the pattern aligned at
+a start position) `match_step` streams the (line_char, pattern_char) pairs and accumulates a PRODUCT of
+exact codepoint indicators in a recurring slot — `*= is_cp(line_c, pat_c)` — which stays 1 only while
+every character matches and collapses to 0 at the first mismatch. So each window's returned value is 1 iff
+the window equals the pattern: a length-|pattern| all-equal attention over the RAM buffer. The host slides
+the window (I/O addressing) and OR's the per-window results into "line contains pattern".
+
+9/9 vs coreutils `grep -F`: a pattern hitting multiple lines, a mid-line match, OVERLAPPING windows (`aa`
+in `aaa`), no-match, `-v` invert, empty pattern (matches all) and empty input. `PATTERN` / `-v PATTERN`
+consume a real pipe. Fixed-string only — the regex/NFA matcher (prerequisite P2: compile a pattern to an
+on-substrate argmax-attention state machine) is the next rung and is spec-work first. Dim audit:
+model-free, semantic_dim=2 honest. Guard: `test_ntm_ram.py::test_neural_grep_substring_match`. This opens
+Tier C; 10 neural-Unix rungs now shipped (Tiers A + B complete, Tier C started).
+
 ## 2026-07-06: neural Unix rung 9 — `sort` (substrate comparison network; Tier B COMPLETE)
 
 `experiments/ntm_ram/sort_head.su` + `run_sort.py`. sort is Tier B's hard leap — a full-buffer

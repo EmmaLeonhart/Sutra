@@ -138,6 +138,19 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_grep_substring_match(self):
+        # Unix rung 10 (Tier C entry): fixed-string grep prints lines containing
+        # the pattern. Containment is a substrate substring match — a sliding
+        # window whose per-position all-equal test is a product of exact codepoint
+        # indicators (1 iff the window equals the pattern).
+        from run_grep import neural_grep
+        self.assertEqual(neural_grep("foobar\nbaz\nfoo\n", "foo"), "foobar\nfoo\n")
+        self.assertEqual(neural_grep("apple\nbanana\n", "an"), "banana\n")
+        self.assertEqual(neural_grep("aaa\naa\na\n", "aa"), "aaa\naa\n")  # overlap
+        self.assertEqual(neural_grep("nope\n", "xyz"), "")
+        self.assertEqual(neural_grep("keep\ndrop\nkeep\n", "keep", invert=True), "drop\n")
+        self.assertEqual(neural_grep("", "any"), "")
+
     def test_neural_sort_substrate_comparator(self):
         # Unix rung 9 (Tier B hard leap): sort orders lines with a substrate
         # lexicographic comparator (line_less_step latches a<b at the first
