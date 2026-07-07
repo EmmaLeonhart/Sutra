@@ -38,105 +38,14 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### ⭐ v0.2 symbol table / name resolution (H1) — GREEN-LIT by Emma 2026-07-06
+### v0.2 symbol table / name resolution (H1) — COMPLETE 2026-07-06 (Emma green-lit)
 
-Emma green-lit the deferred v0.2 name-resolution milestone — the proper fix that unblocks BOTH
-the REPL bare-string crash AND the opaque `similarity("cat","dog")` error (same root cause: no
-symbol table). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
-Barrel the rungs top to bottom; each is bounded and verified against the valid corpus. **The bar
-is ZERO false positives** — the v0.1 validator is deliberately lenient and a naive diagnostic
-warns on existing valid code (`03_methods.su` references `Animal`/`Cat` declared in no file), so
-every diagnostic rung must scan `examples/*.su` ∪ `tests/corpus/valid/*.su` and fire on none.
-
-**Rungs 1–3 SHIPPED 2026-07-06** — `sutra_compiler/symbol_table.py` + `tests/test_symbol_table.py`
-(14 tests, PASS): (1) file-scope collector (user classes + members, top-level functions + methods +
-arity); (2) local-scope tracking — `local_names(decl)` returns params ∪ every var/const in the body
-(nested blocks via a generic dataclass `_walk`), so first-class function-valued locals are in scope;
-(3) stdlib + builtins resolution — `is_known_*` now fold in `BUILTINS`, `stdlib_function_names()`
-(qualified + bare), `intrinsic_names()`, and `stdlib_class_parents()` (making them diagnostic-grade,
-over-inclusive for the zero-false-positive bar). Measured the type gaps: `float` added (it is the
-parent of `JavaScriptFloat` — a real type). Pure, still no diagnostics wired. `include_extern=False`
-restricts queries to module scope for tests.
-
-**Cross-file / external-type handling SHIPPED 2026-07-06** (21 tests, PASS) — measured the exact
-type-position false-positive surface over the full corpus (109 files): `['Animal','Array','Cat','List',
-'function']`. Three fixes, each measured: (a) `function` IS a real type in TYPE position — the
-first-class function-value annotation (`function f` params) — correcting rung 3's keyword-only note;
-(b) container names now match case-INSENSITIVELY, so `List<T>`/`Array<int,10>` resolve like `list`;
-(c) the genuinely-undeclared sibling types `Animal`/`Cat` are handled by open-world scoping —
-`is_reportable_unknown_type` reports a LOWERCASE unresolved name (a primitive typo, `vec`→`vector`,
-the H1 surface) but NOT a PascalCase one (a possible sibling `.su` object file), keyed off the
-measured convention that every primitive is lowercase and every class is PascalCase. `closed_world`
-mode + `build_project_symbol_table(modules, file_type_names)` union sibling files so PascalCase
-unknowns become reportable once the whole project is present. **GATE MET: full-corpus scan = 0
-reportable false positives** (test `test_full_valid_corpus_zero_reportable_false_positives`).
-
-**Unknown-TYPE diagnostic SUT0200 SHIPPED 2026-07-06** — `validator.py` builds the symbol table in
-`visit_module` and `_record_type_usage` (already called at every type position, recursing type_args)
-emits a SUT0200 WARNING when `is_reportable_unknown_type` fires. Warning, not error — the source is
-still valid v0.1 Sutra, so the valid corpus stays error-clean (corpus test = errors-only). Verified:
-`vec`/`scalar` warn, `Animal`/`vector`/`function`/`List<T>` don't; new `tests/test_unknown_type_
-diagnostic.py` + a corpus sweep assert 0 SUT0200 across every valid file (31 tests PASS w/ corpus).
-
-**Unknown-FUNCTION diagnostic SUT0201 SHIPPED 2026-07-06** — measured the bare-call FP surface first
-(25 names across the corpus): unlike types, the case heuristic FAILS — unresolved lowercase names are
-also legitimate (`matrix_rows()` stub, `await network_lookup(q)` external producer), and PascalCase
-cross-file method calls (`Cosine`,`Bind`,`Blend`) are everywhere. So a plain unresolved→warn rule can't
-hit zero FP. Instead SUT0201 is a **"did you mean" typo detector**: warn only when an unresolved
-LOWERCASE bare call is within Levenshtein ≤2 of a known lowercase function. Measured gap is decisive —
-real typos 1-2 (`argmaxcosine`→`argmax_cosine`=1, `bundel`→`bundle`=2), legitimate externals 7-9
-(`matrix_rows`, `network_lookup`) — so 0 corpus FPs with wide margin. Resolves through the local-scope
-table first (first-class function values skipped) + classes + type params. `validator.visit_Call` emits
-it; `symbol_table.unknown_function_suggestion` / `function_typo_suggestion` do the work.
-`test_unknown_function_diagnostic.py` (10) + a corpus sweep assert 0 SUT0201 on every valid file.
-(The Python-builtin host-escape-hatch datum from `2026-07-04-python-builtin-fallthrough.md` is a
-SEPARATE concern — a blacklist, not typo detection — and is deliberately not folded in here.)
-
-**Arity checking SUT0202 SHIPPED 2026-07-06** — `validator.visit_Call` warns when a call to a
-file-declared FUNCTION passes the wrong arg count. Safe by construction: `Param` has no default value
-and the parser has no varargs/optional/spread, so Sutra functions are fixed-arity and `len(args) ==
-arity` is exact. Scoped to plain functions (methods thread implicit `this`; builtins have no table
-arity) via `symbol_table.function_arity`. Measured: 0 mismatches across the 111 file-declared-function
-calls in the corpus. `test_arity_diagnostic.py` (6) + corpus sweep; 53 validator-touching tests green.
-
-### ⭐ Expression type inference — GREEN-LIT by Emma 2026-07-06 (chose "build full type inference")
-
-Emma chose the largest-scope path for the last two H1 items: build a real expression-type-inference
-subsystem, then do items 7 (REPL) and 8 (wrong-arg-type) on top. Same measured discipline as rungs 1-6
-— every diagnostic rung scans the valid corpus and fires on NONE (0 false positives), and inference is
-CONSERVATIVE (return None/unknown rather than ever guess a wrong type). Barrel top to bottom:
-
-T1. **FunctionSig return types + callee return-type table.** Add `return_type` to `FunctionSig`
-    (build_symbol_table already sees `FunctionDecl.return_type`/`MethodDecl.return_type`); fold in builtin
-    + stdlib-intrinsic return types so a call's result type is queryable. Pure; unit-tested.
-T2. **`infer_type(expr, symbols, local_types) -> Optional[str]`** — conservative bottom-up inference:
-    literals (StringLiteral→string, Int/Float→int/number, bool), `embed(...)`→vector, casts→target type,
-    calls→callee return type, identifiers→local var/param type, operators→operand-derived. Unknown→None.
-    Unit tests over representative expressions; NO diagnostic wired yet.
-**T1+T2+T3 SHIPPED 2026-07-06.** T1: `FunctionSig` return/param types + `extern_signatures()` (stdlib
-intrinsic types, bare+qualified) + `call_return_type`/`param_types_of`. T2: conservative `infer_type`
-(literals, `embed`→vector, casts, parenthesised, identifiers via `local_type_env`, calls via callee
-return type; else None). T3: **wrong-arg-type SUT0203** — `validator.visit_Call` warns when an arg's
-inferred type conflicts with the callee's declared param type. Measured the conflict surface first (16
-legit mismatches on valid code: generic `T`, the vector-ish family, method `this`-misalignment), then
-scoped the conflict to the ONE safe case — `string` ↔ concrete-non-text primitive (`arg_type_conflict`),
-Identifier-callee only, per-enclosing-decl type env — giving 0 corpus FP while flagging both args of
-`similarity("cat","dog")`. `test_type_inference.py` (10) + `test_wrong_arg_type_diagnostic.py` (6);
-63 validator-touching tests green.
-**T4+T5 SHIPPED 2026-07-06 — item 7 done, H1 milestone COMPLETE.** T4: `repl._decode_string` reconstructs
-text from a string's codepoint-array tensor using the runtime's own `is_string`/`string_length`/
-`string_char_at` accessors (a raw codepoint read at the sanctioned terminal DISPLAY boundary, distinct
-from the codebook-nearest decode); wired into `_decode_result` before the concept path. T5: `run_repl`
-infers each expression's type (`_infer_eval_type`) and types the `__eval__` wrapper accordingly — a string
-expr now wraps as `function string` and decodes to its text, so the bare-string crash is fixed by REAL
-evaluation (`"hello"`→`"hello"`), replacing the old embed() steer (removed, with the now-dead
-`_bare_string_literal`/`_BARE_STRING_RE`/`import re`). Numbers (`= 5`) and concepts (`~ "hello" cos 1.00`)
-still display via the existing paths (wrapper override gated to the verified `_EVAL_WRAP_TYPES={string}`).
-Newcomer-driven end-to-end + `test_repl.py` (9, incl. a codepoint round-trip). 78 tests green across the
-inference/diagnostic/repl surface.
-
-(The Python-builtin host-escape-hatch datum, `2026-07-04-python-builtin-fallthrough.md`, remains a
-SEPARATE blacklist concern — not folded into the above; it is the one H1-adjacent item still open.)
+All rungs shipped: symbol table (file/local/stdlib scope), cross-file/external-type handling, four
+diagnostics (SUT0200 unknown-type, SUT0201 unknown-function did-you-mean, SUT0202 arity, SUT0203
+wrong-arg-type), expression type inference, and the REPL string-evaluation fix — each measured to 0
+corpus false positives. Full history in DEVLOG.md + git log. One H1-adjacent item still OPEN: the
+Python-builtin host-escape-hatch blacklist (`planning/findings/2026-07-04-python-builtin-fallthrough.md`)
+— a separate blacklist concern, not started.
 
 ---
 
@@ -158,32 +67,14 @@ missing-semicolon diagnostic is precise (`SUT0100` with file:line:col). Fixed in
 README fast-path referenced a repo path a pip-only user lacks (now inline-hello, matching the
 website); queue version note was stale (0.9.1 → 0.9.2). Remaining bounded items, in order:
 
-1. **Bare string literal crashes the REPL — ROOT CAUSE FOUND 2026-07-04
-   (needs a design call, not a quick patch).** `run_repl` wraps EVERY
-   expression as `function vector __eval__() { return <expr>; }` (repl.py:199),
-   hardcoding the return type as `vector`. A Sutra string is a codepoint-array
-   vector, and the `vector`-typed codegen path does vector math on the raw str
-   → `TypeError: can't multiply sequence by non-int`. Measured: the SAME
-   expression wrapped as `function string __eval__()` compiles + runs fine and
-   returns the string's codepoint tensor (h=104,e=101,l,l,o=111 on the axes).
-   So the real fix needs the REPL to pick the return type from the expression's
-   TYPE — which is the deferred v0.2 name-resolution/symbol-table work
-   (`2026-06-24-h1-name-resolution-is-deferred-v0.2.md`) — OR a targeted
-   "try vector, catch that TypeError, retry as string" fallback PLUS a new
-   synthetic-axis codepoint→text decoder for display (no such decoder is
-   exposed today; `nearest_string` is codebook-lookup, not raw decode). Both
-   are real work in sensitive codegen/string-layout territory; neither is a
-   2-line patch. Emma's call on approach (v0.2 vs fallback). Finding:
-   `planning/findings/2026-07-04-repl-first-run-newcomer.md`.
-2. **Naive `similarity("cat","dog")` (string args) gives an opaque
-   `linalg_norm ... not str`** — a fresh newcomer-facing symptom of the deferred
-   H1 type-check gap (folds into
-   `2026-06-24-h1-name-resolution-is-deferred-v0.2.md`, no new work unless H1
-   is green-lit).
-3. **Tag `sutra-dev-v0.9.3`** after this branch merges so pip users get the
-   no-main / unknown-name / wrong-type diagnostic fixes already at HEAD; also
-   the Python-builtin fall-through (`2026-07-04-python-builtin-fallthrough.md`,
-   folded into H1).
+1. **REPL bare-string crash + `similarity("cat","dog")` opaque error — DONE via H1** (SUT0203 +
+   REPL T4/T5 string evaluation).
+2. **Tag `sutra-dev-v0.9.3` — READY, needs a go (outward PyPI publish).** Ships the WHOLE H1 milestone
+   now at HEAD (symbol table + SUT0200–0203 + type inference + REPL string-eval), well beyond the
+   2026-07-04 diagnostic-fixes scope this item was written for — so re-confirm before publishing. Steps
+   (CLAUDE.md § Releases): bump `sdk/sutra-compiler/pyproject.toml` + `sutra_compiler/__init__.py`
+   0.9.2→0.9.3, commit, `git tag sutra-dev-v0.9.3 && git push origin sutra-dev-v0.9.3` (auto-publishes
+   PyPI + cuts the GitHub Release). NOT auto-fired here: irreversible + unattended cron + scope grew.
 
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 
@@ -196,22 +87,6 @@ reward EMA smoothing (`HeroSteering(ema_alpha=…)`, default 1.0 = raw, `--ema` 
 2026-07-04. **What remains is only the public URL:** deploying per `demos/gui/DEPLOY.md`
 (HF Spaces Docker recommended) needs Emma's hosting account — her step, not an agent's.
 
-> **H1 (unknown-type/function diagnostics) RECLASSIFIED 2026-06-24 → the deferred v0.2 name-resolution
-> milestone, NOT a quick batch item.** `validator.py:21-29` EXPLICITLY defers name resolution to "v0.2+
-> once we have a symbol table." A measured false-positive scan (`scratchpad/h1_recon.py`) confirms a naive
-> diagnostic warns on EXISTING VALID code: `03_methods.su` (valid corpus) references undeclared `Animal`/
-> `Cat` types; the arrow-fn examples call first-class function-valued LOCALS (`f`,`scale`) — both need the
-> real symbol table + local-scope tracking, not an allowlist. (Also `float`/`function` are missing from
-> `PRIMITIVE_TYPE_NAMES` — real gaps to fix WHEN the symbol table lands.) The newcomer gap is already
-> mitigated at the doc level (Batch 5.1 tutorial-01 note: v0.1 doesn't do name resolution, on the roadmap).
-> Building the v0.2 symbol table is Emma's call (language-direction; it tightens the deliberately-lenient
-> validator). Finding: `planning/findings/2026-06-24-h1-name-resolution-is-deferred-v0.2.md`.
-> **NEW severity datum (2026-07-04, measured):** unknown call-position names lower to bare Python
-> names, so ALL Python builtins are silently callable from `.su` (`print` mid-function, `str(len(…))`
-> — an accidental host escape hatch, against the no-mid-computation-I/O identity). The v0.2 decision
-> should weigh that, not just late-failing typos:
-> `planning/findings/2026-07-04-python-builtin-fallthrough.md`. No interim blacklist shipped
-> (it would be a second name-resolution mechanism H1 would have to unwind).
 
 ---
 
@@ -289,150 +164,14 @@ build.** Verbatim intervention in `DEVLOG.md`. Substrate already in hand: extern
 orchestrator + VRAM mailbox (`experiments/ntm_ram/`, spec `planning/sutra-spec/ram-pointers.md`);
 the `WASM/` argmax-attention NTM; finding `2026-06-06-iso5-ram-based-machine-dispatch-works.md`.
 
-**Rung 1 `echo` SHIPPED 2026-07-06** — `experiments/ntm_ram/run_echo.py`: lays the echo output
-bytes into the RAM device, the compiled substrate read-head (`text_scan.su`) scans + emits them,
-decoded stream == real coreutils `echo.exe` char-for-char (5/5 cases incl. `-n`). Establishes the
-P0 stdin/stdout path. (Honest scope: echo is the passthrough base case — the substrate work is the
-scan/emit; real transforms start at `wc`/`tr`.)
-
-### Prerequisites — build/verify as the utilities force them (order = first need)
-- **P0 — stdin/stdout as boundary axons.** DONE. Read/emit shipped via rung 1 (echo); the streamed
-  STDIN axon shipped via rung 2 (cat) — `_stream_load` feeds RAM in chunks (as a pipe delivers), the
-  substrate scans the assembled stream, `--stdin` mode consumes a real pipe.
-- **P1 — external DISK device + filesystem namespace.** Persistent addressable regions + a
-  path→region map, serviced by the orchestrator like RAM but persistent. Forced first by `cat FILE`
-  / `ls`; spec it in `planning/sutra-spec/` before building.
-- **P2 — neural regex / NFA matcher.** Forced by `grep`/`sed`: compile a pattern to an on-substrate
-  argmax-attention state machine over the stream.
-
-### Utilities, ordered by difficulty — barrel top to bottom; each verified decoded-output == coreutils ground truth
-Tier A — pure stream transforms (RAM buffer only, no filesystem):
-1. `cat` **SHIPPED 2026-07-06** — `experiments/ntm_ram/run_cat.py`: streamed stdin (`_stream_load`, 8-byte
-   chunks) → substrate scan/emit read head → decoded stdout == coreutils `cat.exe` byte-for-byte (7/7
-   cases: multi-line, empty, punctuation, multi-chunk-boundary; `--stdin` consumes a real pipe). Honest
-   scope: still a passthrough (no substrate transform over echo) — the new work is the P0 stdin axon.
-   Regression guard in `test_ntm_ram.py::test_neural_cat_streams_stdin_passthrough`.
-2. `wc` **SHIPPED 2026-07-06** — `run_wc.py` + `wc_heads.su`: the first REAL transform. Substrate
-   streaming accumulators (recurring VRAM vectors, updated by substrate tensor ops every tick — the
-   count survives across calls as a vector, never a host counter) compute (lines, words, bytes) exactly:
-   10/10 vs coreutils `wc` (tabs, multi-space, empty, no-trailing-newline, blank lines); `--stdin` mode
-   matches on a real pipe. Key primitive: EXACT codepoint indicator `is_cp(c,center)=relu(1-|c-center|)`
-   — MEASURED gap 1.0 (exactly 1 at center, hard 0 elsewhere; the relu clamp avoids the exp/tanh
-   saturation residual that would accumulate). words packs count+prev-nonspace into one complex recurring
-   slot (v1 = one recurring slot/function). Guard: `test_ntm_ram.py::test_neural_wc_counts_match_
-   coreutils_exactly`.
-3. `head` / `tail -n` **SHIPPED 2026-07-06** — `run_head_tail.py` + `filter_heads.su`: substrate
-   line-gated stream filters. A recurring line accumulator + an EXACT integer gate (`ge1(x)=1 iff x>=1`,
-   built from relu) mask each emitted codepoint (`served * gate`); head gates `line_idx < N`, tail counts
-   the total on the substrate (pass 1) then gates `line_idx >= total-N`. 72/72 checks vs coreutils
-   head/tail (6 inputs × 6 N × 2 utils), incl. unterminated last line (+1 boundary correction) and blank
-   lines. `--head`/`--tail -n K` pipe modes. Guard: `test_ntm_ram.py::test_neural_head_tail_line_gated_
-   filters`.
-4. `tr` **SHIPPED 2026-07-06** — `run_tr.py`: per-byte substrate codebook map. Each byte's output is a
-   weighted sum of EXACT codepoint indicators — `out(c) = Σ is_cp(c,key_i)*val_i + c*(1-Σ is_cp(c,key_i))`
-   — so matched codepoints become their paired value, unmatched pass through; `-d` masks matches to 0.
-   The codebook (SET1→SET2 codepoints, ranges expanded, SET2 padded like coreutils) is baked into a
-   generated `.su` compiled per translation. 7/7 vs coreutils `tr` (a-z/A-Z both ways, translate, vowels,
-   -d digits/letters, SET2-padding); pipe modes `tr a-z A-Z` / `tr -d 0-9`. Guard:
-   `test_ntm_ram.py::test_neural_tr_codebook_translate_and_delete`.
-5. `rev` / `tac` **SHIPPED 2026-07-06** — `run_rev.py` + `rev_head.su`: reverse permutations over a RAM
-   buffer, computed on the substrate. A recurring cursor counts up and the head emits
-   `pointer = limit - cursor`, so the served address sequence runs DOWN (reverse order) via one substrate
-   subtract/tick. rev reverses codepoints per line; tac reverses line order. 14/14 checks (rev vs a
-   per-line reference — coreutils `rev` is util-linux, absent on Windows; tac vs coreutils `tac.exe`):
-   multi-line, no-trailing-newline, empty, uneven lengths. `--rev`/`--tac` pipe modes. Guard:
-   `test_ntm_ram.py::test_neural_rev_tac_reverse_permutation`.
-6. `cut` **SHIPPED 2026-07-06 (cut -c) — Tier A COMPLETE** — `run_cut.py`: per-column gated emit. A
-   recurring column counter increments per char and RESETS at each newline; each char is emitted iff its
-   column is in the selected range set (`ge1` exact integer steps; ranges OR-ed via `ge1(Σ)`; newlines
-   always pass + reset). 8/8 vs coreutils `cut -c` (ranges, open `3-`/`-3`, comma `1,3,5`, short lines);
-   `-c LIST` pipe mode. Ranges baked into a generated `.su`. Guard:
-   `test_ntm_ram.py::test_neural_cut_c_column_gated_emit`. (`cut -f` field mode = a follow-on: delimiter
-   field counting.)
-
-Tier B — ordering / comparison / dedup (more RAM, comparison networks):
-7. `uniq` **SHIPPED 2026-07-06** — `run_uniq.py` + `uniq_head.su`: collapse ADJACENT identical lines via
-   a substrate prev-vs-current comparison. `line_cmp` accumulates a MISMATCH count over exact per-position
-   char indicators (`+= 1 - is_cp(a_i,b_i)`); the shorter line is padded with a sentinel no codepoint
-   equals, so length differences register too; mismatch==0 iff identical. 8/8 vs coreutils `uniq`
-   (adjacent runs, all-distinct, length-diff adjacency, unterminated last line, empty). `--uniq` pipe
-   mode. First Tier-B rung — COMPARES two buffered lines. Guard:
-   `test_ntm_ram.py::test_neural_uniq_adjacent_dedup`.
-8. `sort` **SHIPPED 2026-07-06 — Tier B COMPLETE** — `run_sort.py` + `sort_head.su`: full-buffer
-   comparison network whose comparator is the substrate. `line_less_step` streams two lines' codepoints
-   and latches, at the first differing position, whether A<B via `ge1(b_i-a_i)`, packing (decided,result)
-   into one complex recurring slot; shorter prefix-equal line sorts first via a sentinel pad below every
-   codepoint. The host sequences the comparisons (network) + moves lines (I/O); every ordering decision
-   is the neural comparator. 9/9 vs coreutils `sort` LC_ALL=C (lexical numeric 1/10/2/3, C-locale case,
-   prefix a/ab/abc, dups). `--sort` pipe mode. Guard:
-   `test_ntm_ram.py::test_neural_sort_substrate_comparator`.
-
-Tier C — pattern matching (needs P2 — neural regex/NFA; `grep` fixed-string needs only substring match):
-9. `grep` (fixed string) **SHIPPED 2026-07-06** — `run_grep.py` + `grep_head.su`: print lines CONTAINING
-   the pattern via a substrate substring match. A sliding window's all-equal test is a PRODUCT of exact
-   codepoint indicators (`*= is_cp(line_c, pat_c)`) — 1 iff the window equals the pattern, 0 at the first
-   mismatch. Host slides the window (I/O) + OR's per-window results; the length-|pattern| attention is
-   substrate. 9/9 vs coreutils `grep -F` (multi-match lines, overlapping windows `aa`/`aaa`, `-v` invert,
-   empty pattern/input). `PATTERN` / `-v PATTERN` pipe modes. Guard:
-   `test_ntm_ram.py::test_neural_grep_substring_match`.
-10. **P2 — neural regex/NFA matcher. SHIPPED 2026-07-06** — spec `planning/sutra-spec/neural-regex-nfa.md`
-    + `experiments/ntm_ram/neural_regex.py`. Thompson-constructs the pattern to an NFA (compile-time,
-    host), then simulates it on the substrate: the active-state SET is an N-dim 0/1 buffer stepped by
-    `s' = ge1(E @ (M_dot @ s + Σ_lit is_cp(c,lit)·(M_lit·s)))` — transition + epsilon-closure MATMULS
-    (`_VSA.matmul`), char-class coefficients assembled on the substrate via the exact `relu(1-|c-lit|)`
-    indicator (a 0-d device scalar), `ge1` collapse (no residual). First rung using vector-valued substrate
-    state. Subset: literals, `.`, `[...]`/`[^...]`/ranges, `* + ?`, `|`, `( )`, `^ $` — **29/29 vs Python
-    `re`**. Guard: `test_ntm_ram.py::test_neural_regex_nfa_matches_python_re`.
-11. `grep` (regex) **SHIPPED 2026-07-06** — `run_grep_regex.py`: `grep -E` on the substrate NFA (one NFA
-    per pattern, reused per line). **10/10 vs coreutils `grep -E`** (`colou?r`, `[0-9]+`, `gr[ae]y`,
-    `cat|dog`, `^`/`$`, `-v`). Pipe `-E PATTERN` / `-v -E PATTERN`. Guard:
-    `test_ntm_ram.py::test_neural_grep_regex_matches_coreutils`.
-12. `sed s/re/repl/[g]` **SHIPPED 2026-07-06** — `run_sed.py`: regex substitute on the substrate NFA.
-    Adds match-SPAN extraction (spec open-question 1 resolved pragmatically): `NeuralRegex.match_span`
-    finds the leftmost start, then the longest end at which an accept state is active (accept test on the
-    substrate at each end position); host splices repl into the span (`&` = whole match). `s///` + `s///g`.
-    **10/10 vs coreutils `sed -E`** (leftmost-longest `a+`→`A`, global, `[0-9]+`, `&`, no-match). Pipe
-    `'s/re/repl/[g]'`. (Backreferences `\1` need capture groups the NFA doesn't track — out of scope,
-    named not dropped.) Guard: `test_ntm_ram.py::test_neural_sed_substitute`.
-13. `awk` (common subset) **SHIPPED 2026-07-06** — `run_awk.py` + `field_head.su` + `field_delim_head.su`.
-    awk's SUBSTRATE core is field splitting: a recurring field counter (exact, via the wc word-transition
-    / delimiter-count logic) drives an exact-indicator gate emitting the chars of `$N`; `NF` = the final
-    counter. Whitespace FS (`field_head`) + `-F<c>` single-char FS (`field_delim_head`). Host interprets
-    `print` (`$0`/`$N`/`$NF`/`NF`/`NR`/string literals, `,`→OFS) and patterns (`/regex/` via the NFA,
-    `NR<op>k`). **12/12 vs coreutils awk** (`{print $1,$3}`, `$NF`, `NF`, `NR,NF`, `/keep/`, `NR==2`,
-    `NR>2`, `-F:`/`-F,`, `/error/{print $2}`). Guard: `test_ntm_ram.py::test_neural_awk_field_subset`.
-    **Honest scope:** user variables, arithmetic expressions, BEGIN/END, arrays, functions, printf,
-    multiple rules, field assignment are NOT supported — that "whole language" (Sutra-compiler-as-engine)
-    is far out, named not dropped. **NEXT: Tier D (filesystem)** — needs prerequisite P1 (persistent disk
-    device + path→region map); spec it in `planning/sutra-spec/` first, then `cat FILE`→`ls`→`cp/mv/rm`
-    →`find`.
-
-Tier D — filesystem (needs P1):
-- **P1 — disk device SHIPPED 2026-07-06** — spec `planning/sutra-spec/disk-device.md` + `disk_device.py`:
-  a persistent, named store backed by a real host sandbox dir (I/O device, like RAM but persistent). Flat
-  namespace (path→region), `list`/`read_region`/`write`/`copy`/`move`/`remove`; missing path → empty read
-  (no runtime errors by mechanism). Nested dirs deferred to `find`.
-14. `cat FILE` + `ls` + `cp`/`mv`/`rm` **SHIPPED 2026-07-06** — `run_fs.py`: `cat FILE` resolves the path
-    to a region (host I/O) and drives the SAME `text_scan.su` read head as stdin cat (disk changes only the
-    byte source); `ls` streams the namespace through the scan/emit (== `ls -1`); cp/mv/rm are host dir ops
-    verified by reading back on the substrate. All pass vs coreutils `cat`/`ls -1` over a sandbox (single/
-    multi/missing file, sorted listing, mutation round-trips). Guard:
-    `test_ntm_ram.py::test_neural_filesystem_cat_file_and_ls`.
-15. `find [DIR] [-name PAT]` **SHIPPED 2026-07-06 — NEURAL UNIX UTILITIES EPIC COMPLETE** — `run_fs.py`:
-    pre-order recursive walk of the tree (host I/O, `os.walk` over the disk device's nested dirs) emitting
-    each path; `-name GLOB` keeps entries whose BASENAME matches, via `_fnmatch_to_regex` (glob→regex) +
-    the on-substrate NFA `fullmatch`. All pass vs coreutils `find` (full listing, `*.txt`, `*.log`, exact
-    `sub`, single-char `?.txt`, no-match) over a nested sandbox; traversal is I/O, the name test is
-    substrate. Guard: `test_ntm_ram.py::test_neural_find_recursive_name_filter`.
-
-**⭐ THE NEURAL UNIX UTILITIES EPIC IS COMPLETE (Emma 2026-07-06 goal).** 15 rungs, every one verified
-against the real coreutils binary / Python `re`, each with a regression guard in `test_ntm_ram.py`
-(20 tests): echo · cat · wc · head/tail · tr · rev/tac · cut · uniq · sort · grep(-F,-E) · sed · awk(subset)
-· cat FILE/ls/cp/mv/rm · find. Two prerequisites built + spec'd (P2 on-substrate regex NFA, P1 persistent
-disk device). Substrate keystones: the exact codepoint indicator `relu(1-|c-center|)` (gap 1.0, no
-saturation residual) for all scalar rungs; the N-dim state-set + transition matmuls for the regex NFA
-(first vector-valued substrate state). Full-language `awk` (variables/arithmetic/BEGIN-END) is the one
-named-not-built far-out remainder. Per Emma's 2026-07-06 sequencing, the **FV paper** (queue tail) is next.
+**⭐ EPIC COMPLETE 2026-07-06 — all 15 rungs shipped** (echo · cat · wc · head/tail · tr · rev/tac · cut ·
+uniq · sort · grep -F · grep -E · sed · awk-subset · cat FILE/ls/cp/mv/rm · find), every one verified vs
+the real coreutils binary / Python `re`, 27 guards in `test_ntm_ram.py`. Prerequisites built + spec'd:
+P0 stdin/stdout axons, P1 persistent disk device (`planning/sutra-spec/disk-device.md`), P2 on-substrate
+regex NFA (`planning/sutra-spec/neural-regex-nfa.md`). Substrate keystone: the exact `relu(1-|c-center|)`
+indicator (gap 1.0, no residual) for scalar rungs; N-dim state-set + transition matmuls for the regex NFA.
+Full history in DEVLOG.md + git log. Sole named-not-built remainder: full-language `awk`
+(variables/arithmetic/BEGIN-END/printf) — the Sutra-compiler-as-engine, far out.
 
 ---
 

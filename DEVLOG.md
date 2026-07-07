@@ -1,3 +1,21 @@
+## 2026-07-06: queue.md cleanup — delete-on-done for the two finished epics (487→224 lines)
+
+The two big epics completed this session (the v0.2/H1 name-resolution+type-inference milestone and the
+15-rung neural-Unix-utilities epic) had accumulated as ~250 lines of "SHIPPED" notes in queue.md — exactly
+the done-work bloat the delete-on-done rule exists to prevent (CLAUDE.md + the queue header: leaving
+finished items "buries the open work and is what keeps re-growing this file"). Applied the rule: collapsed
+the H1 section and the neural-Unix rung-by-rung list each to a compact COMPLETE pointer (full history lives
+in DEVLOG.md + git log), dropped round-12 items 1&2 (done via H1) and the now-moot H1-reclassified
+blockquote in the A1 section. queue.md 487 → 224 lines.
+
+What remains OPEN and legible after the cleanup: (1) `sutra-dev-v0.9.3` release — READY but not auto-fired
+(outward PyPI publish, unattended cron, and its scope grew past the 2026-07-04 item it was written for —
+flagged to re-confirm); (2) A1 public deploy — blocked on Emma's hosting account; (3) FV paper —
+NEEDS-DECISION (Emma), just verified substantively-finished; (4) the PINNED TAIL usability/readability
+audit → refill (self-perpetuating, the next source of concrete work now that the front-loaded items
+drained); (5) "fix the failing tests" — Emma's, explicitly do-not-start; (6) PARKED items (resource-gated).
+No paper.md / source touched — pure queue hygiene.
+
 ## 2026-07-06: FV paper — "is it finished?" verification (read-only audit)
 
 The neural-Unix epic done, the queue's tail item is the FV paper (Emma: "I think fv paper is finished but
