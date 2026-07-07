@@ -1,3 +1,20 @@
+## 2026-07-06: neural Unix rung 6 — `rev` / `tac` (substrate reverse permutation)
+
+`experiments/ntm_ram/rev_head.su` + `run_rev.py`. rev (reverse chars per line) and tac (reverse line
+order) are both permutations over a RAM buffer, and the permutation is computed on the substrate. Where
+text_scan.su's cursor counts up and emits itself (forward order), rev_head counts up and emits
+`pointer = limit - cursor`, so the address sequence it asks the orchestrator to serve runs DOWN from
+`limit` to 0 — the reverse read order — via one substrate subtraction per tick. `limit` (the last index)
+is passed in as a number-vector, so the address arithmetic is substrate, not a host counter. The host
+serves the element at each substrate-emitted index (RAM codepoints for rev, the line list for tac), the
+same serve-at-emitted-pointer role the forward heads use.
+
+14/14 checks: rev against a per-line reference (coreutils `rev` is util-linux, not shipped with
+Git-for-Windows) and tac against the real coreutils `tac.exe` — multi-line, no-trailing-newline, empty,
+and uneven-length lines. `--rev`/`--tac` consume a real pipe. Dim audit: model-free head, semantic_dim=2
+honest. Guard: `test_ntm_ram.py::test_neural_rev_tac_reverse_permutation`. This closes Tier A except
+`cut` (column/field select), the next rung.
+
 ## 2026-07-06: neural Unix rung 5 — `tr` (substrate codebook map)
 
 `experiments/ntm_ram/run_tr.py`. tr is the codebook lookup the queue flagged as "Sutra's strength", done

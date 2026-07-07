@@ -138,6 +138,19 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_rev_tac_reverse_permutation(self):
+        # Unix rung 6: rev/tac = reverse permutations over a RAM buffer, computed
+        # on the substrate (pointer = limit - cursor emits addresses in reverse).
+        # rev reverses chars per line; tac reverses line order.
+        from run_rev import neural_rev, neural_tac
+        self.assertEqual(neural_rev("hello\nworld\n"), "olleh\ndlrow\n")
+        self.assertEqual(neural_rev("abcdef\n"), "fedcba\n")
+        self.assertEqual(neural_rev("tail no nl"), "ln on liat")
+        self.assertEqual(neural_rev(""), "")
+        self.assertEqual(neural_tac("a\nb\nc\n"), "c\nb\na\n")
+        self.assertEqual(neural_tac("one\ntwo\nthree\n"), "three\ntwo\none\n")
+        self.assertEqual(neural_tac(""), "")
+
     def test_neural_tr_codebook_translate_and_delete(self):
         # Unix rung 5: tr = a substrate codebook map. Each byte's output is a
         # weighted sum of EXACT codepoint indicators — matched codepoints become
