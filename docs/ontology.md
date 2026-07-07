@@ -261,7 +261,7 @@ What this gives you today:
 - **Compile-time-only metadata.** At runtime, an instance of `Cat` is a plain vector — no extra storage, no runtime class tag, no dispatch overhead. The class name flows through the type system; the codegen emits each method as a mangled top-level function (`{Class}_{method}`) and `ClassDecl` nodes themselves contribute no runtime allocation.
 - **Forward references aren't supported.** `class Foo extends Bar` requires `Bar` to be either a primitive or a class declared earlier in the file.
 
-Diagnostic codes for class-decl errors: `SUT0140` (parser-rejected body content), `SUT0141` (duplicate name), `SUT0142` (extends-target unknown), `SUT0144` (method body reads a file-scope name — see encapsulation below).
+Diagnostic codes for class-decl errors: `SUT0140` (parser-rejected body content), `SUT0141` (duplicate name), `SUT0142` (extends-target unknown), `SUT0144` (method body reads a file-scope name — see encapsulation below). (The full `SUT####` code list lives in [`capabilities.md`](capabilities.md) §10.)
 
 ### Methods and encapsulation
 

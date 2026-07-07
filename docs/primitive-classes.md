@@ -206,7 +206,7 @@ Restrictions:
 - **Initializer position only.** `wait` outside a var-decl initializer (e.g. `return wait;`) is a position error (SUT0130).
 - **At least one assignment required.** A `wait`-declared variable that's never assigned in the function body is a compile error (SUT0132).
 
-The check is purely compile-time. There is no runtime `wait` value — by the time the program executes, every wait has been resolved into its first assignment.
+The check is purely compile-time. There is no runtime `wait` value — by the time the program executes, every wait has been resolved into its first assignment. (For the full `SUT####` diagnostic-code list, see [`capabilities.md`](capabilities.md) §10.)
 
 ---
 

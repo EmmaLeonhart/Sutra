@@ -56,11 +56,11 @@ against the just-shipped SUT0200–0203 diagnostics. Findings, atomised:
    after the `embed(...)` section showing `"hello"` → `"hello"` (verified in a real REPL run), drawing the
    distinction between a bare string literal (its own text) and `embed("hello")` (its meaning vector), plus
    a `"text"` entry in the "Reading results" list. `build_site.py` clean.
-4. **Diagnostics reference is scattered** (capabilities.md §10 paragraph, compilation.md, ontology.md,
-   primitive-classes.md each list a subset). A newcomer who hits `SUT0201` has to grep. Consider making
-   capabilities.md §10 the single canonical index (it is the most complete) and cross-linking the others
-   to it — or a small dedicated `docs/diagnostics.md`. Bounded doc-organisation item; pick one canonical
-   home. (Do NOT reference queue.md/planning in docs — website discipline.)
+4. **Diagnostics reference scattered — DONE 2026-07-06.** Made `capabilities.md` §10 the single canonical
+   `SUT####` index (labelled it so in-page) and cross-linked the other pages that mention a specific code
+   (`compilation.md` already; added links from `ontology.md` and `primitive-classes.md` to §10).
+   `build_site.py` clean. **Round-13 audit round COMPLETE** (all 4 items done) — re-run the PINNED TAIL
+   next drain to refill.
 
 ### v0.2 symbol table / name resolution (H1) — COMPLETE 2026-07-06 (Emma green-lit)
 
