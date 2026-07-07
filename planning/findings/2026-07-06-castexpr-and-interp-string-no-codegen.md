@@ -23,7 +23,7 @@ unsupported. (Docs updated to mark both as parse/validate-only for now; steering
 
 ## What implementing them needs (not a quick patch)
 
-- **CastExpr codegen** — a per-target lowering: `(vector) v` is ~identity; `(number)/(int)` route to the
+- **Cast codegen (BOTH `(Type) expr` and `unsafeCast<Type>`)** — a per-target lowering: `(vector) v` is ~identity; `(number)/(int)` route to the
   numeric axes; `(fuzzy)/(bool)` are truth-axis reinterpretations (some are really `is_true` / defuzzify).
   Design: enumerate the legal source→target pairs and their substrate op, reuse the var-decl coercion
   logic that already types initializers. Bounded but real; needs the cast-semantics table.

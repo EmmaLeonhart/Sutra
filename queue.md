@@ -69,8 +69,11 @@ Drove newcomer programs; most ops correct (foreach=6, array index, arithmetic, c
    §5 interp row + a `(Type) value` cast row both marked parse/validate-only, steering to unsafeCast /
    make_string). Finding: `planning/findings/2026-07-06-castexpr-and-interp-string-no-codegen.md`. Two
    genuine BUILD items remain (each its own rung, needs a design step — not cron-sized):
-   - **(a) CastExpr codegen** — a per-source→target-pair lowering table (`(vector)`≈identity, numeric-axis
-     routes, truth-axis reinterpretations), reusing the var-decl coercion. Bounded.
+   - **(a) Cast codegen — BOTH `(Type) expr` AND `unsafeCast<Type>` (CORRECTION: unsafeCast also fails at
+     codegen; an earlier note wrongly said it executes — NEITHER runs, no cast-lowering pass exists).** A
+     per-source→target-pair semantics table: identity for same-axis (vector→vector, numeric→numeric),
+     axis-move for numeric↔truth (number→fuzzy/bool via make_truth), embed for string→vector. Needs the
+     table (design step); reuse the var-decl coercion. Not cron-sized.
    - **(b) InterpolatedString codegen** — desugar to `string_concat`; blocked on a substrate number→string
      formatter for non-string interpolants (a prerequisite subsystem). String-typed interpolants are easy.
 
