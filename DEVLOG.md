@@ -1,3 +1,15 @@
+## 2026-07-06: docs — capabilities §8 marks C-style while/for/do-while RETIRED (real-program-reach audit)
+
+Newcomer drive: `while(i<n){...}` and `for(...)` and `do{...}while` all raise a codegen rejection ('C-style
+... is no longer supported. Use while_loop/iterative_loop ...') — they were retired in the 2026-04-30
+substrate-purity audit, and `loops.md` documents that. But `capabilities.md` §8 still listed them as
+working 'bounded loop' statement forms, so a newcomer reading the inventory writes a while-loop and hits
+the rejection. Fixed the three rows to RETIRED, each steering to the loop-function form (while_loop /
+iterative_loop) with a link to loops.md; foreach (which works, verified sum=6) left as-is. build_site
+clean. Also logged a lead for the next fire: interpolated strings (`$"n={n}"`) and casts (`(number)x`)
+raised 'unsupported expression' at codegen in a bare test — verify whether that's a real gap vs a
+context/test artifact (queue round-16 item 2). Docs+queue only.
+
 ## 2026-07-06: finding — `<=`/`>=` return neutral at exact ties (real-program-reach audit)
 
 Newcomer drive continued from the make_string fix: `2 <= 2` / `2 >= 2` evaluate to the truth-axis NEUTRAL
