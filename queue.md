@@ -408,7 +408,18 @@ Tier C — pattern matching (needs P2 — neural regex/NFA; `grep` fixed-string 
     →`find`.
 
 Tier D — filesystem (needs P1):
-11. `cat FILE` → `ls` → `cp`/`mv`/`rm` → `find` — file read, directory listing, mutation, recursion.
+- **P1 — disk device SHIPPED 2026-07-06** — spec `planning/sutra-spec/disk-device.md` + `disk_device.py`:
+  a persistent, named store backed by a real host sandbox dir (I/O device, like RAM but persistent). Flat
+  namespace (path→region), `list`/`read_region`/`write`/`copy`/`move`/`remove`; missing path → empty read
+  (no runtime errors by mechanism). Nested dirs deferred to `find`.
+14. `cat FILE` + `ls` + `cp`/`mv`/`rm` **SHIPPED 2026-07-06** — `run_fs.py`: `cat FILE` resolves the path
+    to a region (host I/O) and drives the SAME `text_scan.su` read head as stdin cat (disk changes only the
+    byte source); `ls` streams the namespace through the scan/emit (== `ls -1`); cp/mv/rm are host dir ops
+    verified by reading back on the substrate. All pass vs coreutils `cat`/`ls -1` over a sandbox (single/
+    multi/missing file, sorted listing, mutation round-trips). Guard:
+    `test_ntm_ram.py::test_neural_filesystem_cat_file_and_ls`.
+15. `find [DIR] [-name PAT]` **NEXT DO-NOW RUNG** — recursive directory walk + `-name` filtering via the
+    on-substrate NFA (fnmatch→regex); needs the nested-directory tree (disk-device.md open-question 1).
 
 ---
 
