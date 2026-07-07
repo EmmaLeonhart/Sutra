@@ -1,3 +1,32 @@
+## 2026-07-06: neural Unix rung 11 — regex NFA matcher + `grep -E` (P2 BUILT; vector-valued substrate state)
+
+Implemented the P2 prerequisite spec'd earlier today, and `grep -E` on top. `experiments/ntm_ram/
+neural_regex.py` Thompson-constructs a pattern to an NFA at COMPILE time (host — parsing + construction,
+the same class of work as tr's codebook) and simulates it on the SUBSTRATE: the active-state SET is an
+N-dim 0/1 buffer, stepped per character by
+
+    s' = ge1( E @ ( M_dot @ s + Σ_lit relu(1-|c-lit|) · (M_lit · s) ) )
+
+— transition and epsilon-closure MATMULS (`_VSA.matmul`, torch on-device), with each literal edge's
+coefficient the exact codepoint indicator as a 0-d device scalar (no host float readout), and `ge1`
+collapsing "reached by ≥1 path" to a 0/1 reachability indicator with no residual. This is the FIRST
+neural-Unix rung to use a genuinely vector-valued substrate state (N components + matmuls), not a scalar
+accumulator — the reason P2 was its own prerequisite. I first de-risked the primitive alone (a 3-state
+chain propagating exactly through matmul+ge1) before wiring the regex.
+
+Supported subset: literals, `.`, character classes `[...]`/`[^...]`/ranges, quantifiers `* + ?`,
+alternation `|`, grouping `( )`, anchors `^ $`. search re-injects the start closure each step (the
+implicit `.*` prefix) unless `^`-anchored, and requires end-of-input when `$`-anchored. **29/29 vs Python
+`re`** across that subset (`neural_regex.py`), and **10/10 vs coreutils `grep -E`** (`run_grep_regex.py`:
+`colou?r`, `[0-9]+`, `gr[ae]y`, `cat|dog`, `^foo`, `bar$`, `-v`); one NFA is built per pattern and reused
+across lines. Guards: `test_ntm_ram.py::{test_neural_regex_nfa_matches_python_re,
+test_neural_grep_regex_matches_coreutils}`.
+
+11 neural-Unix rungs now (Tiers A + B complete; Tier C: fixed-string grep, regex NFA, regex grep). Open
+questions from the spec carried forward for `sed`: match-SPAN extraction (a parallel start-position
+vector on the winning path) and leftmost-longest. Next: `sed s/re/repl/` (span extraction), then `awk`;
+and Tier D filesystem (needs P1 disk device).
+
 ## 2026-07-06: neural Unix P2 — regex/NFA matcher SPEC (planning/sutra-spec/neural-regex-nfa.md)
 
 Regex `grep`/`sed` need a matcher beyond the substring PRODUCT that fixed-string grep uses, so — per the

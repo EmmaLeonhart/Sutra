@@ -138,6 +138,33 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_regex_nfa_matches_python_re(self):
+        # Unix rung 11 / prerequisite P2: on-substrate NFA. The active-state SET is
+        # an N-dim buffer stepped by transition + epsilon-closure MATMULS on the
+        # substrate; char classes selected by exact indicators. Verified vs re.
+        import re as _re
+        from neural_regex import NeuralRegex
+        pairs = [("a.c", "axc", True), ("a.c", "ac", False),
+                 ("ab*c", "abbbc", True), ("ab*c", "abx", False),
+                 ("colou?r", "colour", True), ("colou?r", "colouur", False),
+                 ("[0-9]+", "x12", True), ("[^0-9]", "5", False),
+                 ("cat|dog", "a dog", True), ("(ab)+", "abab", True),
+                 ("^foo", "xfoo", False), ("bar$", "foobar", True)]
+        for pat, txt, want in pairs:
+            self.assertEqual(NeuralRegex(pat).search(txt), want, (pat, txt))
+            self.assertEqual(NeuralRegex(pat).search(txt),
+                             _re.search(pat, txt) is not None, (pat, txt))
+
+    def test_neural_grep_regex_matches_coreutils(self):
+        # regex grep on the substrate NFA — emit lines the pattern matches.
+        from run_grep_regex import neural_grep_e
+        self.assertEqual(neural_grep_e("cat\ndog\ncatfish\n", "cat"), "cat\ncatfish\n")
+        self.assertEqual(neural_grep_e("color\ncolour\ncolouur\n", "colou?r"),
+                         "color\ncolour\n")
+        self.assertEqual(neural_grep_e("a1\nbb\nc3\n", "[0-9]"), "a1\nc3\n")
+        self.assertEqual(neural_grep_e("grey\ngray\ngrry\n", "gr[ae]y"), "grey\ngray\n")
+        self.assertEqual(neural_grep_e("k\nnope9\nk2\n", "[0-9]", invert=True), "k\n")
+
     def test_neural_grep_substring_match(self):
         # Unix rung 10 (Tier C entry): fixed-string grep prints lines containing
         # the pattern. Containment is a substrate substring match — a sliding
