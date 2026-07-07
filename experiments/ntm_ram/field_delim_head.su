@@ -1,0 +1,33 @@
+// field_delim_head.su — substrate field splitter for awk `-F<c>` (single-char FS).
+//
+// With an explicit one-character field separator, fields are delimiter-separated
+// (empty fields count), unlike the whitespace-run default in field_head.su. A
+// recurring counter holds the 1-based field index; it increments at each delimiter
+// character. A non-delimiter character belongs to the CURRENT field, so
+// `field_select_delim(served, n, delim)` emits it iff it is not the delimiter AND
+// the current field index == n. The counter and the gate are exact-indicator
+// substrate ops; the host drives the stream and assembles the field.
+function vector is_cp(vector served, vector center) {
+    vector d = served - center;
+    vector tri = make_real(1.0) - make_real(abs(d));
+    return (tri + make_real(abs(tri))) * make_real(0.5);
+}
+
+function vector field_select_delim(vector served, vector n, vector delim) {
+    recurring vector counter = make_real(1.0);      // 1-based field index
+    vector is_delim = is_cp(served, delim);
+    vector in_field = is_cp(counter, n);
+    vector gate = (make_real(1.0) - is_delim) * in_field;
+    vector out = served * gate;
+    recur(counter + is_delim);                       // next delimiter -> next field
+    return out;
+}
+
+function vector field_count_delim(vector served, vector delim) {
+    recurring vector counter = make_real(1.0);
+    vector next = counter + is_cp(served, delim);
+    recur(next);
+    return next;
+}
+
+function string main() { return "ok"; }

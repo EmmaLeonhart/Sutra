@@ -1,3 +1,29 @@
+## 2026-07-06: neural Unix rung 13 — `awk` (common subset; substrate field splitting)
+
+`experiments/ntm_ram/{field_head,field_delim_head}.su` + `run_awk.py`. awk is a whole language; this rung
+builds its genuinely-substrate core — FIELD SPLITTING — and a host interpreter for the common one-liner
+subset, honestly scoped. `$N` and `NF` are computed on the substrate: a recurring slot packs the field
+counter (real) and was-previous-nonspace (imag), a field starts at each whitespace→nonspace transition
+(the wc word-count logic), and `field_select(served, n)` emits a char iff it is non-whitespace AND its
+field index == n (the cut column-gate generalised to fields, all exact indicators). `-F<c>` uses a second
+head where the counter increments at each delimiter character. Patterns `/regex/` reuse the on-substrate
+NFA (rung 11); the host interprets `print` and tracks `NR` (record number — I/O bookkeeping).
+
+12/12 vs coreutils `awk`: `{print $1}`, `{print $1, $3}` (OFS space), `{print $NF}`, `{print NF}`,
+`{print NR, NF}`, `{print $2}`, `/keep/` (bare regex pattern → print $0), `NR==2`, `NR>2`, `-F: {print $1}`
+and `-F, {print $2}`, and `/error/{print $2}` (pattern + action). Pipe form works.
+
+Honest scope (named, NOT silently dropped): user variables, arithmetic expressions, BEGIN/END blocks,
+arrays, functions, printf, multiple rules, and field assignment are NOT supported — that is the "whole
+language" where the Sutra compiler itself becomes the engine, and it is far out. What ships here is the
+field-extraction + simple-pattern subset that covers the overwhelming majority of real awk one-liners,
+with the field splitting genuinely on the substrate. Guard: `test_ntm_ram.py::test_neural_awk_field_subset`.
+
+**13 neural-Unix rungs now.** Tiers A + B complete; Tier C (grep-F, regex NFA, grep-E, sed, awk-subset)
+essentially complete bar the far-out full-awk language. Next: **Tier D (filesystem)** — `cat FILE` → `ls`
+→ `cp`/`mv`/`rm` → `find` — gated on prerequisite **P1**: a persistent disk device + path→region map
+(spec it in planning/sutra-spec/ first, like P2 was).
+
 ## 2026-07-06: neural Unix rung 12 — `sed s/re/repl/[g]` (regex substitute; match-span extraction)
 
 `experiments/ntm_ram/run_sed.py`. sed's substitute needs to know WHERE the match is, not just whether one

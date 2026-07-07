@@ -1,0 +1,51 @@
+// field_head.su — substrate field splitter for awk (Unix rung 13, common subset).
+//
+// awk's core over a record is FIELD splitting: `$N` is the N-th whitespace-
+// separated field, `NF` the field count. Both run on the substrate here. A
+// recurring slot packs (field_counter in real, was-previous-nonspace in imag);
+// a field STARTS at each whitespace->nonspace transition (the wc word-count
+// logic), so the running field index is exact. `field_select(served, n)` emits a
+// character iff it is non-whitespace AND its field index == n (an exact-indicator
+// gate, the cut column-gate generalised to fields); the host collects the emitted
+// stream per field. `field_count` returns the running field total, whose final
+// value is NF. Default FS = space/tab (awk's whitespace FS, per-record).
+//
+// All exact integer tensor ops (is_cp / transitions) — the field index and the
+// gate are the substrate work; the host drives the byte stream and assembles the
+// selected fields (I/O), and interprets the print statement.
+function vector is_cp(vector served, vector center) {
+    vector d = served - center;
+    vector tri = make_real(1.0) - make_real(abs(d));
+    return (tri + make_real(abs(tri))) * make_real(0.5);
+}
+
+function vector field_count(vector served) {
+    recurring vector state = make_real(0.0);        // real=count, imag=prev_nonspace
+    vector count = make_real(state);
+    vector prev = make_real(state * make_complex(0.0, -1.0));
+    vector is_space = is_cp(served, make_real(32.0)) + is_cp(served, make_real(9.0));
+    vector is_nonspace = make_real(1.0) - is_space;
+    vector field_start = is_nonspace * (make_real(1.0) - prev);
+    vector new_count = count + field_start;
+    vector next = new_count + make_complex(0.0, 1.0) * is_nonspace;
+    recur(next);
+    return new_count;
+}
+
+function vector field_select(vector served, vector n) {
+    recurring vector state = make_real(0.0);        // real=count, imag=prev_nonspace
+    vector count = make_real(state);
+    vector prev = make_real(state * make_complex(0.0, -1.0));
+    vector is_space = is_cp(served, make_real(32.0)) + is_cp(served, make_real(9.0));
+    vector is_nonspace = make_real(1.0) - is_space;
+    vector field_start = is_nonspace * (make_real(1.0) - prev);
+    vector new_count = count + field_start;
+    vector in_field = is_cp(new_count, n);          // this char's field == n?
+    vector gate = is_nonspace * in_field;
+    vector out = served * gate;
+    vector next = new_count + make_complex(0.0, 1.0) * is_nonspace;
+    recur(next);
+    return out;
+}
+
+function string main() { return "ok"; }

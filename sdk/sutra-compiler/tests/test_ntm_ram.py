@@ -138,6 +138,22 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual([a for a, _ in trace][:len(text)],
                          list(range(len(text))))
 
+    def test_neural_awk_field_subset(self):
+        # Unix rung 13: awk common subset. Field splitting runs on the substrate
+        # (recurring field counter + exact-indicator gate); $N / NF / NR / $0 /
+        # $NF, /regex/ patterns (via the NFA), NR-comparisons, and -F<c>.
+        from run_awk import neural_awk
+        t = "alice 30 nyc\nbob 25 sf\n"
+        self.assertEqual(neural_awk(t, "{print $1}"), "alice\nbob\n")
+        self.assertEqual(neural_awk(t, "{print $1, $3}"), "alice nyc\nbob sf\n")
+        self.assertEqual(neural_awk(t, "{print $NF}"), "nyc\nsf\n")
+        self.assertEqual(neural_awk(t, "{print NF}"), "3\n3\n")
+        self.assertEqual(neural_awk("a\nb\nc\n", "NR==2"), "b\n")
+        self.assertEqual(neural_awk("keep\nno\nkeep2\n", "/keep/"), "keep\nkeep2\n")
+        self.assertEqual(neural_awk("root:x:0\nsys:x:1\n", "{print $1}", ":"),
+                         "root\nsys\n")
+        self.assertEqual(neural_awk("e: bad\ni: ok\n", "/e:/{print $2}"), "bad\n")
+
     def test_neural_sed_substitute(self):
         # Unix rung 12: sed s/re/repl/[g]. Adds match-SPAN extraction on the
         # substrate NFA (leftmost-longest via accept-active at each end position);
