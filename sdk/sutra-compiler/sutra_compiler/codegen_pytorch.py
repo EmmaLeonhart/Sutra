@@ -2781,14 +2781,8 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.make_string(chr(int(codepoint)))")
         self._indent -= 1
         self._emit()
-        self._emit("def is_char(self, v):")
-        self._indent += 1
-        self._emit('"""True iff v is a String value (kept as `is_char` for')
-        self._emit('backward-compat with code that pre-dated the rename to')
-        self._emit('AXIS_STRING_FLAG; new code should use is_string)."""')
-        self._emit("return bool(v[self.semantic_dim + self.AXIS_STRING_FLAG].item() >= 0.5)")
-        self._indent -= 1
-        self._emit()
+        # `is_char` (a pure alias of is_string) retired 2026-07-08 —
+        # zero call sites; CLAUDE.md § "Deprecate aliases aggressively".
         self._emit("# ---- String runtime methods ----")
         self._emit("# Encoding: AXIS_STRING_FLAG marks the vector as a String.")
         self._emit("# Characters pack into the synthetic axes — char[0] at")

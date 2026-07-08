@@ -3690,6 +3690,13 @@ class BaseCodegen:
             # never axis-moves; `(fuzzy) n` converts, `unsafeCast<fuzzy>(n)`
             # reinterprets (truth reading of a real-axis value is 0).
             return self._translate_expr(expr.expr)
+        if isinstance(expr, ast.UnsafeOverrideExpr):
+            # `unsafeOverride(v)` suppresses a type-check at the call
+            # site and does not change the value — the runtime lowering
+            # is the pure passthrough (same class as unsafeCast, minus
+            # the type argument). Round-19 audit: was the last special
+            # call form with no codegen.
+            return self._translate_expr(expr.expr)
         if isinstance(expr, ast.CastExpr):
             return self._translate_cast(expr)
         raise CodegenNotSupported(

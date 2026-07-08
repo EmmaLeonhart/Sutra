@@ -1,3 +1,23 @@
+## 2026-07-08: round-19 audit (aliases + affordances) — is_char retired, unsafeOverride codegen shipped, Math.mod ban re-measured (NaN half FIXED, scalar-realm limit remains)
+
+Rotated the pinned-tail audit to Emma's aliases+affordances surface. Swept the torch runtime's
+alias markers: `AXIS_CHAR_FLAG` and `make_trit`/`make_char` are carve-outs (foreign-ecosystem /
+type-surface compat); the PascalCase tensor names are the declared Sutra-side spelling. Two
+live items + one measurement, all done this tick: (1) **`is_char` RETIRED** — a pure dead
+alias of `is_string` whose own docstring deprecated it, ZERO call sites (definition + one
+stale numpy-backend comment, now repointed); docs row updated. (2) **`unsafeOverride(v)`
+codegen shipped** — was the last special call form with no lowering (corpus 07_casts.su
+stopped on it); it is the pure passthrough (suppresses a call-site type check, never changes
+the value), 2 guards in `tests/test_unsafe_override_codegen.py`. (3) **Math.mod ban
+re-measured** — the standing "NEVER use Math.mod (vector-collapse/NaN)" Context note
+contradicted stdlib/modulus.su's "verified end-to-end", so: measured the exact 2026-06-12
+failure cases on today's runtime. The NaN collapse is FIXED (the `_scalar` entry boundary
+projects the real axis before the trig chain): vec,vec returns the correct 0.375 with no NaN;
+24-point sweep vs Python floor-mod max circle-distance err 4e-6. STILL TRUE: output is 0-d
+(scalar realm), so vector recurrences must keep using complex rotation. Finding
+`2026-07-08-math-mod-ban-remeasured-nan-fixed-scalar-realm-remains.md` proposes the narrowed
+note; Emma's warning stays verbatim until she decides (NEEDS-DECISION queue item).
+
 ## 2026-07-07: round-18 audit (error messages) → SUT0205 unknown-VARIABLE typo diagnostic shipped
 
 Rotated the pinned-tail audit to error messages: fed newcomer-mistake programs through the real
