@@ -39,23 +39,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Daily audit 2026-07-08 (second pass): stale open-question — `codegen-v1-feature-coverage.md` says UnsafeCast still refused, but codegen shipped
-
-`planning/open-questions/codegen-v1-feature-coverage.md` (lines 12-14 "still refuses… UnsafeCastExpr",
-line 42 "under-specified", line 56 "Pin down UnsafeCastExpr semantics", Status footer line 60-63) still
-lists `UnsafeCastExpr` in the refused / unresolved set. Authoritative resolution: `sdk/sutra-compiler/
-sutra_compiler/codegen_base.py:3686-3692` — `UnsafeCastExpr` is translated as the pure relabel
-(`return self._translate_expr(expr.expr)`), per `types.md` § "Casting — relabeling, not transformation".
-Shipped 2026-07-07 (commit `511cb2c` + `03831f3` cast codegen; DEVLOG 2026-07-07 "cast codegen SHIPPED —
-`(Type) expr` conversion casts + `unsafeCast<Type>` relabels"). `UnsafeOverrideExpr` also SHIPPED at
-`codegen_base.py:3693-3699` (round-19 audit, 2026-07-08). Fix: update
-`planning/open-questions/codegen-v1-feature-coverage.md` to move `UnsafeCastExpr` from the "still refused"
-list into the SHIPPED list alongside `EmbedExpr`/`DefuzzyExpr` (with a pointer to `codegen_base.py:3686`);
-also add `UnsafeOverrideExpr` as SHIPPED; update `planning/open-questions/README.md` verdict-table row for
-`codegen-v1-feature-coverage.md` (drop "+ UnsafeCast" from the "open tail"). Then the remaining refused
-tail is only top-level `MethodDecl` (`codegen_base.py:975-978`; class-body method + operator decls ARE
-translated).
-
 ### Math.mod Context-note rewording — NEEDS-DECISION (Emma)
 
 Round-19 measurement (finding:

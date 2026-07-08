@@ -1,3 +1,14 @@
+## 2026-07-08: v0.9.3 publish VERIFIED on PyPI + stale open-question re-narrowed
+
+Fresh-venv `pip install sutra-dev[runtime]==0.9.3`: the three probes that failed on 0.9.2 now
+pass — interpolation prints the text, casts compile+run, concat rides the substrate path.
+(Display note, not a bug: the CLI terminal decode reads AXIS_REAL, so a returned fuzzy shows
+0.0 — its 0.7 lives on the truth axis, verified by the unit guards.) The publish workflow also
+cut the GitHub Release. Second-pass audit item done same tick: `codegen-v1-feature-coverage.md`
+re-narrowed to NEARLY CLOSED — UnsafeCast (relabel, 2026-07-07), UnsafeOverride (passthrough,
+2026-07-08), and class-body method/operator decls are all SHIPPED; the only refused construct
+left is top-level MethodDecl (Emma-shaped refuse-or-support). README verdict rows updated.
+
 ## 2026-07-08: v0.9.3 RELEASED (Emma's go) — round-20 onboarding audit measured the docs/PyPI gap and forced the decision
 
 Round-20 rotated to onboarding: fresh venv, `pip install "sutra-dev[runtime]"` → 0.9.2, then
