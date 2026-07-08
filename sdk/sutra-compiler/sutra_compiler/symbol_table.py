@@ -367,7 +367,26 @@ def local_names(decl) -> Set[str]:
         for n in _walk(body):
             if isinstance(n, ast.VarDecl):
                 names.add(n.name)
+            elif isinstance(n, ast.ForeachStmt):
+                # `foreach (T x in ...)` binds x for the body — a local
+                # name, just not a VarDecl node.
+                names.add(n.var_name)
     return names
+
+
+def variable_typo_suggestion(name: str, known_names, max_distance: int = 2):
+    """If `name` is a likely misspelling of a known variable (a local, param, or
+    file-scope name from `known_names`), return that name; else None. Same
+    edit-distance calibration as `function_typo_suggestion`: real typos sit 1-2
+    edits from their target (`totl`→`total`=1), unrelated names sit far away."""
+    if not name:
+        return None
+    best, best_d = None, max_distance + 1
+    for cand in known_names:
+        d = _levenshtein(name, cand, max_distance)
+        if d < best_d and d > 0:
+            best, best_d = cand, d
+    return best
 
 
 def _type_name(type_ref) -> Optional[str]:
