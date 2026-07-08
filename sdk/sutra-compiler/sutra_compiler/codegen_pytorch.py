@@ -2910,12 +2910,17 @@ class PyTorchCodegen(Codegen):
         self._emit('was a host `for k in range`, `.item()`, host `if`, host')
         self._emit('`return k+1`). Gather the codepoint block, mark non-zero')
         self._emit('positions, take the highest 1-based position that is')
-        self._emit('non-zero: length = max((k+1) where cps[k] != 0). All tensor')
+        self._emit('non-zero: length = max((k+1) where cps[k] >= 0.5). All tensor')
         self._emit('ops; 0-d tensor out. Trailing-zero-as-sentinel preserved')
-        self._emit('(a 0 codepoint in the tail reads shorter, same as before)."""')
+        self._emit('(a 0 codepoint in the tail reads shorter, same as before).')
+        self._emit('The 0.5 threshold (was `!= 0`) makes decode robust to')
+        self._emit('superposition residue: a String coming out of select() carries')
+        self._emit('~1e-9 leakage from losing branches on higher codepoint axes,')
+        self._emit('which the exact-nonzero walk counted as characters (phantom')
+        self._emit('NULs). Real codepoints are >= 32; residue is << 1."""')
         self._emit("ax = self._str_axes()")
         self._emit("cps = v.index_select(0, ax)")
-        self._emit("nz = (cps != 0).to(self.dtype)")
+        self._emit("nz = (cps.abs() >= 0.5).to(self.dtype)")
         self._emit("pos = _torch.arange(1, ax.shape[0] + 1, dtype=self.dtype, device=self.device)")
         self._emit("return (pos * nz).max()")
         self._indent -= 1
@@ -3334,7 +3339,10 @@ class PyTorchCodegen(Codegen):
         self._emit("for i in range(n):")
         self._indent += 1
         self._emit("axis = self._string_axis(i)")
-        self._emit("chars.append(chr(int(v[self.semantic_dim + axis].item())))")
+        self._emit("# round(), not int(): a select() superposition leaves the")
+        self._emit("# winner's codepoints at ~(1-eps)*cp — int() truncated 101.9997")
+        self._emit("# to 101 and garbled every decoded character by one.")
+        self._emit("chars.append(chr(round(v[self.semantic_dim + axis].item())))")
         self._indent -= 1
         self._emit('return "".join(chars)')
         self._indent -= 1
@@ -3592,6 +3600,34 @@ class PyTorchCodegen(Codegen):
         self._emit("out = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
         self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = cos")
         self._emit("return out")
+        self._indent -= 1
+        self._emit()
+        # Number-family equality — the exact relu indicator (Emma
+        # 2026-07-08). Cosine eq is DEGENERATE at the zero vector
+        # (cos(0,v) is 0/0 → a runtime zero can never equal anything,
+        # including zero), which made zero-testing unreachable — see
+        # planning/findings/2026-07-08-zero-equality-reads-neutral-
+        # cosine-degenerate.md.
+        self._emit("def num_eq(self, a, b):")
+        self._indent += 1
+        self._emit('"""Number == number via the exact indicator:')
+        self._emit('truth = 2*relu(1 - |x - y|) - 1 — +1 at equal, -1 at')
+        self._emit('|diff| >= 1 (exact gap 2.0 at integer spacing, no residual;')
+        self._emit('the neural-Unix keystone on the truth convention). Fractional')
+        self._emit('nearness interpolates linearly (|d|=0.5 -> 0, neutral). The')
+        self._emit('unit width is a trainable-surface candidate (a gain k on |d|),')
+        self._emit('fixed at 1 today. All tensor ops; differentiable a.e."""')
+        self._emit("d = _torch.abs(self._scalar(a) - self._scalar(b))")
+        self._emit("truth = 2.0 * _torch.clamp(1.0 - d, min=0.0) - 1.0")
+        self._emit("out = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = truth")
+        self._emit("return out")
+        self._indent -= 1
+        self._emit()
+        self._emit("def num_neq(self, a, b):")
+        self._indent += 1
+        self._emit('"""!= for number-family values — truth-axis negation of num_eq."""')
+        self._emit("return -self.num_eq(a, b)")
         self._indent -= 1
         self._emit()
         # Synthetic-axis equality — Euclidean distance + tanh

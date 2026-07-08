@@ -1,3 +1,23 @@
+## 2026-07-08: num_eq SHIPPED (Emma: relu indicator) — zero-testing works, FizzBuzz runs end-to-end; String decode hardened against superposition residue
+
+Emma answered all three queued decisions in one AskUserQuestion batch: (1) number-family `==`
+via the exact relu indicator, (2) le/ge adopt or(<, ==) — queued as the next build item, (3)
+Math.mod Context note narrowed to scalar-realm-only (applied verbatim). Shipped (1) this tick:
+`num_eq(a,b)` = `2·relu(1 − |x−y|) − 1` scattered onto the truth axis — +1 at equal, −1 at
+|diff| ≥ 1 (exact gap 2.0; fractional nearness interpolates, |d|=0.5 reads neutral; the unit
+width is a named trainable-surface candidate, fixed at 1). Routing: `_equality_src` sends ==
+/!= through num_eq/num_neq when BOTH operands infer to the number family (the cast-family
+inference — covers arithmetic like `n % 3`), torch-only; eq_synthetic (Euclidean) keeps
+string/char/complex; cosine keeps vectors. MEASURED: the finding's case `(15 % 3) == 0` now
+reads +1.0 (was 0.0 neutral), `(16 % 3) == 0` → −1.0, != mirrors. Two decode hardenings the
+end-to-end FizzBuzz forced: string_length's walk now thresholds at 0.5 (was !=0 — select()
+leaves ~1e-9 losing-branch residue on higher codepoint axes → phantom NUL characters) and
+string_to_python rounds codepoints (was int() truncation — the winner's codepoints sit at
+(1−eps)·cp and every character decoded off by one). FizzBuzz via select now prints exactly
+`fizzbuzz fizz buzz 7` (guard in test_num_eq_indicator.py, 7/7). Regression batch (string
+suites + equality autograd + corpus + codegen + ntm_ram) run before push — result in the
+commit.
+
 ## 2026-07-08: round-23 audit (real-program reach: FizzBuzz drive) — if/else steer fixed, user-fn concat crash fixed, zero-equality degeneracy FOUND
 
 Drove FizzBuzz, the canonical second program. Three findings, two fixed this tick: (1) `if`
