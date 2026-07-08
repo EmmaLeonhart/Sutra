@@ -1,3 +1,30 @@
+## 2026-07-07: int_to_string SHIPPED — the substrate integer→String formatter (the shared prerequisite); `$"n={n}"` and `(string) n` now work for ints
+
+The missing primitive both interp-strings and the text-cast wall named. Spec first
+(`planning/sutra-spec/strings.md` § "Integer formatting"): digit extraction is MOD-FREE —
+`Math.mod` is banned (measured vector-collapse), and none is needed: `digit_k = floor(a/10^k) −
+10·floor(a/10^(k+1))` (two floors + multiply-subtract) over a cached power table. Leading zeros
+gate on the quotient-significance mask (`0` renders `"0"`); negatives gate codepoint 45 into
+slot 0 and shift digits right by one — a gather by shifted index, the same VSA-native
+permutation string_concat uses; masked scatter into the string axes. All tensor ops, no host
+loop, no `.item()`. Exactness bound documented and enforced by dtype: 7 digits at float32
+(2^24), 15 at float64; beyond it output is valid-but-unspecified (the input is already inexact
+there — same posture as String overflow). Surface: `static intrinsic method String
+int_to_string(int n)` on the String stdlib class; wired into InterpolatedString lowering
+(int-typed interpolants) and the `(Type)` cast table (`(string) n`, int source only). The
+INT-ONLY wall is deliberate honesty: rendering `3.14` as "3" would silently lie, so a
+fractional `number` interpolant/cast still rejects, with the steer naming `int` and
+int_to_string. MEASURED: sweep vs Python `str()` across 0..20, boundary powers, 7-digit max,
+negatives (39 subtests) + surface wiring (cast of var + literal, interpolation, mixed
+int+string interp, bare intrinsic call) in `tests/test_int_to_string.py`; neighbors green
+(cast 19 + interp 8 + strings + corpus + repl + stdlib_loader = 75 passed + 129 subtests,
+13.6s); `_smoke_test` + build_site rerun clean pre-commit. Two rejection tests re-pointed at
+the new (stricter-but-accurate) messages — the old `(string) 5` reject test became a
+fractional-`0.5` reject test because `(string) 5` now correctly WORKS. Earlier the same day the
+full suite ran green end-to-end: 316+90 (load-bearing chunk) + 517+9skip+49 (fast chunk) + 76
+(heavy runtime chunk) + 38 (ntm_ram batch) — the cast/interp work rode CI-equivalent local
+coverage before this rung built on it.
+
 ## 2026-07-07: InterpolatedString codegen SHIPPED for string-typed interpolants (round-16 item 2b) — round 16 COMPLETE
 
 `$"hello {s}!"` now lowers to a substrate `make_string` / `string_concat` chain (string_concat is

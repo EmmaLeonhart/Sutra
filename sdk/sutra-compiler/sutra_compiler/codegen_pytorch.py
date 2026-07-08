@@ -3275,6 +3275,57 @@ class PyTorchCodegen(Codegen):
         self._emit("return v")
         self._indent -= 1
         self._emit()
+        self._emit("def _i2s_pows(self):")
+        self._indent += 1
+        self._emit('"""Cached power-of-10 table for int_to_string digit')
+        self._emit('extraction. Length = the dtype exactness bound (7 digits')
+        self._emit('float32, 15 float64) — beyond it the input integer is')
+        self._emit('already inexact in the dtype."""')
+        self._emit("if not hasattr(self, '_i2s_pows_cache') or self._i2s_pows_cache is None:")
+        self._indent += 1
+        self._emit("D = 15 if self.dtype == _torch.float64 else 7")
+        self._emit("self._i2s_pows_cache = 10.0 ** _torch.arange("
+                   "D, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit("return self._i2s_pows_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def int_to_string(self, x):")
+        self._indent += 1
+        self._emit('"""Render an integer NUMBER as a substrate String — the')
+        self._emit("number->string formatter (strings.md § Integer formatting).")
+        self._emit("Digit extraction is MOD-FREE (Math.mod is banned; measured")
+        self._emit("vector-collapse): digit_k = floor(a/10^k) - 10*floor(a/10^(k+1)).")
+        self._emit("Leading zeros gate on the quotient-significance mask (0 renders")
+        self._emit("'0'); negatives gate codepoint 45 into slot 0 and shift digits")
+        self._emit("right by one — a gather by shifted index, the same VSA-native")
+        self._emit("permutation string_concat uses. round() first: the INT contract.")
+        self._emit("Exact within the dtype bound (7 digits float32 / 15 float64);")
+        self._emit('beyond it output is valid-but-unspecified (input already inexact)."""')
+        self._emit("a0 = self._scalar(x)")
+        self._emit("neg = (a0 < 0).to(self.dtype)")
+        self._emit("a = _torch.round(_torch.abs(a0))")
+        self._emit("pows = self._i2s_pows()")
+        self._emit("D = pows.shape[0]")
+        self._emit("q = _torch.floor(a / pows)")
+        self._emit("qn = _torch.floor(a / (pows * 10.0))")
+        self._emit("digits = q - 10.0 * qn")
+        self._emit("nd = _torch.clamp((q > 0).to(self.dtype).sum(), min=1.0)")
+        self._emit("ax = self._str_axes()")
+        self._emit("n = ax.shape[0]")
+        self._emit("idx = _torch.arange(n, dtype=self.dtype, device=self.device)")
+        self._emit("place = nd - 1.0 - (idx - neg)")
+        self._emit("valid = ((place >= 0) & (place < D) & (idx - neg >= 0))"
+                   ".to(self.dtype)")
+        self._emit("gath = digits[place.clamp(0, D - 1).long()]")
+        self._emit("out_cps = valid * (48.0 + gath) + "
+                   "(idx == 0).to(self.dtype) * neg * 45.0")
+        self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("v[self.semantic_dim + self.AXIS_STRING_FLAG] = 1.0")
+        self._emit("v = v.index_copy(0, ax, out_cps)")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
         self._emit("def string_to_python(self, v):")
         self._indent += 1
         self._emit('"""Decode a String value back to a Python str. This is the')

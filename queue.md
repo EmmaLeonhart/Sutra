@@ -38,17 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Substrate number→string formatter (prerequisite subsystem — unlocks full interpolation + `(string)` casts)
-
-Both interp-strings (shipped 2026-07-07, string-typed interpolants only) and the text-cast wall
-(`(string) 5` rejected) are blocked on the same missing primitive: formatting a substrate number
-as a substrate String (digit extraction). Constraint: **`Math.mod` is FORBIDDEN** (measured
-vector-collapse/NaN — Context §above), so the naive div-10/mod-10 digit loop needs another
-route (e.g. complex-rotation wrap per the standing guidance, or a bounded digit-position
-comparison network like the neural-Unix `relu(1-|c-center|)` indicator over scaled magnitudes).
-Needs a design step + spec note under `planning/sutra-spec/strings.md` before code. Per the
-neural-Unix epic rule: a prerequisite is the signal for the next thing to build.
-
 ### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
 
 Real-program-reach audit: `2 <= 2` and `2 >= 2` evaluate to the truth-axis NEUTRAL (0), not true; the

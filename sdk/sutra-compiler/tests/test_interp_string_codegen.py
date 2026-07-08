@@ -69,15 +69,17 @@ class TestNonStringInterpolantsReject(unittest.TestCase):
             _compile(src)
         self.assertIn(needle, str(cm.exception))
 
-    def test_number_interpolant_rejected(self):
+    def test_fractional_number_interpolant_rejected(self):
+        # `number` (possibly fractional) still rejects — int-typed
+        # interpolants lower via int_to_string (test_int_to_string.py).
         self._reject(
             'function string main(){ number n = 5; return $"n={n}"; }',
-            "formatter")
+            "declare it `int`")
 
     def test_unknown_type_interpolant_rejected(self):
         self._reject(
             'function string main(){ return $"v={similarity("a", "b")}"; }',
-            "string-typed")
+            "statically inferable")
 
 
 if __name__ == "__main__":
