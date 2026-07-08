@@ -1,0 +1,27 @@
+// Strings & formatting on the substrate — tutorial 06.
+// @embedding: none dim=64
+//
+// Every String here is a real substrate vector: codepoints packed
+// into the synthetic axes, concatenation a permutation-shift-and-add,
+// integer formatting a mod-free digit extraction. No embedding model
+// is needed — this program is pure string machinery.
+
+// `+` on two strings concatenates (substrate string_concat).
+function string greet(string name) {
+    return "hello, " + name + "!";
+}
+
+// Interpolation: string-typed interpolants pass through; int-typed
+// interpolants format via int_to_string.
+function string count_report() {
+    string s = "hello";
+    int n = string_length(s);
+    return $"{s} has {n} letters";
+}
+
+// Entry point: build both lines and join them.
+function string main() {
+    string a = greet("sutra");
+    string b = count_report();
+    return a + " / " + b;
+}

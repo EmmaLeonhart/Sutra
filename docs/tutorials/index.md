@@ -11,6 +11,7 @@ Each tutorial is a single `.su` file plus a walkthrough explaining what it does 
 3. **[Snap-to-nearest](03-snap-to-nearest.md)** — the cleanup step. How long Sutra computations stay numerically stable instead of degrading into noise.
 4. **[From TypeScript and JavaScript](04-from-typescript.md)** — take real `.ts` / `.js` source through the `ts2su` transpiler into running Sutra, and see where the substrate shows through.
 5. **[Build a semantic FAQ matcher](05-semantic-faq.md)** — a small, genuinely useful program: a user asks a question in their own words and gets the right canned answer, matched by *meaning* rather than keywords. Your first program where the embedding substrate does real work.
+6. **[Strings & formatting](06-strings-and-formatting.md)** — text as substrate vectors: `+` concatenation, `$"..."` interpolation, and formatting integers with `int_to_string` — no embedding model required.
 
 Prefer to poke at values without writing a file first? Open the **[interactive REPL](../repl.md)** (`sutrac repl`) and type expressions live.
 
