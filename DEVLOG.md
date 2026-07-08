@@ -1,3 +1,13 @@
+## 2026-07-08: v0.9.4 VERIFIED on PyPI + the CLI truth-display gap closed
+
+Fresh venv `pip install --no-cache-dir sutra-dev[runtime]==0.9.4`: fizzbuzz.su prints exactly
+`fizzbuzz fizz buzz 7` on the released package — the zero-test, tie semantics, decode
+hardening all reach pip users. The verification also re-surfaced the CLI display gap noted at
+0.9.3: `--run` printed 0.0 for a TRUE comparison because a fuzzy return's value lives on
+AXIS_TRUTH while the terminal decode read AXIS_REAL. Fixed: truth-dominant results print
+`true (+1.00)` / `false (−1.00)` / `neutral (…)`; number-vectors keep the numeric face.
+3 new guards in test_terminal_string_decode.py (7/7 with the string/number regressions).
+
 ## 2026-07-08: v0.9.4 RELEASED (Emma's go) — the comparison-semantics batch reaches pip users same-day
 
 The docs/PyPI gap re-opened within hours of 0.9.3 (num_eq, le/ge ties, decode hardening,

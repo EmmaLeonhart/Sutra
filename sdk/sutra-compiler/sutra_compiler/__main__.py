@@ -367,7 +367,18 @@ def _decode_terminal_result(mod, result):
                 and result.ndim == 1 and result.shape[0] == vsa.dim):
             if vsa.is_string(result):
                 return vsa.string_to_python(result)
-            return float(result[vsa.semantic_dim + vsa.AXIS_REAL])
+            real = float(result[vsa.semantic_dim + vsa.AXIS_REAL])
+            truth = float(result[vsa.semantic_dim + vsa.AXIS_TRUTH])
+            # Truth-dominant result (a fuzzy/bool return — e.g.
+            # `(15 % 3) == 0`): its value lives on AXIS_TRUTH, and
+            # printing the real axis showed 0.0 for a TRUE comparison
+            # (round-25). Display the truth reading with its polarity
+            # named; number-vectors (real-dominant) keep the old face.
+            if abs(truth) > abs(real):
+                word = ("true" if truth >= 0.5
+                        else "false" if truth <= -0.5 else "neutral")
+                return f"{word} ({truth:+.2f})"
+            return real
     except Exception:
         pass
     return result

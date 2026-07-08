@@ -51,3 +51,21 @@ class TestTerminalStringDecode(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTruthAxisDecode(unittest.TestCase):
+    """A fuzzy/bool main() prints its truth reading, not the real axis
+    (round-25: `(15 % 3) == 0` printed 0.0 despite being true — the
+    +1 lives on AXIS_TRUTH)."""
+
+    def test_true_comparison_prints_true(self):
+        out = _run_main("function fuzzy main(){ return (15 % 3) == 0; }")
+        self.assertIn("true", str(out))
+
+    def test_false_comparison_prints_false(self):
+        out = _run_main("function fuzzy main(){ return (16 % 3) == 0; }")
+        self.assertIn("false", str(out))
+
+    def test_number_result_still_prints_real(self):
+        out = _run_main("function number main(){ return make_real(7.0); }")
+        self.assertEqual(float(out), 7.0)
