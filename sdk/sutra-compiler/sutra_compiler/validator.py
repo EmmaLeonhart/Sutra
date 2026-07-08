@@ -340,10 +340,17 @@ class _Walker:
         self._enter_function_scope()
         saved_env = self._local_type_env
         self._local_type_env = local_type_env(node)
+        # SUT0205: the names legally referenceable as bare identifiers
+        # inside THIS function's body (params + var/const + foreach
+        # vars). Per-decl, not the file-wide union, so a typo of another
+        # function's local still warns.
+        saved_fn_locals = getattr(self, "_fn_local_names", None)
+        self._fn_local_names = local_names(node)
         try:
             self.visit(node.body)
         finally:
             self._local_type_env = saved_env
+            self._fn_local_names = saved_fn_locals
         self._exit_function_scope()
 
     def visit_MethodDecl(self, node: ast.MethodDecl) -> None:
