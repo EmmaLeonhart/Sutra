@@ -100,3 +100,7 @@ Here the query shares almost no words with the question it matches — "I forgot
 
 - The [Operations and operators reference](../operators.md) — the formal definition of `argmax_cosine`, `embed`, and the rest.
 - [What is Sutra](../what-is-sutra.md) — the bigger picture of why a language built on embedding geometry is a different kind of tool.
+
+---
+
+**Next: [06 — Strings & formatting](06-strings-and-formatting.md)**

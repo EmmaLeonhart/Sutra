@@ -158,3 +158,7 @@ For the complete per-feature surface, see the [TypeScript → Sutra mapping](../
 - [TypeScript → Sutra mapping](../typescript-to-sutra.md) — the full per-feature reference, with a status matrix.
 - [Loops](../loops.md) — the declared-loop / RNN-cell model the `for` example compiles into.
 - [Numeric math](../numeric-math.md) — why substrate arithmetic is approximate.
+
+---
+
+**Next: [05 — Build a semantic FAQ matcher](05-semantic-faq.md)**
