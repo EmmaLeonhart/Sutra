@@ -1,3 +1,24 @@
+## 2026-07-07: round-18 audit (error messages) → SUT0205 unknown-VARIABLE typo diagnostic shipped
+
+Rotated the pinned-tail audit to error messages: fed newcomer-mistake programs through the real
+CLI. SUT0100/0200/0201/0202/0204 all produce precise, actionable faces (measured — the
+missing-semicolon, typo'd-function, unknown-type, arity, and print probes each steer to the
+fix). THE hole: a misspelled or undeclared VARIABLE (`int total = 5; return totl + 1;`)
+validated CLEAN and died at runtime as a raw Python `NameError` — the most common newcomer
+mistake was the one name class with no diagnostic. Shipped SUT0205 mirroring SUT0201's shape:
+NEAR-MISS ONLY (≤2 edits from a declared local/param/file-scope name) because the corpus is
+explicit that undeclared free identifiers are legitimate Sutra ("the `behaviors` value is
+whatever the runtime binds" — 23_subscript_access.su), so plain unresolved→warn is wrong by
+design (first draft measured: it flagged Promise/Math namespace anchors — `Math` is 2 edits
+from `main`! — and the runtime-bound subscript names). Scoping: per-function locals incl.
+foreach vars (added to `local_names`), method bodies get `this`, loop-function decls get their
+state params + `iterator`/`element` (new visit); callee positions stay SUT0201/0204's;
+member-access receivers are suppressed namespace anchors. MEASURED: 12/12 guards in
+`tests/test_unknown_variable_diagnostic.py` incl. the whole-valid-corpus ZERO-false-positive
+sweep; diagnostics-suite regression 141 passed + 96 subtests; CLI face verified
+(`totl` → "did you mean `total`?" + the reaches-generated-code-as-bare-Python-name hint).
+Docs: SUT0205 added to the capabilities diagnostics reference.
+
 ## 2026-07-07: fuzzy_dispatch RESOLVED — not a backend bug: unsharpened softmax + a weakened smoke gate. Example fixed (4/4 both backends, gaps measured); harness now on the canonical torch backend
 
 The "numpy↔torch divergence" dissolved under measurement. Sims are IDENTICAL on both backends

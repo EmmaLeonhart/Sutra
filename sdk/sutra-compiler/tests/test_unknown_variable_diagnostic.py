@@ -1,16 +1,19 @@
-"""SUT0205 — unknown VARIABLE diagnostic (round-18 audit).
+"""SUT0205 — unknown-VARIABLE typo diagnostic (round-18 audit).
 
 Before this: `return totl + 1;` (typo of `total`) validated CLEAN and
 died at runtime as a raw Python NameError — while functions (SUT0201),
 types (SUT0200), arity (SUT0202) all had polished diagnostics.
 Variables were the one hole left.
 
-Fires as a WARNING (source is still valid v0.1 Sutra) on a bare
-identifier expression that resolves to no local/param, file-scope
-name, function, class, type param, contextual keyword, or Python
-builtin. Callee positions are owned by SUT0201/0204 and never
-double-report. Zero false positives over the valid corpus is the
-shipped bar (checked by test_corpus-style sweep below).
+NEAR-MISS ONLY, mirroring SUT0201: the corpus documents undeclared
+free identifiers as legitimate Sutra ("the `behaviors` value is
+whatever the runtime binds" — 23_subscript_access.su), so a plain
+unresolved→warn rule is wrong by design. The diagnostic fires as a
+WARNING only when a bare identifier expression resolves nowhere AND
+sits within 2 edits of a declared local/param/file-scope name.
+Callee positions are owned by SUT0201/0204; member-access receivers
+(`Math.PI`, `Promise.resolve`) are namespace anchors and never fire.
+Zero false positives over the valid corpus is the shipped bar.
 """
 from __future__ import annotations
 
@@ -27,11 +30,6 @@ def _diags(src: str):
 
 
 class TestFires(unittest.TestCase):
-    def test_undefined_variable(self):
-        d = _diags("function int main(){ return undefined_var + 1; }")
-        self.assertEqual(len(d), 1)
-        self.assertIn("undefined_var", str(d[0]))
-
     def test_typo_of_local_gets_suggestion(self):
         d = _diags("function int main(){ int total = 5; return totl + 1; }")
         self.assertEqual(len(d), 1)
@@ -48,6 +46,13 @@ class TestFires(unittest.TestCase):
 class TestDoesNotFire(unittest.TestCase):
     def _clean(self, src: str):
         self.assertEqual(_diags(src), [])
+
+    def test_far_unresolved_name_is_legitimate(self):
+        # NOT a typo of anything declared — and the corpus is explicit
+        # that undeclared free identifiers are legitimate Sutra ("the
+        # `behaviors` value is whatever the runtime binds"). Near-miss
+        # only, mirroring SUT0201.
+        self._clean("function int main(){ return undefined_var + 1; }")
 
     def test_locals_and_params(self):
         self._clean("function int add(int a, int b){ int c = a + b; return c; }")
