@@ -1,3 +1,12 @@
+## 2026-07-08: round-25 audit — surfaces CLEAN (stale-claims sweep + CLI help probe); one cosmetic fix
+
+Swept examples/docs for workaround idioms and impossible-claims the week's semantics fixes
+obsoleted: zero hits (the one grep match is the correct no-introspection statement). Probed
+sutrac --help: all modes incl. the REPL are documented (epilog); the one nit — the description
+line said only "Validate .su source files", understating run/emit/repl — fixed to name the
+whole toolchain. The rotating audit surfaces are currently clean; the ACTIVE queue is drained
+to the single Emma-gated item (A1 deploy = her hosting account step).
+
 ## 2026-07-08: v0.9.4 VERIFIED on PyPI + the CLI truth-display gap closed
 
 Fresh venv `pip install --no-cache-dir sutra-dev[runtime]==0.9.4`: fizzbuzz.su prints exactly
