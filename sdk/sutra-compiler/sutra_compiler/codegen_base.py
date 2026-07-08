@@ -3021,6 +3021,30 @@ class BaseCodegen:
          "char", "Character", "string", "String"}
     )
 
+    #: Types whose values are substrate Strings (text family).
+    _TEXT_TYPES = frozenset({"string", "String", "char", "Character"})
+
+    def _is_text_expr(self, expr: ast.Expr) -> bool:
+        """True iff expr is provably a text (String) value at compile
+        time. Conservative — unknown falls through to the numeric /
+        element-wise `+` paths, same posture as _is_number_expr."""
+        if isinstance(expr, (ast.StringLiteral, ast.CharLiteral,
+                             ast.InterpolatedString)):
+            return True
+        if isinstance(expr, ast.Identifier):
+            return self._var_type.get(expr.name) in self._TEXT_TYPES
+        if isinstance(expr, ast.Parenthesized):
+            return self._is_text_expr(expr.inner)
+        if isinstance(expr, (ast.CastExpr, ast.UnsafeCastExpr)):
+            return (expr.target_type is not None
+                    and expr.target_type.name in self._TEXT_TYPES)
+        if isinstance(expr, ast.BinaryOp) and expr.op == "+":
+            return (self._is_text_expr(expr.left)
+                    and self._is_text_expr(expr.right))
+        if isinstance(expr, ast.Call):
+            return self._resolved_return_type(expr.callee) in self._TEXT_TYPES
+        return False
+
     def _is_synthetic_axis_expr(self, expr: ast.Expr) -> bool:
         """True iff expr is provably a synthetic-axis-encoded value at
         compile time — int, float, complex, scalar, char, or string.
@@ -3380,6 +3404,21 @@ class BaseCodegen:
             )
             if user_op_name is not None:
                 return f"{user_op_name}({left}, {right})"
+            # Text concatenation: `+` with BOTH operands provably text
+            # dispatches to the substrate string_concat (round-17 audit
+            # fix). Without this, lowercase-`string`-typed operands fell
+            # through to ELEMENT-WISE VECTOR ADD — 'ab' + 'cd' silently
+            # summed codepoint axes into garbage — and two string
+            # literals crashed at runtime (host strs reached
+            # string_concat). The String CLASS `operator +` still wins
+            # above for class-typed operands. Literals re-translate with
+            # dest_type="string" so they cross as substrate Strings.
+            if (expr.op == "+" and self.supports_string_runtime
+                    and self._is_text_expr(expr.left)
+                    and self._is_text_expr(expr.right)):
+                lt = self._translate_expr(expr.left, dest_type="string")
+                rt = self._translate_expr(expr.right, dest_type="string")
+                return f"_VSA.string_concat({lt}, {rt})"
             # Logical operators dispatch through the substrate so they
             # work uniformly on bool / fuzzy / trit / truth-axis-vector
             # inputs. Zadeh fuzzy logic — min for AND, max for OR — on
