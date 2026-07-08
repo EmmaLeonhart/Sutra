@@ -1,3 +1,21 @@
+## 2026-07-08: round-23 audit (real-program reach: FizzBuzz drive) — if/else steer fixed, user-fn concat crash fixed, zero-equality degeneracy FOUND
+
+Drove FizzBuzz, the canonical second program. Three findings, two fixed this tick: (1) `if`
+is rejected BY DESIGN (control-flow.md design commitment) but capabilities.md §8 listed it as
+a supported branch and the rejection message gave philosophy, not the rewrite — docs row
+corrected, message now hands the newcomer the select() idiom + the two-way-branch recipe +
+example pointer. (2) `f(x) + " "` with a user-declared `function string f` CRASHED at
+runtime (Tensor + str) — the round-17 text dispatch only knew stdlib/class return types.
+Fixed with a translate() pre-pass recording top-level user function return types (also
+resolves forward references); 2 new guards, concat suite 10/10. (3) THE deep one:
+`x == 0` reads NEUTRAL at runtime — cosine equality is degenerate at the zero vector
+(measured: `(15 % 3) == 0` → 0.0 while `(16 % 3) == 1` → 1.0; literal `0.0 == 0` only
+reads 1.0 because preeval folds it). Zero-testing is unreachable in real programs, so the
+select-idiom FizzBuzz decodes garbage. Finding with measurement + two candidate mechanisms
+(exact relu-indicator for the number family vs Euclidean route) at TOP of queue —
+NEEDS-DECISION-shaped because `==` is the paper-cited shipped trainable surface (cosine
+scale T); not a drive-by patch.
+
 ## 2026-07-08: round-22 audit (REPL discoverability) — `:ops` shipped
 
 The REPL had :help/:decls/:reset/:quit but no way to ask "what operations exist?" — a user

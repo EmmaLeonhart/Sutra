@@ -702,6 +702,19 @@ class BaseCodegen:
     def translate(self, module: ast.Module) -> str:
         self._emit_prelude()
         self._emit()
+        # Pre-pass 0: record every top-level user function's declared
+        # return type, so expression-type checks (e.g. the text-concat
+        # dispatch asking "does f(x) return a string?") can resolve
+        # FORWARD references — a call site is often translated before
+        # its callee. _resolved_return_type only knows class methods and
+        # the stdlib; without this map, `f(1) + " "` with a user
+        # `function string f` fell to the numeric path and crashed at
+        # runtime (round-23 audit).
+        self._user_fn_return_types: dict[str, str] = {}
+        for item in module.items:
+            if (isinstance(item, ast.FunctionDecl)
+                    and item.return_type is not None):
+                self._user_fn_return_types[item.name] = item.return_type.name
         # Pre-pass A: pull in stdlib class intrinsics (e.g.
         # `Tensor.MatrixMul`, `Tensor.matmul`, etc.) so namespaced
         # stdlib calls dispatch to `_VSA.<name>` even though the
@@ -2634,10 +2647,21 @@ class BaseCodegen:
                 f"unroll by hand.",
             )
         if isinstance(stmt, ast.IfStmt):
+            # Design commitment, not a gap (control-flow.md § "`if` /
+            # `else` is parsed but rejected at codegen"): Sutra
+            # conditionals are weighted superpositions, not discrete
+            # branches. The message must hand the newcomer the actual
+            # rewrite, not just the philosophy (round-23 audit).
             raise CodegenNotSupported(
                 stmt,
-                "if/else is not supported by the V1 codegen — the whole "
-                "point is to compile it away into a prototype-table lookup",
+                "`if`/`else` never compiles — by design, Sutra "
+                "conditionals are weighted superpositions, not discrete "
+                "branches. Write `select([score_a, score_b, ...], "
+                "[result_a, result_b, ...])`: the highest score's result "
+                "dominates the output. A boolean two-way branch is "
+                "`select([is_true(cond), is_true(!cond)], [then_value, "
+                "else_value])`. See the control-flow docs and "
+                "examples/fuzzy_dispatch.su for the idiom.",
             )
         if isinstance(stmt, ast.TryStmt):
             self._translate_try_catch(stmt)
@@ -3042,6 +3066,10 @@ class BaseCodegen:
             return (self._is_text_expr(expr.left)
                     and self._is_text_expr(expr.right))
         if isinstance(expr, ast.Call):
+            if (isinstance(expr.callee, ast.Identifier)
+                    and getattr(self, "_user_fn_return_types", {}).get(
+                        expr.callee.name) in self._TEXT_TYPES):
+                return True
             return self._resolved_return_type(expr.callee) in self._TEXT_TYPES
         return False
 
