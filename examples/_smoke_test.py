@@ -378,6 +378,20 @@ def run_strings_and_formatting() -> bool:
     return got == exp
 
 
+def run_fizzbuzz() -> bool:
+    path = os.path.join(HERE, "fizzbuzz.su")
+    mod = compile_to_module(path)
+    print("=" * 72)
+    print("Example 12: fizzbuzz.su (select superposition + num_eq zero-test + int_to_string)")
+    print("=" * 72)
+    got = mod._VSA.string_to_python(mod.main())
+    exp = "fizzbuzz fizz buzz 7"
+    mark = "OK" if got == exp else "FAIL"
+    print(f"  main() expected={exp!r} got={got!r} {mark}")
+    print()
+    return got == exp
+
+
 def run_semantic_faq() -> bool:
     path = os.path.join(HERE, "semantic_faq.su")
     mod = compile_to_module(path)
@@ -433,13 +447,15 @@ def main() -> int:
     print()
     ok11 = run_strings_and_formatting()
     print()
+    ok12 = run_fizzbuzz()
+    print()
     # Earlier examples 10-12 (loop_rotation.su, counter_loop.su, concept_search.su)
     # used the deprecated `loop (cond)` eigenrotation form and were removed
     # in master @ 29733a4. Loop coverage is exercised by the function-decl
     # form via `do_while_adder.su` and the test_loop_function_decl.py
     # suite (23 tests, all green).
     print("=" * 72)
-    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9, ok10, ok11]):
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9, ok10, ok11, ok12]):
         print("PASS")
         return 0
     print("FAIL")

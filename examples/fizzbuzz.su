@@ -1,0 +1,28 @@
+// FizzBuzz — the classic, the Sutra way. No `if`: the four cases are a
+// softmax-weighted superposition (`select`), and the winning branch's
+// String dominates the output.
+// @embedding: none dim=64
+//
+// The scores lean on two 2026-07-08 semantics fixes:
+//   - `(n % 3) == 0` uses the exact number-equality indicator
+//     (+1 at equal, -1 at |diff| >= 1) — zero-testing reads true;
+//   - the truth values cast to numbers via `(number)`, the one
+//     axis-moving cast pair.
+// The ×10 gain sharpens the softmax so the winner carries ~all the
+// weight (same idiom as fuzzy_dispatch.su).
+
+function string fizzbuzz(int n) {
+    number s3 = (number) ((n % 3) == 0);
+    number s5 = (number) ((n % 5) == 0);
+    return select(
+        [10 * (s3 + s5),
+         10 * (s3 - s5),
+         10 * (s5 - s3),
+         10 * (0 - s3 - s5)],
+        [make_string("fizzbuzz"), make_string("fizz"),
+         make_string("buzz"), int_to_string(n)]);
+}
+
+function string main() {
+    return fizzbuzz(15) + " " + fizzbuzz(3) + " " + fizzbuzz(5) + " " + fizzbuzz(7);
+}

@@ -1,3 +1,11 @@
+## 2026-07-08: round-24 — fizzbuzz.su lands as example 12 (smoke-pinned showcase of the comparison-semantics fixes)
+
+The FizzBuzz that was UNWRITABLE two ticks ago is now a first-class example: select
+superposition + num_eq zero-test + (number) cast + int_to_string + string concat, model-free
+at dim=64, expected output pinned in the smoke test (13/13 PASS). Also verified this tick:
+the transpiler CI failure set on the le/ge push is the identical pre-existing 20 (zero
+delta), and the readout-baseline fix landed.
+
 ## 2026-07-08: CI red root-caused — host-readout baseline lowered 18 → 17 (the anti-drift gate doing its job)
 
 Compiler-pytest went red on the num_eq push: `test_baseline_is_tight` — the runtime's true
