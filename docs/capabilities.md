@@ -49,7 +49,7 @@ There is **one shipped** training instance in the whole language today (the equa
 | Imaginary | `5i`, `3.14i` | vision — a learned imaginary coefficient on the complex axis |
 | Complex (folded) | `2 + 3i` → `ComplexLiteral(2,3)` | vision — both real and imaginary parts |
 | String | `"hello"` | n/a (compile-time text) |
-| Interpolated string | `$"x={x}"` | n/a — **parses + validates but codegen is NOT yet implemented** (`unsupported expression: InterpolatedString`); build a `string`-typed value with `make_string` / `string_concat` for now |
+| Interpolated string | `$"hello {s}!"` | n/a — desugars to a substrate `make_string` / `string_concat` chain. **String-typed interpolants only**: a number/fuzzy interpolant is rejected at codegen (the substrate number→string formatter is not built yet) — steer: keep interpolants `string`-typed |
 | Char | `'a'`, `'\n'`, `'\''` | n/a |
 | Bool | `true`, `false` | n/a |
 | `unknown` | `unknown` | n/a — the truth-axis neutral; no parameter |

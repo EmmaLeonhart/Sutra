@@ -54,6 +54,10 @@ class PyTorchCodegen(Codegen):
     # cast lowering is live on this backend (types.md § Casting).
     supports_cast_lowering = True
 
+    # The torch runtime carries the substrate String ops (make_string /
+    # string_concat), so InterpolatedString lowering is live here.
+    supports_string_runtime = True
+
     # The numpy `Codegen` lists the immutable list ops (array_concat /
     # array_map / array_filter) as unsupported — it has no runtime methods
     # for them. The PyTorch runtime DOES implement them (Emma 2026-06-20),

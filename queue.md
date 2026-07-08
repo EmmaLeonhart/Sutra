@@ -38,14 +38,16 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Usability audit round 16 (2026-07-06) — remaining build item
+### Substrate number→string formatter (prerequisite subsystem — unlocks full interpolation + `(string)` casts)
 
-**(b) InterpolatedString codegen** — `$"x={x}"` parses + validates but has no codegen. Desugar to
-`string_concat`; string-typed interpolants are easy. Non-string interpolants are blocked on a
-substrate number→string formatter (a prerequisite subsystem — per the neural-Unix epic rule, a
-prerequisite is the signal for the next thing to build). Finding:
-`planning/findings/2026-07-06-castexpr-and-interp-string-no-codegen.md` (its cast half shipped
-2026-07-07: `types.md` § "The shipped lowering table", `tests/test_cast_codegen.py`).
+Both interp-strings (shipped 2026-07-07, string-typed interpolants only) and the text-cast wall
+(`(string) 5` rejected) are blocked on the same missing primitive: formatting a substrate number
+as a substrate String (digit extraction). Constraint: **`Math.mod` is FORBIDDEN** (measured
+vector-collapse/NaN — Context §above), so the naive div-10/mod-10 digit loop needs another
+route (e.g. complex-rotation wrap per the standing guidance, or a bounded digit-position
+comparison network like the neural-Unix `relu(1-|c-center|)` indicator over scaled magnitudes).
+Needs a design step + spec note under `planning/sutra-spec/strings.md` before code. Per the
+neural-Unix epic rule: a prerequisite is the signal for the next thing to build.
 
 ### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
 
