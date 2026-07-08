@@ -45,7 +45,7 @@ _EVAL_WRAP_TYPES = {"string"}
 _BANNER = (
     "Sutra REPL - type an expression to evaluate it; end a line with ';' or '}' "
     "to add a declaration.\n"
-    "Commands: :help  :decls  :reset  :quit\n"
+    "Commands: :help  :ops  :decls  :reset  :quit\n"
 )
 _HELP = (
     "Sutra REPL help\n"
@@ -53,11 +53,53 @@ _HELP = (
     "                      (number -> real value; concept -> nearest known string)\n"
     "  <stmt>;             add a declaration/statement to the session (e.g. vector k = embed(\"king\");)\n"
     "  function ... { }    add a function to the session\n"
+    "  :ops                list the callable operations (builtins, stdlib, special forms)\n"
     "  :decls              print the accumulated session declarations\n"
     "  :reset              clear all session declarations\n"
     "  :help               this help\n"
     "  :quit  / :q         leave the REPL (Ctrl-D also works)\n"
 )
+
+
+def _ops_listing() -> str:
+    """The `:ops` discovery surface: every operation callable from REPL
+    source, grouped. Built from the live dispatch tables (BUILTINS + the
+    stdlib intrinsic registry) so it cannot drift from what actually
+    resolves — a hand-written list here would rot."""
+    from .codegen_base import BUILTINS
+    try:
+        from .stdlib_loader import stdlib_class_intrinsic_methods
+        stdlib = stdlib_class_intrinsic_methods()
+    except Exception:
+        stdlib = {}
+
+    def _columns(names, indent="    ", width=76):
+        lines, cur = [], indent
+        for n in names:
+            if len(cur) + len(n) + 2 > width and cur.strip():
+                lines.append(cur.rstrip())
+                cur = indent
+            cur += n + "  "
+        if cur.strip():
+            lines.append(cur.rstrip())
+        return "\n".join(lines)
+
+    parts = ["Operations callable from Sutra source in this REPL\n"]
+    parts.append("  builtins:\n" + _columns(sorted(BUILTINS.keys())) + "\n")
+    for cls in sorted(stdlib):
+        methods = sorted(stdlib[cls])
+        if not methods:
+            continue
+        parts.append(f"  {cls} (call bare or as {cls}.<name>):\n"
+                     + _columns(methods) + "\n")
+    parts.append(
+        "  special forms:\n"
+        "    embed(\"...\")   defuzzy(v)   unsafeCast<T>(v)   unsafeOverride(v)\n"
+        "    (Type) expr casts   $\"text {interpolant}\" interpolation\n"
+    )
+    parts.append(
+        "  full reference: https://sutra.topazcomputing.com/capabilities/\n")
+    return "".join(parts)
 
 _EVAL_FN = "__repl_eval__"
 
@@ -238,6 +280,8 @@ def run_repl(
             break
         if stripped == ":help":
             out.write(_HELP); out.flush(); continue
+        if stripped == ":ops":
+            out.write(_ops_listing()); out.flush(); continue
         if stripped == ":reset":
             decls.clear(); out.write("(session cleared)\n"); out.flush(); continue
         if stripped == ":decls":

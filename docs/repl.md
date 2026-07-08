@@ -10,7 +10,7 @@ sutrac repl
 
 ```
 Sutra REPL - type an expression to evaluate it; end a line with ';' or '}' to add a declaration.
-Commands: :help  :decls  :reset  :quit
+Commands: :help  :ops  :decls  :reset  :quit
 sutra>
 ```
 
@@ -85,6 +85,7 @@ resolved to its *meaning* vector — the two are distinct, and the REPL shows ea
 | Command | Effect |
 |---|---|
 | `:help` | Show the built-in help. |
+| `:ops` | List every callable operation — builtins, stdlib intrinsics (including the String surface), and special forms — straight from the live dispatch tables. |
 | `:decls` | Print everything you've added to the session. |
 | `:reset` | Clear all session declarations and start fresh. |
 | `:quit` / `:q` | Leave the REPL (`Ctrl-D` also works). |
