@@ -25,7 +25,7 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 - **`paper/paper.md` is UNFROZEN** (Emma 2026-06-07); `paper/neurips/` freeze RETIRED 2026-06-18.
   Measured numbers only; no overclaiming. Editing `paper/formal-verification/paper.md` or
   `paper/paper.md` triggers a clawRxiv resubmit CI — intended for real updates, not churn.
-- **NEVER use `Math.mod`** (measured vector-collapse/NaN). Use complex rotation for wrap/periodic.
+- **`Math.mod` is scalar-realm only** (Emma 2026-07-08, after re-measurement): correct on numbers (max err 4e-6 vs floor-mod; the 2026-06-12 NaN collapse is fixed), but its output is 0-d — do NOT thread it through vector recurrent state; use complex rotation for vector wrap/periodic.
 - **GUI is on Emma's SEPARATE branch** — OUT of this queue. Do NOT re-add GUI items.
 - **Substrate purity is non-negotiable**: every op runs on the substrate, NO host readout
   (`.item()`/`float(tensor)`) inside operations.
@@ -39,30 +39,7 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### `x == 0` reads NEUTRAL at runtime — zero-equality mechanism, NEEDS-DECISION-shaped design (Emma's eyes; round-23)
-
-Cosine `==` is degenerate at the zero vector: `(15 % 3) == 0` → truth 0.0 (neutral); only
-preeval's constant folding makes literal `0.0 == 0` read 1.0. Zero-testing (divisibility,
-emptiness, termination) is therefore unreachable in real programs — FizzBuzz is unwritable.
-Finding (with the measurement table + two candidate mechanisms — the exact
-`relu(1−|x−y|·k)` indicator for the number family, or the Euclidean route):
-`planning/findings/2026-07-08-zero-equality-reads-neutral-cosine-degenerate.md`. `==` is the
-paper-cited SHIPPED trainable surface (cosine scale T), so the mechanism choice needs Emma
-even though the bug is unambiguous. Related: the `<=`/`>=` ties NEEDS-DECISION below and
-`zero-as-explicit-neutrality`.
-
-### Math.mod Context-note rewording — NEEDS-DECISION (Emma)
-
-Round-19 measurement (finding:
-`planning/findings/2026-07-08-math-mod-ban-remeasured-nan-fixed-scalar-realm-remains.md`):
-the 2026-06-12 NaN collapse behind the standing "NEVER use Math.mod" note is FIXED (the
-`_scalar` entry boundary; vec,vec case now returns the correct value, no NaN; 24-point sweep
-vs Python floor-mod max err 4e-6). Still true: output is 0-d (scalar realm) — don't thread it
-through vector recurrent state; complex rotation stays the vector-wrap idiom. The finding
-proposes a narrowed note ("scalar-realm only") — Emma's call; her warning stays verbatim
-until she approves.
-
-### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
+### BUILD: `<=` / `>=` adopt or(<, ==) at ties (Emma decided 2026-07-08)
 
 Real-program-reach audit: `2 <= 2` and `2 >= 2` evaluate to the truth-axis NEUTRAL (0), not true; the
 strict `<`/`>`, `==`, and non-tie `<=`/`>=` are correct. Deliberate — `stdlib/logic.su` defines `le`/`ge`
@@ -70,8 +47,14 @@ as the strict operators (comment: `<=`/`>=` collapse to `<`/`>`, ties give tanh(
 differentiable-tanh scheme. But it is mathematically wrong and newcomer-hostile (a loop guard `i <= n`
 misbehaves at the boundary). Fix `le = or(<, ==)` restores tie-correctness (measured +1 at ties) but folds
 in cosine-`==`, possibly costing differentiability — a training-vs-correctness tradeoff, EMMA'S call. Not
-touched. Finding: `planning/findings/2026-07-06-le-ge-tie-returns-neutral.md`. Options: (a) keep strict +
-document the tie behaviour on the operators page; (b) adopt `or(<, ==)`, verify no fuzzy/training regress.
+touched yet. Finding: `planning/findings/2026-07-06-le-ge-tie-returns-neutral.md`. Emma chose
+option (b) via AskUserQuestion 2026-07-08: adopt `le = or(<, ==)` / `ge = or(>, ==)`,
+verifying no fuzzy/training regress before landing. NOTE it composes with the same-day num_eq
+ship: for number-family operands the == component is now the exact relu indicator (ties give
++1 exactly), so the or-composition is clean at integer boundaries. Implementation: stdlib
+logic.su le/ge (and/or the runtime le/ge methods — check which path `i <= n` actually takes),
+tie tests (2<=2, 2>=2 -> +1; strict unchanged), fuzzy/training regression = the equality
+autograd + defuzz suites.
 
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 

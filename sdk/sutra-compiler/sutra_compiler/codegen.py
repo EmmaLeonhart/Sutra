@@ -246,6 +246,18 @@ class Codegen(BaseCodegen):
         meaningful signal there.
         """
         assert op in ("eq", "neq")
+        # Number-family operands (int/number, incl. arithmetic results
+        # like `n % 3`) route through the exact relu indicator (Emma
+        # 2026-07-08): cosine is degenerate at the zero vector, so a
+        # runtime zero could never == anything — zero-testing was
+        # unreachable. Torch-runtime only (the deprecated numpy backend
+        # keeps its old routing).
+        if (getattr(self, "supports_cast_lowering", False)
+                and self._CAST_FAMILY.get(
+                    self._infer_cast_operand_type(expr.left)) == "number"
+                and self._CAST_FAMILY.get(
+                    self._infer_cast_operand_type(expr.right)) == "number"):
+            return f"_VSA.num_{op}({left_src}, {right_src})"
         if (self._is_synthetic_axis_expr(expr.left)
                 and self._is_synthetic_axis_expr(expr.right)):
             return f"_VSA.{op}_synthetic({left_src}, {right_src})"
