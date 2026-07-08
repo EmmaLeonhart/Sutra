@@ -1,3 +1,22 @@
+## 2026-07-08: daily substrate-honesty audit — CLEAN (post-20e86310 batch: casts, interp, int_to_string, concat fix, tutorial 06, fuzzy_dispatch fix, SUT0205, round-19)
+
+(a) **Dim audit:** the only new .su files are `strings_and_formatting.su` — zero embed/
+basis_vector calls, declares `@embedding: none dim=64`, and 64 is the justified minimum (the
+36-char output needs ~41 synthetic axes for the codepoint budget, not the 868 default) — and
+the `fuzzy_dispatch.su` edit (embedding-using example, 768 via atman.toml, has real embeds).
+PASS. (b) **Claims-vs-measurement:** every shipped/verified claim in the batch carries an
+in-commit or DEVLOG measurement actually RUN this session — 18 cast guards, 8 interp, the
+int_to_string sweep vs str() (39 subtests), 8 concat guards, SUT0205's whole-corpus
+zero-false-positive sweep, 2 unsafeOverride guards, the full-suite chunks (316+90 / 517+9skip
+/ 76 / 38) and the round-19 regression (78+129 incl. ntm_ram 27). PASS. (c)
+**Signal-separation:** the one substrate decision function touched — fuzzy_dispatch — ships
+WITH its measured decode-gap table (action 0.20–0.30 / target 0.19–0.22, BOTH backends) in
+the commit and DEVLOG; the same rung RESTORED a previously-weakened smoke gate (>=2 → ==total),
+which is the anti-weakening rail working. PASS. Process note, not a breach: two external
+`chore: submodule-sync` sweeps (c2938908, 09a46d9b) committed mid-work states — 09a46d9b even
+went red on compiler-pytest CI — before the session's own descriptive commits landed green;
+the flush cadence has since kept the tree clean between rungs.
+
 ## 2026-07-08: round-19 audit (aliases + affordances) — is_char retired, unsafeOverride codegen shipped, Math.mod ban re-measured (NaN half FIXED, scalar-realm limit remains)
 
 Rotated the pinned-tail audit to Emma's aliases+affordances surface. Swept the torch runtime's
