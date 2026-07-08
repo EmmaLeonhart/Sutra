@@ -537,7 +537,7 @@ def main(argv: List[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(
         prog="sutrac",
-        description="Validate Sutra (.su) source files.",
+        description="The Sutra toolchain: validate .su source (default), compile (--emit), execute (--run), or explore interactively (sutrac repl).",
         epilog=(
             "interactive REPL:\n"
             "  sutrac repl          Launch the interactive evaluator (takes no\n"
