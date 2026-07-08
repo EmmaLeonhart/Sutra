@@ -3681,29 +3681,34 @@ class BaseCodegen:
                         self._translate_expr(part, dest_type="string"))
                     continue
                 if part_t == "int":
-                    # strings.md § Integer formatting: the substrate
-                    # int→string formatter. int ONLY — a fractional
-                    # `number` rendering as its rounded integer would
-                    # silently lie, so it keeps rejecting below.
+                    # strings.md § Integer formatting: exact integer
+                    # rendering.
                     pieces.append(
                         f"_VSA.int_to_string("
+                        f"{self._translate_expr(part)})")
+                    continue
+                if self._CAST_FAMILY.get(part_t) == "number":
+                    # strings.md § Decimal formatting: fractional
+                    # number interpolants render via num_to_string
+                    # (shortest decimal, <=6 places).
+                    pieces.append(
+                        f"_VSA.num_to_string("
                         f"{self._translate_expr(part)})")
                     continue
                 if part_t is None:
                     raise CodegenNotSupported(
                         part,
                         "interpolated expression must be string- or "
-                        "int-typed and statically inferable — assign it "
-                        "to a `string` (or `int`) variable first, or "
-                        "build the text with make_string / string_concat."
+                        "number-typed and statically inferable — assign "
+                        "it to a typed variable first, or build the text "
+                        "with make_string / string_concat."
                     )
                 raise CodegenNotSupported(
                     part,
-                    f"cannot interpolate a `{part_t}` value: only string- "
-                    "and int-typed interpolants lower (int_to_string is "
-                    "integer-shaped; fractional rendering is not built). "
-                    "For an integer value, declare it `int`; otherwise "
-                    "build the text with make_string / string_concat."
+                    f"cannot interpolate a `{part_t}` value: string- and "
+                    "number-family interpolants lower (int_to_string / "
+                    "num_to_string); build other text with make_string / "
+                    "string_concat."
                 )
             if not pieces:
                 return "_VSA.make_string('')"
@@ -3806,17 +3811,19 @@ class BaseCodegen:
         # --- text walls -------------------------------------------------
         if dst_family == "text" and src_family != "text":
             if src == "int":
-                # strings.md § Integer formatting: `(string) n` on an
-                # int is the integer formatter — the one number→text
-                # cast with a real substrate implementation.
+                # strings.md § Integer formatting: exact integer render.
                 return (f"_VSA.int_to_string("
+                        f"{self._translate_expr(expr.expr)})")
+            if src_family == "number":
+                # strings.md § Decimal formatting: fractional numbers
+                # render via num_to_string (shortest decimal, <=6 places).
+                return (f"_VSA.num_to_string("
                         f"{self._translate_expr(expr.expr)})")
             raise CodegenNotSupported(
                 expr,
-                f"cannot cast to `{dst}`: only `int` values format "
-                "(int_to_string — integer-shaped; fractional rendering is "
-                "not built). For a literal, use `make_string(\"...\")`; "
-                "join strings with `string_concat`."
+                f"cannot cast to `{dst}`: number-family values format via "
+                "int_to_string / num_to_string; for a literal use "
+                "`make_string(\"...\")`, join strings with `string_concat`."
             )
         if src_family == "text" and dst_family != "text":
             if dst_family == "geometric":
