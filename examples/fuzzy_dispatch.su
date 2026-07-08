@@ -74,12 +74,21 @@ function string describe(vector record) {
 // `select(scores, options)` is the spec's named conditional-branching
 // primitive. It is differentiable, defuzz-free, and substrate-resident:
 // the result is a vector usable directly as input to further ops.
+// The scores are sharpened (×10) before the softmax. Raw cosines sit
+// in a narrow band (winner ~1.0, runners-up ~0.6-0.7), and at softmax
+// temperature 1 that gives the winning record only ~0.32 weight — so
+// an action shared by TWO records ("start" in rec_music + rec_timer,
+// combined ~0.47) out-votes the true action in the superposition and
+// the decode is wrong BY CONSTRUCTION, not by noise. The ×10 gain is
+// the explicit temperature (spec: select carries a trainable softmax
+// temperature); it lifts the winner to ~0.9 weight and the decode
+// separates cleanly.
 function string dispatch(vector query) {
     vector result = select(
-        [similarity(query, q_weather),
-         similarity(query, q_music),
-         similarity(query, q_timer),
-         similarity(query, q_cancel)],
+        [10 * similarity(query, q_weather),
+         10 * similarity(query, q_music),
+         10 * similarity(query, q_timer),
+         10 * similarity(query, q_cancel)],
         [rec_weather, rec_music, rec_timer, rec_cancel]
     );
     return describe(result);

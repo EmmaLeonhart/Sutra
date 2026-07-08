@@ -246,14 +246,14 @@ def run_fuzzy_dispatch() -> bool:
         correct += got == exp
     print()
     print(f"{correct}/{total} dispatches match expected")
-    # fuzzy_dispatch is a soft-mux over correlated short-string
-    # embeddings (nomic-embed-text); two of the four queries land on
-    # adjacent prototypes ("weather" → "music"; "cancel" → "alarm")
-    # when their embedding clusters are too close. The dispatch
-    # mechanism (soft-mux on Lagrange-fuzzy AND/NOT scores) works;
-    # the substrate's prototype separation is the limiting factor.
-    # Require a majority of dispatches correct rather than 4/4.
-    return correct >= 2
+    # 4/4 REQUIRED. A previous session weakened this to >= 2 with a
+    # "prototype separation" rationale that measurement disproved: the
+    # sims separate fine (winner 1.0 vs ~0.7); the failures came from
+    # UNSHARPENED softmax weights letting a duplicated action filler
+    # out-vote the winner (see the dispatch() comment in the .su).
+    # With the explicit score gain the measured decode gaps are
+    # action 0.20-0.30 / target 0.19-0.22 on BOTH backends.
+    return correct == total
 
 
 def run_content_addressed_read() -> bool:
@@ -364,6 +364,20 @@ def run_sequence() -> bool:
     return correct == total
 
 
+def run_strings_and_formatting() -> bool:
+    path = os.path.join(HERE, "strings_and_formatting.su")
+    mod = compile_to_module(path)
+    print("=" * 72)
+    print("Example 11: strings_and_formatting.su (concat + interpolation + int_to_string)")
+    print("=" * 72)
+    got = mod._VSA.string_to_python(mod.main())
+    exp = "hello, sutra! / hello has 5 letters"
+    mark = "OK" if got == exp else "FAIL"
+    print(f"  main() expected={exp!r} got={got!r} {mark}")
+    print()
+    return got == exp
+
+
 def run_semantic_faq() -> bool:
     path = os.path.join(HERE, "semantic_faq.su")
     mod = compile_to_module(path)
@@ -417,13 +431,15 @@ def main() -> int:
     print()
     ok10 = run_semantic_faq()
     print()
+    ok11 = run_strings_and_formatting()
+    print()
     # Earlier examples 10-12 (loop_rotation.su, counter_loop.su, concept_search.su)
     # used the deprecated `loop (cond)` eigenrotation form and were removed
     # in master @ 29733a4. Loop coverage is exercised by the function-decl
     # form via `do_while_adder.su` and the test_loop_function_decl.py
     # suite (23 tests, all green).
     print("=" * 72)
-    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9, ok10]):
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9, ok10, ok11]):
         print("PASS")
         return 0
     print("FAIL")
