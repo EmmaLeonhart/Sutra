@@ -39,6 +39,18 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### `x == 0` reads NEUTRAL at runtime — zero-equality mechanism, NEEDS-DECISION-shaped design (Emma's eyes; round-23)
+
+Cosine `==` is degenerate at the zero vector: `(15 % 3) == 0` → truth 0.0 (neutral); only
+preeval's constant folding makes literal `0.0 == 0` read 1.0. Zero-testing (divisibility,
+emptiness, termination) is therefore unreachable in real programs — FizzBuzz is unwritable.
+Finding (with the measurement table + two candidate mechanisms — the exact
+`relu(1−|x−y|·k)` indicator for the number family, or the Euclidean route):
+`planning/findings/2026-07-08-zero-equality-reads-neutral-cosine-degenerate.md`. `==` is the
+paper-cited SHIPPED trainable surface (cosine scale T), so the mechanism choice needs Emma
+even though the bug is unambiguous. Related: the `<=`/`>=` ties NEEDS-DECISION below and
+`zero-as-explicit-neutrality`.
+
 ### Math.mod Context-note rewording — NEEDS-DECISION (Emma)
 
 Round-19 measurement (finding:

@@ -95,7 +95,7 @@ No hex literals yet.
 | Form | Surface | Training |
 |---|---|---|
 | `{ ... }` | block | n/a |
-| `if (cond) { ... } else { ... }` / `else if` | branch | vision — the branch threshold (currently 0.0 on truth axis) is a trainable surface |
+| `if (cond) { ... } else { ... }` / `else if` | **parses + validates but NEVER compiles — by design** (control-flow: conditionals are weighted superpositions, not discrete branches). Write `select(scores, options)` instead; see the fuzzy-dispatch pattern | n/a |
 | `while (cond) { ... }` | **RETIRED** — the C-style imperative loop was rejected at codegen in the 2026-04-30 substrate-purity audit. Use a `while_loop NAME(cond, ...state) { ...; pass ...; }` declaration + `loop NAME(cond, args);` call (see [loops.md](loops.md)). | n/a |
 | `for (init; cond; step) { ... }` | **RETIRED** — same audit. Use `iterative_loop NAME(count, ...state) { ... }` for fixed-count iteration, or `while_loop` for data-dependent (see [loops.md](loops.md)). | n/a |
 | `foreach (TYPE name in iterable) { ... }` | iterate over binding-array | n/a |

@@ -80,5 +80,23 @@ class TestNumericPlusUntouched(unittest.TestCase):
             3.5, places=4)
 
 
+class TestUserFunctionReturnConcat(unittest.TestCase):
+    def test_user_string_function_plus_literal(self):
+        # Round-23 regression: `f(x) + " "` with a user-declared
+        # `function string f` crashed at runtime (Tensor + str) — the
+        # text dispatch only knew stdlib/class return types, so the
+        # literal stayed a host str on the numeric path.
+        self.assertEqual(_run_text(
+            'function string shout(string s){ return s + "!"; }\n'
+            'function string main(){ return shout("hi") + " there"; }'),
+            "hi! there")
+
+    def test_chained_user_calls(self):
+        self.assertEqual(_run_text(
+            'function string tag(int n){ return int_to_string(n); }\n'
+            'function string main(){ return tag(1) + "-" + tag(2); }'),
+            "1-2")
+
+
 if __name__ == "__main__":
     unittest.main()
