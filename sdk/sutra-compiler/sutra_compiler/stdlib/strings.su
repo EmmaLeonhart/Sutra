@@ -53,6 +53,12 @@ class String extends vector {
     // lowering and by user code that calls it directly. 2026-05-08.
     static intrinsic method String string_concat(String a, String b);
 
+    // Integer -> String formatter (strings.md § Integer formatting,
+    // 2026-07-07). Mod-free digit extraction (two floors), leading-zero
+    // gating, sign slot. INT contract: fractional numbers round first;
+    // interpolation and (string) casts only auto-wire int-typed values.
+    static intrinsic method String int_to_string(int n);
+
     // `+` on two String values is concatenation. Per Emma 2026-05-10:
     // "I want string concatenation through plus as being an overridden
     // operator that occurs for our strings generally" — C#-style

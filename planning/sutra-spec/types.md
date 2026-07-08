@@ -536,7 +536,7 @@ codepoints).
 
 | source ↓ target → | number | truth | geometric | text |
 |---|---|---|---|---|
-| **number** | no-op | **axis-move** (`cast_number_to_truth`) | relabel (`_cnum` lifts a 0-d entry-boundary number) | rejected — needs the substrate formatter |
+| **number** | no-op | **axis-move** (`cast_number_to_truth`) | relabel (`_cnum` lifts a 0-d entry-boundary number) | `int` source → `int_to_string` (strings.md § Integer formatting); fractional `number` rejected |
 | **truth** | **axis-move** (`cast_truth_to_number`) | no-op | relabel | rejected |
 | **geometric** | relabel (number ops project AXIS_REAL themselves) | relabel (truth ops read AXIS_TRUTH themselves) | no-op | rejected |
 | **text** | rejected (codepoint axes are not a number — use string ops) | rejected | rejected (the embedding cast — its implementation is `embed()` at the boundary) | no-op |

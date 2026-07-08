@@ -49,7 +49,7 @@ There is **one shipped** training instance in the whole language today (the equa
 | Imaginary | `5i`, `3.14i` | vision — a learned imaginary coefficient on the complex axis |
 | Complex (folded) | `2 + 3i` → `ComplexLiteral(2,3)` | vision — both real and imaginary parts |
 | String | `"hello"` | n/a (compile-time text) |
-| Interpolated string | `$"hello {s}!"` | n/a — desugars to a substrate `make_string` / `string_concat` chain. **String-typed interpolants only**: a number/fuzzy interpolant is rejected at codegen (the substrate number→string formatter is not built yet) — steer: keep interpolants `string`-typed |
+| Interpolated string | `$"hello {s}!"`, `$"n={n}"` | n/a — desugars to a substrate `make_string` / `string_concat` chain. **String- and int-typed interpolants**: `int` values format via `int_to_string`; a fractional `number`/fuzzy interpolant is rejected at codegen (decimal rendering is not built — declare integer interpolants `int`) |
 | Char | `'a'`, `'\n'`, `'\''` | n/a |
 | Bool | `true`, `false` | n/a |
 | `unknown` | `unknown` | n/a — the truth-axis neutral; no parameter |
@@ -121,7 +121,7 @@ No hex literals yet.
 | Name | Form | Training |
 |---|---|---|
 | `unsafeCast<Type>(value)` | type-system escape — the pure relabel: the value crosses unchanged, only the static type changes (never axis-moves; `unsafeCast<fuzzy>(n)` reinterprets, so a real-axis value reads truth 0) | n/a |
-| `(Type) value` (C-style cast) | conversion cast — no-op relabel by default; numeric↔truth casts axis-move (`(fuzzy) 0.7` puts 0.7 on the truth axis, `(number) b` reads a bool back as 1/0) via cached matmuls; text casts are rejected at codegen (number→string needs the unbuilt formatter — use `make_string`; string→vector is `embed()`'s job). Guard SUT0111 still steers `(vector) "literal"` to `embed(...)` | n/a |
+| `(Type) value` (C-style cast) | conversion cast — no-op relabel by default; numeric↔truth casts axis-move (`(fuzzy) 0.7` puts 0.7 on the truth axis, `(number) b` reads a bool back as 1/0) via cached matmuls; `(string) n` on an `int` formats via `int_to_string`; other text casts are rejected at codegen (fractional rendering is not built; string→vector is `embed()`'s job). Guard SUT0111 still steers `(vector) "literal"` to `embed(...)` | n/a |
 | `unsafeOverride(value)` | type-system escape | n/a |
 | `defuzzy(value)` | truth-axis polarizer | mechanism — the cosine `(v == true)` loop body is scale-invariant in any input gain (`cos(g*v, true) = sign(x)`), so a wrapper gain on top of `defuzzy` is degenerate. The shipped trainable polarizer is `defuzzify_trit` below |
 | `defuzzify_trit(v, iters, beta)` | three-way β-sharpening polarizer (Sutra-source intrinsic since 2026-05-28) | **shipped** — β is the trainable scalar; a training run with `--body trit --iters 1` converges to β\* = 6.58 ± 0.17 across 3 seeds; baseline 0.2126 → trained 0.0146 (~15× loss reduction); bake-back round-trip max\|Δ\| = 1.19e-7 (bit-exact within float32 precision). Second shipped constrain-train instance after `==` cosine-scale T. Runtime iters became runtime-variable 2026-05-28; default iters=10 preserves prior behavior |
@@ -346,6 +346,7 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | `string_length(v)` | length | n/a |
 | `string_char_at(v, i)` | codepoint at index | n/a |
 | `string_concat(a, b)` | concatenate | n/a |
+| `int_to_string(n)` | integer → String formatter (mod-free two-floor digit extraction, sign slot, leading-zero gating; exact to 7 digits at float32 / 15 at float64) | n/a |
 | `string_to_python(v)` | decode for monitoring | n/a (debug/monitor) |
 
 ### Transcendentals (substrate-pure: lookup + eigenrotation + matrix multiplication)

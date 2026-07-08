@@ -195,6 +195,42 @@ String stdlib intrinsics (commit registers `String.make_string`,
 as static intrinsic methods that route to runtime methods of the
 same name).
 
+## Integer formatting — `int_to_string` (shipped 2026-07-07)
+
+The number→string formatter, scoped to INTEGERS. `int_to_string(n)` renders an
+int-typed number as a substrate String; it is what interpolation
+(`$"n={n}"` with an `int` interpolant) and the `(string) n` cast (int source
+only) lower to. It stays deliberately integer-shaped: rendering `3.14` would
+require a decimal-expansion design that does not exist, so a `number`-typed
+(possibly fractional) value still rejects at codegen rather than silently
+rendering as its rounded integer.
+
+Mechanism (all tensor ops):
+
+- **Digit extraction is mod-free** — `Math.mod` is banned (measured
+  vector-collapse/NaN), and no mod is needed: with `a = round(|n|)` and a
+  cached power table `10^k`, `digit_k = floor(a/10^k) − 10·floor(a/10^(k+1))`.
+  Two floors and a multiply-subtract give the residue.
+- **Leading zeros** are gated by the quotient-significance mask
+  `sig_k = (floor(a/10^k) > 0)`; the digit count is `max(Σ sig, 1)` so `0`
+  renders `"0"`.
+- **Ordering + packing**: output slot `i` takes the digit at place
+  `nd − 1 − (i − neg)` via a gather by shifted index — the same VSA-native
+  permutation `string_concat` uses — masked to the valid range, `+ 48` to
+  codepoints, scattered into the string axes with the STRING flag.
+- **Sign**: a negative value gates codepoint 45 (`-`) into slot 0 and shifts
+  the digits right by one.
+
+**Exactness bound**: digits are exact while the integer is exactly
+representable in the runtime dtype — 7 digits for float32 (2^24 ≈ 1.6·10^7),
+15 for float64. Beyond the bound the output is mathematically valid but
+unspecified (the input itself is already inexact there) — the
+no-runtime-errors posture, same as String overflow saturation.
+
+Declared as `static intrinsic method String int_to_string(int n)` on the
+`String` stdlib class; the runtime method lives on the torch backend only
+(`supports_string_runtime`).
+
 ## What's deferred
 
 - **Concatenation** (`String.concat(a, b)` or `a + b`). Need
