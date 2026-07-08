@@ -1700,7 +1700,7 @@ class Codegen(BaseCodegen):
         self._emit("distinguish `'a'` (97 with flag) from `97` (97 without).")
         self._emit("Arithmetic on chars works the same as on ints — both")
         self._emit("live on the number axis. Downstream code that cares")
-        self._emit("about the distinction can read the flag via `is_char`.")
+        self._emit("about the distinction can read the flag via `is_string`.")
         self._emit('"""')
         self._emit("v = _np.zeros(self.dim, dtype=_np.float64)")
         self._emit("v[self.semantic_dim + self.AXIS_REAL] = float(codepoint)")

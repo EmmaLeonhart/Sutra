@@ -38,6 +38,17 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Math.mod Context-note rewording — NEEDS-DECISION (Emma)
+
+Round-19 measurement (finding:
+`planning/findings/2026-07-08-math-mod-ban-remeasured-nan-fixed-scalar-realm-remains.md`):
+the 2026-06-12 NaN collapse behind the standing "NEVER use Math.mod" note is FIXED (the
+`_scalar` entry boundary; vec,vec case now returns the correct value, no NaN; 24-point sweep
+vs Python floor-mod max err 4e-6). Still true: output is 0-d (scalar realm) — don't thread it
+through vector recurrent state; complex rotation stays the vector-wrap idiom. The finding
+proposes a narrowed note ("scalar-realm only") — Emma's call; her warning stays verbatim
+until she approves.
+
 ### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
 
 Real-program-reach audit: `2 <= 2` and `2 >= 2` evaluate to the truth-axis NEUTRAL (0), not true; the
