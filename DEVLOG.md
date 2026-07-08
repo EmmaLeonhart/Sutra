@@ -1,3 +1,18 @@
+## 2026-07-08: v0.9.3 RELEASED (Emma's go) — round-20 onboarding audit measured the docs/PyPI gap and forced the decision
+
+Round-20 rotated to onboarding: fresh venv, `pip install "sutra-dev[runtime]"` → 0.9.2, then
+ran the CURRENTLY-DOCUMENTED surface against it. MEASURED: `$"{s} has {n} letters"` →
+`unsupported expression: InterpolatedString`; `(fuzzy) 0.7` → `unsupported expression:
+CastExpr` — i.e. tutorial 06 (live on the website) fails VERBATIM for a pip user; the variable
+typo probe dies as a generated-code NameError (no SUT0205 in 0.9.2); `"ab"+"cd"` prints abcd
+on 0.9.2 but via the old host-str leak, not the substrate concat. The docs/PyPI gap had gone
+from cosmetic to actively misleading. Escalated per the severity ladder (AskUserQuestion, the
+phone-notification channel, offering 0.9.3 / 0.10.0 / hold): **Emma chose ship as v0.9.3.**
+Executed per CLAUDE.md § Releases: pyproject + __init__ bumped 0.9.2→0.9.3, committed, tag
+`sutra-dev-v0.9.3` pushed — the publish workflow auto-publishes PyPI and cuts the GitHub
+Release. Post-publish verification (fresh-venv install shows 0.9.3 and the probes pass) due
+once the workflow completes; queue Context version note updated.
+
 ## 2026-07-08: daily substrate-honesty audit — CLEAN (post-20e86310 batch: casts, interp, int_to_string, concat fix, tutorial 06, fuzzy_dispatch fix, SUT0205, round-19)
 
 (a) **Dim audit:** the only new .su files are `strings_and_formatting.su` — zero embed/
