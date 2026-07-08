@@ -49,6 +49,11 @@ class PyTorchCodegen(Codegen):
     _as_truth_vector.
     """
 
+    # The torch runtime carries the numeric↔truth cast helpers
+    # (cast_number_to_truth / cast_truth_to_number / _cnum), so `(Type)`
+    # cast lowering is live on this backend (types.md § Casting).
+    supports_cast_lowering = True
+
     # The numpy `Codegen` lists the immutable list ops (array_concat /
     # array_map / array_filter) as unsupported — it has no runtime methods
     # for them. The PyTorch runtime DOES implement them (Emma 2026-06-20),
@@ -3466,6 +3471,41 @@ class PyTorchCodegen(Codegen):
         self._emit("self._t_from_r_cache = M")
         self._indent -= 1
         self._emit("return self._t_from_r_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _real_from_truth(self):")
+        self._indent += 1
+        self._emit('"""Matrix moving the truth-axis entry to the real axis')
+        self._emit('(cached; the inverse-direction mate of _truth_from_real)."""')
+        self._emit("if not hasattr(self, '_r_from_t_cache') or self._r_from_t_cache is None:")
+        self._indent += 1
+        self._emit("M = _torch.zeros((self.dim, self.dim), dtype=self.dtype, device=self.device)")
+        self._emit("M[self.semantic_dim + self.AXIS_REAL,")
+        self._indent += 1
+        self._emit("self.semantic_dim + self.AXIS_TRUTH] = 1.0")
+        self._indent -= 1
+        self._emit("self._r_from_t_cache = M")
+        self._indent -= 1
+        self._emit("return self._r_from_t_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cast_number_to_truth(self, x):")
+        self._indent += 1
+        self._emit('"""`(fuzzy|bool|trit) NUMBER` — the numeric→truth cast')
+        self._emit("(types.md § Casting): the one cast pair that genuinely")
+        self._emit("moves an axis. _cnum lifts a 0-d/host number onto AXIS_REAL")
+        self._emit("(entry boundary), then a cached permutation-style matmul")
+        self._emit('moves that entry to AXIS_TRUTH. Pure tensor ops throughout."""')
+        self._emit("return self._truth_from_real() @ self._cnum(x)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cast_truth_to_number(self, x):")
+        self._indent += 1
+        self._emit('"""`(number|int) TRUTH` — the truth→numeric cast: moves the')
+        self._emit("AXIS_TRUTH entry to AXIS_REAL by the cached inverse-direction")
+        self._emit('matmul. Truth values are canonical d-dim vectors (make_truth),')
+        self._emit('which _cnum passes through unchanged."""')
+        self._emit("return self._real_from_truth() @ self._cnum(x)")
         self._indent -= 1
         self._emit()
         self._emit("CMP_SLOPE = 100.0")

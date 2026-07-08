@@ -120,8 +120,8 @@ No hex literals yet.
 
 | Name | Form | Training |
 |---|---|---|
-| `unsafeCast<Type>(value)` | type-system escape — parses + validates but **codegen is NOT yet implemented** (`unsupported expression: UnsafeCastExpr`) | n/a |
-| `(Type) value` (C-style cast) | parses + validates (with guard SUT0111 on string→vector) but **codegen is NOT yet implemented** (`unsupported expression: CastExpr`) | n/a |
+| `unsafeCast<Type>(value)` | type-system escape — the pure relabel: the value crosses unchanged, only the static type changes (never axis-moves; `unsafeCast<fuzzy>(n)` reinterprets, so a real-axis value reads truth 0) | n/a |
+| `(Type) value` (C-style cast) | conversion cast — no-op relabel by default; numeric↔truth casts axis-move (`(fuzzy) 0.7` puts 0.7 on the truth axis, `(number) b` reads a bool back as 1/0) via cached matmuls; text casts are rejected at codegen (number→string needs the unbuilt formatter — use `make_string`; string→vector is `embed()`'s job). Guard SUT0111 still steers `(vector) "literal"` to `embed(...)` | n/a |
 | `unsafeOverride(value)` | type-system escape | n/a |
 | `defuzzy(value)` | truth-axis polarizer | mechanism — the cosine `(v == true)` loop body is scale-invariant in any input gain (`cos(g*v, true) = sign(x)`), so a wrapper gain on top of `defuzzy` is degenerate. The shipped trainable polarizer is `defuzzify_trit` below |
 | `defuzzify_trit(v, iters, beta)` | three-way β-sharpening polarizer (Sutra-source intrinsic since 2026-05-28) | **shipped** — β is the trainable scalar; a training run with `--body trit --iters 1` converges to β\* = 6.58 ± 0.17 across 3 seeds; baseline 0.2126 → trained 0.0146 (~15× loss reduction); bake-back round-trip max\|Δ\| = 1.19e-7 (bit-exact within float32 precision). Second shipped constrain-train instance after `==` cosine-scale T. Runtime iters became runtime-variable 2026-05-28; default iters=10 preserves prior behavior |

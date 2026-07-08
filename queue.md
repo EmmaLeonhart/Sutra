@@ -38,27 +38,14 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Usability audit round 16 (2026-07-06) — real-program-reach drive (codegen vs docs)
+### Usability audit round 16 (2026-07-06) — remaining build item
 
-Drove newcomer programs; most ops correct (foreach=6, array index, arithmetic, casts-of-literals). Gaps:
-
-1. **C-style `while`/`for`/`do-while` docs were stale — DONE 2026-07-06.** codegen REJECTS them (retired
-   in the 2026-04-30 substrate-purity audit, steering to `while_loop`/`iterative_loop`), and `loops.md`
-   says so, but `capabilities.md` §8 still listed them as supported 'bounded loop' rows. Fixed the 3 rows
-   to RETIRED + steer to the loop-function forms; `build_site.py` clean.
-2. **Interpolated strings + `(Type)` casts have NO codegen — CONFIRMED + docs fixed 2026-07-06.** Both
-   parse + validate but hit `unsupported expression` at codegen (EVERY cast form, incl. the corpus's own
-   `07_casts.su` which is validate-only). Only `unsafeCast<Type>` executes. Docs corrected (capabilities.md
-   §5 interp row + a `(Type) value` cast row both marked parse/validate-only, steering to unsafeCast /
-   make_string). Finding: `planning/findings/2026-07-06-castexpr-and-interp-string-no-codegen.md`. Two
-   genuine BUILD items remain (each its own rung, needs a design step — not cron-sized):
-   - **(a) Cast codegen — BOTH `(Type) expr` AND `unsafeCast<Type>` (CORRECTION: unsafeCast also fails at
-     codegen; an earlier note wrongly said it executes — NEITHER runs, no cast-lowering pass exists).** A
-     per-source→target-pair semantics table: identity for same-axis (vector→vector, numeric→numeric),
-     axis-move for numeric↔truth (number→fuzzy/bool via make_truth), embed for string→vector. Needs the
-     table (design step); reuse the var-decl coercion. Not cron-sized.
-   - **(b) InterpolatedString codegen** — desugar to `string_concat`; blocked on a substrate number→string
-     formatter for non-string interpolants (a prerequisite subsystem). String-typed interpolants are easy.
+**(b) InterpolatedString codegen** — `$"x={x}"` parses + validates but has no codegen. Desugar to
+`string_concat`; string-typed interpolants are easy. Non-string interpolants are blocked on a
+substrate number→string formatter (a prerequisite subsystem — per the neural-Unix epic rule, a
+prerequisite is the signal for the next thing to build). Finding:
+`planning/findings/2026-07-06-castexpr-and-interp-string-no-codegen.md` (its cast half shipped
+2026-07-07: `types.md` § "The shipped lowering table", `tests/test_cast_codegen.py`).
 
 ### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
 

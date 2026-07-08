@@ -28,8 +28,8 @@ function void FuzzyBoolConversions() {
     // Collapse fuzzy to bool via defuzzy().
     bool isSimilar = defuzzy(similarity);
 
-    // (bool) on a fuzzy performs defuzzy — it's the one cross-type
-    // cast the spec allows because it's really a recursive is_true.
+    // (bool) on a fuzzy is a free relabel (same truth-axis value;
+    // types.md § Casting). Polarization stays explicit via defuzzy().
     bool alsoSimilar = (bool) similarity;
 
     // Either form is legal in an `if`.

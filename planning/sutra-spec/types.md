@@ -523,6 +523,51 @@ The general default: free at runtime, ontologically clean. You only
 pay implementation cost when you're doing something that genuinely
 transforms the underlying data.
 
+### The shipped lowering table (2026-07-07)
+
+`(Type) expr` compiles per source→target **family**; the operand's
+family comes from conservative static inference (literals, typed
+locals/params, nested casts, arithmetic → number, comparisons →
+bool). Families: **number** = {int, number} (value on AXIS_REAL),
+**truth** = {fuzzy, bool, trit} (value on AXIS_TRUTH), **geometric** =
+{vector, complex, role, matrix, user classes} (full d-dim vector),
+**text** = {string, String, char, Character} (STRING_FLAG + packed
+codepoints).
+
+| source ↓ target → | number | truth | geometric | text |
+|---|---|---|---|---|
+| **number** | no-op | **axis-move** (`cast_number_to_truth`) | relabel (`_cnum` lifts a 0-d entry-boundary number) | rejected — needs the substrate formatter |
+| **truth** | **axis-move** (`cast_truth_to_number`) | no-op | relabel | rejected |
+| **geometric** | relabel (number ops project AXIS_REAL themselves) | relabel (truth ops read AXIS_TRUTH themselves) | no-op | rejected |
+| **text** | rejected (codepoint axes are not a number — use string ops) | rejected | rejected (the embedding cast — its implementation is `embed()` at the boundary) | no-op |
+
+Why numeric↔truth is the ONE axis-move: a number carries its value on
+AXIS_REAL and a truth value on AXIS_TRUTH, so the free relabel would
+strand the value where every downstream read sees 0 (neutral). Both
+movers are cached permutation-style matmuls — pure tensor ops,
+autograd-safe, substrate-resident. Every other pairing relabels
+because downstream ops project the axes they need. When the operand's
+static type cannot be inferred and the target is truth/number (where
+the move/relabel choice is load-bearing), codegen rejects with a
+"declare the operand in a typed variable" steer rather than guessing.
+
+`(fuzzy) v` on a geometric value is the RELABEL (reads the vector's
+truth axis) — it does **not** defuzzify. The projection cast with
+defuzzification machinery is the explicit `is_true` / `defuzzy`
+surface, not `(fuzzy)`.
+
+`unsafeCast<Type>(expr)` is ALWAYS the pure relabel, for every pair —
+it changes the static type and never the value. `(fuzzy) n` converts;
+`unsafeCast<fuzzy>(n)` reinterprets (the truth reading of a real-axis
+value is 0). It is the grep-able escape hatch, and the only cast form
+that crosses the text wall.
+
+Parser note: `(Type) (expr)` commits to the cast arm only when `Type`
+is a primitive type keyword — a `(` continuation after `(ident)` is
+otherwise a call. The `(x) - y` grouping ambiguity documented in
+`planning/open-questions/paren-cast-vs-grouping-ambiguity.md` is
+unchanged.
+
 ## Tuples and lists
 
 Tuples and lists exist at compile time but not at runtime per the

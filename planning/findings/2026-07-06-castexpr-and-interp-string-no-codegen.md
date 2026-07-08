@@ -1,5 +1,11 @@
 # `(Type) expr` casts and interpolated strings parse + validate but have NO codegen (2026-07-06)
 
+> **UPDATE 2026-07-07 — cast half RESOLVED.** Cast lowering shipped for BOTH `(Type) expr` and
+> `unsafeCast<Type>` (design table in `planning/sutra-spec/types.md` § "The shipped lowering
+> table"; 18 guards in `tests/test_cast_codegen.py`). unsafeCast = pure relabel; `(Type)` =
+> relabel by default with the numeric↔truth axis-move pair; text casts rejected with steers.
+> The interpolated-string half is still open (blocked on the substrate number→string formatter).
+
 Found by the real-program-reach usability drive (PINNED TAIL).
 
 ## Measured
