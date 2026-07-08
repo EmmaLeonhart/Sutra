@@ -1,5 +1,18 @@
 # fuzzy_dispatch.su returns WRONG dispatches on the PyTorch backend — and the smoke test never sees it, because the examples harness still compiles via the deprecated numpy backend (2026-07-07)
 
+> **RESOLVED same day — and the root cause was NOT a backend divergence.** Measurement showed
+> the sims identical on both backends (winner 1.0 vs ~0.61–0.70) and the decode WRONG BY
+> CONSTRUCTION at softmax T=1: the winning record got ~0.32 weight, while the action `start`
+> appears in TWO records (music+timer, combined ~0.47) and out-votes the true action in the
+> superposition. Backends only differed in which knife-edge cases tipped (decode gaps 0.01–
+> 0.06). Worse: the smoke test printed per-case FAILs but PASSED anyway — a previous session
+> had weakened the gate to `correct >= 2` with a "prototype separation" rationale the
+> measurement disproves. FIXES (all shipped): (1) the example sharpens its scores (×10 gain =
+> the spec's explicit select temperature) → 4/4 on BOTH backends, measured decode gaps action
+> 0.20–0.30 / target 0.19–0.22; (2) smoke gate restored to `correct == total`; (3) harness
+> flipped to the canonical pytorch backend; (4) `strings_and_formatting.su` added as smoke
+> entry 11. Full smoke PASS on torch.
+
 Found while adding the round-17 strings tutorial example (it needs the String runtime, which
 only the torch backend has — that's what exposed the harness's backend choice).
 
