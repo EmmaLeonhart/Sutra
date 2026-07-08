@@ -1,3 +1,14 @@
+## 2026-07-08: round-22 audit (REPL discoverability) — `:ops` shipped
+
+The REPL had :help/:decls/:reset/:quit but no way to ask "what operations exist?" — a user
+inside `sutrac repl` had to leave for the website to discover the stdlib. Shipped `:ops`:
+lists builtins, per-class stdlib intrinsics (String incl. int_to_string, Math, ...), and the
+special forms (embed/defuzzy/casts/interpolation), generated FROM the live dispatch tables
+(BUILTINS + stdlib_class_intrinsic_methods) so the listing cannot drift from what actually
+resolves — a hand-written list would rot. Banner/help/docs updated. MEASURED: 2 new guards in
+test_repl.py assert the listing contains a builtin, a String intrinsic, int_to_string, the
+special forms, and the capabilities pointer; REPL suite 11/11.
+
 ## 2026-07-08: round-21 audit (docs readability walk) — 10 orphaned pages wired into navigation; tutorial chain completed
 
 Measured the site graph: 0 broken internal links, but 11 of 32 pages were UNREACHABLE from

@@ -114,3 +114,19 @@ def test_scalar_tensor_result_shows_clean_number_not_repr():
     out = _decode_result(_Mod(), torch.tensor(0.6812))
     assert "tensor(" not in out and "device=" not in out
     assert out == "= 0.6812"
+
+
+def test_ops_lists_builtins_stdlib_and_special_forms():
+    # :ops is built from the LIVE dispatch tables, so it must show a
+    # builtin, a String intrinsic (incl. the new int_to_string), and
+    # the special forms — the REPL's stdlib-discovery surface
+    # (usability round 22).
+    out = _drive([":ops", ":quit"])
+    for needle in ("bundle", "argmax_cosine", "string_concat",
+                   "int_to_string", "embed(", "unsafeCast", "capabilities"):
+        assert needle in out, f"missing {needle!r} in :ops output"
+
+
+def test_help_mentions_ops():
+    out = _drive([":help", ":quit"])
+    assert ":ops" in out
