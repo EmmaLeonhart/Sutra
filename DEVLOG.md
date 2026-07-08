@@ -1,3 +1,25 @@
+## 2026-07-07: tutorial 06 (Strings & formatting) shipped — and it exposed that fuzzy_dispatch.su is WRONG for pip users (pytorch), masked by a numpy-backend smoke harness
+
+Round-17 item 3: `docs/tutorials/06-strings-and-formatting.md` + runnable
+`examples/strings_and_formatting.su` (model-free, `@embedding: none dim=64`) covering `+`
+concat, `$"..."` interpolation, `int_to_string`, `string_length`. VERIFIED on the pytorch
+backend — the one `sutrac --run` actually uses — output exactly `hello, sutra! / hello has 5
+letters`; site builds the page; tutorials index links it as rung 6.
+
+The bigger find came from wiring it up: the example needs the String runtime, which only torch
+has — and `examples/_su_harness.py` turned out to compile EVERY example on the DEPRECATED numpy
+backend. Switched it to the canonical torch backend to check: `fuzzy_dispatch.su` fails 3/4
+dispatches there (weather/music/cancel all collapse to `start:alarm`), and a clean pre-today
+`656e888f` worktree reproduces it EXACTLY — a longstanding numpy↔torch semantic divergence on a
+cited example, user-facing today via `sutrac --run`, invisible because the paper-durability
+smoke guards the backend users never run. NOT today's regression (the new `+`-concat dispatch
+provably can't fire there — subscript operands infer non-text). The harness switch was REVERTED
+(shipping a red smoke is not an option; the fix is an investigation), the finding written
+(`planning/findings/2026-07-07-fuzzy-dispatch-wrong-on-pytorch-smoke-guards-numpy.md`), and two
+queue items sit at the TOP: (1) investigate/fix the fuzzy_dispatch divergence with a measured
+gap table, (2) THEN flip the harness to torch and add the strings example as a smoke entry.
+Smoke re-verified PASS on the status-quo harness after the revert.
+
 ## 2026-07-07: round-17 audit fix — `string + string` was SILENT ELEMENT-WISE ADD (garbage codepoints); literal `+` literal CRASHED. Both now concat.
 
 Round-17 real-program-reach probes on the freshly-shipped string surface found the worst kind of

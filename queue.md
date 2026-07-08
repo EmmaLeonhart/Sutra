@@ -38,14 +38,23 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Usability audit round 17 — remaining item
+### fuzzy_dispatch.su is WRONG on the pytorch backend (user-facing) — investigate the numpy↔torch divergence
 
-**Tutorials never show the new string surface** — a newcomer walking 01–05 never sees
-`$"..."` interpolation, `int_to_string`, `(Type)` casts, or `+` concat. Add a short
-"Strings & formatting" tutorial (or extend 01), showing: literal → interp with an int
-local → concat. Keep website discipline (no repo-internal refs). (Round-17 fixes 1+2 —
-the silent element-wise `string + string` and the literal-concat crash — shipped
-2026-07-07 with `tests/test_string_plus_concat.py`.)
+`sutrac --run examples/fuzzy_dispatch.su` (pytorch, what pip users execute) returns
+`start:alarm` for 3 of 4 intents (only timer correct); the numpy backend gets 4/4. Verified
+identical on pre-2026-07-07 `656e888f` — longstanding, NOT today's work. Finding:
+`planning/findings/2026-07-07-fuzzy-dispatch-wrong-on-pytorch-smoke-guards-numpy.md`.
+Investigate: decode the record bindings/similarities on both backends, find the op that ranks
+differently, fix the torch runtime (or the example, if numpy's behaviour was the accident);
+ship with a measured gap table (CLAUDE.md § signal-separation).
+
+### Switch `examples/_su_harness.py` to the canonical pytorch backend (AFTER the fuzzy_dispatch fix)
+
+The examples harness still compiles via the deprecated numpy backend, so the smoke test guards
+a backend users never run (same finding doc). Once fuzzy_dispatch is green on torch: flip the
+import to `codegen_pytorch.translate_module`, re-run the FULL smoke, and add
+`examples/strings_and_formatting.su` (tutorial 06's program — needs the String runtime) as a
+smoke entry with expected output `hello, sutra! / hello has 5 letters`.
 
 ### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
 
