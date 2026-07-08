@@ -1,3 +1,17 @@
+## 2026-07-08: round-26 composition drive — String loop state crushed by the scalar slot plane (finding + 2 items)
+
+Drove loops + strings + comparisons in one program (FizzBuzz 1..15 via iterative_loop with a
+String accumulator). Two probe-course corrections first: `loop NAME(...)` is statement-only
+(the documented idiom is slot-declared by-reference state — the initial `return loop ...` form
+was my error, and the SUT0201 warning that appeared alongside it was parse-error fallout, not a
+diagnostic bug); then the REAL finding: the program compiles and dies at runtime with an opaque
+index_select shape error, because the slot plane stores ONE SCALAR per slot and crushes the
+String state on first store. Scalar loop state (do_while_adder) is the supported shape; vector
+state belongs to `recurring` slots. Queued: (1) a compile-time diagnostic for slot+vector/text
+loop state steering to the mechanism split (bounded, next tick), (2) the vector-loop-state
+design question — Emma-shaped, intersects loops.md's by-reference cleanup. Finding:
+2026-07-08-string-loop-state-crushed-by-scalar-slot-plane.md.
+
 ## 2026-07-08: round-25 audit — surfaces CLEAN (stale-claims sweep + CLI help probe); one cosmetic fix
 
 Swept examples/docs for workaround idioms and impossible-claims the week's semantics fixes
