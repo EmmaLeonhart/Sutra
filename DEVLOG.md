@@ -1,3 +1,10 @@
+## 2026-07-08: v0.9.4 RELEASED (Emma's go) — the comparison-semantics batch reaches pip users same-day
+
+The docs/PyPI gap re-opened within hours of 0.9.3 (num_eq, le/ge ties, decode hardening,
+user-fn concat, :ops, fizzbuzz all landed after the tag). Emma: ship now. Bump + tag
+sutra-dev-v0.9.4; publish workflow handles PyPI + GitHub Release; fresh-venv verification
+after the workflow completes.
+
 ## 2026-07-08: round-24 — fizzbuzz.su lands as example 12 (smoke-pinned showcase of the comparison-semantics fixes)
 
 The FizzBuzz that was UNWRITABLE two ticks ago is now a first-class example: select
