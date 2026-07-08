@@ -191,6 +191,8 @@ Element-wise vector arithmetic on the substrate. These are **runtime primitives*
 
 Augmented assignment forms (`+=`, `-=`, `*=`, `/=`) desugar to `x = x op y`. Per Sutra's no-memory-points principle, the assignment is just naming the right-hand side; there's no cell being mutated.
 
+**`+` on strings concatenates.** When both operands are strings (literals, `string`/`String`-typed variables, interpolated strings, or string-returning calls), `a + b` dispatches to the substrate string concatenation — `"ab" + "cd"` is `"abcd"`, a permutation-shift-and-add over the codepoint axes, not element-wise numeric addition. Mixed string/number operands stay on the numeric paths.
+
 ### `a ^ b` — exponent (planned)
 
 The `^` operator is reserved as exponentiation on the number axis (not bitwise XOR — Sutra has no bits to flip). Surface declared 2026-04-29 from the transcendentals chat. Target expansion:

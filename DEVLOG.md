@@ -1,3 +1,25 @@
+## 2026-07-07: round-17 audit fix — `string + string` was SILENT ELEMENT-WISE ADD (garbage codepoints); literal `+` literal CRASHED. Both now concat.
+
+Round-17 real-program-reach probes on the freshly-shipped string surface found the worst kind of
+bug: `string a = "ab"; string b = "cd"; a + b` returned two garbage characters ('a'+'c',
+'b'+'d' summed on the codepoint axes) with NO error — the String CLASS `operator +` only
+dispatches for class-typed (`String`) operands, so lowercase-`string` primitives fell through to
+element-wise vector add. Two string LITERALS crashed outright (host Python strs reached
+string_concat's index_select). FIX: a both-operands-provably-text dispatch in the BinaryOp `+`
+lowering (new conservative `_is_text_expr`: text literals incl. interpolated strings, text-typed
+identifiers via _var_type, text casts, text-returning calls, nested text `+`), emitting
+`_VSA.string_concat` with literals translated `dest_type="string"` so they cross as substrate
+Strings. User-class operator overloads still win (dispatch sits after `_resolve_user_operator`);
+gated on `supports_string_runtime` (numpy backend untouched); mixed text+number expressions
+deliberately do NOT dispatch (fall through to the numeric paths as before — conservative,
+same posture as `_is_number_expr`). MEASURED: 8/8 guards in `tests/test_string_plus_concat.py`
+(lowercase vars, two literals, chained, var+literal, uppercase-String regression, interp+literal,
+and two numeric `+` untouched-checks); load-bearing sweep green (see commit); `_smoke_test`
+PASS. CI note: the Transpilers workflow has been red for days — verified by failure-set diff
+(20 identical FAILED ids in `sdk/sutra-from-c` before AND after today's parser/codegen work,
+zero delta) that today's changes added nothing; that set is Emma's end-of-queue
+"fix the failing tests" item and stays there per her explicit ordering.
+
 ## 2026-07-07: int_to_string SHIPPED — the substrate integer→String formatter (the shared prerequisite); `$"n={n}"` and `(string) n` now work for ints
 
 The missing primitive both interp-strings and the text-cast wall named. Spec first
