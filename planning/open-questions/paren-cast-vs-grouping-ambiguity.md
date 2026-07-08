@@ -14,6 +14,12 @@ the parens as a *type*, and if a `)` follows *and the next token can start a una
 expression*, it commits to `CastExpr`; otherwise it rewinds and reparses as a
 parenthesized expression (`_parse_paren_or_cast`, `_try_parse_type_for_cast`).
 
+Update 2026-07-07 (cast-codegen work): the `(` continuation case was refined —
+`(Type) (expr)` now commits to the CAST arm when `Type` is a primitive type
+keyword (`_PRIMITIVE_TYPES`), since a primitive type name can never be a callee;
+`(x)(y)` with a user identifier still parses as a call. The `(atom) <binop>`
+ambiguity below is UNCHANGED and still open.
+
 The ambiguity: when the parenthesized content is a bare atom that is *also a legal
 type name* (an identifier, a `number`/`vector`/… keyword) and it is immediately
 followed by an operator token that can begin a **unary** expression — `-`, `+`,

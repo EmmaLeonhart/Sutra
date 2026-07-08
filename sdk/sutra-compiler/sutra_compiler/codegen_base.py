@@ -3589,9 +3589,139 @@ class BaseCodegen:
             return self._embed_expr_src(expr)
         if isinstance(expr, ast.DefuzzyExpr):
             return self._defuzzy_expr_src(expr)
+        if isinstance(expr, ast.UnsafeCastExpr):
+            # types.md § "Casting — relabeling, not transformation":
+            # unsafeCast<T>(x) is ALWAYS the pure relabel — the value
+            # crosses unchanged and only the static type changes. It
+            # never axis-moves; `(fuzzy) n` converts, `unsafeCast<fuzzy>(n)`
+            # reinterprets (truth reading of a real-axis value is 0).
+            return self._translate_expr(expr.expr)
+        if isinstance(expr, ast.CastExpr):
+            return self._translate_cast(expr)
         raise CodegenNotSupported(
             expr, f"unsupported expression: {type(expr).__name__}"
         )
+
+    # ---- cast lowering (types.md § "Casting — relabeling, not
+    # transformation") -------------------------------------------------
+    #
+    # The default cast is a NO-OP relabel: every Sutra value is already a
+    # d-dim substrate vector (or a 0-d number at the entry boundary), and
+    # downstream ops project the axes they need, so relabeling is free.
+    # The ONE genuine axis-move pair is numeric↔truth: a number carries
+    # its value on AXIS_REAL, a fuzzy/bool/trit on AXIS_TRUTH — a pure
+    # relabel would strand the value on the wrong axis and every read
+    # would see 0 (neutral). Text is walled off: number→string needs the
+    # unbuilt substrate formatter; string→vector is the spec's "embedding
+    # cast" whose real implementation is `embed()` at the entry boundary.
+
+    #: Sutra type name → cast family. Types not in the map (user classes,
+    #: generics) relabel as "geometric" — the spec's free no-op default.
+    _CAST_FAMILY = {
+        "int": "number", "number": "number",
+        "fuzzy": "truth", "bool": "truth", "trit": "truth",
+        "complex": "geometric", "vector": "geometric", "role": "geometric",
+        "matrix": "geometric",
+        "string": "text", "String": "text",
+        "char": "text", "Character": "text",
+    }
+
+    #: Whether this backend's runtime carries the numeric↔truth cast
+    #: helpers (cast_number_to_truth / cast_truth_to_number / _cnum).
+    #: The deprecated numpy backend does not; it keeps rejecting casts.
+    supports_cast_lowering = False
+
+    def _infer_cast_operand_type(self, expr: ast.Expr) -> str | None:
+        """Conservative static type of a cast operand: literals, typed
+        locals/params (via _var_type), nested casts, parenthesized
+        exprs. None when unknown — the caller decides whether the
+        target makes the relabel/axis-move distinction load-bearing."""
+        from .symbol_table import _LITERAL_TYPES
+        kind = type(expr).__name__
+        if kind in _LITERAL_TYPES:
+            return _LITERAL_TYPES[kind]
+        if isinstance(expr, ast.Identifier):
+            return self._var_type.get(expr.name)
+        if isinstance(expr, (ast.CastExpr, ast.UnsafeCastExpr)):
+            return expr.target_type.name if expr.target_type else None
+        if type(expr).__name__ == "Parenthesized" and hasattr(expr, "inner"):
+            return self._infer_cast_operand_type(expr.inner)
+        if isinstance(expr, ast.BinaryOp):
+            if expr.op in ("==", "!=", "<", ">", "<=", ">=", "&&", "||"):
+                return "bool"
+            if expr.op in ("+", "-", "*", "/", "%"):
+                lt = self._infer_cast_operand_type(expr.left)
+                rt = self._infer_cast_operand_type(expr.right)
+                if (self._CAST_FAMILY.get(lt) == "number"
+                        and self._CAST_FAMILY.get(rt) == "number"):
+                    return "number"
+        return None
+
+    def _translate_cast(self, expr: ast.CastExpr) -> str:
+        if not self.supports_cast_lowering:
+            raise CodegenNotSupported(
+                expr,
+                "`(Type) expr` casts are not supported by this backend; "
+                "use the PyTorch backend (codegen_pytorch)."
+            )
+        dst = expr.target_type.name if expr.target_type else None
+        dst_family = self._CAST_FAMILY.get(dst, "geometric")
+        src = self._infer_cast_operand_type(expr.expr)
+        src_family = self._CAST_FAMILY.get(src, "geometric") if src else None
+
+        # --- text walls -------------------------------------------------
+        if dst_family == "text" and src_family != "text":
+            raise CodegenNotSupported(
+                expr,
+                f"cannot cast to `{dst}`: number→string needs the substrate "
+                "formatter, which is not built yet. For a literal, use "
+                "`make_string(\"...\")`; join strings with `string_concat`."
+            )
+        if src_family == "text" and dst_family != "text":
+            if dst_family == "geometric":
+                raise CodegenNotSupported(
+                    expr,
+                    f"cannot cast a string to `{dst}`: that is the embedding "
+                    "cast, and its implementation is `embed(...)` at the "
+                    "program boundary — a String vector encodes codepoints, "
+                    "not semantics."
+                )
+            raise CodegenNotSupported(
+                expr,
+                f"cannot cast a string to `{dst}`: a String vector encodes "
+                "packed codepoints, so its numeric axes are not a number. "
+                "Use the string operations (string_length, char_at, ...) "
+                "instead."
+            )
+
+        inner = self._translate_expr(expr.expr)
+
+        # --- same family / text→text: the free relabel --------------------
+        if src_family == dst_family:
+            return inner
+
+        # --- the one genuine axis-move pair -------------------------------
+        if src_family == "number" and dst_family == "truth":
+            return f"_VSA.cast_number_to_truth({inner})"
+        if src_family == "truth" and dst_family == "number":
+            return f"_VSA.cast_truth_to_number({inner})"
+
+        # --- unknown source: only reject when the move/relabel choice
+        # --- is load-bearing (truth/number targets read a single axis) ----
+        if src_family is None and dst_family in ("truth", "number"):
+            raise CodegenNotSupported(
+                expr,
+                f"cannot cast to `{dst}` here: the operand's static type "
+                "can't be inferred, and truth/number casts need it to pick "
+                "between relabel and axis-move. Assign the operand to a "
+                "typed variable first."
+            )
+
+        # --- every remaining pair relabels; _cnum canonicalizes a 0-d
+        # --- number at the entry boundary and passes vectors through ------
+        if src_family == "number" or src is None:
+            return f"_VSA._cnum({inner})"
+        return inner
 
     def _embed_expr_src(self, expr: ast.EmbedExpr) -> str:
         """Override point for per-backend `embed(<expr>)` lowering.

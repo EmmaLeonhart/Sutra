@@ -1,3 +1,34 @@
+## 2026-07-07: cast codegen SHIPPED — `(Type) expr` conversion casts + `unsafeCast<Type>` relabels (round-16 item 2a)
+
+The last wholly-uncodegen'd documented surface form (both cast forms hit `unsupported expression`)
+now lowers. Design first, per the queue item: the table lives in `planning/sutra-spec/types.md`
+§ "The shipped lowering table (2026-07-07)", derived from the spec's own § Casting framing
+("relabeling, not transformation"): the DEFAULT cast is a free no-op relabel — every value is
+already a d-dim substrate vector (or an entry-boundary 0-d number) and downstream ops project the
+axes they need. The ONE genuine axis-move pair is numeric↔truth (a number lives on AXIS_REAL, a
+truth value on AXIS_TRUTH; a relabel would strand the value where every read sees neutral) — two
+new cached permutation-matmul runtime helpers `cast_number_to_truth` / `cast_truth_to_number`
+(+ `_real_from_truth`, the mate of the existing `_truth_from_real`), pure tensor ops. Text is
+walled: →string rejected (needs the unbuilt substrate formatter; steers to make_string /
+string_concat), string→vector rejected (that's the spec's embedding cast = `embed()`'s job),
+string→number rejected (codepoint axes are not a number). `unsafeCast<T>` is ALWAYS the pure
+relabel — value unchanged, static type changes; `(fuzzy) n` converts, `unsafeCast<fuzzy>(n)`
+reinterprets (truth reads 0). Source types come from conservative static inference (literals,
+`_var_type` locals/params, nested casts, arithmetic→number, comparisons→bool); an un-inferable
+operand under a truth/number target REJECTS with a "declare it in a typed variable" steer rather
+than guessing. Parser: `(Type) (expr)` now commits to the cast arm for PRIMITIVE type keywords
+only (a primitive name can never be a callee; `(x)(y)` stays a call — parenthesized callees were
+already codegen-rejected, so nothing expressible is lost; the `(x) - y` grouping ambiguity is
+UNCHANGED, doc updated). MEASURED: 18/18 new guards in `tests/test_cast_codegen.py` (moves, both
+no-op directions, reinterpret-vs-convert, rejections incl. unknown-source, double-cast roundtrip
+0.9→truth→real exact); full compiler suite green (see commit); `examples/_smoke_test.py` 12/12
+PASS; `build_site.py` clean. Session-level call documented as its own dossier:
+`(bool) fuzzy` = relabel, NOT implicit defuzzy (the old 07_casts.su comment claimed defuzzy;
+corpus comment fixed) — `planning/open-questions/cast-bool-fuzzy-defuzz-or-relabel.md`, Emma's
+call if the bool defuzz-counter design lands. NOT built (scope-guarded): `unsafeOverride`
+codegen (07_casts.su still stops there — separate node, separate item if wanted); the number→
+string formatter.
+
 ## 2026-07-07: open-questions hygiene — fv-convergence-spectral-gap-leg.md reduced to pointer; λ₂ leg split to its own dossier
 
 The 07-07 audit fire flagged that `planning/open-questions/fv-convergence-spectral-gap-leg.md` was

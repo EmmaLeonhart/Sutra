@@ -2644,11 +2644,22 @@ class Parser:
         # Try to read a type followed by `)` followed by a token that
         # starts a unary expression. If that succeeds, it's a cast.
         type_ref = self._try_parse_type_for_cast()
+        # `(Type) (expr)` — a `(` continuation is ambiguous with a call
+        # of a parenthesized callee, so it only commits to the cast arm
+        # when the parsed type is a PRIMITIVE type keyword: a primitive
+        # type name can never be a callee, while `(x)(y)` with a user
+        # identifier stays a call. (Parenthesized-callee calls are
+        # rejected at codegen anyway, so nothing expressible is lost.)
+        lparen_ok = (
+            type_ref is not None
+            and type_ref.name in _PRIMITIVE_TYPES
+            and not type_ref.type_args
+        )
         if (
             type_ref is not None
             and self._check(TokenKind.RPAREN)
             and self._peek(1).kind in _EXPR_START_TOKENS
-            and self._peek(1).kind is not TokenKind.LPAREN  # avoid ambiguity with call
+            and (self._peek(1).kind is not TokenKind.LPAREN or lparen_ok)
         ):
             self._advance()  # )
             operand = self._parse_unary()
