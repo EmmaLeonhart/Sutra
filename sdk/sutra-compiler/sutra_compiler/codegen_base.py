@@ -3589,6 +3589,51 @@ class BaseCodegen:
             return self._embed_expr_src(expr)
         if isinstance(expr, ast.DefuzzyExpr):
             return self._defuzzy_expr_src(expr)
+        if isinstance(expr, ast.InterpolatedString):
+            # `$"hello {s}!"` desugars to a make_string / string_concat
+            # chain — every piece a substrate String, every join a
+            # substrate op (strings.md). Only STRING-TYPED interpolants
+            # are lowerable today: a number/fuzzy interpolant needs the
+            # substrate number→string formatter, which is not built, so
+            # those reject with a steer (same wall as the text casts).
+            if not self.supports_string_runtime:
+                raise CodegenNotSupported(
+                    expr,
+                    "interpolated strings need the substrate String "
+                    "runtime; use the PyTorch backend (codegen_pytorch)."
+                )
+            pieces: list[str] = []
+            for part in expr.parts:
+                if isinstance(part, str):
+                    if part:
+                        pieces.append(f"_VSA.make_string({part!r})")
+                    continue
+                part_t = self._infer_cast_operand_type(part)
+                if self._CAST_FAMILY.get(part_t) == "text":
+                    pieces.append(
+                        self._translate_expr(part, dest_type="string"))
+                    continue
+                if part_t is None:
+                    raise CodegenNotSupported(
+                        part,
+                        "interpolated expression must be string-typed and "
+                        "statically inferable — assign it to a `string` "
+                        "variable first, or build the text with "
+                        "make_string / string_concat."
+                    )
+                raise CodegenNotSupported(
+                    part,
+                    f"cannot interpolate a `{part_t}` value: the substrate "
+                    "number→string formatter is not built yet. Only "
+                    "string-typed interpolants lower; build non-string "
+                    "text with make_string / string_concat."
+                )
+            if not pieces:
+                return "_VSA.make_string('')"
+            src = pieces[0]
+            for nxt in pieces[1:]:
+                src = f"_VSA.string_concat({src}, {nxt})"
+            return src
         if isinstance(expr, ast.UnsafeCastExpr):
             # types.md § "Casting — relabeling, not transformation":
             # unsafeCast<T>(x) is ALWAYS the pure relabel — the value
@@ -3630,6 +3675,11 @@ class BaseCodegen:
     #: helpers (cast_number_to_truth / cast_truth_to_number / _cnum).
     #: The deprecated numpy backend does not; it keeps rejecting casts.
     supports_cast_lowering = False
+
+    #: Whether this backend's runtime carries the substrate String ops
+    #: (make_string / string_concat). Gates InterpolatedString lowering;
+    #: the deprecated numpy backend has no String runtime.
+    supports_string_runtime = False
 
     def _infer_cast_operand_type(self, expr: ast.Expr) -> str | None:
         """Conservative static type of a cast operand: literals, typed

@@ -1,3 +1,27 @@
+## 2026-07-07: InterpolatedString codegen SHIPPED for string-typed interpolants (round-16 item 2b) — round 16 COMPLETE
+
+`$"hello {s}!"` now lowers to a substrate `make_string` / `string_concat` chain (string_concat is
+the substrate-pure shift-and-add permutation form, Audit leak #5's fix — no host loops). Scope
+exactly as the queue item named it: STRING-TYPED interpolants only — the interpolant's static
+type comes from the same conservative inference the casts use; a number/fuzzy interpolant
+rejects at codegen with a formatter steer, and an un-inferable one rejects with a
+"assign it to a `string` variable first" steer. Gated per-backend
+(`supports_string_runtime`, torch-only — the deprecated numpy backend has no String runtime and
+keeps rejecting). MEASURED: 8/8 new guards in `tests/test_interp_string_codegen.py` (decode via
+string_to_python at the terminal boundary: literal-only, mid/start/end/adjacent interpolants,
+assignment, both rejections); neighbors green same run (cast 18 + codegen + corpus + repl +
+string_equality = 143 passed + 90 subtests, 33s); docs row updated (capabilities.md §5);
+build_site clean (run pre-commit). NOT built: the substrate number→string formatter — it is the
+shared blocker for full interpolation AND `(string)` casts, so it replaced the round-16 item in
+queue.md as its own design-first item (Math.mod is forbidden, so digit extraction needs the
+complex-rotation wrap route or an indicator-network route; spec note before code). Round 16 is
+otherwise fully shipped: items 1 (loop docs), 2a (casts), 2b (this).
+
+NOTE on commit hygiene: the 17:15 recursive submodule-sync swept the finished cast work into
+`c2deb111` ("chore: submodule-sync") before this session could land its descriptive commit —
+content is correct and verified (load-bearing chunk 316+90 green pre-push), message is not.
+The full record lives in the DEVLOG entry below; this note is the cross-reference.
+
 ## 2026-07-07: cast codegen SHIPPED — `(Type) expr` conversion casts + `unsafeCast<Type>` relabels (round-16 item 2a)
 
 The last wholly-uncodegen'd documented surface form (both cast forms hit `unsupported expression`)
