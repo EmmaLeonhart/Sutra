@@ -488,6 +488,40 @@ class _Walker:
                 ),
             )
 
+    #: Multi-axis type families whose values cannot survive the scalar
+    #: slot plane (one real-axis scalar per slot).
+    _MULTI_AXIS_SLOT_TYPES = frozenset({
+        "string", "String", "char", "Character",
+        "vector", "matrix", "complex",
+    })
+
+    def visit_LoopCallStmt(self, node) -> None:
+        # SUT0206 (round-26 finding): `loop NAME(cond, state...)` threads
+        # state through the SLOT plane, which stores ONE real-axis scalar
+        # per slot. A String/vector/complex state variable is silently
+        # crushed to that scalar on the first store and the program dies
+        # later with an opaque tensor-shape error (measured: the corpus's
+        # own do_while.su). Until vector-valued loop state has a design
+        # (planning/findings/2026-07-08-string-loop-state-crushed-by-
+        # scalar-slot-plane.md), warn with the mechanism split.
+        for name in node.state_arg_names:
+            t = self._local_type_env.get(name)
+            if t in self._MULTI_AXIS_SLOT_TYPES:
+                self.diagnostics.warning(
+                    f"loop state `{name}` is `{t}`-typed, but loop state "
+                    "is carried by the slot plane, which stores one "
+                    "SCALAR per slot — the value will be crushed to its "
+                    "real-axis reading and the program will fail at "
+                    "runtime with a tensor-shape error",
+                    node.span,
+                    code="SUT0206",
+                    hint="scalar state (int/number) works through `slot` "
+                         "+ `loop`; vector-valued recurrent state needs "
+                         "a `recurring` declaration inside a non-halting "
+                         "loop instead (see loops.md / non-halting-loop)",
+                )
+        self.visit(node.condition_arg)
+
     def visit_MemberAccess(self, node: ast.MemberAccess) -> None:
         # SUT0205 suppression: a bare-identifier RECEIVER is a namespace
         # or object access (`Math.PI`, `Promise.resolve(x)`, `s.item`) —

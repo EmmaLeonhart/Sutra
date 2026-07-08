@@ -1,3 +1,15 @@
+## 2026-07-08: SUT0206 shipped — multi-axis loop state warns at compile time; corpus's own do_while.su confirmed broken at runtime
+
+The round-26 diagnostic, with a decisive extra measurement: the VALID corpus's do_while.su
+(`slot vector state` threaded through a do_while loop) dies at runtime with the same
+scalar-crush class of error — validate-only coverage hid it, the exact 07_casts pattern again.
+So the warning fires on TRUE positives in the corpus itself (corpus zero-ERRORS policy holds;
+warnings are the designed channel). SUT0206: any slot-declared String/vector/matrix/complex
+variable passed as `loop` state warns with the mechanism split (scalar → slot; vector
+recurrent → `recurring`) and names the runtime failure. 3 guards + corpus + diagnostics
+regression green (18 + 90 subtests). The do_while.su runtime break strengthens the Emma-shaped
+design question (vector-valued loop state), which stays queued with the new evidence noted.
+
 ## 2026-07-08: round-26 composition drive — String loop state crushed by the scalar slot plane (finding + 2 items)
 
 Drove loops + strings + comparisons in one program (FizzBuzz 1..15 via iterative_loop with a
