@@ -58,3 +58,7 @@ The codebook lookup is one matrix-vector multiply (against a stacked-candidate m
 
 - The [Sutra paper](/paper/) — characterizes the chained-computation regime that depends on cleanup working.
 - [Operations and operators](../operators.md) — formal definitions of `argmax_cosine`, `snap`, and the rest of the primitive surface.
+
+---
+
+**Next: [04 — From TypeScript and JavaScript](04-from-typescript.md)**

@@ -33,8 +33,9 @@ sutrac --run hello.su          # -> hello world
 
 `pip install sutra-dev` alone gives you the validator + codegen (`sutrac hello.su` to
 check a file); the `[runtime,embed]` extras add PyTorch and the in-process embedding
-model so programs actually run. New to the ideas? Start with
-**[Tutorial 01 — Hello Sutra](tutorials/01-hello-sutra.md)**, or open **[the
+model so programs actually run. New to the ideas? Follow **[the tutorials](tutorials/index.md)**
+(a guided six-part walk, starting with
+[01 — Hello Sutra](tutorials/01-hello-sutra.md)), or open **[the
 interactive REPL](repl.md)** (`sutrac repl`) to try expressions live.
 
 **Working from source** (the full `examples/*.su` set, the smoke tests, the IntelliJ
@@ -49,3 +50,15 @@ python examples/_smoke_test.py
 The example programs the tutorials walk through (`examples/*.su`) ship in that source
 tree, not in the pip package — with a pip-only install, save the source shown in each
 tutorial to a local file (as with `hello.su` above) or clone the repo.
+
+## Read more
+
+- **[Tutorials](tutorials/index.md)** — the guided walk: hello world, bind/unbind, cleanup, TypeScript transpilation, a semantic FAQ matcher, strings & formatting.
+- **[What Sutra implements](capabilities.md)** — the exhaustive inventory: every keyword, operator, runtime primitive, and diagnostic.
+- **[Operations and operators](operators.md)** — the formal definitions.
+- **[Papers](papers.md)** — the Sutra papers, with PDFs and venue links.
+- **[A worked product example](example.md)** — a self-optimizing landing-page button.
+- **[Drawing pixels](gui.md)** — a window whose picture is computed on the substrate.
+- **[TypeScript → Sutra](typescript-to-sutra.md)** — the syntax mapping, construct by construct.
+- **[Neural WebAssembly](neural-webassembly.md)** — the sibling research artifact.
+- **[History](history.md)** — where the name and the ideas come from.

@@ -1,3 +1,15 @@
+## 2026-07-08: round-21 audit (docs readability walk) — 10 orphaned pages wired into navigation; tutorial chain completed
+
+Measured the site graph: 0 broken internal links, but 11 of 32 pages were UNREACHABLE from
+docs/index.md — including the tutorials INDEX itself (the main index linked only tutorial 01;
+the 01→02→03 chain then dead-ended, so tutorials 04/05/06 — including the brand-new strings
+tutorial — plus papers.md (the paper index!), example.md, gui.md, history.md,
+neural-webassembly.md, and typescript-to-sutra.md were invisible to a newcomer navigating from
+the front page). Fixes: index.md now links the tutorials index (guided six-part walk) and
+carries a Read More section for the eight orphaned content pages; tutorials 03→04→05→06 got
+Next links completing the chain. Re-measured: the only orphan left is arxiv.md, which is
+deliberately direct-URL-only (noindex). build_site clean.
+
 ## 2026-07-08: v0.9.3 publish VERIFIED on PyPI + stale open-question re-narrowed
 
 Fresh-venv `pip install sutra-dev[runtime]==0.9.3`: the three probes that failed on 0.9.2 now
