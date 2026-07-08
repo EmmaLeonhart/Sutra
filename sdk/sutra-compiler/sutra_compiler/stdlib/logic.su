@@ -129,16 +129,20 @@ function fuzzy lt(complex a, complex b) {
 }
 
 
-// ge / le — on the differentiable-tanh scheme, `>=` and `<=` collapse
-// to `>` and `<`: both give tanh(0) = 0 on exact ties. Programs that
-// need to distinguish strict from tie compose with `==` (cosine
-// similarity, crisp on identical operands).
-function fuzzy ge(complex a, complex b) {
-    return a > b;
+// ge / le — or(strict, ==) per Emma 2026-07-08 (the previous
+// collapse-to-strict gave tanh(0) = 0 on exact ties, so the standard
+// loop guard `i <= n` read NEUTRAL at the boundary — finding
+// 2026-07-06-le-ge-tie-returns-neutral). The params are number-typed
+// so the `==` component dispatches to the exact num_eq indicator:
+// ties read +1, and the false directions stay exactly -1
+// (max(-1, -1)) instead of softening through cosine. `||` is the
+// truth-axis max.
+function fuzzy ge(number a, number b) {
+    return (a > b) || (a == b);
 }
 
-function fuzzy le(complex a, complex b) {
-    return a < b;
+function fuzzy le(number a, number b) {
+    return (a < b) || (a == b);
 }
 
 

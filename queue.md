@@ -39,23 +39,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### BUILD: `<=` / `>=` adopt or(<, ==) at ties (Emma decided 2026-07-08)
-
-Real-program-reach audit: `2 <= 2` and `2 >= 2` evaluate to the truth-axis NEUTRAL (0), not true; the
-strict `<`/`>`, `==`, and non-tie `<=`/`>=` are correct. Deliberate — `stdlib/logic.su` defines `le`/`ge`
-as the strict operators (comment: `<=`/`>=` collapse to `<`/`>`, ties give tanh(0)=0) for the
-differentiable-tanh scheme. But it is mathematically wrong and newcomer-hostile (a loop guard `i <= n`
-misbehaves at the boundary). Fix `le = or(<, ==)` restores tie-correctness (measured +1 at ties) but folds
-in cosine-`==`, possibly costing differentiability — a training-vs-correctness tradeoff, EMMA'S call. Not
-touched yet. Finding: `planning/findings/2026-07-06-le-ge-tie-returns-neutral.md`. Emma chose
-option (b) via AskUserQuestion 2026-07-08: adopt `le = or(<, ==)` / `ge = or(>, ==)`,
-verifying no fuzzy/training regress before landing. NOTE it composes with the same-day num_eq
-ship: for number-family operands the == component is now the exact relu indicator (ties give
-+1 exactly), so the or-composition is clean at integer boundaries. Implementation: stdlib
-logic.su le/ge (and/or the runtime le/ge methods — check which path `i <= n` actually takes),
-tie tests (2<=2, 2>=2 -> +1; strict unchanged), fuzzy/training regression = the equality
-autograd + defuzz suites.
-
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 
 The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped

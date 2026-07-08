@@ -150,11 +150,11 @@ function fuzzy lt(complex a, complex b) {
 ### `a >= b` and `a <= b` — non-strict comparison
 
 ```sutra
-function fuzzy ge(complex a, complex b) { return a > b; }
-function fuzzy le(complex a, complex b) { return a < b; }
+function fuzzy ge(number a, number b) { return (a > b) || (a == b); }
+function fuzzy le(number a, number b) { return (a < b) || (a == b); }
 ```
 
-On the differentiable-tanh scheme `>=` collapses to `>` (both give `tanh(0) = 0` on exact ties). Programs that need strict-vs-tie distinction compose with `==`. **Status: in Sutra**.
+Non-strict comparison is `or(strict, ==)`: exact ties read **+1** (true), the true direction reads +1, and the false direction reads −1 — so the standard loop guard `i <= n` behaves correctly at the boundary. The `==` component is the exact number-equality indicator, keeping every reading crisp at integer spacing. The strict forms `<` / `>` still give `tanh(0) = 0` at a tie. **Status: in Sutra**.
 
 ### Chained comparisons (Python-style)
 

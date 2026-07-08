@@ -1,3 +1,15 @@
+## 2026-07-08: le/ge = or(strict, ==) SHIPPED (Emma's decision) — `i <= n` loop guards correct at the boundary
+
+The second of Emma's batched decisions, built on the first: stdlib logic.su le/ge are now
+`(a < b) || (a == b)` / `(a > b) || (a == b)` with NUMBER-typed params, so the == component
+dispatches to the exact num_eq indicator — ties read +1 exactly, and the false directions stay
+exactly −1 (max(−1, −1); routing == through cosine would have softened 3<=2 to −0.52). Strict
+< / > keep tanh(0)=0 at ties, deliberately. MEASURED: 7/7 new guards (ties both ops, both
+false directions crisp, strict unchanged); the fuzzy/training regression Emma required —
+equality autograd + num_eq + all four loop suites + native recursion + corpus + codegen +
+stdlib_loader = 153 passed + 90 subtests, and the full smoke PASS. operators.md non-strict
+section rewritten to the new semantics.
+
 ## 2026-07-08: num_eq SHIPPED (Emma: relu indicator) — zero-testing works, FizzBuzz runs end-to-end; String decode hardened against superposition residue
 
 Emma answered all three queued decisions in one AskUserQuestion batch: (1) number-family `==`
