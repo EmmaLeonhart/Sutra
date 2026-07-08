@@ -38,16 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Diagnostic: `slot` + vector/String loop state → compile-time error (round-26 finding)
-
-`slot String acc; loop build(15, acc);` compiles then dies with an opaque torch shape error —
-the slot plane stores ONE SCALAR per slot, so vector-valued state is crushed on first store.
-Finding: `planning/findings/2026-07-08-string-loop-state-crushed-by-scalar-slot-plane.md`.
-BUILD: validator (or codegen) error when a slot-declared text/vector-family variable is passed
-as `loop` state — name the mechanism split plainly (scalar state → slot; vector state →
-`recurring` inside non-halting loops) and steer accordingly. Tests: the finding's program gets
-the diagnostic; do_while_adder (scalar) stays clean.
-
 ### Vector-valued loop state — design question (Emma-shaped, do not build unilaterally)
 
 Should `iterative_loop`/`while_loop` state params carry vector state directly (slot planes
