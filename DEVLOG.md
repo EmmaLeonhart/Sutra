@@ -1,3 +1,14 @@
+## 2026-07-08: round-27 composition audit — CLEAN (dict + foreach + user functions + multi-interpolant strings)
+
+Two composition programs driven end-to-end, both correct first try: (1) `dict<int,int>` writes
++ `foreach` accumulation + `$"total={total}"` → `total=30`; (2) chained user-function calls
++ foreach accumulation + a two-interpolant string → `a=6 b=18`. The everyday-composition
+surface (dicts, foreach, int locals mutated in loops, interpolation of computed values) holds.
+Audit findings-per-round the last three: 25 clean, 26 one real finding (slot-state), 27 clean —
+the rotation is converging; the ACTIVE queue holds only the two Emma-gated items (vector-loop-
+state design, A1 deploy). Session note: a brief harness permission-classifier outage paused one
+tick mid-probe; no work lost (all trees were clean and pushed).
+
 ## 2026-07-08: SUT0206 shipped — multi-axis loop state warns at compile time; corpus's own do_while.su confirmed broken at runtime
 
 The round-26 diagnostic, with a decisive extra measurement: the VALID corpus's do_while.su
