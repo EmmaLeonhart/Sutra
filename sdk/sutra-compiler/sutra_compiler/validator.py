@@ -368,11 +368,17 @@ class _Walker:
         self._method_local_names = {p.name for p in node.params}
         saved_env = self._local_type_env
         self._local_type_env = local_type_env(node)
+        # SUT0205 scope for the method body: params + body locals +
+        # `this` (implicit receiver) + the enclosing class's field
+        # names are all legitimately referenceable.
+        saved_fn_locals = getattr(self, "_fn_local_names", None)
+        self._fn_local_names = local_names(node) | {"this"}
         try:
             self.visit(node.body)
         finally:
             self._method_local_names = saved_method_scope
             self._local_type_env = saved_env
+            self._fn_local_names = saved_fn_locals
         self._exit_function_scope()
 
     def visit_VarDecl(self, node: ast.VarDecl) -> None:
@@ -459,6 +465,7 @@ class _Walker:
         # methods see `this` only. File-scope visibility is for free
         # functions only.
         # See planning/open-questions/function-taxonomy-and-closure.md.
+        self._check_unknown_variable(node)
         if self._method_local_names is None:
             return
         if node.name in self._method_local_names:
@@ -480,6 +487,96 @@ class _Walker:
                     "namespace."
                 ),
             )
+
+    def visit_MemberAccess(self, node: ast.MemberAccess) -> None:
+        # SUT0205 suppression: a bare-identifier RECEIVER is a namespace
+        # or object access (`Math.PI`, `Promise.resolve(x)`, `s.item`) —
+        # receiver typos surface as unknown-member behaviour, not as an
+        # unknown VARIABLE, and namespace anchors (Promise, Math) are
+        # legitimately undeclared. (`Math` is 2 edits from `main`, so
+        # without this the did-you-mean mis-fires.) SUT0144 still sees
+        # the identifier via the normal visit below.
+        if isinstance(node.obj, ast.Identifier):
+            suppressed = getattr(self, "_sut0205_suppressed_ids", None)
+            if suppressed is None:
+                suppressed = self._sut0205_suppressed_ids = set()
+            suppressed.add(id(node.obj))
+        self.visit(node.obj)
+
+    def visit_LoopFunctionDecl(self, node: ast.LoopFunctionDecl) -> None:
+        # Loop-function bodies reference their state params plus the
+        # contextual `iterator` / `element`; scope them for SUT0205 the
+        # same way function bodies are.
+        saved_fn_locals = getattr(self, "_fn_local_names", None)
+        self._fn_local_names = (
+            {p.name for p in node.state_params} | {"iterator", "element"})
+        try:
+            self.visit(node.condition)
+            self.visit(node.body)
+        finally:
+            self._fn_local_names = saved_fn_locals
+
+    #: Contextual keywords that lex as identifiers but are bound by the
+    #: language, not by a declaration.
+    _CONTEXTUAL_IDENT_KEYWORDS = frozenset({
+        "iterator",   # current tick inside loop-function bodies
+        "element",    # current element inside foreach_loop bodies
+        "this",       # method receiver
+        "_",          # discard convention
+    })
+
+    def _check_unknown_variable(self, node: ast.Identifier) -> None:
+        """SUT0205 (round-18 audit): a bare identifier EXPRESSION that
+        resolves to nothing. Before this, `return totl + 1;` (typo of a
+        local `total`) validated CLEAN and died at runtime as a raw
+        Python NameError — variables were the one name class without a
+        diagnostic (functions SUT0201, types SUT0200, arity SUT0202).
+        Warning, not error (source is still valid v0.1 Sutra); callee
+        positions are owned by SUT0201/0204 and suppressed here."""
+        if self._symbols is None:
+            return
+        # Only inside a function/method body whose local set we track;
+        # loop-function bodies and top-level initializers are out of
+        # scope for v1 (conservative — never a false positive there).
+        fn_locals = getattr(self, "_fn_local_names", None)
+        if fn_locals is None:
+            return
+        if id(node) in getattr(self, "_sut0205_suppressed_ids", ()):
+            return
+        name = node.name
+        if (name in fn_locals
+                or name in self._file_scope_names
+                or name in self._CONTEXTUAL_IDENT_KEYWORDS
+                or name in self._symbols.classes
+                or name in self._symbols.type_params
+                or self._symbols.is_known_function(name)):
+            return
+        from .symbol_table import python_builtin_names, variable_typo_suggestion
+        if name in python_builtin_names():
+            # A bare (non-called) Python-builtin reference — rare; the
+            # called form is SUT0204's. Stay silent to hold the
+            # zero-false-positive bar.
+            return
+        # NEAR-MISS ONLY, mirroring SUT0201. The corpus is explicit that
+        # undeclared free identifiers are LEGITIMATE Sutra ("the
+        # `behaviors` value is whatever the runtime binds" —
+        # 23_subscript_access.su), so a plain unresolved→warn rule is
+        # wrong by design, not just noisy. Only the typo signal is safe:
+        # a name within 2 edits of a DECLARED local/file-scope name.
+        suggestion = variable_typo_suggestion(
+            name, fn_locals | self._file_scope_names)
+        if suggestion is None:
+            return
+        self.diagnostics.warning(
+            f"unknown variable `{name}` — did you mean `{suggestion}`?",
+            node.span,
+            code="SUT0205",
+            hint=f"`{name}` is not declared in this function or at "
+                 f"file scope — the closest declared name is "
+                 f"`{suggestion}`. An undeclared name reaches the "
+                 "generated code as a bare Python name and fails at "
+                 "runtime",
+        )
 
     # ---- statements ------------------------------------------------
 
@@ -635,6 +732,14 @@ class _Walker:
                         )
         for t in node.type_args:
             self._record_type_usage(t)
+        # SUT0205 suppression: the callee position is owned by the
+        # unknown-FUNCTION diagnostics (SUT0201/0204) — a bare-identifier
+        # callee must not double-report as an unknown VARIABLE.
+        if isinstance(node.callee, ast.Identifier):
+            suppressed = getattr(self, "_sut0205_suppressed_ids", None)
+            if suppressed is None:
+                suppressed = self._sut0205_suppressed_ids = set()
+            suppressed.add(id(node.callee))
         self.visit(node.callee)
         for a in node.args:
             self.visit(a)
