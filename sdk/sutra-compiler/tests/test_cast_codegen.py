@@ -143,13 +143,12 @@ class TestRejectedCasts(unittest.TestCase):
             _compile(src)
         self.assertIn(needle, str(cm.exception))
 
-    def test_fractional_number_to_string_rejected(self):
-        # int → string lowers via int_to_string (see
-        # test_int_to_string.py); a fractional `number` still rejects —
-        # rendering 0.5 as "0" or "1" would silently lie.
-        self._reject(
-            "function string main(){ string s = (string) 0.5; return s; }",
-            "make_string")
+    def test_fractional_number_to_string_renders_decimal(self):
+        # (string) on a fractional number renders via num_to_string
+        # since 2026-07-08 (decimal contract in test_num_to_string.py).
+        ns = _compile(
+            "function string main(){ string s = (string) 0.5; return s; }")
+        self.assertEqual(ns["_VSA"].string_to_python(ns["main"]()), "0.5")
 
     def test_string_to_vector_rejected(self):
         self._reject(

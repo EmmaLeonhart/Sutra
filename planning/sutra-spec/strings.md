@@ -231,6 +231,30 @@ Declared as `static intrinsic method String int_to_string(int n)` on the
 `String` stdlib class; the runtime method lives on the torch backend only
 (`supports_string_runtime`).
 
+## Decimal formatting — `num_to_string` (2026-07-08)
+
+The fractional companion to `int_to_string` (Emma re-flagged the interpolation tail
+2026-07-08). Contract: render a number as the shortest decimal with at most **6 fractional
+digits** (round-half-away at the 6th), trailing fractional zeros trimmed, integral values
+rendering with no decimal point (`3.0` → "3" — documented divergence from Python's str).
+Exactness rides the dtype mantissa: ~7 significant digits TOTAL at float32, integer and
+fraction sharing the budget.
+
+Mechanism — pure composition of shipped machinery:
+- split `a = |x|` into `ip = floor(a)` and `f6 = round((a − ip)·10⁶)`, with an exact-indicator
+  carry gate for `f6 = 10⁶` (→ ip+1, f6=0);
+- **sign**: a gated codepoint-45 scatter at position 0 — `string_concat` reads lengths from the
+  codepoint block, so a zeroed sign vector concatenates as the empty string;
+- **integer part**: `int_to_string(ip)` unchanged;
+- **fraction**: fixed-width 6-digit extraction of f6 (same mod-free two-floor identity,
+  KEEPING leading zeros — 3.05 → "05…"), right-trimmed by the trailing-zero mask
+  (max position with a nonzero digit — the string_length trick on reversed order), packed
+  behind a `.` codepoint, and gated to empty when f6 = 0;
+- three `string_concat`s join sign + integer + fraction.
+
+Wired into: interpolation (`number`-family interpolants) and the `(string)` cast wall.
+`int_to_string` stays the integer-exact primitive; `num_to_string` is the display formatter.
+
 ## What's deferred
 
 - **Concatenation** (`String.concat(a, b)` or `a + b`). Need

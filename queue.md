@@ -38,21 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### InterpolatedString codegen — remaining tail (Emma re-flagged 2026-07-08)
-
-The core SHIPPED 2026-07-07 and is live on PyPI since v0.9.3: `$"..."` desugars to a
-substrate make_string/string_concat chain; string-typed interpolants pass through; int-typed
-interpolants format via int_to_string (v0.9.4 carries the full set; verified fresh-venv).
-What remains UNBUILT in this area: **fractional-number interpolants** — `$"pi={x}"` with a
-`number`-typed x still rejects at codegen (deliberate honesty wall: rendering 3.14 needs a
-decimal-expansion formatter that does not exist; int_to_string is integer-shaped). BUILD when
-taken: a substrate decimal formatter (digits after the point via the same mod-free two-floor
-extraction on the scaled fraction, fixed precision + documented rounding), wire into the
-interpolation + (string) cast walls. Design note under strings.md first, per the
-formatter-precedent.
-
-
-
 ### Loop calls as expressions (todo.md § Make loops idiomatic — preconditions now met)
 
 todo.md names the cleanup direction ("loop calls return state values the caller assigns,

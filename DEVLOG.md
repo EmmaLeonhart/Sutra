@@ -1,3 +1,19 @@
+## 2026-07-08: num_to_string SHIPPED — fractional-number interpolation + (string) casts complete the formatter (Emma's re-flag closed same session)
+
+Emma re-flagged the InterpolatedString area; the shipped core was already live on PyPI, and
+the genuinely-unbuilt tail — fractional-number interpolants — is now BUILT: `num_to_string`
+per strings.md § Decimal formatting (shortest decimal, ≤6 fractional digits round-half-away,
+trailing zeros trimmed, integral renders with no point — documented divergence from Python
+str). Pure composition of shipped machinery: gated sign scatter + int_to_string(ip) + a
+fixed-width right-trimmed fraction String via the same two-floor digit extraction, three
+string_concats. Wired into interpolation (number-family interpolants) and the (string) cast
+wall; the two old rejection tests flipped to positive tests of the new behaviour. MEASURED:
+12-case decimal contract table (3.14, ±0.5, 3.0→3, 0→0, 3.05 leading-zero fraction, 0.000125,
+12.345678, 1.9999995 carry→2, 42, −7.25) + 3 surface wirings; focused regression
+(num/interp/cast/int_to_string/concat/corpus) 51 passed + 141 subtests. ALSO queued from
+todo.md this session: loop-calls-as-expressions (§ Make loops idiomatic — preconditions met,
+staged decomposition in queue.md; parser exploration begun, no code landed — clean to resume).
+
 ## 2026-07-08: round-27 composition audit — CLEAN (dict + foreach + user functions + multi-interpolant strings)
 
 Two composition programs driven end-to-end, both correct first try: (1) `dict<int,int>` writes

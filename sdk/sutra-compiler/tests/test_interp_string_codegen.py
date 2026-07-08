@@ -69,12 +69,12 @@ class TestNonStringInterpolantsReject(unittest.TestCase):
             _compile(src)
         self.assertIn(needle, str(cm.exception))
 
-    def test_fractional_number_interpolant_rejected(self):
-        # `number` (possibly fractional) still rejects — int-typed
-        # interpolants lower via int_to_string (test_int_to_string.py).
-        self._reject(
-            'function string main(){ number n = 5; return $"n={n}"; }',
-            "declare it `int`")
+    def test_number_interpolant_renders_decimal(self):
+        # number interpolants render via num_to_string since 2026-07-08
+        # (decimal contract in test_num_to_string.py).
+        self.assertEqual(_run_text(
+            'function string main(){ number n = make_real(2.5); '
+            'return $"n={n}"; }'), "n=2.5")
 
     def test_unknown_type_interpolant_rejected(self):
         self._reject(
