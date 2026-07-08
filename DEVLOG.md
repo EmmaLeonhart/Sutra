@@ -1,3 +1,13 @@
+## 2026-07-08: CI red root-caused — host-readout baseline lowered 18 → 17 (the anti-drift gate doing its job)
+
+Compiler-pytest went red on the num_eq push: `test_baseline_is_tight` — the runtime's true
+`.item()` count DROPPED to 17 when round-19 retired the dead is_char alias (it carried a
+flag-read), and the tightness half of the no-host-readout gate demands the baseline follow the
+count DOWN in the same commit (so the gate can never silently stop shrinking). Missed because
+the post-retirement local batches didn't include test_no_host_readout. Baseline lowered to 17
+with the provenance comment; suite 5/5. This is the gate working exactly as designed —
+progress toward zero readouts is now pinned at 17.
+
 ## 2026-07-08: le/ge = or(strict, ==) SHIPPED (Emma's decision) — `i <= n` loop guards correct at the boundary
 
 The second of Emma's batched decisions, built on the first: stdlib logic.su le/ge are now

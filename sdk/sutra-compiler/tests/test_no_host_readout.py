@@ -32,7 +32,9 @@ import pytest
 #   - _js_str_cmp — JS-interop carve-out (host string comparison).
 # GOAL: 0 for genuine introspection; the above are sanctioned I/O/JS/control
 # boundaries. Only ever lower this.
-BASELINE_ITEM_READOUTS = 18
+# 18 -> 17 on 2026-07-08: retiring the dead is_char alias removed its
+# .item() flag-read (round-19). Progress toward 0.
+BASELINE_ITEM_READOUTS = 17
 
 
 def _generated_runtime_source() -> str:
