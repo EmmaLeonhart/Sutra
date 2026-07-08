@@ -1,3 +1,24 @@
+## 2026-07-07: fuzzy_dispatch RESOLVED — not a backend bug: unsharpened softmax + a weakened smoke gate. Example fixed (4/4 both backends, gaps measured); harness now on the canonical torch backend
+
+The "numpy↔torch divergence" dissolved under measurement. Sims are IDENTICAL on both backends
+(winner 1.0 vs ~0.61–0.70); the decode was wrong BY CONSTRUCTION: at softmax T=1 the winning
+record carries only ~0.32 weight while the action `start` appears in TWO records (music+timer,
+combined ~0.47) and out-votes the true action in the superposition — so weather/cancel decode
+to `start:*` deterministically, and the two backends' float paths merely tipped different
+knife-edge cases (decode gaps 0.01–0.06). The uglier half: `_smoke_test.py` printed per-case
+FAILs for fuzzy_dispatch and STILL passed — a previous session had weakened the gate to
+`correct >= 2` behind a "the substrate's prototype separation is the limiting factor" comment
+that measurement disproves. That is the exact never-weaken-a-test rail this loop runs under;
+named plainly here. SHIPPED: (1) `fuzzy_dispatch.su` sharpens its scores (`10 * similarity`,
+the spec's explicit select temperature — operations.md § Trainable surfaces) with a comment
+deriving WHY: winner weight ~0.9, MEASURED decode gaps action 0.20–0.30 / target 0.19–0.22 on
+BOTH backends, 4/4 dispatches each; (2) smoke gate restored to `correct == total` with the
+honest rationale; (3) `_su_harness.py` flipped to the canonical torch backend (users' `sutrac
+--run` path — the numpy-guarding hole is closed); (4) `strings_and_formatting.su` is smoke
+entry 11. FULL smoke PASS on torch, fuzzy_dispatch 4/4. Finding doc updated with the
+resolution. Paper durability: paper.md cites fuzzy_dispatch.su only as a table row
+("dispatch among handlers") — behaviour now matches the description better than before.
+
 ## 2026-07-07: tutorial 06 (Strings & formatting) shipped — and it exposed that fuzzy_dispatch.su is WRONG for pip users (pytorch), masked by a numpy-backend smoke harness
 
 Round-17 item 3: `docs/tutorials/06-strings-and-formatting.md` + runnable

@@ -38,24 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### fuzzy_dispatch.su is WRONG on the pytorch backend (user-facing) — investigate the numpy↔torch divergence
-
-`sutrac --run examples/fuzzy_dispatch.su` (pytorch, what pip users execute) returns
-`start:alarm` for 3 of 4 intents (only timer correct); the numpy backend gets 4/4. Verified
-identical on pre-2026-07-07 `656e888f` — longstanding, NOT today's work. Finding:
-`planning/findings/2026-07-07-fuzzy-dispatch-wrong-on-pytorch-smoke-guards-numpy.md`.
-Investigate: decode the record bindings/similarities on both backends, find the op that ranks
-differently, fix the torch runtime (or the example, if numpy's behaviour was the accident);
-ship with a measured gap table (CLAUDE.md § signal-separation).
-
-### Switch `examples/_su_harness.py` to the canonical pytorch backend (AFTER the fuzzy_dispatch fix)
-
-The examples harness still compiles via the deprecated numpy backend, so the smoke test guards
-a backend users never run (same finding doc). Once fuzzy_dispatch is green on torch: flip the
-import to `codegen_pytorch.translate_module`, re-run the FULL smoke, and add
-`examples/strings_and_formatting.su` (tutorial 06's program — needs the String runtime) as a
-smoke entry with expected output `hello, sutra! / hello has 5 letters`.
-
 ### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
 
 Real-program-reach audit: `2 <= 2` and `2 >= 2` evaluate to the truth-axis NEUTRAL (0), not true; the
