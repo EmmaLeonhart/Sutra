@@ -38,6 +38,29 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Usability audit round 17 (2026-07-07, real-program reach on the new string surface) — findings, atomised
+
+Probes after the cast/interp/formatter shipping: `%` works (7%3→1), interp compositions work
+(`$"len={string_length(s)}"` via int local → works), char_at→interp works. Two REAL bugs found:
+
+1. **`+` on `string`-typed (lowercase primitive) values does silent element-wise vector ADD** —
+   `string a = "ab"; string b = "cd"; a + b` returns 2 garbage codepoints ('a'+'c' etc.), not
+   "abcd". The String CLASS `operator +` only dispatches for class-typed (`String`) operands;
+   the `string` primitive never reaches it. FIX: in the BinaryOp `+` lowering (codegen_base
+   ~3369), before the complex/element-wise paths: when BOTH operands are provably text
+   (literal / text-typed identifier / text-returning call / nested text `+`), emit
+   `_VSA.string_concat(l, r)` with literals translated `dest_type="string"`. Gate on
+   `supports_string_runtime`. Tests: lowercase vars, literals, chained `"a"+"b"+"c"`, mixed
+   text+number must NOT dispatch (stays element-wise/scalar), uppercase String unchanged.
+2. **`"ab" + "cd"` (two literals) CRASHES at runtime** — host Python strs reach string_concat
+   (`'str' object has no attribute 'index_select'`). Same fix as (1): the both-text dispatch
+   wraps literals via make_string. (Listed separately because it is a crash, not just wrong
+   values — if (1) lands correctly this reproduces as fixed.)
+3. **Tutorials never show the new string surface** — a newcomer walking 01–05 never sees
+   `$"..."` interpolation, `int_to_string`, `(Type)` casts, or `+` concat. Add a short
+   "Strings & formatting" tutorial (or extend 01) AFTER fix (1) lands, showing: literal →
+   interp with an int local → concat. Keep website discipline (no repo-internal refs).
+
 ### `<=` / `>=` return NEUTRAL at exact ties — NEEDS-DECISION (Emma)
 
 Real-program-reach audit: `2 <= 2` and `2 >= 2` evaluate to the truth-axis NEUTRAL (0), not true; the
