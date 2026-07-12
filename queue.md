@@ -56,12 +56,15 @@ path first, then vector-sized slots for the by-reference form. Staged:
    `symbol_table.local_names` collects the bound names for SUT0205. Tests (`TestMultiStateDestructure`)
    + corpus `valid/loop_destructure.su`; single-value-form-on-multi-state diagnostic now steers
    to `(a, b) = loop ...`. docs/loops.md + capabilities.md + control-flow.md updated.
-3. **Rung 3 — vector-sized slots for the by-reference statement form.** The slot-plane
-   redesign so `slot String acc; loop build(N, acc);` works by reference (slot planes sized d
-   instead of 1). Write a design/open-question doc FIRST (substrate-purity implications: the
-   slot state can't pack a full d-dim vector into 2 synthetic axes of the same d-dim vector —
-   needs a different representation). Then retire the SUT0206 crush + convert `do_while.su`.
-   Biggest change; do after rungs 1-2 land.
+3. **Rung 3 — vector state for the by-reference statement form. DESIGN DOC DONE; build gated on
+   Emma's A/B/C call (2026-07-12).** Doc: `planning/open-questions/vector-sized-loop-slots.md`.
+   Confirmed the constraint (a slot owns 2 synthetic axes of the same d-dim state vector — a
+   d-dim value can't pack in). Three options: **C** don't build it — SUT0206 warning→error,
+   steer vector state to the shipped expression/destructure forms, convert `do_while.su` (small,
+   recommended); **A** parallel vector-slot store (medium); **B** unify all slots to d-dim
+   (large, re-verifies the paper-cited scalar path). Rungs 1-2 already give a complete
+   value-returning path for vector state, which is what makes C viable — it reverses the letter
+   of Emma's "Both" pick, so posed back to her via AskUserQuestion. DO NOT build until she picks.
 
 
 
