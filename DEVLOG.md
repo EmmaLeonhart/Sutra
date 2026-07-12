@@ -1,3 +1,21 @@
+## 2026-07-12: error-message audit slice — lock in the loop-expression diagnostic branches
+
+Readability/usability audit, "error messages: are diagnostics actionable?" surface. The Stage-1
+loop-expression rejection branches shipped with only the multi-state case tested; the other three
+were untested error paths. RAN each live and confirmed all four produce SUT-style, span-carrying,
+actionable messages — no raw Python traceback:
+- too few state args → "loop `addNumber` takes 1 state argument, got 0." (2:30)
+- too many state args → "…got 2." (2:30)
+- undeclared loop → "loop function `nope` is not declared. Loop functions must be declared with one
+  of do_while/while_loop/iterative_loop/foreach_loop before being invoked with `loop NAME(...)`." (1:30)
+- non-static class loop → "loop `Counter.step` is a non-static class loop; its expression form is not
+  supported yet. Use the by-reference statement form: `loop Counter.step(instance, ...);`." (10:13)
+Nothing to fix — the messages are already good. Added `TestExpressionFormDiagnostics` (4 tests) to
+`tests/test_loop_call_expr.py` to lock the branches in against silent regression. Suite 17 passed
+(was 13). Also swept all 40 example programs this cycle: validate 0 errors / 0 warnings (real-program
+reach clean); docs loop-idiom framing consistent with shipped Stage 1; `docs/host-bridge.md` confirmed
+already-corrected (accurate four-point I/O model, no stale "no I/O" claim).
+
 ## 2026-07-12: corpus coverage for loop-calls-as-expressions (readability/usability audit slice)
 
 The pinned readability/usability audit's job when the concrete queue items are Emma-gated:
