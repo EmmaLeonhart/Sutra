@@ -5,7 +5,13 @@ runtime with an opaque index_select error: the slot plane stores one
 real-axis scalar per slot, crushing String/vector/complex state on the
 first store (measured on the corpus's own do_while.su too). Warning,
 not error — the corpus documents `slot vector` loop state as intended
-surface, and the vector-loop-state design question is queued for Emma.
+surface, and vector-sized slots for the by-reference form are a later
+stage.
+
+Since 2026-07-12 the hint steers to the loop EXPRESSION form
+(`TYPE x = loop NAME(cond, initial);`), which bypasses the slot plane and
+carries vector/String state correctly (finding 2026-07-12); `recurring`
+remains the alternative for non-halting loops.
 """
 from __future__ import annotations
 
@@ -28,6 +34,9 @@ class TestFires(unittest.TestCase):
         d = _sut0206(src)
         self.assertEqual(len(d), 1)
         self.assertIn("acc", str(d[0]))
+        # Steers to the working expression-form path (primary) and keeps
+        # `recurring` as the non-halting-loop alternative.
+        self.assertIn("EXPRESSION form", str(d[0]))
         self.assertIn("recurring", str(d[0]))
 
     def test_vector_loop_state(self):

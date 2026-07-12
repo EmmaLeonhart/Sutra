@@ -132,6 +132,17 @@ return loop addNumber(x0 < 11, x0);    // return the loop's result directly
   no `slot` declaration and no by-reference variable are needed.
 - The value is the same final state the by-reference form would write back; only
   the plumbing differs.
+- **It carries vector and `String` state.** Because the expression form threads state
+  straight through the loop (never through the scalar slot plane the by-reference form
+  uses), a `String` or `vector` accumulator survives tick-to-tick:
+
+  ```sutra
+  iterative_loop build(3, String acc) { pass string_concat(acc, make_string("x")); }
+  function string main() { return loop build(3, make_string("")); }   // "xxx"
+  ```
+
+  The by-reference statement form crushes such state to a scalar (diagnostic SUT0206) —
+  use the expression form for `String`/`vector` loop state.
 - Multi-state loops keep the by-reference statement form for now — a call to a
   multi-state loop in expression position reports a diagnostic pointing you to it.
 

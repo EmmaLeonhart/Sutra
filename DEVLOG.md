@@ -1,3 +1,29 @@
+## 2026-07-12: vector-valued loop state — rung 1 (expression form IS the vector path); Emma directed "Both, expression-first"
+
+Emma un-gated the vector-loop-state design question. Before building I measured the shipped loop
+EXPRESSION form on the exact workload the by-reference form crushes (finding 2026-07-08) — and it
+ALREADY WORKS: `return loop build(3, make_string(""))` decodes to "xxx", the FizzBuzz-shape
+accumulator to "n n n n n " (ground-truth via `string_to_python`, not "it ran"). Reason: the
+expression form lowers to `_loop_NAME(state)[0]` — state threads as a plain local through the
+driver, never touching the scalar slot plane that does the crush (`slot_store`→`_re`). Finding:
+`planning/findings/2026-07-12-expression-form-already-carries-vector-loop-state.md`.
+
+Shown that, Emma chose **Both, expression-first** (via AskUserQuestion): ship the expression-form
+path now, vector-sized slots for the by-reference form later. Staged plan queued (rungs 1-3).
+
+**Rung 1 shipped:** (a) SUT0206 hint now steers vector/String `loop` state to the expression form
+(`TYPE x = loop NAME(cond, initial);`), keeping `recurring` as the non-halting alternative — the
+warning previously pointed only at `recurring`; (b) end-to-end test proving String state carries
+through the expression form, decoded == "xxx" (`test_loop_call_expr.py`); (c) strengthened
+`test_slot_state_diagnostic.py` to assert the expression-form steer; (d) docs/loops.md expression
+-form section gains the vector/String-state subsection with the runnable "xxx" example. Left the
+known-broken by-reference `do_while.su` for rung 3 (not paper-cited; a warning today, not an error).
+MEASURED: test_slot_state_diagnostic + test_loop_call_expr + corpus = 24 passed / 91 subtests.
+
+Rung 2 (next): multi-state tuple-return `(max,count) = loop findMax(...)` — needs tuple-destructuring
+assignment LHS (new parser surface) + lift the codegen single-state restriction for that target.
+Rung 3 (later): vector-sized slots for the by-reference form (design doc first — substrate-purity).
+
 ## 2026-07-12: error-message audit slice — lock in the loop-expression diagnostic branches
 
 Readability/usability audit, "error messages: are diagnostics actionable?" surface. The Stage-1

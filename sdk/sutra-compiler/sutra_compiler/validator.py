@@ -496,29 +496,38 @@ class _Walker:
     })
 
     def visit_LoopCallStmt(self, node) -> None:
-        # SUT0206 (round-26 finding): `loop NAME(cond, state...)` threads
-        # state through the SLOT plane, which stores ONE real-axis scalar
-        # per slot. A String/vector/complex state variable is silently
-        # crushed to that scalar on the first store and the program dies
-        # later with an opaque tensor-shape error (measured: the corpus's
-        # own do_while.su). Until vector-valued loop state has a design
-        # (planning/findings/2026-07-08-string-loop-state-crushed-by-
-        # scalar-slot-plane.md), warn with the mechanism split.
+        # SUT0206 (round-26 finding): the by-reference `loop NAME(cond,
+        # state...);` STATEMENT form threads state through the SLOT plane,
+        # which stores ONE real-axis scalar per slot. A String/vector/
+        # complex state variable is silently crushed to that scalar on the
+        # first store and the program dies later with an opaque tensor-
+        # shape error (measured: the corpus's own do_while.su). The fix now
+        # has a working path: the loop EXPRESSION form
+        # (`TYPE x = loop NAME(cond, initial);`) bypasses the slot plane
+        # entirely — state threads as a plain local through the driver — so
+        # it carries vector/String state correctly (measured 2026-07-12,
+        # planning/findings/2026-07-12-expression-form-already-carries-
+        # vector-loop-state.md). Vector-sized slots for the by-reference
+        # form are a later stage. Steer to the expression form.
         for name in node.state_arg_names:
             t = self._local_type_env.get(name)
             if t in self._MULTI_AXIS_SLOT_TYPES:
                 self.diagnostics.warning(
-                    f"loop state `{name}` is `{t}`-typed, but loop state "
-                    "is carried by the slot plane, which stores one "
-                    "SCALAR per slot — the value will be crushed to its "
-                    "real-axis reading and the program will fail at "
-                    "runtime with a tensor-shape error",
+                    f"loop state `{name}` is `{t}`-typed, but the "
+                    "by-reference `loop` statement form carries state on "
+                    "the slot plane, which stores one SCALAR per slot — "
+                    "the value will be crushed to its real-axis reading "
+                    "and the program will fail at runtime with a "
+                    "tensor-shape error",
                     node.span,
                     code="SUT0206",
-                    hint="scalar state (int/number) works through `slot` "
-                         "+ `loop`; vector-valued recurrent state needs "
-                         "a `recurring` declaration inside a non-halting "
-                         "loop instead (see loops.md / non-halting-loop)",
+                    hint="use the loop EXPRESSION form, which carries "
+                         "vector/String state — e.g. "
+                         f"`{t} {name} = loop NAME(cond, initial);` — or a "
+                         "`recurring` declaration inside a non-halting "
+                         "loop. Scalar state (int/number) still works "
+                         "through the by-reference `slot` + `loop` form "
+                         "(see loops.md).",
                 )
         self.visit(node.condition_arg)
 

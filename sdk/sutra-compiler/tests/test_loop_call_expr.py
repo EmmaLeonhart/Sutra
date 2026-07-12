@@ -67,6 +67,20 @@ def _run_main_real(src: str) -> float:
     return float(vsa._re(result))
 
 
+def _run_main_string(src: str) -> str:
+    """Compile, exec, run main(), and DECODE the returned String vector to
+    a Python string via the substrate `string_to_python` boundary — the
+    same decode the CLI terminal uses. Ground-truth comparison, not
+    "it ran"."""
+    py = _compile(src)
+    ns: dict = {}
+    exec(py, ns)
+    main = ns.get("main")
+    assert main is not None, "no `main` in emitted module"
+    vsa = ns["_VSA"]
+    return vsa.string_to_python(main())
+
+
 # Single-state do_while, invoked in expression position (init).
 EXPR_INIT = """
 do_while addNumber(x < 11, int x) {
@@ -202,6 +216,23 @@ function int main() {
 }
 """
         self.assertAlmostEqual(_run_main_real(src), 15.0, places=2)
+
+    def test_vector_string_state_carries_through_expression_form(self):
+        # THE key property (finding 2026-07-12): the expression form
+        # bypasses the scalar slot plane, so String/vector loop state
+        # survives tick-to-tick — the exact workload the by-reference
+        # statement form crushes (SUT0206). Ground-truth decode, not
+        # "it ran": 3 iterations each append "x" → "xxx".
+        src = """
+iterative_loop build(3, String acc) {
+    pass string_concat(acc, make_string("x"));
+}
+
+function string main() {
+    return loop build(3, make_string(""));
+}
+"""
+        self.assertEqual(_run_main_string(src), "xxx")
 
     def test_state_arg_is_an_expression(self):
         # The state arg is a full expression, not a slot-var name — the

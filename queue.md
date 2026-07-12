@@ -38,12 +38,31 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Vector-valued loop state — design question (Emma-shaped, do not build unilaterally)
+### Vector-valued loop state — Emma directed "Both, expression-first" (2026-07-12)
 
-Should `iterative_loop`/`while_loop` state params carry vector state directly (slot planes
-sized d instead of 1)? Intersects loops.md's named cleanup ("return tuples instead of
-by-reference mutation"). Same finding doc. Needs Emma's direction on the loop-state model
-before any build.
+Emma's call after the measurement (finding 2026-07-12-expression-form-already-carries-vector-
+loop-state.md): the loop EXPRESSION form already carries vector/String state correctly (it
+bypasses the scalar slot plane — measured "xxx" / "n n n n n "). So ship the expression-form
+path first, then vector-sized slots for the by-reference form. Staged:
+
+1. **Rung 1 — expression form is the vector-state path. SHIPPED 2026-07-12.** SUT0206 hint
+   steers vector/String `loop` state to the expression form; String-state end-to-end test
+   (decoded "xxx"); docs/loops.md note; finding doc. (Left the known-broken by-reference
+   corpus `do_while.su` for rung 3.)
+2. **Rung 2 — multi-state tuple-return in the expression form.** `(max, count) = loop
+   findMax(arr, 0, 0);`. Needs (a) parser: tuple-destructuring assignment LHS `(a, b) = expr`
+   (a NEW surface — scope it, its own small design); (b) LoopCallExpr already carries the full
+   `state_args` list, so lift the codegen's single-state restriction for the tuple-assign
+   target — the driver returns `(s0, s1, ..., halted)`, so bind `(a, b) = _loop_NAME(...)[:-1]`.
+   Keep the single-state value form working. Tests: 2-state findMax end-to-end + arity checks.
+   Verify the multi-state DIAGNOSTIC (Stage-1 rejection) flips to support ONLY via the
+   tuple-assign LHS — a bare `int x = loop findMax(...)` still errors (needs the tuple LHS).
+3. **Rung 3 — vector-sized slots for the by-reference statement form.** The slot-plane
+   redesign so `slot String acc; loop build(N, acc);` works by reference (slot planes sized d
+   instead of 1). Write a design/open-question doc FIRST (substrate-purity implications: the
+   slot state can't pack a full d-dim vector into 2 synthetic axes of the same d-dim vector —
+   needs a different representation). Then retire the SUT0206 crush + convert `do_while.su`.
+   Biggest change; do after rungs 1-2 land.
 
 
 
