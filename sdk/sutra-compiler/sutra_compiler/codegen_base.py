@@ -2125,6 +2125,75 @@ class BaseCodegen:
         # this loop's completion gates the function's return value.
         self._emit("_program_halt = _program_halt * _loopret_halt")
 
+    def _translate_loop_call_expr(self, expr: "ast.LoopCallExpr") -> str:
+        """Lower `loop NAME(cond, state_expr)` in EXPRESSION position to the
+        loop's FINAL state value.
+
+        Reuses the exact driver function the by-reference statement form
+        emits (`_loop_NAME`), which returns a `(state..., halted)` tuple;
+        the expression value is the single state slot (`[0]`). No slot
+        writeback and no by-reference identifiers — the state arg is an
+        arbitrary expression passed straight in as the init value.
+
+        Stage 1 (2026-07-12): single-state, non-`this`-threading loops
+        only. Multi-state and non-static class loops raise a diagnostic
+        pointing at the by-reference statement form.
+        """
+        decl = self._loop_decls.get(expr.name)
+        if decl is None:
+            raise CodegenNotSupported(
+                expr,
+                f"loop function `{expr.name}` is not declared. Loop "
+                f"functions must be declared with one of `do_while`, "
+                f"`while_loop`, `iterative_loop`, `foreach_loop` before "
+                f"being invoked with `loop NAME(...)`.",
+            )
+        # Non-static class-bodied loops return `this` first and rebind the
+        # caller instance — that has no meaning as a pure value. Defer.
+        if "." in expr.name and not getattr(decl, "is_static", False):
+            raise CodegenNotSupported(
+                expr,
+                f"loop `{expr.name}` is a non-static class loop; its "
+                f"expression form is not supported yet. Use the "
+                f"by-reference statement form: `loop {expr.name}"
+                f"(instance, ...);`.",
+            )
+        n_state = len(decl.state_params)
+        if n_state != 1:
+            raise CodegenNotSupported(
+                expr,
+                f"the loop expression form supports single-state loops "
+                f"only; `{expr.name}` has {n_state} state parameters. Use "
+                f"the by-reference statement form for multi-state loops "
+                f"(`slot` vars + `loop {expr.name}(cond, a, b);`); the "
+                f"multi-state tuple-assign surface is a later stage.",
+            )
+        if len(expr.state_args) != 1:
+            raise CodegenNotSupported(
+                expr,
+                f"loop `{expr.name}` takes 1 state argument, got "
+                f"{len(expr.state_args)}.",
+            )
+        state_src = self._translate_expr(expr.state_args[0])
+        py_loop_name = f"_loop_{expr.name.replace('.', '_')}"
+        if decl.kind == "foreach_loop":
+            # The array (condition_arg) is consumed as the first driver
+            # arg — mirror the statement form's array_from_literal path.
+            if isinstance(expr.condition_arg, ast.ArrayLiteral):
+                elem_srcs = [
+                    self._translate_expr(e)
+                    for e in expr.condition_arg.elements
+                ]
+                arr_src = f"_VSA.array_from_literal({', '.join(elem_srcs)})"
+            else:
+                arr_src = self._translate_expr(expr.condition_arg)
+            return f"{py_loop_name}({arr_src}, {state_src})[0]"
+        # Other kinds: the runtime uses the loop's decl-time condition, so
+        # the cond arg's value is unused. Evaluate it for side-effect
+        # parity with the statement form, then yield the final state.
+        cond_src = self._translate_expr(expr.condition_arg)
+        return f"(({cond_src}), {py_loop_name}({state_src})[0])[-1]"
+
     # -- statements -------------------------------------------------------
 
     def _axon_add_parts(self, stmt):
@@ -3418,6 +3487,8 @@ class BaseCodegen:
             return f"{target_src}[{index_src}]"
         if isinstance(expr, ast.Call):
             return self._translate_call(expr)
+        if isinstance(expr, ast.LoopCallExpr):
+            return self._translate_loop_call_expr(expr)
         if isinstance(expr, ast.BinaryOp):
             left = self._translate_expr(expr.left)
             right = self._translate_expr(expr.right)

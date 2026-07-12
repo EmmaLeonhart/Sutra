@@ -1794,6 +1794,60 @@ class Parser:
             span=SourceSpan(start=start.start, end=body.span.end),
         )
 
+    def _parse_loop_call_expr(self) -> ast.Expr:
+        """Parse a loop call in EXPRESSION position:
+
+            loop NAME(cond, state_expr)          single-state (Stage 1)
+            loop Class.name(cond, state_expr)    class-bodied loop
+
+        evaluating to the loop's final state. Unlike the statement form
+        (_parse_loop's LoopCallStmt branch, where state args are
+        slot-variable identifiers mutated by reference), the state args
+        here are arbitrary expressions and there is no trailing `;` — the
+        construct is a value embedded in a larger expression.
+
+        Multiple state args parse fine; the codegen decides what's
+        supported (Stage 1: single-state) and emits the multi-state
+        diagnostic otherwise.
+        """
+        start = self._current_span()
+        self._advance()  # loop
+        name_tok = self._expect(
+            TokenKind.IDENT,
+            "loop function name after `loop` in expression position",
+        )
+        if name_tok is None:
+            return ast.Identifier(name="<error>", span=start)
+        full_name = name_tok.lexeme
+        if self._match(TokenKind.DOT):
+            method_tok = self._expect(
+                TokenKind.IDENT, "method name after `.` in loop call"
+            )
+            if method_tok is None:
+                return ast.Identifier(name="<error>", span=start)
+            full_name = f"{name_tok.lexeme}.{method_tok.lexeme}"
+        if self._expect(TokenKind.LPAREN, "`(` after loop function name") is None:
+            return ast.Identifier(name="<error>", span=start)
+        condition_arg = self._parse_expr()
+        if condition_arg is None:
+            return ast.Identifier(name="<error>", span=start)
+        state_args: List[ast.Expr] = []
+        while self._match(TokenKind.COMMA):
+            arg = self._parse_expr()
+            if arg is None:
+                return ast.Identifier(name="<error>", span=start)
+            state_args.append(arg)
+        end = self._expect(
+            TokenKind.RPAREN, "`)` to close loop call argument list"
+        )
+        end_span = end.span if end else self._current_span()
+        return ast.LoopCallExpr(
+            name=full_name,
+            condition_arg=condition_arg,
+            state_args=state_args,
+            span=SourceSpan(start=start.start, end=end_span.end),
+        )
+
     def _parse_try(self) -> Optional[ast.TryStmt]:
         start = self._current_span()
         self._advance()  # try
@@ -2467,6 +2521,14 @@ class Parser:
             return ast.ThisExpr(span=tok.span)
         if tok.kind is TokenKind.KW_NEW:
             return self._parse_new_expr()
+        if tok.kind is TokenKind.KW_LOOP:
+            # `loop NAME(cond, state_expr)` in expression position —
+            # evaluates to the loop's final state (the idiomatic form,
+            # spec control-flow.md §"Call site syntax"). Statement-initial
+            # `loop` is dispatched to _parse_loop (the by-reference stmt
+            # form) before we ever reach expression parsing, so there is
+            # no ambiguity here.
+            return self._parse_loop_call_expr()
         if tok.kind is TokenKind.IDENT:
             # Handle special built-in calls syntactically.
             if tok.lexeme in _SPECIAL_CALL_NAMES:

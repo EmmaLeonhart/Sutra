@@ -117,7 +117,26 @@ loop NAME(cond_or_count_or_array, state1, state2, ...);
 - The call site mutates the caller's named variables for each state param. The state vars must be `slot`-declared at the caller.
 - Loop functions have **no outer-scope access** — they're pure functions over their declared parameters only.
 
-The by-reference call shape is acknowledged non-idiomatic; the planned cleanup is to return tuples instead of mutating by reference.
+### Expression form — a loop call that returns its final state
+
+A **single-state** loop can also be called in expression position, where it
+evaluates to the loop's final state instead of mutating a `slot` variable by
+reference:
+
+```sutra
+int x = loop addNumber(x0 < 11, x0);   // x is the final state
+return loop addNumber(x0 < 11, x0);    // return the loop's result directly
+```
+
+- The state argument is an ordinary **expression** here (e.g. `x0`, `4 + 5`) —
+  no `slot` declaration and no by-reference variable are needed.
+- The value is the same final state the by-reference form would write back; only
+  the plumbing differs.
+- Multi-state loops keep the by-reference statement form for now — a call to a
+  multi-state loop in expression position reports a diagnostic pointing you to it.
+
+The by-reference statement form remains valid and is the way to thread multiple
+state variables.
 
 ---
 

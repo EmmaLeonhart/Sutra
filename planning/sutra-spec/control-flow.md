@@ -127,16 +127,36 @@ tick.
   args are mutated to the loop's final state values.
 
 **This by-reference mutation is acknowledged as non-idiomatic.**
-The cleanup direction (todo.md §"Make loops idiomatic") is to
-move to a tuple-return form:
+The cleanup direction (todo.md §"Make loops idiomatic") moves to a
+value-returning form:
 
 ```sutra
 x = loop addNumber(x < 11, x);            // single-state return
-(max, count) = loop findMax(arr, 0, 0);   // multi-state return
+(max, count) = loop findMax(arr, 0, 0);   // multi-state return (later stage)
 ```
 
-Until that cleanup lands, the by-reference form is the canonical
-surface.
+**Stage 1 shipped (2026-07-12): the single-state expression form.** A
+loop call is now legal in expression position and evaluates to the
+loop's final state:
+
+```sutra
+int x = loop addNumber(x0 < 11, x0);   // init position
+return loop addNumber(x0 < 11, x0);    // tail/return position
+```
+
+The state argument in the expression form is an ordinary expression (no
+`slot` declaration, no by-reference variable). It lowers to the exact
+same driver as the statement form (`_loop_NAME`), which returns a
+`(state..., halted)` tuple — the expression value is the single state
+slot. Implementation: `LoopCallExpr` (parser `_parse_loop_call_expr` +
+codegen `_translate_loop_call_expr`); tests in
+`tests/test_loop_call_expr.py`.
+
+The **multi-state** tuple-assign surface (`(max, count) = loop ...`) is a
+later stage — it needs tuple destructuring and its own design. Until it
+lands, a multi-state loop in expression position raises a codegen
+diagnostic pointing at the by-reference statement form, which stays the
+canonical surface for threading multiple state variables.
 
 ### Tail-call return form
 

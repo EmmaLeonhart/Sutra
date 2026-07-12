@@ -1,0 +1,268 @@
+"""Tests for the loop-call EXPRESSION form (2026-07-12, Stage 1).
+
+`loop NAME(cond, state_expr)` in expression position evaluates to the
+loop's FINAL state — the idiomatic surface named in
+planning/sutra-spec/control-flow.md §"Call site syntax" and todo.md
+§"Make loops idiomatic". It reuses the exact driver the by-reference
+statement form emits (`_loop_NAME`), taking the state slot of its
+`(state..., halted)` return tuple.
+
+    int x = loop addNumber(x0 < 11, x0);   // init position
+    return loop addNumber(x0 < 11, x0);    // return position
+
+Stage 1 supports single-state loops only; a multi-state loop in
+expression position raises a codegen diagnostic pointing at the
+by-reference statement form.
+
+Like test_loop_function_decl.py these bypass `translate_module`'s slow
+simplify_egglog post-pass by driving the inliner + Codegen directly.
+
+The expression form's value is a substrate number-vector (value on
+AXIS_REAL), exactly as a plain non-slot `int x = 9 + 2` is — so we read
+the scalar out with `_VSA._re(...)`, not `float(...)` (float only works
+on the 0-d value the slot plane projects to).
+"""
+from __future__ import annotations
+
+import unittest
+
+import pytest
+
+from sutra_compiler import ast_nodes
+from sutra_compiler.codegen_base import CodegenNotSupported
+from sutra_compiler.codegen_pytorch import PyTorchCodegen
+from sutra_compiler.inliner import inline_stdlib_calls
+from sutra_compiler.lexer import Lexer
+from sutra_compiler.parser import Parser
+
+
+def _parse(src: str):
+    lexer = Lexer(src, file="<test>")
+    tokens = lexer.tokenize()
+    parser = Parser(tokens, file="<test>", diagnostics=lexer.diagnostics)
+    module = parser.parse_module()
+    errors = list(lexer.diagnostics.errors)
+    assert not errors, [str(e) for e in errors]
+    return module
+
+
+def _compile(src: str) -> str:
+    module = _parse(src)
+    inline_stdlib_calls(module)
+    cg = PyTorchCodegen()
+    cg._prefetch_strings = []
+    return cg.translate(module)
+
+
+def _run_main_real(src: str) -> float:
+    """Compile, exec, run main(), and read the real-axis scalar off the
+    returned number-vector via the substrate `_re` projection."""
+    py = _compile(src)
+    ns: dict = {}
+    exec(py, ns)
+    main = ns.get("main")
+    assert main is not None, "no `main` in emitted module"
+    result = main()
+    vsa = ns["_VSA"]
+    return float(vsa._re(result))
+
+
+# Single-state do_while, invoked in expression position (init).
+EXPR_INIT = """
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    int x = loop addNumber(9 < 11, 9);
+    return x;
+}
+"""
+
+# Single-state do_while, invoked in return (tail) position.
+EXPR_RETURN = """
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    return loop addNumber(9 < 11, 9);
+}
+"""
+
+
+class TestParser(unittest.TestCase):
+    """`loop NAME(...)` in expression position parses to a LoopCallExpr."""
+
+    def test_init_position_parses_loop_call_expr(self):
+        module = _parse(EXPR_INIT)
+        main_decl = module.items[1]
+        var_decl = main_decl.body.statements[0]
+        self.assertIsInstance(var_decl, ast_nodes.VarDecl)
+        self.assertIsInstance(var_decl.initializer, ast_nodes.LoopCallExpr)
+        call = var_decl.initializer
+        self.assertEqual(call.name, "addNumber")
+        self.assertIsInstance(call.condition_arg, ast_nodes.BinaryOp)
+        self.assertEqual(len(call.state_args), 1)
+        self.assertIsInstance(call.state_args[0], ast_nodes.IntLiteral)
+
+    def test_return_position_parses_loop_call_expr(self):
+        module = _parse(EXPR_RETURN)
+        main_decl = module.items[1]
+        ret = main_decl.body.statements[0]
+        self.assertIsInstance(ret, ast_nodes.ReturnStmt)
+        self.assertIsInstance(ret.value, ast_nodes.LoopCallExpr)
+        self.assertEqual(ret.value.name, "addNumber")
+
+    def test_dotted_name_parses(self):
+        # A class-bodied loop reference `loop Class.name(...)` keeps the
+        # dotted name (codegen decides support; parser just records it).
+        src = """
+function int main() {
+    int x = loop Counter.step(9 < 11, 9);
+    return x;
+}
+"""
+        module = _parse(src)
+        call = module.items[0].body.statements[0].initializer
+        self.assertIsInstance(call, ast_nodes.LoopCallExpr)
+        self.assertEqual(call.name, "Counter.step")
+
+
+class TestCodegenShape(unittest.TestCase):
+    """The call site reuses the driver and takes the state slot `[0]`."""
+
+    def test_callsite_indexes_state_slot(self):
+        py = _compile(EXPR_INIT)
+        # Non-foreach: cond evaluated for side-effect parity, then the
+        # driver's first return (the state) is the expression value.
+        self.assertIn("_loop_addNumber(9)[0]", py)
+        # The driver itself is still emitted exactly once.
+        self.assertIn("def _loop_addNumber(_init_x):", py)
+
+
+class TestEndToEnd(unittest.TestCase):
+    """The expression form computes the same final state the statement
+    form writes back by reference."""
+
+    def test_init_position_converges(self):
+        self.assertAlmostEqual(_run_main_real(EXPR_INIT), 11.0, places=2)
+
+    def test_return_position_converges(self):
+        self.assertAlmostEqual(_run_main_real(EXPR_RETURN), 11.0, places=2)
+
+    def test_while_loop_expression_form(self):
+        src = """
+while_loop addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    return loop addNumber(9 < 11, 9);
+}
+"""
+        self.assertAlmostEqual(_run_main_real(src), 11.0, places=2)
+
+    def test_while_loop_condition_false_at_start(self):
+        # while_loop with cond false at start reverts the body effect, so
+        # the final state equals the initial state.
+        src = """
+while_loop addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    return loop addNumber(15 < 11, 15);
+}
+"""
+        self.assertAlmostEqual(_run_main_real(src), 15.0, places=2)
+
+    def test_iterative_loop_expression_form(self):
+        # iterator is 1-indexed: 1+2+3+4+5 = 15 accumulated from 0.
+        src = """
+iterative_loop sumN(5, int total) {
+    pass total + iterator;
+}
+
+function int main() {
+    return loop sumN(5, 0);
+}
+"""
+        self.assertAlmostEqual(_run_main_real(src), 15.0, places=2)
+
+    def test_foreach_loop_expression_form(self):
+        # foreach over an array literal: sum 1..5 = 15.
+        src = """
+foreach_loop sumArr(arr, int total) {
+    pass total + element;
+}
+
+function int main() {
+    return loop sumArr([1, 2, 3, 4, 5], 0);
+}
+"""
+        self.assertAlmostEqual(_run_main_real(src), 15.0, places=2)
+
+    def test_state_arg_is_an_expression(self):
+        # The state arg is a full expression, not a slot-var name — the
+        # whole point of the expression form. Start from 4 + 5 = 9.
+        src = """
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    return loop addNumber(9 < 11, 4 + 5);
+}
+"""
+        self.assertAlmostEqual(_run_main_real(src), 11.0, places=2)
+
+
+class TestStatementFormUnchanged(unittest.TestCase):
+    """The by-reference statement form is untouched by the new surface."""
+
+    def test_by_reference_adder_still_works(self):
+        src = """
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    slot int x = 9;
+    loop addNumber(x < 11, x);
+    return x;
+}
+"""
+        py = _compile(src)
+        # Statement form still slot-loads init + writes back by reference.
+        self.assertIn("_loop_addNumber(_VSA.slot_load(_slot_state, 0))", py)
+        ns: dict = {}
+        exec(py, ns)
+        self.assertAlmostEqual(float(ns["main"]()), 11.0, places=2)
+
+
+class TestMultiStateDiagnostic(unittest.TestCase):
+    """Stage 1 rejects multi-state loops in expression position with a
+    diagnostic that points at the by-reference statement form."""
+
+    def test_multi_state_loop_expression_form_errors(self):
+        src = """
+while_loop step((n > 0) && (n != 1), int acc, int n) {
+    acc = acc + n;
+    pass acc, n - 1;
+}
+
+function int main() {
+    int r = loop step(3 > 0, 0);
+    return r;
+}
+"""
+        with pytest.raises(CodegenNotSupported) as exc_info:
+            _compile(src)
+        msg = str(exc_info.value)
+        self.assertIn("single-state", msg)
+        self.assertIn("statement form", msg)
+
+
+if __name__ == "__main__":
+    unittest.main()
