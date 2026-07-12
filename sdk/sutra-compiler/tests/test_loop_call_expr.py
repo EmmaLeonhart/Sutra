@@ -264,5 +264,81 @@ function int main() {
         self.assertIn("statement form", msg)
 
 
+class TestExpressionFormDiagnostics(unittest.TestCase):
+    """The remaining Stage-1 rejection branches produce actionable
+    diagnostics (verified live: SUT-style span-carrying messages, no raw
+    Python traceback). These lock in error paths that were otherwise
+    untested — a future refactor that silently broke one would be caught
+    here."""
+
+    ADDER = """
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+"""
+
+    def test_too_few_state_args(self):
+        src = self.ADDER + """
+function int main() {
+    int x = loop addNumber(9 < 11);
+    return x;
+}
+"""
+        with pytest.raises(CodegenNotSupported) as exc:
+            _compile(src)
+        msg = str(exc)
+        self.assertIn("1 state argument", msg)
+        self.assertIn("got 0", msg)
+
+    def test_too_many_state_args(self):
+        src = self.ADDER + """
+function int main() {
+    int x = loop addNumber(9 < 11, 9, 9);
+    return x;
+}
+"""
+        with pytest.raises(CodegenNotSupported) as exc:
+            _compile(src)
+        msg = str(exc)
+        self.assertIn("1 state argument", msg)
+        self.assertIn("got 2", msg)
+
+    def test_undeclared_loop(self):
+        src = """
+function int main() {
+    int x = loop nope(9 < 11, 9);
+    return x;
+}
+"""
+        with pytest.raises(CodegenNotSupported) as exc:
+            _compile(src)
+        msg = str(exc)
+        self.assertIn("not declared", msg)
+        self.assertIn("nope", msg)
+
+    def test_non_static_class_loop(self):
+        # A non-static class loop threads `this` (returned first) and
+        # rebinds the caller instance — no meaning as a pure value, so the
+        # expression form is rejected pointing at the statement form.
+        src = """
+class Counter extends vector {
+    do_while step(x < 5, int x) {
+        pass x + 1;
+    }
+}
+
+function int main() {
+    Counter c = (Counter) zero_vector();
+    int r = loop Counter.step(c, 0);
+    return r;
+}
+"""
+        with pytest.raises(CodegenNotSupported) as exc:
+            _compile(src)
+        msg = str(exc)
+        self.assertIn("non-static class loop", msg)
+        self.assertIn("statement form", msg)
+
+
 if __name__ == "__main__":
     unittest.main()
