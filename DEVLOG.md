@@ -1,3 +1,32 @@
+## 2026-07-12: vector-valued loop state — rung 2 (multi-state tuple-destructure) SHIPPED
+
+`(a, b, ...) = loop NAME(cond, s0, s1, ...);` now binds a multi-state loop's final states to
+newly-declared locals — the multi-state counterpart of the single-state loop expression form.
+`(total, remaining) = loop step((3>0)&&(3!=1), 0, 3); return total + remaining;` → 6 (measured
+via `_re`; total=5, remaining=1).
+
+Implementation:
+- **AST** `LoopDestructureStmt(names, call)` — the RHS is always a `LoopCallExpr` (Sutra has no
+  general tuples, so a parenthesised comma-list on the LHS of `=` is unambiguously this form).
+- **Parser** `_looks_like_tuple_destructure` (lookahead: `( IDENT , IDENT... ) =`, requires a
+  comma so a cast `(Type)` / a parenthesised expr is never misread) + `_parse_loop_destructure`
+  (errors, SUT0104, if the RHS isn't a loop call).
+- **Codegen** `_translate_loop_destructure` — reuses the driver every loop form emits
+  (`_loop_NAME`, returns `(state0..stateK, halted)`); binds `(a, b, _) = _loop_NAME(...)`,
+  dropping the saturated halt like the single-state value form. foreach passes the array first.
+  Registers each bound name's type from the loop's state params.
+- **symbol_table.local_names** collects the destructured names so later references pass SUT0205.
+- **Inliner** rewrites the call in both statement walkers.
+- The single-value-form-on-multi-state diagnostic now steers to `(a, b) = loop NAME(...)`
+  (was "a later stage").
+
+MEASURED: `TestMultiStateDestructure` (parse, both-states-bind a=5/b=1, names referenceable
+a+b=6, arity mismatch, non-loop-RHS parse error) + corpus `valid/loop_destructure.su` (validate
+0/0, runs to 6). Broad regression: loop/parser/codegen/corpus/slot-diagnostic = 210 passed / 91
+subtests. docs/loops.md + capabilities.md + control-flow.md updated. No paper.md.
+
+Remaining: rung 3 — vector-sized slots for the by-reference statement form (design doc first).
+
 ## 2026-07-12: vector-valued loop state — rung 1 (expression form IS the vector path); Emma directed "Both, expression-first"
 
 Emma un-gated the vector-loop-state design question. Before building I measured the shipped loop

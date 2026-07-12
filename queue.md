@@ -49,14 +49,13 @@ path first, then vector-sized slots for the by-reference form. Staged:
    steers vector/String `loop` state to the expression form; String-state end-to-end test
    (decoded "xxx"); docs/loops.md note; finding doc. (Left the known-broken by-reference
    corpus `do_while.su` for rung 3.)
-2. **Rung 2 — multi-state tuple-return in the expression form.** `(max, count) = loop
-   findMax(arr, 0, 0);`. Needs (a) parser: tuple-destructuring assignment LHS `(a, b) = expr`
-   (a NEW surface — scope it, its own small design); (b) LoopCallExpr already carries the full
-   `state_args` list, so lift the codegen's single-state restriction for the tuple-assign
-   target — the driver returns `(s0, s1, ..., halted)`, so bind `(a, b) = _loop_NAME(...)[:-1]`.
-   Keep the single-state value form working. Tests: 2-state findMax end-to-end + arity checks.
-   Verify the multi-state DIAGNOSTIC (Stage-1 rejection) flips to support ONLY via the
-   tuple-assign LHS — a bare `int x = loop findMax(...)` still errors (needs the tuple LHS).
+2. **Rung 2 — multi-state tuple-destructure. SHIPPED 2026-07-12.** `(a, b) = loop
+   step(cond, s0, s1);` binds each final state to a new local. New AST `LoopDestructureStmt`,
+   parser detection (`_looks_like_tuple_destructure` + `_parse_loop_destructure`), codegen
+   (`_translate_loop_destructure` — reuses the driver, binds `(a, b, _) = _loop_NAME(...)`),
+   `symbol_table.local_names` collects the bound names for SUT0205. Tests (`TestMultiStateDestructure`)
+   + corpus `valid/loop_destructure.su`; single-value-form-on-multi-state diagnostic now steers
+   to `(a, b) = loop ...`. docs/loops.md + capabilities.md + control-flow.md updated.
 3. **Rung 3 — vector-sized slots for the by-reference statement form.** The slot-plane
    redesign so `slot String acc; loop build(N, acc);` works by reference (slot planes sized d
    instead of 1). Write a design/open-question doc FIRST (substrate-purity implications: the

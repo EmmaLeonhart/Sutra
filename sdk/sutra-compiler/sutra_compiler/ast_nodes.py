@@ -509,6 +509,22 @@ class LoopCallStmt(Stmt):
     state_arg_names: List[str]
 
 
+@dataclass
+class LoopDestructureStmt(Stmt):
+    """`(a, b, ...) = loop NAME(cond, s0, s1, ...);` — invoke a MULTI-state
+    loop in value position and bind its final state values to newly-declared
+    locals `a, b, ...`.
+
+    This is the multi-state counterpart of the single-state loop expression
+    form (`int x = loop f(...)`). Sutra has no general tuples, so a
+    parenthesised comma-list on the LHS of `=` is ONLY this loop-destructure
+    form — the RHS is always a `LoopCallExpr`. The names are new locals whose
+    types are the loop's state-param types.
+    """
+    names: List[str]
+    call: "LoopCallExpr"
+
+
 # ============================================================
 # Declarations
 # ============================================================

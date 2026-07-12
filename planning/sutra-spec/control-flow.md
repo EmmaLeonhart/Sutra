@@ -152,11 +152,28 @@ slot. Implementation: `LoopCallExpr` (parser `_parse_loop_call_expr` +
 codegen `_translate_loop_call_expr`); tests in
 `tests/test_loop_call_expr.py`.
 
-The **multi-state** tuple-assign surface (`(max, count) = loop ...`) is a
-later stage — it needs tuple destructuring and its own design. Until it
-lands, a multi-state loop in expression position raises a codegen
-diagnostic pointing at the by-reference statement form, which stays the
-canonical surface for threading multiple state variables.
+**Stage 2 shipped (2026-07-12): the multi-state tuple-destructure form.**
+A multi-state loop binds its final states to newly-declared locals:
+
+```sutra
+(max, count) = loop findMax(arr, 0, 0);   // max, count are new locals
+```
+
+Sutra has no general tuples, so a parenthesised comma-list on the LHS of
+`=` is unambiguously this loop-destructure form (a cast is `(Type) expr`
+— no comma; a parenthesised expression holds no top-level comma). It
+lowers to the same driver as the other forms — the driver returns
+`(state0, ..., stateK, halted)`, so the destructure binds
+`(a, b, _) = _loop_NAME(...)`, dropping the saturated halt like the
+single-state value form. The bound names' types are the loop's state-param
+types. Implementation: `LoopDestructureStmt` (parser
+`_parse_loop_destructure` + `_looks_like_tuple_destructure`; codegen
+`_translate_loop_destructure`); tests in `tests/test_loop_call_expr.py`
+(`TestMultiStateDestructure`) + corpus `valid/loop_destructure.su`.
+
+A single-value `int x = loop f(...)` on a multi-state loop raises a
+diagnostic steering to the destructure form. The by-reference statement
+form remains the canonical surface for threading state variables in place.
 
 ### Tail-call return form
 

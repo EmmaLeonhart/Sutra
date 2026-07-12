@@ -292,7 +292,89 @@ function int main() {
             _compile(src)
         msg = str(exc_info.value)
         self.assertIn("single-state", msg)
+        # Steers to BOTH the tuple-destructure form (shipped rung 2) and
+        # the by-reference statement form.
+        self.assertIn("(a, b) = loop", msg)
         self.assertIn("statement form", msg)
+
+
+class TestMultiStateDestructure(unittest.TestCase):
+    """Rung 2: `(a, b, ...) = loop NAME(cond, s0, s1, ...);` binds a
+    multi-state loop's final states to newly-declared locals — the
+    multi-state counterpart of the single-state expression form."""
+
+    STEP = """
+while_loop step((n > 0) && (n != 1), int acc, int n) {
+    acc = acc + n;
+    pass acc, n - 1;
+}
+"""
+
+    def test_parses_to_destructure_stmt(self):
+        src = self.STEP + """
+function int main() {
+    (a, b) = loop step((3 > 0) && (3 != 1), 0, 3);
+    return a;
+}
+"""
+        module = _parse(src)
+        main_decl = module.items[1]
+        stmt = main_decl.body.statements[0]
+        self.assertIsInstance(stmt, ast_nodes.LoopDestructureStmt)
+        self.assertEqual(stmt.names, ["a", "b"])
+        self.assertIsInstance(stmt.call, ast_nodes.LoopCallExpr)
+        self.assertEqual(stmt.call.name, "step")
+
+    def test_binds_both_states(self):
+        # acc accumulates 3 then 2 (n: 3->2->1, halts at n==1); a=5, b=1.
+        base = self.STEP + """
+function int main() {
+    (a, b) = loop step((3 > 0) && (3 != 1), 0, 3);
+    return %s;
+}
+"""
+        self.assertAlmostEqual(_run_main_real(base % "a"), 5.0, places=2)
+        self.assertAlmostEqual(_run_main_real(base % "b"), 1.0, places=2)
+
+    def test_destructured_names_are_referenceable(self):
+        # The bound names are real locals — used in later arithmetic.
+        src = self.STEP + """
+function int main() {
+    (a, b) = loop step((3 > 0) && (3 != 1), 0, 3);
+    return a + b;
+}
+"""
+        self.assertAlmostEqual(_run_main_real(src), 6.0, places=2)
+
+    def test_arity_mismatch_errors(self):
+        src = self.STEP + """
+function int main() {
+    (a, b, c) = loop step((3 > 0) && (3 != 1), 0, 3);
+    return a;
+}
+"""
+        with pytest.raises(CodegenNotSupported) as exc:
+            _compile(src)
+        msg = str(exc)
+        self.assertIn("2 state parameter", msg)
+        self.assertIn("binds 3", msg)
+
+    def test_non_loop_rhs_is_a_parse_error(self):
+        # Sutra has no general tuples — a `(a, b) =` target is only valid
+        # for a loop call.
+        src = """
+function int main() {
+    (a, b) = 5 + 3;
+    return a;
+}
+"""
+        lexer = Lexer(src, file="<test>")
+        parser = Parser(lexer.tokenize(), file="<test>",
+                        diagnostics=lexer.diagnostics)
+        parser.parse_module()
+        errors = [d.format() for d in lexer.diagnostics.errors]
+        self.assertTrue(errors, "expected a parse error for non-loop RHS")
+        self.assertTrue(any("loop call" in e for e in errors), errors)
 
 
 class TestExpressionFormDiagnostics(unittest.TestCase):
