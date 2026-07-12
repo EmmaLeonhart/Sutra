@@ -285,6 +285,13 @@ def _rewrite_expr(expr, table):
             for part in expr.parts
         ]
         return expr
+    if isinstance(expr, ast.LoopCallExpr):
+        # The loop function itself is not inlined (it lowers to its own
+        # driver), but the cond + state arg expressions may reference
+        # inlineable calls.
+        expr.condition_arg = _rewrite_expr(expr.condition_arg, table)
+        expr.state_args = [_rewrite_expr(a, table) for a in expr.state_args]
+        return expr
 
     # Leaves: Identifier, IntLiteral, FloatLiteral, StringLiteral,
     # CharLiteral, BoolLiteral, UnknownLiteral, ComplexLiteral,
@@ -715,6 +722,12 @@ def _lower_ops_expr(expr, inlineable):
         expr.parts = [
             part if isinstance(part, str) else _lower_ops_expr(part, inlineable)
             for part in expr.parts
+        ]
+        return expr
+    if isinstance(expr, ast.LoopCallExpr):
+        expr.condition_arg = _lower_ops_expr(expr.condition_arg, inlineable)
+        expr.state_args = [
+            _lower_ops_expr(a, inlineable) for a in expr.state_args
         ]
         return expr
 

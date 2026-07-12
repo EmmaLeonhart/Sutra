@@ -1,3 +1,34 @@
+## 2026-07-12: loop-calls-as-expressions SHIPPED (Stage 1) — single-state loops idiomatic in expression position
+
+The queued idiomatic-loops item (todo.md § "Make loops idiomatic"; the 07-08 note left it "parser
+exploration begun, no code landed") is now BUILT through all three staged rungs:
+
+1. **Single-state expression form.** `loop NAME(cond, state_expr)` is now legal in expression
+   position and evaluates to the loop's FINAL state — `int x = loop addNumber(x0 < 11, x0);` and
+   `return loop addNumber(x0 < 11, x0);` both work. The state arg is an ordinary EXPRESSION (no
+   `slot`, no by-reference variable). New AST node `LoopCallExpr` (parser `_parse_loop_call_expr`,
+   dispatched from `_parse_primary` on `KW_LOOP` — statement-initial `loop` still routes to the
+   by-reference `_parse_loop`, so no ambiguity). Codegen `_translate_loop_call_expr` REUSES the
+   exact driver the statement form emits (`_loop_NAME`), which returns a `(state..., halted)` tuple;
+   the expression value is the single state slot (`[0]`). Non-foreach kinds evaluate the cond arg
+   for side-effect parity then yield the state; foreach passes the array as the driver's first arg.
+   Inliner (`_rewrite_expr` + `_lower_ops_expr`) recurse into the new node's cond/state exprs;
+   validator picks it up via the generic child-walk.
+2. **Multi-state → clear diagnostic.** A multi-state loop in expression position raises
+   `CodegenNotSupported` pointing at the by-reference statement form (the `(max,count)=loop ...`
+   tuple-assign surface needs tuple destructuring — a later stage, unchanged). Non-static class
+   loops likewise deferred (they thread `this` first — no meaning as a pure value).
+3. **Docs + spec.** `docs/loops.md` call-site section gains an expression-form subsection;
+   `docs/capabilities.md` gains the row; `planning/sutra-spec/control-flow.md` § "Call site syntax"
+   updated from "until that cleanup lands" to "Stage 1 shipped".
+
+MEASURED: new `tests/test_loop_call_expr.py` — 13 tests green (parser: init/return/dotted;
+codegen shape indexes `[0]`; end-to-end do_while/while_loop/iterative/foreach expression forms all
+converge to the same value the statement form writes back — verified via `_VSA._re` since the value
+is a number-vector exactly like any non-slot `int`; state-arg-as-expression `4+5`; statement form
+regression still slot-loads + writes back and returns 11; multi-state diagnostic). Regression:
+existing loop suites 61 passed; parser + corpus + pytorch codegen 65 passed. No paper.md touched.
+
 ## 2026-07-08: num_to_string SHIPPED — fractional-number interpolation + (string) casts complete the formatter (Emma's re-flag closed same session)
 
 Emma re-flagged the InterpolatedString area; the shipped core was already live on PyPI, and

@@ -1267,13 +1267,20 @@ tuple of state values that the caller assigns explicitly, eliminating
 the by-reference surprise:
 
 ```sutra
-x = loop addNumber(x < 11, x);          // single-state return
-(max, count) = loop findMax(arr, 0, 0); // multi-state return
+x = loop addNumber(x < 11, x);          // single-state return  — SHIPPED 2026-07-12
+(max, count) = loop findMax(arr, 0, 0); // multi-state return   — later stage
 ```
 
-Don't touch this until the function-declaration form has shipped and a
-few real programs have exercised it — premature cleanup risks designing
-the wrong thing.
+**Stage 1 shipped 2026-07-12** (`LoopCallExpr`; DEVLOG + control-flow.md
+§"Call site syntax"): the single-state expression form is live —
+`int x = loop f(cond, expr);` / `return loop f(cond, expr);` evaluate to
+the loop's final state. A multi-state loop in expression position raises
+a diagnostic pointing at the by-reference statement form.
+
+**Remaining (later stage): the multi-state tuple-assign surface**
+`(max, count) = loop findMax(arr, 0, 0);`. Needs tuple destructuring on
+the assignment LHS + its own design — do NOT bolt it onto `LoopCallExpr`
+without that. Don't touch until tuple destructuring exists.
 
 ## [This year] Docs / website
 

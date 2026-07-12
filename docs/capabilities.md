@@ -103,7 +103,8 @@ No hex literals yet.
 | `loop (10) { ... }` | bounded count | vision — count is currently a literal; trainable count would discover the right unroll |
 | `loop (10 as i) { ... }` | bounded with index variable | vision — same |
 | `loop (expr) { ... }` | condition-based eigenrotation | vision — the halt threshold is a trainable surface |
-| `loop NAME(cond, args, ...);` | invoke a loop function | n/a |
+| `loop NAME(cond, args, ...);` | invoke a loop function (by-reference statement form) | n/a |
+| `int x = loop NAME(cond, state_expr);` | invoke a single-state loop in expression position; evaluates to its final state | n/a |
 | `try { ... } catch { ... }` | exception barrier | n/a (no learned recovery policy yet) |
 | `return expr;` | return | n/a |
 | `pass v1, v2, ..., replace, ...;` | tail-recursive yield in loop functions; `replace` keeps prior value | n/a |

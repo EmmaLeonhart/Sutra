@@ -46,27 +46,6 @@ Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop se
 
 Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
 
-### Loop calls as expressions (todo.md § Make loops idiomatic — preconditions now met)
-
-todo.md names the cleanup direction ("loop calls return state values the caller assigns,
-eliminating the by-reference surprise") and gates it on the declared-loop form having shipped
-+ real programs exercising it — both true (do_while_adder, the round-26/27 composition
-probes, the corpus). Round-26 measured the pain directly: `return loop build(15, acc);` is a
-parse error. Staged build:
-
-1. **Single-state expression form**: `loop NAME(cond_or_count, state_expr)` legal in
-   expression position, evaluating to the FINAL state — `int x = loop addNumber(x0 < 11, x0);`
-   and `return loop f(...);` both work. State arg in expression form is an EXPRESSION (no
-   slot/by-reference needed). Statement form stays as-is (compat). Parser (LoopCallExpr) +
-   codegen (same unroll, value = final state) + tests (return-position, init-position,
-   adder-by-reference unchanged, corpus green).
-2. **Multi-state expression form → clear diagnostic for v1** ("use the by-reference statement
-   form for multi-state loops") — the tuple-assign surface is a later stage (needs tuple
-   destructuring, its own design).
-3. Docs: loops.md call-site section gains the expression form; capabilities §8 row.
-
-
-
 ### Vector-valued loop state — design question (Emma-shaped, do not build unilaterally)
 
 Should `iterative_loop`/`while_loop` state params carry vector state directly (slot planes

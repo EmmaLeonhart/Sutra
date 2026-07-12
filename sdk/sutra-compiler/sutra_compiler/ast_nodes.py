@@ -157,6 +157,28 @@ class Call(Expr):
 
 
 @dataclass
+class LoopCallExpr(Expr):
+    """`loop name(cond_arg, state_expr, ...)` in EXPRESSION position —
+    invoke a loop function and evaluate to its FINAL state.
+
+    Distinct from `LoopCallStmt` (the by-reference statement form, where
+    state args are slot-variable identifiers mutated in place). Here the
+    state args are arbitrary expressions and the whole construct is a
+    value — `int x = loop addNumber(x0 < 11, x0);` and
+    `return loop f(...);` both work.
+
+    Stage 1 (2026-07-12) supports the SINGLE-state form only; a call to a
+    multi-state loop function raises a codegen diagnostic pointing at the
+    by-reference statement form (multi-state tuple-assign is a later
+    stage — see todo.md §"Make loops idiomatic"). `state_args` still
+    carries the full list so the diagnostic can report the real arity.
+    """
+    name: str
+    condition_arg: Expr
+    state_args: List[Expr]
+
+
+@dataclass
 class NewExpr(Expr):
     """`new ClassName(args)` — auto-constructor for a class with field
     declarations.
