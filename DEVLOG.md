@@ -1,3 +1,22 @@
+## 2026-07-12: daily substrate-honesty audit (manual review) — CLEAN; both 07-11 + 07-12 queue items discharged
+
+Reviewed every commit landed since the last real audit (`1305cb85`, 07-10) against CLAUDE.md
+§ "Subtler substrate breaches — measurement-required". The automated leak-scan already logged
+07-11 (`0357fb35`: 82 .su, 0 leaks, 19 open-questions, 0 drift) and 07-12 (`dac54d45`) clean for
+the bookkeeping/prior commits; the only substantive code commit not yet manually reviewed was this
+session's `0ee465d0` (loop-calls-as-expressions Stage 1). Verdict CLEAN on all three criteria:
+- **(a) .su / runtime_dim:** no `.su` file touched — the change is compiler `.py` (parser/codegen/
+  inliner/ast) + docs + one test file whose embedded loop programs are int-only (no basis_vector/
+  embed), so no codebook and no runtime_dim to right-size. No dim set or altered.
+- **(b) "substrate-pure"/"verified" claims measured, not framed:** the only NEW emitted code is the
+  call-site value `(cond, _loop_NAME(state)[0])[-1]` — grep-confirmed to introduce ZERO host readout
+  (no `.item()`, no host `float(`); the sole `float(_halted)` is the pre-existing sanctioned driver
+  orchestrator boundary, unchanged. The driver itself is reused byte-for-byte from the statement
+  form. The "value is a number-vector, verified via `_VSA._re`" claim was a real measurement (ran it:
+  plain `int x=9+2` and the expr-form loop both return an 868-d vector reading 11.0 on AXIS_REAL).
+- **(c) classifier gap:** ships no classifier/decision function; N/A.
+Nothing amiss → no finding, no fix item. Both audit queue items deleted per their own instruction.
+
 ## 2026-07-12: loop-calls-as-expressions SHIPPED (Stage 1) — single-state loops idiomatic in expression position
 
 The queued idiomatic-loops item (todo.md § "Make loops idiomatic"; the 07-08 note left it "parser
