@@ -1,3 +1,24 @@
+## 2026-07-12: vector-valued loop state — rung 3 design doc (by-reference vector slots); build gated on Emma A/B/C
+
+Rung 3's mandated first step is a design doc (real substrate constraint). Wrote
+`planning/open-questions/vector-sized-loop-slots.md`, grounded in the actual slot machinery:
+`_slot_state` is one `dim`-length vector; each slot owns exactly 2 synthetic axes
+(`base = semantic_dim + SLOT_BASE + 2*s`), storing a 0-d real-axis scalar — so a `dim`-length
+String/vector value literally cannot pack into 2 components of a `dim`-vector. Carrying vector
+state by reference needs a different STORAGE representation, not a bigger `_slot_cell`.
+
+Three options, analyzed for cost / substrate-purity / risk:
+- **C (recommended):** don't build it — SUT0206 warning→error, steer vector state to the shipped
+  expression + destructure forms, convert the known-broken `do_while.su`. Small, low-risk.
+- **A:** parallel vector-slot store beside the scalar plane (medium; two mechanisms to canonicalise).
+- **B:** unify all slots to `dim`-sized (large; re-verifies the paper-cited scalar path — durability).
+
+Rungs 1-2 already deliver a complete, measured value-returning path for vector loop state, which
+is exactly what makes C viable — but C reverses the letter of Emma's "Both" pick (made before
+rungs 1-2 landed), so it's posed back to her via AskUserQuestion, same as the rung-1 measurement
+reshaped that decision. No code built this tick (correctly — the queue mandates the doc first, and
+the build fork is Emma's). No paper.md touched.
+
 ## 2026-07-12: vector-valued loop state — rung 2 (multi-state tuple-destructure) SHIPPED
 
 `(a, b, ...) = loop NAME(cond, s0, s1, ...);` now binds a multi-state loop's final states to
