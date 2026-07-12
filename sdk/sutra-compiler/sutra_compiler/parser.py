@@ -1430,6 +1430,14 @@ class Parser:
         if tok.kind is TokenKind.KW_METHOD:
             return self._parse_method_decl(ast.Modifiers())
 
+        # Tuple-destructure of a multi-state loop call:
+        # `(a, b, ...) = loop NAME(...);`. Sutra has no general tuples, so a
+        # parenthesised comma-list on the LHS of `=` is unambiguously this
+        # form (a cast is `(Type) expr` — no comma; a parenthesised
+        # expression can't hold a top-level comma).
+        if self._looks_like_tuple_destructure():
+            return self._parse_loop_destructure()
+
         # Could be a typed declaration (`vector x = ...;`) or an
         # expression statement. We distinguish by look-ahead:
         # IDENT IDENT is a declaration, IDENT<...> IDENT is a generic
@@ -1438,6 +1446,29 @@ class Parser:
             return self._parse_typed_var_decl()
 
         return self._parse_expr_stmt()
+
+    def _looks_like_tuple_destructure(self) -> bool:
+        """True if the upcoming tokens are `( IDENT , IDENT [, IDENT]* ) =`
+        — the multi-state loop-destructure LHS. Requires at least one comma
+        inside the parens (so a single `(x)` or a cast `(Type)` is not
+        misread) and an `=` immediately after the closing paren."""
+        if self._peek().kind is not TokenKind.LPAREN:
+            return False
+        if self._peek(1).kind is not TokenKind.IDENT:
+            return False
+        offset = 2
+        saw_comma = False
+        while True:
+            k = self._peek(offset).kind
+            if k is TokenKind.COMMA:
+                saw_comma = True
+                if self._peek(offset + 1).kind is not TokenKind.IDENT:
+                    return False
+                offset += 2
+            elif k is TokenKind.RPAREN:
+                return saw_comma and self._peek(offset + 1).kind is TokenKind.ASSIGN
+            else:
+                return False
 
     def _looks_like_typed_decl(self) -> bool:
         if self._peek().kind is not TokenKind.IDENT:
@@ -1845,6 +1876,47 @@ class Parser:
             name=full_name,
             condition_arg=condition_arg,
             state_args=state_args,
+            span=SourceSpan(start=start.start, end=end_span.end),
+        )
+
+    def _parse_loop_destructure(self) -> Optional[ast.Stmt]:
+        """Parse `(a, b, ...) = loop NAME(cond, s0, s1, ...);` — bind a
+        multi-state loop's final states to newly-declared locals. The
+        caller has already confirmed the `( IDENT , ... ) =` shape via
+        `_looks_like_tuple_destructure`. The RHS must be a loop expression
+        (Sutra has no general tuples — nothing else yields a tuple)."""
+        start = self._current_span()
+        self._expect(TokenKind.LPAREN, "`(` to open destructure target")
+        names: List[str] = []
+        first = self._expect(TokenKind.IDENT, "destructure target name")
+        if first is None:
+            self._skip_to_statement_boundary()
+            return None
+        names.append(first.lexeme)
+        while self._match(TokenKind.COMMA):
+            nm = self._expect(TokenKind.IDENT, "destructure target name")
+            if nm is None:
+                self._skip_to_statement_boundary()
+                return None
+            names.append(nm.lexeme)
+        self._expect(TokenKind.RPAREN, "`)` to close destructure target")
+        self._expect(TokenKind.ASSIGN, "`=` after destructure target")
+        rhs = self._parse_expr()
+        if not isinstance(rhs, ast.LoopCallExpr):
+            self.diagnostics.error(
+                "a `(a, b, ...)` destructure target is only valid for a loop "
+                "call — `(a, b) = loop NAME(cond, ...);`. Sutra has no general "
+                "tuples, so nothing else produces a tuple to unpack.",
+                rhs.span if rhs is not None else start,
+                code="SUT0104",
+            )
+            self._skip_to_statement_boundary()
+            return None
+        end = self._expect(TokenKind.SEMICOLON, "`;` after loop destructure")
+        end_span = end.span if end else self._current_span()
+        return ast.LoopDestructureStmt(
+            names=names,
+            call=rhs,
             span=SourceSpan(start=start.start, end=end_span.end),
         )
 

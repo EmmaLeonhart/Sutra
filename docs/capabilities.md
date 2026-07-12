@@ -105,6 +105,7 @@ No hex literals yet.
 | `loop (expr) { ... }` | condition-based eigenrotation | vision — the halt threshold is a trainable surface |
 | `loop NAME(cond, args, ...);` | invoke a loop function (by-reference statement form) | n/a |
 | `int x = loop NAME(cond, state_expr);` | invoke a single-state loop in expression position; evaluates to its final state | n/a |
+| `(a, b) = loop NAME(cond, s0, s1);` | invoke a multi-state loop; binds each final state to a new local (tuple-destructure) | n/a |
 | `try { ... } catch { ... }` | exception barrier | n/a (no learned recovery policy yet) |
 | `return expr;` | return | n/a |
 | `pass v1, v2, ..., replace, ...;` | tail-recursive yield in loop functions; `replace` keeps prior value | n/a |

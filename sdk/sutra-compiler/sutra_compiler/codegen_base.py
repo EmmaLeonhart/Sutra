@@ -2162,11 +2162,12 @@ class BaseCodegen:
         if n_state != 1:
             raise CodegenNotSupported(
                 expr,
-                f"the loop expression form supports single-state loops "
-                f"only; `{expr.name}` has {n_state} state parameters. Use "
-                f"the by-reference statement form for multi-state loops "
-                f"(`slot` vars + `loop {expr.name}(cond, a, b);`); the "
-                f"multi-state tuple-assign surface is a later stage.",
+                f"the single-value loop expression form supports "
+                f"single-state loops only; `{expr.name}` has {n_state} "
+                f"state parameters. Use the tuple-destructure form for "
+                f"multi-state loops — `(a, b) = loop {expr.name}(cond, "
+                f"...);` — or the by-reference statement form (`slot` vars "
+                f"+ `loop {expr.name}(cond, a, b);`).",
             )
         if len(expr.state_args) != 1:
             raise CodegenNotSupported(
@@ -2193,6 +2194,81 @@ class BaseCodegen:
         # parity with the statement form, then yield the final state.
         cond_src = self._translate_expr(expr.condition_arg)
         return f"(({cond_src}), {py_loop_name}({state_src})[0])[-1]"
+
+    def _translate_loop_destructure(self, stmt: "ast.LoopDestructureStmt") -> None:
+        """Lower `(a, b, ...) = loop NAME(cond, s0, s1, ...);` — the
+        multi-state counterpart of the single-state loop expression form.
+
+        Reuses the same driver the statement/expression forms emit
+        (`_loop_NAME`), which returns `(state0, ..., stateK, halted)`, and
+        binds the state slots to the newly-declared locals `a, b, ...`. Like
+        the single-state expression form it drops the halt slot (the driver
+        loops until halt saturates, so it is ~1.0 at return) — the value
+        forms take the state, not the completion flag.
+        """
+        call = stmt.call
+        decl = self._loop_decls.get(call.name)
+        if decl is None:
+            raise CodegenNotSupported(
+                stmt,
+                f"loop function `{call.name}` is not declared. Loop "
+                f"functions must be declared with one of `do_while`, "
+                f"`while_loop`, `iterative_loop`, `foreach_loop` before "
+                f"being invoked with `loop NAME(...)`.",
+            )
+        if "." in call.name and not getattr(decl, "is_static", False):
+            raise CodegenNotSupported(
+                stmt,
+                f"loop `{call.name}` is a non-static class loop; the "
+                f"destructure form is not supported for it. Use the "
+                f"by-reference statement form.",
+            )
+        n_state = len(decl.state_params)
+        if len(stmt.names) != n_state:
+            raise CodegenNotSupported(
+                stmt,
+                f"loop `{call.name}` has {n_state} state parameter(s) but "
+                f"the destructure binds {len(stmt.names)} name(s) — they "
+                f"must match one-to-one.",
+            )
+        if len(call.state_args) != n_state:
+            raise CodegenNotSupported(
+                stmt,
+                f"loop `{call.name}` takes {n_state} state argument(s), got "
+                f"{len(call.state_args)}.",
+            )
+        # Register each bound name's declared type from the loop's state
+        # params so downstream type-dependent codegen (string/complex ops)
+        # routes correctly.
+        for name, sp in zip(stmt.names, decl.state_params):
+            sp_type = getattr(getattr(sp, "type_ref", None), "name", None)
+            if sp_type is not None:
+                self._var_type[name] = sp_type
+        state_srcs = [self._translate_expr(a) for a in call.state_args]
+        py_loop_name = f"_loop_{call.name.replace('.', '_')}"
+        targets = ", ".join(stmt.names)
+        self._emit(f"# loop destructure: ({targets}) = loop {call.name}(...)")
+        if decl.kind == "foreach_loop":
+            if isinstance(call.condition_arg, ast.ArrayLiteral):
+                elem_srcs = [
+                    self._translate_expr(e)
+                    for e in call.condition_arg.elements
+                ]
+                arr_src = f"_VSA.array_from_literal({', '.join(elem_srcs)})"
+            else:
+                arr_src = self._translate_expr(call.condition_arg)
+            all_args = [arr_src] + state_srcs
+            self._emit(
+                f"({targets}, _) = {py_loop_name}({', '.join(all_args)})"
+            )
+            return
+        # Non-foreach: cond value is unused at runtime (the loop uses its
+        # decl-time condition); evaluate it once for side-effect parity.
+        cond_src = self._translate_expr(call.condition_arg)
+        self._emit(f"_ = {cond_src}")
+        self._emit(
+            f"({targets}, _) = {py_loop_name}({', '.join(state_srcs)})"
+        )
 
     # -- statements -------------------------------------------------------
 
@@ -2341,6 +2417,9 @@ class BaseCodegen:
         # LoopCallStmt: invoke a loop function and write back state.
         if isinstance(stmt, ast.LoopCallStmt):
             self._translate_loop_call(stmt)
+            return
+        if isinstance(stmt, ast.LoopDestructureStmt):
+            self._translate_loop_destructure(stmt)
             return
         if isinstance(stmt, ast.VarDecl):
             self._translate_var_decl(stmt, at_top_level=False)

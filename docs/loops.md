@@ -143,11 +143,23 @@ return loop addNumber(x0 < 11, x0);    // return the loop's result directly
 
   The by-reference statement form crushes such state to a scalar (diagnostic SUT0206) —
   use the expression form for `String`/`vector` loop state.
-- Multi-state loops keep the by-reference statement form for now — a call to a
-  multi-state loop in expression position reports a diagnostic pointing you to it.
+- **Multi-state loops** use the tuple-destructure form — bind each final state to a
+  newly-declared local:
 
-The by-reference statement form remains valid and is the way to thread multiple
-state variables.
+  ```sutra
+  while_loop step((n > 0) && (n != 1), int acc, int n) { acc = acc + n; pass acc, n - 1; }
+  function int main() {
+      (total, remaining) = loop step((3 > 0) && (3 != 1), 0, 3);   // total = 5, remaining = 1
+      return total + remaining;
+  }
+  ```
+
+  Sutra has no general tuples, so a `(a, b)` target on the left of `=` is only valid for a
+  loop call. A single-value `int x = loop f(...)` on a multi-state loop reports a diagnostic
+  steering you to this form.
+
+The by-reference statement form remains valid; the value-returning forms above (single-state
+expression + multi-state destructure) are the idiomatic way to consume a loop's result.
 
 ---
 

@@ -191,6 +191,8 @@ def _rewrite_stmt(stmt, table) -> None:
                 stmt.values[i] = _rewrite_expr(val, table)
     elif isinstance(stmt, ast.LoopCallStmt):
         stmt.condition_arg = _rewrite_expr(stmt.condition_arg, table)
+    elif isinstance(stmt, ast.LoopDestructureStmt):
+        stmt.call = _rewrite_expr(stmt.call, table)
     elif isinstance(stmt, ast.TryStmt):
         _rewrite_block(stmt.try_body, table)
         _rewrite_block(stmt.catch_body, table)
@@ -647,6 +649,8 @@ def _lower_ops_stmt(stmt, inlineable) -> None:
                 stmt.values[i] = _lower_ops_expr(val, inlineable)
     elif isinstance(stmt, ast.LoopCallStmt):
         stmt.condition_arg = _lower_ops_expr(stmt.condition_arg, inlineable)
+    elif isinstance(stmt, ast.LoopDestructureStmt):
+        stmt.call = _lower_ops_expr(stmt.call, inlineable)
     elif isinstance(stmt, ast.TryStmt):
         _lower_ops_block(stmt.try_body, inlineable)
         _lower_ops_block(stmt.catch_body, inlineable)

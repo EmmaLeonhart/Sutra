@@ -371,6 +371,9 @@ def local_names(decl) -> Set[str]:
                 # `foreach (T x in ...)` binds x for the body — a local
                 # name, just not a VarDecl node.
                 names.add(n.var_name)
+            elif isinstance(n, ast.LoopDestructureStmt):
+                # `(a, b) = loop f(...);` binds a, b as new locals.
+                names.update(n.names)
     return names
 
 

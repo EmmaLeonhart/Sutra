@@ -1,0 +1,23 @@
+// Multi-state loop destructure (shipped 2026-07-12, rung 2).
+//
+// A multi-state loop invoked in value position binds its final states to
+// newly-declared locals via a `(a, b, ...)` tuple target — the multi-state
+// counterpart of the single-state loop expression form (see
+// loop_call_expr.su). Sutra has no general tuples, so a parenthesised
+// comma-list on the LHS of `=` is unambiguously this loop-destructure form.
+//
+// Corpus sanity-check: parses and validates cleanly.
+
+while_loop step((n > 0) && (n != 1), int acc, int n) {
+    acc = acc + n;
+    pass acc, n - 1;
+}
+
+function int accumulate_down(int start) {
+    (total, remaining) = loop step((start > 0) && (start != 1), 0, start);
+    return total + remaining;
+}
+
+function int main() {
+    return accumulate_down(3);
+}
