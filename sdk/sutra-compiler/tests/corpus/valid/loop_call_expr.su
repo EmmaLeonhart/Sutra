@@ -1,0 +1,42 @@
+// Loop calls in EXPRESSION position (single-state form, shipped 2026-07-12).
+//
+// A single-state loop function can be invoked as a value: the call
+// evaluates to the loop's FINAL state instead of mutating a `slot`
+// variable by reference. The state argument is an ordinary expression
+// (no `slot` declaration needed). See planning/sutra-spec/control-flow.md
+// §"Call site syntax" and docs/loops.md §"Expression form".
+//
+// This is the idiomatic counterpart to the by-reference statement form
+// in do_while.su / do_while_adder.su. Corpus sanity-check: parses and
+// validates cleanly.
+
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+iterative_loop sumN(5, int total) {
+    pass total + iterator;
+}
+
+// Init position: the loop result initializes a local.
+function int count_up(int start) {
+    int result = loop addNumber(start < 11, start);
+    return result;
+}
+
+// Return (tail) position: return the loop's final state directly.
+function int sum_to_five() {
+    return loop sumN(5, 0);
+}
+
+// The state argument is a full expression, not a slot-var name.
+function int from_expression() {
+    return loop addNumber(9 < 11, 4 + 5);
+}
+
+function int main() {
+    int a = count_up(9);
+    int b = sum_to_five();
+    int c = from_expression();
+    return a;
+}

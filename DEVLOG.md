@@ -1,3 +1,18 @@
+## 2026-07-12: corpus coverage for loop-calls-as-expressions (readability/usability audit slice)
+
+The pinned readability/usability audit's job when the concrete queue items are Emma-gated:
+close a real, bounded gap. loop-calls-as-expressions shipped with unit tests but NO corpus
+program — yet the todo gated the whole feature on "real programs exercising it," and the corpus
+(`tests/corpus/valid/`) is that canonical surface. Added `tests/corpus/valid/loop_call_expr.su`:
+a readable single-state program exercising the expression form in init position
+(`int result = loop addNumber(start < 11, start);`), return/tail position
+(`return loop sumN(5, 0);`), and with a computed state arg (`4 + 5`) — the idiomatic counterpart
+to the by-reference `do_while.su`/`do_while_adder.su`. Did NOT touch the cited `do_while_adder.su`
+(paper.md + REPRODUCE.md reference it; the by-reference form is what the paper demonstrates —
+durability rule). MEASURED: validates 0 errors / 0 warnings; runs end-to-end — count_up(9)=11,
+sum_to_five()=15, from_expression=11, main()=11 (read via `_VSA._re`); corpus suite 3 passed /
+91 subtests (was 90).
+
 ## 2026-07-12: daily substrate-honesty audit (manual review) — CLEAN; both 07-11 + 07-12 queue items discharged
 
 Reviewed every commit landed since the last real audit (`1305cb85`, 07-10) against CLAUDE.md
