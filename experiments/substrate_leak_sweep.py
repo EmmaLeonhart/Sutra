@@ -83,6 +83,15 @@ _PRELUDE_LEAK_EXEMPT_METHODS = {
     # form) and are documented Python-host-interop dispatch surfaces.
     "_as_any_vector", "_as_complex_vector", "_as_truth_vector",
     "_cnum",
+    # Slot-store coercion (Emma 2026-07-13, vector-loop-state rung 3 B1c
+    # `4f2ad65`): `_slot_value` lifts a host scalar into a number-vector
+    # on AXIS_REAL (`float(v)` fires only in the `else` branch of
+    # `v if _torch.is_tensor(v) else float(v)`; the tensor branch
+    # scatters the 0-d tensor in directly per the emitted docstring
+    # "with NO host readout"). Same entry-boundary shape as
+    # `make_real`/`_num`/`_as_any_vector`. NOT a substrate-value
+    # extraction. See Audit.md BORDERLINE.
+    "_slot_value",
     # Number-axis coercion helpers (Emma 2026-06-21, numbers-on-substrate
     # leg `4412751`): `_num`/`_num_re` lift a host scalar into a real-axis
     # number-vector or pass through an already-substrate tensor. The
