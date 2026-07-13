@@ -38,6 +38,26 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Reach-audit refill 2026-07-13 — two real defects from newcomer probes
+
+Finding: `planning/findings/2026-07-13-real-program-reach-probe-mixed-state-loops-wrong.md`
+(repro programs there; they become tests when fixed).
+
+1. **Mixed String+scalar multi-state loop state goes WRONG at runtime — investigate + fix
+   (priority: wrong values, no warning).** reverse-string probe → 'c'+~98×'a' instead of "cba"
+   (the int state `i` appears not to update across ticks when String states are siblings, so
+   the halt never fires); count-chars probe → 1.069 instead of 2. Newly-reachable shape (was a
+   crash before the loop-state epic), unprobed by the B3 sweep. Suspects in the finding
+   (soft-mux/halt with d-dim siblings, `replace`+String, char_at index form). Systematic:
+   instrument one tick, find the actual mechanism, fix, then land the three repro programs as
+   tests (expected "cba" / 2 / and probe A's max → 5 once item 2 lands).
+2. **Extend static truth-type inference to relational comparisons.** `(number)(e > best)` fails
+   ("static type can't be inferred") while `(number)(x == y)` works — the inference covers
+   equality only. Blocks the natural max-of-array `select` idiom. Scope: wherever `==`/`!=`
+   get their truth type for the relabel-vs-axis-move cast decision, add `<`/`>`/`<=`/`>=`.
+   Test: the max_array probe → 5.0.
+
+
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 
 The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped

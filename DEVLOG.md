@@ -1,3 +1,22 @@
+## 2026-07-13: reach audit finds TWO REAL DEFECTS — mixed-state loops wrong at runtime; relational truth-cast gap
+
+Pinned-tail rotation, "real-program reach": wrote the programs a newcomer would try, model-free,
+and measured. sum-of-array (foreach expression form → 14.0) and count-to-N clean. Two defects:
+- **Mixed String+scalar multi-state loops give WRONG VALUES** (not crashes): reverse-string →
+  `'c'` + ~98×`'a'` instead of "cba" (the int state `i` appears frozen once String states are
+  siblings, halt never fires, loop runs to the string cap); count-matching-chars → 1.069 instead
+  of 2. Newly-reachable shape (was an outright crash pre-epic) that the B3 durability sweep never
+  probed — scalar-multi-state and single-String were covered, MIXED was not. Wrong-value silent
+  failure = worse than crash; filed as the priority queue item with suspects named
+  (soft-mux/halt with d-dim siblings, `replace`+String, char_at index form) — investigation
+  first, no blind fix.
+- **Relational comparisons can't be `(number)`-cast** while equality can (`fizzbuzz.su` ships
+  `(number)((n%3)==0)`; `(number)(e > best)` dies on "static type can't be inferred" even with
+  typed int operands). Blocks the natural max-of-array `select` idiom.
+Finding: `planning/findings/2026-07-13-real-program-reach-probe-mixed-state-loops-wrong.md`
+(repro programs → future tests). Queue refilled with the two items, priority order. This is the
+audit's purpose working: the aliases surface yesterday was clean; this surface was not.
+
 ## 2026-07-13: pinned-tail audit, aliases/affordances surface — CLEAN, no refill items
 
 Rotation surface: internal redundancy (Emma's aggressive-deprecation lens, CLAUDE.md §"Deprecate
