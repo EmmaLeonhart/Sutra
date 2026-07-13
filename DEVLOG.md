@@ -1,3 +1,34 @@
+## 2026-07-13: daily audit CLEAN + rung 3 B5 — SUT0206 retired; vector-loop-state EPIC COMPLETE
+
+**Daily substrate-honesty audit (2026-07-13 item):** reviewed every commit since `46068361` — the
+loop-expression corpus/diagnostic commits and the rung-3 chain (design → Option B → prototype/revert →
+B1a → B1b → B1c+B3). (a) The corpus `.su` files added are int-only (no basis_vector/embed → no
+codebook, no runtime_dim claims). (b) The B1c "substrate-pure slot methods" claim mechanically
+re-verified fresh: the emitted `slot_state_new`/`_slot_value`/`slot_store`/`slot_load` bodies contain
+zero host-readout lines (`.item()`: none; the one `float()` is the host-literal entry boundary behind
+an `is_tensor` guard). All measured claims (xxx / 11 / 5 / 281 tests) were run this session. (c) No
+classifier shipped. CLEAN — no finding, item deleted.
+
+**B5 — SUT0206 retired (the warning became FALSE).** Under the unified d-dim slot store, String/
+vector/complex `loop` state no longer crushes — so the warning that said it would crash is gone:
+validator `visit_LoopCallStmt` warning removed, and the now-unused `_MULTI_AXIS_SLOT_TYPES` frozenset
+deleted with it (aggressive-deprecation rule — an unused affordance misleads the next agent).
+`test_slot_state_diagnostic.py` rewritten to lock the new reality from both sides: the old "fires"
+cases now assert NO diagnostic, plus an end-to-end test that the exact protected-against workload
+runs (`slot String acc; loop build(3, acc);` → decoded "xxx"). Docs updated: loops.md (by-reference
+carries vector/String state too — pick the form by style), capabilities.md (SUT0206 marked retired
+in the diagnostics index); stale crush comment in test_loop_call_expr.py fixed.
+
+**Runtime verification:** `slot vector` state by reference RUNS model-free (do_while with
+`similarity(state, state) > 2.0` → body once, halt; main → 7.0, no shape error — the old
+representation crashed exactly here). The embed-based full `do_while.su` run is environment-gated
+(Ollama model unavailable on this box; embed is orthogonal to the slot change and the file validates
+clean in corpus). MEASURED: slot-diagnostic + loop suites + corpus 59 passed / 92 subtests.
+
+**The vector-valued-loop-state EPIC is COMPLETE**: expression form (rung 1), multi-state
+tuple-destructure (rung 2), unified d-dim slots with by-reference vector state (rung 3, Emma's
+Option B), SUT0206 retired (B5). Queue entry deleted per delete-on-completion.
+
 ## 2026-07-12: vector-loop-state rung 3 B1c + B3 — slot representation FLIPPED to unified d-dim, green
 
 The representation flip Emma chose (Option B). Re-applied the reverted prototype, now on top of the
