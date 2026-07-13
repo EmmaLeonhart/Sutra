@@ -569,3 +569,28 @@ foreach_loop maxi(arr, int best) {
 function int main() { return loop maxi([3, 1, 4, 1, 5], 0); }
 """
         self.assertAlmostEqual(_run_main_real(src), 5.0, places=2)
+
+
+class TestParallelPassAssignment(unittest.TestCase):
+    """Reach-audit fix (2026-07-13): multi-value `pass` has PARALLEL
+    assignment semantics — every value evaluates against the pre-update
+    state, then the state locals update together (the RNN cell
+    `state ← f(state)`). The old sequential emission clobbered earlier
+    states before later values read them: `pass b, a + b` emitted
+    `a = b; b = num_add(a, b)` with the NEW a, degenerating fibonacci
+    into doubling (measured 128 = 2^7 instead of 34)."""
+
+    def test_fibonacci(self):
+        # (a,b) ticks: (1,1)->(1,2)->(2,3)->(3,5)->(5,8)->(8,13)->
+        # (13,21)->(21,34)->(34,55); after 8 ticks a = fib(9) = 34.
+        src = """
+iterative_loop fib(8, int a, int b) {
+    pass b, a + b;
+}
+
+function int main() {
+    (a, b) = loop fib(8, 1, 1);
+    return a;
+}
+"""
+        self.assertAlmostEqual(_run_main_real(src), 34.0, places=2)
