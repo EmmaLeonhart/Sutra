@@ -73,8 +73,13 @@ path first, then vector-sized slots for the by-reference form. Staged:
      to the numpy backend (pytorch already had it). Verified: `_scalar` projects a number-vector to
      its real value (5) AND passes a host int through, both backends — so the guard is a no-op now
      and correct after the B1c flip. Full slot sweep 189 passed.
-   - **B1b** — move every `float(main())`-on-a-slot-return harness (mostly `test_loop_function_decl.py`)
-     to decode via `_re`, verifying each value vs ground truth (NOT blindly — rails).
+   - **B1b — SHIPPED 2026-07-12.** Swept every test file for `float()`-on-a-slot-return reads:
+     migrated `test_loop_function_decl.py` (`_run_main` → `_re`), `test_torch_compile_wrap.py`
+     (`_run_main` → `_re`), and `test_loop_call_expr.py:272` (the statement-form regression) to the
+     `_re` boundary. `test_implicit_loop_desugar.py` (`_decode`) already projects AXIS_REAL;
+     `test_int_dict.py` returns int-dict number-vectors read by `_rv` (unaffected — its "slot" is a
+     comment). `_re` passes 0-d through and reads a number-vector's real coord, so no-op today
+     (80 passed) and correct after B1c. Changed no asserted value — read-mechanism migration only.
    - **B1c** — flip the representation: pytorch dict `{idx: d-vector}` + `_slot_value` (host scalar
      → number-vector, String/vector pass-through) + numpy parity (stores as-is) + the two
      `_slot_state = _VSA.slot_state_new()` init sites. Consumers now ready; suite stays green.
