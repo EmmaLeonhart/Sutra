@@ -43,14 +43,16 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 Finding: `planning/findings/2026-07-13-real-program-reach-probe-mixed-state-loops-wrong.md`
 (repro programs there; they become tests when fixed).
 
-1. **Mixed String+scalar multi-state loop state goes WRONG at runtime — investigate + fix
-   (priority: wrong values, no warning).** reverse-string probe → 'c'+~98×'a' instead of "cba"
-   (the int state `i` appears not to update across ticks when String states are siblings, so
-   the halt never fires); count-chars probe → 1.069 instead of 2. Newly-reachable shape (was a
-   crash before the loop-state epic), unprobed by the B3 sweep. Suspects in the finding
-   (soft-mux/halt with d-dim siblings, `replace`+String, char_at index form). Systematic:
-   instrument one tick, find the actual mechanism, fix, then land the three repro programs as
-   tests (expected "cba" / 2 / and probe A's max → 5 once item 2 lands).
+1. **`==` on int-returning intrinsic calls routes to general vector `eq` — which reads ANY two
+   numbers as equal. Fix the routing (priority: silent wrong values).** Measured: `_VSA.eq(98,
+   97)` → truth +1.0; `num_eq(98, 97)` → correctly false. `string_char_at(s,i) == 97` lowers to
+   `eq` because the codegen doesn't consult the intrinsic's declared return type (stdlib:
+   `intrinsic method int string_char_at`); statically-int operands (fizzbuzz's `(n%3)==0`)
+   correctly route to num_eq. Fix where == picks its lowering: use declared intrinsic return
+   types so number-family comparisons route to num_eq. Test: the count-chars repro (finding
+   §RESOLUTION) → 2.0. (The other half of the original mixed-state item — the char_at
+   number-vector index — was FIXED same-day: `_scalar(i)` boundary; reverse-string → "cba",
+   locked in TestStringCharAtNumberVectorIndex.)
 2. **Extend static truth-type inference to relational comparisons.** `(number)(e > best)` fails
    ("static type can't be inferred") while `(number)(x == y)` works — the inference covers
    equality only. Blocks the natural max-of-array `select` idiom. Scope: wherever `==`/`!=`
