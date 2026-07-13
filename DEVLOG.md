@@ -1,3 +1,17 @@
+## 2026-07-13: pinned-tail audit, aliases/affordances surface — CLEAN, no refill items
+
+Rotation surface: internal redundancy (Emma's aggressive-deprecation lens, CLAUDE.md §"Deprecate
+aliases aggressively"). MEASURED: (1) the BUILTINS dispatch table — 38 names, ZERO targets with
+more than one name (grouped mechanically by dispatch target); (2) alias/deprecation markers in
+codegen_base/stdlib_loader/lexer — only the historical notes for the 2026-06-23 purge
+(basis_vector→embed, truth_value/real_number/complex_number→make_*, scalar type, unk, iff), all
+still retired; (3) newcomer surfaces (examples/*.su, docs/*.md, tutorials) grep-clean of every
+retired spelling. Carve-outs respected: connective word-forms untouched (Emma unsure — her call),
+foreign-ecosystem shims (make_char, JS coercions, AXIS_CHAR_FLAG) untouched by design. The one
+recent addition on this axis was itself an alias RETIREMENT (SUT0206 + its frozenset, earlier
+today). No finding → no refill items manufactured from this surface; the queue correctly holds
+only the Emma-gated A1 deploy. Next audit rotation candidate: real-program reach.
+
 ## 2026-07-13: demos.md walkthrough updated — loop story + missing table rows; refill DRAINED
 
 Last audit-refill item. `docs/demos.md` findings + fixes: (1) the smoke-example table stopped at
