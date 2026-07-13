@@ -1,3 +1,15 @@
+## 2026-07-13: docs correction — the website claimed `(number) b` gives 1/0; it gives signed ±1
+
+Pinned-audit rotation, docs-readability re-sweep after the four reach fixes. The signed-truth
+cast semantics that tripped the count probe (and briefly this session's own investigation) turned
+out to be MISDOCUMENTED on the website: `capabilities.md`'s cast row said "`(number) b` reads a
+bool back as 1/0". MEASURED: `(number) true` → **+1.0**, `(number) false` → **−1.0** — the signed
+Kleene scale the rest of the docs correctly describe (operators.md: `[-1,+1]`, K₃) and that
+fizzbuzz's score algebra depends on. Corrected the row to the signed values + the `((number)
+cond + 1) / 2` counter idiom. Swept every docs page + README + tutorials for other 1/0 claims —
+none. Site builds clean. Small fix, but it is the exact trap a newcomer's first counter hits, and
+it was load-bearing enough to misdirect a compiler investigation this morning.
+
 ## 2026-07-13: inlined-relational cast FIXED — reach audit fully closed (4/4 defects)
 
 The last reach-audit item. The operator-lowering turns `<`/`<=`/`>=`/`!=` into stdlib calls
