@@ -389,6 +389,21 @@ decision (and a comment) rather than being silently host:
   2026-06-21 (daily audit) so the sweep stops misfiring on this
   boundary. Same shape as the 2026-06-03 `ram_read`/`ram_write` +
   2026-05-30 `load_matrix` allowlist additions.
+- **`_slot_value(v)`** — `codegen_pytorch.py:1433-1448` (commit
+  `4f2ad65`, 2026-07-13, vector-loop-state rung 3 B1c). Slot-store
+  coercion: dim-vectors passthrough (line 1441-1443); host scalars are
+  lifted onto AXIS_REAL via `v if _torch.is_tensor(v) else float(v)`
+  (line 1446-1447), i.e. `float()` fires ONLY on the else branch (host
+  scalar entry). The emitted docstring states explicitly: "A host scalar
+  / 0-d tensor is lifted onto AXIS_REAL as a number-vector, with NO host
+  readout (the 0-d tensor is scattered in directly, not float()-ed)."
+  Same entry-boundary shape as `make_real` / `_num` / `_as_any_vector`
+  — NOT a substrate-value extraction. Added to
+  `experiments/substrate_leak_sweep.py`'s `_PRELUDE_LEAK_EXEMPT_METHODS`
+  2026-07-13 (daily audit) so the sweep stops misfiring on the new
+  helper. Same shape as the 2026-06-21 `_num`/`_num_re`, 2026-06-03
+  `ram_read`/`ram_write`, and 2026-05-30 `load_matrix` allowlist
+  additions.
 - **`load_matrix(path)`** — `codegen_pytorch.py:731-755` (commit
   `a2cbc05`, 2026-05-29). File-backed literal-lift: opens a CSV,
   parses comma-separated string tokens to host floats
