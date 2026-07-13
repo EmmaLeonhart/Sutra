@@ -1,3 +1,22 @@
+## 2026-07-13: eq-routing FIXED (Call-type inference) — count-chars correct; max gap re-scoped
+
+The `==`-routing fix: `_infer_cast_operand_type` gains a Call branch consulting
+`_resolved_return_type` (user-class methods + stdlib symbol table — the same source
+`_is_complex_expr` already trusts; conservative None when undeclared). Consequence measured:
+`string_char_at(s, i) == 97` now routes to `num_eq` instead of the any-two-numbers-equal vector
+`eq`. The count-chars workload is CORRECT: 2.0 on "aba" — with the note that `(number)(cond)` is
+SIGNED (+1/−1) by design (the fizzbuzz score algebra depends on it), so a 0/1 counter maps via
+`(s+1)/2`; the probe's earlier 0/1 assumption was the program error, the routing was the compiler
+error. Locked in as `TestIntIntrinsicEqualityRouting`. Broad regression 197 passed / 92 subtests —
+the Call branch only ADDS type knowledge, no collateral.
+
+Max-of-array re-scoped with two named causes (queue item sharpened): (a) the inliner rewrites
+`>=`/`<=`/`<`/`!=` into INLINED bodies before codegen, so the new Call inference can't see them —
+the `(number)` cast on an inlined relational still dies (fix direction: a truth-type MARKER the
+cast inference reads; do not reuse `_logical_truth`'s arithmetic-forcing behavior); (b) a separate
+foreach+select shape error (`gt`: 868 vs 2) even in the `>`-only variant — needs its own
+instrumentation. Both have repros in the finding. No blind fixes shipped.
+
 ## 2026-07-13: mixed-state defect INVESTIGATED — char_at index bug FIXED (reverse-string → "cba"); eq-routing defect isolated
 
 Systematic per-tick instrumentation of the reverse-string repro EXONERATED the loop machinery

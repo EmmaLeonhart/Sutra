@@ -489,3 +489,29 @@ function string main() {
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestIntIntrinsicEqualityRouting(unittest.TestCase):
+    """Reach-audit fix (2026-07-13): `==` where one operand is a call to an
+    int-returning intrinsic (string_char_at) must route to num_eq, not the
+    general vector eq (whose cosine reads ANY two numbers as equal —
+    measured eq(98, 97) → true). The Call branch in
+    _infer_cast_operand_type consults declared return types.
+
+    Note the SIGNED truth semantics: `(number)(cond)` is +1/-1 (the
+    fizzbuzz score algebra depends on it), so a 0/1 counter maps via
+    (s + 1) / 2."""
+
+    def test_count_matching_chars_via_codepoint_eq(self):
+        src = """
+while_loop count(i < 3, int n, String s, int i) {
+    pass n + ((number)(string_char_at(s, i) == 97) + 1) / 2, replace, i + 1;
+}
+
+function int main() {
+    (n, s2, i) = loop count((0 < 3), 0, make_string("aba"), 0);
+    return n;
+}
+"""
+        # 'aba': codepoints 97, 98, 97 -> exactly two match 97.
+        self.assertAlmostEqual(_run_main_real(src), 2.0, places=2)
