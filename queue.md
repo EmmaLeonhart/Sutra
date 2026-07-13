@@ -38,18 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Readability-audit refill 2026-07-13 — expose the new loop forms on the newcomer surfaces
-
-Audit findings (site builds clean, 0 dead links, 0 scratchpad refs, install docs coherent —
-but the three loop forms shipped 2026-07-12 are invisible outside docs/loops.md and the test
-corpus). fizzbuzz.su was upgraded to the real 1..15 String-accumulator loop same-day (smoke
-PASS, exact ground truth). Remaining, in order:
-
-1. **docs walkthrough pages (example.md / demos.md): tell the new loop story.** Check whether
-   the guided-example pages still present by-reference as the only call form; add the
-   expression + destructure forms where loops appear. Website discipline: no repo-internal
-   references.
-
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 
 The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped

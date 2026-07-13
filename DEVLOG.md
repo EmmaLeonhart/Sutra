@@ -1,3 +1,18 @@
+## 2026-07-13: demos.md walkthrough updated — loop story + missing table rows; refill DRAINED
+
+Last audit-refill item. `docs/demos.md` findings + fixes: (1) the smoke-example table stopped at
+row 10 — added rows 11-13 (strings_and_formatting, the real FizzBuzz, loop_forms); (2) the loops
+paragraph presented `do_while_adder.su` as the only example AND cited the repo-internal
+`test_loop_function_decl.py` on the website (against the no-repo-internals discipline) — rewritten
+to the reading path do_while_adder → loop_forms → fizzbuzz with the internal reference removed;
+(3) "Reading the source" now routes loop readers to loop_forms.su. `example.md` checked: no loop
+surface content (it is the A1 preference-learning page) — no change needed. VERIFIED: site builds
+end-to-end; demos.md grep-clean of test_/queue.md/todo.md/planning//DEVLOG/sdk/ references.
+
+The 2026-07-13 readability-audit refill is now fully DRAINED (fizzbuzz upgrade, loop_forms.su,
+REPL verification, demos walkthrough — all shipped same-day). Queue: refill block deleted; ACTIVE
+holds only the Emma-gated A1 deploy; next tick runs the pinned-tail audit on a fresh surface.
+
 ## 2026-07-13: REPL loop forms MEASURED WORKING interactively; :help updated + tests locked
 
 Audit-refill item: drove `run_repl` non-interactively (runtime_dim=64) with all three loop call
