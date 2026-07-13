@@ -458,5 +458,34 @@ function int main() {
         self.assertIn("statement form", msg)
 
 
+
+
+class TestStringCharAtNumberVectorIndex(unittest.TestCase):
+    """Reach-audit fix (2026-07-13): `string_char_at` with a NUMBER-VECTOR
+    index — the form a loop-threaded state param produces (`i - 1` is a
+    num_sub number-vector). The old `_st(i)` boundary passed the d-dim
+    index through unprojected, making the gather return a d-wide garbage
+    "codepoint" that poisoned every downstream string op. `_scalar(i)`
+    projects it to the real-axis 0-d value.
+
+    End-to-end: reverse a string char-by-char through a mixed
+    String+scalar multi-state loop — the reach probe that decoded as
+    'c' + 98 fill chars before the fix.
+    """
+
+    def test_reverse_string_via_loop(self):
+        src = """
+while_loop rev(i > 0, String out, String s, int i) {
+    pass string_concat(out, make_char(string_char_at(s, i - 1))), replace, i - 1;
+}
+
+function string main() {
+    (out, s2, i) = loop rev((3 > 0), make_string(""), make_string("abc"), 3);
+    return out;
+}
+"""
+        self.assertEqual(_run_main_string(src), "cba")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,3 +1,25 @@
+## 2026-07-13: mixed-state defect INVESTIGATED — char_at index bug FIXED (reverse-string → "cba"); eq-routing defect isolated
+
+Systematic per-tick instrumentation of the reverse-string repro EXONERATED the loop machinery
+(`i` decrements 3→2→1→0, halt fires exactly on tick 3, states freeze — the mux/halt is correct).
+The garbage was born in ONE call at tick 0: `string_char_at(s, i-1)` with a loop-threaded index.
+
+**Fixed: `string_char_at` number-vector index.** `_st(i)` passed the d-dim number-vector index
+through unprojected → `cps[ci]` became a d-wide gather → a d-dim garbage "codepoint" poisoning
+every downstream string op. Fix: `_scalar(i)` (real-axis projection; 0-d/host pass-through —
+the same boundary as the B1a count fix). MEASURED after fix: the spec-correct reverse-string
+(`string_concat(out, make_char(string_char_at(s, i-1)))` — char_at returns `int` BY SPEC, the
+lift is `make_char`) decodes to **"cba"** through a mixed String+scalar multi-state loop. Locked
+in as `TestStringCharAtNumberVectorIndex`; suites 70 passed / 92 subtests.
+
+**Isolated (still open, queue item sharpened): the `==`-routing defect.** `_VSA.eq(98, 97)`
+reads TRUE (general vector eq: two number-vectors share an axis direction, cosine ≈ 1 →
+any-two-numbers-equal) while `num_eq(98, 97)` is correctly false. `string_char_at(s,i) == 97`
+lowers to `eq` because the routing doesn't consult the intrinsic's declared `int` return type;
+statically-int operands route to num_eq correctly (fizzbuzz). The count-chars probe therefore
+reads 3 instead of 2 — silently. Fix: consult declared intrinsic return types at the == lowering.
+Finding updated with the full resolution trail. No blind fixes — every step measured.
+
 ## 2026-07-13: reach audit finds TWO REAL DEFECTS — mixed-state loops wrong at runtime; relational truth-cast gap
 
 Pinned-tail rotation, "real-program reach": wrote the programs a newcomer would try, model-free,

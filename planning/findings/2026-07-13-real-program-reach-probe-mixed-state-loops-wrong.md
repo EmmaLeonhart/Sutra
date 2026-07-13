@@ -70,3 +70,29 @@ plain locals (no slots), so the slot representation itself is likely NOT the cau
 Two queue items filed (top of ACTIVE): investigate+fix Defect B (wrong values, priority);
 extend truth-type inference to relational comparisons (Defect A). Probes above are the repro
 commands; they should become tests when fixed (expected: "cba", 2, and max_array → 5).
+
+## RESOLUTION of Defect B (same day, instrumented tick-by-tick)
+
+The loop machinery was INNOCENT — the per-tick trace showed `i` decrementing 3→2→1→0 and the
+halt firing exactly on time. Two real causes underneath:
+
+1. **`string_char_at` index boundary (FIXED).** `_st(i)` passed a d-dim NUMBER-VECTOR index
+   (what a loop-threaded `i - 1` is) through unprojected → `cps[ci]` became a d-wide gather →
+   a d-dim garbage "codepoint" poisoning downstream ops. Fix: `_scalar(i)` (projects the
+   real-axis value; passes 0-d/host through) — the same boundary as the B1a count fix. After
+   the fix the spec-correct reverse-string (`string_concat(out, make_char(string_char_at(s,
+   i-1)))`) decodes to **"cba"**; locked in as a test (`TestStringCharAtNumberVectorIndex`).
+   Note the spec point: char_at returns `int` (the codepoint) BY DESIGN (strings.md §"Character
+   is a 1-length String"; stdlib decl `intrinsic method int string_char_at`); the probe's
+   original `string_concat(out, char_at(...))` passed an int where a String belongs — the
+   correct idiom lifts via `make_char`.
+
+2. **`==` on int-returning intrinsic calls routes to general vector `eq`, which reads ANY two
+   numbers as equal (STILL OPEN — new queue item).** Measured: `_VSA.eq(98, 97)` → truth +1.0
+   while `num_eq(98, 97)` → correctly false. The count-chars probe lowers
+   `string_char_at(s,i) == 97` to `eq` (the codegen doesn't know char_at returns int; two
+   statically-int operands like fizzbuzz's `(n%3)==0` correctly route to num_eq). So the count
+   probe reads 3 instead of 2 — every char "equals" 97. The fix is in the ==-routing: consult
+   the intrinsic's declared return type (`int`) so number-family comparisons route to num_eq.
+   Deeper question for the routing owner: general `eq`'s any-two-numbers-equal geometry is a
+   trap wherever an inferred type is missing — worth a defensive note in equality docs.
