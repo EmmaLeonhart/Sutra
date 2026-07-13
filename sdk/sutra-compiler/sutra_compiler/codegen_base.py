@@ -3933,6 +3933,15 @@ class BaseCodegen:
         exprs. None when unknown — the caller decides whether the
         target makes the relabel/axis-move distinction load-bearing."""
         from .symbol_table import _LITERAL_TYPES
+        # Inliner typing provenance (2026-07-13): a comparison that the
+        # operator-lowering inlined (`best >= e` → ge's body polynomial)
+        # carries `_truth_typed`; logical-connective bodies carry
+        # `_logical_truth`. Either way the expression's VALUE is a
+        # truth-axis fuzzy — report "bool" so truth/number casts pick
+        # the axis-move correctly instead of dying "can't be inferred".
+        if (getattr(expr, "_truth_typed", False)
+                or getattr(expr, "_logical_truth", False)):
+            return "bool"
         kind = type(expr).__name__
         if kind in _LITERAL_TYPES:
             return _LITERAL_TYPES[kind]

@@ -327,6 +327,15 @@ _LOGICAL_TRUTH_FORMS = frozenset({
     "logical_xnor",
 })
 
+#: Stdlib forms whose RESULT is a truth-axis value (declared `fuzzy`):
+#: the logical connectives above plus the comparison/equality family the
+#: operator-lowering inlines (`lt`/`le`/`ge`/`neq`; `gt`/`eq` for direct
+#: calls). Drives the READ-ONLY `_truth_typed` marker for cast typing —
+#: distinct from `_LOGICAL_TRUTH_FORMS`' arithmetic-routing flag.
+_TRUTH_VALUED_FORMS = _LOGICAL_TRUTH_FORMS | frozenset({
+    "lt", "le", "ge", "gt", "eq", "neq",
+})
+
 
 def _mark_logical_truth(expr) -> None:
     """Recursively set `_logical_truth = True` on `expr` and every
@@ -427,6 +436,18 @@ def _do_inline(call: ast.Call, decl: ast.FunctionDecl, table=None):
     callee_name = callee.name if isinstance(callee, ast.Identifier) else None
     if callee_name in _LOGICAL_TRUTH_FORMS:
         _mark_logical_truth(substituted)
+    # Typing provenance (2026-07-13 reach-audit): comparisons and
+    # equality also inline (the operator-lowering turns `<`/`<=`/`>=`/
+    # `!=` into lt/le/ge/neq Calls first), so by codegen time the cast
+    # inference sees a body polynomial, not a comparison — and
+    # `(number)(best >= e)` died "static type can't be inferred". Mark
+    # the TOP node of any truth-valued stdlib form's inlined body so
+    # `_infer_cast_operand_type` can read the result type. READ-ONLY
+    # marker: unlike `_logical_truth` above it does NOT change
+    # arithmetic routing — it only answers "what type is this
+    # expression" at the cast decision.
+    if callee_name in _TRUTH_VALUED_FORMS:
+        substituted._truth_typed = True
     return substituted
 
 
