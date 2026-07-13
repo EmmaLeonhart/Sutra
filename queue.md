@@ -45,17 +45,10 @@ but the three loop forms shipped 2026-07-12 are invisible outside docs/loops.md 
 corpus). fizzbuzz.su was upgraded to the real 1..15 String-accumulator loop same-day (smoke
 PASS, exact ground truth). Remaining, in order:
 
-1. **examples/loop_forms.su — a newcomer showcase of the three loop call forms.** One readable
-   example demonstrating (a) by-reference statement form (`slot int x; loop f(cond, x);`),
-   (b) single-state expression form (`int y = loop f(cond, y0);` / `return loop ...`),
-   (c) multi-state tuple-destructure (`(a, b) = loop g(cond, a0, b0);`), and (d) a String
-   accumulator by reference (the previously-impossible case). Model-free (`@embedding: none
-   dim=64`-style header like fizzbuzz.su). Verify every value decoded vs ground truth; add to
-   `_smoke_test.py` as a new example entry.
-2. **REPL: measure whether the new loop forms work interactively.** Drive `repl.py` with a
+1. **REPL: measure whether the new loop forms work interactively.** Drive `repl.py` with a
    loop-function decl + an expression-form call (and the destructure). If broken, fix or file
    the precise defect; if working, note it in the REPL's `:help`/docs. Measure, don't assume.
-3. **docs walkthrough pages (example.md / demos.md): tell the new loop story.** Check whether
+2. **docs walkthrough pages (example.md / demos.md): tell the new loop story.** Check whether
    the guided-example pages still present by-reference as the only call form; add the
    expression + destructure forms where loops appear. Website discipline: no repo-internal
    references.

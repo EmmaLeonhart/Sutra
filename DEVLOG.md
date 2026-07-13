@@ -1,3 +1,16 @@
+## 2026-07-13: examples/loop_forms.su — newcomer showcase of the three loop call forms (smoke Example 13)
+
+Audit-refill item 1. New `examples/loop_forms.su` (model-free, `@embedding: none dim=64`): one
+readable example demonstrating (a) the by-reference statement form (`slot int x; loop addNumber(x <
+11, x);` → 11), (b) the expression form (`return loop addNumber(9 < 11, 9);` → 11), (c) the
+multi-state tuple-destructure (`(total, remaining) = loop drain(...)` → 5 + 1 = 6), and (d) a String
+accumulator by reference (`slot String acc; loop stars(4, acc);` → "****" — the previously-impossible
+case). MEASURED: all five functions decoded to exact ground truth (11 / 11 / 6 / "****" / main 28);
+validates 0 errors 0 warnings; wired into `_smoke_test.py` as Example 13 (`run_loop_forms`, five
+checks) and RUN → PASS, alongside fizzbuzz Example 12 re-run → PASS. The stale smoke-footer comment
+("loop coverage is do_while_adder only") updated to name the new coverage. Queue item deleted;
+remaining refill items: REPL loop-form verification, docs walkthrough pages.
+
 ## 2026-07-13: readability-audit refill + fizzbuzz.su becomes the REAL FizzBuzz (1..15 loop)
 
 Pinned-tail audit tick (the ACTIVE queue's concrete items had drained). Mechanical surface checks
