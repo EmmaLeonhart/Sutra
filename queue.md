@@ -38,6 +38,20 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Probe round 3 refill 2026-07-13 — two real defects
+Finding: `planning/findings/2026-07-13-probe-round3-string-eq-and-signed-and.md` (repros there).
+
+1. **String != String reads ~EQUAL (priority).** `"cat" == "dog"` → +0.994 (codepoint-vector
+   cosine) — routes to general `eq`, not `eq_synthetic`. All Strings read ~equal. Check
+   `_equality_src` routing (codegen.py:236): `_is_synthetic_axis_expr` likely misses
+   `make_string(...)` Calls / String-typed operands. Test: same → +1, diff → strongly negative.
+2. **`&&` mis-composes on signed truth in expression position.** The [0,1] Zadeh polynomial is
+   wrong on signed comparison truth (known: finding 2026-06-17 fixed LOOP CONDITIONS only).
+   Palindrome-via-&& latches true. Fix: truth_and/truth_or for truth-typed operands in
+   expressions too — WITHOUT changing [0,1] fuzzy arithmetic (measure both regimes).
+   Tests: palindrome("abc") negative, palindrome("aba") positive.
+
+
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 
 The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped
