@@ -43,22 +43,16 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 Finding: `planning/findings/2026-07-13-real-program-reach-probe-mixed-state-loops-wrong.md`
 (repro programs there; they become tests when fixed).
 
-1. **`==` on int-returning intrinsic calls routes to general vector `eq` — which reads ANY two
-   numbers as equal. Fix the routing (priority: silent wrong values).** Measured: `_VSA.eq(98,
-   97)` → truth +1.0; `num_eq(98, 97)` → correctly false. `string_char_at(s,i) == 97` lowers to
-   `eq` because the codegen doesn't consult the intrinsic's declared return type (stdlib:
-   `intrinsic method int string_char_at`); statically-int operands (fizzbuzz's `(n%3)==0`)
-   correctly route to num_eq. Fix where == picks its lowering: use declared intrinsic return
-   types so number-family comparisons route to num_eq. Test: the count-chars repro (finding
-   §RESOLUTION) → 2.0. (The other half of the original mixed-state item — the char_at
-   number-vector index — was FIXED same-day: `_scalar(i)` boundary; reverse-string → "cba",
-   locked in TestStringCharAtNumberVectorIndex.)
-2. **Extend static truth-type inference to relational comparisons.** `(number)(e > best)` fails
-   ("static type can't be inferred") while `(number)(x == y)` works — the inference covers
-   equality only. Blocks the natural max-of-array `select` idiom. Scope: wherever `==`/`!=`
-   get their truth type for the relabel-vs-axis-move cast decision, add `<`/`>`/`<=`/`>=`.
-   Test: the max_array probe → 5.0.
-
+1. **Casting inlined relationals + the foreach/select max shape error (the max-of-array gap,
+   two named causes).** (a) The inliner rewrites `<`/`<=`/`>=`/`!=` into INLINED stdlib bodies
+   before codegen, so `(number)(best >= e)` is no longer a Call and the new Call-type inference
+   can't see it — the cast dies "static type can't be inferred". Fix idea: have the inliner tag
+   inlined relational/equality results with a truth-type marker the cast inference reads
+   (compare `_logical_truth`, but READ-only for typing — do NOT force element-wise arithmetic
+   routing). Note `>` and `==` are NOT inlined and work today. (b) Even with `>`-only arms, the
+   max probe dies in `gt`: "size of tensor a (868) must match b (2)" inside foreach+select —
+   separate shape bug, needs its own instrumentation. Repros in the finding. Test when fixed:
+   max_array → 5.0.
 
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 

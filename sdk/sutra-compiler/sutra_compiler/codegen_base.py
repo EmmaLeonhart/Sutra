@@ -3951,6 +3951,19 @@ class BaseCodegen:
                 if (self._CAST_FAMILY.get(lt) == "number"
                         and self._CAST_FAMILY.get(rt) == "number"):
                     return "number"
+        # Call whose declared return type is known (2026-07-13 reach-audit
+        # fix). Two silent failures traced here: (a) the inliner rewrites
+        # `<`/`<=`/`>=`/`!=` into stdlib Calls (`lt`/`le`/`ge`/`neq`,
+        # declared `fuzzy`), so `(number)(best >= e)` arrived as a Call,
+        # inferred None, and the cast DIED "static type can't be inferred";
+        # (b) `string_char_at(s, i) == 97` — char_at declares `int`, but
+        # with no Call inference the == routed to general vector `eq`,
+        # whose cosine reads ANY two number-vectors as equal (98 == 97 →
+        # true) — silently wrong counts. `_resolved_return_type` consults
+        # user-class methods + the stdlib symbol table; conservative (None
+        # when undeclared), same source `_is_complex_expr` already trusts.
+        if isinstance(expr, ast.Call):
+            return self._resolved_return_type(expr.callee)
         return None
 
     def _translate_cast(self, expr: ast.CastExpr) -> str:
