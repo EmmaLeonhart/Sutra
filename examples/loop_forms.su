@@ -1,0 +1,61 @@
+// Loop call forms — the three ways to consume a loop's result.
+// @embedding: none dim=64
+//
+// A Sutra loop is a declared function (`do_while` / `while_loop` /
+// `iterative_loop` / `foreach_loop`) whose parameters are the recurrent
+// state; the body yields the next state with `pass`. This example shows
+// every call-site form on small, checkable loops:
+//
+//   (a) by-reference statement — `slot` vars mutated in place
+//   (b) expression form        — the loop call IS a value
+//   (c) tuple-destructure      — a multi-state loop binds new locals
+//   (d) String state by reference — accumulators work in every form
+
+// A single-state loop: count up to 11.
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+// A two-state loop: accumulate `n` into `total` while counting n down.
+while_loop drain((n > 0) && (n != 1), int total, int n) {
+    total = total + n;
+    pass total, n - 1;
+}
+
+// A String-accumulator loop: append one star per tick.
+iterative_loop stars(4, String acc) {
+    pass string_concat(acc, make_string("*"));
+}
+
+// (a) By-reference statement form. State vars are `slot`-declared and
+// mutated in place by the call; read them afterward.
+function int by_reference() {
+    slot int x = 9;
+    loop addNumber(x < 11, x);
+    return x;                               // 11
+}
+
+// (b) Expression form. The call evaluates to the loop's final state —
+// no `slot`, no mutation; the state argument is an ordinary expression.
+function int expression_form() {
+    return loop addNumber(9 < 11, 9);       // 11
+}
+
+// (c) Tuple-destructure. A multi-state loop binds each final state to a
+// newly-declared local. From 3: total = 3 + 2 = 5, halts at n == 1.
+function int destructure_form() {
+    (total, remaining) = loop drain((3 > 0) && (3 != 1), 0, 3);
+    return total + remaining;               // 5 + 1 = 6
+}
+
+// (d) String state by reference. Vector-valued state (String, vector)
+// threads through slots exactly like scalars do.
+function string string_by_reference() {
+    slot String acc = make_string("");
+    loop stars(4, acc);
+    return acc;                             // "****"
+}
+
+function int main() {
+    return by_reference() + expression_form() + destructure_form();   // 28
+}

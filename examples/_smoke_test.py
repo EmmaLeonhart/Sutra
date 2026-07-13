@@ -397,6 +397,32 @@ def run_fizzbuzz() -> bool:
     return got == exp
 
 
+def run_loop_forms() -> bool:
+    path = os.path.join(HERE, "loop_forms.su")
+    mod = compile_to_module(path)
+    print("=" * 72)
+    print("Example 13: loop_forms.su (by-reference / expression / destructure / String state)")
+    print("=" * 72)
+    v = mod._VSA
+    checks = [
+        ("by_reference", float(v._re(mod.by_reference())), 11.0),
+        ("expression_form", float(v._re(mod.expression_form())), 11.0),
+        ("destructure_form", float(v._re(mod.destructure_form())), 6.0),
+        ("main", float(v._re(mod.main())), 28.0),
+    ]
+    ok = True
+    for name, got, exp in checks:
+        mark = "OK" if abs(got - exp) < 0.01 else "FAIL"
+        ok = ok and mark == "OK"
+        print(f"  {name}() expected={exp} got={got} {mark}")
+    s = v.string_to_python(mod.string_by_reference())
+    mark = "OK" if s == "****" else "FAIL"
+    ok = ok and mark == "OK"
+    print(f"  string_by_reference() expected='****' got={s!r} {mark}")
+    print()
+    return ok
+
+
 def run_semantic_faq() -> bool:
     path = os.path.join(HERE, "semantic_faq.su")
     mod = compile_to_module(path)
@@ -454,13 +480,16 @@ def main() -> int:
     print()
     ok12 = run_fizzbuzz()
     print()
+    ok13 = run_loop_forms()
+    print()
     # Earlier examples 10-12 (loop_rotation.su, counter_loop.su, concept_search.su)
     # used the deprecated `loop (cond)` eigenrotation form and were removed
-    # in master @ 29733a4. Loop coverage is exercised by the function-decl
-    # form via `do_while_adder.su` and the test_loop_function_decl.py
-    # suite (23 tests, all green).
+    # in master @ 29733a4. Loop coverage: the function-decl form via
+    # `do_while_adder.su`, all three call forms via `loop_forms.su`
+    # (Example 13), and the test_loop_function_decl.py / test_loop_call_expr.py
+    # suites.
     print("=" * 72)
-    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9, ok10, ok11, ok12]):
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok7b, ok8, ok9, ok10, ok11, ok12, ok13]):
         print("PASS")
         return 0
     print("FAIL")
