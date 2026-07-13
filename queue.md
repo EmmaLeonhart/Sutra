@@ -43,16 +43,15 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 Finding: `planning/findings/2026-07-13-real-program-reach-probe-mixed-state-loops-wrong.md`
 (repro programs there; they become tests when fixed).
 
-1. **Casting inlined relationals + the foreach/select max shape error (the max-of-array gap,
-   two named causes).** (a) The inliner rewrites `<`/`<=`/`>=`/`!=` into INLINED stdlib bodies
-   before codegen, so `(number)(best >= e)` is no longer a Call and the new Call-type inference
-   can't see it — the cast dies "static type can't be inferred". Fix idea: have the inliner tag
-   inlined relational/equality results with a truth-type marker the cast inference reads
-   (compare `_logical_truth`, but READ-only for typing — do NOT force element-wise arithmetic
-   routing). Note `>` and `==` are NOT inlined and work today. (b) Even with `>`-only arms, the
-   max probe dies in `gt`: "size of tensor a (868) must match b (2)" inside foreach+select —
-   separate shape bug, needs its own instrumentation. Repros in the finding. Test when fixed:
-   max_array → 5.0.
+1. **`(number)` cast on INLINED relationals (`>=`/`<=`/`<`/`!=`) — the last reach-audit item.**
+   The inliner rewrites these into stdlib bodies before codegen, so the Call-type inference
+   can't see them and the cast dies "static type can't be inferred". `>` and `==` are not
+   inlined and work today (max-of-array ships on `>`). Fix direction: a truth-type marker on
+   inlined relational/equality results that `_infer_cast_operand_type` reads — READ-only for
+   typing, NOT `_logical_truth`'s arithmetic-forcing flag. Test when fixed:
+   `(number)(best >= e)` compiles and max-of-array works written either way.
+   (The foreach/select shape error — cause (b) — was FIXED 2026-07-13: `_cnum` normalization
+   of select options; max_array → 5.0 exact, TestSelectScalarOptions.)
 
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 

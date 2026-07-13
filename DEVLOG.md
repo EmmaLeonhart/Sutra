@@ -1,3 +1,24 @@
+## 2026-07-13: select scalar-options FIXED — max-of-array → 5.0 exact; reach audit's defects all closed but one
+
+Instrumented the foreach+select shape error tick-by-tick: at tick 0 `select([s, -s], [e, best])`
+with SCALAR options returned `tensor([3., 0.])` — a 2-element garbage "value". Root cause in
+`_select_softmax`: the SCORES got the 2-D→AXIS_REAL projection (numbers-on-substrate fix) but the
+OPTIONS never got the mirror normalization — 0-d options stacked to (N,), and `(w[:,None]*opts)`
+broadcast (N,1)×(N,)→(N,N), summing into an N-element result. Fix: normalize each option via
+`_VSA._cnum` (lifts a 0-d/host scalar onto the real axis as a d-dim number-vector; passes an
+already-d-dim option — String/vector — through UNTOUCHED, so the fizzbuzz path is bit-identical).
+MEASURED: max-of-array runs — 4.82 with raw ±1 scores (the softmax's designed softness), **5.0
+exact** with the fizzbuzz ×10 gain idiom. Locked in `TestSelectScalarOptions`. Regression: 85
+passed / 92 subtests + fizzbuzz smoke PASS (exact ground truth — d-dim select options unchanged)
++ loop_forms PASS.
+
+Reach-audit scorecard: char_at index FIXED, eq-routing FIXED, select scalar-options FIXED —
+sum/max/reverse/count, the four newcomer programs, all now measure correct end-to-end. ONE item
+remains: the `(number)` cast on INLINED relationals (`>=`/`<=`/`<`/`!=`; `>`/`==` work — max
+ships on `>`). Also read the Notion board: the dropped task = A1 deploy prep, which is the f&n
+session's active lane (their --no-headline fix + end-to-end verification) and awaits Emma's
+"prep A1"/"skip A1" on the board — correctly not duplicated here.
+
 ## 2026-07-13: eq-routing FIXED (Call-type inference) — count-chars correct; max gap re-scoped
 
 The `==`-routing fix: `_infer_cast_operand_type` gains a Call branch consulting
