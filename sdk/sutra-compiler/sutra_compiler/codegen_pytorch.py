@@ -132,9 +132,20 @@ class PyTorchCodegen(Codegen):
         self._emit("s = s - _torch.amax(s)")
         self._emit("w = _torch.exp(s)")
         self._emit("w = w / _torch.sum(w)")
+        # Options get the MIRROR normalization of the scores fix above
+        # (2026-07-13 reach-audit): a 0-d / host-scalar option (e.g.
+        # `select([...], [e, best])` with int-typed loop state) used to
+        # stack to a 1-D (N,) opts, and `(w[:, None] * opts)` broadcast
+        # (N,1)x(N,) into (N,N) — .sum(dim=0) then returned an N-element
+        # garbage "value" (measured: best became tensor([3., 0.])).
+        # `_VSA._cnum` lifts a scalar onto the real axis as a d-dim
+        # number-vector and passes an already-d-dim option (String /
+        # vector / number-vector) through untouched, so the blend below
+        # is uniformly (N, d) -> (d,) and d-dim options are bit-identical
+        # to the old path.
         self._emit("opts = _torch.stack([")
         self._indent += 1
-        self._emit("_torch.as_tensor(o, dtype=_DTYPE, device=_DEVICE)")
+        self._emit("_VSA._cnum(_torch.as_tensor(o, dtype=_DTYPE, device=_DEVICE))")
         self._emit("for o in options")
         self._indent -= 1
         self._emit("])")

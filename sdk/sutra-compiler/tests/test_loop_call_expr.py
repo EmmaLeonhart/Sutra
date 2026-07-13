@@ -515,3 +515,27 @@ function int main() {
 """
         # 'aba': codepoints 97, 98, 97 -> exactly two match 97.
         self.assertAlmostEqual(_run_main_real(src), 2.0, places=2)
+
+
+class TestSelectScalarOptions(unittest.TestCase):
+    """Reach-audit fix (2026-07-13): `select` with SCALAR-family options
+    (int loop state / element) — the options now get the mirror
+    normalization the scores already had (`_cnum` lifts 0-d to a
+    number-vector; d-dim options pass through bit-identically). Before
+    the fix, 0-d options stacked to (N,) and the blend broadcast into an
+    N-element garbage value (measured: best became tensor([3., 0.])).
+
+    Max-of-array — the classic newcomer program — end to end, with the
+    fizzbuzz x10 gain idiom sharpening the softmax."""
+
+    def test_max_of_array(self):
+        src = """
+foreach_loop maxi(arr, int best) {
+    int e = element;
+    number s = 10 * (number)(e > best);
+    pass select([s, 0 - s], [e, best]);
+}
+
+function int main() { return loop maxi([3, 1, 4, 1, 5], 0); }
+"""
+        self.assertAlmostEqual(_run_main_real(src), 5.0, places=2)
