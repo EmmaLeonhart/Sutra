@@ -1,3 +1,23 @@
+## 2026-07-12: vector-loop-state rung 3 B1c + B3 — slot representation FLIPPED to unified d-dim, green
+
+The representation flip Emma chose (Option B). Re-applied the reverted prototype, now on top of the
+B1a (consumer) + B1b (harness) prep: pytorch `_slot_state` → dict `{idx: d-vector}` with
+`slot_state_new`/`_slot_value` (host scalar → number-vector on AXIS_REAL, String/vector pass-through
+untouched — NOT projected) / dict `slot_store`/`slot_load`; numpy parity (dict, stores as-is — this
+backend keeps numbers as host scalars); the two shared `_slot_state = _VSA.slot_state_new()` init
+sites.
+
+**B3 durability gate PASSED** — full slot-touching sweep 281 passed / 92 subtests, both backends, no
+failures (the 22 that killed the first prototype attempt are gone because B1a/B1b pre-adapted the one
+codegen scalar consumer and every `float(main())` harness). Payoff VERIFIED end-to-end (decoded):
+**String state BY REFERENCE `slot String acc; loop build(3, acc); return acc;` → "xxx"** — the exact
+workload finding 2026-07-08 measured crashing now runs by reference; scalar `do_while_adder` by-ref →
+11 (paper-cited path holds); multi-state by-ref → 5.
+
+Remaining: **B5** — retire the now-FALSE SUT0206 crush warning (it warns String/vector loop state
+will crash, but it no longer does), flip its tests, add a String-by-ref end-to-end test, update the
+crush notes in docs. No paper.md touched.
+
 ## 2026-07-12: vector-loop-state rung 3 B1b — migrate slot-return test harnesses to the _re boundary
 
 Second re-scoped sub-rung. Swept every test file for `float()`-on-a-slot-return reads (the ~22

@@ -1256,7 +1256,7 @@ class BaseCodegen:
                 self._var_type[p.name] = p.type_ref.name
         self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
-            self._emit("_slot_state = _VSA.zero_vector()")
+            self._emit("_slot_state = _VSA.slot_state_new()")
         if not decl.body.statements:
             self._emit("pass")
         else:
@@ -1386,7 +1386,7 @@ class BaseCodegen:
         self._nonhalting_slot_var = nonhalting_slot_var
         self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
-            self._emit("_slot_state = _VSA.zero_vector()")
+            self._emit("_slot_state = _VSA.slot_state_new()")
         if not decl.body.statements:
             self._emit("pass")
         else:
