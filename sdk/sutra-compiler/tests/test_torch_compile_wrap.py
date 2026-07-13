@@ -48,7 +48,11 @@ def _run_main(src: str):
     py = _compile(src)
     ns: dict = {}
     exec(py, ns)
-    return ns["main"]()
+    # Project to the real-axis scalar (rung 3 B1b): a slot-backed int return
+    # is a 0-d tensor today and a number-vector under the unified d-dim slot
+    # representation; `_re` reads the real coordinate of the latter and passes
+    # the former through, so `float(...)` holds regardless of representation.
+    return ns["_VSA"]._re(ns["main"]())
 
 
 class TestTorchCompileWrap(unittest.TestCase):

@@ -269,7 +269,10 @@ function int main() {
         self.assertIn("_loop_addNumber(_VSA.slot_load(_slot_state, 0))", py)
         ns: dict = {}
         exec(py, ns)
-        self.assertAlmostEqual(float(ns["main"]()), 11.0, places=2)
+        # `_re` boundary (rung 3 B1b): the slot-backed int return is a 0-d
+        # tensor today, a number-vector after the representation flip.
+        self.assertAlmostEqual(float(ns["_VSA"]._re(ns["main"]())), 11.0,
+                               places=2)
 
 
 class TestMultiStateDiagnostic(unittest.TestCase):

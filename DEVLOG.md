@@ -1,3 +1,18 @@
+## 2026-07-12: vector-loop-state rung 3 B1b — migrate slot-return test harnesses to the _re boundary
+
+Second re-scoped sub-rung. Swept every test file for `float()`-on-a-slot-return reads (the ~22
+failures the Option-B prototype hit were all this shape — the VALUE was correct, a number-vector on
+AXIS_REAL, but `float()` cannot convert a multi-element tensor). Migrated three to the `_re`
+boundary: `test_loop_function_decl.py` (`_run_main` now returns `_VSA._re(main())`),
+`test_torch_compile_wrap.py` (same), and `test_loop_call_expr.py:272` (the statement-form
+regression's inline `float(ns["main"]())`). Already-safe: `test_implicit_loop_desugar.py`'s
+`_decode` projects AXIS_REAL for a d-vector; `test_int_dict.py` returns int-dict number-vectors read
+by `_rv` (its "slot" is a comment, not loop state). `_re` passes a 0-d/host scalar through and reads
+a number-vector's real coord, so this is a NO-OP on today's 0-d slot returns (80 passed) and correct
+after the B1c representation flip. Changed no asserted value — a read-mechanism migration, not a test
+weakening. Next: B1c (flip the slot representation; the consumers [B1a] and harnesses [B1b] are now
+ready). No paper.md touched.
+
 ## 2026-07-12: vector-loop-state rung 3 B1a — pre-project the codegen scalar consumer (green safety net)
 
 First re-scoped sub-rung after the Option-B revert. Audited every codegen consumer that host-converts

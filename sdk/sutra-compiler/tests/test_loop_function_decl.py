@@ -55,13 +55,24 @@ def _compile(src: str) -> str:
 
 
 def _run_main(src: str):
-    """Compile, exec, and return main()'s value."""
+    """Compile, exec, run main(), and return its value projected to the
+    real-axis scalar via the substrate `_re` boundary — the same
+    terminal-boundary decode the CLI display uses.
+
+    A `slot`-backed `int` return is a 0-d tensor under the current slot
+    representation and a number-vector (value on AXIS_REAL) under the
+    unified d-dim slot representation (vector-loop-state rung 3, Option B).
+    `_re` reads the real coordinate of a number-vector and passes a 0-d /
+    host scalar through unchanged, so the numeric assertions below hold
+    identically before and after the representation flip. This is a
+    read-mechanism migration (rung 3 B1b) — it changes no asserted value.
+    """
     py = _compile(src)
     ns: dict = {}
     exec(py, ns)
     main = ns.get("main")
     assert main is not None, "no `main` in emitted module"
-    return main()
+    return ns["_VSA"]._re(main())
 
 
 SIMPLE_DO_WHILE_ADDER = """
