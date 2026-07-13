@@ -1,3 +1,25 @@
+## 2026-07-13: readability-audit refill + fizzbuzz.su becomes the REAL FizzBuzz (1..15 loop)
+
+Pinned-tail audit tick (the ACTIVE queue's concrete items had drained). Mechanical surface checks
+all CLEAN: site builds (`build_site.py` end-to-end), 32 docs pages 0 dead internal links, 0
+scratchpad references, install docs coherent (`pip install "sutra-dev[runtime,embed]"`). The real
+gap: the three loop forms shipped 2026-07-12 are invisible on the NEWCOMER surfaces — no example in
+`examples/` uses the expression or destructure forms, and fizzbuzz.su hardcoded 4 calls
+(`fizzbuzz(15) + " " + ...`) precisely because a String accumulator in a loop used to crush
+(finding 2026-07-08).
+
+**Shipped now: fizzbuzz.su upgraded to the real FizzBuzz** — `iterative_loop build(15, String acc)`
+accumulating via `string_concat`, returned with the loop expression form. MEASURED: decodes to the
+exact ground truth `"1 2 fizz 4 buzz fizz 7 8 fizz buzz 11 fizz 13 14 fizzbuzz "`; `_smoke_test.py`
+expectation upgraded to that STRICTLY STRONGER string (15 entries vs the old 4) and `run_fizzbuzz`
+re-run → PASS. Not paper-cited (checked). This was the round-26 motivating workload end to end.
+
+Queue refilled with the remaining audit findings (top of ACTIVE): examples/loop_forms.su showcase,
+REPL loop-form verification, docs walkthrough pages. Interpretation note: this tick executed
+building's open-ended "figure it out on your own" item (Emma 2026-07-12) as "run the pinned
+readability audit + ship its first finding" — the queue's own prescription when concrete items
+drain, doubly valuable with the CDL/YC window making outsider-facing surfaces the priority.
+
 ## 2026-07-13: daily audit CLEAN + rung 3 B5 — SUT0206 retired; vector-loop-state EPIC COMPLETE
 
 **Daily substrate-honesty audit (2026-07-13 item):** reviewed every commit since `46068361` — the
