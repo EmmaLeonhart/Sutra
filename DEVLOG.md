@@ -1,3 +1,16 @@
+## 2026-07-12: vector-loop-state rung 3 B1a — pre-project the codegen scalar consumer (green safety net)
+
+First re-scoped sub-rung after the Option-B revert. Audited every codegen consumer that host-converts
+a loop value: the ONLY one that reads a slot/state-threaded value as a host scalar is the
+iterative-loop count (`int(count_src)` at codegen_base ~1864). while/do_while conditions stay on the
+substrate (`heaviside(truth_axis(cond))`); foreach uses `array_length` on a binding-array (not a
+scalar slot). Wrapped the count → `int(_VSA._scalar(count))` and added `_scalar` to the numpy backend
+(pytorch already had it). `_scalar` projects a number-vector to its AXIS_REAL value and passes a host
+scalar through — VERIFIED both backends return int-able 5 from both `make_real(5)` and host `5`. So
+this is a no-op on today's 0-d/host-int representation (full slot sweep 189 passed) and is exactly the
+guard the B1c representation flip needs. Next: B1b (move `float(main())`-on-slot-return harnesses to
+`_re`). No paper.md touched.
+
 ## 2026-07-12: vector-valued loop state — rung 3 Option B PROTOTYPED + measured working, then reverted to green; re-scoped
 
 Built the Option-B slot unification prototype (pytorch `_slot_state` → dict `{idx: d-vector}`;

@@ -66,10 +66,13 @@ path first, then vector-sized slots for the by-reference form. Staged:
    ~22 test harnesses doing `float(main())` on a slot return. Full map + proof:
    `planning/findings/2026-07-12-option-b-slot-unification-blast-radius.md`. Re-scoped so each
    sub-rung ENDS GREEN (barrel in order):
-   - **B1a** — audit + fix every codegen scalar consumer of a slot value (iterative count [done in
-     prototype: `int(_VSA._scalar(count))`], foreach length, tail-call return, while-cond scalar
-     reads) to project via `_scalar`/`_re`. Land FIRST while slots are still 0-d — a no-op safety
-     net that keeps the suite green.
+   - **B1a — SHIPPED 2026-07-12.** Audited every codegen consumer: the ONLY host-conversion of a
+     slot/state-threaded value in a loop is the iterative-loop count `int(count_src)` — while/do_while
+     conditions stay on the substrate (`heaviside(truth_axis(...))`), foreach uses `array_length`
+     (arrays, not scalar slots). Wrapped the count in `int(_VSA._scalar(count))` + added `_scalar`
+     to the numpy backend (pytorch already had it). Verified: `_scalar` projects a number-vector to
+     its real value (5) AND passes a host int through, both backends — so the guard is a no-op now
+     and correct after the B1c flip. Full slot sweep 189 passed.
    - **B1b** — move every `float(main())`-on-a-slot-return harness (mostly `test_loop_function_decl.py`)
      to decode via `_re`, verifying each value vs ground truth (NOT blindly — rails).
    - **B1c** — flip the representation: pytorch dict `{idx: d-vector}` + `_slot_value` (host scalar
