@@ -38,21 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Reach-audit refill 2026-07-13 — two real defects from newcomer probes
-
-Finding: `planning/findings/2026-07-13-real-program-reach-probe-mixed-state-loops-wrong.md`
-(repro programs there; they become tests when fixed).
-
-1. **`(number)` cast on INLINED relationals (`>=`/`<=`/`<`/`!=`) — the last reach-audit item.**
-   The inliner rewrites these into stdlib bodies before codegen, so the Call-type inference
-   can't see them and the cast dies "static type can't be inferred". `>` and `==` are not
-   inlined and work today (max-of-array ships on `>`). Fix direction: a truth-type marker on
-   inlined relational/equality results that `_infer_cast_operand_type` reads — READ-only for
-   typing, NOT `_logical_truth`'s arithmetic-forcing flag. Test when fixed:
-   `(number)(best >= e)` compiles and max-of-array works written either way.
-   (The foreach/select shape error — cause (b) — was FIXED 2026-07-13: `_cnum` normalization
-   of select options; max_array → 5.0 exact, TestSelectScalarOptions.)
-
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 
 The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped

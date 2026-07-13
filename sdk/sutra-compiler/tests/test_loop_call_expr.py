@@ -539,3 +539,33 @@ foreach_loop maxi(arr, int best) {
 function int main() { return loop maxi([3, 1, 4, 1, 5], 0); }
 """
         self.assertAlmostEqual(_run_main_real(src), 5.0, places=2)
+
+
+class TestInlinedRelationalCast(unittest.TestCase):
+    """Reach-audit fix (2026-07-13): `(number)` casts on INLINED
+    relationals. The operator-lowering turns `<`/`<=`/`>=`/`!=` into
+    stdlib calls whose bodies inline before codegen, so the cast used to
+    see an untyped polynomial and die "static type can't be inferred".
+    The inliner now marks truth-valued stdlib results with a READ-ONLY
+    `_truth_typed` flag the cast inference reads. Values are SIGNED
+    truth (+1/-1) by design."""
+
+    def test_cast_le_direct(self):
+        src = 'function int main() { number x = (number)(3 <= 5); return x; }'
+        self.assertAlmostEqual(_run_main_real(src), 1.0, places=2)
+
+    def test_cast_lt_false_is_minus_one(self):
+        src = 'function int main() { number x = (number)(5 < 3); return x; }'
+        self.assertAlmostEqual(_run_main_real(src), -1.0, places=2)
+
+    def test_max_of_array_with_ge_cast(self):
+        # The original reach-probe program, both cast arms (> and >=).
+        src = """
+foreach_loop maxi(arr, int best) {
+    int e = element;
+    pass select([10 * (number)(e > best), 10 * (number)(best >= e)], [e, best]);
+}
+
+function int main() { return loop maxi([3, 1, 4, 1, 5], 0); }
+"""
+        self.assertAlmostEqual(_run_main_real(src), 5.0, places=2)

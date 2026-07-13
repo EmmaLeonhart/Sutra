@@ -1,3 +1,25 @@
+## 2026-07-13: inlined-relational cast FIXED — reach audit fully closed (4/4 defects)
+
+The last reach-audit item. The operator-lowering turns `<`/`<=`/`>=`/`!=` into stdlib calls
+whose bodies inline before codegen, so `(number)(best >= e)` reached the cast as an untyped
+polynomial and died "static type can't be inferred". Fix, per the queued direction: the inliner
+marks truth-valued stdlib results (`lt/le/ge/gt/eq/neq` + the logical connectives) with a
+READ-ONLY `_truth_typed` flag on the inlined body's top node — distinct from `_logical_truth`,
+which forces element-wise arithmetic routing and must NOT be overloaded for typing —
+and `_infer_cast_operand_type` reads it (plus `_logical_truth` for connective bodies) as "bool".
+
+MEASURED: the ORIGINAL probe-A program (both cast arms, `>` and `>=`) compiles and returns
+**5.0 exact**; direct casts give the signed values by design (`(number)(3 <= 5)` → +1,
+`(number)(5 < 3)` → −1). Locked in `TestInlinedRelationalCast` (3 tests). Broad regression
+**214 passed / 92 subtests** + fizzbuzz & loop_forms smokes PASS.
+
+**Reach audit CLOSED — 4/4:** char_at number-vector index, eq-routing (Call-type inference),
+select scalar-options (`_cnum`), inlined-relational cast typing. sum / max / reverse / count —
+the four classic newcomer programs — all compile and measure correct end-to-end, written the
+natural way. Queue block drained. ALSO this tick (Emma via the Notion board): wrote the plain
+A1 confirmation file `building/A1-WHAT-IT-IS.txt` (what A1 is, verified state, the one
+remaining login-gated step, her two board options).
+
 ## 2026-07-13: select scalar-options FIXED — max-of-array → 5.0 exact; reach audit's defects all closed but one
 
 Instrumented the foreach+select shape error tick-by-tick: at tick 0 `select([s, -s], [e, best])`
