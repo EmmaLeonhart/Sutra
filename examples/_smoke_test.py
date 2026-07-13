@@ -385,7 +385,12 @@ def run_fizzbuzz() -> bool:
     print("Example 12: fizzbuzz.su (select superposition + num_eq zero-test + int_to_string)")
     print("=" * 72)
     got = mod._VSA.string_to_python(mod.main())
-    exp = "fizzbuzz fizz buzz 7"
+    # The real 1..15 FizzBuzz (2026-07-13): an iterative_loop threads the
+    # String accumulator and the loop expression form returns its final
+    # state — the workload that was a parse error + runtime crush before
+    # the 2026-07-12 loop-state epic. Strictly stronger expectation than
+    # the old 4-call concatenation ("fizzbuzz fizz buzz 7").
+    exp = "1 2 fizz 4 buzz fizz 7 8 fizz buzz 11 fizz 13 14 fizzbuzz "
     mark = "OK" if got == exp else "FAIL"
     print(f"  main() expected={exp!r} got={got!r} {mark}")
     print()

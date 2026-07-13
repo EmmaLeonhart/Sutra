@@ -23,6 +23,16 @@ function string fizzbuzz(int n) {
          make_string("buzz"), int_to_string(n)]);
 }
 
+// The REAL FizzBuzz: loop 1..15, accumulating one String. This is the
+// workload that motivated loop-calls-as-expressions (round-26: it was a
+// parse error) and vector-valued loop state (finding 2026-07-08: a String
+// accumulator was crushed to a scalar) — both shipped 2026-07-12, so the
+// classic now writes the classic way: an iterative_loop threads the
+// String accumulator, and the expression form returns its final state.
+iterative_loop build(15, String acc) {
+    pass string_concat(string_concat(acc, fizzbuzz(iterator)), make_string(" "));
+}
+
 function string main() {
-    return fizzbuzz(15) + " " + fizzbuzz(3) + " " + fizzbuzz(5) + " " + fizzbuzz(7);
+    return loop build(15, make_string(""));
 }
