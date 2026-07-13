@@ -1487,6 +1487,18 @@ class Codegen(BaseCodegen):
         self._emit("return v")
         self._indent -= 1
         self._emit()
+        self._emit("def _scalar(self, x):")
+        self._indent += 1
+        self._emit('"""Coerce a number to an int-able scalar: a full number-vector')
+        self._emit("projects to its AXIS_REAL coordinate; a host scalar / 0-d passes")
+        self._emit("through. Mirrors the pytorch backend so the SHARED codegen's")
+        self._emit("`int(_VSA._scalar(count))` (the iterative-loop count read) works on")
+        self._emit("this backend too. Vector-loop-state rung 3 B1a: this backend keeps")
+        self._emit("numbers as host scalars, so today it is a passthrough — the guard")
+        self._emit('is in place for when a loop count arrives as a number-vector."""')
+        self._emit("return self._re(x)")
+        self._indent -= 1
+        self._emit()
         self._emit("def _num_re(self, v):")
         self._indent += 1
         self._emit('"""Real-axis scalar of a number value — mirrors the pytorch backend\'s')

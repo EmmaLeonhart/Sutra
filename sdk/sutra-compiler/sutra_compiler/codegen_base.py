@@ -1859,9 +1859,16 @@ class BaseCodegen:
             self._emit(f"# iterative_loop: tick = _t+1, halt when tick > count.")
             self._emit(f"_iterator = _t + 1")
             # Heaviside of (count - iterator + 1): positive while iterator
-            # <= count; zero or negative once past. Substrate-pure scalar.
+            # <= count; zero or negative once past. The count may be a
+            # slot-threaded state param, which under rung 3's unified d-dim
+            # slot representation arrives as a number-vector — `_scalar`
+            # projects it to its real-axis value before the int() count
+            # read. A no-op on the current 0-d/host-int form (rung 3 B1a:
+            # pre-project the one codegen scalar consumer of a slot value so
+            # the later representation flip does not break it).
             self._emit(
-                f"_keep = _VSA.heaviside(int({count_src}) - _iterator + 1)"
+                f"_keep = _VSA.heaviside(int(_VSA._scalar({count_src})) "
+                f"- _iterator + 1)"
             )
         elif decl.kind == "foreach_loop":
             # foreach: array is an explicit step parameter (`arr_param_name`).
