@@ -56,15 +56,20 @@ path first, then vector-sized slots for the by-reference form. Staged:
    `symbol_table.local_names` collects the bound names for SUT0205. Tests (`TestMultiStateDestructure`)
    + corpus `valid/loop_destructure.su`; single-value-form-on-multi-state diagnostic now steers
    to `(a, b) = loop ...`. docs/loops.md + capabilities.md + control-flow.md updated.
-3. **Rung 3 — vector state for the by-reference statement form. DESIGN DOC DONE; build gated on
-   Emma's A/B/C call (2026-07-12).** Doc: `planning/open-questions/vector-sized-loop-slots.md`.
-   Confirmed the constraint (a slot owns 2 synthetic axes of the same d-dim state vector — a
-   d-dim value can't pack in). Three options: **C** don't build it — SUT0206 warning→error,
-   steer vector state to the shipped expression/destructure forms, convert `do_while.su` (small,
-   recommended); **A** parallel vector-slot store (medium); **B** unify all slots to d-dim
-   (large, re-verifies the paper-cited scalar path). Rungs 1-2 already give a complete
-   value-returning path for vector state, which is what makes C viable — it reverses the letter
-   of Emma's "Both" pick, so posed back to her via AskUserQuestion. DO NOT build until she picks.
+3. **Rung 3 — unify all slots to d-dim (Emma chose OPTION B, 2026-07-12).** Design doc:
+   `planning/open-questions/vector-sized-loop-slots.md` (build plan B1-B5 there). Shown A/B/C,
+   Emma picked B — one representation, by-reference symmetry, accepting the re-verify of the
+   paper-cited scalar path. Build carefully + measured; do NOT retire the scalar path until the
+   unified path reproduces it. Sub-rungs (barrel in order, each measured):
+   - **B1** — `_slot_state` from one d-vector to a per-slot collection of d-vectors; `slot_store`
+     stores the full vector (scalars as number-vectors, NOT `_slot_cell`/`_re`), `slot_load`
+     returns the full d-vector. Purity gate: no `_re`/`.item()` on the store/load path.
+   - **B2** — `_translate_loop_call` init args + writeback thread full vectors (driver unchanged).
+   - **B3** — re-verify EVERY scalar-slot program decodes to the same ground truth FIRST
+     (`do_while_adder` paper-cited, counter/toggle demos, corpus scalar-slot files). Durability gate.
+   - **B4** — String/vector by-reference works; add the FizzBuzz `slot String acc` end-to-end test.
+   - **B5** — retire the SUT0206 crush; keep `do_while.su` working by reference. Audit every
+     `slot_load` consumer (no longer 0-d).
 
 
 
