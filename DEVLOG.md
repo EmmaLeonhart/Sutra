@@ -1,3 +1,14 @@
+## 2026-07-13: probe round 3 — two more real defects filed (String equality; expression-position &&)
+
+Round 3 probes: same-String eq (+1) and loop-calls-user-function composition (20.0) clean. Two
+real defects filed, no blind fixes: **#6** `"cat" == "dog"` → +0.994 (cosine of the codepoint
+vectors — routes to general `eq`, not `eq_synthetic`; ALL Strings read ~equal); **#7** `&&` on
+signed truth in EXPRESSION position uses the [0,1] Zadeh polynomial (the 2026-06-17 finding
+fixed loop CONDITIONS only) — palindrome-via-&& latches true. Both queued with repros +
+routing suspects; fix constraint noted (#7 must not change [0,1] fuzzy arithmetic — measure
+both regimes). Also: trimmed `A1-WHAT-IT-IS.txt` to 9 lines per Emma's "too wordy" board
+feedback.
+
 ## 2026-07-13: multi-value `pass` gets PARALLEL assignment — fibonacci fixed (was doubling)
 
 Second reach-probe round (fibonacci / palindrome / sum-of-squares). Sum-of-squares correct
