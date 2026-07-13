@@ -1,3 +1,20 @@
+## 2026-07-13: multi-value `pass` gets PARALLEL assignment — fibonacci fixed (was doubling)
+
+Second reach-probe round (fibonacci / palindrome / sum-of-squares). Sum-of-squares correct
+(30.0); palindrome exposed a PROBE error, not a compiler one (a signed-truth AND is min, not
+product — two −1s multiply to +1); fibonacci exposed a REAL defect: `pass b, a + b` emitted
+SEQUENTIAL assignments (`a = b; b = num_add(a, b)`) so the second value read the NEW a —
+degenerating into doubling (measured 128 = 2^7 instead of 34 after 8 ticks).
+
+Fix: multi-value `pass` now stages every value through `_passN` temporaries evaluated against
+the pre-update environment, then assigns together — the RNN-cell semantics `state ← f(state)`
+the loop model intends (single-value passes skip the temporary). MEASURED: fibonacci → **34.0
+exact**; the week's multi-state workloads unchanged (drain → 5, reverse-string → "cba",
+count-chars → 2); full sweep **234 passed / 92 subtests** + fizzbuzz & loop_forms smokes PASS.
+Locked in `TestParallelPassAssignment`. Reach probes have now found FIVE real compiler defects;
+this one silently corrupted any multi-state loop whose later pass value reads an earlier state —
+the fibonacci shape, i.e. extremely common.
+
 ## 2026-07-13: docs correction — the website claimed `(number) b` gives 1/0; it gives signed ±1
 
 Pinned-audit rotation, docs-readability re-sweep after the four reach fixes. The signed-truth

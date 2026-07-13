@@ -2413,13 +2413,38 @@ class BaseCodegen:
                     f"state parameter `{', '.join(state_names)}`), got "
                     f"{len(stmt.values)}",
                 )
-            for state_name, value in zip(state_names, stmt.values):
+            # PARALLEL assignment (2026-07-13 reach-audit fix): every pass
+            # value is evaluated against the CURRENT (pre-assignment)
+            # environment, THEN the state locals update together — the RNN
+            # cell semantics `state ← f(state)`. The old sequential
+            # emission clobbered earlier states before later values read
+            # them: `pass b, a + b` (fibonacci) emitted `a = b` then
+            # `b = num_add(a, b)` with the NEW a, degenerating into
+            # doubling (measured: fib after 8 ticks read 128 = 2^7
+            # instead of 34). Staging through `_passN` temporaries makes
+            # the two-phase update explicit; single-value passes skip the
+            # temporary (nothing to clobber).
+            if len(stmt.values) == 1:
+                value = stmt.values[0]
+                if isinstance(value, ast.ReplaceMarker):
+                    self._emit(f"{state_names[0]} = _init_{state_names[0]}")
+                else:
+                    self._emit(
+                        f"{state_names[0]} = "
+                        f"{self._translate_expr(value)}"
+                    )
+                return
+            tmp_names: list[str] = []
+            for idx, value in enumerate(stmt.values):
+                tmp = f"_pass{idx}"
+                tmp_names.append(tmp)
                 if isinstance(value, ast.ReplaceMarker):
                     # `replace` keyword: restore the parameter's input value.
-                    self._emit(f"{state_name} = _init_{state_name}")
+                    self._emit(f"{tmp} = _init_{state_names[idx]}")
                 else:
-                    value_src = self._translate_expr(value)
-                    self._emit(f"{state_name} = {value_src}")
+                    self._emit(f"{tmp} = {self._translate_expr(value)}")
+            for state_name, tmp in zip(state_names, tmp_names):
+                self._emit(f"{state_name} = {tmp}")
             return
         # LoopCallStmt: invoke a loop function and write back state.
         if isinstance(stmt, ast.LoopCallStmt):
