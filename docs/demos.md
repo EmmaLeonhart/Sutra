@@ -26,8 +26,11 @@ The smoke test compiles each `.su` source through the reference codegen path, ex
 | 8 | [`nearest_phrase.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/nearest_phrase.su) | 20-phrase codebook, clean and noisy retrieval. Target plus 0.2·distractor still returns target. |
 | 9 | [`sequence.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/sequence.su) | Position-bound sequence encoder. A 5-token sequence is one vector; decode any position with `unbind(pos_i, record)`. Two sequences compared by cosine. |
 | 10 | [`semantic_faq.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/semantic_faq.su) | Semantic FAQ matcher. A paraphrased question matches the right canned answer by meaning — `embed` + `argmax_cosine` over a question codebook. |
+| 11 | [`strings_and_formatting.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/strings_and_formatting.su) | String concat, interpolation, and `int_to_string` — text assembled entirely on the substrate. |
+| 12 | [`fizzbuzz.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/fizzbuzz.su) | The real FizzBuzz, 1..15. No `if` — a softmax-weighted `select` superposition picks each word; a loop threads the growing `String` accumulator and returns it as a value. |
+| 13 | [`loop_forms.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/loop_forms.su) | Every loop call form on small checkable loops: by-reference `slot` mutation, the expression form (`int x = loop f(...)`), multi-state tuple-destructure (`(a, b) = loop g(...)`), and a `String` accumulator by reference. |
 
-Loops use first-class declared functions. The canonical example is [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/do_while_adder.su), with coverage in the `test_loop_function_decl.py` suite (23 tests). See the [Loops page](loops.md) for the surface.
+Loops use first-class declared functions. Start with [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/do_while_adder.su) for the minimal shape, then [`loop_forms.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/loop_forms.su) for all three call forms and [`fizzbuzz.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/fizzbuzz.su) for a loop doing real work. See the [Loops page](loops.md) for the surface.
 
 ## The big Unix tools, on a completely neural computer
 
@@ -78,7 +81,7 @@ There is no `if`, `while`, `for`, or `switch` in any of these programs. Every co
 
 ## Reading the source
 
-The `.su` files are deliberately short (30–100 lines each including comments) and meant to be read front-to-back. Start with `hello_world.su` for the minimal shape; `role_filler_record.su` and `knowledge_graph.su` are the richest for understanding bind/unbind composition; `do_while_adder.su` is the smallest example of the loop surface.
+The `.su` files are deliberately short (30–100 lines each including comments) and meant to be read front-to-back. Start with `hello_world.su` for the minimal shape; `role_filler_record.su` and `knowledge_graph.su` are the richest for understanding bind/unbind composition; `do_while_adder.su` is the smallest example of the loop surface and `loop_forms.su` walks every loop call form.
 
 To inspect the generated Python for any demo:
 
