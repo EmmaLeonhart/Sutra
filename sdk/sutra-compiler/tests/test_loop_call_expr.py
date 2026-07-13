@@ -219,10 +219,12 @@ function int main() {
 
     def test_vector_string_state_carries_through_expression_form(self):
         # THE key property (finding 2026-07-12): the expression form
-        # bypasses the scalar slot plane, so String/vector loop state
-        # survives tick-to-tick — the exact workload the by-reference
-        # statement form crushes (SUT0206). Ground-truth decode, not
-        # "it ran": 3 iterations each append "x" → "xxx".
+        # threads state straight through the driver, so String/vector loop
+        # state survives tick-to-tick. (Historically this bypassed the old
+        # scalar slot plane that crushed such state — SUT0206, retired once
+        # the unified d-dim slot store made the by-reference form carry
+        # vectors too.) Ground-truth decode, not "it ran": 3 iterations
+        # each append "x" → "xxx".
         src = """
 iterative_loop build(3, String acc) {
     pass string_concat(acc, make_string("x"));

@@ -488,47 +488,17 @@ class _Walker:
                 ),
             )
 
-    #: Multi-axis type families whose values cannot survive the scalar
-    #: slot plane (one real-axis scalar per slot).
-    _MULTI_AXIS_SLOT_TYPES = frozenset({
-        "string", "String", "char", "Character",
-        "vector", "matrix", "complex",
-    })
-
     def visit_LoopCallStmt(self, node) -> None:
-        # SUT0206 (round-26 finding): the by-reference `loop NAME(cond,
-        # state...);` STATEMENT form threads state through the SLOT plane,
-        # which stores ONE real-axis scalar per slot. A String/vector/
-        # complex state variable is silently crushed to that scalar on the
-        # first store and the program dies later with an opaque tensor-
-        # shape error (measured: the corpus's own do_while.su). The fix now
-        # has a working path: the loop EXPRESSION form
-        # (`TYPE x = loop NAME(cond, initial);`) bypasses the slot plane
-        # entirely — state threads as a plain local through the driver — so
-        # it carries vector/String state correctly (measured 2026-07-12,
-        # planning/findings/2026-07-12-expression-form-already-carries-
-        # vector-loop-state.md). Vector-sized slots for the by-reference
-        # form are a later stage. Steer to the expression form.
-        for name in node.state_arg_names:
-            t = self._local_type_env.get(name)
-            if t in self._MULTI_AXIS_SLOT_TYPES:
-                self.diagnostics.warning(
-                    f"loop state `{name}` is `{t}`-typed, but the "
-                    "by-reference `loop` statement form carries state on "
-                    "the slot plane, which stores one SCALAR per slot — "
-                    "the value will be crushed to its real-axis reading "
-                    "and the program will fail at runtime with a "
-                    "tensor-shape error",
-                    node.span,
-                    code="SUT0206",
-                    hint="use the loop EXPRESSION form, which carries "
-                         "vector/String state — e.g. "
-                         f"`{t} {name} = loop NAME(cond, initial);` — or a "
-                         "`recurring` declaration inside a non-halting "
-                         "loop. Scalar state (int/number) still works "
-                         "through the by-reference `slot` + `loop` form "
-                         "(see loops.md).",
-                )
+        # SUT0206 RETIRED (2026-07-12, vector-loop-state rung 3 B5). The
+        # warning said String/vector/complex `loop` state would be crushed
+        # to a scalar by the 2-axis slot plane and crash at runtime — true
+        # under the old representation (finding 2026-07-08), FALSE under
+        # the unified d-dim slot store (Emma's Option B): slots now hold
+        # full dim-vectors, and String state by reference was measured
+        # working end-to-end (decoded "xxx" — see
+        # test_slot_state_diagnostic.py). The `_MULTI_AXIS_SLOT_TYPES`
+        # frozenset that drove it was removed with it (aggressive-
+        # deprecation rule: an unused affordance misleads the next agent).
         self.visit(node.condition_arg)
 
     def visit_MemberAccess(self, node: ast.MemberAccess) -> None:

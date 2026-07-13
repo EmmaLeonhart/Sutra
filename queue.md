@@ -38,66 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### 🔍 Daily substrate-honesty audit — 2026-07-13
-
-Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
-
-### Vector-valued loop state — Emma directed "Both, expression-first" (2026-07-12)
-
-Emma's call after the measurement (finding 2026-07-12-expression-form-already-carries-vector-
-loop-state.md): the loop EXPRESSION form already carries vector/String state correctly (it
-bypasses the scalar slot plane — measured "xxx" / "n n n n n "). So ship the expression-form
-path first, then vector-sized slots for the by-reference form. Staged:
-
-1. **Rung 1 — expression form is the vector-state path. SHIPPED 2026-07-12.** SUT0206 hint
-   steers vector/String `loop` state to the expression form; String-state end-to-end test
-   (decoded "xxx"); docs/loops.md note; finding doc. (Left the known-broken by-reference
-   corpus `do_while.su` for rung 3.)
-2. **Rung 2 — multi-state tuple-destructure. SHIPPED 2026-07-12.** `(a, b) = loop
-   step(cond, s0, s1);` binds each final state to a new local. New AST `LoopDestructureStmt`,
-   parser detection (`_looks_like_tuple_destructure` + `_parse_loop_destructure`), codegen
-   (`_translate_loop_destructure` — reuses the driver, binds `(a, b, _) = _loop_NAME(...)`),
-   `symbol_table.local_names` collects the bound names for SUT0205. Tests (`TestMultiStateDestructure`)
-   + corpus `valid/loop_destructure.su`; single-value-form-on-multi-state diagnostic now steers
-   to `(a, b) = loop ...`. docs/loops.md + capabilities.md + control-flow.md updated.
-3. **Rung 3 — unify all slots to d-dim (Emma chose OPTION B, 2026-07-12).** Design doc:
-   `planning/open-questions/vector-sized-loop-slots.md` (build plan B1-B5 there). Shown A/B/C,
-   Emma picked B — one representation, by-reference symmetry, accepting the re-verify of the
-   paper-cited scalar path. **PROTOTYPE built + measured working, then REVERTED to keep the tree
-   green (2026-07-12)** — the core is proven (String by-ref → "xxx", scalar do_while_adder → 11,
-   implicit-desugar green) but the blast radius is multi-tick: `slot_load` returning a d-vector
-   instead of 0-d ripples into codegen scalar consumers (foreach length, tail-call return) AND
-   ~22 test harnesses doing `float(main())` on a slot return. Full map + proof:
-   `planning/findings/2026-07-12-option-b-slot-unification-blast-radius.md`. Re-scoped so each
-   sub-rung ENDS GREEN (barrel in order):
-   - **B1a — SHIPPED 2026-07-12.** Audited every codegen consumer: the ONLY host-conversion of a
-     slot/state-threaded value in a loop is the iterative-loop count `int(count_src)` — while/do_while
-     conditions stay on the substrate (`heaviside(truth_axis(...))`), foreach uses `array_length`
-     (arrays, not scalar slots). Wrapped the count in `int(_VSA._scalar(count))` + added `_scalar`
-     to the numpy backend (pytorch already had it). Verified: `_scalar` projects a number-vector to
-     its real value (5) AND passes a host int through, both backends — so the guard is a no-op now
-     and correct after the B1c flip. Full slot sweep 189 passed.
-   - **B1b — SHIPPED 2026-07-12.** Swept every test file for `float()`-on-a-slot-return reads:
-     migrated `test_loop_function_decl.py` (`_run_main` → `_re`), `test_torch_compile_wrap.py`
-     (`_run_main` → `_re`), and `test_loop_call_expr.py:272` (the statement-form regression) to the
-     `_re` boundary. `test_implicit_loop_desugar.py` (`_decode`) already projects AXIS_REAL;
-     `test_int_dict.py` returns int-dict number-vectors read by `_rv` (unaffected — its "slot" is a
-     comment). `_re` passes 0-d through and reads a number-vector's real coord, so no-op today
-     (80 passed) and correct after B1c. Changed no asserted value — read-mechanism migration only.
-   - **B1c — SHIPPED 2026-07-12.** Flipped the representation: pytorch dict `{idx: d-vector}` +
-     `_slot_value` (host scalar → number-vector, String/vector pass-through) + numpy parity (stores
-     as-is) + the two `_slot_state = _VSA.slot_state_new()` init sites. Landed GREEN because B1a/B1b
-     pre-adapted the consumer + harnesses.
-   - **B3 — SHIPPED 2026-07-12 (durability gate PASSED).** Full slot-touching sweep 281 passed / 92
-     subtests, both backends. Payoff verified: **String state BY REFERENCE → "xxx"** (was crushed —
-     SUT0206), scalar do_while_adder BY-REF → 11 (paper-cited path holds), multi-state by-ref → 5.
-   - **B5 — NEXT.** Retire the now-FALSE SUT0206 crush warning (String/vector `loop` state no longer
-     crushes — it works). Remove the validator warning; flip `test_slot_state_diagnostic.py` "fires"
-     tests to "does-not-fire" + add a String-by-ref end-to-end test (decoded "xxx"); update the
-     SUT0206 crush notes in docs/loops.md + control-flow.md. Keep `do_while.su` (now works by ref).
-
-
-
 ### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
 
 The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped
