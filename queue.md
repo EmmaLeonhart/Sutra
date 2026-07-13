@@ -80,11 +80,17 @@ path first, then vector-sized slots for the by-reference form. Staged:
      `test_int_dict.py` returns int-dict number-vectors read by `_rv` (unaffected — its "slot" is a
      comment). `_re` passes 0-d through and reads a number-vector's real coord, so no-op today
      (80 passed) and correct after B1c. Changed no asserted value — read-mechanism migration only.
-   - **B1c** — flip the representation: pytorch dict `{idx: d-vector}` + `_slot_value` (host scalar
-     → number-vector, String/vector pass-through) + numpy parity (stores as-is) + the two
-     `_slot_state = _VSA.slot_state_new()` init sites. Consumers now ready; suite stays green.
-   - **B3** — full re-verify (do_while_adder + all scalar-slot programs + String-by-ref test).
-   - **B5** — retire the SUT0206 crush; keep `do_while.su` working by reference.
+   - **B1c — SHIPPED 2026-07-12.** Flipped the representation: pytorch dict `{idx: d-vector}` +
+     `_slot_value` (host scalar → number-vector, String/vector pass-through) + numpy parity (stores
+     as-is) + the two `_slot_state = _VSA.slot_state_new()` init sites. Landed GREEN because B1a/B1b
+     pre-adapted the consumer + harnesses.
+   - **B3 — SHIPPED 2026-07-12 (durability gate PASSED).** Full slot-touching sweep 281 passed / 92
+     subtests, both backends. Payoff verified: **String state BY REFERENCE → "xxx"** (was crushed —
+     SUT0206), scalar do_while_adder BY-REF → 11 (paper-cited path holds), multi-state by-ref → 5.
+   - **B5 — NEXT.** Retire the now-FALSE SUT0206 crush warning (String/vector `loop` state no longer
+     crushes — it works). Remove the validator warning; flip `test_slot_state_diagnostic.py` "fires"
+     tests to "does-not-fire" + add a String-by-ref end-to-end test (decoded "xxx"); update the
+     SUT0206 crush notes in docs/loops.md + control-flow.md. Keep `do_while.su` (now works by ref).
 
 
 
