@@ -45,10 +45,7 @@ but the three loop forms shipped 2026-07-12 are invisible outside docs/loops.md 
 corpus). fizzbuzz.su was upgraded to the real 1..15 String-accumulator loop same-day (smoke
 PASS, exact ground truth). Remaining, in order:
 
-1. **REPL: measure whether the new loop forms work interactively.** Drive `repl.py` with a
-   loop-function decl + an expression-form call (and the destructure). If broken, fix or file
-   the precise defect; if working, note it in the REPL's `:help`/docs. Measure, don't assume.
-2. **docs walkthrough pages (example.md / demos.md): tell the new loop story.** Check whether
+1. **docs walkthrough pages (example.md / demos.md): tell the new loop story.** Check whether
    the guided-example pages still present by-reference as the only call form; add the
    expression + destructure forms where loops appear. Website discipline: no repo-internal
    references.

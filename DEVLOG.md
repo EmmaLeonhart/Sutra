@@ -1,3 +1,15 @@
+## 2026-07-13: REPL loop forms MEASURED WORKING interactively; :help updated + tests locked
+
+Audit-refill item: drove `run_repl` non-interactively (runtime_dim=64) with all three loop call
+forms. MEASURED, all work: a `do_while` decl accumulates (`(added)`); the expression form
+`loop addNumber(9 < 11, 9)` → `= 11`; the tuple-destructure `(a, b) = loop drain(...)` accumulates
+and the bound locals evaluate (`a + b` → `= 6`); a String-accumulator loop expression
+`loop stars(4, make_string(""))` → `"****"` (the display-boundary String decode handles a loop
+result). Nothing was broken — no fix needed. Per the queue item's if-working branch: `:help` now
+documents loop-function decls + both call forms, and two tests lock the measurement in
+(`test_loop_forms_work_interactively`, `test_help_mentions_loop_forms`) — test_repl.py 13 passed
+(was 11). Remaining refill item: docs walkthrough pages (example.md / demos.md).
+
 ## 2026-07-13: examples/loop_forms.su — newcomer showcase of the three loop call forms (smoke Example 13)
 
 Audit-refill item 1. New `examples/loop_forms.su` (model-free, `@embedding: none dim=64`): one

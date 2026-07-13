@@ -130,3 +130,32 @@ def test_ops_lists_builtins_stdlib_and_special_forms():
 def test_help_mentions_ops():
     out = _drive([":help", ":quit"])
     assert ":ops" in out
+
+
+def test_loop_forms_work_interactively():
+    # The three loop call forms in a live session (readability audit
+    # 2026-07-13, measured): a loop-function decl accumulates, the
+    # expression form evaluates to the final state, the tuple-destructure
+    # binds locals usable in later expressions, and a String-accumulator
+    # loop decodes at the display boundary.
+    out = _drive([
+        "do_while addNumber(x < 11, int x) { pass x + 1; }",
+        "loop addNumber(9 < 11, 9)",
+        "while_loop drain((n > 0) && (n != 1), int total, int n) "
+        "{ total = total + n; pass total, n - 1; }",
+        "(a, b) = loop drain((3 > 0) && (3 != 1), 0, 3);",
+        "a + b",
+        'iterative_loop stars(4, String acc) '
+        '{ pass string_concat(acc, make_string("*")); }',
+        'loop stars(4, make_string(""))',
+        ":quit",
+    ])
+    assert "= 11" in out          # expression form -> final state
+    assert "= 6" in out           # destructured a + b = 5 + 1
+    assert '"****"' in out        # String loop decodes at the boundary
+
+
+def test_help_mentions_loop_forms():
+    out = _drive([":help", ":quit"])
+    assert "loop f(cond, expr)" in out
+    assert "(a, b) = loop" in out
