@@ -30,4 +30,17 @@ ENV HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8771
-CMD ["python", "demos/gui/hero_server.py"]
+# --no-headline is REQUIRED here: the default glyph headline is VSA-encoded and
+# loads an in-process embedding model via `from sentence_transformers import
+# SentenceTransformer` (sdk/sutra-compiler/.../embedding.py) — a package this
+# image deliberately does NOT install (see the torch/numpy/Pillow-only pip step
+# and the "NO embedding model at runtime" note above). Without --no-headline the
+# container crashes at first frame render with ModuleNotFoundError. --no-headline
+# renders the headline as plain text and keeps the image truly dependency-free.
+# To ship the richer glyph headline instead, add "sentence-transformers" +
+# "transformers" to the pip install AND bake the model at build with a
+# `RUN python demos/gui/hero_server.py --warmup` layer, then drop --no-headline.
+# (Verified 2026-07-13 from the funding-and-networking checkout: default CMD hit
+# the sentence_transformers import; --no-headline serves cleanly and one SPSA
+# step morphs the frame.)
+CMD ["python", "demos/gui/hero_server.py", "--no-headline"]

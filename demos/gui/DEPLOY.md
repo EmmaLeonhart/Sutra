@@ -6,9 +6,19 @@ substrate. Static GitHub Pages cannot serve it — it needs a container/VM host.
 
 ## What it needs (small)
 
-- Python 3.11+, `torch` (CPU is fine), `numpy`, `Pillow`. That's it.
-- **No Ollama / embedding model:** `frame_hero.su` has zero `basis_vector` calls,
-  so the render is pure substrate tensor ops.
+- Python 3.11+, `torch` (CPU is fine), `numpy`, `Pillow`. That's it —
+  **when run with `--no-headline`** (which the Dockerfile now does by default).
+- **No Ollama daemon needed.** The *frame* render (`frame_hero.su`) has zero
+  `basis_vector` calls, so it is pure substrate tensor ops.
+- **Caveat (corrected 2026-07-13):** the *headline* is separate from the frame.
+  The default glyph headline is VSA-encoded and loads an in-process embedding
+  model (`nomic-embed-text-v1.5`, ~hundreds of MB) via `sentence_transformers` —
+  NOT part of torch. So the dependency-free claim holds **only with
+  `--no-headline`** (headline shown as plain text). The container CMD uses
+  `--no-headline`; without it, the image would need `sentence-transformers` +
+  `transformers` installed and the model baked at build (`--warmup`), or it
+  crashes at first render. Verified end-to-end from the funding-and-networking
+  checkout on 2026-07-13.
 - `sdk/sutra-compiler` is path-injected by `whole_frame.py` — nothing to install
   from the repo.
 - The server reads `HOST`, `PORT`, `HERO_SIZE`, `HERO_SCALE` from env.
