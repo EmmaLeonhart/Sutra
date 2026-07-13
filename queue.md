@@ -59,17 +59,24 @@ path first, then vector-sized slots for the by-reference form. Staged:
 3. **Rung 3 — unify all slots to d-dim (Emma chose OPTION B, 2026-07-12).** Design doc:
    `planning/open-questions/vector-sized-loop-slots.md` (build plan B1-B5 there). Shown A/B/C,
    Emma picked B — one representation, by-reference symmetry, accepting the re-verify of the
-   paper-cited scalar path. Build carefully + measured; do NOT retire the scalar path until the
-   unified path reproduces it. Sub-rungs (barrel in order, each measured):
-   - **B1** — `_slot_state` from one d-vector to a per-slot collection of d-vectors; `slot_store`
-     stores the full vector (scalars as number-vectors, NOT `_slot_cell`/`_re`), `slot_load`
-     returns the full d-vector. Purity gate: no `_re`/`.item()` on the store/load path.
-   - **B2** — `_translate_loop_call` init args + writeback thread full vectors (driver unchanged).
-   - **B3** — re-verify EVERY scalar-slot program decodes to the same ground truth FIRST
-     (`do_while_adder` paper-cited, counter/toggle demos, corpus scalar-slot files). Durability gate.
-   - **B4** — String/vector by-reference works; add the FizzBuzz `slot String acc` end-to-end test.
-   - **B5** — retire the SUT0206 crush; keep `do_while.su` working by reference. Audit every
-     `slot_load` consumer (no longer 0-d).
+   paper-cited scalar path. **PROTOTYPE built + measured working, then REVERTED to keep the tree
+   green (2026-07-12)** — the core is proven (String by-ref → "xxx", scalar do_while_adder → 11,
+   implicit-desugar green) but the blast radius is multi-tick: `slot_load` returning a d-vector
+   instead of 0-d ripples into codegen scalar consumers (foreach length, tail-call return) AND
+   ~22 test harnesses doing `float(main())` on a slot return. Full map + proof:
+   `planning/findings/2026-07-12-option-b-slot-unification-blast-radius.md`. Re-scoped so each
+   sub-rung ENDS GREEN (barrel in order):
+   - **B1a** — audit + fix every codegen scalar consumer of a slot value (iterative count [done in
+     prototype: `int(_VSA._scalar(count))`], foreach length, tail-call return, while-cond scalar
+     reads) to project via `_scalar`/`_re`. Land FIRST while slots are still 0-d — a no-op safety
+     net that keeps the suite green.
+   - **B1b** — move every `float(main())`-on-a-slot-return harness (mostly `test_loop_function_decl.py`)
+     to decode via `_re`, verifying each value vs ground truth (NOT blindly — rails).
+   - **B1c** — flip the representation: pytorch dict `{idx: d-vector}` + `_slot_value` (host scalar
+     → number-vector, String/vector pass-through) + numpy parity (stores as-is) + the two
+     `_slot_state = _VSA.slot_state_new()` init sites. Consumers now ready; suite stays green.
+   - **B3** — full re-verify (do_while_adder + all scalar-slot programs + String-by-ref test).
+   - **B5** — retire the SUT0206 crush; keep `do_while.su` working by reference.
 
 
 

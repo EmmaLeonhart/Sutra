@@ -1,3 +1,24 @@
+## 2026-07-12: vector-valued loop state — rung 3 Option B PROTOTYPED + measured working, then reverted to green; re-scoped
+
+Built the Option-B slot unification prototype (pytorch `_slot_state` → dict `{idx: d-vector}`;
+`slot_state_new`/`_slot_value`/dict `slot_store`/`slot_load`; numpy parity; shared init sites +
+iterative-count `int(_VSA._scalar(count))`). MEASURED the core CORRECT: scalar do_while_adder → 11
+(paper-cited path holds), **String state BY REFERENCE → "xxx"** (the crush the whole rung targets —
+finding 2026-07-08 — is gone), 2-state by-ref → 5; `test_implicit_loop_desugar` (torch+numpy) green
+after the count fix.
+
+But the full broad sweep was 251 passed / **22 failed** — the blast radius is multi-tick: making
+`slot_load` return a d-vector instead of 0-d ripples into (a) codegen scalar consumers not yet
+audited (foreach length, tail-call return) and (b) ~22 `test_loop_function_decl.py` harnesses doing
+`float(main())` on a slot return (the VALUES are correct — number-vectors on AXIS_REAL — but the
+harness read must move to `_re` and be re-verified). This is the paper-cited core loop machinery, so
+per the hard rails I did NOT force a red tree: **reverted the 3 code files to green**, preserved the
+proof + exact consumer map in `planning/findings/2026-07-12-option-b-slot-unification-blast-radius.md`,
+and re-scoped rung 3 into ordered sub-rungs that each END GREEN (B1a fix consumers while still 0-d →
+B1b move harnesses to `_re` → B1c flip representation → B3 re-verify → B5 retire crush). The hard
+part — proving the core works and mapping the blast radius — is done; the rest is mechanical + ordered.
+No paper.md touched. Tree verified green after revert (loop suites 72 passed).
+
 ## 2026-07-12: vector-valued loop state — rung 3 design doc (by-reference vector slots); build gated on Emma A/B/C
 
 Rung 3's mandated first step is a design doc (real substrate constraint). Wrote
