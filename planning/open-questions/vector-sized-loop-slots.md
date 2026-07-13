@@ -70,15 +70,34 @@ number-vector form (a scalar is already a `dim`-vector on AXIS_REAL). `slot_stor
   the whole scalar-slot corpus (`do_while_adder` is paper-cited — durability).
 - **Risk:** high. Biggest blast radius; most re-measurement.
 
-## Recommendation
+## Recommendation → DECIDED: Option B (Emma, 2026-07-12)
 
-**Option C**, unless Emma specifically wants by-reference symmetry for vector state. Rungs 1-2
-already deliver a correct, measured value-returning path for both single- and multi-state vector
-loops; Options A/B spend real substrate-redesign effort (and, for B, risk the paper-cited scalar
-path) to buy a surface the language is already steering people away from. C closes the SUT0206
-crush cleanly and cheaply. But this reverses the letter of Emma's "Both" pick (made before
-rungs 1-2 proved the value path), so it needs her confirmation — same as the rung-1 measurement
-reshaped that decision.
+The doc recommended **C** (cheapest; rungs 1-2 already cover vector state). Shown all three,
+**Emma chose B — unify all slots to `dim`-sized.** She wants by-reference symmetry under a
+single representation, accepting the larger blast radius and the re-verification of the
+paper-cited scalar path. Build it carefully and incrementally, keeping every scalar-slot program
+measured-correct at each step; do NOT retire the scalar path until the unified path reproduces it.
+
+### Option B build plan (staged; each sub-rung bounded + measured)
+
+- **B1 — storage representation.** `_slot_state` from one `dim`-vector to a per-slot collection of
+  `dim`-vectors. n_slots isn't known until a function is fully scanned, so either pre-scan the
+  body for `slot` decls to size a `[n_slots, dim]` tensor, or use a growable list-of-vectors
+  (append on declare). `slot_store(state, idx, v)` sets slot `idx` to the full vector (scalars via
+  `make_real`/number-vector, NOT `_slot_cell`/`_re`); `slot_load(state, idx)` returns the full
+  `dim`-vector. Substrate-purity gate: no `_re`/`.item()` on the store/load path.
+- **B2 — loop-call by-reference path.** `_translate_loop_call` init args (`slot_load`) + writeback
+  (`slot_store`) thread full vectors; the driver already threads state as plain locals, so it needs
+  no change beyond receiving/returning vectors.
+- **B3 — re-verify the scalar path FIRST (before retiring anything).** Every scalar-slot program —
+  `do_while_adder` (paper-cited), the counter/toggle demos, corpus scalar-slot files — must decode
+  to the same ground-truth value. Measure, don't assume. This is the durability gate.
+- **B4 — String/vector by-reference works.** The finding's FizzBuzz `slot String acc` case now
+  runs by reference; add the end-to-end test (decoded ground truth).
+- **B5 — retire the SUT0206 crush** (the by-reference form no longer crushes vector state) and
+  keep `do_while.su` (the `slot vector` case) working by reference.
+- Throughout: `slot_load` no longer returns 0-d — audit every consumer (the slot-load call sites
+  outside loops, e.g. a bare `slot int x` read) so none assumed a scalar.
 
 ## Migration (whichever path)
 

@@ -19,6 +19,13 @@ rungs 1-2 landed), so it's posed back to her via AskUserQuestion, same as the ru
 reshaped that decision. No code built this tick (correctly — the queue mandates the doc first, and
 the build fork is Emma's). No paper.md touched.
 
+**Emma chose OPTION B (unify all slots d-dim)** — the largest, not the recommended C. She wants
+by-reference symmetry under one representation, accepting the re-verify of the paper-cited scalar
+path. Decomposed into staged sub-rungs B1-B5 (storage rep → loop-call path → re-verify scalar path
+FIRST → String by-ref test → retire SUT0206 crush) in the design doc + queue; the durability gate
+is "no scalar-slot program regresses, measured, before the old path is retired." Build starts next
+work-loop tick (bounded per sub-rung; not hacked into one commit).
+
 ## 2026-07-12: vector-valued loop state — rung 2 (multi-state tuple-destructure) SHIPPED
 
 `(a, b, ...) = loop NAME(cond, s0, s1, ...);` now binds a multi-state loop's final states to
