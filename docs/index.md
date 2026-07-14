@@ -54,6 +54,7 @@ tutorial to a local file (as with `hello.su` above) or clone the repo.
 ## Read more
 
 - **[Tutorials](tutorials/index.md)** — the guided walk: hello world, bind/unbind, cleanup, TypeScript transpilation, a semantic FAQ matcher, strings & formatting.
+- **Reading with an AI agent?** Fetch [/llms.txt](/llms.txt) — a plain-markdown index; every docs page is also served as raw markdown at its URL plus `.md` (e.g. `/loops.md`).
 - **[What Sutra implements](capabilities.md)** — the exhaustive inventory: every keyword, operator, runtime primitive, and diagnostic.
 - **[Operations and operators](operators.md)** — the formal definitions.
 - **[Papers](papers.md)** — the Sutra papers, with PDFs and venue links.

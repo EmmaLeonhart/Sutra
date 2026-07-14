@@ -971,9 +971,11 @@ Sutra's stance per CLAUDE.md is that agents are first-class consumers
 of the documentation, not an afterthought. The site is already
 markdown-driven, but specific moves to take it further:
 
-- [ ] Expose the docs through an MCP server (or a documented
-  fetch-this-URL pattern) so agents can query Sutra's surface
-  programmatically rather than scraping HTML.
+- [x] Expose the docs through a documented fetch-this-URL pattern —
+  SHIPPED 2026-07-14: `/llms.txt` (llms.txt convention, built from the
+  site's own ORDER/BLURB tables) + every docs page published as
+  byte-exact raw markdown at `/<slug>.md`; pointer on the docs index.
+  (An MCP server remains a possible later upgrade on top of these URLs.)
 
 ---
 
