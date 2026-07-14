@@ -31,8 +31,9 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
   (`.item()`/`float(tensor)`) inside operations.
 - **Multi-clone**: editable `sutra_compiler` install points at the sibling `Github\Sutra`; verify
   changes here via `PYTHONPATH=sdk/sutra-compiler`. CI uses this repo's compiler.
-- **Version: 0.9.4** (tagged 2026-07-08, Emma's second go of the day; adds num_eq zero-testing,
-  le/ge tie fix, String decode hardening, user-fn concat fix, REPL :ops, SUT0205, fizzbuzz). Publish via `sutra-dev-vX.Y.Z` tags
+- **Version: 0.10.0** (tagged 2026-07-14, Emma-approved; the loop-state sprint: three loop call
+  forms, unified d-dim slots, seven compiler fixes, SUT0207, cookbook/llms.txt; publish verified
+  success — PyPI + GitHub Release). Publish via `sutra-dev-vX.Y.Z` tags
   (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until codegen/stdlib go a stretch
   with NO source-breaking changes (Emma's call). No hard blocker; a source-compat-stability commitment.
 
