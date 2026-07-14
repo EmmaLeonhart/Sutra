@@ -1,3 +1,12 @@
+## 2026-07-14: audit — every tutorial/cookbook/loops.md code snippet validates on main (15/15)
+
+Pinned-audit rotation, docs-code-truth surface: extracted every complete ```sutra block from
+docs/tutorials/*.md + cookbook.md + loops.md (15 with declarations; illustrative fragments
+skipped) and ran each through validate_source on current main. ALL CLEAN — 0 errors across
+15 snippets. The website's example code is verified compilable, not just prose. Also polled
+Wikidata: Emma's author item not yet created (her Batch-1 run pending; no nagging — the
+one-click tabs are open on her machine).
+
 ## 2026-07-14: post-release cold-install check — PyPI 0.10.0 verified; Windows --emit crash found + fixed
 
 Fresh-venv onboarding check against the LIVE PyPI package (the pinned audit's "can a stranger
