@@ -1,3 +1,23 @@
+## 2026-07-14: review triage — loop backprop HARD-FAILS (measured); paper differentiability claims scoped
+
+The v9 review's Heaviside criticism triaged by MEASUREMENT, not argument: backward() through
+the emitted loop driver RAISES (`derivative for aten::heaviside is not implemented`) — programs
+with runtime loops are not backpropable at all, not merely zero-gradient through halt timing.
+The reviewer's kernel was real and STRONGER than stated; the paper's unscoped "differentiable
+end-to-end through the compiled graph" was an overclaim for loop-bearing programs.
+
+Fixed to measured truth (2 sites): the conclusion now scopes differentiability to the
+straight-line graph (gradients verified through the emitted connectives/similarity, §3.6 —
+that result is loop-free and stands) with loop termination named forward-only + surrogate as
+future work; §3.4's loops-method section carries the same caveat where the reviewer pointed.
+The review's other cons: "2026 citations hallucinated" = reviewer error (it IS 2026);
+toy-scale = fair, known; efficiency/legibility = opinions.
+
+Finding `2026-07-14-loop-backprop-hard-fails-heaviside.md` + queue item: the differentiable-
+halt design fork (straight-through / soft-step / stay-forward-only) is Emma's call — each
+option changes training semantics on the substrate. Not built unilaterally. This push fires
+the resubmit CI again — a real claims-accuracy update.
+
 ## 2026-07-14: paper.md slot-layout claims corrected to the shipped mechanism (durability audit)
 
 Emma's board correction named the NeurIPS/FV paper as live building work, so this tick audited
