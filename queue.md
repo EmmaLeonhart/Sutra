@@ -41,27 +41,11 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 ### Probe round 3 refill 2026-07-13 — two real defects
 Finding: `planning/findings/2026-07-13-probe-round3-string-eq-and-signed-and.md` (repros there).
 
-1. **String != String reads ~EQUAL (priority).** `"cat" == "dog"` → +0.994 (codepoint-vector
-   cosine) — routes to general `eq`, not `eq_synthetic`. All Strings read ~equal. Check
-   `_equality_src` routing (codegen.py:236): `_is_synthetic_axis_expr` likely misses
-   `make_string(...)` Calls / String-typed operands. Test: same → +1, diff → strongly negative.
-2. **`&&` mis-composes on signed truth in expression position.** The [0,1] Zadeh polynomial is
+1. **`&&` mis-composes on signed truth in expression position.** The [0,1] Zadeh polynomial is
    wrong on signed comparison truth (known: finding 2026-06-17 fixed LOOP CONDITIONS only).
    Palindrome-via-&& latches true. Fix: truth_and/truth_or for truth-typed operands in
    expressions too — WITHOUT changing [0,1] fuzzy arithmetic (measure both regimes).
    Tests: palindrome("abc") negative, palindrome("aba") positive.
-
-
-### A1 web wrapper — VERIFIED + EMA closed 2026-07-04; remaining = public deploy (Emma's account)
-
-The wrapper itself already existed (`demos/gui/hero_server.py` + `hero_page.html`, shipped
-2026-07-01) — 2026-07-04 this session VERIFIED it in a real Chromium (page loads, WARMER/COLDER
-click, 6 presses = 3 SPSA steps, the substrate frame visibly morphs, headline re-renders; only
-console noise is the browser's automatic `/favicon.ico` 404) and CLOSED the flagged 1d item:
-reward EMA smoothing (`HeroSteering(ema_alpha=…)`, default 1.0 = raw, `--ema` on the server/window;
-4 new tests incl. an exact ×0.5-damping check; 1d soak numbers reproduce unchanged). DEVLOG
-2026-07-04. **What remains is only the public URL:** deploying per `demos/gui/DEPLOY.md`
-(HF Spaces Docker recommended) needs Emma's hosting account — her step, not an agent's.
 
 
 ---
@@ -106,6 +90,11 @@ she says it's there. (Consistent with the v1.0.0-deferred note in Context above.
 _2026-06-21 audit: these are real, not phantom-PR. The async/await Stage-1 item was RETIRED (its
 "only-tail-position-works / model-blocked" premise is now false — mid-function await shipped 2026-06-20).
 The rest are genuinely gated on resources this clone lacks._
+
+- **A1 web wrapper public deploy — PARKED by Emma (Notion board, 2026-07-13).** The demo is
+  built + browser-verified (07-04, re-verified 07-13 by f&n; --no-headline container fix
+  landed). The only remaining step was the HF Spaces publish, gated on Emma's hosting login;
+  she chose to park it. Resume on her word — everything else is staged (demos/gui/DEPLOY.md).
 
 - **await Stage-2 — full gated `while_loop` with a LIVE external producer — desktop-I/O-gated.**
   The await CORE shipped 2026-06-20 (mid-function lowering + Promises/A+ rejection propagation, substrate-

@@ -3266,6 +3266,15 @@ class BaseCodegen:
             return self._var_type.get(expr.name) in self._SYNTHETIC_AXIS_TYPES
         if isinstance(expr, ast.Parenthesized):
             return self._is_synthetic_axis_expr(expr.inner)
+        # A call whose declared return type is synthetic-axis-encoded
+        # (2026-07-13 reach-audit defect #6): `make_string("cat") ==
+        # make_string("dog")` fell through to the general cosine `eq`,
+        # and two codepoint vectors are nearly parallel — ALL Strings
+        # read ~equal (measured +0.994). Same conservative
+        # Call-return-type pattern `_is_number_expr` already uses.
+        if isinstance(expr, ast.Call):
+            return (self._resolved_return_type(expr.callee)
+                    in self._SYNTHETIC_AXIS_TYPES)
         return False
 
     def _is_number_expr(self, expr: ast.Expr) -> bool:

@@ -594,3 +594,24 @@ function int main() {
 }
 """
         self.assertAlmostEqual(_run_main_real(src), 34.0, places=2)
+
+
+class TestStringEqualityRouting(unittest.TestCase):
+    """Reach-audit defect #6 (2026-07-13): whole-String `==` must route to
+    eq_synthetic (Euclidean+tanh), not the general cosine eq — two
+    codepoint vectors are nearly parallel, so cosine read ALL Strings as
+    ~equal (measured "cat" == "dog" -> +0.994). `_is_synthetic_axis_expr`
+    now recognizes calls whose declared return type is synthetic-axis
+    (make_string -> String), the same pattern _is_number_expr uses."""
+
+    def test_same_strings_equal(self):
+        src = ('function int main() { number x = '
+               '(number)(make_string("cat") == make_string("cat")); '
+               'return x; }')
+        self.assertAlmostEqual(_run_main_real(src), 1.0, places=2)
+
+    def test_different_strings_not_equal(self):
+        src = ('function int main() { number x = '
+               '(number)(make_string("cat") == make_string("dog")); '
+               'return x; }')
+        self.assertAlmostEqual(_run_main_real(src), -1.0, places=2)

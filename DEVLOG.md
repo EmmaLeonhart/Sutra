@@ -1,3 +1,19 @@
+## 2026-07-13: defect #6 FIXED — String equality routes synthetic; A1 PARKED per Emma's board decision
+
+**#6 fixed:** `_is_synthetic_axis_expr` gains the Call-return-type branch (`make_string` →
+`String` ∈ synthetic types — the exact pattern `_is_number_expr` already had), so whole-String
+`==` routes to `eq_synthetic` (Euclidean+tanh) instead of the general cosine `eq`. MEASURED:
+"cat"=="cat" → +1.0, "cat"=="dog" → **−1.0** (was +0.994 — all Strings read ~equal), typed
+String vars likewise. `TestStringEqualityRouting`. Regression 203 passed / 92 subtests +
+fizzbuzz/loop_forms/strings smokes PASS.
+
+**A1 parked (bookkeeping):** Emma decided on the Notion board ("A1 parked") — moved the A1
+entry from ACTIVE to PARKED in this queue (resume on her word; everything staged per
+DEPLOY.md) and deleted `building/A1-WHAT-IT-IS.txt` (its question is answered).
+
+Remaining: defect #7 (`&&` on signed truth in expression position — the [0,1] Zadeh polynomial;
+loop conditions were fixed 2026-06-17, expressions were not).
+
 ## 2026-07-13: probe round 3 — two more real defects filed (String equality; expression-position &&)
 
 Round 3 probes: same-String eq (+1) and loop-calls-user-function composition (20.0) clean. Two
