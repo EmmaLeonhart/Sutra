@@ -38,19 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Transpilers CI — root-caused + harness-fixed 2026-07-14; WATCHING CI to confirm
-
-Root cause (verified by mechanism reproduction + a full local TS run): the nine
-`test_lower_fixtures.py` harnesses parsed the result number from `stdout + stderr`, and on CI
-the compiler's UserWarnings (dim-audit note) land on stderr AFTER the stdout number — the
-trailing-number regex never matched, failing every runnable fixture with "no numeric result in:
-<number>" (pytest's short summary truncated the appended warnings out of view). Fixed all nine
-harnesses to parse STDOUT only (full combined output kept in failure messages). VERIFIED: TS
-frontend runs the fixed harness fully green locally (44 passed, 1 xfailed — same CLI path CI
-exercises); other 8 frontends need grammar DLLs absent on this box → transpilers-ci is the
-arbiter for them. If CI still fails a frontend after this, the residue is frontend-specific,
-not the harness. Delete this item when transpilers-ci goes green.
-
 ---
 
 ## ⭐ PINNED TAIL — readability + usability audit → REFILL (self-perpetuating; Emma 2026-06-23)
