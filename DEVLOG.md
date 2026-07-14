@@ -1,3 +1,11 @@
+## 2026-07-14: transpilers-ci GREEN — the 50-run chronic red is closed; ALL test workflows green
+
+CI verdict on `fd7e579e`: **transpilers-ci SUCCESS.** The stdout-only harness fix resolved every
+frontend, including the eight DLL-gated ones this box couldn't run — confirming the mechanism was
+purely the harness's stdout+stderr parsing, not frontend math. With compiler CI already green,
+**both test workflows are green together for the first time since at least 2026-07-06.** Queue
+item deleted per its own instruction.
+
 ## 2026-07-14: transpilers-ci chronic red ROOT-CAUSED — stdout+stderr parsing; all nine harnesses fixed
 
 The bounded first step paid off immediately. Mechanism (verified by exact reproduction of the
