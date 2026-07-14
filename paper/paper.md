@@ -468,7 +468,11 @@ the substrate (truth-axis read → heaviside → cumulative
 saturating sum to `halted`), run the cell body, soft-mux
 between pre- and new-step state by `halted`. A Python
 `while True:` driver breaks the moment `halted` saturates;
-this is the only host-side branch in the loop machinery. Inside
+this is the only host-side branch in the loop machinery. The
+halt read is a hard step (heaviside), which has no usable
+gradient: loop *termination* is a forward-only decision, and the
+differentiable-training results in this paper (§3.6) are on
+loop-free graphs. Inside
 the cell body, every operation is a substrate tensor op. No
 compile-time iteration cap, programs terminate when their halt
 condition fires. Standard PyTorch tracing handles a Python
@@ -1022,8 +1026,13 @@ Sutra compiles a typed pure-functional source language to a
 PyTorch tensor-op graph over the embedding substrate: one vector
 layout per value, one tensor op per primitive, one dataflow graph
 per program, no type dispatch at the leaves. Compiled programs
-are substrate-pure and differentiable end-to-end through the
-compiled graph. With the language in hand, asking which embedding
+are substrate-pure, and the straight-line graph — connectives,
+binding, similarity — is differentiable end-to-end (gradients
+verified through the emitted graph, §3.6). One scoping note:
+loop halt detection uses a hard step function, so gradients do
+not flow through loop termination — programs containing runtime
+loops execute forward-only today, and a differentiable halt
+surrogate is future work. With the language in hand, asking which embedding
 operations compose at what capacity on which substrates becomes a
 program to write.
 

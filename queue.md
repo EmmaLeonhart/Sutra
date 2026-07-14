@@ -38,6 +38,18 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Differentiable loop halt — design fork (Emma's call; do NOT build unilaterally)
+
+Finding: `planning/findings/2026-07-14-loop-backprop-hard-fails-heaviside.md`. MEASURED:
+backward() through any runtime loop RAISES (aten::heaviside has no derivative) — loops are
+forward-only today. The paper's claims are now scoped to this truth (conclusion + §3.4).
+Making loops trainable is a language-design fork: (a) straight-through estimator on the halt
+step (forward identical, chosen backward); (b) soft step (steep tanh — changes forward halt
+saturation, must re-measure); (c) stay forward-only (loops as inference-time control). Each
+changes training semantics on the substrate. Surface to Emma via AskUserQuestion when timely;
+the finding's repro becomes the test once a direction is chosen.
+
+
 ---
 
 ## ⭐ PINNED TAIL — readability + usability audit → REFILL (self-perpetuating; Emma 2026-06-23)
