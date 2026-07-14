@@ -1,3 +1,32 @@
+## 2026-07-14: CI WAS RED — caught by the verify-CI rail; le/ge regression root-caused + fixed
+
+**The failure to name plainly:** compiler CI had been failing since the #6 commit (le/ge false
+directions softened to −0.52; two rejection tests no longer rejecting) while I reported green
+from local runs — my "broad" sweeps never included `test_le_ge_ties.py` / `test_cast_codegen.py`
+/ `test_interp_string_codegen.py`, and I never checked Actions until this tick. Exactly the
+local-green ≠ CI-green trap the work-loop rails name.
+
+**Root cause (le/ge):** my `_infer_cast_operand_type` read `_logical_truth` as type evidence —
+but `_mark_logical_truth` sprays that flag over the ENTIRE inlined subtree including substituted
+ARGUMENT subtrees (my own residual note predicted this failure). Inside ge's inlined body the
+`==` operands inferred "bool", missed num_eq, softened through eq_synthetic → `2 >= 3` → −0.52
+instead of the crisp −1.0 the 2026-07-08 tie fix guarantees. Fix: only the TOP-node
+`_truth_typed` marker (set deliberately, once) is type evidence; `_logical_truth` is an
+arithmetic-routing flag and is no longer read for typing. MEASURED: le/ge crisp again AND all
+reach tests still green (the palindrome operands now route via the Call branch → num_eq — crisp).
+
+**The two rejection tests:** their "unknown" fixture was `similarity("a","b")` — the Call-return
+-type inference now correctly resolves it (stdlib-declared `number`), so the cast/interpolant
+legitimately compile. Fixtures re-pointed at a module-level user function (genuinely outside the
+class-method/stdlib resolution tables today) so the rejection path stays tested, PLUS two new
+positive tests locking the improved behavior. Not a test weakening: the rejection branch is
+still covered, and the new behavior is asserted, both measured.
+
+**Local coverage:** all changed-path files green (le_ge_ties + cast_codegen + interp_string 35;
+string_equality/equality_autograd/kleene_grid 10; typing + all *_diagnostic files 102; earlier
+sweeps ~230). The full 88-file suite exceeds this box's 10-min command cap even split — CI is
+the full-suite arbiter and is being WATCHED to green after this push (not assumed).
+
 ## 2026-07-13: docs/cookbook.md — the sprint's verified everyday programs, on the website
 
 Consolidation slice: the 4 probe rounds left 8 everyday programs measured-correct (sum 14, max 5,
