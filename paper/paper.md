@@ -446,11 +446,13 @@ per-substrate L-sweep tables in Appendix D.
 Every value carries a fixed `[semantic | synthetic]` layout:
 the d-dimensional semantic block holds the substrate embedding
 for vector-shaped values, and a small synthetic block reserves
-canonical axes for primitive types (real, imag, truth, char) and
-a loop-completion flag, with the remaining axes paired into 2D
-Givens planes for variable slots. Default at d = 768
-(nomic-embed-text): a 100-dim synthetic block accommodates the
-five canonical axes plus 47 disjoint slots. Rotation binding is
+canonical axes for primitive types (real, imag, truth, char), a
+loop-completion flag, and promise/axon status flags. Variable
+slots hold **full extended-layout vectors** in a per-slot store
+keyed by compile-time slot indices — a scalar is carried as its
+number-vector (value on the real axis) and String/vector state is
+carried whole, so every slot type shares one representation.
+Rotation binding is
 block-diagonal across the split (`Q_role` is Haar-random in the
 semantic block, identity on the synthetic block), so the
 synthetic axes pass through bind/unbind unchanged, a fuzzy-truth
@@ -1239,10 +1241,15 @@ allocation referenced in `codegen_pytorch.py`:
 | `synthetic[2]`    | `AXIS_TRUTH` (fuzzy truth scalar; bool/comparisons)         |
 | `synthetic[3]`    | `AXIS_CHAR_FLAG` (marks char primitives)                    |
 | `synthetic[4]`    | `AXIS_LOOP_DONE` (substrate-side completion flag)           |
-| `synthetic[5..]`  | `SLOT_BASE`: disjoint 2D Givens slots for variable storage |
+| `synthetic[5]`    | `AXIS_PROMISE_FULFILLED` (promise status)                   |
+| `synthetic[6]`    | `AXIS_PROMISE_REJECTED` (promise status)                    |
+| `synthetic[7]`    | `AXIS_AXON_POPULATED` (axon arrival flag)                   |
+| `synthetic[8..]`  | reserved headroom (`SLOT_BASE`)                             |
 
-At `semantic_dim = 768` (nomic-embed-text), `synthetic_dim = 100`
-accommodates the five canonical axes plus 47 disjoint Givens slots.
+Variable slots do not occupy synthetic axes: each slot stores a full
+extended-layout vector in a per-slot store keyed by compile-time slot
+indices (scalars as number-vectors on `AXIS_REAL`; String/vector state
+carried whole), so every slot type shares one representation.
 
 ### Appendix C. Capacity: full per-substrate sweeps
 
