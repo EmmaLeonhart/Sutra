@@ -1,3 +1,21 @@
+## 2026-07-13: probe round 4 — SUT0207 shipped (loop-condition scope warning); dict + index-of clean
+
+Round 4 probes: dict-in-function (12.0) and index-of via compound `!=` condition (1.0) both
+CORRECT; loop-in-loop composition through a user function works with the state-threaded count
+idiom (sum of triangulars → 10.0 exact). One real gap: an `iterative_loop` whose decl-time
+condition references a CALLER's local (`tri(0 + n, ...)` with `n` from the enclosing function)
+compiled clean and died at runtime with a bare NameError — loop functions have no outer-scope
+access (docs/loops.md), and nothing said so at compile time.
+
+**SUT0207 shipped:** the validator now warns when a loop condition references a name that is
+neither a state param, iterator/element, nor a file-scope declaration, steering to the
+state-param threading idiom. Bare identifiers only; MemberAccess receivers and Call callees
+skipped (namespace/function positions). MEASURED: the repro warns exactly once; the corpus
+`do_while.su` (file-scope `v_dog` in its condition) and every scalar-state loop stay silent;
+ALL 40 examples sweep 0 SUT0207; suites 131 passed / 92 subtests + the 3 new
+`TestLoopConditionScope` tests (7 passed in file). Probe scorecard now: 7 defects fixed +
+1 closed-by-analysis across 4 rounds.
+
 ## 2026-07-13: #7 CLOSED — hypothesis wrong, behavior fixed by #6; palindrome tests locked
 
 Instrumentation exonerated the && polynomial: measured truth table is correct-signed

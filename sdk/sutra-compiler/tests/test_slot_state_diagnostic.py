@@ -76,5 +76,44 @@ class TestStringStateByReferenceRuns(unittest.TestCase):
         self.assertEqual(ns["_VSA"].string_to_python(ns["main"]()), "xxx")
 
 
+
+
+def _sut0207(src: str):
+    bag = validate_source(src, file="<t>")
+    return [d for d in bag.warnings if d.code == "SUT0207"]
+
+
+class TestLoopConditionScope(unittest.TestCase):
+    """SUT0207 (probe round 4, 2026-07-13): a loop's decl-time condition
+    referencing a name that is neither a state param nor file-scope
+    compiled clean and died at runtime with a bare NameError (loop
+    functions have no outer-scope access). Now warned at compile time."""
+
+    def test_caller_local_in_condition_warns(self):
+        d = _sut0207(
+            "iterative_loop tri(0 + n, int acc) { pass acc + iterator; }\n"
+            "function int triangular(int n) { return loop tri(0 + n, 0); }\n"
+            "function int main() { return triangular(3); }")
+        self.assertEqual(len(d), 1)
+        self.assertIn("n", str(d[0]))
+        self.assertIn("state parameter", str(d[0]))
+
+    def test_state_param_condition_clean(self):
+        d = _sut0207(
+            "do_while addNumber(x < 11, int x) { pass x + 1; }\n"
+            "function int main(){ slot int x = 9; "
+            "loop addNumber(x < 11, x); return x; }")
+        self.assertEqual(d, [])
+
+    def test_file_scope_name_in_condition_clean(self):
+        d = _sut0207(
+            "vector v_dog = embed(\"dog\");\n"
+            "do_while wander(similarity(state, v_dog) < 0.9, vector state) "
+            "{ pass state; }\n"
+            "function string main(){ slot vector s = zero_vector(); "
+            "loop wander(similarity(s, v_dog) < 0.9, s); return \"ok\"; }")
+        self.assertEqual(d, [])
+
+
 if __name__ == "__main__":
     unittest.main()
