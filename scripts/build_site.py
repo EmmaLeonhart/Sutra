@@ -469,7 +469,7 @@ def render(md_text: str, src_dir: str = ".") -> tuple[str, str, bool, bool]:
 ORDER = [
     "what-is-sutra", "vision", "paradigms", "ontology", "primitive-classes",
     "operators", "logical-operations", "numeric-math", "list-operations",
-    "memory", "loops",
+    "memory", "loops", "cookbook",
     "promises", "typescript-to-sutra", "compilation", "neural-webassembly",
     "demos", "gui", "example", "history",
 ]
@@ -485,6 +485,7 @@ BLURB = {
     "list-operations": "Immutable map / filter / concat over first-class list<T>.",
     "memory": "bind, unbind, bundle — the role-filler model.",
     "loops": "First-class loop functions as substrate-pure RNN cells.",
+    "cookbook": "Everyday programs — sum, max, reverse, fibonacci, palindrome — the idiomatic way.",
     "promises": "Promises and async/await, geometrically.",
     "typescript-to-sutra": "How TypeScript source maps onto Sutra.",
     "compilation": "The five-stage pipeline from source to fused tensor graph.",
