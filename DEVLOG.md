@@ -1,3 +1,15 @@
+## 2026-07-14: agent-accessible docs SHIPPED — /llms.txt + byte-exact raw markdown for every page
+
+Promoted from todo §"Make sutralang.dev more agent-accessible" (the "documented fetch-this-URL
+pattern" leg). `build_site.py` now (1) publishes every docs page's SOURCE markdown byte-exact at
+`/<slug>.md` alongside its HTML (shutil.copyfile — the first write_text attempt newline-munged
+LF sources, caught by the byte-compare check); (2) emits `/llms.txt` per the llms.txt convention,
+built from the SAME ORDER/BLURB tables as the homepage nav (no drift) + tutorials + the paper
+link; (3) the docs index gains a one-line agent pointer. VERIFIED: site builds; all 30+ published
+.md files byte-identical to source (full sweep, not spot-check); llms.txt 38 entries, grep-clean
+of repo-internal references. todo checkbox ticked (MCP server noted as a possible later upgrade
+on top of these URLs). Queue item deleted.
+
 ## 2026-07-14: meeting crons killed per Emma (central-command-only); probe round 5 clean
 
 **Emma's board decision executed immediately:** the building session's briefing (08:03) and

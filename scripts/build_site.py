@@ -530,6 +530,16 @@ def main() -> int:
         src_dir = rel.parent.as_posix()  # "." or "tutorials"
         heading, body, mer, mth = render(src.read_text(encoding="utf-8"), src_dir)
         titles[slug] = heading
+        # Agent-accessible docs (todo §"Make sutralang.dev more
+        # agent-accessible", 2026-07-14): publish each page's SOURCE
+        # MARKDOWN verbatim at /<slug>.md alongside the rendered HTML, so
+        # an agent fetches clean markdown by URL instead of scraping HTML.
+        # /llms.txt (written below) indexes these. arxiv is excluded (a
+        # direct-URL utility page, noindex by design).
+        if slug != "arxiv":
+            md_out = out / rel
+            md_out.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, md_out)  # byte-exact (no newline munging)
         if slug == "index":
             home_md = (heading, body, mer, mth)
             continue
@@ -648,6 +658,40 @@ def main() -> int:
         encoding="utf-8",
     )
     print("wrote robots.txt")
+
+    # /llms.txt — the llms.txt convention: a plain-markdown index agents
+    # fetch first. Built from the SAME ORDER/BLURB tables as the homepage
+    # nav (no drift) + the tutorials; every entry links the raw .md
+    # published above. Tutorials get their page titles as descriptions.
+    lines = [
+        "# Sutra",
+        "",
+        "> A typed programming language whose compiled forward pass is a "
+        "neural network. Values are vectors in a frozen LLM embedding "
+        "space; every operation is a tensor op on the substrate.",
+        "",
+        "Each page below is available as raw markdown at the linked .md "
+        "URL (the rendered HTML lives at the same path without the "
+        "extension).",
+        "",
+        "## Docs",
+        "",
+    ]
+    for s in ordered:
+        blurb = BLURB.get(s, titles.get(s, s))
+        lines.append(f"- [{titles.get(s, s)}](/{s}.md): {blurb}")
+    tut_slugs = sorted(s for s in titles
+                       if s.startswith("tutorials/") and s != "tutorials/index")
+    if tut_slugs:
+        lines += ["", "## Tutorials", ""]
+        for s in tut_slugs:
+            lines.append(f"- [{titles[s]}](/{s}.md)")
+    if paper_ok:
+        lines += ["", "## Paper", "",
+                  "- [The Sutra paper](/paper/): rendered on-site; canonical "
+                  "version on arXiv."]
+    (out / "llms.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print("wrote llms.txt")
     return 0
 
 
