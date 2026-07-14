@@ -123,6 +123,61 @@ The shape borrowed from Java; the semantics borrowed from RDF/OWL.
 
 ---
 
+## 4. Tail recursion is a loop function (the Haskell / OCaml contrast)
+
+Functional languages express iteration as tail recursion with an accumulator. Sutra has the
+same model — spelled as a declared loop function whose state parameters are the accumulator,
+and whose `pass` is the tail call.
+
+**Haskell:**
+
+```haskell
+go acc n | n <= 0    = acc
+         | n == 1    = acc
+         | otherwise = go (acc + n) (n - 1)
+```
+
+**Sutra:**
+
+```sutra
+while_loop go((n > 0) && (n != 1), int acc, int n) {
+    acc = acc + n;
+    pass acc, n - 1;
+}
+
+function int main() {
+    (acc, n) = loop go((3 > 0) && (3 != 1), 0, 3);
+    return acc;                                   // 5
+}
+```
+
+The guards become the loop condition (negated — *continue while no base case matches*), the
+recursive call's arguments become the `pass` list, and the base-case return is just the final
+state, bound here with the tuple-destructure call form. Multi-value `pass` assigns in
+parallel, exactly like simultaneous recursion equations — Fibonacci is literally its
+recurrence:
+
+```sutra
+iterative_loop fib(8, int a, int b) {
+    pass b, a + b;
+}
+
+function int main() {
+    (a, b) = loop fib(8, 1, 1);
+    return a;                                     // 34
+}
+```
+
+The difference from Haskell is what the "call" compiles to. There is no call stack and no
+branch: the loop is a fixed tensor cell, the guards evaluate as signed truth values on the
+substrate, and a soft-halt mask freezes the state when the condition goes false. Tail
+recursion isn't *optimized into* a loop, as in a functional compiler's TCO pass — the loop
+function *is* the recurrence, stated directly.
+
+Both programs above compile and run today with exactly the outputs shown.
+
+---
+
 ## What's actually happening underneath
 
 Java is explicit about what's happening on the computer. Variables are names for specific memory cells; the cells live somewhere — on the stack, in a register, at an address — and the program's whole story is the story of which cell holds what value at each point. Every variable is a pointer in the small.

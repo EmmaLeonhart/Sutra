@@ -1,3 +1,15 @@
+## 2026-07-14: paradigms.md gains the Haskell/OCaml contrast — backed by running code only
+
+The todo's gate ("more substantive working programs that compile and run") is met by the
+sprint's verified programs, so the page gets its first restored comparison: §4 "Tail recursion
+is a loop function" — Haskell guard-recursion vs the Sutra while_loop with multi-value `pass`
+as the tail call, plus Fibonacci as a literal recurrence. BOTH snippets verified running with
+the shown outputs immediately before writing (guard recursion → 5.0, fibonacci → 34.0 — the
+same programs the loop suites test). The closing claim ("compile and run today with exactly
+the outputs shown") is therefore measured, not aspirational — per the todo's own discipline.
+Site builds. todo updated to PARTIAL (Prolog/C/Curry comparisons still wait on executable
+backing).
+
 ## 2026-07-14: agent-accessible docs SHIPPED — /llms.txt + byte-exact raw markdown for every page
 
 Promoted from todo §"Make sutralang.dev more agent-accessible" (the "documented fetch-this-URL

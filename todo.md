@@ -1301,7 +1301,11 @@ without that. Don't touch until tuple destructuring exists.
   other sister sites (Emma prefers it to the small `.gh` pill they
   use). Treat as iterative; never block on it, never touch claims.
 
-- [ ] **Expand `docs/paradigms.md` once more is built.** The page was
+- [ ] **Expand `docs/paradigms.md` once more is built.** (PARTIAL 2026-07-14:
+  the Haskell/OCaml tail-recursion contrast added, backed by two programs
+  that compile and run with the shown outputs — guard recursion → 5,
+  fibonacci → 34. Prolog/C/Curry comparisons still wait on executable
+  backing.) The page was
   shrunk on 2026-04-27 to a single Java contrast (assignment, loops,
   classes) plus the no-memory-points / non-locality core. The earlier
   version had Haskell, Prolog, C, and Curry/Mercury sections that ran
