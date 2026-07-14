@@ -28,3 +28,20 @@ arithmetic on [0,1] fuzzies must not change — measure both regimes.
 ## Repros
 In this doc's probes; expected after fixes: "cat"=="dog" strongly negative; palindrome("abc")
 negative, palindrome("aba") positive. Tests to add with fixes.
+
+## RESOLUTION (same day)
+
+**#6 FIXED**: `_is_synthetic_axis_expr` gained the Call-return-type branch — String `==` routes
+to `eq_synthetic`; "cat"=="dog" → −1.0 exact. `TestStringEqualityRouting`.
+
+**#7 CLOSED — hypothesis was WRONG, behavior fixed by #6.** The && polynomial is correct-signed
+(measured: true&&(1==2) → −0.52, false&&true → −1.0; K3-exact on the grid, soft off-grid). The
+palindrome latch-true mechanism: inside an inlined `logical_and` body, `_mark_logical_truth`
+marks the `==` OPERANDS, so `_infer_cast_operand_type` reads the char_at calls as "bool" — the
+equality missed num_eq and fell to the general cosine `eq` (codepoint cosines ≈ 1 → every pair
+~true). The #6 synthetic-Call branch now catches those operands → `eq_synthetic` → pairs ±1
+exact. MEASURED end-to-end: palindrome("abc") → −0.988, palindrome("aba") → +1.0
+(`TestPalindromeViaLogicalAnd`). Residual note for future typing work: `_logical_truth` marking
+of operand subtrees can mislead operand-type inference (it made int-returning calls read as
+bool); today the synthetic routing catches it first, but a cleaner fix would mark only the
+polynomial's own nodes, not substituted argument subtrees.

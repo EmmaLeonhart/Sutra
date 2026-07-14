@@ -1,3 +1,19 @@
+## 2026-07-13: #7 CLOSED — hypothesis wrong, behavior fixed by #6; palindrome tests locked
+
+Instrumentation exonerated the && polynomial: measured truth table is correct-signed
+(true&&(1==2) → −0.52, false&&true → −1.0 — K3-exact on the grid, soft off-grid), so the filed
+"[0,1] Zadeh wrong on signed truth" hypothesis was WRONG for expression position. The real
+palindrome mechanism: inside an inlined `logical_and` body, `_mark_logical_truth` marks the ==
+OPERANDS, making the char_at calls infer "bool" — the equality missed num_eq and fell to cosine
+`eq` (codepoint cosines ≈ 1 → every pair ~true). #6's synthetic-Call branch now catches those
+operands (eq_synthetic, pairs ±1 exact). MEASURED end-to-end: palindrome("abc") → −0.988,
+palindrome("aba") → +1.0; locked as `TestPalindromeViaLogicalAnd` (34 passed in the file).
+Round-3 refill drained; finding updated with the resolution + a residual typing note
+(`_logical_truth` should ideally mark only the polynomial's own nodes, not substituted argument
+subtrees — today harmless because synthetic routing catches it first). Also measured: the
+double-wrapped `make_string(make_string(...))` at destructure call sites is IDEMPOTENT
+(tensor-equal, decodes correctly) — cosmetic, not a defect.
+
 ## 2026-07-13: defect #6 FIXED — String equality routes synthetic; A1 PARKED per Emma's board decision
 
 **#6 fixed:** `_is_synthetic_axis_expr` gains the Call-return-type branch (`make_string` →
