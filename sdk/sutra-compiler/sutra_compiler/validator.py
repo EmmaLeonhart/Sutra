@@ -524,10 +524,69 @@ class _Walker:
         self._fn_local_names = (
             {p.name for p in node.state_params} | {"iterator", "element"})
         try:
+            # SUT0207 (2026-07-13 probe round 4): the loop's decl-time
+            # CONDITION can only reference state params, the contextual
+            # iterator/element, or file-scope names — loop functions have
+            # no outer-scope access (docs/loops.md), and the emitted
+            # driver evaluates the condition with only those in scope. A
+            # condition referencing a CALLER's local (e.g.
+            # `iterative_loop tri(0 + n, int acc)` where `n` is the
+            # enclosing function's parameter) compiled clean and died at
+            # runtime with a bare NameError. Warn at compile time and
+            # steer to the state-param threading idiom. Bare identifiers
+            # only; member-access receivers (`Math.pi`) resolve as
+            # namespaces and are skipped via the same suppression SUT0205
+            # uses.
+            allowed = (self._fn_local_names
+                       | self._file_scope_names
+                       | self._CONTEXTUAL_IDENT_KEYWORDS)
+            suppressed = getattr(self, "_sut0205_suppressed_ids", set())
+            for ident in self._walk_bare_identifiers(node.condition):
+                if id(ident) in suppressed:
+                    continue
+                if ident.name not in allowed:
+                    self.diagnostics.warning(
+                        f"loop condition references `{ident.name}`, which "
+                        f"is not a state parameter or file-scope name — "
+                        f"loop functions have no outer-scope access, so "
+                        f"this fails at runtime",
+                        ident.span,
+                        code="SUT0207",
+                        hint="thread the value as a state parameter: "
+                             f"declare `int {ident.name}` in the loop's "
+                             f"parameter list, pass it at the call site, "
+                             f"and keep it with `replace` in the `pass` "
+                             f"list",
+                    )
             self.visit(node.condition)
             self.visit(node.body)
         finally:
             self._fn_local_names = saved_fn_locals
+
+    def _walk_bare_identifiers(self, node):
+        """Yield the bare Identifier leaves of an expression subtree,
+        SKIPPING MemberAccess receivers and Call callees (namespace /
+        function positions, not value reads)."""
+        if isinstance(node, ast.MemberAccess):
+            # The member side is a name, not an expression; the receiver
+            # is a namespace anchor — skip both, but walk nothing else
+            # (a receiver like `Math` must not read as an outer local).
+            return
+        if isinstance(node, ast.Call):
+            for a in node.args:
+                yield from self._walk_bare_identifiers(a)
+            return
+        if isinstance(node, ast.Identifier):
+            yield node
+            return
+        if isinstance(node, ast.Node):
+            for v in vars(node).values():
+                if isinstance(v, ast.Node):
+                    yield from self._walk_bare_identifiers(v)
+                elif isinstance(v, list):
+                    for item in v:
+                        if isinstance(item, ast.Node):
+                            yield from self._walk_bare_identifiers(item)
 
     #: Contextual keywords that lex as identifiers but are bound by the
     #: language, not by a declaration.
