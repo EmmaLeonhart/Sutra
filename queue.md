@@ -38,6 +38,21 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Transpilers CI chronically red — triage disposition needed (found 2026-07-14)
+
+`transpilers-ci.yml` has failed 50+ consecutive runs (since before 2026-07-06 — predates the
+loop-state epic and this session entirely; verified via `gh run list`). All failures are
+`sutra-from-c/test_lower_fixtures.py::test_runs_on_substrate[*]` with the shape
+`AssertionError: no numeric result in: 13.0` — the value IS numeric, so the harness's
+output-format expectation broke somewhere upstream, not the math. The C frontend is PARKED
+(CLAUDE.md "C is parked") and the WASM/transpiler lane is sibling-owned ("coordinate via CI;
+do not collide") — but a permanently-red CI is noise that masks real regressions (it hid
+nothing this time, but it cost triage effort during the 07-14 CI incident). Options for whoever
+owns the call: (a) fix the sutra-from-c harness expectation; (b) exclude the parked frontend
+from transpilers-ci until unparked; (c) leave-and-tolerate. Bounded first step for any session
+taking this: reproduce ONE fixture locally and read what the harness regexes for.
+
+
 ---
 
 ## ⭐ PINNED TAIL — readability + usability audit → REFILL (self-perpetuating; Emma 2026-06-23)

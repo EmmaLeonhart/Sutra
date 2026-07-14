@@ -1,3 +1,17 @@
+## 2026-07-14: compiler CI GREEN on the fix — incident closed; Transpilers CI found chronically red (pre-existing)
+
+CI verdict on `c8ab3a05`: **Sutra compiler — pytest SUCCESS (14m44s)** — the le/ge regression
+and both rejection-fixture updates are confirmed at the full-suite level; the incident this
+session caused is fully closed. Pages deploy success.
+
+Separately, the watch surfaced that **Transpilers — pytest is chronically red**: 50+ consecutive
+failures reaching back before 2026-07-06 (predates this session and the loop-state epic;
+verified via `gh run list --workflow=transpilers-ci.yml`). All failures are parked-`sutra-from-c`
+fixtures with `AssertionError: no numeric result in: 13.0` — a harness output-format expectation
+broken upstream, not math. Not this session's regression and not this lane (C frontend parked;
+WASM/transpiler lane sibling-owned, do-not-collide) — filed as a triage-disposition queue item
+with the evidence and three options, plus the bounded first step for whoever takes it.
+
 ## 2026-07-14: CI WAS RED — caught by the verify-CI rail; le/ge regression root-caused + fixed
 
 **The failure to name plainly:** compiler CI had been failing since the #6 commit (le/ge false
