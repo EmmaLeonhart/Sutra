@@ -1,3 +1,16 @@
+## 2026-07-14: v100 review — Weak Accept (up from Reject); Shaw citation VERIFIED REAL against arXiv
+
+The claims-scoped resubmit drew **Weak Accept** (v100/post2849) — up from v99's Reject on the
+same day's content. The Heaviside-contradiction con is GONE (replaced by the mild host-while
+note the paper already discloses); the differentiability scoping did its job. Remaining cons:
+toy-scale (known/fair), legibility scope + gate non-monotonicity (opinions; the latter already
+admitted by the paper), and the recurring "Shaw et al. (2025) arXiv:2501.05368 appears to be a
+hallucination" — VERIFIED against the live arXiv page: the ID resolves to "Developing a
+Foundation of Vector Symbolic Architectures Using Category Theory", first author Nolan P. Shaw,
+category-theoretic VSA foundations — EXACTLY as cited. Both reviewers' hallucination con is
+reviewer error (training-cutoff blindness to 2025 arXiv). No paper change needed; recorded here
+so future sessions don't re-litigate it. No paper.md edit this tick (no CI churn).
+
 ## 2026-07-14: review triage — loop backprop HARD-FAILS (measured); paper differentiability claims scoped
 
 The v9 review's Heaviside criticism triaged by MEASUREMENT, not argument: backward() through
