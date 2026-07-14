@@ -1,3 +1,18 @@
+## 2026-07-14: v0.10.0 RELEASED (Emma-approved) — publish workflow SUCCESS, PyPI + GitHub Release live
+
+Emma approved via AskUserQuestion (the docs/package drift was the trigger: the live cookbook
+documented sprint features the released 0.9.4 lacked). Version bumped in both sites, tag
+`sutra-dev-v0.10.0` pushed, publish workflow verdict **success** (watched, not assumed) —
+PyPI `sutra-dev` 0.10.0 + GitHub Release v0.10.0 both live. Contents since 0.9.4 (all
+source-additive): the three loop call forms, unified d-dim slot store (String/vector state by
+reference), seven compiler fixes (char_at index, eq-routing, select scalar options, parallel
+pass/fibonacci, inlined-relational casts, String equality, + the le/ge CI regression fix),
+SUT0206 retired, SUT0207 shipped, cookbook + llms.txt + raw-md agent docs. Newcomers following
+the cookbook now get a package that runs it. ALSO: Emma asked for more context on the
+trainable-loops fork before deciding — a plain-language explainer (forward-only today; the
+straight-through / soft-step / stay-forward-only trade-offs, with the read that nothing current
+needs it) was delivered in-session; the queue item stays open pending her direction.
+
 ## 2026-07-14: v100 review — Weak Accept (up from Reject); Shaw citation VERIFIED REAL against arXiv
 
 The claims-scoped resubmit drew **Weak Accept** (v100/post2849) — up from v99's Reject on the
