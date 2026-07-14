@@ -1,3 +1,21 @@
+## 2026-07-14: transpilers-ci chronic red ROOT-CAUSED — stdout+stderr parsing; all nine harnesses fixed
+
+The bounded first step paid off immediately. Mechanism (verified by exact reproduction of the
+failure string): the nine `test_lower_fixtures.py` harnesses parse the result number from
+`proc.stdout + proc.stderr`; on CI the compiler's UserWarnings (the dim-audit note) land on
+stderr AFTER the stdout number, so the trailing-number regex never matches — every runnable
+fixture fails "no numeric result in: <number>", with pytest's short summary truncating the
+appended warning lines out of view (which is why the message looked self-contradictory). The
+"sutra-from-c" in the CI log was a wrapped "sutra-from-clojure".
+
+Fixed all nine harnesses to parse STDOUT only (combined output kept for failure messages; the
+7 shared-pattern files via one replacement, ocaml/ts's `_extract_result(out)` variant
+separately). VERIFIED: the TS frontend — the one runnable on this box (no grammar DLL) —
+runs the fixed harness fully green locally, **44 passed 1 xfailed**, including the
+`test_runs_on_substrate` fixtures that exercise the exact CLI path CI fails. The other 8
+frontends need MSVC-built grammar DLLs absent here → transpilers-ci arbitrates them; watching
+it after this push. Local sanity: all nine files py_compile clean.
+
 ## 2026-07-14: compiler CI GREEN on the fix — incident closed; Transpilers CI found chronically red (pre-existing)
 
 CI verdict on `c8ab3a05`: **Sutra compiler — pytest SUCCESS (14m44s)** — the le/ge regression

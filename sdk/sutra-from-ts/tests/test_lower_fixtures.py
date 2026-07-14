@@ -195,7 +195,11 @@ def test_fixture_runs_on_substrate(tmp_path, fixture_name, spec):
     )
     out = (proc.stdout + proc.stderr).strip()
     assert proc.returncode == 0, f"sutrac --run failed:\n{out}"
-    got = _extract_result(out)
+    # Parse from STDOUT only (2026-07-14 CI fix): on CI the compiler's
+    # UserWarnings land on stderr AFTER the stdout number, so taking the
+    # last line of stdout+stderr read a warning line instead — every
+    # fixture failed "no numeric result" (transpilers-ci red 50+ runs).
+    got = _extract_result(proc.stdout.strip())
     assert abs(got - expected) < 0.5, (
         f"{fixture_name}: expected ~{expected}, got {got}\n{out}"
     )
