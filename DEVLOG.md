@@ -1,3 +1,15 @@
+## 2026-07-14: daily substrate-honesty audit — CLEAN (the sprint's biggest day reviewed)
+
+Reviewed all ~18 commits since the 07-13 audit against CLAUDE.md §"Subtler substrate breaches":
+(a) the two `.su` files added (fizzbuzz upgrade, loop_forms.su) declare `@embedding: none dim=64`
+— no basis_vector/embed, correctly tiny dim; (b) the one new substrate-path claim (char_at's
+`_scalar` index projection, "substrate-pure") mechanically re-verified — the emitted body has
+ZERO `.item()` readouts (the only match is the docstring's historical note; the index is
+clamp().long() tensor ops); every other "verified/measured" claim in the stretch carries its
+decoded output or CI verdict in the DEVLOG; (c) no substrate classifier shipped (SUT0207 is
+compile-time validator machinery). The audit bot independently exempted `_slot_value` as an
+entry boundary the same day. CLEAN — no finding; item deleted.
+
 ## 2026-07-14: transpilers-ci GREEN — the 50-run chronic red is closed; ALL test workflows green
 
 CI verdict on `fd7e579e`: **transpilers-ci SUCCESS.** The stdout-only harness fix resolved every
