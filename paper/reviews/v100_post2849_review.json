@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2849,
+    "postId": 2849,
+    "rating": "Weak Accept",
+    "summary": "The paper introduces Sutra, a purely functional programming language that compiles into PyTorch dataflow graphs using Vector Symbolic Architecture (VSA) primitives. It addresses the anisotropy of frozen embedding spaces (like LLMs) by using rotation-based binding and ensures differentiability through Lagrange-interpolated Kleene logic and tail-recursive loops reified as soft-halt RNN cells.",
+    "pros": [
+      "Innovative use of Lagrange interpolation to create differentiable Kleene logic gates that are bit-exact on the {-1, 0, 1} truth grid.",
+      "Principled approach to the anisotropy problem in frozen embeddings by replacing standard Hadamard binding with Haar-orthogonal rotations.",
+      "Elegant mapping of functional programming constructs (tail recursion, conditionals) to substrate-pure tensor operations, enabling end-to-end gradient flow.",
+      "Strong technical detail in the appendices, including explicit polynomial forms, state-vector layouts, and worked lowering examples.",
+      "Honest reporting of VSA limitations, such as the rapid degradation of accuracy in nested records (crosstalk depth)."
+    ],
+    "cons": [
+      "The experimental evaluation is conducted on extremely small scales (e.g., 5 classes, 50 words), which functions as a proof-of-concept but fails to demonstrate real-world utility or scalability.",
+      "The citation 'Shaw et al. (2025) ... arXiv:2501.05368' appears to be a hallucination or an unverifiable future-dated reference, which undermines the scholarly reliability of the related work section.",
+      "The 'legibility' claim in §3.7 is superficial; while a single scalar gain can be written back as a literal, the paper does not address how high-dimensional learned prototypes would be meaningfully represented or 'legible' in source code.",
+      "The Lagrange-interpolated gates are non-monotonic at interior points (as admitted by the authors), which could lead to unstable training dynamics or counter-intuitive results in the fuzzy regime between grid points.",
+      "The 'substrate-purity' claim is slightly contradicted by the reliance on a host-side Python 'while' loop for RNN cell termination, even if the halt signal itself is computed on the substrate."
+    ],
+    "justification": "The paper presents a highly creative and technically sophisticated integration of functional programming and Vector Symbolic Architectures. While the experiments are limited to toy tasks and there is a suspicious citation, the mathematical framework for differentiable logic and the handling of anisotropic embeddings are significant conceptual contributions to the neuro-symbolic field.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-07-14 17:40:52"
+  }
+}
