@@ -3969,12 +3969,17 @@ class BaseCodegen:
         from .symbol_table import _LITERAL_TYPES
         # Inliner typing provenance (2026-07-13): a comparison that the
         # operator-lowering inlined (`best >= e` → ge's body polynomial)
-        # carries `_truth_typed`; logical-connective bodies carry
-        # `_logical_truth`. Either way the expression's VALUE is a
-        # truth-axis fuzzy — report "bool" so truth/number casts pick
-        # the axis-move correctly instead of dying "can't be inferred".
-        if (getattr(expr, "_truth_typed", False)
-                or getattr(expr, "_logical_truth", False)):
+        # carries `_truth_typed` on its TOP node — the expression's VALUE
+        # is a truth-axis fuzzy, so report "bool" for the cast decision.
+        #
+        # Do NOT read `_logical_truth` here: `_mark_logical_truth` sprays
+        # that flag over the ENTIRE inlined subtree including substituted
+        # ARGUMENT subtrees (it drives arithmetic routing, not typing).
+        # Reading it as type evidence made the `==` operands inside ge's
+        # body infer "bool", miss num_eq, and soften through eq_synthetic
+        # — the CI-caught le/ge regression (`2 >= 3` → −0.52 instead of
+        # the crisp −1.0 the 2026-07-08 tie fix guarantees).
+        if getattr(expr, "_truth_typed", False):
             return "bool"
         kind = type(expr).__name__
         if kind in _LITERAL_TYPES:

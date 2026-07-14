@@ -165,10 +165,24 @@ class TestRejectedCasts(unittest.TestCase):
     def test_unknown_source_to_truth_rejected(self):
         # A source whose static type can't be inferred cannot pick
         # between relabel and axis-move when the target is truth/number.
+        # (2026-07-13: fixture moved off `similarity(...)` — stdlib calls
+        # now resolve their declared return type, so that cast
+        # legitimately compiles; see the test below. A MODULE-LEVEL user
+        # function is outside the class-method/stdlib resolution tables,
+        # so its call is genuinely uninferable today.)
         self._reject(
-            "function fuzzy main(){ fuzzy f = (fuzzy) similarity(\"a\", \"b\"); "
+            "function vector mystery(){ return zero_vector(); }\n"
+            "function fuzzy main(){ fuzzy f = (fuzzy) mystery(); "
             "return f; }",
             "static type")
+
+    def test_stdlib_number_call_to_truth_now_compiles(self):
+        # Improved inference (2026-07-13 Call-return-type branch):
+        # `similarity` declares `number`, so number→truth is the known
+        # axis-move — this exact cast used to be rejected as uninferable.
+        _compile(
+            "function fuzzy main(){ fuzzy f = "
+            "(fuzzy) similarity(\"a\", \"b\"); return f; }")
 
 
 class TestCorpusCastFixtureRuns(unittest.TestCase):

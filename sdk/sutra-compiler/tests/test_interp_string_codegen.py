@@ -77,9 +77,22 @@ class TestNonStringInterpolantsReject(unittest.TestCase):
             'return $"n={n}"; }'), "n=2.5")
 
     def test_unknown_type_interpolant_rejected(self):
+        # 2026-07-13: fixture moved off `similarity(...)` — stdlib calls
+        # now resolve their declared return type, so that interpolant
+        # legitimately formats (see the test below). A module-level user
+        # function's call stays genuinely uninferable today.
         self._reject(
-            'function string main(){ return $"v={similarity("a", "b")}"; }',
+            'function vector mystery(){ return zero_vector(); }\n'
+            'function string main(){ return $"v={mystery()}"; }',
             "statically inferable")
+
+    def test_stdlib_number_call_interpolant_now_formats(self):
+        # Improved inference (2026-07-13 Call-return-type branch):
+        # `similarity` declares `number`, so the interpolant routes to
+        # num_to_string — this exact form used to be rejected.
+        out = _run_text(
+            'function string main(){ return $"v={similarity("a", "a")}"; }')
+        self.assertTrue(out.startswith("v="), out)
 
 
 if __name__ == "__main__":
