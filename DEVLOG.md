@@ -1,3 +1,17 @@
+## 2026-07-14: meeting crons killed per Emma (central-command-only); probe round 5 clean
+
+**Emma's board decision executed immediately:** the building session's briefing (08:03) and
+debrief (23:57) crons are DELETED — the daily meeting is central-command-only (five sessions
+each halting at midnight for their own debrief was the failure). Only the three engine crons
+remain (:03 work, :15 flush, :42 status). Saved to session memory so future building sessions
+don't recreate them from the skill text.
+
+**Probe round 5 (overnight):** join-numbers-to-string → `'1 2 3 '` exact; sum-until-sentinel
+(compound halt on a char test) → stops at index 3 exactly; the histogram probe's failure was
+the PROBE's error (loop declared after use — the documented forward-reference rule, with its
+existing clear diagnostic), not a defect. No new findings; the newcomer surface continues to
+measure clean after the sprint's seven fixes.
+
 ## 2026-07-14: daily substrate-honesty audit — CLEAN (the sprint's biggest day reviewed)
 
 Reviewed all ~18 commits since the 07-13 audit against CLAUDE.md §"Subtler substrate breaches":
