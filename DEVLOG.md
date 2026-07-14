@@ -1,3 +1,14 @@
+## 2026-07-13: docs/cookbook.md — the sprint's verified everyday programs, on the website
+
+Consolidation slice: the 4 probe rounds left 8 everyday programs measured-correct (sum 14, max 5,
+count 2, reverse "cba", fibonacci 34, palindrome ±, index-of 1, parameterized triangulars 10) plus
+two non-obvious idioms (signed-truth `((number) cond + 1)/2` counters; ×10 select gain). New
+`docs/cookbook.md` publishes exactly those snippets — every one verbatim from a program RUN this
+sprint with the shown output — plus the two conventions up front. Nav: added after "loops" in
+build_site.py ORDER/BLURB; site builds (`/cookbook/`); page grep-clean of repo-internal refs;
+both internal links resolve. Newcomer-facing payoff of the whole reach-audit arc, live for the
+CDL/YC window.
+
 ## 2026-07-13: probe round 4 — SUT0207 shipped (loop-condition scope warning); dict + index-of clean
 
 Round 4 probes: dict-in-function (12.0) and index-of via compound `!=` condition (1.0) both
