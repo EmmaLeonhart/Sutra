@@ -615,3 +615,29 @@ class TestStringEqualityRouting(unittest.TestCase):
                '(number)(make_string("cat") == make_string("dog")); '
                'return x; }')
         self.assertAlmostEqual(_run_main_real(src), -1.0, places=2)
+
+
+class TestPalindromeViaLogicalAnd(unittest.TestCase):
+    """Probe-round-3 item #7, closed 2026-07-13. The && polynomial is
+    correct-signed (measured truth table); the palindrome latch-true was
+    the cosine-eq fallback on char_at pairs INSIDE an inlined logical_and
+    body (operands marked _logical_truth infer "bool", missing num_eq) —
+    fixed by the #6 synthetic-Call routing (eq_synthetic, exact ±1).
+    These lock the end-to-end behavior from both sides."""
+
+    PAL = """
+while_loop pal(i < 3, fuzzy ok, String s, int i) {
+    pass ok && (string_char_at(s, i) == string_char_at(s, 3 - 1 - i)), replace, i + 1;
+}
+
+function int main() {
+    (ok, s2, i) = loop pal((0 < 3), true, make_string("%s"), 0);
+    return (number) ok;
+}
+"""
+
+    def test_non_palindrome_reads_false(self):
+        self.assertLess(_run_main_real(self.PAL % "abc"), -0.5)
+
+    def test_palindrome_reads_true(self):
+        self.assertGreater(_run_main_real(self.PAL % "aba"), 0.5)

@@ -38,16 +38,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Probe round 3 refill 2026-07-13 — two real defects
-Finding: `planning/findings/2026-07-13-probe-round3-string-eq-and-signed-and.md` (repros there).
-
-1. **`&&` mis-composes on signed truth in expression position.** The [0,1] Zadeh polynomial is
-   wrong on signed comparison truth (known: finding 2026-06-17 fixed LOOP CONDITIONS only).
-   Palindrome-via-&& latches true. Fix: truth_and/truth_or for truth-typed operands in
-   expressions too — WITHOUT changing [0,1] fuzzy arithmetic (measure both regimes).
-   Tests: palindrome("abc") negative, palindrome("aba") positive.
-
-
 ---
 
 ## ⭐ PINNED TAIL — readability + usability audit → REFILL (self-perpetuating; Emma 2026-06-23)
