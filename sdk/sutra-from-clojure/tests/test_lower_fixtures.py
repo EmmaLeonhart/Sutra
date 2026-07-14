@@ -93,6 +93,15 @@ def test_runs_on_substrate(name, spec, tmp_path):
     out = (proc.stdout + proc.stderr).strip()
     assert proc.returncode == 0, out
     import re
-    m = re.search(r"tensor\(\s*(-?\d+\.?\d*)", out) or re.search(r"(-?\d+\.?\d*)\s*$", out)
-    assert m, f"no numeric result in: {out}"
+    # Parse the number from STDOUT ONLY (2026-07-14 CI fix): the CLI
+    # prints the result last on stdout, but this harness used to search
+    # stdout+stderr — and on CI the compiler's UserWarnings (e.g. the
+    # semantic_dim/no-codebook dim-audit note) land on stderr AFTER the
+    # number, so the trailing-number regex never matched. That failed
+    # every fixture with "no numeric result in: <number>" (pytest's
+    # short summary truncates the multi-line output at the first line,
+    # hiding the appended warnings) — transpilers-ci red for 50+ runs.
+    res = proc.stdout.strip()
+    m = re.search(r"tensor\(\s*(-?\d+\.?\d*)", res) or re.search(r"(-?\d+\.?\d*)\s*$", res)
+    assert m, f"no numeric result in stdout: {res!r} (full: {out!r})"
     assert abs(float(m.group(1)) - expected) < 0.5, f"{name}: got {out}, want {expected}"
