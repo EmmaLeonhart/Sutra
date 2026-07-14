@@ -1,3 +1,21 @@
+## 2026-07-14: paper.md slot-layout claims corrected to the shipped mechanism (durability audit)
+
+Emma's board correction named the NeurIPS/FV paper as live building work, so this tick audited
+`paper/paper.md`'s cited surfaces against the sprint's changes. Found the §3.3 extended-state
+prose and Appendix B still describing the RETIRED slot representation ("remaining axes paired
+into 2D Givens planes... 47 disjoint slots") — replaced by the Option-B unified store on
+2026-07-12. Appendix B was doubly stale: it also omitted the promise/axon axes at
+synthetic[5..7] (`SLOT_BASE = 8` — constants verified from codegen_pytorch.py before editing).
+
+Minimal corrections, code-verified: §3.3 now states the per-slot full-extended-layout store
+(scalars as number-vectors; String/vector state whole; one representation); Appendix B's table
+gains the [5]/[6]/[7] promise/axon rows with [8..] as reserved headroom, and the "47 Givens
+slots" arithmetic (no longer meaningful) is replaced by the store description. The other cited
+loop claims (§"tail recursion as the loop primitive", the RNN-cell method section) checked and
+still accurate — the sprint's call forms were additive. `do_while_adder` (paper-cited) was
+re-verified at 11.0 repeatedly this sprint under the new slots. This push intentionally fires
+the clawRxiv resubmit CI — a real accuracy update, the exact case it exists for.
+
 ## 2026-07-14: paradigms.md gains the Haskell/OCaml contrast — backed by running code only
 
 The todo's gate ("more substantive working programs that compile and run") is met by the
