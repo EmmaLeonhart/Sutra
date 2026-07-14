@@ -527,6 +527,20 @@ def _emit_thrml(path: str) -> int:
 
 
 def main(argv: List[str] | None = None) -> int:
+    # Windows console default encoding is cp1252, which cannot represent
+    # characters the emitted module contains (e.g. π in the PI constant's
+    # docstring) — `sutrac --emit` crashed with UnicodeEncodeError on a
+    # fresh Windows install (found by the 0.10.0 post-release check,
+    # 2026-07-14). Force UTF-8 on the stdio wrappers; errors="replace"
+    # keeps even genuinely unmappable terminals from crashing the CLI.
+    for _stream in (sys.stdout, sys.stderr):
+        _reconf = getattr(_stream, "reconfigure", None)
+        if _reconf is not None:
+            try:
+                _reconf(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass  # non-reconfigurable stream (e.g. captured/piped mock)
+
     # `sutrac repl` (or `--repl`) launches the interactive evaluator. Intercepted
     # before argparse because the validator requires a `paths` positional and the
     # REPL takes no file.

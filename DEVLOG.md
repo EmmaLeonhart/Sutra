@@ -1,3 +1,16 @@
+## 2026-07-14: post-release cold-install check — PyPI 0.10.0 verified; Windows --emit crash found + fixed
+
+Fresh-venv onboarding check against the LIVE PyPI package (the pinned audit's "can a stranger
+install and run" question, finally testable against a current release): `pip install
+sutra-dev==0.10.0` → imports at 0.10.0; a cookbook program (String-state loop, the sprint's new
+syntax) validates with 0 diagnostics on the cold install. One REAL defect found: `sutrac --emit`
+CRASHES on Windows consoles — `UnicodeEncodeError: 'charmap' codec can't encode 'π'` (the
+emitted module contains π; Windows stdio defaults to cp1252). Fixed in main: `main()` now
+reconfigures stdout/stderr to UTF-8 with errors="replace" (guarded for non-reconfigurable
+streams). Verified: the exact crashing invocation now completes (209 defs emitted, exit 0);
+CLI-adjacent suites 18 passed / 92 subtests. NOTE: released 0.10.0 carries the bug on Windows —
+workaround is `set PYTHONIOENCODING=utf-8`; the fix rides the next release.
+
 ## 2026-07-14: v0.10.0 RELEASED (Emma-approved) — publish workflow SUCCESS, PyPI + GitHub Release live
 
 Emma approved via AskUserQuestion (the docs/package drift was the trigger: the live cookbook
