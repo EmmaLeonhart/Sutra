@@ -74,7 +74,16 @@ jobs:
         # one-liner.
         run: |
           set -euxo pipefail
-          curl -fsSL https://ollama.com/install.sh | sh
+          # PIN the ollama server version. The suite's numeric thresholds are
+          # tuned against a specific embedding realization (see tests/conftest.py
+          # — the backend is pinned to ollama for the same reason). Unpinned,
+          # install.sh grabs latest: run 29386156802/29387477961 got 0.32.0,
+          # whose nomic-embed-text geometry differs from the tuned one at the
+          # SAME model digest, and the axon-cache readback flaked ("tree" ->
+          # 11.0). 0.17.1 is the tuned local version. Re-tuning against a
+          # modern server is a queued, deliberate re-measurement — not a CI
+          # side effect.
+          curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.17.1 sh
           # Start as a background service; wait until the port is up.
           ollama serve > /tmp/ollama.log 2>&1 &
           for i in 1 2 3 4 5 6 7 8 9 10; do

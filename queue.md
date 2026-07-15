@@ -39,21 +39,16 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Axon-cache CI flake: full value-bleed, not epsilon crosstalk — bounded investigation
+### Re-measure axon crosstalk margins on modern ollama (follow-up to the 2026-07-15 flake root-cause)
 
-`test_axon_op_cache_under_cap_never_evicts` failed on CI run 29386156802 (2026-07-15, commit
-bcf8a0e8 — docs-only, no compiler change): key "tree" read back **11.0 instead of 4.0** from a
-10-key axon bundle. Local pass + CI rerun pass on the same commit → flake. But the magnitude is
-wrong for the documented flake class: the test comment predicts *rare 2x-crosstalk* from a
-near-collinear key pair; 11.0 is a full different-value readback, not 2× of anything in the key
-set (lengths 2,3,4,5,6,7,8,9,10,12). Hypothesis to check: CI pulls ollama + nomic-embed-text
-fresh each run — a model/quantization version drift on the runner could shift embeddings enough
-to near-collide a pair (local model is pinned by whatever's cached). Bounded scope: (a) DONE
-2026-07-15 — compiler-ci.yml now logs ollama version + model digest each run; (b) on the NEXT
-flake, compare that run's digest to a green run's — if it differs, drift is confirmed; (c) if
-drift is confirmed, pin the model digest in compiler-ci.yml. Do NOT weaken/retune the test — it
-already survived one
-hardening round (f0..f9 → distinct words); the assert is the measurement.
+Root cause CLOSED — see `planning/findings/2026-07-15-axon-flake-root-cause-server-version.md`:
+same model digest, different ollama SERVER (local 0.17.1 tuned/passes, CI unpinned→0.32.0
+flaked); CI now pins `OLLAMA_VERSION=0.17.1` + logs version/digest. Remaining deliberate work:
+re-measure the suite's crosstalk margins against a modern ollama server (0.32.x) with
+`experiments/axon_key_crosstalk_probe.py` — if the modern geometry is tighter, fix with
+better-separated keys or a measured wider margin, then bump the pin. Same regression class as
+the LSC paper (ollama runtime change shifting embeddings for unchanged weights). Not urgent;
+do when touching the axon tests anyway or before any CI-image refresh.
 
 ### Differentiable loop halt — design fork (Emma's call; do NOT build unilaterally)
 
