@@ -39,17 +39,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Re-measure axon crosstalk margins on modern ollama (follow-up to the 2026-07-15 flake root-cause)
-
-Root cause CLOSED — see `planning/findings/2026-07-15-axon-flake-root-cause-server-version.md`:
-same model digest, different ollama SERVER (local 0.17.1 tuned/passes, CI unpinned→0.32.0
-flaked); CI now pins `OLLAMA_VERSION=0.17.1` + logs version/digest. Remaining deliberate work:
-re-measure the suite's crosstalk margins against a modern ollama server (0.32.x) with
-`experiments/axon_key_crosstalk_probe.py` — if the modern geometry is tighter, fix with
-better-separated keys or a measured wider margin, then bump the pin. Same regression class as
-the LSC paper (ollama runtime change shifting embeddings for unchanged weights). Not urgent;
-do when touching the axon tests anyway or before any CI-image refresh.
-
 ### Differentiable loop halt — design fork (Emma's call; do NOT build unilaterally)
 
 Finding: `planning/findings/2026-07-14-loop-backprop-hard-fails-heaviside.md`. MEASURED:

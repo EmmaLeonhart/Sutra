@@ -16329,3 +16329,11 @@ verified FAILS pre-fix (stash check), passes post-fix; axon file 7/7; binding/re
 compiler-ci GREEN on 5cf958a3 (the platform class that failed 4 consecutive runs), plus
 transpilers-ci + Pages. The axon aliasing arc is closed: defect found via CI truth-positive,
 mechanism proven, Emma picked salt-retry, fix verified locally both directions and now on CI.
+
+## 2026-07-15 — record corrected: superseded finding marked, ollama pin removed
+The server-version finding doc now carries a SUPERSEDED banner pointing at the birthday-collision
+finding (never leave a wrong root-cause standing; both falsified hypotheses kept as negative
+results). OLLAMA_VERSION pin removed from compiler-ci — it was chasing the falsified hypothesis;
+the salt-retry fix makes platform/version seed variation harmless by construction. Version+digest
+logging stays. Stale queue item deleted (its content was the wrong root-cause). CI on this commit
+is the empirical check that unpinned-latest is green post-fix.

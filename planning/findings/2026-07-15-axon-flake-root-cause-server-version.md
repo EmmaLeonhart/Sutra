@@ -1,4 +1,12 @@
-# Axon-cache CI flake: root cause is ollama SERVER version, not model drift (2026-07-15)
+# ⚠ SUPERSEDED — this root-cause was WRONG. See `2026-07-15-axon-value-slot-birthday-collision.md`
+
+The server-version hypothesis below was falsified the same day: the `OLLAMA_VERSION=0.17.1`-pinned
+CI run failed the same test with a different key pair (house→13.0 = 5+8 mountain), and the probe
+showed all 10 embedding hashes DISTINCT on the failing runner. The true mechanism is the value-slot
+birthday collision (fixed via salt-retry, Emma's pick, commit 5cf958a3 — CI green cross-platform).
+Kept for the negative-result record: model drift AND server version were both measured and ruled out.
+
+# ~~Axon-cache CI flake: root cause is ollama SERVER version, not model drift (2026-07-15)~~
 
 ## The symptom
 
