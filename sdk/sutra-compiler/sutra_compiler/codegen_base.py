@@ -630,6 +630,12 @@ class BaseCodegen:
         # call `Math.log(x)` for an intrinsic dispatches directly to
         # `_VSA.log(x)` without going through a mangled wrapper.
         self._class_intrinsic_methods: dict[str, set[str]] = {}
+        # Names of the stdlib intrinsic classes (Math, Tensor, String,
+        # ...). Populated from stdlib_class_intrinsic_methods() below.
+        # Case-insensitive method resolution (Emma 2026-07-15) applies
+        # ONLY to these classes — user-defined class methods stay
+        # case-sensitive so distinct user identifiers never collide.
+        self._stdlib_class_names: set[str] = set()
         # Non-static (instance) methods declared inside class bodies.
         # Same shape as _class_static_methods. Calls of the form
         # `this.method(args)` from inside another method on the same
@@ -726,6 +732,7 @@ class BaseCodegen:
                 stdlib_class_operators,
             )
             for cls_name, method_names in stdlib_class_intrinsic_methods().items():
+                self._stdlib_class_names.add(cls_name)
                 self._class_static_methods.setdefault(
                     cls_name, set()
                 ).update(method_names)
@@ -4329,14 +4336,20 @@ class BaseCodegen:
                 # Intrinsic methods on a class route directly to the
                 # runtime: `Math.log(x)` -> `_VSA.log(x)`. The mangled
                 # wrapper isn't emitted for intrinsic-marked methods.
-                if (cls_name in self._class_intrinsic_methods
-                        and method_name in self._class_intrinsic_methods[cls_name]):
+                # Case-insensitive on stdlib classes (Emma 2026-07-15):
+                # `Math.Log` resolves to the canonical `log` and emits
+                # `_VSA.log` (the canonical name, since that is the
+                # attribute the runtime actually defines).
+                canonical = self._resolve_stdlib_method_ci(
+                    cls_name, method_name, self._class_intrinsic_methods)
+                if canonical is not None:
                     arg_srcs = [self._translate_expr(a) for a in call.args]
-                    return f"_VSA.{method_name}({', '.join(arg_srcs)})"
-                if (cls_name in self._class_static_methods
-                        and method_name in self._class_static_methods[cls_name]):
+                    return f"_VSA.{canonical}({', '.join(arg_srcs)})"
+                canonical = self._resolve_stdlib_method_ci(
+                    cls_name, method_name, self._class_static_methods)
+                if canonical is not None:
                     arg_srcs = [self._translate_expr(a) for a in call.args]
-                    return f"{cls_name}_{method_name}({', '.join(arg_srcs)})"
+                    return f"{cls_name}_{canonical}({', '.join(arg_srcs)})"
                 # Non-static class method called via class-namespace
                 # syntax: `Greeter.Hello(g, ...)`. The first arg is the
                 # instance and becomes `this` inside the method body.
@@ -4352,6 +4365,38 @@ class BaseCodegen:
         raise CodegenNotSupported(
             call, f"unsupported callee expression: {type(callee).__name__}"
         )
+
+    def _resolve_stdlib_method_ci(
+        self,
+        cls_name: str,
+        method_name: str,
+        registry: dict[str, set[str]],
+    ) -> str | None:
+        """Resolve a class-namespaced static method name against `registry`,
+        returning the CANONICAL member name, or None if unresolved.
+
+        Exact match always wins (and works for user classes too). On an
+        exact miss, a case-insensitive fallback runs — but ONLY for stdlib
+        intrinsic classes (Math, Tensor, ...); user-defined class methods
+        stay case-sensitive so distinct user identifiers never collide.
+        The canonical (declared) spelling is returned, never the caller's
+        spelling, because the emitted `_VSA.<name>` / `<Class>_<name>`
+        target must match a symbol the runtime/codegen actually defines.
+        Emma 2026-07-15: PascalCase is canonical; case-twins are exempt
+        from deprecation.
+        """
+        members = registry.get(cls_name)
+        if not members:
+            return None
+        if method_name in members:
+            return method_name
+        if cls_name not in self._stdlib_class_names:
+            return None
+        folded = method_name.casefold()
+        for member in members:
+            if member.casefold() == folded:
+                return member
+        return None
 
 
 # ---------------------------------------------------------------------

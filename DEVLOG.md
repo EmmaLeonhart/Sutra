@@ -1,3 +1,22 @@
+## 2026-07-15: case-insensitive stdlib resolution — rung 1 (codegen class-namespace path)
+
+Emma decided 2026-07-15: stdlib static-method names on intrinsic classes resolve
+CASE-INSENSITIVELY (PascalCase canonical; twins exempt from deprecation). Shipped the first
+rung via TDD. `codegen_base.py`: new `_resolve_stdlib_method_ci(cls, name, registry)` — exact
+match wins first; on miss, a `str.casefold()` scan over the registry returns the CANONICAL
+member spelling; the casefold fallback is gated to `_stdlib_class_names` (populated from
+`stdlib_class_intrinsic_methods()`), so user-defined class methods stay case-sensitive and
+distinct user identifiers never collide. Wired into the class-namespace dispatch (intrinsic →
+`_VSA.<canonical>`, static → `<Class>_<canonical>`). `Math.Log(x)` now emits `_VSA.log(` — the
+canonical name, never `_VSA.Log` (which the runtime doesn't define). RED→GREEN: watched the new
+`test_math_intrinsic_uppercase_resolves_to_canonical_lowercase` fail (`_VSA.log(` absent) before
+implementing; a malformed user-class guard test was deleted, not weakened. Verified: 268 passed /
+2 skipped across 15 dispatch-relevant compiler suites (codegen, codegen_pytorch, stdlib_loader,
+symbol_table, parser, lexer, transcendentals, cast, class-fields, …). No local pdflatex/full-suite
+gate — the full `tests/` run hung on a torch/exec e2e test (killed); CI is the full-suite authority.
+Remaining rungs (typed-instance / this.method / older-instance dispatch paths, validator+SUT0201
+bare-form resolution, docs, optional twin collapse) tracked in queue.md.
+
 ## 2026-07-14: audit — every tutorial/cookbook/loops.md code snippet validates on main (15/15)
 
 Pinned-audit rotation, docs-code-truth surface: extracted every complete ```sutra block from

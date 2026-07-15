@@ -47,23 +47,31 @@ insensitive? This isn't an issue either way this isn't for the deprecation reaso
 method names CASE-INSENSITIVELY rather than keeping duplicate declarations; (3) these pairs are
 explicitly EXEMPT from the aggressive-deprecation rule — do NOT remove the twins.
 
-Implementation spec (bounded, next tick):
-- Scope: name lookup for STATIC METHODS ON STDLIB INTRINSIC CLASSES only (Math, Tensor, String,
-  ...). Exact match wins first; on miss, retry with str.casefold(). Never applies to user-defined
-  functions/classes (case-distinct user identifiers must not become ambiguous).
-- Touch points: codegen_base.py call-site dispatch (~4233/4336 member + class-namespace paths),
-  validator/symbol_table is_known_function + typo-suggester (a case-variant should resolve, not
-  SUT0201-warn), emitted runtime aliases in codegen_pytorch (~2403 MatrixMul = matmul block).
-- NOTE the pair taxonomy: Dot/dot, Outer/outer, Transpose/transpose, Normalize/normalize are true
-  case-twins (collapse to ONE declaration each — keep PascalCase — once folding lands).
-  MatrixMul/matmul, TensorProduct/tensor_product, RotationFor/rotation_for, log/ln are DIFFERENT
-  NAMES (abbreviation pairs) — case-folding cannot unify them; keep both declared per Emma.
-- Docs: numeric-math.md and tensor docs present PascalCase as canonical, note the case-insensitive
-  resolution + that the lowercase/abbreviation forms work. Fix numeric-math.md's "ln is THE
-  primitive" vs math.su's "ln is the alias" disagreement by stating both work with log canonical.
-- Tests: case-variant call resolves (Math.DOT / math.dot / Dot / dot all hit the same op); a
-  user-defined lowercase fn shadowing nothing stays untouched; SUT0201 no longer fires on a pure
-  case variant of a stdlib method.
+Scope (unchanged): STATIC METHODS ON STDLIB INTRINSIC CLASSES only (Math, Tensor, String, ...).
+Exact match wins first; on miss, retry with str.casefold(); NEVER applies to user-defined
+functions/classes. Pair taxonomy: Dot/dot, Outer/outer, Transpose/transpose, Normalize/normalize
+are true case-twins; MatrixMul/matmul, TensorProduct/tensor_product, RotationFor/rotation_for,
+log/ln are DIFFERENT names (case-folding can't unify — keep both). The canonical (declared)
+spelling is what gets emitted, so `_VSA.<name>` always targets a real runtime attribute.
+
+REMAINING rungs (codegen class-namespace path shipped 2026-07-15 — see DEVLOG; `_resolve_stdlib_method_ci`
+helper + `_stdlib_class_names` gate in codegen_base.py):
+- Extend the same helper to the OTHER codegen dispatch paths: typed-instance (`t.Dot()` where `t`
+  is a `vector`/`Tensor` local, codegen_base ~4319), `this.Method()` (~4233), and the older instance
+  path (~2597). Each gets its own failing test first.
+- validator/symbol_table `is_known_function` + SUT0201 typo-suggester: a bare-form case variant
+  (`Dot(...)`, `DOT(...)`) of a stdlib method should RESOLVE, not SUT0201-warn. Add a casefold
+  index over `extern_function_names()`, gated to the stdlib/intrinsic set (not user `functions`/
+  `methods`). Member-call form (`Math.Sqrt`) isn't validator-gated today — note that.
+- Docs: numeric-math.md + tensor docs present PascalCase as canonical, note case-insensitive
+  resolution. Fix numeric-math.md's "ln is THE primitive" vs math.su's "ln is the alias" by stating
+  both work with `log` canonical.
+- Twin collapse (OPTIONAL, do last): Dot/dot, Outer/outer, Transpose/transpose, Normalize/normalize
+  → ONE declaration each in tensor.su (keep PascalCase); the lowercase call still resolves via the
+  casefold fallback, which is what makes collapse safe. Emma: twins are EXEMPT from deprecation, so
+  this is a tidy-up, not a required removal.
+- Tests to add per rung: `Tensor.Dot`→`_VSA.Dot` (twin, canonical PascalCase kept); bare `dot`/`DOT`
+  resolve; SUT0201 does not fire on a pure case variant.
 
 ---
 

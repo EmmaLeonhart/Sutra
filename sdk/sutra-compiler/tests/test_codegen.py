@@ -1395,5 +1395,29 @@ class TestCrossFunctionAxonElision(unittest.TestCase):
         self.assertMaterialized(py, "a", "o")
 
 
+class TestCaseInsensitiveStdlibResolution(unittest.TestCase):
+    """Emma 2026-07-15: stdlib static-method names on intrinsic classes
+    (Math, Tensor, ...) resolve CASE-INSENSITIVELY. PascalCase is the
+    canonical documented spelling; a case-variant call must emit the
+    CANONICAL runtime name (the `_VSA` attribute must exist), not the
+    user's spelling. Exact match still wins first. User-defined class
+    methods stay case-SENSITIVE — casefolding only applies to stdlib."""
+
+    def test_math_intrinsic_uppercase_resolves_to_canonical_lowercase(self):
+        # `Math.log` is a lowercase intrinsic -> `_VSA.log`. A case-variant
+        # `Math.Log` must resolve to the same canonical `_VSA.log`, not the
+        # broken passthrough `Math.Log(...)` / `_VSA.Log(...)`.
+        src = (
+            "function number main() {\n"
+            "  number x = 2.0;\n"
+            "  return Math.Log(x);\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.log(", py)
+        self.assertNotIn("_VSA.Log(", py)
+        self.assertNotIn("Math.Log(", py)
+
+
 if __name__ == "__main__":
     unittest.main()
