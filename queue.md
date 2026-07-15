@@ -59,10 +59,6 @@ helper + `_stdlib_class_names` gate in codegen_base.py):
 - Extend the same helper to the OTHER codegen dispatch paths: typed-instance (`t.Dot()` where `t`
   is a `vector`/`Tensor` local, codegen_base ~4319), `this.Method()` (~4233), and the older instance
   path (~2597). Each gets its own failing test first.
-- validator/symbol_table `is_known_function` + SUT0201 typo-suggester: a bare-form case variant
-  (`Dot(...)`, `DOT(...)`) of a stdlib method should RESOLVE, not SUT0201-warn. Add a casefold
-  index over `extern_function_names()`, gated to the stdlib/intrinsic set (not user `functions`/
-  `methods`). Member-call form (`Math.Sqrt`) isn't validator-gated today — note that.
 - Docs: numeric-math.md + tensor docs present PascalCase as canonical, note case-insensitive
   resolution. Fix numeric-math.md's "ln is THE primitive" vs math.su's "ln is the alias" by stating
   both work with `log` canonical.

@@ -42,6 +42,18 @@ class SymbolTableCollectionTest(unittest.TestCase):
         self.assertTrue(t.is_known_function("add"))
         self.assertFalse(t.is_known_function("nope"))
 
+    def test_stdlib_bare_call_resolves_case_insensitively(self):
+        # Emma 2026-07-15: bare stdlib names resolve case-insensitively, so a
+        # case-variant (`Log`/`LOG` of intrinsic `log`) must be recognized as
+        # known — no spurious SUT0201 unknown-function warning on code that
+        # codegen now compiles to `_VSA.log`. User names stay case-sensitive.
+        m = _module("function number main() { return log(2.0); }\n")
+        t = build_symbol_table(m)
+        self.assertTrue(t.is_known_function("log"))     # exact
+        self.assertTrue(t.is_known_function("Log"))     # case-variant
+        self.assertTrue(t.is_known_function("LOG"))     # case-variant
+        self.assertFalse(t.is_known_function("Nope"))   # user/unknown, unaffected
+
     def test_collects_top_level_methods(self):
         # A Sutra file acts as an object declaration: methods sit at file scope
         # and their implicit `this` is NOT counted in arity.

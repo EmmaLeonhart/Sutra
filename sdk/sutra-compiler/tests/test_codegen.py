@@ -1435,6 +1435,23 @@ class TestCaseInsensitiveStdlibResolution(unittest.TestCase):
         self.assertIn("_VSA.Dot(", py)
         self.assertNotIn("_VSA.dot(", py)
 
+    def test_bare_intrinsic_call_resolves_case_insensitively(self):
+        # A BARE stdlib call `log(x)` -> `_VSA.log(x)`. A case-variant bare
+        # call `Log(x)` / `LOG(x)` must resolve to the same canonical
+        # `_VSA.log(x)`, not emit the broken passthrough `Log(x)` (a Python
+        # NameError at runtime). Same case-insensitive rule as the
+        # class-namespace form, applied to the free-call dispatch.
+        for call in ("Log(x)", "LOG(x)"):
+            src = (
+                "function number main() {\n"
+                "  number x = 2.0;\n"
+                f"  return {call};\n"
+                "}\n"
+            )
+            py = _compile(src)
+            self.assertIn("_VSA.log(", py, f"{call} should resolve to _VSA.log")
+            self.assertNotIn(call, py, f"{call} passthrough must not be emitted")
+
 
 if __name__ == "__main__":
     unittest.main()
