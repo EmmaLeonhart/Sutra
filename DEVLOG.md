@@ -16279,3 +16279,12 @@ was: non-compiling `function`-in-class + "no fields" claim), §2 Java/Sutra sums
 diagnostics reference: dense paragraph → per-phase tables covering every raisable code incl.
 previously-undocumented SUT0106/0150/0207/9999 + full SUT2xxx workspace set (2000/2099 are range
 bounds, never raised — verified by grep + AST extraction of raise sites). Site rebuild clean.
+
+## 2026-07-15 — axon-cache CI flake triaged; digest logging added
+compiler-ci red on bcf8a0e8 (docs-only commit): test_axon_op_cache_under_cap_never_evicts read
+"tree" back as 11.0 not 4.0. Local pass + CI rerun pass on the same sha => flake, but the
+magnitude (full value-bleed, not the documented 2x-crosstalk class) earns a queue item, not a
+shrug. Suspect: CI pulls ollama+nomic-embed-text fresh each run; model/quantization drift could
+near-collide a key pair. Added observability to compiler-ci.yml (ollama version + model digest
+logged each run) so the next flake is attributable; pin the digest if drift confirms. Test
+untouched — the assert is the measurement. All three CIs green on bcf8a0e8 after rerun.

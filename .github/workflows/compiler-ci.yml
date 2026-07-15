@@ -85,6 +85,13 @@ jobs:
             sleep 2
           done
           ollama pull nomic-embed-text
+          # Log the server version + exact model digest. Embedding-dependent
+          # tests (e.g. the axon-cache readback) have flaked with full
+          # value-bleed (11.0-vs-4.0, run 29386156802); if model/quantization
+          # drift on the runner is the cause, this line makes the next flake
+          # attributable to a digest change. Observability only — never gates.
+          ollama --version
+          curl -fsS http://localhost:11434/api/tags | python3 -c "import json,sys; [print('model:', m['name'], 'digest:', m['digest']) for m in json.load(sys.stdin)['models']]"
 
       - name: Run compiler test suite (excluding slow/local-broken)
         working-directory: sdk/sutra-compiler
