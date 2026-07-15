@@ -39,24 +39,6 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### Reduce `planning/open-questions/vector-sized-loop-slots.md` to a pointer (daily audit 2026-07-15)
-
-Doc still frames itself as "design doc for vector-loop-state rung 3 (queued)" with a staged
-B1..B5 build plan. The build is DONE: `DEVLOG.md` 2026-07-13 declares "**The vector-valued-loop-
-state EPIC is COMPLETE**: expression form (rung 1), multi-state destructure (rung 2), unified
-d-dim slots (rung 3 Option B), SUT0206 retired (B5)"; the SUT0206 retirement is physically in
-`sdk/sutra-compiler/sutra_compiler/validator.py:492` (`# SUT0206 RETIRED (2026-07-12, vector-
-loop-state rung 3 B5)`); rung 3 B1a-c/B3 covered in
-`planning/findings/2026-07-12-option-b-slot-unification-blast-radius.md`. Action: shrink the doc
-to a short pointer at those three locations (or remove it — git preserves the design record) so
-the next agent isn't misled by the "queued" framing. Also refresh
-`planning/open-questions/README.md`'s verdict table: it stops at the 2026-05-28 pruning pass and
-misses six later-added docs (`2026-06-13-sutra-to-thrml-mapping`, `axon-string-filler-
-roundtrip`, `cast-bool-fuzzy-defuzz-or-relabel`, `fv-convergence-spectral-gap-leg`,
-`gibbs-8state-lambda2-machine-checked-gap`, `vector-sized-loop-slots`). Of those, only
-`vector-sized-loop-slots` is drift; the other five are correctly OPEN per today's audit but
-untriaged in the table.
-
 ### Case-insensitive stdlib method resolution (Emma decided 2026-07-15)
 
 Emma's call on the tensor-op alias question: "PascalCase wins but can we just mature them case

@@ -16375,3 +16375,12 @@ Converted to a specced implementation item (scoped fallback: stdlib intrinsic cl
 exact-match-first; taxonomy note: 4 true case-twins vs 3 abbreviation pairs case-folding can't
 unify). Also: stray ran.html (arXiv render, re-fetchable) relocated out of the LSC checkout to
 scratchpad — submodule tree clean again.
+
+## 2026-07-15 — open-questions hygiene (late-audit queue item)
+vector-sized-loop-slots.md reduced to a pointer (design plan preserved in git history; the doc
+still framed a 2026-07-13-shipped epic as "queued"). README verdict table extended with the six
+post-2026-05-28 docs it missed — spot-check corrected the audit's claim that all five others were
+OPEN: axon-string-filler-roundtrip is RESOLVED (Emma 2026-06-08, strings are not axon fillers)
+and fv-convergence-spectral-gap-leg is RESOLVED (proved + CI-green 2026-06-30); thrml-mapping,
+cast-bool-fuzzy, gibbs-8state (Emma-gated) correctly OPEN. Tally refreshed: 2 resolved-core,
+3 resolved-records, 14 open, 1 nearly-closed = all 20 docs accounted for (verified vs ls).

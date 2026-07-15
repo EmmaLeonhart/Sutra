@@ -39,12 +39,21 @@ one line).
 | `cosine-vs-euclidean-for-post-algebraic-similarity.md` | OPEN | is Euclidean right for post-bind/bundle compare (magnitude info); never tested; gates any "right metric" claim |
 | `contextual-vs-static-embedding-keys.md` | OPEN | static string-keyed `embed()` vs contextual; load-bearing only for beyond-toy NL claims |
 | `paren-cast-vs-grouping-ambiguity.md` | OPEN | `(atom) <binop>` parses as a cast not a group; transpilers fully-group around it, hand-written `.su` still mis-parses; pick a cast syntax / disambiguation rule |
+| `2026-06-13-sutra-to-thrml-mapping.md` | OPEN | exploration loop (Emma 2026-06-13: no preconceived mapping — try approaches until the computation lands on thrml) |
+| `axon-string-filler-roundtrip.md` | RESOLVED | strings are NOT axon fillers (Emma 2026-06-08, AskUserQuestion); kept as the design record for why the collapse exists |
+| `cast-bool-fuzzy-defuzz-or-relabel.md` | OPEN | is `(bool) fuzzy` a free relabel or an implicit defuzzification — shipped lowering picked relabel, question stands |
+| `fv-convergence-spectral-gap-leg.md` | RESOLVED | proved as `applyP_gap_contraction` (`fv-lean/mathlib/Convergence.lean:346`, CI-green 2026-06-30) |
+| `gibbs-8state-lambda2-machine-checked-gap.md` | OPEN | named, NOT green-lit (Emma) — the FV paper's only remaining leg; do not start without her go |
+| `vector-sized-loop-slots.md` | RESOLVED (SHIPPED) | rung 3 Option B unified d-dim slots landed 2026-07-13; SUT0206 retired; doc reduced to a pointer |
 
-Tally (after the 2026-05-28 pruning pass):
+Tally (refreshed 2026-07-15 — the 2026-05-28 tally missed six later-added docs):
 **2 RESOLVED-core with a narrow OPEN tail** (`literals-and-auto-embedding`,
 `no-null` — kept because each still has a live sub-question),
-**11 genuinely OPEN** — most are narrow sub-questions, not undefined design
-space, and none currently blocks queue work.
+**3 RESOLVED kept as records** (`axon-string-filler-roundtrip`,
+`fv-convergence-spectral-gap-leg`, `vector-sized-loop-slots`),
+**14 genuinely OPEN** — most are narrow sub-questions, not undefined design
+space, and none currently blocks queue work (the gibbs-8state leg is
+additionally gated on Emma's explicit go).
 
 **Pruning pass (2026-05-28, Emma-greenlit).** Nine fully-RESOLVED docs whose
 rationale is captured in the cited spec/findings were removed from the tree
