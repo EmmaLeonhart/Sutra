@@ -4393,10 +4393,19 @@ class BaseCodegen:
         if cls_name not in self._stdlib_class_names:
             return None
         folded = method_name.casefold()
-        for member in members:
-            if member.casefold() == folded:
-                return member
-        return None
+        matches = [m for m in members if m.casefold() == folded]
+        if not matches:
+            return None
+        if len(matches) == 1:
+            return matches[0]
+        # Ambiguous casefold — a declared case-twin (e.g. `Dot` AND `dot`).
+        # `members` is a set, so iteration order is hash-seed dependent;
+        # resolving to the first match would make codegen NON-deterministic.
+        # Pick deterministically, preferring the canonical PascalCase
+        # spelling (Emma 2026-07-15: PascalCase is canonical), then
+        # lexicographic as a total-order tiebreak.
+        matches.sort(key=lambda m: (m[:1].islower(), m))
+        return matches[0]
 
 
 # ---------------------------------------------------------------------

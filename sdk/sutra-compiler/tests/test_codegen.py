@@ -1418,6 +1418,23 @@ class TestCaseInsensitiveStdlibResolution(unittest.TestCase):
         self.assertNotIn("_VSA.Log(", py)
         self.assertNotIn("Math.Log(", py)
 
+    def test_ambiguous_casefold_resolves_to_pascalcase_canonical(self):
+        # `Tensor` declares BOTH `Dot` and `dot` (a case-twin) today. A
+        # third spelling like `Tensor.DOT` casefold-matches BOTH, so the
+        # resolution must be DETERMINISTIC and pick the canonical
+        # PascalCase member (`Dot`) — never resolve to `dot` by set-order
+        # accident. Emma 2026-07-15: PascalCase is canonical.
+        src = (
+            "function vector main() {\n"
+            "  vector a = embed(\"a\");\n"
+            "  vector b = embed(\"b\");\n"
+            "  return Tensor.DOT(a, b);\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.Dot(", py)
+        self.assertNotIn("_VSA.dot(", py)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,3 +1,18 @@
+## 2026-07-15: case-insensitive stdlib resolution — determinism fix (ambiguous casefold twin)
+
+Follow-up on rung 1: found a real non-determinism defect the first rung introduced.
+`_resolve_stdlib_method_ci` scanned a `set` and returned the FIRST casefold match. When a
+class declares a case-twin (Tensor declares BOTH `Dot` and `dot`), a third spelling like
+`Tensor.DOT` casefold-matches both, and set iteration order is `PYTHONHASHSEED`-dependent —
+so codegen emitted `_VSA.Dot` on some seeds and `_VSA.dot` on others (measured: wrong on
+seeds 2,3,4,6,9,11 of 0–12). Non-deterministic codegen breaks reproducibility and Emma's
+"PascalCase canonical" rule. Fix: collect ALL casefold matches and, when >1, sort by
+`(spelling.islower(), spelling)` so the PascalCase member wins deterministically (lexicographic
+tiebreak for a total order). Single-match classes (all of Math — lowercase, no twins) are
+unaffected. TDD: `test_ambiguous_casefold_resolves_to_pascalcase_canonical` fails under
+PYTHONHASHSEED=2 pre-fix (emits `_VSA.dot`), passes across all previously-broken seeds after.
+269 passed / 2 skipped across 15 dispatch suites.
+
 ## 2026-07-15: case-insensitive stdlib resolution — rung 1 (codegen class-namespace path)
 
 Emma decided 2026-07-15: stdlib static-method names on intrinsic classes resolve
