@@ -29,3 +29,10 @@ Making loops trainable needs a **surrogate gradient for the halt step** — opti
 (c) leave forward-only (loops as inference-time control, training on loop-free subgraphs).
 Each changes training semantics on the substrate — a language-design call, not a bug fix.
 Filed to the queue; the repro above becomes the test when a direction is chosen.
+
+## RESOLVED 2026-07-15 — Emma's decision: stay forward-only
+
+Emma chose (c) via AskUserQuestion: loops remain inference-time control flow; no semantics
+change. The straight-through estimator remains the natural later add if training-through-loops
+becomes needed. The repro in this finding stays as the documenting test of the forward-only
+truth; the paper's scoped claims (conclusion + §3.4) are the permanent wording.
