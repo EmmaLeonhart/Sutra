@@ -68,6 +68,16 @@ def extern_function_names() -> frozenset:
     return frozenset(names)
 
 
+@functools.lru_cache(maxsize=1)
+def extern_function_names_casefold() -> frozenset:
+    """Case-folded index of `extern_function_names()`. Stdlib/builtin names
+    resolve CASE-INSENSITIVELY (Emma 2026-07-15), so a case-variant of a
+    known stdlib name (e.g. `Log` for `log`) must not be flagged unknown —
+    it matches what codegen now compiles. User functions/methods are checked
+    exact-only (case-sensitive) and never consult this set."""
+    return frozenset(n.casefold() for n in extern_function_names())
+
+
 
 @functools.lru_cache(maxsize=1)
 def python_builtin_names() -> frozenset:
@@ -261,7 +271,9 @@ class SymbolTable:
         return (
             name in self.functions
             or name in self.methods
-            or (self.include_extern and name in extern_function_names())
+            or (self.include_extern and (
+                name in extern_function_names()
+                or name.casefold() in extern_function_names_casefold()))
         )
 
     def call_return_type(self, name: str) -> Optional[str]:

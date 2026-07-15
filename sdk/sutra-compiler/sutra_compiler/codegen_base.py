@@ -4209,13 +4209,13 @@ class BaseCodegen:
             # primitive (dot, sqrt, tanh, make_truth, embed, ...) is
             # dispatched to _VSA.<name>(...) instead of a bare identifier
             # call that would fail to resolve in the emitted Python.
-            from .stdlib_loader import intrinsic_names
-            if name in intrinsic_names():
+            bare_canonical = self._resolve_bare_intrinsic_ci(name)
+            if bare_canonical is not None:
                 arg_srcs = [
                     self._translate_expr(a, dest_type=_arg_dest(i))
                     for i, a in enumerate(call.args)
                 ]
-                return f"_VSA.{name}({', '.join(arg_srcs)})"
+                return f"_VSA.{bare_canonical}({', '.join(arg_srcs)})"
             # User-defined call: emit as-is.
             arg_srcs = [
                 self._translate_expr(a, dest_type=_arg_dest(i))
@@ -4404,6 +4404,29 @@ class BaseCodegen:
         # Pick deterministically, preferring the canonical PascalCase
         # spelling (Emma 2026-07-15: PascalCase is canonical), then
         # lexicographic as a total-order tiebreak.
+        matches.sort(key=lambda m: (m[:1].islower(), m))
+        return matches[0]
+
+    def _resolve_bare_intrinsic_ci(self, name: str) -> str | None:
+        """Resolve a BARE free-call name (`log`, `dot`, ...) against the stdlib
+        intrinsics, returning the CANONICAL name or None if unresolved.
+
+        Exact match wins first. On a miss, a case-insensitive fallback runs
+        over the BARE intrinsic names (Emma 2026-07-15: stdlib names resolve
+        case-insensitively) — so `Log`/`LOG` reach `log`, and a case-twin
+        (`Dot`/`dot`) resolves deterministically to the PascalCase spelling.
+        The canonical name is returned so the emitted `_VSA.<name>` targets a
+        real runtime attribute. Qualified `Class.method` entries are excluded;
+        user identifiers are unaffected (they never enter intrinsic_names()).
+        """
+        from .stdlib_loader import intrinsic_names
+        names = intrinsic_names()
+        if name in names:
+            return name
+        folded = name.casefold()
+        matches = [n for n in names if "." not in n and n.casefold() == folded]
+        if not matches:
+            return None
         matches.sort(key=lambda m: (m[:1].islower(), m))
         return matches[0]
 

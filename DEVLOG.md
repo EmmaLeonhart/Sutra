@@ -1,3 +1,19 @@
+## 2026-07-15: case-insensitive stdlib resolution — rung 3 (bare free-call + validator)
+
+Extended the case-insensitive rule to BARE free-calls (`log(x)`) and the validator. Before:
+`log(x)`→`_VSA.log` but `Log(x)`/`LOG(x)` emitted the broken passthrough `Log(x)` (a runtime
+NameError). Now `codegen_base._resolve_bare_intrinsic_ci(name)` casefold-resolves bare names
+against `intrinsic_names()` (bare entries only, qualified `Class.method` excluded), deterministic
+PascalCase-preferring tiebreak (same as rung 2), emitting the canonical `_VSA.<name>`. Paired with
+the validator: `symbol_table.is_known_function` now consults a cached `extern_function_names_casefold()`
+so a bare case-variant of a stdlib name is recognized (no spurious SUT0201/unknown-function warning)
+— gated to the stdlib/builtin extern set; user functions/methods stay exact-match (case-sensitive).
+Doing BOTH avoids a validated-but-broken trap (validator says known ⇔ codegen emits working code).
+TDD: `Log(x)`/`LOG(x)`→`_VSA.log` codegen test + `is_known_function('Log')` symbol test both watched
+red first. 271 passed / 2 skipped across the dispatch+symbol suites; end-to-end `Log(x)` is known AND
+emits `_VSA.log(x)`. Remaining: this.method/older-instance dispatch paths (niche; typed-instance is
+out of scope — not wired to _VSA even lowercase), docs, optional twin collapse.
+
 ## 2026-07-15: case-insensitive stdlib resolution — determinism fix (ambiguous casefold twin)
 
 Follow-up on rung 1: found a real non-determinism defect the first rung introduced.
