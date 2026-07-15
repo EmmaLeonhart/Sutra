@@ -53,6 +53,22 @@ def _vsa(runtime_dim: int = 256):
 def main():
     v = _vsa()
     embs = {k: v.embed(k) for k in KEYS}
+
+    # Embedding-collapse check (the LSC-paper failure class): the axon rotation
+    # operator is a pure function of a 32-bit hash of the embedding BYTES, so
+    # two keys with byte-identical embeddings get the SAME operator and both
+    # read back the pair's SUM — the exact signature of CI runs 29386156802
+    # (tree->11.0 = 4+7 machine) / the 0.17.1-pinned run (house->13.0 = 5+8
+    # mountain). Print per-key byte-hashes and flag any identical pair.
+    import hashlib
+    print("embedding byte-hashes (collapse check):")
+    hashes = {}
+    for k in KEYS:
+        b = bytes(embs[k].detach().cpu().contiguous().view(torch.uint8).tolist())
+        h = hashlib.blake2b(b, digest_size=8).hexdigest()
+        dup = [k2 for k2, h2 in hashes.items() if h2 == h]
+        hashes[k] = h
+        print(f"  {k}: {h}" + (f"  <-- IDENTICAL TO {dup}" if dup else ""))
     # pairwise cosines of the raw key embeddings
     print("pairwise cosines (upper triangle, >0.5 flagged):")
     worst = (0.0, "", "")

@@ -102,6 +102,17 @@ jobs:
           ollama --version
           curl -fsS http://localhost:11434/api/tags | python3 -c "import json,sys; [print('model:', m['name'], 'digest:', m['digest']) for m in json.load(sys.stdin)['models']]"
 
+      - name: Axon crosstalk probe (non-gating diagnostics)
+        # Evidence-gathering for the axon-cache readback flake (runs
+        # 29386156802 / 29387477961 / the 0.17.1-pinned run): two keys read
+        # back their pair SUM, which means they got byte-identical embeddings
+        # (the rotation operator is a pure function of the embedding-byte
+        # hash) — the LSC-paper collapse class, suspected in ollama's Linux
+        # build. This prints per-key embedding hashes + readback; it NEVER
+        # gates the build (exit 0 always). Delete once the flake is closed.
+        run: |
+          SUTRA_EMBED_BACKEND=ollama python experiments/axon_key_crosstalk_probe.py
+
       - name: Run compiler test suite (excluding slow/local-broken)
         working-directory: sdk/sutra-compiler
         run: |
