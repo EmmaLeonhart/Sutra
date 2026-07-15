@@ -16354,3 +16354,14 @@ per website rule). Item 5 (tensor alias case pick + log/ln) stays queued NEEDS-D
 Verified: transcendentals file 10 passed; stdlib/validator batch 91 passed; all 53 examples
 validate 0 diagnostics; site builds. Clean surfaces this round: retired spellings absent from
 examples/docs; example commentary quality good.
+
+## 2026-07-15 — daily substrate-honesty audit: CLEAN (one claim upgraded to measured)
+Scope: 93d80757..1e242675 (post-v0.10.0 through audit round 2). (a) dims: new axon regression
+test's runtime_dim=256 is load-bearing (needs 100 synthetic slots for 50-key injectivity);
+docs/test snippets use `// @embedding: none dim=64`; no unused-codebook 768s introduced. (b)
+claims: the axon fix's "exact readback" is test+CI measured; "CI green cross-platform" was
+verified against actual runs; min/max "substrate-pure by construction" was the one
+construction-argument claim — now MEASURED: emitted program body for Math.min/max/clamp + bare
+calls contains ZERO host readouts (.item()/float()), abs lowers as the tensor op. (c) no new
+classifiers; the axon fix's separation evidence (readback exact at 1e-3 over 50 keys) is in the
+test. No findings, no fix items.
