@@ -2817,14 +2817,16 @@ class BaseCodegen:
                 return
             raise CodegenNotSupported(
                 stmt,
-                f"`foreach` is only supported over compile-time-known "
+                f"the `foreach` STATEMENT only unrolls compile-time-known "
                 f"collections (array literals like `[a, b, c]`). The "
                 f"iterable here is a "
-                f"{type(stmt.iterable).__name__}, which would require "
-                f"runtime iteration. Dynamic `foreach` over named "
-                f"collections or computed expressions is future work. "
-                f"Rewrite as `foreach (x in [a, b, c]) {{ ... }}` or "
-                f"unroll by hand.",
+                f"{type(stmt.iterable).__name__}, which needs runtime "
+                f"iteration — that is what the `foreach_loop` FUNCTION "
+                f"form is for: declare "
+                f"`foreach_loop total(xs, int acc) {{ pass acc + element; }}` "
+                f"and call `int sum = loop total(xs, 0);` — the body sees "
+                f"each item as `element`, on the substrate. See "
+                f"docs/loops.md and the cookbook's \"Sum an array\".",
             )
         if isinstance(stmt, ast.IfStmt):
             # Design commitment, not a gap (control-flow.md § "`if` /

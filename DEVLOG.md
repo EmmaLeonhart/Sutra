@@ -16337,3 +16337,20 @@ results). OLLAMA_VERSION pin removed from compiler-ci — it was chasing the fal
 the salt-retry fix makes platform/version seed variation harmless by construction. Version+digest
 logging stays. Stale queue item deleted (its content was the wrong root-cause). CI on this commit
 is the empirical check that unpinned-latest is green post-fix.
+
+## 2026-07-15 — language/reach/aliases audit round: 5 of 6 shipped
+Audit agent (surfaces rotated from last round: language readability, stdlib discoverability,
+real-program reach, aliases). Shipped: (1) foreach codegen error now names the shipped
+`foreach_loop` form instead of calling it "future work" + telling users to unroll by hand
+(verified live); (2) stdlib/tensor.su stale Norm/norm declarations deleted — they validated then
+died at runtime with AttributeError since the 2026-06-07 readout removal (verified: `norm(v)` now
+warns unknown-function); (3) Math.min/max/clamp added, derived from native abs — substrate-pure by
+construction; bare `min(a,b)` previously drew SUT0204 then ran ON THE HOST (verified both call
+forms, exact values, no SUT0204; TestMinMaxClamp 3 tests + 60 subtests-adjacent green); (4)
+examples/uncertain/README.md marks Emma's 2026-04-15 quarantine explicit + flags the nonexistent
+`Cosine` (her files untouched); (5) 8 undocumented builtins added to capabilities.md §9
+(realvec, is_string/number_truth, sin/cos_buf, geometric_loop, ramRead/Write — no planning/ refs
+per website rule). Item 5 (tensor alias case pick + log/ln) stays queued NEEDS-DECISION for Emma.
+Verified: transcendentals file 10 passed; stdlib/validator batch 91 passed; all 53 examples
+validate 0 diagnostics; site builds. Clean surfaces this round: retired spellings absent from
+examples/docs; example commentary quality good.

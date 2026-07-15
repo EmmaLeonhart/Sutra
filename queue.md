@@ -39,6 +39,17 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### NEEDS-DECISION (Emma): tensor-op alias case + log/ln canonical pick
+
+From the 2026-07-15 language audit: stdlib/tensor.su declares BOTH spellings for 8 ops
+(`MatrixMul`/`matmul`, `TensorProduct`/`tensor_product`, `Outer`/`outer`, `Dot`/`dot`,
+`Transpose`/`transpose`, `Normalize`/`normalize`, `RotationFor`/`rotation_for`) — codegen comment
+says PascalCase is "preferred" but examples + free-function BUILTINS use lowercase. Plus
+math.su:71-72 says `ln` is the alias of `log` while docs/numeric-math.md presents `ln` as THE
+primitive. Aggressive-deprecation rule applies (one canonical spelling per op); which case wins is
+Emma's pick. Surface via AskUserQuestion when timely — bundle with the trainable-loops ask below,
+don't stack rounds. (Norm/norm already deleted — they were dead, runtime removed 2026-06-07.)
+
 ### Differentiable loop halt — design fork (Emma's call; do NOT build unilaterally)
 
 Finding: `planning/findings/2026-07-14-loop-backprop-hard-fails-heaviside.md`. MEASURED:

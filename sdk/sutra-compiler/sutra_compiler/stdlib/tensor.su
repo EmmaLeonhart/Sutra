@@ -64,11 +64,12 @@ class Tensor extends vector {
     static intrinsic method vector Transpose(vector m);
     static intrinsic method vector transpose(vector m);
 
-    // L2 norm of a vector. Scalar result.
-    static intrinsic method number Norm(vector v);
-    static intrinsic method number norm(vector v);
+    // (Norm/norm REMOVED 2026-06-07 with the no-host-readout rule —
+    // a float-returning norm is a readout. The runtime dropped them;
+    // these declarations followed 2026-07-15 so the validator stops
+    // green-lighting calls that die at run with AttributeError.)
 
-    // L2 normalization. Returns v / Norm(v) with an eps-guard to
+    // L2 normalization. Returns v / ||v|| with an eps-guard to
     // make the zero-norm case behave (returns zero, no NaN).
     static intrinsic method vector Normalize(vector v);
     static intrinsic method vector normalize(vector v);
