@@ -45,10 +45,10 @@ There is no cell. The compiler reads the three statements as three distinct valu
 
 ```java
 int n = 0;
-for (int i = 0; i < 5; i++) {
+for (int i = 1; i <= 5; i++) {
     n += i;
 }
-// n == 10
+// n == 15
 ```
 
 `i` is a memory cell counting from 0 to 4. Each iteration: load `i`, compare to 5, add to `n`, increment `i`, branch back to the top. The program executes the body repeatedly under control of a runtime counter and a back-edge.
@@ -100,24 +100,29 @@ int v = c.value();  // 2
 
 A `Counter` is a bundle of fields. The methods read and mutate the fields. The point of the class is that `count` lives *inside* the object and only the methods can touch it. **Encapsulated mutable state is what the class system is for.**
 
-**Sutra (intended end state — bodies are deferred today):**
+**Sutra:**
 
 ```sutra
-class Country extends vector {
-    function Capital get_capital() {
-        return this + capital_of;
+class Counter extends vector {
+    field int count;
+
+    method void bump(int amount) {
+        return this + embed("bump");
     }
 }
 
-vector japan = "Japan";
-vector tokyo = japan.get_capital();
+function int main() {
+    Counter c = embed("counter");
+    c.count = 2;
+    return c.count;  // 2
+}
 ```
 
-Today the MVP only allows empty class bodies (`class Country extends vector { }`); the method-on-class form above is the deferred design (see [the ontology page](ontology.md)).
+The surface looks like Java — fields, methods, dot-access. The semantics are not. A field is not a memory slot inside the object: `c.count = 2` is an *augmented assignment* that lowers to `c = axon_add(c, "count", 2)` — it produces a **fresh vector** with the value rotation-bound into it, exactly the way every reassignment in §1 produces a fresh value. A method call statement `c.bump(1);` likewise rewrites to `c = Counter.bump(c, 1)`. Nothing is ever overwritten; there is no cell.
 
-**Sutra structurally cannot package mutable state.** There are no fields. There is no "inside" of an instance to encapsulate. An instance of `Country` is *just* a vector — the same kind of vector everything else in the program is. The class declaration adds no per-instance storage.
+**Sutra structurally cannot package a mutable cell.** An instance of `Counter` is *just* a vector — the same kind of vector everything else in the program is. What looks like encapsulated mutable state is a pure transformation chain over immutable values, with the field storage riding along *inside the vector itself* via rotation binding.
 
-What the Sutra class system *does* do is name a region of embedding space, declare claims about that region (which can be wrong), and express behavior as pure vector transformations. `get_capital()` is a single vector add — `this + capital_of` — that generalizes across all countries the embedding model has ever seen, including ones never explicitly enumerated. No constructor, no fields, no mutation.
+What the Sutra class system *does* do is name a region of embedding space, declare claims about that region (which can be wrong), and express behavior as pure vector transformations that generalize across everything the embedding model has ever seen (see [the ontology page](ontology.md)). No constructor, no hidden storage, no mutation — just rebinding.
 
 The shape borrowed from Java; the semantics borrowed from RDF/OWL.
 

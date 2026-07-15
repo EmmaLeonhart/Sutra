@@ -39,6 +39,31 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
+### Audit refill 2026-07-14 (outsider readability audit; each verified against the working tree)
+
+1. **PyPI page installs the wrong package name.** `sdk/sutra-compiler/README.md:7-9` says
+   `pip install sutra-compiler` — no such package; this file IS the PyPI landing page for `sutra-dev`.
+   Fix to `pip install sutra-dev` / `"sutra-dev[runtime]"` / `"sutra-dev[runtime,embed]"` (match root
+   README:74). Verify: grep `sutra-compiler` has no install-command hits.
+2. **Homepage claims loops are differentiable — measured false.** `docs/index.md:12` "recurrent loops —
+   all native, all differentiable end to end" contradicts
+   `planning/findings/2026-07-14-loop-backprop-hard-fails-heaviside.md` (backward() RAISES). Scope it the
+   way the paper's conclusion is scoped (straight-line graphs differentiable; loop halt forward-only).
+3. **Tutorial 01 stale validator note.** `docs/tutorials/01-hello-sutra.md:79` claims no name resolution
+   ("v0.1 validator… roadmap") — SUT0200/0201/0203/0205 shipped long ago (verified live: typo → "did you
+   mean"). Also line 76's sample diagnostic format is wrong (`error: SUT0100: …` vs real `… [SUT0100]`).
+4. **paradigms.md §3 classes section is stale + snippet doesn't compile.** Lines ~105-120: uses `function`
+   in class body (SUT0140; must be `method`), claims "only empty class bodies" / "no fields" — fields
+   shipped 2026-05-08 (`examples/class_with_fields.su`). Bonus §2: the Java/Sutra side-by-side computes
+   different sums (i=0..4 vs 1..5) while presented as the same program. Snippet must validate 0-errors.
+5. **Root README smoke-test section undercounts.** README.md:26-43 says 12 examples; `_smoke_test.py` runs
+   15 (missing `strings_and_formatting.su`, `fizzbuzz.su`, `loop_forms.su`); loops paragraph misses the
+   three call forms exercised by `loop_forms.su`.
+6. **Diagnostics reference: one dense paragraph, missing codes.** `docs/capabilities.md:138` is the only
+   SUT-code reference; omits SUT0106, SUT0150, SUT0207, SUT9999, workspace SUT2000-2015/2099. Make it a
+   table (code | level | meaning | steer) covering all 51 codes from
+   `grep -oh 'SUT[0-9]*' sdk/sutra-compiler/sutra_compiler/*.py | sort -u`.
+
 ### Differentiable loop halt — design fork (Emma's call; do NOT build unilaterally)
 
 Finding: `planning/findings/2026-07-14-loop-backprop-hard-fails-heaviside.md`. MEASURED:

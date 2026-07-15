@@ -23,7 +23,7 @@ Two backends, both produce a self-contained Python module:
 
 The CLI is `python -m sutra_compiler`. Validate a file: `sutrac path/to/file.su`. Emit the generated torch module to stdout: `sutrac --emit path/to/file.su`. Compile and run: `sutrac --run path/to/file.su`. Explore interactively: `sutrac repl` — type an expression and see the result (a number shows its real value; a concept decodes to the nearest known string), with declarations ending in `;` or `}` accumulating as session state.
 
-The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 12 of them end-to-end:
+The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 15 of them end-to-end:
 
 | `.su` program | What it exercises |
 |---|---|
@@ -39,8 +39,11 @@ The demo programs live in [`examples/`](examples/). The smoke test [`examples/_s
 | `sequence.su` | position-bound 5-token sequence, decode any position |
 | `content_addressed_read.su` | NTM-style content-addressed read head: associative recall |
 | `semantic_faq.su` | paraphrased query → right answer by meaning (`embed` + `argmax_cosine`) |
+| `strings_and_formatting.su` | concat + interpolation + `int_to_string` |
+| `fizzbuzz.su` | `select` superposition + `num_eq` zero-test over a real 1..15 loop |
+| `loop_forms.su` | all three loop call forms: by-reference statement, expression, tuple destructure |
 
-Loops use the declared-function form (`do_while_adder.su`), exercised by the `test_loop_function_decl.py` suite. See [`docs/loops.md`](docs/loops.md) for the shape.
+Loops use the declared-function form (`do_while_adder.su`, plus `loop_forms.su` for the three call forms — statement by reference, expression `int x = loop f(...)`, tuple destructure `(a, b) = loop g(...)`), exercised by the `test_loop_function_decl.py` and `test_loop_call_expr.py` suites. See [`docs/loops.md`](docs/loops.md) for the shape.
 
 ## Repo layout
 
