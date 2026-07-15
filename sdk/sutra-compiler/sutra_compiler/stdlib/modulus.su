@@ -55,6 +55,17 @@ class Math extends vector {
     static intrinsic method number abs(number x);
     static intrinsic method number sign(number x);
 
+    // ── Derived order statistics ─────────────────────────────────────────────
+    //
+    // min/max via the abs identity — substrate-pure by construction
+    // (add/sub/scale + the native abs tensor op; no host comparison,
+    // no branch). Added 2026-07-15: bare `min(a,b)` previously drew
+    // SUT0204 and then silently ran on the HOST via the Python builtin.
+    static method number min(number a, number b) { return (a + b - abs(a - b)) * 0.5; }
+    static method number max(number a, number b) { return (a + b + abs(a - b)) * 0.5; }
+    // clamp(x, lo, hi) — composition of the two.
+    static method number clamp(number x, number lo, number hi) { return min(max(x, lo), hi); }
+
     // ── The eigenrotation modulus ────────────────────────────────────────────
     //
     // rotation_mod — the chain documented in the header. Substrate-pure:

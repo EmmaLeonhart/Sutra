@@ -271,5 +271,56 @@ class TestComplexArgumentSine(unittest.TestCase):
                 )
 
 
+class TestMinMaxClamp(unittest.TestCase):
+    """Math.min/max/clamp — derived order statistics added 2026-07-15
+    (audit round: bare `min(a,b)` previously drew SUT0204 then silently
+    ran on the HOST via the Python builtin). Derived from the native
+    `abs` tensor op: min = (a+b-abs(a-b))/2, max = (a+b+abs(a-b))/2 —
+    substrate-pure by construction, exact for float32-representable
+    inputs (no table lookup involved)."""
+
+    _CASES = [
+        (3.0, 5.0), (5.0, 3.0), (-2.0, 7.0), (-9.0, -4.0), (6.0, 6.0),
+        (0.0, 0.5), (-0.25, 0.25),
+    ]
+
+    def _run(self, translate_fn, expr: str) -> float:
+        src = ("// @embedding: none dim=64\n"
+               f"function number probe() {{ return {expr}; }}")
+        return _compile_and_run(translate_fn, src, "probe")
+
+    def test_min_max_torch(self):
+        for a, b in self._CASES:
+            with self.subTest(a=a, b=b, op="min"):
+                self.assertAlmostEqual(
+                    self._run(torch_translate, f"Math.min({a}, {b})"),
+                    min(a, b), places=5)
+            with self.subTest(a=a, b=b, op="max"):
+                self.assertAlmostEqual(
+                    self._run(torch_translate, f"Math.max({a}, {b})"),
+                    max(a, b), places=5)
+
+    def test_bare_call_form_resolves_to_stdlib_not_host(self):
+        # Bare `min(...)`/`max(...)` must validate WITHOUT SUT0204 (they
+        # are Sutra functions now) and compute on the substrate.
+        src = ("// @embedding: none dim=64\n"
+               "function number probe() { return min(2, 9) + max(2, 9); }")
+        from sutra_compiler.validator import validate_source
+        bag = validate_source(src, file="<test>")
+        codes = [d.code for d in bag]
+        self.assertNotIn("SUT0204", codes, codes)
+        self.assertAlmostEqual(
+            self._run(torch_translate,
+                      "min(2, 9) + max(2, 9)"), 11.0, places=5)
+
+    def test_clamp_torch(self):
+        for x, lo, hi, want in [(7.0, 0.0, 4.0, 4.0), (-3.0, 0.0, 4.0, 0.0),
+                                (2.5, 0.0, 4.0, 2.5)]:
+            with self.subTest(x=x):
+                self.assertAlmostEqual(
+                    self._run(torch_translate, f"Math.clamp({x}, {lo}, {hi})"),
+                    want, places=5)
+
+
 if __name__ == "__main__":
     unittest.main()
