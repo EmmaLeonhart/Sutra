@@ -16288,3 +16288,15 @@ shrug. Suspect: CI pulls ollama+nomic-embed-text fresh each run; model/quantizat
 near-collide a key pair. Added observability to compiler-ci.yml (ollama version + model digest
 logged each run) so the next flake is attributable; pin the digest if drift confirms. Test
 untouched — the assert is the measurement. All three CIs green on bcf8a0e8 after rerun.
+
+## 2026-07-15 — axon flake ROOT-CAUSED: ollama server version, not model drift
+Digest logging (previous commit) paid off immediately: model digest identical local-vs-CI, so
+drift was falsified. Standalone probe then failed locally while pytest passed — delta turned out
+to be tests/conftest.py pinning SUTRA_EMBED_BACKEND=ollama (probe hit the transformers backend,
+reproducing the collision conftest's docstring already documents, "go"->telephone's 9.0). Real
+CI flake: unpinned install.sh gave server 0.32.0 vs tuned local 0.17.1 — same digest, different
+embedding realization, crosstalk margin tipped ("tree"->11.0). Fix: OLLAMA_VERSION=0.17.1 pinned
+in compiler-ci.yml (completes the substrate pin conftest half-made); finding written
+(planning/findings/2026-07-15-axon-flake-root-cause-server-version.md); probe kept as the
+re-measurement tool; queue item now the deliberate re-tune against modern ollama. Test assert
+untouched throughout. Same regression class as the LSC paper's diacritic-collapse.
