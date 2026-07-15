@@ -16324,3 +16324,8 @@ with an incremented salt until injective; beyond synthetic_dim keys it warns lou
 aliasing silently. Regression test with 50 random-vector roles (pre-fix collision p>0.9999):
 verified FAILS pre-fix (stash check), passes post-fix; axon file 7/7; binding/record surface
 88 passed. Test assert on the original test untouched. CI = the cross-platform arbiter.
+
+## 2026-07-15 — CI confirms the birthday-collision fix cross-platform
+compiler-ci GREEN on 5cf958a3 (the platform class that failed 4 consecutive runs), plus
+transpilers-ci + Pages. The axon aliasing arc is closed: defect found via CI truth-positive,
+mechanism proven, Emma picked salt-retry, fix verified locally both directions and now on CI.
