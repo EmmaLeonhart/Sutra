@@ -16311,3 +16311,16 @@ paper's ollama failure class (CI = Linux ollama build; local Windows 0.17.1 show
 hashes and passes; dim sweep 256..1024 exact locally). Added the collapse check to the probe
 (per-key embedding byte-hashes, flags identical pairs) + a non-gating CI step running it before
 pytest — next CI run produces the verdict without gating anything.
+
+## 2026-07-15 (later still) — axon birthday collision FIXED (salt-retry, Emma's pick)
+Evidence run closed the case: all 10 embedding hashes DISTINCT on the failing CI runner +
+cosines identical to local => collapse hypothesis falsified; mechanism = value-slot birthday
+collision (finding 2026-07-15-axon-value-slot-birthday-collision.md). A key's scalar rides the
+ONE synthetic slot its permutation sends AXIS_REAL to; synthetic_dim=100 => p~0.37 that two of
+10 keys share a slot (seeds vary by platform via embedding bytes: local green was luck, CI red
+was truth — 11=4+7, 13=5+8, 9=2+7 pair sums). Emma chose fix (a) salt-retry via
+AskUserQuestion: per-runtime slot registry in _axon_permutation_for; colliding draws re-seed
+with an incremented salt until injective; beyond synthetic_dim keys it warns loudly instead of
+aliasing silently. Regression test with 50 random-vector roles (pre-fix collision p>0.9999):
+verified FAILS pre-fix (stash check), passes post-fix; axon file 7/7; binding/record surface
+88 passed. Test assert on the original test untouched. CI = the cross-platform arbiter.

@@ -126,3 +126,36 @@ def test_axon_op_cache_under_cap_never_evicts():
     for k in keys:
         got = float(torch.dot(v.axon_item(built, k), v.make_real(1.0)))
         assert got == pytest.approx(float(len(k)), abs=1e-3)
+
+
+def test_axon_value_slots_injective_no_birthday_aliasing():
+    """Regression for the value-slot birthday collision (finding
+    2026-07-15-axon-value-slot-birthday-collision.md): a key's scalar value
+    lands in the ONE synthetic slot its permutation sends AXIS_REAL to, so two
+    keys drawing the same slot both read back the pair's SUM. Pre-fix, 50 keys
+    into synthetic_dim=100 slots collide with p > 0.9999 (this test failed
+    deterministically); the salt-retry registry makes the assignment injective
+    up to synthetic_dim keys. Random-vector roles (no embedding server needed
+    for the slot check) keep this fast and platform-independent."""
+    v = _vsa()
+    n = 50
+    torch.manual_seed(20260715)
+    roles = [torch.randn(v.dim, dtype=v.dtype, device=v.device) for _ in range(n)]
+
+    # (1) The AXIS_REAL landing slots are pairwise distinct.
+    slots = []
+    for r in roles:
+        perm = v._axon_permutation_for(r)
+        j = int((perm == v.AXIS_REAL).nonzero()[0])
+        slots.append(j)
+    assert len(set(slots)) == n, (
+        f"slot collision: {n} keys -> {len(set(slots))} distinct slots")
+
+    # (2) End-to-end: every value reads back exactly from one n-key axon.
+    vals = [float(i + 1) for i in range(n)]
+    axon = v.zero_vector()
+    for r, val in zip(roles, vals):
+        axon = v.axon_add(axon, r, v.make_real(val))
+    for r, val in zip(roles, vals):
+        got = float(torch.dot(v.axon_item(axon, r), v.make_real(1.0)))
+        assert got == pytest.approx(val, abs=1e-3)
