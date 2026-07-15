@@ -135,7 +135,78 @@ No hex literals yet.
 
 *This is the canonical, complete `SUT####` reference — other pages that mention a specific code link here.*
 
-`SUT0001` unterminated block comment; `SUT0002` unterminated string / interpolated string; `SUT0003` character literal errors; `SUT0100` generic "expected X, got Y" parse error; `SUT0101` modifiers misapplied; `SUT0102` non-overloadable operator passed to `operator` decl; `SUT0103` `var TYPE x` form (use `var x : TYPE`); `SUT0104` expression expected / `slot` misuse; `SUT0105` `unsafeCast` requires `<Type>`; `SUT0110` `|>` pipe-forward not supported; `SUT0111` `(vector) "string"` (use `embed(...)`); `SUT0112` `public` and `private` conflict; `SUT0113` class casing drift (warning); `SUT0120` fuzzy/trit literal outside `[-1, +1]` (warning); `SUT0130`-`SUT0133` `wait` keyword misuse; `SUT0140` deferred feature; `SUT0141` class already declared; `SUT0142` class extends unknown; `SUT0144` object method reads file-scope name (encapsulation rule); `SUT0145` duplicate field / operator-method `intrinsic`; `SUT0151` spec'd-but-unimplemented substrate builtin (`snap`, `make_rotation`, …) — warning, steers to `argmax_cosine`; `SUT0200` unknown type — a name that is not a primitive, container, declared class, or stdlib type (warning; e.g. `vec` → `vector`); `SUT0201` unknown function with a "did you mean" typo suggestion (warning; e.g. `argmaxcosine` → `argmax_cosine`); `SUT0202` wrong argument *count* to a declared function (warning); `SUT0203` wrong argument *type* — e.g. a `string` where a `vector` is expected (warning; steers to `embed(...)`); `SUT0204` calling a Python builtin (`print`, `str`, `len`) that is not a Sutra function — it would lower to a host call (warning); `SUT0205` unknown variable with a "did you mean" typo suggestion — a bare identifier within 2 edits of a declared local/param/file-scope name (warning; e.g. `totl` → `total`; deliberately silent on far-off undeclared names, which are legitimate runtime-bound identifiers); `SUT0206` retired — it warned that String/vector `loop` state would be crushed to a scalar, which no longer happens (slots carry full vectors); `SUT2002` atman/workspace TOML parse error; `SUT2007` atman project table errors.
+Diagnostics print as `file:line:col: level: message [SUT####]`, often with a `hint:` line steering to the fix.
+
+**Lexer (`SUT000x`)**
+
+| Code | Level | Meaning |
+|---|---|---|
+| `SUT0001` | error | unterminated block comment |
+| `SUT0002` | error | unterminated string / interpolated string |
+| `SUT0003` | error | character-literal errors |
+
+**Parser (`SUT01xx`)**
+
+| Code | Level | Meaning |
+|---|---|---|
+| `SUT0100` | error | generic "expected X, got Y" parse error |
+| `SUT0101` | error | modifiers misapplied |
+| `SUT0102` | error | non-overloadable operator passed to an `operator` declaration |
+| `SUT0103` | error | `var TYPE x` form — use `var x : TYPE` |
+| `SUT0104` | error | expression expected / `slot` misuse |
+| `SUT0105` | error | `unsafeCast` requires `<Type>` |
+| `SUT0106` | error | `function` declaration is missing a return type |
+| `SUT0110` | error | `\|>` pipe-forward not supported |
+| `SUT0111` | error | `(vector) "string"` cast — use `embed(...)` |
+| `SUT0112` | error | `public` and `private` conflict |
+| `SUT0113` | warning | class-name casing drift |
+| `SUT0120` | warning | fuzzy/trit literal outside `[-1, +1]` |
+| `SUT0130`–`SUT0133` | error | `wait` keyword misuse |
+| `SUT0140` | error | class bodies accept `method`, loop-function, and `field` declarations only |
+| `SUT0141` | error | class already declared |
+| `SUT0142` | error | class extends an unknown name |
+| `SUT0144` | error | object method reads a file-scope name (encapsulation rule) |
+| `SUT0145` | error | duplicate field / operator-method `intrinsic` |
+| `SUT0150` | error | `slot` form accepted by the parser but rejected at codegen (slot-state threading through function scopes is deferred) |
+| `SUT0151` | warning | spec'd-but-unimplemented substrate builtin (`snap`, `make_rotation`, …) — steers to `argmax_cosine` |
+
+**Validator — name resolution and types (`SUT02xx`)**
+
+| Code | Level | Meaning |
+|---|---|---|
+| `SUT0200` | warning | unknown type — not a primitive, container, declared class, or stdlib type (e.g. `vec` → `vector`) |
+| `SUT0201` | warning | unknown function, with a "did you mean" typo suggestion (e.g. `argmaxcosine` → `argmax_cosine`) |
+| `SUT0202` | warning | wrong argument *count* to a declared function |
+| `SUT0203` | warning | wrong argument *type* — e.g. a `string` where a `vector` is expected; steers to `embed(...)` |
+| `SUT0204` | warning | calling a Python builtin (`print`, `str`, `len`) that is not a Sutra function — it would lower to a host call |
+| `SUT0205` | warning | unknown variable, with a "did you mean" suggestion — a bare identifier within 2 edits of a declared local/param/file-scope name (deliberately silent on far-off names, which are legitimate runtime-bound identifiers) |
+| `SUT0206` | retired | warned that String/vector `loop` state would be crushed to a scalar — no longer happens (slots carry full vectors) |
+| `SUT0207` | warning | loop condition references a name that is not a state parameter or file-scope name — loop functions have no outer-scope access, so this fails at runtime |
+
+**Workspace — `atman.toml` (`SUT2xxx`; the `SUT2000–SUT2099` range is reserved for workspace-model errors)**
+
+| Code | Level | Meaning |
+|---|---|---|
+| `SUT2001` | error | workspace-level `atman.toml` TOML parse error |
+| `SUT2002` | error | workspace schema errors — missing `[workspace]` table, bad field types, no `[[workspace.member]]` entries |
+| `SUT2004` | error | file or member path does not exist / cannot be opened |
+| `SUT2005` | error | project directory has no `atman.toml` |
+| `SUT2006` | error | project-level `atman.toml` TOML parse error |
+| `SUT2007` | error | project schema errors — missing `[project]` table, invalid name, bad field types, duplicate project name in workspace |
+| `SUT2008` | error | dependency key does not match the target project's declared name |
+| `SUT2009` | error | entry file does not exist |
+| `SUT2010` | error | dependency points to a directory that does not exist |
+| `SUT2011` | error | dependency cycle detected (reports the exact cycle) |
+| `SUT2012` | error | project declares a self-dependency |
+| `SUT2013` | error | project depends on a project outside the current workspace |
+| `SUT2014` | error | unknown substrate value (workspace default or per-project) |
+| `SUT2015` | error | `project.sources.include`/`exclude` entries must be strings |
+
+**CLI (`SUT9xxx`)**
+
+| Code | Level | Meaning |
+|---|---|---|
+| `SUT9999` | error | file not found (reported on the JSON diagnostics path) |
 
 **Training: n/a** — diagnostic checks are compiler infrastructure.
 
