@@ -1141,19 +1141,58 @@ class PyTorchCodegen(Codegen):
         self._emit('"""Per-key deterministic permutation of the synthetic block.')
         self._emit('Cached per role-hash, just like _rotation_for. Returns a')
         self._emit('long tensor of synthetic_dim indices on the device.')
-        self._emit('"""')
+        self._emit('')
+        self._emit("SALT-RETRY (Emma 2026-07-15, finding 2026-07-15-axon-value-")
+        self._emit("slot-birthday-collision.md): a key's scalar value lands in the")
+        self._emit("ONE synthetic slot its permutation sends AXIS_REAL to. Two keys")
+        self._emit("drawing the same slot alias each other: both read back the")
+        self._emit("pair's SUM (birthday p~0.37 for 10 keys at synthetic_dim=100;")
+        self._emit("seeds vary by platform via embedding bytes, so it passed")
+        self._emit("locally by luck and failed CI runners legitimately). Fix: a")
+        self._emit("per-runtime slot registry; if a new key's draw lands in a slot")
+        self._emit("another key owns, bump a salt and re-draw until injective.")
+        self._emit("Deterministic per process (memoized); exact readback for any")
+        self._emit("key set up to synthetic_dim keys; beyond capacity it warns")
+        self._emit('loudly once per key instead of aliasing silently."""')
         self._emit("key = self._role_hash(role_vec, role_key)")
         self._emit("if not hasattr(self, '_perm_cache'):")
         self._indent += 1
         self._emit("self._perm_cache = {}")
+        self._emit("self._axon_slot_owner = {}  # AXIS_REAL landing slot -> owning role hash")
         self._indent -= 1
         self._emit("if key not in self._perm_cache:")
         self._indent += 1
         self._emit("import numpy as _np_bridge")
         self._emit("# Distinct seed from rotation cache so the two are")
-        self._emit("# uncorrelated draws.")
-        self._emit("rng = _np_bridge.random.RandomState(key ^ 0xA50A_F00D)")
+        self._emit("# uncorrelated draws; + salt for the injectivity retry.")
+        self._emit("salt = 0")
+        self._emit("while True:")
+        self._indent += 1
+        self._emit("rng = _np_bridge.random.RandomState(((key ^ 0xA50A_F00D) + salt) & 0xFFFFFFFF)")
         self._emit("perm_np = rng.permutation(self.synthetic_dim).astype('int64')")
+        self._emit("# slot j receives syn[perm[j]], so AXIS_REAL content lands at")
+        self._emit("# the j with perm[j] == AXIS_REAL.")
+        self._emit("j = int((perm_np == self.AXIS_REAL).nonzero()[0][0])")
+        self._emit("owner = self._axon_slot_owner.get(j)")
+        self._emit("if owner is None or owner == key:")
+        self._indent += 1
+        self._emit("self._axon_slot_owner[j] = key")
+        self._emit("break")
+        self._indent -= 1
+        self._emit("salt += 1")
+        self._emit("if salt > 4 * self.synthetic_dim:")
+        self._indent += 1
+        self._emit("import warnings as _warnings")
+        self._emit("_warnings.warn(")
+        self._indent += 1
+        self._emit("f'axon key capacity exceeded: more distinct role keys than '")
+        self._emit("f'synthetic slots ({self.synthetic_dim}); scalar values of two '")
+        self._emit("f'keys may alias (read back as their sum). Raise runtime_dim '")
+        self._emit("f'or reduce distinct axon keys.')")
+        self._indent -= 1
+        self._emit("break")
+        self._indent -= 1
+        self._indent -= 1
         self._emit("self._perm_cache[key] = _torch.as_tensor(perm_np, device=self.device)")
         self._indent -= 1
         self._emit("return self._perm_cache[key]")
