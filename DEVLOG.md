@@ -16365,3 +16365,13 @@ construction-argument claim — now MEASURED: emitted program body for Math.min/
 calls contains ZERO host readouts (.item()/float()), abs lowers as the tensor op. (c) no new
 classifiers; the axon fix's separation evidence (readback exact at 1e-3 over 50 keys) is in the
 test. No findings, no fix items.
+
+## 2026-07-15 — both queued Emma decisions resolved (bundled AskUserQuestion)
+(1) Trainable loops: STAY FORWARD-ONLY (her pick = my recommendation). Fork item deleted;
+decision recorded in the 2026-07-14 finding; paper wording already correct. (2) Tensor-op
+aliases: PascalCase canonical + resolution should go CASE-INSENSITIVE for stdlib method names;
+pairs explicitly EXEMPT from aggressive-deprecation ("this isn't for the deprecation reason").
+Converted to a specced implementation item (scoped fallback: stdlib intrinsic classes only,
+exact-match-first; taxonomy note: 4 true case-twins vs 3 abbreviation pairs case-folding can't
+unify). Also: stray ran.html (arXiv render, re-fetchable) relocated out of the LSC checkout to
+scratchpad — submodule tree clean again.

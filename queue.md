@@ -39,28 +39,31 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
 
 ## ACTIVE — barrel top to bottom
 
-### NEEDS-DECISION (Emma): tensor-op alias case + log/ln canonical pick
+### Case-insensitive stdlib method resolution (Emma decided 2026-07-15)
 
-From the 2026-07-15 language audit: stdlib/tensor.su declares BOTH spellings for 8 ops
-(`MatrixMul`/`matmul`, `TensorProduct`/`tensor_product`, `Outer`/`outer`, `Dot`/`dot`,
-`Transpose`/`transpose`, `Normalize`/`normalize`, `RotationFor`/`rotation_for`) — codegen comment
-says PascalCase is "preferred" but examples + free-function BUILTINS use lowercase. Plus
-math.su:71-72 says `ln` is the alias of `log` while docs/numeric-math.md presents `ln` as THE
-primitive. Aggressive-deprecation rule applies (one canonical spelling per op); which case wins is
-Emma's pick. Surface via AskUserQuestion when timely — bundle with the trainable-loops ask below,
-don't stack rounds. (Norm/norm already deleted — they were dead, runtime removed 2026-06-07.)
+Emma's call on the tensor-op alias question: "PascalCase wins but can we just mature them case
+insensitive? This isn't an issue either way this isn't for the deprecation reason." Decoded:
+(1) PascalCase is the canonical documented spelling; (2) the mechanism should resolve stdlib
+method names CASE-INSENSITIVELY rather than keeping duplicate declarations; (3) these pairs are
+explicitly EXEMPT from the aggressive-deprecation rule — do NOT remove the twins.
 
-### Differentiable loop halt — design fork (Emma's call; do NOT build unilaterally)
-
-Finding: `planning/findings/2026-07-14-loop-backprop-hard-fails-heaviside.md`. MEASURED:
-backward() through any runtime loop RAISES (aten::heaviside has no derivative) — loops are
-forward-only today. The paper's claims are now scoped to this truth (conclusion + §3.4).
-Making loops trainable is a language-design fork: (a) straight-through estimator on the halt
-step (forward identical, chosen backward); (b) soft step (steep tanh — changes forward halt
-saturation, must re-measure); (c) stay forward-only (loops as inference-time control). Each
-changes training semantics on the substrate. Surface to Emma via AskUserQuestion when timely;
-the finding's repro becomes the test once a direction is chosen.
-
+Implementation spec (bounded, next tick):
+- Scope: name lookup for STATIC METHODS ON STDLIB INTRINSIC CLASSES only (Math, Tensor, String,
+  ...). Exact match wins first; on miss, retry with str.casefold(). Never applies to user-defined
+  functions/classes (case-distinct user identifiers must not become ambiguous).
+- Touch points: codegen_base.py call-site dispatch (~4233/4336 member + class-namespace paths),
+  validator/symbol_table is_known_function + typo-suggester (a case-variant should resolve, not
+  SUT0201-warn), emitted runtime aliases in codegen_pytorch (~2403 MatrixMul = matmul block).
+- NOTE the pair taxonomy: Dot/dot, Outer/outer, Transpose/transpose, Normalize/normalize are true
+  case-twins (collapse to ONE declaration each — keep PascalCase — once folding lands).
+  MatrixMul/matmul, TensorProduct/tensor_product, RotationFor/rotation_for, log/ln are DIFFERENT
+  NAMES (abbreviation pairs) — case-folding cannot unify them; keep both declared per Emma.
+- Docs: numeric-math.md and tensor docs present PascalCase as canonical, note the case-insensitive
+  resolution + that the lowercase/abbreviation forms work. Fix numeric-math.md's "ln is THE
+  primitive" vs math.su's "ln is the alias" disagreement by stating both work with log canonical.
+- Tests: case-variant call resolves (Math.DOT / math.dot / Dot / dot all hit the same op); a
+  user-defined lowercase fn shadowing nothing stays untouched; SUT0201 no longer fires on a pure
+  case variant of a stdlib method.
 
 ---
 
