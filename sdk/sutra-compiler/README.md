@@ -5,8 +5,9 @@ The compiler for the [Sutra programming language](https://sutra.topazcomputing.c
 ## Install
 
 ```bash
-pip install sutra-compiler            # validator + codegen only
-pip install sutra-compiler[runtime]   # adds torch so --emit / --run can execute the generated module
+pip install sutra-dev                     # validator + codegen only
+pip install "sutra-dev[runtime]"          # adds torch so --emit / --run can execute the generated module
+pip install "sutra-dev[runtime,embed]"    # adds the embedding client for LLM-substrate codebooks
 ```
 
 Requires Python 3.11+.

@@ -73,10 +73,17 @@ ok: 1 file(s) validated, 0 diagnostics
 If you make a syntax error — say, forget the semicolon after `return` — you get a structured diagnostic with a stable `SUT####` code and a 1-based `line:column`:
 
 ```
-examples/hello_world.su:34:24: error: SUT0100: expected `;` after `return`, got `}`
+examples/hello_world.su:34:1: error: expected `;` after `return`, got `}` [SUT0100]
 ```
 
-Every Sutra diagnostic looks like this, on the command line and (via the same compiler) as red squiggles in the IntelliJ plugin. (Note: the v0.1 validator checks syntax and structure, not yet name resolution — a mistyped *type* or *function name* isn't flagged at compile time today; that diagnostic pass is on the roadmap.)
+Every Sutra diagnostic looks like this, on the command line and (via the same compiler) as red squiggles in the IntelliJ plugin. The validator also resolves names: a mistyped function or type is flagged at compile time with a suggestion —
+
+```
+program.su:3:16: warning: unknown function `argmaxcosine` — did you mean `argmax_cosine`? [SUT0201]
+  hint: `argmaxcosine` resolves to no function, builtin, stdlib call, or local — the closest known name is `argmax_cosine`
+```
+
+(the same pass covers unknown types, misspelled fields, and unresolvable calls — SUT0200/0201/0203/0205).
 
 ## Run it
 
