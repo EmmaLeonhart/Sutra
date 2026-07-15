@@ -16300,3 +16300,14 @@ in compiler-ci.yml (completes the substrate pin conftest half-made); finding wri
 (planning/findings/2026-07-15-axon-flake-root-cause-server-version.md); probe kept as the
 re-measurement tool; queue item now the deliberate re-tune against modern ollama. Test assert
 untouched throughout. Same regression class as the LSC paper's diacritic-collapse.
+
+## 2026-07-15 (later) — pin did NOT fix it; mechanism identified, evidence step added
+The 0.17.1-pinned CI run failed the same test with a DIFFERENT pair (house->13.0 = 5+8
+mountain; previous was tree->11.0 = 4+7 machine). Server-version hypothesis falsified. The
+exact-sum signature pins the mechanism: both keys of a pair got the SAME axon operator, and M
+is a pure function of a 32-bit hash of the embedding BYTES — so the pair's embeddings were
+byte-identical on that run. Different words collapsing to identical embeddings is the LSC
+paper's ollama failure class (CI = Linux ollama build; local Windows 0.17.1 shows all-distinct
+hashes and passes; dim sweep 256..1024 exact locally). Added the collapse check to the probe
+(per-key embedding byte-hashes, flags identical pairs) + a non-gating CI step running it before
+pytest — next CI run produces the verdict without gating anything.
