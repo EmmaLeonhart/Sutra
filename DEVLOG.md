@@ -1,3 +1,16 @@
+## 2026-07-15: case-insensitive stdlib resolution — CLOSED (functionally complete); twin-collapse NOT done
+
+Closed the case-insensitive item: functionally complete + CI-green across class-namespace dispatch,
+the determinism fix, bare free-call dispatch, the validator, and docs. Decision recorded for the
+remaining "twin collapse (OPTIONAL)" rung: NOT doing it. Emma's decision is internally split — point 2
+("resolve case-insensitively rather than keeping duplicate declarations") leans toward collapsing the
+Dot/dot twins, but point 3 says "do NOT remove the twins." Given that ambiguity, the OPTIONAL marking,
+and that removing a `dot` declaration risks paper-cited-code reproducibility, both declarations stay —
+the case-insensitive resolution already covers every spelling, so collapse has no functional benefit and
+real downside. The niche this.method/older-instance dispatch paths are deferred (typed-instance is out of
+scope — not wired to `_VSA` even lowercase). This closes the item without kicking off the pinned
+readability-audit refill (a deep Sutra dive left for a quieter cycle, not started here).
+
 ## 2026-07-15: case-insensitive stdlib resolution — docs rung (log/ln canonical + case-insensitive note)
 
 Documented the now-shipped case-insensitive resolution in docs/numeric-math.md and fixed the
