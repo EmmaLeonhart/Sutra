@@ -59,9 +59,6 @@ helper + `_stdlib_class_names` gate in codegen_base.py):
 - Extend the same helper to the OTHER codegen dispatch paths: typed-instance (`t.Dot()` where `t`
   is a `vector`/`Tensor` local, codegen_base ~4319), `this.Method()` (~4233), and the older instance
   path (~2597). Each gets its own failing test first.
-- Docs: numeric-math.md + tensor docs present PascalCase as canonical, note case-insensitive
-  resolution. Fix numeric-math.md's "ln is THE primitive" vs math.su's "ln is the alias" by stating
-  both work with `log` canonical.
 - Twin collapse (OPTIONAL, do last): Dot/dot, Outer/outer, Transpose/transpose, Normalize/normalize
   → ONE declaration each in tensor.su (keep PascalCase); the lowercase call still resolves via the
   casefold fallback, which is what makes collapse safe. Emma: twins are EXEMPT from deprecation, so

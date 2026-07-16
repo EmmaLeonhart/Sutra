@@ -6,6 +6,8 @@ The practical consequence: **complex numbers are handled isomorphically with int
 
 > **A note on the name.** The general numeric type is `number`. Older material may show `scalar`, which was a deprecated alias — it was **removed in 2026-06-23**; use `number`. The rename was deliberate: a *scalar* is a 0-dimensional tensor, but a Sutra number is a value carried on the number axis of a full vector — conceptually a different object, so the old name implied the wrong thing.
 
+> **Method names resolve case-insensitively.** Stdlib method names on the intrinsic classes (`Math`, `Tensor`, …) resolve case-insensitively, so `Math.log`, `Math.Log`, and `Math.LOG` all reach the same operation. The **canonical** spelling — what the docs use and what the compiler emits — is the documented one (lowercase for the transcendentals like `log`/`sqrt`; PascalCase for the multi-word tensor ops like `Dot`, `MatrixMul`). Abbreviation pairs that are genuinely different names, like `log`/`ln`, both stay valid.
+
 ---
 
 ## The two numeric axes
@@ -192,7 +194,7 @@ Most languages handle `log`, `sqrt`, `sin`, `exp`, etc. by deferring to a runtim
 
 ### The reduction chain
 
-The design is built around two primitives: **`exp`** and **`ln`**, both backed by lookup tables on a bounded domain. Everything else beta-reduces:
+The design is built around two lookup-table paths — **`exp`** and natural **log** — both on a bounded domain. (In Sutra source the natural-log intrinsic is spelled **`log`**, the canonical name; **`ln`** is an identity alias for it, so `log(x)` and `ln(x)` are the same substrate operation. The `ln` notation below is the standard mathematical spelling of that path.) Everything else beta-reduces:
 
 - `x ^ p` (Sutra has no bit-fiddling, so `^` is exponentiation) → `pow(x, p)` → `exp(p * ln(x))`.
 - `sqrt(x)` → `pow(x, 0.5)` → `exp(0.5 * ln(x))`.

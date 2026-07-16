@@ -1,3 +1,16 @@
+## 2026-07-15: case-insensitive stdlib resolution — docs rung (log/ln canonical + case-insensitive note)
+
+Documented the now-shipped case-insensitive resolution in docs/numeric-math.md and fixed the
+log/ln contradiction the queue named. Verified the runtime first: codegen_pytorch emits `ln = log`
+(line 2097) — `ln` is a genuine identity alias of the canonical `log` (both → same substrate lookup).
+numeric-math.md had framed `ln` as a primitive; corrected to state `log` is the canonical natural-log
+intrinsic and `ln` is its identity alias (the `ln` notation in the beta-reduction chain kept as the
+standard math spelling). Added a note that stdlib method names resolve case-insensitively (Math.log /
+Math.Log / Math.LOG all reach the same op; canonical = documented spelling, lowercase for
+transcendentals, PascalCase for multi-word tensor ops; log/ln both stay valid as different names). No
+dedicated tensor-ops doc exists in docs/ (Dot/dot appear only incidentally in capabilities.md), so the
+PascalCase-canonical note lives in numeric-math.md's naming section.
+
 ## 2026-07-15: case-insensitive stdlib resolution — rung 3 (bare free-call + validator)
 
 Extended the case-insensitive rule to BARE free-calls (`log(x)`) and the validator. Before:
