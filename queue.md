@@ -54,17 +54,21 @@ are true case-twins; MatrixMul/matmul, TensorProduct/tensor_product, RotationFor
 log/ln are DIFFERENT names (case-folding can't unify — keep both). The canonical (declared)
 spelling is what gets emitted, so `_VSA.<name>` always targets a real runtime attribute.
 
-REMAINING rungs (codegen class-namespace path shipped 2026-07-15 — see DEVLOG; `_resolve_stdlib_method_ci`
-helper + `_stdlib_class_names` gate in codegen_base.py):
-- Extend the same helper to the OTHER codegen dispatch paths: typed-instance (`t.Dot()` where `t`
-  is a `vector`/`Tensor` local, codegen_base ~4319), `this.Method()` (~4233), and the older instance
-  path (~2597). Each gets its own failing test first.
-- Twin collapse (OPTIONAL, do last): Dot/dot, Outer/outer, Transpose/transpose, Normalize/normalize
-  → ONE declaration each in tensor.su (keep PascalCase); the lowercase call still resolves via the
-  casefold fallback, which is what makes collapse safe. Emma: twins are EXEMPT from deprecation, so
-  this is a tidy-up, not a required removal.
-- Tests to add per rung: `Tensor.Dot`→`_VSA.Dot` (twin, canonical PascalCase kept); bare `dot`/`DOT`
-  resolve; SUT0201 does not fire on a pure case variant.
+STATUS 2026-07-15 — FUNCTIONALLY COMPLETE + CI-green. Shipped: class-namespace dispatch, the
+ambiguous-casefold determinism fix, bare free-call dispatch, and the validator (is_known_function
+casefold, no spurious SUT0201), plus docs (numeric-math.md). `_resolve_stdlib_method_ci` +
+`_resolve_bare_intrinsic_ci` + `_stdlib_class_names` gate in codegen_base.py; `extern_function_names_casefold`
+in symbol_table.py. Every valuable call path resolves `Math.Log`/`Log`/`LOG` etc. to the canonical `_VSA.<name>`.
+
+NOT doing — twin collapse (Dot/dot → one declaration): Emma's decision is internally split — point 2
+("rather than keeping duplicate declarations") leans collapse, but point 3 says "do NOT remove the twins."
+Given that ambiguity + it's marked OPTIONAL + removing a `dot` declaration risks paper-cited-code
+reproducibility (`bind`/`bundle`/`dot` surface must keep compiling), leave BOTH declarations. The
+case-insensitive resolution already covers every spelling, so there's no functional need to collapse.
+
+Deferred (niche, low value) — this.method/older-instance dispatch paths (~4233/~2597) for a case-variant
+call inside a class method on the same class. Typed-instance (`t.Dot()`) is OUT OF SCOPE (not wired to
+`_VSA` even for lowercase). Reopen only if a real program needs these.
 
 ---
 
