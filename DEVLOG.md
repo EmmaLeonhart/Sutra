@@ -1,3 +1,18 @@
+## 2026-07-20: v1.1.0 — twin-collapse done; the ACTUAL final release before hold
+
+Emma's correction on v1.0.0: leaving the case-twins "deliberately not done" violated the point of
+closing Sutra — "9 times out of 10, deliberately not done is just something that means it's shit,
+and you should have done it." So: collapsed the four stdlib case-twin declarations in tensor.su
+(Outer/outer, Dot/dot, Transpose/transpose, Normalize/normalize) down to the canonical PascalCase
+spelling only. No functional loss, verified: lowercase spellings still validate AND emit to the
+canonical `_VSA.Dot`/`Outer`/`Transpose`/`Normalize` via the case-insensitive stdlib resolver
+(codegen_base.py `_resolve_stdlib_method_ci`), and the runtime keeps the `Dot = dot` aliases
+(codegen_pytorch.py:2406-2409) so the emitted names are real attributes. Measured: tensor_ops.su +
+a lowercase-spelling fixture validate clean; emitted code targets PascalCase; 30 case/stdlib-loader
+tests pass. The 2 stdlib validation errors (javascript_primitives.su SUT0142) pre-exist this change
+(verified by stash + re-validate on the untouched tree). v1.1.0 is the actual final release; Sutra
+then goes on hold.
+
 ## 2026-07-19: v1.0.0 — Sutra CLOSED and put on hold (Emma's ERP-for-agents pivot)
 
 Emma made the V1 call as part of the ERP-for-agents pivot: "close the Sutra project… make a 1.0
