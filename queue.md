@@ -143,7 +143,7 @@ reached Accept; the only remaining leg is optional + gated. Frame (binding): ver
 as an ISA on a *probabilistic* substrate — keep it NARROW (per-contract, non-learned trusted base); do NOT
 re-grow "verify the whole neuro-symbolic system" (recurring overambition failure mode).
 
-**DISPOSITION (Emma, 2026-07-20):** the Lean gap leg below is a SERIOUS, recorded item — kept here deliberately — but Sutra CLOSES at v1.1.0 with it recorded, not built. Do not build it while Sutra is on hold; it is the named re-entry point if Sutra reopens. Original framing: not deleted unilaterally (Emma "not sure" + the optional leg
+**DISPOSITION (Emma, 2026-07-20, updated):** the Lean gap leg below is SCHEDULED for **Wednesday 2026-07-23** (calendar event 10:00–12:00 America/Vancouver on emma@topazcomputing.com; one-shot session cron 9:53am — if the session died before then, start it from this queue entry). It is the ONE scheduled follow-up; Sutra otherwise stays closed at v1.1.0 (the twins release). Kept here deliberately — but Sutra CLOSES at v1.1.0 with it recorded, not built. Do not build it while Sutra is on hold; it is the named re-entry point if Sutra reopens. Original framing: not deleted unilaterally (Emma "not sure" + the optional leg
 exists) and not edited (resubmit CI). Her call: **(a)** declare finished → delete this item (single-spin
 γ=0.0397 stays a documented measurement; v96 Accept stands, v97 Reject = noise); or **(b)** green-light
 the optional leg below, build it, re-close. No correctness work is outstanding.
