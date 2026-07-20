@@ -51,18 +51,18 @@ class Tensor extends vector {
 
     // Outer product. For two 1-D vectors a (length n) and b (length
     // m), produces a 2-D matrix `M` where `M[i, j] = a[i] * b[j]`.
+    // Twins collapsed 2026-07-20 (Emma): one canonical PascalCase declaration per op.
+    // Lowercase spellings (`outer`/`dot`/`transpose`/`normalize`) still resolve via the
+    // case-insensitive stdlib resolver and the runtime aliases (`Dot = dot`, ...).
     static intrinsic method vector Outer(vector a, vector b);
-    static intrinsic method vector outer(vector a, vector b);
 
     // Inner / dot product. Scalar result.
     static intrinsic method number Dot(vector a, vector b);
-    static intrinsic method number dot(vector a, vector b);
 
     // Transpose. For 2-D input, swaps the two axes; for 1-D, returns
     // the input unchanged (numpy convention — there's no "row" vs
     // "column" distinction at rank-1).
     static intrinsic method vector Transpose(vector m);
-    static intrinsic method vector transpose(vector m);
 
     // (Norm/norm REMOVED 2026-06-07 with the no-host-readout rule —
     // a float-returning norm is a readout. The runtime dropped them;
@@ -72,7 +72,6 @@ class Tensor extends vector {
     // L2 normalization. Returns v / ||v|| with an eps-guard to
     // make the zero-norm case behave (returns zero, no NaN).
     static intrinsic method vector Normalize(vector v);
-    static intrinsic method vector normalize(vector v);
 
     // Cached rotation matrix for a role vector. The role-vector hash
     // keys a Haar-random orthogonal rotation in the semantic block

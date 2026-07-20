@@ -31,12 +31,11 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
   (`.item()`/`float(tensor)`) inside operations.
 - **Multi-clone**: editable `sutra_compiler` install points at the sibling `Github\Sutra`; verify
   changes here via `PYTHONPATH=sdk/sutra-compiler`. CI uses this repo's compiler.
-- **Version: 1.0.0** — Emma made the V1 call 2026-07-19 (ERP-for-agents pivot: "close the Sutra
+- **Version: 1.1.0** (the ACTUAL final release, 2026-07-20 — twin-collapse done per Emma; nothing left "deliberately not done"). Prior context: Emma made the V1 call 2026-07-19 (ERP-for-agents pivot: "close the Sutra
   project… make a 1.0 release once all the stuff is finished… be sure pypi updates and everything is
   1.0 at the end, at which point we will put it on hold"). 1.0.0 = the CI-green 0.10.0 code + version
   bump (no code change; nothing actionable/ungated remained in the queue). Published via the
-  `sutra-dev-v1.0.0` tag (trusted-publisher → PyPI `sutra-dev` + GitHub Release). **Sutra is ON HOLD
-  after 1.0.** The earlier "v1.0.0 deferred / V1 is Emma's manual call" note is now resolved by her call.
+  `sutra-dev-v1.0.0` tag (trusted-publisher → PyPI `sutra-dev` + GitHub Release). **Sutra is ON HOLD after 1.1.0.** The earlier "v1.0.0 deferred / V1 is Emma's manual call" note is now resolved by her call.
 
 ## ACTIVE — CLOSED at v1.0.0 (Emma 2026-07-19)
 
