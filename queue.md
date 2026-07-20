@@ -31,70 +31,33 @@ executes top-to-bottom WITHOUT asking. Report via commits + DEVLOG, not question
   (`.item()`/`float(tensor)`) inside operations.
 - **Multi-clone**: editable `sutra_compiler` install points at the sibling `Github\Sutra`; verify
   changes here via `PYTHONPATH=sdk/sutra-compiler`. CI uses this repo's compiler.
-- **Version: 0.10.0** (tagged 2026-07-14, Emma-approved; the loop-state sprint: three loop call
-  forms, unified d-dim slots, seven compiler fixes, SUT0207, cookbook/llms.txt; publish verified
-  success — PyPI + GitHub Release). Publish via `sutra-dev-vX.Y.Z` tags
-  (trusted-publisher → PyPI `sutra-dev`). **v1.0.0 is deferred** until codegen/stdlib go a stretch
-  with NO source-breaking changes (Emma's call). No hard blocker; a source-compat-stability commitment.
+- **Version: 1.0.0** — Emma made the V1 call 2026-07-19 (ERP-for-agents pivot: "close the Sutra
+  project… make a 1.0 release once all the stuff is finished… be sure pypi updates and everything is
+  1.0 at the end, at which point we will put it on hold"). 1.0.0 = the CI-green 0.10.0 code + version
+  bump (no code change; nothing actionable/ungated remained in the queue). Published via the
+  `sutra-dev-v1.0.0` tag (trusted-publisher → PyPI `sutra-dev` + GitHub Release). **Sutra is ON HOLD
+  after 1.0.** The earlier "v1.0.0 deferred / V1 is Emma's manual call" note is now resolved by her call.
 
-## ACTIVE — barrel top to bottom
+## ACTIVE — CLOSED at v1.0.0 (Emma 2026-07-19)
 
-### Case-insensitive stdlib method resolution (Emma decided 2026-07-15)
-
-Emma's call on the tensor-op alias question: "PascalCase wins but can we just mature them case
-insensitive? This isn't an issue either way this isn't for the deprecation reason." Decoded:
-(1) PascalCase is the canonical documented spelling; (2) the mechanism should resolve stdlib
-method names CASE-INSENSITIVELY rather than keeping duplicate declarations; (3) these pairs are
-explicitly EXEMPT from the aggressive-deprecation rule — do NOT remove the twins.
-
-Scope (unchanged): STATIC METHODS ON STDLIB INTRINSIC CLASSES only (Math, Tensor, String, ...).
-Exact match wins first; on miss, retry with str.casefold(); NEVER applies to user-defined
-functions/classes. Pair taxonomy: Dot/dot, Outer/outer, Transpose/transpose, Normalize/normalize
-are true case-twins; MatrixMul/matmul, TensorProduct/tensor_product, RotationFor/rotation_for,
-log/ln are DIFFERENT names (case-folding can't unify — keep both). The canonical (declared)
-spelling is what gets emitted, so `_VSA.<name>` always targets a real runtime attribute.
-
-STATUS 2026-07-15 — FUNCTIONALLY COMPLETE + CI-green. Shipped: class-namespace dispatch, the
-ambiguous-casefold determinism fix, bare free-call dispatch, and the validator (is_known_function
-casefold, no spurious SUT0201), plus docs (numeric-math.md). `_resolve_stdlib_method_ci` +
-`_resolve_bare_intrinsic_ci` + `_stdlib_class_names` gate in codegen_base.py; `extern_function_names_casefold`
-in symbol_table.py. Every valuable call path resolves `Math.Log`/`Log`/`LOG` etc. to the canonical `_VSA.<name>`.
-
-NOT doing — twin collapse (Dot/dot → one declaration): Emma's decision is internally split — point 2
-("rather than keeping duplicate declarations") leans collapse, but point 3 says "do NOT remove the twins."
-Given that ambiguity + it's marked OPTIONAL + removing a `dot` declaration risks paper-cited-code
-reproducibility (`bind`/`bundle`/`dot` surface must keep compiling), leave BOTH declarations. The
-case-insensitive resolution already covers every spelling, so there's no functional need to collapse.
-
-Deferred (niche, low value) — this.method/older-instance dispatch paths (~4233/~2597) for a case-variant
-call inside a class method on the same class. Typed-instance (`t.Dot()`) is OUT OF SCOPE (not wired to
-`_VSA` even for lowercase). Reopen only if a real program needs these.
+The actionable queue is drained. The last ACTIVE item (case-insensitive stdlib method resolution)
+shipped functionally-complete + CI-green 2026-07-15 (`_resolve_stdlib_method_ci` /
+`_resolve_bare_intrinsic_ci` / `_stdlib_class_names` in codegen_base.py; `extern_function_names_casefold`
+in symbol_table.py; docs numeric-math.md) — removed here per delete-on-done. Everything else is PARKED
+(gated on a CUDA box / WASM toolchain / the desktop-I/O producer — see below), the FV paper (Emma's
+disposition call), or "fix the failing tests" (do-not-start). Per Emma's ERP-for-agents pivot, Sutra
+is **released at v1.0.0 and put ON HOLD** — no new pulls from `todo.md`, and the self-perpetuating
+readability-audit refill is retired (see PINNED TAIL).
 
 ---
 
-## ⭐ PINNED TAIL — readability + usability audit → REFILL (self-perpetuating; Emma 2026-06-23)
+## ⭐ PINNED TAIL — RETIRED at v1.0.0 (Emma 2026-07-19)
 
-**This item never gets deleted — it regrows the queue.** When items 1..N above are all done, run a fresh
-**readability + usability audit** of Sutra from the perspective of an outsider trying to read, install,
-run, and learn it, and **atomise the findings into 3–6 new concrete items at the TOP of this ACTIVE
-list**, then keep barrelling. Repeat every time the concrete items drain. Audit surfaces, rotating:
-- **Onboarding:** can a stranger `pip install` and run their first program in <5 min? Where do they get stuck?
-- **Docs readability:** are the tutorials/concept pages clear, in order, free of repo-internal jargon and
-  dead links? Does the website read well to a newcomer? (Website discipline: keep `docs/` free of
-  `queue.md`/`todo.md`/`planning/...` references.)
-- **Error messages:** are `SUT####` diagnostics + runtime errors actionable, pointing at the fix?
-- **Language readability:** is `.su` source itself readable? Are the example programs idiomatic and
-  well-commented? Is the stdlib surface discoverable?
-- **Real-program reach:** what can't a newcomer build yet that they'd expect to? (stdlib gaps, missing
-  ergonomics) — name precisely; don't fake reach.
-- **Aliases + affordances (Emma 2026-06-23):** internal redundancy — two Sutra-native names for one op,
-  legacy entry points, escape hatches that mislead the next agent. Deprecate aggressively toward one
-  canonical spelling (CLAUDE.md § "Deprecate aliases aggressively"); exclude the foreign-ecosystem carve-out.
-
-**THE GOAL IS V1, AND V1 IS EMMA'S MANUAL CALL — NOT THE LOOP'S.** Keep making Sutra more readable +
-usable; do NOT bump the version to 1.0.0, do NOT declare "V1-ready," do NOT tag a v1 release. Emma
-approves the V1 transition manually. The loop's job is to keep closing usability/readability gaps until
-she says it's there. (Consistent with the v1.0.0-deferred note in Context above.)
+The self-perpetuating readability+usability audit refill is **retired.** It was the mechanism that
+kept Sutra's queue regrowing forever — exactly the "queue goes on and on even when there's not much
+left" Emma named when she called the V1 transition and put Sutra on hold. The loop no longer refills
+this queue. (History of the audit surfaces is in git.) V1 was Emma's manual call; she made it
+2026-07-19. Do not re-add a self-refilling audit item.
 
 ## Session bracket — autonomous loop (self-timed)
 

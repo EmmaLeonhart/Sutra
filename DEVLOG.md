@@ -1,3 +1,18 @@
+## 2026-07-19: v1.0.0 — Sutra CLOSED and put on hold (Emma's ERP-for-agents pivot)
+
+Emma made the V1 call as part of the ERP-for-agents pivot: "close the Sutra project… make a 1.0
+release once all the stuff is finished… be sure pypi updates and everything is 1.0 at the end, at
+which point we will put it on hold." Assessed the queue: the last ACTIVE item (case-insensitive
+stdlib resolution) was already functionally-complete + CI-green (2026-07-15, no code since); the
+rest is PARKED (gated on a CUDA box / WASM toolchain / desktop-I/O producer this clone lacks), the
+FV paper (Emma's disposition call, no correctness work outstanding), or "fix the failing tests"
+(explicitly do-not-start). So nothing actionable-and-ungated remained. 1.0.0 = the identical
+CI-green 0.10.0 code with the version string bumped (pyproject + __init__), so no new code to
+re-verify — CI was green at this exact tree. Retired the self-perpetuating readability-audit refill
+(the mechanism that kept the queue regrowing forever — the "queue goes on and on even when there's
+not much left" Emma named). Published via the `sutra-dev-v1.0.0` tag (trusted-publisher → PyPI
+`sutra-dev` + GitHub Release `v1.0.0`). Sutra is now ON HOLD.
+
 ## 2026-07-15: case-insensitive stdlib resolution — CLOSED (functionally complete); twin-collapse NOT done
 
 Closed the case-insensitive item: functionally complete + CI-green across class-namespace dispatch,
