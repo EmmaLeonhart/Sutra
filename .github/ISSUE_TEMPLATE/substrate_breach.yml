@@ -1,0 +1,52 @@
+name: Substrate breach
+description: An operation escapes the substrate, or a claim isn't backed by measurement.
+labels: ["substrate", "correctness"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for the failure modes in CONTRIBUTING.md § "The rules that get patches rejected"
+        and `CLAUDE.md` § "Subtler substrate breaches". Dispatch-level cleanliness is necessary but
+        not sufficient — the three audits below are the sufficient set.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Which breach
+      options:
+        - Host readout inside an operation (.item(), float(tensor), host if/while on data)
+        - Math shortcut (substrate op replaced by closed-form host computation)
+        - Dimension audit — runtime_dim far larger than the task needs
+        - State-locus audit — "recurrent"/"RNN" but state lives in a host variable
+        - Signal-separation audit — returns numbers that don't separate the classes
+        - Introspection (readout/logging/monitoring threaded through operations)
+        - Unmeasured claim in a commit message or doc
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Where
+      description: File and line, or the commit that introduced it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: |
+        The code path that escapes the substrate, or the measurement that contradicts the claim.
+
+        - **Dimension audit:** the `basis_vector` call count and the dim actually used.
+        - **State-locus audit:** where the state lives between calls.
+        - **Signal-separation audit:** the `gap = min(positive_class) - max(negative_class)` table.
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+      description: Optional — the substrate-pure form, or the wording the claim should be scoped to.

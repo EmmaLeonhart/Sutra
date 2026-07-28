@@ -1,0 +1,80 @@
+name: Bug report
+description: Something compiles, runs, or measures differently than documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For anything involving similarity, retrieval, or classification, **include the measured
+        cosines**. "It returns the wrong concept" is not reproducible without numbers — see
+        CONTRIBUTING.md § "Reporting bugs".
+
+  - type: textarea
+    id: source
+    attributes:
+      label: The `.su` source that reproduces it
+      description: The smallest program that shows the problem.
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+      description: What you expected, what happened, and the exact `sutrac` output or traceback.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Codegen backend
+      options:
+        - codegen_pytorch (canonical)
+        - codegen (numpy, deprecated)
+    validations:
+      required: true
+
+  - type: input
+    id: runtime_dim
+    attributes:
+      label: runtime_dim
+      description: The dimension the program ran at (default 868).
+    validations:
+      required: true
+
+  - type: dropdown
+    id: embed_backend
+    attributes:
+      label: Embedding backend
+      description: The two realizations differ slightly in geometry, so this changes measured numbers.
+      options:
+        - in-process sentence-transformers (default)
+        - ollama (SUTRA_EMBED_BACKEND=ollama)
+    validations:
+      required: true
+
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Measurements
+      description: |
+        Cosines, similarity scores, or a `gap = min(positive_class) - max(negative_class)` table
+        if this concerns a classifier or decision function.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`sutrac --version` or the `sutra-dev` version installed."
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Platform and Python version
+      placeholder: "Windows 11 / Python 3.13"
+    validations:
+      required: true
