@@ -24,7 +24,7 @@ The extras matter:
 | Extra | Pulls | Needed for |
 |---|---|---|
 | `runtime` | `torch` | the canonical backend — almost everything |
-| `embed` | `sentence-transformers` | semantic programs (auto-embedding strings) |
+| `embed` | `sentence-transformers`, `einops` | semantic programs (auto-embedding strings) |
 | `fv` | `sympy` | the formal-verification tooling |
 | `dev` | `pytest` | the test suite |
 
@@ -37,6 +37,40 @@ behind `SUTRA_EMBED_BACKEND=ollama`; the two differ slightly in geometry, so don
 a number measured under one as valid under the other.
 
 ## Running the tests
+
+### You need Ollama running, even though end users don't
+
+This trips people up, so it comes first. `tests/conftest.py` pins the whole test
+session to the **Ollama** backend:
+
+```python
+os.environ.setdefault("SUTRA_EMBED_BACKEND", "ollama")
+```
+
+The suite's numeric thresholds — axon crosstalk margins, classifier separations,
+retrieval expectations — were measured against Ollama's `nomic-embed-text` geometry. The
+in-process backend is the same model family but a different realization, and a few
+capacity/crosstalk stress tests collide under it. So the correctness gate runs on the
+substrate it was tuned against.
+
+The consequence: **a machine with no Ollama daemon fails ~50 tests, and the failure looks
+like broken code rather than a missing dependency.** The traceback bottoms out in
+`ModuleNotFoundError: No module named 'ollama'` inside `_embed_ollama`, several frames
+below whatever the test was actually checking. Before you start debugging, run:
+
+```bash
+ollama serve          # in another terminal
+ollama pull nomic-embed-text
+pip install ollama    # the Python client — not in any extra
+```
+
+Note that `ollama` (the Python package) is deliberately *not* in the `embed` extra, since
+end users on the default in-process backend don't need it. Only the test suite does.
+
+`setdefault` means an explicit `SUTRA_EMBED_BACKEND=transformers` still wins, so you can
+exercise the in-process path on purpose. The example smoke test covers that backend.
+
+### The command
 
 From `sdk/sutra-compiler`, this is the exact command CI runs:
 
